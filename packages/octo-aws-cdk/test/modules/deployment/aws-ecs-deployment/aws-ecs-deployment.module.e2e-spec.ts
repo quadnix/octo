@@ -4,8 +4,8 @@ import { type App, type Server, TestContainer, TestModuleContainer, stub } from 
 import type { AwsEcsServerAnchorSchema } from '../../../../src/anchors/aws-ecs/aws-ecs-server.anchor.schema.js';
 import type { AwsIamRoleAnchorSchema } from '../../../../src/anchors/aws-iam/aws-iam-role.anchor.schema.js';
 import { AwsEcsDeploymentModule } from '../../../../src/modules/deployment/aws-ecs-deployment/index.js';
-import { TerragruntRunner } from '../../../../src/utilities/terragrunt-runner/terragrunt-runner.utility.js';
 import { config } from '../../../test.config.js';
+import { TerragruntUtility } from '../../../utilities/terragrunt/terragrunt.utility.js';
 
 const { AWS_ACCOUNT_ID, AWS_REGION_ID } = config;
 
@@ -83,8 +83,7 @@ describe('AwsEcsDeploymentModule E2E', () => {
 
     // The deployment module contributes no terraform of its own (the task definition only materializes
     // once composed with an execution), so generateHcl emits nothing for terragrunt to run.
-    const runner = new TerragruntRunner(outputDir, { awsRegion: AWS_REGION_ID });
     expect(resourceDiffs.flat()).toHaveLength(0);
-    expect(await runner.collectTerraformResources()).toEqual([]);
+    expect(await TerragruntUtility.collectTerraformResources(outputDir)).toEqual([]);
   }, 300_000);
 });

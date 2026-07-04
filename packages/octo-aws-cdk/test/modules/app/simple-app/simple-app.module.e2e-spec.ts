@@ -2,8 +2,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { type App, TestContainer, TestModuleContainer } from '@quadnix/octo';
 import { SimpleAppModule } from '../../../../src/modules/app/simple-app/index.js';
-import { TerragruntRunner } from '../../../../src/utilities/terragrunt-runner/terragrunt-runner.utility.js';
 import { config } from '../../../test.config.js';
+import { TerragruntUtility } from '../../../utilities/terragrunt/terragrunt.utility.js';
 
 const { AWS_ACCOUNT_ID, AWS_REGION_ID } = config;
 
@@ -46,8 +46,7 @@ describe('SimpleAppModule E2E', () => {
     const { outputDir, resourceDiffs } = await testModuleContainer.generateHcl(app, { outputDir: OUTPUT_DIR });
 
     // The app module creates no resources, so generateHcl emits nothing for terragrunt to run.
-    const runner = new TerragruntRunner(outputDir, { awsRegion: AWS_REGION_ID });
     expect(resourceDiffs.flat()).toHaveLength(0);
-    expect(await runner.collectTerraformResources()).toEqual([]);
+    expect(await TerragruntUtility.collectTerraformResources(outputDir)).toEqual([]);
   }, 300_000);
 });

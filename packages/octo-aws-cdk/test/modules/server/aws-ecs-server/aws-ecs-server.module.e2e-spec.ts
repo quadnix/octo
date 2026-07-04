@@ -1,13 +1,20 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { type Account, type App, type Service, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import {
+  type Account,
+  type App,
+  type Service,
+  TerraformUtility,
+  TestContainer,
+  TestModuleContainer,
+  stub,
+} from '@quadnix/octo';
 import type { AwsAccountAnchorSchema } from '../../../../src/anchors/aws-account/aws-account.anchor.schema.js';
 import type { AwsS3StorageServiceDirectoryAnchorSchema } from '../../../../src/anchors/aws-s3-storage-service/aws-s3-storage-service-directory.anchor.schema.js';
 import type { AwsS3StorageServiceAnchorSchema } from '../../../../src/anchors/aws-s3-storage-service/aws-s3-storage-service.anchor.schema.js';
 import { AwsEcsServerModule } from '../../../../src/modules/server/aws-ecs-server/index.js';
 import { AwsEcsServerS3AccessDirectoryPermission } from '../../../../src/modules/server/aws-ecs-server/index.schema.js';
 import { S3Storage } from '../../../../src/resources/s3-storage/index.js';
-import { TerragruntRunner } from '../../../../src/utilities/terragrunt-runner/terragrunt-runner.utility.js';
 import { config } from '../../../test.config.js';
 
 const { AWS_ACCOUNT_ID, AWS_REGION_ID } = config;
@@ -63,6 +70,7 @@ async function setup(
 }
 
 describe('AwsEcsServerModule E2E', () => {
+  let terraformUtility: TerraformUtility;
   let testModuleContainer: TestModuleContainer;
 
   beforeEach(async () => {
@@ -70,6 +78,7 @@ describe('AwsEcsServerModule E2E', () => {
 
     testModuleContainer = new TestModuleContainer(container);
     await testModuleContainer.initialize();
+    terraformUtility = await container.get(TerraformUtility);
 
     testModuleContainer.registerTerraformConfig({
       providers: { aws: { minVersion: '5.49', source: 'hashicorp/aws' } },
@@ -101,8 +110,7 @@ describe('AwsEcsServerModule E2E', () => {
 
     const { outputDir } = await testModuleContainer.generateHcl(app, { outputDir: OUTPUT_DIR });
 
-    const runner = new TerragruntRunner(outputDir, { awsRegion: AWS_REGION_ID });
-    await runner.validate();
-    await runner.plan();
+    await terraformUtility.validate(outputDir);
+    await terraformUtility.plan(outputDir);
   }, 300_000);
 });

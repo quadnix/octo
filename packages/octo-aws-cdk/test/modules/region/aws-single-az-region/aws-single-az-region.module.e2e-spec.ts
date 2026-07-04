@@ -1,10 +1,9 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { type Account, type App, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import { type Account, type App, TerraformUtility, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsAccountAnchorSchema } from '../../../../src/anchors/aws-account/aws-account.anchor.schema.js';
 import { AwsSingleAzRegionModule } from '../../../../src/modules/region/aws-single-az-region/index.js';
 import { AwsSingleAzRegionId } from '../../../../src/modules/region/aws-single-az-region/index.schema.js';
-import { TerragruntRunner } from '../../../../src/utilities/terragrunt-runner/terragrunt-runner.utility.js';
 import { config } from '../../../test.config.js';
 
 const { AWS_ACCOUNT_ID, AWS_REGION_ID } = config;
@@ -33,6 +32,7 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{ accoun
 }
 
 describe('AwsSingleAzRegionModule E2E', () => {
+  let terraformUtility: TerraformUtility;
   let testModuleContainer: TestModuleContainer;
 
   beforeEach(async () => {
@@ -40,6 +40,7 @@ describe('AwsSingleAzRegionModule E2E', () => {
 
     testModuleContainer = new TestModuleContainer(container);
     await testModuleContainer.initialize();
+    terraformUtility = await container.get(TerraformUtility);
 
     testModuleContainer.registerTerraformConfig({ providers: { aws: { source: 'hashicorp/aws' } } });
     testModuleContainer.registerTerraformProvider('aws', AWS_ACCOUNT_ID, AWS_REGION_ID);
@@ -65,8 +66,7 @@ describe('AwsSingleAzRegionModule E2E', () => {
 
     const { outputDir } = await testModuleContainer.generateHcl(app, { outputDir: OUTPUT_DIR });
 
-    const runner = new TerragruntRunner(outputDir, { awsRegion: AWS_REGION_ID });
-    await runner.validate();
-    await runner.plan();
+    await terraformUtility.validate(outputDir);
+    await terraformUtility.plan(outputDir);
   }, 300_000);
 });

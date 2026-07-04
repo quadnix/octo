@@ -1,11 +1,10 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { type Account, type App, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import { type Account, type App, TerraformUtility, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsDynamoDBAnchorSchema } from '../../../../src/anchors/aws-dynamodb/aws-dynamodb.anchor.schema.js';
 import type { AwsRegionAnchorSchema } from '../../../../src/anchors/aws-region/aws-region.anchor.schema.js';
 import { AwsDynamoDBGlobalServiceModule } from '../../../../src/modules/service/aws-dynamodb-global-service/index.js';
 import { DynamoDBSchema } from '../../../../src/resources/dynamodb/index.schema.js';
-import { TerragruntRunner } from '../../../../src/utilities/terragrunt-runner/terragrunt-runner.utility.js';
 import { config } from '../../../test.config.js';
 
 const { AWS_ACCOUNT_ID, AWS_REGION_ID } = config;
@@ -106,6 +105,7 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{ accoun
 }
 
 describe('AwsDynamoDBGlobalServiceModule E2E', () => {
+  let terraformUtility: TerraformUtility;
   let testModuleContainer: TestModuleContainer;
 
   beforeEach(async () => {
@@ -113,6 +113,7 @@ describe('AwsDynamoDBGlobalServiceModule E2E', () => {
 
     testModuleContainer = new TestModuleContainer(container);
     await testModuleContainer.initialize();
+    terraformUtility = await container.get(TerraformUtility);
 
     testModuleContainer.registerTerraformConfig({
       providers: { aws: { minVersion: '5.49', source: 'hashicorp/aws' } },
@@ -139,8 +140,7 @@ describe('AwsDynamoDBGlobalServiceModule E2E', () => {
 
     const { outputDir } = await testModuleContainer.generateHcl(app, { outputDir: OUTPUT_DIR });
 
-    const runner = new TerragruntRunner(outputDir, { awsRegion: AWS_REGION_ID });
-    await runner.validate();
-    await runner.plan();
+    await terraformUtility.validate(outputDir);
+    await terraformUtility.plan(outputDir);
   }, 300_000);
 });

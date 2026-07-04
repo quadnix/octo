@@ -9,6 +9,7 @@ import {
   type Region,
   type Server,
   type Subnet,
+  TerraformUtility,
   TestContainer,
   TestModuleContainer,
   stub,
@@ -28,7 +29,6 @@ import { EfsMountTargetSchema } from '../../../../src/resources/efs-mount-target
 import { IamRoleSchema } from '../../../../src/resources/iam-role/index.schema.js';
 import { SubnetSchema } from '../../../../src/resources/subnet/index.schema.js';
 import { VpcSchema } from '../../../../src/resources/vpc/index.schema.js';
-import { TerragruntRunner } from '../../../../src/utilities/terragrunt-runner/terragrunt-runner.utility.js';
 import { config } from '../../../test.config.js';
 
 const { AWS_ACCOUNT_ID, AWS_REGION_ID } = config;
@@ -225,6 +225,7 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{
 }
 
 describe('AwsEcsExecutionModule E2E', () => {
+  let terraformUtility: TerraformUtility;
   let testModuleContainer: TestModuleContainer;
 
   beforeEach(async () => {
@@ -232,6 +233,7 @@ describe('AwsEcsExecutionModule E2E', () => {
 
     testModuleContainer = new TestModuleContainer(container);
     await testModuleContainer.initialize();
+    terraformUtility = await container.get(TerraformUtility);
 
     testModuleContainer.registerTerraformConfig({
       providers: { aws: { minVersion: '5.49', source: 'hashicorp/aws' } },
@@ -271,8 +273,7 @@ describe('AwsEcsExecutionModule E2E', () => {
 
     const { outputDir } = await testModuleContainer.generateHcl(app, { outputDir: OUTPUT_DIR });
 
-    const runner = new TerragruntRunner(outputDir, { awsRegion: AWS_REGION_ID });
-    await runner.validate();
-    await runner.plan();
+    await terraformUtility.validate(outputDir);
+    await terraformUtility.plan(outputDir);
   }, 300_000);
 });
