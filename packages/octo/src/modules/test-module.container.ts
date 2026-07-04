@@ -212,6 +212,19 @@ export class TestModuleContainer {
     return response;
   }
 
+  /**
+   * Commits the result of a terraform apply back into octo's state, exactly as `octo commit` does:
+   * reads each module folder's outputs from the caller-supplied map (keyed by module id, as parsed
+   * from `terragrunt output -json`), populates resource responses, and persists model + resource
+   * state. Use with {@link generateHcl} and a real `terragrunt run --all apply` to drive the full
+   * user cycle from a test.
+   */
+  async commitHcl(...args: Parameters<Octo['commit']>): ReturnType<Octo['commit']> {
+    // Clear the previous call's sweep; config and providers survive (registered once per process).
+    (await this.container.get(TerraformService)).resetTransactionState();
+    return this.octo.commit(...args);
+  }
+
   async createResources(
     moduleId: string,
     args: Parameters<typeof createResources>[0],
@@ -584,5 +597,16 @@ export class TestModuleContainer {
     }
 
     return (await this.octo.compose()) as { [key: string]: ModuleOutput<M> };
+  }
+
+  /**
+   * Validates caller-supplied terraform plans (parsed `terragrunt show -json`, keyed by module id)
+   * against octo's resource diff, exactly as `octo validate` does. Use between {@link generateHcl}
+   * and the apply. Never writes state or folders.
+   */
+  async validateHcl(...args: Parameters<Octo['validate']>): ReturnType<Octo['validate']> {
+    // Clear the previous call's sweep; config and providers survive (registered once per process).
+    (await this.container.get(TerraformService)).resetTransactionState();
+    return this.octo.validate(...args);
   }
 }
