@@ -4,7 +4,6 @@ import { join } from 'node:path';
 import type {
   ActionOutputs,
   Constructable,
-  ModuleOutput,
   ModuleSchemaInputs,
   UnknownAnchor,
   UnknownModel,
@@ -22,6 +21,7 @@ import type { BaseAnchorSchema } from '../overlays/anchor.schema.js';
 import { OverlayDataRepository, type OverlayDataRepositoryFactory } from '../overlays/overlay-data.repository.js';
 import { AOverlay } from '../overlays/overlay.abstract.js';
 import type { IResourceAction } from '../resources/resource-action.interface.js';
+import { ResourceDataRepository } from '../resources/resource-data.repository.js';
 import { AResource } from '../resources/resource.abstract.js';
 import type { BaseResourceSchema } from '../resources/resource.schema.js';
 import { InputService, type InputServiceFactory } from '../services/input/input.service.js';
@@ -33,6 +33,7 @@ import { TestStateProvider } from '../services/state-management/test.state-provi
 import { TerraformService } from '../services/terraform/terraform.service.js';
 import { TransactionService } from '../services/transaction/transaction.service.js';
 import { HclUtility } from '../utilities/hcl/hcl.utility.js';
+import { TerraformUtility } from '../utilities/terraform/terraform.utility.js';
 import { TestAnchor } from '../utilities/test-helpers/test-classes.js';
 import { create } from '../utilities/test-helpers/test-models.js';
 import { createTestOverlays } from '../utilities/test-helpers/test-overlays.js';
@@ -89,7 +90,7 @@ export class TestModuleContainer {
     this.octo = new Octo();
   }
 
-  async commit(
+  private async commit(
     app: App,
     {
       filterByModuleIds = [],
@@ -144,9 +145,9 @@ export class TestModuleContainer {
       await this.octo['commitTransaction'](app, response.modelTransaction, response.resourceTransaction);
     }
 
-    // Establish the HCL diff baseline from the same transaction that just applied the models, so a
-    // later diffHcl() reports what changed against the committed state. Captured before reset(),
-    // which wipes the model attribution renderAllModules() depends on.
+    // Establish the HCL diff baseline from the same transaction that just applied the models, so the
+    // next runModules() render reports its `diff` against the committed state. Captured before
+    // reset(), which wipes the model attribution renderAllModules() depends on.
     this.previousHcl = HclUtility.serialize(terraformService.renderAllModules());
 
     const inputService = await this.container.get(InputService);
@@ -212,14 +213,7 @@ export class TestModuleContainer {
     return response;
   }
 
-  /**
-   * Commits the result of a terraform apply back into octo's state, exactly as `octo commit` does:
-   * reads each module folder's outputs from the caller-supplied map (keyed by module id, as parsed
-   * from `terragrunt output -json`), populates resource responses, and persists model + resource
-   * state. Use with {@link generateHcl} and a real `terragrunt run --all apply` to drive the full
-   * user cycle from a test.
-   */
-  async commitHcl(...args: Parameters<Octo['commit']>): ReturnType<Octo['commit']> {
+  private async commitHcl(...args: Parameters<Octo['commit']>): ReturnType<Octo['commit']> {
     // Clear the previous call's sweep; config and providers survive (registered once per process).
     (await this.container.get(TerraformService)).resetTransactionState();
     return this.octo.commit(...args);
@@ -375,18 +369,6 @@ export class TestModuleContainer {
   }
 
   /**
-   * Renders the desired-state terraform for `app` and returns a block-level diff against the
-   * previous render in this test (from an earlier {@link renderHcl} or {@link diffHcl} call), ready
-   * to snapshot. Returns `'<no changes>'` when nothing moved.
-   */
-  async diffHcl(app: App): Promise<string> {
-    const current = await this.renderCurrentHcl(app);
-    const diff = HclUtility.diffBlocks(this.previousHcl ?? '', current);
-    this.previousHcl = current;
-    return diff;
-  }
-
-  /**
    * Reduces a transaction's diffs (resource or model) to a stable, snapshot-friendly digest:
    * `+ <context>` (create), `- <context>` (delete), `^ <context>` (replace), `* <context>` (update).
    * Folds in the former standalone `DiffAssert` — everything a test needs lives on this container.
@@ -407,29 +389,7 @@ export class TestModuleContainer {
     return changes;
   }
 
-  /**
-   * Generates the full desired-state terraform for `app` to disk as standalone, executable terragrunt
-   * module folders — one per octo module (`main.tf`, `variables.tf`, `outputs.tf`, `terragrunt.hcl`).
-   * The same output an end user gets from `octo run-action`, so a module author can point real
-   * `terraform`/`terragrunt` at it and validate their piece against the provider — the one check octo
-   * deliberately does not do itself.
-   *
-   * Cross-module references emit terragrunt `dependency` blocks with `mock_outputs` (and
-   * `mock_outputs_allowed_terraform_commands = ["init", "plan", "show", "validate"]`), so
-   * `terragrunt run-all validate` / `plan` should succeed even though the upstream modules a developer would
-   * normally supply are absent. The boundary is mocked from exactly what this module consumes.
-   *
-   * Rendering throws if the terraform is internally inconsistent — a reference to a resource or
-   * output that nothing produces, or a cross-module dependency cycle.
-   *
-   * Persists nothing to octo state — safe to call before {@link commit} and to call repeatedly.
-   *
-   * @param app - the composed app to render.
-   * @param outputDir - where to write the folders. Defaults to a fresh temp directory (returned in
-   *   the result). Folders are overwritten in place; the directory is not wiped.
-   * @returns the directory written to, and the resource diffs that produced it (a review artifact).
-   */
-  async generateHcl(
+  private async generateHcl(
     app: App,
     { outputDir }: { outputDir?: string } = {},
   ): Promise<{ outputDir: string; resourceDiffs: DiffMetadata[][] }> {
@@ -476,11 +436,6 @@ export class TestModuleContainer {
     return transaction.map((i) =>
       i.map((j) => j.actions.map((a: IModelAction<any> | IResourceAction<any>) => a.constructor.name)).flat(),
     );
-  }
-
-  async orderModules(modules: (Constructable<UnknownModule> | string)[]): Promise<void> {
-    const moduleContainer = await this.container.get(ModuleContainer);
-    moduleContainer.order(modules);
   }
 
   registerHooks(...args: Parameters<Octo['registerHooks']>): ReturnType<Octo['registerHooks']> {
@@ -530,21 +485,6 @@ export class TestModuleContainer {
     return HclUtility.serialize(terraformService.renderAllModules());
   }
 
-  /**
-   * Renders the full desired-state terraform for `app` in memory (no filesystem) as a single
-   * deterministic string, suitable for a full-tree snapshot. Advances the internal "previous"
-   * render, so a later {@link diffHcl} call reports what changed since this one.
-   *
-   * Contributes resources to {@link TerraformService} and renders, but persists nothing to octo
-   * state — safe to call before {@link commit}. Throws if the terraform is internally inconsistent
-   * (a reference to a resource/output nothing produces, or a cross-module cycle).
-   */
-  async renderHcl(app: App): Promise<string> {
-    const current = await this.renderCurrentHcl(app);
-    this.previousHcl = current;
-    return current;
-  }
-
   async reset(): Promise<void> {
     const container = this.container;
 
@@ -559,30 +499,34 @@ export class TestModuleContainer {
     moduleContainer.reset();
   }
 
-  async runModule<M extends UnknownModule>(module: TestModule<M>): Promise<{ [key: string]: ModuleOutput<M> }> {
-    const moduleContainer = await this.container.get(ModuleContainer);
+  async *runModules<M extends UnknownModule>(
+    app: UnknownModel,
+    modules: TestModule<M> | TestModule<M>[],
+    {
+      filterByModuleIds = [],
+      outputDir,
+      skipTerraformApply = false,
+    }: { filterByModuleIds?: string[]; outputDir?: string; skipTerraformApply?: boolean } = {},
+  ): AsyncGenerator<{
+    app: UnknownModel;
+    hclDiff: string;
+    hclRender: string;
+    modelTransaction: DiffMetadata[][];
+    resourceDiffs: DiffMetadata[][];
+    resourceTransaction: DiffMetadata[][];
+    responses: { [resourceContext: string]: unknown };
+    warnings: { message: string; moduleId?: string }[];
+  }> {
+    const [moduleContainer, resourceDataRepository, terraformUtility] = await Promise.all([
+      this.container.get(ModuleContainer),
+      this.container.get(ResourceDataRepository),
+      this.container.get(TerraformUtility),
+    ]);
 
-    const moduleMetadataIndex = moduleContainer.getMetadataIndex(module.type);
-    if (moduleMetadataIndex === -1) {
-      moduleContainer.register(module.type, { packageName: (module.type as unknown as typeof AModule).MODULE_PACKAGE });
-    }
-
-    const moduleMetadata = moduleContainer.getMetadata(module.type)!;
-    if (module.hidden === true) {
-      moduleContainer.unload(moduleMetadata.module);
-    } else {
-      moduleContainer.load(moduleMetadata.module, module.moduleId, module.inputs);
-    }
-
-    return (await this.octo.compose()) as { [key: string]: ModuleOutput<M> };
-  }
-
-  async runModules<M extends UnknownModule>(modules: TestModule<M>[]): Promise<{ [key: string]: ModuleOutput<M> }> {
-    const moduleContainer = await this.container.get(ModuleContainer);
-
-    for (const module of modules) {
-      const moduleMetadataIndex = moduleContainer.getMetadataIndex(module.type);
-      if (moduleMetadataIndex === -1) {
+    // Load modules.
+    const moduleList = Array.isArray(modules) ? modules : [modules];
+    for (const module of moduleList) {
+      if (moduleContainer.getMetadataIndex(module.type) === -1) {
         moduleContainer.register(module.type, {
           packageName: (module.type as unknown as typeof AModule).MODULE_PACKAGE,
         });
@@ -596,15 +540,76 @@ export class TestModuleContainer {
       }
     }
 
-    return (await this.octo.compose()) as { [key: string]: ModuleOutput<M> };
+    // Compose modules.
+    moduleContainer.order(moduleList.map((m) => m.type));
+    await this.octo.compose();
+
+    const collectResponses = (): { [resourceContext: string]: unknown } =>
+      Object.fromEntries(
+        resourceDataRepository.getActualResourcesByProperties().map((r) => [r.getContext(), r.response]),
+      );
+
+    if (skipTerraformApply) {
+      // this.commit() applies the model graph exactly once and, before its internal reset, stores the
+      // rendered desired state in `previousHcl`. Derive the render and block diff from that single
+      // apply rather than a separate preview render — a preview would re-run model actions, and
+      // non-idempotent ones (e.g. sibling associations) would then apply twice.
+      const priorHcl = this.previousHcl ?? '';
+      const transaction = await this.commit(app as App, { filterByModuleIds });
+      const currentHcl = this.previousHcl ?? '';
+
+      yield {
+        app,
+        hclDiff: HclUtility.diffBlocks(priorHcl, currentHcl),
+        hclRender: currentHcl,
+        modelTransaction: transaction.modelTransaction,
+        resourceDiffs: transaction.resourceDiffs,
+        resourceTransaction: transaction.resourceTransaction,
+        responses: collectResponses(),
+        warnings: [],
+      };
+      return;
+    }
+
+    // Render the full HCL and the block diff against the previous run (terraform apply path).
+    const currentHcl = await this.renderCurrentHcl(app as App);
+    const diffHcl = HclUtility.diffBlocks(this.previousHcl ?? '', currentHcl);
+    this.previousHcl = currentHcl;
+
+    // Generate.
+    const { outputDir: dir, resourceDiffs } = await this.generateHcl(app as App, { outputDir });
+
+    // Validate.
+    const validation = await this.validateHcl(app as App, { plans: await terraformUtility.plan(dir, { json: true }) });
+    if (!validation.pass) {
+      throw new Error(
+        `runModules(): terraform plan failed octo validation:\n${validation.errors
+          .map((error) => `${error.moduleId ? `[${error.moduleId}] ` : ''}${error.message}`)
+          .join('\n')}`,
+      );
+    }
+
+    // Apply.
+    await terraformUtility.apply(dir);
+
+    // Commit.
+    const { warnings } = await this.commitHcl(app as App, {
+      outputs: await terraformUtility.output(dir, { json: true }),
+    });
+
+    yield {
+      app,
+      hclDiff: diffHcl,
+      hclRender: currentHcl,
+      modelTransaction: [],
+      resourceDiffs,
+      resourceTransaction: [],
+      responses: collectResponses(),
+      warnings,
+    };
   }
 
-  /**
-   * Validates caller-supplied terraform plans (parsed `terragrunt show -json`, keyed by module id)
-   * against octo's resource diff, exactly as `octo validate` does. Use between {@link generateHcl}
-   * and the apply. Never writes state or folders.
-   */
-  async validateHcl(...args: Parameters<Octo['validate']>): ReturnType<Octo['validate']> {
+  private async validateHcl(...args: Parameters<Octo['validate']>): ReturnType<Octo['validate']> {
     // Clear the previous call's sweep; config and providers survive (registered once per process).
     (await this.container.get(TerraformService)).resetTransactionState();
     return this.octo.validate(...args);
