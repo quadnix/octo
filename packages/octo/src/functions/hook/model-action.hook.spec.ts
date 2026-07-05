@@ -6,7 +6,8 @@ import type { IModelAction } from '../../models/model-action.interface.js';
 import { TestModuleContainer } from '../../modules/test-module.container.js';
 import { TestStateProvider } from '../../services/state-management/test.state-provider.js';
 import { TransactionService } from '../../services/transaction/transaction.service.js';
-import { createAppModule } from '../../utilities/test-helpers/test-modules.js';
+import { createAppModule, runModule } from '../../utilities/test-helpers/test-modules.js';
+import type { Container } from '../container/container.js';
 import { TestContainer } from '../container/test-container.js';
 import { DiffMetadata } from '../diff/diff-metadata.js';
 import { Diff, DiffAction } from '../diff/diff.js';
@@ -22,10 +23,11 @@ describe('ModelActionHook UT', () => {
   } as any;
 
   let applyModels: TransactionService['applyModels'];
+  let container: Container;
   let testModuleContainer: TestModuleContainer;
 
   beforeEach(async () => {
-    const container = await TestContainer.create(
+    container = await TestContainer.create(
       {
         mocks: [
           {
@@ -64,7 +66,7 @@ describe('ModelActionHook UT', () => {
       postModelActionHooks: [{ action: universalModelAction, handle: postModelActionHookMock as any }],
       preModelActionHooks: [{ action: universalModelAction, handle: preModelActionHookMock as any }],
     });
-    const { 'moduleId.model.app': app } = await testModuleContainer.runModule({
+    const { 'moduleId.model.app': app } = await runModule(container, {
       inputs: { name: 'app' },
       moduleId: 'moduleId',
       type: TestAppModule,

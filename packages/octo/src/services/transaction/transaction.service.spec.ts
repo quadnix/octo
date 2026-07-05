@@ -15,7 +15,7 @@ import type { IResourceAction } from '../../resources/resource-action.interface.
 import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
 import { TestOverlay } from '../../utilities/test-helpers/test-classes.js';
 import { create } from '../../utilities/test-helpers/test-models.js';
-import { createAppModule, createAppOverlayModule } from '../../utilities/test-helpers/test-modules.js';
+import { createAppModule, createAppOverlayModule, runModule } from '../../utilities/test-helpers/test-modules.js';
 import { createAnchor, createTestOverlays } from '../../utilities/test-helpers/test-overlays.js';
 import {
   commitResources,
@@ -76,7 +76,7 @@ describe('TransactionService UT', () => {
     });
 
     it('should throw error when action inputs are not found', async () => {
-      const { 'moduleId.model.app': app } = await testModuleContainer.runModule({
+      const { 'moduleId.model.app': app } = await runModule(container, {
         inputs: { name: 'test-app' },
         moduleId: 'moduleId',
         type: TestAppModule,
@@ -97,7 +97,7 @@ describe('TransactionService UT', () => {
     });
 
     it('should throw error when action resource inputs are not found', async () => {
-      const { 'moduleId.model.app': app } = await testModuleContainer.runModule({
+      const { 'moduleId.model.app': app } = await runModule(container, {
         inputs: { name: 'test-app' },
         moduleId: 'moduleId',
         type: TestAppModule,
@@ -133,7 +133,7 @@ describe('TransactionService UT', () => {
     it('should only process 1 matching diff when duplicates found', async () => {
       (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({});
 
-      const { 'moduleId.model.app': app } = await testModuleContainer.runModule({
+      const { 'moduleId.model.app': app } = await runModule(container, {
         inputs: { name: 'app' },
         moduleId: 'moduleId',
         type: TestAppModule,
@@ -154,7 +154,7 @@ describe('TransactionService UT', () => {
     it('should call action and collect all input and output', async () => {
       (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({});
 
-      const { 'moduleId.model.app': app } = await testModuleContainer.runModule({
+      const { 'moduleId.model.app': app } = await runModule(container, {
         inputs: { name: 'app' },
         moduleId: 'moduleId',
         type: TestAppModule,
@@ -173,7 +173,7 @@ describe('TransactionService UT', () => {
     it('should update diff metadata with inputs and outputs', async () => {
       (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({});
 
-      const { 'moduleId.model.app': app } = await testModuleContainer.runModule({
+      const { 'moduleId.model.app': app } = await runModule(container, {
         inputs: { name: 'app' },
         moduleId: 'moduleId',
         type: TestAppModule,
@@ -203,7 +203,7 @@ describe('TransactionService UT', () => {
       (universalModelAction.handle as jest.Mocked<any>).mockResolvedValueOnce({});
       (universalModelAction.handle as jest.Mocked<any>).mockResolvedValueOnce({});
 
-      const { 'moduleId.model.app': app } = await testModuleContainer.runModule({
+      const { 'moduleId.model.app': app } = await runModule(container, {
         inputs: { name: 'app' },
         moduleId: 'moduleId',
         type: TestAppModule,
@@ -231,7 +231,7 @@ describe('TransactionService UT', () => {
       const mergeFunction1_1 = jest.spyOn(resource1_1, 'merge');
       const mergeFunction1_2 = jest.spyOn(resource1_2, 'merge');
 
-      const { 'moduleId.model.app': app } = await testModuleContainer.runModule({
+      const { 'moduleId.model.app': app } = await runModule(container, {
         inputs: { name: 'app' },
         moduleId: 'moduleId',
         type: TestAppModule,
@@ -252,7 +252,7 @@ describe('TransactionService UT', () => {
     it('should process diffs in different levels', async () => {
       (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({});
 
-      const { 'moduleId.model.app': app } = await testModuleContainer.runModule({
+      const { 'moduleId.model.app': app } = await runModule(container, {
         inputs: { name: 'app' },
         moduleId: 'moduleId',
         type: TestAppModule,
@@ -972,7 +972,7 @@ describe('TransactionService UT', () => {
       it('should yield model transaction', async () => {
         (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({});
 
-        const { 'moduleId.model.app': app } = await testModuleContainer.runModule({
+        const { 'moduleId.model.app': app } = await runModule(container, {
           inputs: { name: 'app' },
           moduleId: 'moduleId',
           type: TestAppModule,
@@ -991,7 +991,7 @@ describe('TransactionService UT', () => {
       it('should yield model transaction with overlays', async () => {
         (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({});
 
-        const { 'moduleId.model.app': app } = await testModuleContainer.runModule({
+        const { 'moduleId.model.app': app } = await runModule(container, {
           inputs: { name: 'app' },
           moduleId: 'moduleId',
           type: TestAppModule,
@@ -999,7 +999,7 @@ describe('TransactionService UT', () => {
         const anchor1 = new TestAnchor('anchor-1', {}, app);
         app.addAnchor(anchor1);
 
-        await testModuleContainer.runModule({
+        await runModule(container, {
           inputs: { anchorName: 'anchor-1', app: stub('${{moduleId.model.app}}') },
           moduleId: 'overlayModuleId',
           type: TestAppOverlayModule,
