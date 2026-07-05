@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import type {
   ActionOutputs,
   Constructable,
+  GeneratorYieldType,
   ModuleSchemaInputs,
   UnknownAnchor,
   UnknownModel,
@@ -499,14 +500,22 @@ export class TestModuleContainer {
     moduleContainer.reset();
   }
 
+  /**
+   * Runs given modules against Octo to follow the complete lifecycle.
+   *
+   * The `terraformTarget` flag is the key here - it dictates how the lifecycle completes.
+   * - 'skip' → calls commit() — pure in-memory model-graph apply.
+   * - 'plan' → renderCurrentHcl → generateHcl → terraformUtility.plan
+   * - 'apply' → renderCurrentHcl → generateHcl → terraformUtility.plan/apply → commitHcl.
+   */
   async *runModules<M extends UnknownModule>(
     app: UnknownModel,
     modules: TestModule<M> | TestModule<M>[],
     {
       filterByModuleIds = [],
       outputDir,
-      skipTerraformApply = false,
-    }: { filterByModuleIds?: string[]; outputDir?: string; skipTerraformApply?: boolean } = {},
+      terraformTarget = 'skip',
+    }: { filterByModuleIds?: string[]; outputDir?: string; terraformTarget?: 'apply' | 'plan' | 'skip' } = {},
   ): AsyncGenerator<{
     app: UnknownModel;
     hclDiff: string;
@@ -549,7 +558,7 @@ export class TestModuleContainer {
         resourceDataRepository.getActualResourcesByProperties().map((r) => [r.getContext(), r.response]),
       );
 
-    if (skipTerraformApply) {
+    if (terraformTarget === 'skip') {
       // this.commit() applies the model graph exactly once and, before its internal reset, stores the
       // rendered desired state in `previousHcl`. Derive the render and block diff from that single
       // apply rather than a separate preview render — a preview would re-run model actions, and
@@ -589,6 +598,22 @@ export class TestModuleContainer {
       );
     }
 
+    const result: GeneratorYieldType<typeof this.runModules> = {
+      app,
+      hclDiff: diffHcl,
+      hclRender: currentHcl,
+      modelTransaction: [],
+      resourceDiffs,
+      resourceTransaction: [],
+      responses: collectResponses(),
+      warnings: [],
+    };
+
+    if (terraformTarget === 'plan') {
+      yield result;
+      return;
+    }
+
     // Apply.
     await terraformUtility.apply(dir);
 
@@ -597,16 +622,9 @@ export class TestModuleContainer {
       outputs: await terraformUtility.output(dir, { json: true }),
     });
 
-    yield {
-      app,
-      hclDiff: diffHcl,
-      hclRender: currentHcl,
-      modelTransaction: [],
-      resourceDiffs,
-      resourceTransaction: [],
-      responses: collectResponses(),
-      warnings,
-    };
+    // Re-collect responses after the commit: it is commitHcl that maps terraform outputs onto the
+    // actual resource graph, so a snapshot taken before it (as `response` holds) would miss them.
+    yield { ...result, responses: collectResponses(), warnings };
   }
 
   private async validateHcl(...args: Parameters<Octo['validate']>): ReturnType<Octo['validate']> {

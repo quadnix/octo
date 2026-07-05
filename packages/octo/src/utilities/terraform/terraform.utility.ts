@@ -1,4 +1,5 @@
 import { type ExecFileOptionsWithStringEncoding, execFile } from 'node:child_process';
+import type { Dirent } from 'node:fs';
 import { mkdtemp, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -80,7 +81,18 @@ export class TerraformUtility {
    * folders (they contain a `terragrunt.hcl`). Each folder name is the octo `moduleId`.
    */
   async listModuleFolders(terragruntDir: string): Promise<string[]> {
-    const entries = await readdir(terragruntDir, { withFileTypes: true });
+    let entries: Dirent[];
+    try {
+      entries = await readdir(terragruntDir, { withFileTypes: true });
+    } catch (error) {
+      // A generate that produced no resources never creates the directory — that is "no module
+      // folders", not an error.
+      if (error.code === 'ENOENT') {
+        return [];
+      }
+      throw error;
+    }
+
     const moduleIds: string[] = [];
     for (const entry of entries) {
       if (!entry.isDirectory()) {

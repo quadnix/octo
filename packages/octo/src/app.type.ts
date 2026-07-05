@@ -295,6 +295,12 @@ export type EnhancedModuleSchema<T extends UnknownModule> = {
 /**
  * @internal
  */
+export type GeneratorYieldType<T extends (...args: any) => AsyncGenerator<any, any, any>> =
+  ReturnType<T> extends AsyncGenerator<infer Y, any, any> ? Y : never;
+
+/**
+ * @internal
+ */
 export type ModelSchema<T> = T extends AModel<infer S, any> ? S : never;
 
 /**
