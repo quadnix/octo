@@ -1,25 +1,25 @@
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { jest } from '@jest/globals';
-import {
-  type App,
-  type ResourceSerializedOutput,
-  TestContainer,
-  TestModuleContainer,
-  TestStateProvider,
-  stub,
-} from '@quadnix/octo';
+import { type App, TestContainer, TestModuleContainer, TestStateProvider, stub } from '@quadnix/octo';
 import { AwsLocalstackAccountModule } from '@quadnix/octo-aws-cdk/modules/account/aws-localstack-account';
 import { type AwsS3StaticWebsiteServiceModule } from '@quadnix/octo-aws-cdk/modules/service/aws-s3-static-website-service';
+import axios from 'axios';
 import { DockerComposeEnvironment, type StartedDockerComposeEnvironment, Wait } from 'testcontainers';
 import { ModuleDefinitions } from './module-definitions.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const websiteSourcePath = join(__dirname, 'website');
 
-jest.setTimeout(30_000);
+const LOCALSTACK_ACCOUNT_ID = '000000000000';
+const LOCALSTACK_ENDPOINT = 'http://localhost:4566';
+const AWS_REGION_ID = 'us-east-1';
+
+const outputDir = join(__dirname, '.octo', 'generated');
+
+jest.setTimeout(600_000);
 
 describe('Main IT', () => {
+  let app: App;
   let bucketName: string;
   let bucketNameNormalized: string;
   let environment: StartedDockerComposeEnvironment;
@@ -36,19 +36,35 @@ describe('Main IT', () => {
   });
 
   beforeEach(async () => {
+    const container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
+    testModuleContainer = new TestModuleContainer(container);
+    await testModuleContainer.initialize(stateProvider);
+
+    testModuleContainer.registerTerraformConfig({
+      minTerraformVersion: '1.6.0',
+      providers: { aws: { minVersion: '5.0.0', source: 'hashicorp/aws' } },
+    });
+    testModuleContainer.registerTerraformProvider('aws', LOCALSTACK_ACCOUNT_ID, AWS_REGION_ID, {
+      access_key: 'test',
+      endpoints: { s3: LOCALSTACK_ENDPOINT, sts: LOCALSTACK_ENDPOINT },
+      s3_use_path_style: true,
+      secret_key: 'test',
+      skip_credentials_validation: true,
+      skip_metadata_api_check: true,
+      skip_requesting_account_id: true,
+    });
+
+    ({
+      app: [app],
+    } = await testModuleContainer.createTestModels('app-module', { app: ['aws-s3-website'] }));
+
     moduleDefinitions = new ModuleDefinitions();
+    // Replace real app with test app.
+    moduleDefinitions.remove('app-module');
     // Replace real aws credentials with localstack.
     moduleDefinitions.update(AwsLocalstackAccountModule, 'account-module', {
       app: stub<App>('${{app-module.model.app}}'),
     });
-
-    await TestContainer.create(
-      { mocks: [{ type: ModuleDefinitions, value: moduleDefinitions }] },
-      { factoryTimeoutInMs: 500 },
-    );
-
-    testModuleContainer = new TestModuleContainer();
-    await testModuleContainer.initialize(stateProvider);
 
     const { moduleInputs } = moduleDefinitions.get<AwsS3StaticWebsiteServiceModule>('s3-website-service-module')!;
     bucketName = moduleInputs.bucketName;
@@ -66,105 +82,43 @@ describe('Main IT', () => {
     }
   });
 
-  it('should create base resources', async () => {
-    await testModuleContainer.orderModules(moduleDefinitions.getAll().map((md) => md.module));
-    const { 'app-module.model.app': app } = await testModuleContainer.runModules(
-      moduleDefinitions.getAll().map((md) => ({
-        hidden: false,
-        inputs: md.moduleInputs,
-        moduleId: md.moduleId,
-        type: md.module,
-      })),
-    );
+  it('should create the website', async () => {
+    const { responses } = (
+      await testModuleContainer
+        .runModules(
+          app,
+          moduleDefinitions.getAll().map((md) => ({ inputs: md.moduleInputs, moduleId: md.moduleId, type: md.module })),
+          { outputDir, terraformTarget: 'apply' },
+        )
+        .next()
+    ).value!;
 
-    const { resourceTransaction } = await testModuleContainer.commit(app);
-    expect(resourceTransaction).toMatchInlineSnapshot(`
-     [
-       [
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/s3-website=bucket-${bucketNameNormalized}",
-           "value": "@octo/s3-website=bucket-${bucketNameNormalized}",
-         },
-       ],
-       [
-         {
-           "action": "update",
-           "field": "update-source-paths",
-           "node": "@octo/s3-website=bucket-${bucketNameNormalized}",
-           "value": {
-             "error.html": [
-               "add",
-               "${websiteSourcePath}/error.html",
-             ],
-             "index.html": [
-               "add",
-               "${websiteSourcePath}/index.html",
-             ],
-           },
-         },
-       ],
-     ]
-    `);
+    expect(responses[`@octo/s3-website=bucket-${bucketNameNormalized}`]).toEqual({
+      Arn: `arn:aws:s3:::${bucketName}`,
+      awsRegionId: AWS_REGION_ID,
+    });
 
-    const resourcesActualState = await stateProvider.getState('resources-actual.json');
-    const resourcesActual: { data: ResourceSerializedOutput } = JSON.parse(resourcesActualState.toString('utf-8'));
-
-    // s3-website exists.
-    expect(resourcesActual.data.resources[`@octo/s3-website=bucket-${bucketNameNormalized}`]).toMatchInlineSnapshot(`
-     {
-       "className": "@octo/S3Website",
-       "resource": {
-         "parents": [],
-         "properties": {
-           "Bucket": "${bucketName}",
-           "ErrorDocument": "error.html",
-           "IndexDocument": "index.html",
-           "awsAccountId": "000000000000",
-           "awsRegionId": "us-east-1",
-         },
-         "resourceId": "bucket-${bucketNameNormalized}",
-         "response": {
-           "Arn": "arn:aws:s3:::${bucketName}",
-           "awsRegionId": "us-east-1",
-         },
-         "tags": {},
-       },
-     }
-    `);
+    const indexContent = await axios.get(`${LOCALSTACK_ENDPOINT}/${bucketName}/index.html`);
+    expect(indexContent.data).toContain('This is my first website!');
+    const errorContent = await axios.get(`${LOCALSTACK_ENDPOINT}/${bucketName}/error.html`);
+    expect(errorContent.data).toContain('This is an error!');
   });
 
-  it('should delete s3-website resource', async () => {
+  it('should delete the website and leave octo state empty', async () => {
     moduleDefinitions.remove('s3-website-service-module');
-    await testModuleContainer.orderModules(moduleDefinitions.getAll().map((md) => md.module));
-    const { 'app-module.model.app': app } = await testModuleContainer.runModules(
-      moduleDefinitions.getAll().map((md) => ({
-        hidden: false,
-        inputs: md.moduleInputs,
-        moduleId: md.moduleId,
-        type: md.module,
-      })),
-    );
 
-    const { resourceTransaction } = await testModuleContainer.commit(app);
-    expect(resourceTransaction).toMatchInlineSnapshot(`
-     [
-       [
-         {
-           "action": "delete",
-           "field": "resourceId",
-           "node": "@octo/s3-website=bucket-${bucketNameNormalized}",
-           "value": "@octo/s3-website=bucket-${bucketNameNormalized}",
-         },
-       ],
-     ]
-    `);
+    const { responses } = (
+      await testModuleContainer
+        .runModules(
+          app,
+          moduleDefinitions.getAll().map((md) => ({ inputs: md.moduleInputs, moduleId: md.moduleId, type: md.module })),
+          { outputDir, terraformTarget: 'apply' },
+        )
+        .next()
+    ).value!;
 
-    const resourcesActualState = await stateProvider.getState('resources-actual.json');
-    const resourcesActual: { data: ResourceSerializedOutput } = JSON.parse(resourcesActualState.toString('utf-8'));
+    expect(responses).toEqual({});
 
-    // s3-website deleted.
-    expect(resourcesActual.data.resources[`@octo/s3-website=bucket-${bucketNameNormalized}`]).toBeUndefined();
+    await expect(axios.get(`${LOCALSTACK_ENDPOINT}/${bucketName}/index.html`)).rejects.toThrow();
   });
 });

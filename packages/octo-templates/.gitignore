@@ -1,2 +1,6 @@
 # Environment files.
 .env
+
+# Generated terragrunt module folders
+src/*/.octo/
+!src/*/.octo/.gitkeep

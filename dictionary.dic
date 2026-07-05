@@ -30,7 +30,6 @@ bool
 brk
 browserslist
 cacheable
-cdbac
 cdk
 cfg
 changelog
@@ -119,7 +118,6 @@ gsi
 hashicorp
 hcl
 hideconstructor
-horiz
 hostnames
 href
 htm
