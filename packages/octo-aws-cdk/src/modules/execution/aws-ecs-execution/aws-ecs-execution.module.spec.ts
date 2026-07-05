@@ -255,7 +255,7 @@ describe('AwsEcsExecutionModule UT', () => {
         moduleId: 'execution',
         type: AwsEcsExecutionModule,
       },
-      { filterByModuleIds: ['execution'], skipTerraformApply: true },
+      { filterByModuleIds: ['execution'], terraformTarget: 'skip' },
     );
 
     const { hclRender, modelTransaction, resourceDiffs } = (await runModulesGenerator.next()).value!;
@@ -618,7 +618,7 @@ describe('AwsEcsExecutionModule UT', () => {
             moduleId: 'execution',
             type: AwsEcsExecutionModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -659,7 +659,7 @@ describe('AwsEcsExecutionModule UT', () => {
             moduleId: 'execution',
             type: AwsEcsExecutionModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -698,7 +698,7 @@ describe('AwsEcsExecutionModule UT', () => {
             moduleId: 'execution',
             type: AwsEcsExecutionModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -737,7 +737,7 @@ describe('AwsEcsExecutionModule UT', () => {
             moduleId: 'execution',
             type: AwsEcsExecutionModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -776,7 +776,7 @@ describe('AwsEcsExecutionModule UT', () => {
             moduleId: 'execution',
             type: AwsEcsExecutionModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -825,7 +825,7 @@ describe('AwsEcsExecutionModule UT', () => {
             moduleId: 'execution',
             type: AwsEcsExecutionModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -875,7 +875,7 @@ describe('AwsEcsExecutionModule UT', () => {
             moduleId: 'execution',
             type: AwsEcsExecutionModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -922,7 +922,7 @@ describe('AwsEcsExecutionModule UT', () => {
             moduleId: 'execution',
             type: AwsEcsExecutionModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -963,7 +963,7 @@ describe('AwsEcsExecutionModule UT', () => {
             moduleId: 'execution',
             type: AwsEcsExecutionModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -1004,7 +1004,7 @@ describe('AwsEcsExecutionModule UT', () => {
             moduleId: 'execution',
             type: AwsEcsExecutionModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -1047,7 +1047,7 @@ describe('AwsEcsExecutionModule UT', () => {
             moduleId: 'execution',
             type: AwsEcsExecutionModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
 
@@ -1078,7 +1078,7 @@ describe('AwsEcsExecutionModule UT', () => {
               moduleId: 'execution',
               type: AwsEcsExecutionModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -1118,7 +1118,7 @@ describe('AwsEcsExecutionModule UT', () => {
             moduleId: 'execution',
             type: AwsEcsExecutionModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
 
@@ -1149,7 +1149,7 @@ describe('AwsEcsExecutionModule UT', () => {
               moduleId: 'execution',
               type: AwsEcsExecutionModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -1188,7 +1188,7 @@ describe('AwsEcsExecutionModule UT', () => {
             moduleId: 'execution',
             type: AwsEcsExecutionModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
 
@@ -1219,7 +1219,7 @@ describe('AwsEcsExecutionModule UT', () => {
               moduleId: 'execution',
               type: AwsEcsExecutionModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -1264,7 +1264,7 @@ describe('AwsEcsExecutionModule UT', () => {
           moduleId: 'execution-1',
           type: AwsEcsExecutionModule,
         },
-        { skipTerraformApply: true },
+        { terraformTarget: 'skip' },
       )
       .next();
 
@@ -1295,7 +1295,7 @@ describe('AwsEcsExecutionModule UT', () => {
             moduleId: 'execution-2',
             type: AwsEcsExecutionModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;

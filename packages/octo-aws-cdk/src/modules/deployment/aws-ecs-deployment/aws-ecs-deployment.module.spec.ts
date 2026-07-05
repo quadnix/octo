@@ -71,7 +71,7 @@ describe('AwsEcsDeploymentModule UT', () => {
         moduleId: 'deployment',
         type: AwsEcsDeploymentModule,
       },
-      { filterByModuleIds: ['deployment'], skipTerraformApply: true },
+      { filterByModuleIds: ['deployment'], terraformTarget: 'skip' },
     );
 
     const { hclRender, modelTransaction, resourceDiffs } = (await runModulesGenerator.next()).value!;
@@ -111,7 +111,7 @@ describe('AwsEcsDeploymentModule UT', () => {
             moduleId: 'deployment',
             type: AwsEcsDeploymentModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -139,7 +139,7 @@ describe('AwsEcsDeploymentModule UT', () => {
             moduleId: 'deployment',
             type: AwsEcsDeploymentModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -169,7 +169,7 @@ describe('AwsEcsDeploymentModule UT', () => {
             moduleId: 'deployment',
             type: AwsEcsDeploymentModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -204,7 +204,7 @@ describe('AwsEcsDeploymentModule UT', () => {
             moduleId: 'deployment',
             type: AwsEcsDeploymentModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -233,7 +233,7 @@ describe('AwsEcsDeploymentModule UT', () => {
             moduleId: 'deployment',
             type: AwsEcsDeploymentModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -262,7 +262,7 @@ describe('AwsEcsDeploymentModule UT', () => {
             moduleId: 'deployment',
             type: AwsEcsDeploymentModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -293,7 +293,7 @@ describe('AwsEcsDeploymentModule UT', () => {
             moduleId: 'deployment',
             type: AwsEcsDeploymentModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
 
@@ -319,7 +319,7 @@ describe('AwsEcsDeploymentModule UT', () => {
               moduleId: 'deployment',
               type: AwsEcsDeploymentModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -349,7 +349,7 @@ describe('AwsEcsDeploymentModule UT', () => {
             moduleId: 'deployment',
             type: AwsEcsDeploymentModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
 
@@ -375,7 +375,7 @@ describe('AwsEcsDeploymentModule UT', () => {
               moduleId: 'deployment',
               type: AwsEcsDeploymentModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -406,7 +406,7 @@ describe('AwsEcsDeploymentModule UT', () => {
           moduleId: 'deployment-1',
           type: AwsEcsDeploymentModule,
         },
-        { skipTerraformApply: true },
+        { terraformTarget: 'skip' },
       )
       .next();
 
@@ -432,7 +432,7 @@ describe('AwsEcsDeploymentModule UT', () => {
             moduleId: 'deployment-2',
             type: AwsEcsDeploymentModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -464,7 +464,7 @@ describe('AwsEcsDeploymentModule UT', () => {
               moduleId: 'deployment',
               type: AwsEcsDeploymentModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next(),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "deploymentTag" in schema could not be validated!"`);

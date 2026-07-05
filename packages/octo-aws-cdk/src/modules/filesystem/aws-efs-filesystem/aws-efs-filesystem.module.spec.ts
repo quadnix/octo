@@ -63,7 +63,7 @@ describe('AwsEfsFilesystemModule UT', () => {
         moduleId: 'filesystem',
         type: AwsEfsFilesystemModule,
       },
-      { filterByModuleIds: ['filesystem'], skipTerraformApply: true },
+      { filterByModuleIds: ['filesystem'], terraformTarget: 'skip' },
     );
 
     const { hclRender, modelTransaction, resourceDiffs } = (await runModulesGenerator.next()).value!;
@@ -156,7 +156,7 @@ describe('AwsEfsFilesystemModule UT', () => {
             moduleId: 'filesystem',
             type: AwsEfsFilesystemModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -180,7 +180,7 @@ describe('AwsEfsFilesystemModule UT', () => {
             moduleId: 'filesystem',
             type: AwsEfsFilesystemModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -210,7 +210,7 @@ describe('AwsEfsFilesystemModule UT', () => {
             moduleId: 'filesystem',
             type: AwsEfsFilesystemModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -234,7 +234,7 @@ describe('AwsEfsFilesystemModule UT', () => {
             moduleId: 'filesystem',
             type: AwsEfsFilesystemModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -258,7 +258,7 @@ describe('AwsEfsFilesystemModule UT', () => {
             moduleId: 'filesystem',
             type: AwsEfsFilesystemModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -284,7 +284,7 @@ describe('AwsEfsFilesystemModule UT', () => {
             moduleId: 'filesystem',
             type: AwsEfsFilesystemModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
 
@@ -301,7 +301,7 @@ describe('AwsEfsFilesystemModule UT', () => {
               moduleId: 'filesystem',
               type: AwsEfsFilesystemModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -328,7 +328,7 @@ describe('AwsEfsFilesystemModule UT', () => {
           moduleId: 'filesystem-1',
           type: AwsEfsFilesystemModule,
         },
-        { skipTerraformApply: true },
+        { terraformTarget: 'skip' },
       )
       .next();
 
@@ -345,7 +345,7 @@ describe('AwsEfsFilesystemModule UT', () => {
             moduleId: 'filesystem-2',
             type: AwsEfsFilesystemModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -368,7 +368,7 @@ describe('AwsEfsFilesystemModule UT', () => {
               moduleId: 'filesystem',
               type: AwsEfsFilesystemModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next(),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "filesystemName" in schema could not be validated!"`);

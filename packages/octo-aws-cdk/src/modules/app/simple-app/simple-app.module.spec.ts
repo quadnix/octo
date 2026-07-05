@@ -35,7 +35,7 @@ describe('SimpleAppModule UT', () => {
         moduleId: 'app',
         type: SimpleAppModule,
       },
-      { filterByModuleIds: ['app'], skipTerraformApply: true },
+      { filterByModuleIds: ['app'], terraformTarget: 'skip' },
     );
 
     const { hclRender, modelTransaction, resourceDiffs } = (await runModulesGenerator.next()).value!;
@@ -55,7 +55,7 @@ describe('SimpleAppModule UT', () => {
             moduleId: 'app',
             type: SimpleAppModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -72,7 +72,7 @@ describe('SimpleAppModule UT', () => {
             moduleId: 'app',
             type: SimpleAppModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -95,7 +95,7 @@ describe('SimpleAppModule UT', () => {
             moduleId: 'app',
             type: SimpleAppModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -112,7 +112,7 @@ describe('SimpleAppModule UT', () => {
             moduleId: 'app',
             type: SimpleAppModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -129,7 +129,7 @@ describe('SimpleAppModule UT', () => {
             moduleId: 'app',
             type: SimpleAppModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -148,7 +148,7 @@ describe('SimpleAppModule UT', () => {
             moduleId: 'app',
             type: SimpleAppModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
 
@@ -162,7 +162,7 @@ describe('SimpleAppModule UT', () => {
               moduleId: 'app',
               type: SimpleAppModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -181,7 +181,7 @@ describe('SimpleAppModule UT', () => {
           moduleId: 'app-1',
           type: SimpleAppModule,
         },
-        { skipTerraformApply: true },
+        { terraformTarget: 'skip' },
       )
       .next();
 
@@ -195,7 +195,7 @@ describe('SimpleAppModule UT', () => {
             moduleId: 'app-2',
             type: SimpleAppModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -215,7 +215,7 @@ describe('SimpleAppModule UT', () => {
               moduleId: 'app',
               type: SimpleAppModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next(),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "name" in schema could not be validated!"`);

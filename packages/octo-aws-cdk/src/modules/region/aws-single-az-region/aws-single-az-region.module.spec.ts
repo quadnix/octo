@@ -48,7 +48,7 @@ describe('AwsSingleAzRegionModule UT', () => {
         moduleId: 'region',
         type: AwsSingleAzRegionModule,
       },
-      { filterByModuleIds: ['region'], skipTerraformApply: true },
+      { filterByModuleIds: ['region'], terraformTarget: 'skip' },
     );
 
     const { hclRender, modelTransaction, resourceDiffs } = (await runModulesGenerator.next()).value!;
@@ -144,7 +144,7 @@ describe('AwsSingleAzRegionModule UT', () => {
             moduleId: 'region',
             type: AwsSingleAzRegionModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -171,7 +171,7 @@ describe('AwsSingleAzRegionModule UT', () => {
             moduleId: 'region',
             type: AwsSingleAzRegionModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -204,7 +204,7 @@ describe('AwsSingleAzRegionModule UT', () => {
             moduleId: 'region',
             type: AwsSingleAzRegionModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -231,7 +231,7 @@ describe('AwsSingleAzRegionModule UT', () => {
             moduleId: 'region',
             type: AwsSingleAzRegionModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -258,7 +258,7 @@ describe('AwsSingleAzRegionModule UT', () => {
             moduleId: 'region',
             type: AwsSingleAzRegionModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -287,7 +287,7 @@ describe('AwsSingleAzRegionModule UT', () => {
             moduleId: 'region',
             type: AwsSingleAzRegionModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
 
@@ -306,7 +306,7 @@ describe('AwsSingleAzRegionModule UT', () => {
               moduleId: 'region',
               type: AwsSingleAzRegionModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -336,7 +336,7 @@ describe('AwsSingleAzRegionModule UT', () => {
             moduleId: 'region',
             type: AwsSingleAzRegionModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
 
@@ -357,7 +357,7 @@ describe('AwsSingleAzRegionModule UT', () => {
               moduleId: 'region',
               type: AwsSingleAzRegionModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -383,7 +383,7 @@ describe('AwsSingleAzRegionModule UT', () => {
             moduleId: 'region',
             type: AwsSingleAzRegionModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
 
@@ -403,7 +403,7 @@ describe('AwsSingleAzRegionModule UT', () => {
               moduleId: 'region',
               type: AwsSingleAzRegionModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -431,7 +431,7 @@ describe('AwsSingleAzRegionModule UT', () => {
           moduleId: 'region-1',
           type: AwsSingleAzRegionModule,
         },
-        { skipTerraformApply: true },
+        { terraformTarget: 'skip' },
       )
       .next();
 
@@ -450,7 +450,7 @@ describe('AwsSingleAzRegionModule UT', () => {
             moduleId: 'region-2',
             type: AwsSingleAzRegionModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -487,7 +487,7 @@ describe('AwsSingleAzRegionModule UT', () => {
                 type: AwsSingleAzRegionModule,
               },
             ],
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next(),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`"Region "test-region" already exists!"`);
@@ -521,7 +521,7 @@ describe('AwsSingleAzRegionModule UT', () => {
                 type: AwsSingleAzRegionModule,
               },
             ],
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next(),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`"Overlapping VPC cidr blocks are not allowed!"`);
@@ -543,7 +543,7 @@ describe('AwsSingleAzRegionModule UT', () => {
               moduleId: 'region',
               type: AwsSingleAzRegionModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next(),
       ).rejects.toThrowErrorMatchingInlineSnapshot(

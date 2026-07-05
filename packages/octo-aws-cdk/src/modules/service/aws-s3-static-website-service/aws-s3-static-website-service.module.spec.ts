@@ -60,7 +60,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
         moduleId: 'service',
         type: AwsS3StaticWebsiteServiceModule,
       },
-      { filterByModuleIds: ['service'], skipTerraformApply: true },
+      { filterByModuleIds: ['service'], terraformTarget: 'skip' },
     );
 
     const { hclRender, modelTransaction, resourceDiffs } = (await runModulesGenerator.next()).value!;
@@ -218,7 +218,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
             moduleId: 'service',
             type: AwsS3StaticWebsiteServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -244,7 +244,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
             moduleId: 'service',
             type: AwsS3StaticWebsiteServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -271,7 +271,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
             moduleId: 'service',
             type: AwsS3StaticWebsiteServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -303,7 +303,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
             moduleId: 'service',
             type: AwsS3StaticWebsiteServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -330,7 +330,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
             moduleId: 'service',
             type: AwsS3StaticWebsiteServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -357,7 +357,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
             moduleId: 'service',
             type: AwsS3StaticWebsiteServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -386,7 +386,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
             moduleId: 'service',
             type: AwsS3StaticWebsiteServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
 
@@ -407,7 +407,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
               moduleId: 'service',
               type: AwsS3StaticWebsiteServiceModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -433,7 +433,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
             moduleId: 'service',
             type: AwsS3StaticWebsiteServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
 
@@ -452,7 +452,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
               moduleId: 'service',
               type: AwsS3StaticWebsiteServiceModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -481,7 +481,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
             moduleId: 'service',
             type: AwsS3StaticWebsiteServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
 
@@ -500,7 +500,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
               moduleId: 'service',
               type: AwsS3StaticWebsiteServiceModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -528,7 +528,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
           moduleId: 'service-1',
           type: AwsS3StaticWebsiteServiceModule,
         },
-        { skipTerraformApply: true },
+        { terraformTarget: 'skip' },
       )
       .next();
 
@@ -547,7 +547,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
             moduleId: 'service-2',
             type: AwsS3StaticWebsiteServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -576,7 +576,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
               moduleId: 'service',
               type: AwsS3StaticWebsiteServiceModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next(),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "awsRegionId" in schema could not be validated!"`);
@@ -598,7 +598,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
               moduleId: 'service',
               type: AwsS3StaticWebsiteServiceModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next(),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "bucketName" in schema could not be validated!"`);
@@ -620,7 +620,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
               moduleId: 'service',
               type: AwsS3StaticWebsiteServiceModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next(),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "directoryPath" in schema could not be validated!"`);

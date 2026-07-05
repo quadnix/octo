@@ -333,7 +333,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
         moduleId: 'alb-module',
         type: AwsEcsAlbServiceModule,
       },
-      { filterByModuleIds: ['alb-module'], skipTerraformApply: true },
+      { filterByModuleIds: ['alb-module'], terraformTarget: 'skip' },
     );
 
     const { hclRender, modelTransaction, resourceDiffs } = (await runModulesGenerator.next()).value!;
@@ -780,7 +780,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
             moduleId: 'alb-module',
             type: AwsEcsAlbServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -843,7 +843,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
             moduleId: 'alb-module',
             type: AwsEcsAlbServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -902,7 +902,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
             moduleId: 'alb-module',
             type: AwsEcsAlbServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -952,7 +952,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
             moduleId: 'alb-module',
             type: AwsEcsAlbServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -1009,7 +1009,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
             moduleId: 'alb-module',
             type: AwsEcsAlbServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -1063,7 +1063,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
             moduleId: 'alb-module',
             type: AwsEcsAlbServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -1115,7 +1115,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
             moduleId: 'alb-module',
             type: AwsEcsAlbServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -1169,7 +1169,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
             moduleId: 'alb-module',
             type: AwsEcsAlbServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
 
@@ -1210,7 +1210,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
               moduleId: 'alb-module',
               type: AwsEcsAlbServiceModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -1265,7 +1265,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
             moduleId: 'alb-module',
             type: AwsEcsAlbServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
 
@@ -1296,7 +1296,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
               moduleId: 'alb-module',
               type: AwsEcsAlbServiceModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -1347,7 +1347,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
             moduleId: 'alb-module',
             type: AwsEcsAlbServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
 
@@ -1388,7 +1388,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
               moduleId: 'alb-module',
               type: AwsEcsAlbServiceModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -1437,7 +1437,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
             moduleId: 'alb-module',
             type: AwsEcsAlbServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
 
@@ -1489,7 +1489,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
               moduleId: 'alb-module',
               type: AwsEcsAlbServiceModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -1528,7 +1528,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
             moduleId: 'alb-module',
             type: AwsEcsAlbServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
 
@@ -1569,7 +1569,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
               moduleId: 'alb-module',
               type: AwsEcsAlbServiceModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -1620,7 +1620,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
             moduleId: 'alb-module',
             type: AwsEcsAlbServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
 
@@ -1661,7 +1661,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
               moduleId: 'alb-module',
               type: AwsEcsAlbServiceModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -1710,7 +1710,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
             moduleId: 'alb-module',
             type: AwsEcsAlbServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
 
@@ -1752,7 +1752,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
               moduleId: 'alb-module',
               type: AwsEcsAlbServiceModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -1801,7 +1801,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
             moduleId: 'alb-module',
             type: AwsEcsAlbServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
 
@@ -1842,7 +1842,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
               moduleId: 'alb-module',
               type: AwsEcsAlbServiceModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -1892,7 +1892,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
             moduleId: 'alb-module',
             type: AwsEcsAlbServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
 
@@ -1934,7 +1934,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
               moduleId: 'alb-module',
               type: AwsEcsAlbServiceModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -1985,7 +1985,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
           moduleId: 'alb-module-1',
           type: AwsEcsAlbServiceModule,
         },
-        { skipTerraformApply: true },
+        { terraformTarget: 'skip' },
       )
       .next();
 
@@ -2026,7 +2026,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
             moduleId: 'alb-module-2',
             type: AwsEcsAlbServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;

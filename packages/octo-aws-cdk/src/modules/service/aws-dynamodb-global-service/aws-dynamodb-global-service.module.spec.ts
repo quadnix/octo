@@ -127,7 +127,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
         moduleId: 'global-dynamodb-module',
         type: AwsDynamoDBGlobalServiceModule,
       },
-      { filterByModuleIds: ['global-dynamodb-module'], skipTerraformApply: true },
+      { filterByModuleIds: ['global-dynamodb-module'], terraformTarget: 'skip' },
     );
 
     const { hclRender, modelTransaction, resourceDiffs } = (await runModulesGenerator.next()).value!;
@@ -242,7 +242,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
             moduleId: 'global-dynamodb-module',
             type: AwsDynamoDBGlobalServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -265,7 +265,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
             moduleId: 'global-dynamodb-module',
             type: AwsDynamoDBGlobalServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -288,7 +288,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
             moduleId: 'global-dynamodb-module',
             type: AwsDynamoDBGlobalServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -312,7 +312,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
             moduleId: 'global-dynamodb-module',
             type: AwsDynamoDBGlobalServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -337,7 +337,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
             moduleId: 'global-dynamodb-module',
             type: AwsDynamoDBGlobalServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -363,7 +363,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
             moduleId: 'global-dynamodb-module',
             type: AwsDynamoDBGlobalServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -389,7 +389,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
             moduleId: 'global-dynamodb-module',
             type: AwsDynamoDBGlobalServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -413,7 +413,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
             moduleId: 'global-dynamodb-module',
             type: AwsDynamoDBGlobalServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -439,7 +439,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
             moduleId: 'global-dynamodb-module',
             type: AwsDynamoDBGlobalServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
 
@@ -459,7 +459,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
               moduleId: 'global-dynamodb-module',
               type: AwsDynamoDBGlobalServiceModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -487,7 +487,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
             moduleId: 'global-dynamodb-module',
             type: AwsDynamoDBGlobalServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
 
@@ -504,7 +504,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
               moduleId: 'global-dynamodb-module',
               type: AwsDynamoDBGlobalServiceModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -529,7 +529,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
             moduleId: 'global-dynamodb-module',
             type: AwsDynamoDBGlobalServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
 
@@ -546,7 +546,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
               moduleId: 'global-dynamodb-module',
               type: AwsDynamoDBGlobalServiceModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -572,7 +572,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
           moduleId: 'global-dynamodb-module-1',
           type: AwsDynamoDBGlobalServiceModule,
         },
-        { skipTerraformApply: true },
+        { terraformTarget: 'skip' },
       )
       .next();
 
@@ -589,7 +589,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
             moduleId: 'global-dynamodb-module-2',
             type: AwsDynamoDBGlobalServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -612,7 +612,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
               moduleId: 'global-dynamodb-module',
               type: AwsDynamoDBGlobalServiceModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next(),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "replicas" in schema could not be validated!"`);
@@ -632,7 +632,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
               moduleId: 'global-dynamodb-module',
               type: AwsDynamoDBGlobalServiceModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next(),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "replicas" in schema could not be validated!"`);

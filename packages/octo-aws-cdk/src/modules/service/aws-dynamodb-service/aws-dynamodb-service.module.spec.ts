@@ -68,7 +68,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
         moduleId: 'dynamodb-module',
         type: AwsDynamoDBServiceModule,
       },
-      { filterByModuleIds: ['dynamodb-module'], skipTerraformApply: true },
+      { filterByModuleIds: ['dynamodb-module'], terraformTarget: 'skip' },
     );
 
     const { hclRender, modelTransaction, resourceDiffs } = (await runModulesGenerator.next()).value!;
@@ -158,7 +158,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
             moduleId: 'service',
             type: AwsDynamoDBServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -187,7 +187,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
             moduleId: 'service',
             type: AwsDynamoDBServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -214,7 +214,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
             moduleId: 'service',
             type: AwsDynamoDBServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -250,7 +250,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
             moduleId: 'service',
             type: AwsDynamoDBServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -280,7 +280,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
             moduleId: 'service',
             type: AwsDynamoDBServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -310,7 +310,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
             moduleId: 'service',
             type: AwsDynamoDBServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -342,7 +342,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
             moduleId: 'service',
             type: AwsDynamoDBServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
 
@@ -365,7 +365,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
               moduleId: 'service',
               type: AwsDynamoDBServiceModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -395,7 +395,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
               moduleId: 'service',
               type: AwsDynamoDBServiceModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -439,7 +439,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
                 moduleId: 'service',
                 type: AwsDynamoDBServiceModule,
               },
-              { skipTerraformApply: true },
+              { terraformTarget: 'skip' },
             )
             .next()
         ).value!;
@@ -471,7 +471,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
               moduleId: 'service',
               type: AwsDynamoDBServiceModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next();
 
@@ -505,7 +505,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
                 moduleId: 'service',
                 type: AwsDynamoDBServiceModule,
               },
-              { skipTerraformApply: true },
+              { terraformTarget: 'skip' },
             )
             .next()
         ).value!;
@@ -547,7 +547,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
               moduleId: 'service',
               type: AwsDynamoDBServiceModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next();
 
@@ -581,7 +581,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
                 moduleId: 'service',
                 type: AwsDynamoDBServiceModule,
               },
-              { skipTerraformApply: true },
+              { terraformTarget: 'skip' },
             )
             .next(),
         ).rejects.toThrowErrorMatchingInlineSnapshot(
@@ -619,7 +619,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
               moduleId: 'service',
               type: AwsDynamoDBServiceModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next();
 
@@ -653,7 +653,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
                 moduleId: 'service',
                 type: AwsDynamoDBServiceModule,
               },
-              { skipTerraformApply: true },
+              { terraformTarget: 'skip' },
             )
             .next()
         ).value!;
@@ -695,7 +695,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
               moduleId: 'service',
               type: AwsDynamoDBServiceModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next();
 
@@ -719,7 +719,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
                 moduleId: 'service',
                 type: AwsDynamoDBServiceModule,
               },
-              { skipTerraformApply: true },
+              { terraformTarget: 'skip' },
             )
             .next()
         ).value!;
@@ -770,7 +770,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
                 moduleId: 'service',
                 type: AwsDynamoDBServiceModule,
               },
-              { skipTerraformApply: true },
+              { terraformTarget: 'skip' },
             )
             .next()
         ).value!;
@@ -818,7 +818,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
               moduleId: 'service',
               type: AwsDynamoDBServiceModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next();
 
@@ -859,7 +859,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
                 moduleId: 'service',
                 type: AwsDynamoDBServiceModule,
               },
-              { skipTerraformApply: true },
+              { terraformTarget: 'skip' },
             )
             .next()
         ).value!;
@@ -890,7 +890,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
             moduleId: 'service',
             type: AwsDynamoDBServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
 
@@ -914,7 +914,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
               moduleId: 'service',
               type: AwsDynamoDBServiceModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -944,7 +944,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
               moduleId: 'service',
               type: AwsDynamoDBServiceModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -975,7 +975,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
             moduleId: 'service',
             type: AwsDynamoDBServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
 
@@ -999,7 +999,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
               moduleId: 'service',
               type: AwsDynamoDBServiceModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -1029,7 +1029,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
               moduleId: 'service',
               type: AwsDynamoDBServiceModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -1061,7 +1061,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
           moduleId: 'service-1',
           type: AwsDynamoDBServiceModule,
         },
-        { skipTerraformApply: true },
+        { terraformTarget: 'skip' },
       )
       .next();
 
@@ -1084,7 +1084,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
             moduleId: 'service-2',
             type: AwsDynamoDBServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -1113,7 +1113,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
               moduleId: 'service',
               type: AwsDynamoDBServiceModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next(),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "TableName" in schema could not be validated!"`);
@@ -1139,7 +1139,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
               moduleId: 'service',
               type: AwsDynamoDBServiceModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next(),
       ).rejects.toThrowErrorMatchingInlineSnapshot(

@@ -87,7 +87,7 @@ describe('AwsEcsServerModule UT', () => {
         moduleId: 'server',
         type: AwsEcsServerModule,
       },
-      { filterByModuleIds: ['server'], skipTerraformApply: true },
+      { filterByModuleIds: ['server'], terraformTarget: 'skip' },
     );
 
     const { hclRender, modelTransaction, resourceDiffs } = (await runModulesGenerator.next()).value!;
@@ -289,7 +289,7 @@ describe('AwsEcsServerModule UT', () => {
             moduleId: 'server',
             type: AwsEcsServerModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -323,7 +323,7 @@ describe('AwsEcsServerModule UT', () => {
             moduleId: 'server',
             type: AwsEcsServerModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -361,7 +361,7 @@ describe('AwsEcsServerModule UT', () => {
             moduleId: 'server',
             type: AwsEcsServerModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -404,7 +404,7 @@ describe('AwsEcsServerModule UT', () => {
             moduleId: 'server',
             type: AwsEcsServerModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -437,7 +437,7 @@ describe('AwsEcsServerModule UT', () => {
             moduleId: 'server',
             type: AwsEcsServerModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -462,7 +462,7 @@ describe('AwsEcsServerModule UT', () => {
             moduleId: 'server',
             type: AwsEcsServerModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -486,7 +486,7 @@ describe('AwsEcsServerModule UT', () => {
             moduleId: 'server',
             type: AwsEcsServerModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -512,7 +512,7 @@ describe('AwsEcsServerModule UT', () => {
             moduleId: 'server',
             type: AwsEcsServerModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
 
@@ -529,7 +529,7 @@ describe('AwsEcsServerModule UT', () => {
               moduleId: 'server',
               type: AwsEcsServerModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -558,7 +558,7 @@ describe('AwsEcsServerModule UT', () => {
           moduleId: 'server-1',
           type: AwsEcsServerModule,
         },
-        { skipTerraformApply: true },
+        { terraformTarget: 'skip' },
       )
       .next();
 
@@ -575,7 +575,7 @@ describe('AwsEcsServerModule UT', () => {
             moduleId: 'server-2',
             type: AwsEcsServerModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;

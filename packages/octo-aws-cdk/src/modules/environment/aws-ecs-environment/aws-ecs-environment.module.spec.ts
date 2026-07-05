@@ -64,7 +64,7 @@ describe('AwsEcsEnvironmentModule UT', () => {
         moduleId: 'environment',
         type: AwsEcsEnvironmentModule,
       },
-      { filterByModuleIds: ['environment'], skipTerraformApply: true },
+      { filterByModuleIds: ['environment'], terraformTarget: 'skip' },
     );
 
     const { hclRender, modelTransaction, resourceDiffs } = (await runModulesGenerator.next()).value!;
@@ -138,7 +138,7 @@ describe('AwsEcsEnvironmentModule UT', () => {
           moduleId: 'environment',
           type: AwsEcsEnvironmentModule,
         },
-        { skipTerraformApply: true },
+        { terraformTarget: 'skip' },
       )
       .next();
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
@@ -152,7 +152,7 @@ describe('AwsEcsEnvironmentModule UT', () => {
         moduleId: 'environment',
         type: AwsEcsEnvironmentModule,
       },
-      { skipTerraformApply: true },
+      { terraformTarget: 'skip' },
     );
     const { hclDiff, resourceDiffs } = (await runModulesGenerator.next()).value!;
     expect(hclDiff).toMatchSnapshot();
@@ -179,7 +179,7 @@ describe('AwsEcsEnvironmentModule UT', () => {
           moduleId: 'environment',
           type: AwsEcsEnvironmentModule,
         },
-        { skipTerraformApply: true },
+        { terraformTarget: 'skip' },
       )
       .next();
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
@@ -197,7 +197,7 @@ describe('AwsEcsEnvironmentModule UT', () => {
         moduleId: 'environment',
         type: AwsEcsEnvironmentModule,
       },
-      { skipTerraformApply: true },
+      { terraformTarget: 'skip' },
     );
     const update = (await updateTagsGenerator.next()).value!;
     expect(update.hclDiff).toMatchSnapshot();
@@ -220,7 +220,7 @@ describe('AwsEcsEnvironmentModule UT', () => {
         moduleId: 'environment',
         type: AwsEcsEnvironmentModule,
       },
-      { skipTerraformApply: true },
+      { terraformTarget: 'skip' },
     );
     const deleteTags = (await deleteTagsGenerator.next()).value!;
     expect(deleteTags.hclDiff).toMatchSnapshot();
@@ -242,7 +242,7 @@ describe('AwsEcsEnvironmentModule UT', () => {
             moduleId: 'environment',
             type: AwsEcsEnvironmentModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
       expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
@@ -255,7 +255,7 @@ describe('AwsEcsEnvironmentModule UT', () => {
           moduleId: 'environment',
           type: AwsEcsEnvironmentModule,
         },
-        { skipTerraformApply: true },
+        { terraformTarget: 'skip' },
       );
       const { hclDiff, resourceDiffs } = (await runModulesGenerator.next()).value!;
       expect(hclDiff).toMatchSnapshot();
@@ -281,7 +281,7 @@ describe('AwsEcsEnvironmentModule UT', () => {
             moduleId: 'environment',
             type: AwsEcsEnvironmentModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
       expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
@@ -298,7 +298,7 @@ describe('AwsEcsEnvironmentModule UT', () => {
           moduleId: 'environment',
           type: AwsEcsEnvironmentModule,
         },
-        { skipTerraformApply: true },
+        { terraformTarget: 'skip' },
       );
       const { hclDiff, resourceDiffs } = (await runModulesGenerator.next()).value!;
       expect(hclDiff).toMatchSnapshot();
@@ -316,7 +316,7 @@ describe('AwsEcsEnvironmentModule UT', () => {
           moduleId: 'environment-1',
           type: AwsEcsEnvironmentModule,
         },
-        { skipTerraformApply: true },
+        { terraformTarget: 'skip' },
       )
       .next();
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
@@ -329,7 +329,7 @@ describe('AwsEcsEnvironmentModule UT', () => {
         moduleId: 'environment-2',
         type: AwsEcsEnvironmentModule,
       },
-      { skipTerraformApply: true },
+      { terraformTarget: 'skip' },
     );
     const { hclDiff, resourceDiffs } = (await runModulesGenerator.next()).value!;
     expect(hclDiff).toMatchSnapshot();
@@ -348,7 +348,7 @@ describe('AwsEcsEnvironmentModule UT', () => {
               moduleId: 'environment',
               type: AwsEcsEnvironmentModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next(),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "environmentName" in schema could not be validated!"`);
@@ -369,7 +369,7 @@ describe('AwsEcsEnvironmentModule UT', () => {
               moduleId: 'environment',
               type: AwsEcsEnvironmentModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next(),
       ).rejects.toThrowErrorMatchingInlineSnapshot(
@@ -392,7 +392,7 @@ describe('AwsEcsEnvironmentModule UT', () => {
               moduleId: 'environment',
               type: AwsEcsEnvironmentModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next(),
       ).rejects.toThrowErrorMatchingInlineSnapshot(

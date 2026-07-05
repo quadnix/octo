@@ -64,7 +64,7 @@ describe('AwsS3StorageServiceModule UT', () => {
         moduleId: 'service',
         type: AwsS3StorageServiceModule,
       },
-      { filterByModuleIds: ['service'], skipTerraformApply: true },
+      { filterByModuleIds: ['service'], terraformTarget: 'skip' },
     );
 
     const { hclRender, modelTransaction, resourceDiffs } = (await runModulesGenerator.next()).value!;
@@ -138,7 +138,7 @@ describe('AwsS3StorageServiceModule UT', () => {
             moduleId: 'service',
             type: AwsS3StorageServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -163,7 +163,7 @@ describe('AwsS3StorageServiceModule UT', () => {
             moduleId: 'service',
             type: AwsS3StorageServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -185,7 +185,7 @@ describe('AwsS3StorageServiceModule UT', () => {
             moduleId: 'service',
             type: AwsS3StorageServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -216,7 +216,7 @@ describe('AwsS3StorageServiceModule UT', () => {
             moduleId: 'service',
             type: AwsS3StorageServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -242,7 +242,7 @@ describe('AwsS3StorageServiceModule UT', () => {
             moduleId: 'service',
             type: AwsS3StorageServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -267,7 +267,7 @@ describe('AwsS3StorageServiceModule UT', () => {
             moduleId: 'service',
             type: AwsS3StorageServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -293,7 +293,7 @@ describe('AwsS3StorageServiceModule UT', () => {
             moduleId: 'service',
             type: AwsS3StorageServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
 
@@ -310,7 +310,7 @@ describe('AwsS3StorageServiceModule UT', () => {
               moduleId: 'service',
               type: AwsS3StorageServiceModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -337,7 +337,7 @@ describe('AwsS3StorageServiceModule UT', () => {
           moduleId: 'service-1',
           type: AwsS3StorageServiceModule,
         },
-        { skipTerraformApply: true },
+        { terraformTarget: 'skip' },
       )
       .next();
 
@@ -354,7 +354,7 @@ describe('AwsS3StorageServiceModule UT', () => {
             moduleId: 'service-2',
             type: AwsS3StorageServiceModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -377,7 +377,7 @@ describe('AwsS3StorageServiceModule UT', () => {
               moduleId: 'service',
               type: AwsS3StorageServiceModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next(),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "bucketName" in schema could not be validated!"`);
@@ -398,7 +398,7 @@ describe('AwsS3StorageServiceModule UT', () => {
               moduleId: 'service',
               type: AwsS3StorageServiceModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next(),
       ).rejects.toThrowErrorMatchingInlineSnapshot(

@@ -50,7 +50,7 @@ describe('AwsMultiAzRegionModule UT', () => {
         moduleId: 'region',
         type: AwsMultiAzRegionModule,
       },
-      { filterByModuleIds: ['region'], skipTerraformApply: true },
+      { filterByModuleIds: ['region'], terraformTarget: 'skip' },
     );
 
     const { hclRender, modelTransaction, resourceDiffs } = (await runModulesGenerator.next()).value!;
@@ -146,7 +146,7 @@ describe('AwsMultiAzRegionModule UT', () => {
           moduleId: 'region',
           type: AwsMultiAzRegionModule,
         },
-        { skipTerraformApply: true },
+        { terraformTarget: 'skip' },
       )
       .next();
 
@@ -166,7 +166,7 @@ describe('AwsMultiAzRegionModule UT', () => {
             moduleId: 'region',
             type: AwsMultiAzRegionModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -198,7 +198,7 @@ describe('AwsMultiAzRegionModule UT', () => {
           moduleId: 'region',
           type: AwsMultiAzRegionModule,
         },
-        { skipTerraformApply: true },
+        { terraformTarget: 'skip' },
       )
       .next();
 
@@ -218,7 +218,7 @@ describe('AwsMultiAzRegionModule UT', () => {
             moduleId: 'region',
             type: AwsMultiAzRegionModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -245,7 +245,7 @@ describe('AwsMultiAzRegionModule UT', () => {
             moduleId: 'region',
             type: AwsMultiAzRegionModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -274,7 +274,7 @@ describe('AwsMultiAzRegionModule UT', () => {
             moduleId: 'region',
             type: AwsMultiAzRegionModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
 
@@ -293,7 +293,7 @@ describe('AwsMultiAzRegionModule UT', () => {
               moduleId: 'region',
               type: AwsMultiAzRegionModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -323,7 +323,7 @@ describe('AwsMultiAzRegionModule UT', () => {
             moduleId: 'region',
             type: AwsMultiAzRegionModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
 
@@ -344,7 +344,7 @@ describe('AwsMultiAzRegionModule UT', () => {
               moduleId: 'region',
               type: AwsMultiAzRegionModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -370,7 +370,7 @@ describe('AwsMultiAzRegionModule UT', () => {
             moduleId: 'region',
             type: AwsMultiAzRegionModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
 
@@ -390,7 +390,7 @@ describe('AwsMultiAzRegionModule UT', () => {
               moduleId: 'region',
               type: AwsMultiAzRegionModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -418,7 +418,7 @@ describe('AwsMultiAzRegionModule UT', () => {
           moduleId: 'region-1',
           type: AwsMultiAzRegionModule,
         },
-        { skipTerraformApply: true },
+        { terraformTarget: 'skip' },
       )
       .next();
 
@@ -437,7 +437,7 @@ describe('AwsMultiAzRegionModule UT', () => {
             moduleId: 'region-2',
             type: AwsMultiAzRegionModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -462,7 +462,7 @@ describe('AwsMultiAzRegionModule UT', () => {
               moduleId: 'region',
               type: AwsMultiAzRegionModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next(),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`"At least 2 regionIds are required!"`);
@@ -496,7 +496,7 @@ describe('AwsMultiAzRegionModule UT', () => {
                 type: AwsMultiAzRegionModule,
               },
             ],
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next(),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`"Region "test-region" already exists!"`);
@@ -530,7 +530,7 @@ describe('AwsMultiAzRegionModule UT', () => {
                 type: AwsMultiAzRegionModule,
               },
             ],
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next(),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`"Overlapping VPC cidr blocks are not allowed!"`);
@@ -552,7 +552,7 @@ describe('AwsMultiAzRegionModule UT', () => {
               moduleId: 'region',
               type: AwsMultiAzRegionModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next(),
       ).rejects.toThrowErrorMatchingInlineSnapshot(

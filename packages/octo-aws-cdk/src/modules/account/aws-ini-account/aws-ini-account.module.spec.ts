@@ -38,7 +38,7 @@ describe('AwsIniAccountModule UT', () => {
         moduleId: 'account',
         type: AwsIniAccountModule,
       },
-      { filterByModuleIds: ['account'], skipTerraformApply: true },
+      { filterByModuleIds: ['account'], terraformTarget: 'skip' },
     );
 
     const { hclRender, modelTransaction, resourceDiffs } = (await runModulesGenerator.next()).value!;
@@ -66,7 +66,7 @@ describe('AwsIniAccountModule UT', () => {
           moduleId: 'account',
           type: AwsIniAccountModule,
         },
-        { skipTerraformApply: true },
+        { terraformTarget: 'skip' },
       )
       .next();
 
@@ -84,7 +84,7 @@ describe('AwsIniAccountModule UT', () => {
             moduleId: 'account',
             type: AwsIniAccountModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -109,7 +109,7 @@ describe('AwsIniAccountModule UT', () => {
           moduleId: 'account',
           type: AwsIniAccountModule,
         },
-        { skipTerraformApply: true },
+        { terraformTarget: 'skip' },
       )
       .next();
 
@@ -127,7 +127,7 @@ describe('AwsIniAccountModule UT', () => {
             moduleId: 'account',
             type: AwsIniAccountModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -147,7 +147,7 @@ describe('AwsIniAccountModule UT', () => {
             moduleId: 'account',
             type: AwsIniAccountModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -169,7 +169,7 @@ describe('AwsIniAccountModule UT', () => {
             moduleId: 'account',
             type: AwsIniAccountModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
 
@@ -186,7 +186,7 @@ describe('AwsIniAccountModule UT', () => {
               moduleId: 'account',
               type: AwsIniAccountModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -208,7 +208,7 @@ describe('AwsIniAccountModule UT', () => {
             moduleId: 'account',
             type: AwsIniAccountModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
 
@@ -226,7 +226,7 @@ describe('AwsIniAccountModule UT', () => {
               moduleId: 'account',
               type: AwsIniAccountModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -248,7 +248,7 @@ describe('AwsIniAccountModule UT', () => {
             moduleId: 'account',
             type: AwsIniAccountModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
 
@@ -266,7 +266,7 @@ describe('AwsIniAccountModule UT', () => {
               moduleId: 'account',
               type: AwsIniAccountModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -288,7 +288,7 @@ describe('AwsIniAccountModule UT', () => {
           moduleId: 'account-1',
           type: AwsIniAccountModule,
         },
-        { skipTerraformApply: true },
+        { terraformTarget: 'skip' },
       )
       .next();
 
@@ -305,7 +305,7 @@ describe('AwsIniAccountModule UT', () => {
             moduleId: 'account-2',
             type: AwsIniAccountModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -328,7 +328,7 @@ describe('AwsIniAccountModule UT', () => {
               moduleId: 'account',
               type: AwsIniAccountModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next(),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "accountId" in schema could not be validated!"`);
@@ -349,7 +349,7 @@ describe('AwsIniAccountModule UT', () => {
               moduleId: 'account',
               type: AwsIniAccountModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next(),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "iniProfile" in schema could not be validated!"`);
@@ -370,7 +370,7 @@ describe('AwsIniAccountModule UT', () => {
               moduleId: 'account',
               type: AwsIniAccountModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next(),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "endpoints" in schema could not be validated!"`);

@@ -64,7 +64,7 @@ describe('AwsEcrImageModule UT', () => {
         moduleId: 'image',
         type: AwsEcrImageModule,
       },
-      { filterByModuleIds: ['image'], skipTerraformApply: true },
+      { filterByModuleIds: ['image'], terraformTarget: 'skip' },
     );
 
     const { hclRender, modelTransaction, resourceDiffs, resourceTransaction } = (await runModulesGenerator.next())
@@ -177,7 +177,7 @@ describe('AwsEcrImageModule UT', () => {
             moduleId: 'image',
             type: AwsEcrImageModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -202,7 +202,7 @@ describe('AwsEcrImageModule UT', () => {
             moduleId: 'image',
             type: AwsEcrImageModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -233,7 +233,7 @@ describe('AwsEcrImageModule UT', () => {
             moduleId: 'image',
             type: AwsEcrImageModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -258,7 +258,7 @@ describe('AwsEcrImageModule UT', () => {
             moduleId: 'image',
             type: AwsEcrImageModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -283,7 +283,7 @@ describe('AwsEcrImageModule UT', () => {
             moduleId: 'image',
             type: AwsEcrImageModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -310,7 +310,7 @@ describe('AwsEcrImageModule UT', () => {
             moduleId: 'image',
             type: AwsEcrImageModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
 
@@ -328,7 +328,7 @@ describe('AwsEcrImageModule UT', () => {
               moduleId: 'image',
               type: AwsEcrImageModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -355,7 +355,7 @@ describe('AwsEcrImageModule UT', () => {
             moduleId: 'image',
             type: AwsEcrImageModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
 
@@ -373,7 +373,7 @@ describe('AwsEcrImageModule UT', () => {
               moduleId: 'image',
               type: AwsEcrImageModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -401,7 +401,7 @@ describe('AwsEcrImageModule UT', () => {
           moduleId: 'image-1',
           type: AwsEcrImageModule,
         },
-        { skipTerraformApply: true },
+        { terraformTarget: 'skip' },
       )
       .next();
 
@@ -419,7 +419,7 @@ describe('AwsEcrImageModule UT', () => {
             moduleId: 'image-2',
             type: AwsEcrImageModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -443,7 +443,7 @@ describe('AwsEcrImageModule UT', () => {
               moduleId: 'image',
               type: AwsEcrImageModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next(),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "imageFamily" in schema could not be validated!"`);
@@ -464,7 +464,7 @@ describe('AwsEcrImageModule UT', () => {
               moduleId: 'image',
               type: AwsEcrImageModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next(),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "imageName" in schema could not be validated!"`);
@@ -485,7 +485,7 @@ describe('AwsEcrImageModule UT', () => {
               moduleId: 'image',
               type: AwsEcrImageModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next(),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "regions" in schema could not be validated!"`);

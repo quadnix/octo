@@ -119,7 +119,7 @@ describe('AwsSimpleSubnetModule UT', () => {
         moduleId: 'subnet',
         type: AwsSimpleSubnetModule,
       },
-      { filterByModuleIds: ['subnet'], skipTerraformApply: true },
+      { filterByModuleIds: ['subnet'], terraformTarget: 'skip' },
     );
 
     const { hclRender, modelTransaction, resourceDiffs } = (await runModulesGenerator.next()).value!;
@@ -350,7 +350,7 @@ describe('AwsSimpleSubnetModule UT', () => {
           moduleId: 'subnet',
           type: AwsSimpleSubnetModule,
         },
-        { skipTerraformApply: true },
+        { terraformTarget: 'skip' },
       )
       .next();
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
@@ -375,7 +375,7 @@ describe('AwsSimpleSubnetModule UT', () => {
             moduleId: 'subnet',
             type: AwsSimpleSubnetModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -408,7 +408,7 @@ describe('AwsSimpleSubnetModule UT', () => {
             moduleId: 'subnet',
             type: AwsSimpleSubnetModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -443,7 +443,7 @@ describe('AwsSimpleSubnetModule UT', () => {
             moduleId: 'subnet',
             type: AwsSimpleSubnetModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -498,7 +498,7 @@ describe('AwsSimpleSubnetModule UT', () => {
             type: AwsSimpleSubnetModule,
           },
         ],
-        { skipTerraformApply: true },
+        { terraformTarget: 'skip' },
       )
       .next();
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
@@ -536,7 +536,7 @@ describe('AwsSimpleSubnetModule UT', () => {
               type: AwsSimpleSubnetModule,
             },
           ],
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -588,7 +588,7 @@ describe('AwsSimpleSubnetModule UT', () => {
             type: AwsSimpleSubnetModule,
           },
         ],
-        { skipTerraformApply: true },
+        { terraformTarget: 'skip' },
       )
       .next();
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
@@ -626,7 +626,7 @@ describe('AwsSimpleSubnetModule UT', () => {
               type: AwsSimpleSubnetModule,
             },
           ],
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -672,7 +672,7 @@ describe('AwsSimpleSubnetModule UT', () => {
               type: AwsSimpleSubnetModule,
             },
           ],
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -701,7 +701,7 @@ describe('AwsSimpleSubnetModule UT', () => {
           moduleId: 'subnet',
           type: AwsSimpleSubnetModule,
         },
-        { skipTerraformApply: true },
+        { terraformTarget: 'skip' },
       )
       .next();
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
@@ -722,7 +722,7 @@ describe('AwsSimpleSubnetModule UT', () => {
             moduleId: 'subnet',
             type: AwsSimpleSubnetModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -751,7 +751,7 @@ describe('AwsSimpleSubnetModule UT', () => {
             moduleId: 'subnet',
             type: AwsSimpleSubnetModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -782,7 +782,7 @@ describe('AwsSimpleSubnetModule UT', () => {
             moduleId: 'subnet',
             type: AwsSimpleSubnetModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
       expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
@@ -803,7 +803,7 @@ describe('AwsSimpleSubnetModule UT', () => {
               moduleId: 'subnet',
               type: AwsSimpleSubnetModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -831,7 +831,7 @@ describe('AwsSimpleSubnetModule UT', () => {
             moduleId: 'subnet',
             type: AwsSimpleSubnetModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
       expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
@@ -852,7 +852,7 @@ describe('AwsSimpleSubnetModule UT', () => {
               moduleId: 'subnet',
               type: AwsSimpleSubnetModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -881,7 +881,7 @@ describe('AwsSimpleSubnetModule UT', () => {
             moduleId: 'subnet',
             type: AwsSimpleSubnetModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
       expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
@@ -901,7 +901,7 @@ describe('AwsSimpleSubnetModule UT', () => {
               moduleId: 'subnet',
               type: AwsSimpleSubnetModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -934,7 +934,7 @@ describe('AwsSimpleSubnetModule UT', () => {
             moduleId: 'subnet',
             type: AwsSimpleSubnetModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next();
       expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
@@ -959,7 +959,7 @@ describe('AwsSimpleSubnetModule UT', () => {
               moduleId: 'subnet',
               type: AwsSimpleSubnetModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
@@ -988,7 +988,7 @@ describe('AwsSimpleSubnetModule UT', () => {
           moduleId: 'subnet-1',
           type: AwsSimpleSubnetModule,
         },
-        { skipTerraformApply: true },
+        { terraformTarget: 'skip' },
       )
       .next();
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
@@ -1008,7 +1008,7 @@ describe('AwsSimpleSubnetModule UT', () => {
             moduleId: 'subnet-2',
             type: AwsSimpleSubnetModule,
           },
-          { skipTerraformApply: true },
+          { terraformTarget: 'skip' },
         )
         .next()
     ).value!;
@@ -1034,7 +1034,7 @@ describe('AwsSimpleSubnetModule UT', () => {
               moduleId: 'subnet',
               type: AwsSimpleSubnetModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next(),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`"Invalid subnet availability zone!"`);
@@ -1061,7 +1061,7 @@ describe('AwsSimpleSubnetModule UT', () => {
               moduleId: 'subnet',
               type: AwsSimpleSubnetModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next(),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`"NAT Gateway can only be created for public subnets!"`);
@@ -1083,7 +1083,7 @@ describe('AwsSimpleSubnetModule UT', () => {
               moduleId: 'subnet',
               type: AwsSimpleSubnetModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next(),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`"Subnet CIDR is not within region CIDR!"`);
@@ -1105,7 +1105,7 @@ describe('AwsSimpleSubnetModule UT', () => {
               moduleId: 'subnet',
               type: AwsSimpleSubnetModule,
             },
-            { skipTerraformApply: true },
+            { terraformTarget: 'skip' },
           )
           .next()
       ).value!;
