@@ -281,57 +281,63 @@ describe('AwsEcsAlbServiceModule UT', () => {
 
   it('should call correct actions', async () => {
     const { app } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
-      inputs: {
-        albName: 'test-alb',
-        listeners: [
-          {
-            DefaultActions: [
-              {
-                action: {
-                  TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+    const runModulesGenerator = testModuleContainer.runModules<AwsEcsAlbServiceModule>(
+      app,
+      {
+        inputs: {
+          albName: 'test-alb',
+          listeners: [
+            {
+              DefaultActions: [
+                {
+                  action: {
+                    TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                  },
+                  actionType: 'forward',
                 },
-                actionType: 'forward',
-              },
-            ],
-            Port: 80,
-            rules: [
-              {
-                actions: [
-                  {
-                    action: {
-                      TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+              ],
+              Port: 80,
+              rules: [
+                {
+                  actions: [
+                    {
+                      action: {
+                        TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                      },
+                      actionType: 'forward',
                     },
-                    actionType: 'forward',
-                  },
-                ],
-                conditions: [
-                  {
-                    condition: { Values: ['/api'] },
-                    conditionType: 'path-pattern',
-                  },
-                ],
-                Priority: 1,
-              },
-            ],
-          },
-        ],
-        region: stub('${{testModule.model.region}}'),
-        subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
-        targets: [
-          {
-            containerName: 'test-container',
-            containerPort: 80,
-            execution: stub('${{testExecutionModule.model.execution}}'),
-            healthCheck: HEALTH_CHECK_RESPONSE,
-            Name: 'test-container-80',
-          },
-        ],
+                  ],
+                  conditions: [
+                    {
+                      condition: { Values: ['/api'] },
+                      conditionType: 'path-pattern',
+                    },
+                  ],
+                  Priority: 1,
+                },
+              ],
+            },
+          ],
+          region: stub('${{testModule.model.region}}'),
+          subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+          targets: [
+            {
+              containerName: 'test-container',
+              containerPort: 80,
+              execution: stub('${{testExecutionModule.model.execution}}'),
+              healthCheck: HEALTH_CHECK_RESPONSE,
+              Name: 'test-container-80',
+            },
+          ],
+        },
+        moduleId: 'alb-module',
+        type: AwsEcsAlbServiceModule,
       },
-      moduleId: 'alb-module',
-      type: AwsEcsAlbServiceModule,
-    });
-    expect(await testModuleContainer.renderHcl(app)).toMatchInlineSnapshot(`
+      { filterByModuleIds: ['alb-module'], skipTerraformApply: true },
+    );
+
+    const { hclRender, modelTransaction, resourceDiffs } = (await runModulesGenerator.next()).value!;
+    expect(hclRender).toMatchInlineSnapshot(`
      "# alb-module/main.tf
      terraform {
        required_version = ">= 1.6.0"
@@ -714,9 +720,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
      # testSubnet2Module/variables.tf
      <empty>"
     `);
-
-    const result = await testModuleContainer.commit(app, { filterByModuleIds: ['alb-module'] });
-    expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`
+    expect(testModuleContainer.mapTransactionActions(modelTransaction)).toMatchInlineSnapshot(`
      [
        [
          "AddAwsEcsAlbServiceModelAction",
@@ -726,7 +730,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
        ],
      ]
     `);
-    expect(testModuleContainer.digestDiffs(result.resourceDiffs)).toMatchInlineSnapshot(`
+    expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
        "+ @octo/security-group=sec-grp-region-test-alb",
        "+ @octo/alb=alb-region-test-alb",
@@ -740,40 +744,47 @@ describe('AwsEcsAlbServiceModule UT', () => {
 
   it('should CUD', async () => {
     const { app: appCreate } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
-      inputs: {
-        albName: 'test-alb',
-        listeners: [
+    const { resourceDiffs: resourceDiffsCreate } = (
+      await testModuleContainer
+        .runModules<AwsEcsAlbServiceModule>(
+          appCreate,
           {
-            DefaultActions: [
-              {
-                action: {
-                  TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+            inputs: {
+              albName: 'test-alb',
+              listeners: [
+                {
+                  DefaultActions: [
+                    {
+                      action: {
+                        TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                      },
+                      actionType: 'forward',
+                    },
+                  ],
+                  Port: 80,
+                  rules: [],
                 },
-                actionType: 'forward',
-              },
-            ],
-            Port: 80,
-            rules: [],
+              ],
+              region: stub('${{testModule.model.region}}'),
+              subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+              targets: [
+                {
+                  containerName: 'test-container',
+                  containerPort: 80,
+                  execution: stub('${{testExecutionModule.model.execution}}'),
+                  healthCheck: HEALTH_CHECK_RESPONSE,
+                  Name: 'test-container-80',
+                },
+              ],
+            },
+            moduleId: 'alb-module',
+            type: AwsEcsAlbServiceModule,
           },
-        ],
-        region: stub('${{testModule.model.region}}'),
-        subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
-        targets: [
-          {
-            containerName: 'test-container',
-            containerPort: 80,
-            execution: stub('${{testExecutionModule.model.execution}}'),
-            healthCheck: HEALTH_CHECK_RESPONSE,
-            Name: 'test-container-80',
-          },
-        ],
-      },
-      moduleId: 'alb-module',
-      type: AwsEcsAlbServiceModule,
-    });
-    const resultCreate = await testModuleContainer.commit(appCreate);
-    expect(testModuleContainer.digestDiffs(resultCreate.resourceDiffs)).toMatchInlineSnapshot(`
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`
      [
        "+ @octo/security-group=sec-grp-region-test-alb",
        "+ @octo/alb=alb-region-test-alb",
@@ -785,104 +796,118 @@ describe('AwsEcsAlbServiceModule UT', () => {
     `);
 
     const { app: appAddListenerRule } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
-      inputs: {
-        albName: 'test-alb',
-        listeners: [
+    const addListenerRule = (
+      await testModuleContainer
+        .runModules<AwsEcsAlbServiceModule>(
+          appAddListenerRule,
           {
-            DefaultActions: [
-              {
-                action: {
-                  TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+            inputs: {
+              albName: 'test-alb',
+              listeners: [
+                {
+                  DefaultActions: [
+                    {
+                      action: {
+                        TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                      },
+                      actionType: 'forward',
+                    },
+                  ],
+                  Port: 80,
+                  rules: [
+                    {
+                      actions: [
+                        {
+                          action: { ContentType: 'text/plain', MessageBody: 'Not implemented!', StatusCode: 404 },
+                          actionType: 'fixed-response',
+                        },
+                      ],
+                      conditions: [{ condition: { Values: ['/api'] }, conditionType: 'path-pattern' }],
+                      Priority: 1,
+                    },
+                  ],
                 },
-                actionType: 'forward',
-              },
-            ],
-            Port: 80,
-            rules: [
-              {
-                actions: [
-                  {
-                    action: { ContentType: 'text/plain', MessageBody: 'Not implemented!', StatusCode: 404 },
-                    actionType: 'fixed-response',
-                  },
-                ],
-                conditions: [{ condition: { Values: ['/api'] }, conditionType: 'path-pattern' }],
-                Priority: 1,
-              },
-            ],
+              ],
+              region: stub('${{testModule.model.region}}'),
+              subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+              targets: [
+                {
+                  containerName: 'test-container',
+                  containerPort: 80,
+                  execution: stub('${{testExecutionModule.model.execution}}'),
+                  healthCheck: HEALTH_CHECK_RESPONSE,
+                  Name: 'test-container-80',
+                },
+              ],
+            },
+            moduleId: 'alb-module',
+            type: AwsEcsAlbServiceModule,
           },
-        ],
-        region: stub('${{testModule.model.region}}'),
-        subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
-        targets: [
-          {
-            containerName: 'test-container',
-            containerPort: 80,
-            execution: stub('${{testExecutionModule.model.execution}}'),
-            healthCheck: HEALTH_CHECK_RESPONSE,
-            Name: 'test-container-80',
-          },
-        ],
-      },
-      moduleId: 'alb-module',
-      type: AwsEcsAlbServiceModule,
-    });
-    expect(await testModuleContainer.diffHcl(appAddListenerRule)).toMatchSnapshot();
-    const resultAddListenerRule = await testModuleContainer.commit(appAddListenerRule);
-    expect(testModuleContainer.digestDiffs(resultAddListenerRule.resourceDiffs)).toMatchInlineSnapshot(`
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(addListenerRule.hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(addListenerRule.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/alb-listener=alb-listener-test-alb",
      ]
     `);
 
     const { app: appUpdateListenerRule } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
-      inputs: {
-        albName: 'test-alb',
-        listeners: [
+    const updateListenerRule = (
+      await testModuleContainer
+        .runModules<AwsEcsAlbServiceModule>(
+          appUpdateListenerRule,
           {
-            DefaultActions: [
-              {
-                action: {
-                  TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+            inputs: {
+              albName: 'test-alb',
+              listeners: [
+                {
+                  DefaultActions: [
+                    {
+                      action: {
+                        TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                      },
+                      actionType: 'forward',
+                    },
+                  ],
+                  Port: 80,
+                  rules: [
+                    {
+                      actions: [
+                        {
+                          action: { TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }] },
+                          actionType: 'forward',
+                        },
+                      ],
+                      conditions: [{ condition: { Values: ['/api'] }, conditionType: 'path-pattern' }],
+                      Priority: 2,
+                    },
+                  ],
                 },
-                actionType: 'forward',
-              },
-            ],
-            Port: 80,
-            rules: [
-              {
-                actions: [
-                  {
-                    action: { TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }] },
-                    actionType: 'forward',
-                  },
-                ],
-                conditions: [{ condition: { Values: ['/api'] }, conditionType: 'path-pattern' }],
-                Priority: 2,
-              },
-            ],
+              ],
+              region: stub('${{testModule.model.region}}'),
+              subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+              targets: [
+                {
+                  containerName: 'test-container',
+                  containerPort: 80,
+                  execution: stub('${{testExecutionModule.model.execution}}'),
+                  healthCheck: HEALTH_CHECK_RESPONSE,
+                  Name: 'test-container-80',
+                },
+              ],
+            },
+            moduleId: 'alb-module',
+            type: AwsEcsAlbServiceModule,
           },
-        ],
-        region: stub('${{testModule.model.region}}'),
-        subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
-        targets: [
-          {
-            containerName: 'test-container',
-            containerPort: 80,
-            execution: stub('${{testExecutionModule.model.execution}}'),
-            healthCheck: HEALTH_CHECK_RESPONSE,
-            Name: 'test-container-80',
-          },
-        ],
-      },
-      moduleId: 'alb-module',
-      type: AwsEcsAlbServiceModule,
-    });
-    expect(await testModuleContainer.diffHcl(appUpdateListenerRule)).toMatchSnapshot();
-    const resultUpdateListenerRule = await testModuleContainer.commit(appUpdateListenerRule);
-    expect(testModuleContainer.digestDiffs(resultUpdateListenerRule.resourceDiffs)).toMatchInlineSnapshot(`
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(updateListenerRule.hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(updateListenerRule.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/alb-listener=alb-listener-test-alb",
        "* @octo/alb-listener=alb-listener-test-alb",
@@ -890,9 +915,49 @@ describe('AwsEcsAlbServiceModule UT', () => {
     `);
 
     const { app: appDelete } = await setup(testModuleContainer);
-    expect(await testModuleContainer.diffHcl(appDelete)).toMatchSnapshot();
-    const resultDelete = await testModuleContainer.commit(appDelete);
-    expect(testModuleContainer.digestDiffs(resultDelete.resourceDiffs)).toMatchInlineSnapshot(`
+    const deleteResult = (
+      await testModuleContainer
+        .runModules<AwsEcsAlbServiceModule>(
+          appDelete,
+          {
+            hidden: true,
+            inputs: {
+              albName: 'test-alb',
+              listeners: [
+                {
+                  DefaultActions: [
+                    {
+                      action: {
+                        TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                      },
+                      actionType: 'forward',
+                    },
+                  ],
+                  Port: 80,
+                  rules: [],
+                },
+              ],
+              region: stub('${{testModule.model.region}}'),
+              subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+              targets: [
+                {
+                  containerName: 'test-container',
+                  containerPort: 80,
+                  execution: stub('${{testExecutionModule.model.execution}}'),
+                  healthCheck: HEALTH_CHECK_RESPONSE,
+                  Name: 'test-container-80',
+                },
+              ],
+            },
+            moduleId: 'alb-module',
+            type: AwsEcsAlbServiceModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(deleteResult.hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(deleteResult.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "- @octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
        "- @octo/security-group=sec-grp-region-test-alb",
@@ -908,40 +973,47 @@ describe('AwsEcsAlbServiceModule UT', () => {
   it('should CUD tags', async () => {
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
     const { app: appCreate } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
-      inputs: {
-        albName: 'test-alb',
-        listeners: [
+    const { resourceDiffs: resourceDiffsCreate } = (
+      await testModuleContainer
+        .runModules<AwsEcsAlbServiceModule>(
+          appCreate,
           {
-            DefaultActions: [
-              {
-                action: {
-                  TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+            inputs: {
+              albName: 'test-alb',
+              listeners: [
+                {
+                  DefaultActions: [
+                    {
+                      action: {
+                        TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                      },
+                      actionType: 'forward',
+                    },
+                  ],
+                  Port: 80,
+                  rules: [],
                 },
-                actionType: 'forward',
-              },
-            ],
-            Port: 80,
-            rules: [],
+              ],
+              region: stub('${{testModule.model.region}}'),
+              subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+              targets: [
+                {
+                  containerName: 'test-container',
+                  containerPort: 80,
+                  execution: stub('${{testExecutionModule.model.execution}}'),
+                  healthCheck: HEALTH_CHECK_RESPONSE,
+                  Name: 'test-container-80',
+                },
+              ],
+            },
+            moduleId: 'alb-module',
+            type: AwsEcsAlbServiceModule,
           },
-        ],
-        region: stub('${{testModule.model.region}}'),
-        subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
-        targets: [
-          {
-            containerName: 'test-container',
-            containerPort: 80,
-            execution: stub('${{testExecutionModule.model.execution}}'),
-            healthCheck: HEALTH_CHECK_RESPONSE,
-            Name: 'test-container-80',
-          },
-        ],
-      },
-      moduleId: 'alb-module',
-      type: AwsEcsAlbServiceModule,
-    });
-    const resultCreate = await testModuleContainer.commit(appCreate);
-    expect(testModuleContainer.digestDiffs(resultCreate.resourceDiffs)).toMatchInlineSnapshot(`
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`
      [
        "+ @octo/security-group=sec-grp-region-test-alb",
        "+ @octo/alb=alb-region-test-alb",
@@ -955,41 +1027,48 @@ describe('AwsEcsAlbServiceModule UT', () => {
 
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
     const { app: appUpdateTags } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
-      inputs: {
-        albName: 'test-alb',
-        listeners: [
+    const updateTags = (
+      await testModuleContainer
+        .runModules<AwsEcsAlbServiceModule>(
+          appUpdateTags,
           {
-            DefaultActions: [
-              {
-                action: {
-                  TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+            inputs: {
+              albName: 'test-alb',
+              listeners: [
+                {
+                  DefaultActions: [
+                    {
+                      action: {
+                        TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                      },
+                      actionType: 'forward',
+                    },
+                  ],
+                  Port: 80,
+                  rules: [],
                 },
-                actionType: 'forward',
-              },
-            ],
-            Port: 80,
-            rules: [],
+              ],
+              region: stub('${{testModule.model.region}}'),
+              subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+              targets: [
+                {
+                  containerName: 'test-container',
+                  containerPort: 80,
+                  execution: stub('${{testExecutionModule.model.execution}}'),
+                  healthCheck: HEALTH_CHECK_RESPONSE,
+                  Name: 'test-container-80',
+                },
+              ],
+            },
+            moduleId: 'alb-module',
+            type: AwsEcsAlbServiceModule,
           },
-        ],
-        region: stub('${{testModule.model.region}}'),
-        subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
-        targets: [
-          {
-            containerName: 'test-container',
-            containerPort: 80,
-            execution: stub('${{testExecutionModule.model.execution}}'),
-            healthCheck: HEALTH_CHECK_RESPONSE,
-            Name: 'test-container-80',
-          },
-        ],
-      },
-      moduleId: 'alb-module',
-      type: AwsEcsAlbServiceModule,
-    });
-    expect(await testModuleContainer.diffHcl(appUpdateTags)).toMatchSnapshot();
-    const resultUpdateTags = await testModuleContainer.commit(appUpdateTags);
-    expect(testModuleContainer.digestDiffs(resultUpdateTags.resourceDiffs)).toMatchInlineSnapshot(`
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(updateTags.hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(updateTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
        "* @octo/security-group=sec-grp-region-test-alb",
@@ -1000,41 +1079,48 @@ describe('AwsEcsAlbServiceModule UT', () => {
     `);
 
     const { app: appDeleteTags } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
-      inputs: {
-        albName: 'test-alb',
-        listeners: [
+    const deleteTags = (
+      await testModuleContainer
+        .runModules<AwsEcsAlbServiceModule>(
+          appDeleteTags,
           {
-            DefaultActions: [
-              {
-                action: {
-                  TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+            inputs: {
+              albName: 'test-alb',
+              listeners: [
+                {
+                  DefaultActions: [
+                    {
+                      action: {
+                        TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                      },
+                      actionType: 'forward',
+                    },
+                  ],
+                  Port: 80,
+                  rules: [],
                 },
-                actionType: 'forward',
-              },
-            ],
-            Port: 80,
-            rules: [],
+              ],
+              region: stub('${{testModule.model.region}}'),
+              subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+              targets: [
+                {
+                  containerName: 'test-container',
+                  containerPort: 80,
+                  execution: stub('${{testExecutionModule.model.execution}}'),
+                  healthCheck: HEALTH_CHECK_RESPONSE,
+                  Name: 'test-container-80',
+                },
+              ],
+            },
+            moduleId: 'alb-module',
+            type: AwsEcsAlbServiceModule,
           },
-        ],
-        region: stub('${{testModule.model.region}}'),
-        subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
-        targets: [
-          {
-            containerName: 'test-container',
-            containerPort: 80,
-            execution: stub('${{testExecutionModule.model.execution}}'),
-            healthCheck: HEALTH_CHECK_RESPONSE,
-            Name: 'test-container-80',
-          },
-        ],
-      },
-      moduleId: 'alb-module',
-      type: AwsEcsAlbServiceModule,
-    });
-    expect(await testModuleContainer.diffHcl(appDeleteTags)).toMatchSnapshot();
-    const resultDeleteTags = await testModuleContainer.commit(appDeleteTags);
-    expect(testModuleContainer.digestDiffs(resultDeleteTags.resourceDiffs)).toMatchInlineSnapshot(`
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(deleteTags.hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(deleteTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
        "* @octo/security-group=sec-grp-region-test-alb",
@@ -1048,76 +1134,88 @@ describe('AwsEcsAlbServiceModule UT', () => {
   describe('input changes', () => {
     it('should handle albName change', async () => {
       const { app: appCreate } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
-        inputs: {
-          albName: 'test-alb',
-          listeners: [
-            {
-              DefaultActions: [
+      await testModuleContainer
+        .runModules<AwsEcsAlbServiceModule>(
+          appCreate,
+          {
+            inputs: {
+              albName: 'test-alb',
+              listeners: [
                 {
-                  action: {
-                    TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
-                  },
-                  actionType: 'forward',
+                  DefaultActions: [
+                    {
+                      action: {
+                        TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                      },
+                      actionType: 'forward',
+                    },
+                  ],
+                  Port: 80,
+                  rules: [],
                 },
               ],
-              Port: 80,
-              rules: [],
+              region: stub('${{testModule.model.region}}'),
+              subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+              targets: [
+                {
+                  containerName: 'test-container',
+                  containerPort: 80,
+                  execution: stub('${{testExecutionModule.model.execution}}'),
+                  healthCheck: HEALTH_CHECK_RESPONSE,
+                  Name: 'test-container-80',
+                },
+              ],
             },
-          ],
-          region: stub('${{testModule.model.region}}'),
-          subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
-          targets: [
-            {
-              containerName: 'test-container',
-              containerPort: 80,
-              execution: stub('${{testExecutionModule.model.execution}}'),
-              healthCheck: HEALTH_CHECK_RESPONSE,
-              Name: 'test-container-80',
-            },
-          ],
-        },
-        moduleId: 'alb-module',
-        type: AwsEcsAlbServiceModule,
-      });
-      await testModuleContainer.commit(appCreate);
+            moduleId: 'alb-module',
+            type: AwsEcsAlbServiceModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next();
 
       const { app: appUpdateAlbName } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
-        inputs: {
-          albName: 'changed-alb',
-          listeners: [
+      const { hclDiff, resourceDiffs } = (
+        await testModuleContainer
+          .runModules<AwsEcsAlbServiceModule>(
+            appUpdateAlbName,
             {
-              DefaultActions: [
-                {
-                  action: {
-                    TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+              inputs: {
+                albName: 'changed-alb',
+                listeners: [
+                  {
+                    DefaultActions: [
+                      {
+                        action: {
+                          TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                        },
+                        actionType: 'forward',
+                      },
+                    ],
+                    Port: 80,
+                    rules: [],
                   },
-                  actionType: 'forward',
-                },
-              ],
-              Port: 80,
-              rules: [],
+                ],
+                region: stub('${{testModule.model.region}}'),
+                subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+                targets: [
+                  {
+                    containerName: 'test-container',
+                    containerPort: 80,
+                    execution: stub('${{testExecutionModule.model.execution}}'),
+                    healthCheck: HEALTH_CHECK_RESPONSE,
+                    Name: 'test-container-80',
+                  },
+                ],
+              },
+              moduleId: 'alb-module',
+              type: AwsEcsAlbServiceModule,
             },
-          ],
-          region: stub('${{testModule.model.region}}'),
-          subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
-          targets: [
-            {
-              containerName: 'test-container',
-              containerPort: 80,
-              execution: stub('${{testExecutionModule.model.execution}}'),
-              healthCheck: HEALTH_CHECK_RESPONSE,
-              Name: 'test-container-80',
-            },
-          ],
-        },
-        moduleId: 'alb-module',
-        type: AwsEcsAlbServiceModule,
-      });
-      expect(await testModuleContainer.diffHcl(appUpdateAlbName)).toMatchSnapshot();
-      const resultUpdateAlbName = await testModuleContainer.commit(appUpdateAlbName);
-      expect(testModuleContainer.digestDiffs(resultUpdateAlbName.resourceDiffs)).toMatchInlineSnapshot(`
+            { skipTerraformApply: true },
+          )
+          .next()
+      ).value!;
+      expect(hclDiff).toMatchSnapshot();
+      expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
          "- @octo/security-group=sec-grp-region-test-alb",
          "- @octo/alb=alb-region-test-alb",
@@ -1132,66 +1230,78 @@ describe('AwsEcsAlbServiceModule UT', () => {
 
     it('should handle listener DefaultActions change', async () => {
       const { app: appCreate } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
-        inputs: {
-          albName: 'test-alb',
-          listeners: [
-            {
-              DefaultActions: [
+      await testModuleContainer
+        .runModules<AwsEcsAlbServiceModule>(
+          appCreate,
+          {
+            inputs: {
+              albName: 'test-alb',
+              listeners: [
                 {
-                  action: {
-                    TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
-                  },
-                  actionType: 'forward',
+                  DefaultActions: [
+                    {
+                      action: {
+                        TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                      },
+                      actionType: 'forward',
+                    },
+                  ],
+                  Port: 80,
+                  rules: [],
                 },
               ],
-              Port: 80,
-              rules: [],
+              region: stub('${{testModule.model.region}}'),
+              subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+              targets: [
+                {
+                  containerName: 'test-container',
+                  containerPort: 80,
+                  execution: stub('${{testExecutionModule.model.execution}}'),
+                  healthCheck: HEALTH_CHECK_RESPONSE,
+                  Name: 'test-container-80',
+                },
+              ],
             },
-          ],
-          region: stub('${{testModule.model.region}}'),
-          subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
-          targets: [
-            {
-              containerName: 'test-container',
-              containerPort: 80,
-              execution: stub('${{testExecutionModule.model.execution}}'),
-              healthCheck: HEALTH_CHECK_RESPONSE,
-              Name: 'test-container-80',
-            },
-          ],
-        },
-        moduleId: 'alb-module',
-        type: AwsEcsAlbServiceModule,
-      });
-      await testModuleContainer.commit(appCreate);
+            moduleId: 'alb-module',
+            type: AwsEcsAlbServiceModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next();
 
       const { app: appUpdateListenerDefaultAction } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
-        inputs: {
-          albName: 'test-alb',
-          listeners: [
+      const { hclDiff, resourceDiffs } = (
+        await testModuleContainer
+          .runModules<AwsEcsAlbServiceModule>(
+            appUpdateListenerDefaultAction,
             {
-              DefaultActions: [
-                {
-                  action: { ContentType: 'text/plain', MessageBody: 'Not Found!', StatusCode: 404 },
-                  actionType: 'fixed-response',
-                },
-              ],
-              Port: 80,
-              rules: [],
+              inputs: {
+                albName: 'test-alb',
+                listeners: [
+                  {
+                    DefaultActions: [
+                      {
+                        action: { ContentType: 'text/plain', MessageBody: 'Not Found!', StatusCode: 404 },
+                        actionType: 'fixed-response',
+                      },
+                    ],
+                    Port: 80,
+                    rules: [],
+                  },
+                ],
+                region: stub('${{testModule.model.region}}'),
+                subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+                targets: [],
+              },
+              moduleId: 'alb-module',
+              type: AwsEcsAlbServiceModule,
             },
-          ],
-          region: stub('${{testModule.model.region}}'),
-          subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
-          targets: [],
-        },
-        moduleId: 'alb-module',
-        type: AwsEcsAlbServiceModule,
-      });
-      expect(await testModuleContainer.diffHcl(appUpdateListenerDefaultAction)).toMatchSnapshot();
-      const resultUpdateListenerDefaultAction = await testModuleContainer.commit(appUpdateListenerDefaultAction);
-      expect(testModuleContainer.digestDiffs(resultUpdateListenerDefaultAction.resourceDiffs)).toMatchInlineSnapshot(`
+            { skipTerraformApply: true },
+          )
+          .next()
+      ).value!;
+      expect(hclDiff).toMatchSnapshot();
+      expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
          "- @octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
          "* @octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
@@ -1202,76 +1312,88 @@ describe('AwsEcsAlbServiceModule UT', () => {
 
     it('should handle listener Port change', async () => {
       const { app: appCreate } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
-        inputs: {
-          albName: 'test-alb',
-          listeners: [
-            {
-              DefaultActions: [
+      await testModuleContainer
+        .runModules<AwsEcsAlbServiceModule>(
+          appCreate,
+          {
+            inputs: {
+              albName: 'test-alb',
+              listeners: [
                 {
-                  action: {
-                    TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
-                  },
-                  actionType: 'forward',
+                  DefaultActions: [
+                    {
+                      action: {
+                        TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                      },
+                      actionType: 'forward',
+                    },
+                  ],
+                  Port: 80,
+                  rules: [],
                 },
               ],
-              Port: 80,
-              rules: [],
+              region: stub('${{testModule.model.region}}'),
+              subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+              targets: [
+                {
+                  containerName: 'test-container',
+                  containerPort: 80,
+                  execution: stub('${{testExecutionModule.model.execution}}'),
+                  healthCheck: HEALTH_CHECK_RESPONSE,
+                  Name: 'test-container-80',
+                },
+              ],
             },
-          ],
-          region: stub('${{testModule.model.region}}'),
-          subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
-          targets: [
-            {
-              containerName: 'test-container',
-              containerPort: 80,
-              execution: stub('${{testExecutionModule.model.execution}}'),
-              healthCheck: HEALTH_CHECK_RESPONSE,
-              Name: 'test-container-80',
-            },
-          ],
-        },
-        moduleId: 'alb-module',
-        type: AwsEcsAlbServiceModule,
-      });
-      await testModuleContainer.commit(appCreate);
+            moduleId: 'alb-module',
+            type: AwsEcsAlbServiceModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next();
 
       const { app: appUpdateListenerPort } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
-        inputs: {
-          albName: 'test-alb',
-          listeners: [
+      const { hclDiff, resourceDiffs } = (
+        await testModuleContainer
+          .runModules<AwsEcsAlbServiceModule>(
+            appUpdateListenerPort,
             {
-              DefaultActions: [
-                {
-                  action: {
-                    TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+              inputs: {
+                albName: 'test-alb',
+                listeners: [
+                  {
+                    DefaultActions: [
+                      {
+                        action: {
+                          TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                        },
+                        actionType: 'forward',
+                      },
+                    ],
+                    Port: 8080,
+                    rules: [],
                   },
-                  actionType: 'forward',
-                },
-              ],
-              Port: 8080,
-              rules: [],
+                ],
+                region: stub('${{testModule.model.region}}'),
+                subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+                targets: [
+                  {
+                    containerName: 'test-container',
+                    containerPort: 80,
+                    execution: stub('${{testExecutionModule.model.execution}}'),
+                    healthCheck: HEALTH_CHECK_RESPONSE,
+                    Name: 'test-container-80',
+                  },
+                ],
+              },
+              moduleId: 'alb-module',
+              type: AwsEcsAlbServiceModule,
             },
-          ],
-          region: stub('${{testModule.model.region}}'),
-          subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
-          targets: [
-            {
-              containerName: 'test-container',
-              containerPort: 80,
-              execution: stub('${{testExecutionModule.model.execution}}'),
-              healthCheck: HEALTH_CHECK_RESPONSE,
-              Name: 'test-container-80',
-            },
-          ],
-        },
-        moduleId: 'alb-module',
-        type: AwsEcsAlbServiceModule,
-      });
-      expect(await testModuleContainer.diffHcl(appUpdateListenerPort)).toMatchSnapshot();
-      const resultUpdateListenerPort = await testModuleContainer.commit(appUpdateListenerPort);
-      expect(testModuleContainer.digestDiffs(resultUpdateListenerPort.resourceDiffs)).toMatchInlineSnapshot(`
+            { skipTerraformApply: true },
+          )
+          .next()
+      ).value!;
+      expect(hclDiff).toMatchSnapshot();
+      expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
          "* @octo/alb-listener=alb-listener-test-alb",
        ]
@@ -1280,87 +1402,99 @@ describe('AwsEcsAlbServiceModule UT', () => {
 
     it('should handle listener rules change', async () => {
       const { app: appCreate } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
-        inputs: {
-          albName: 'test-alb',
-          listeners: [
-            {
-              DefaultActions: [
+      await testModuleContainer
+        .runModules<AwsEcsAlbServiceModule>(
+          appCreate,
+          {
+            inputs: {
+              albName: 'test-alb',
+              listeners: [
                 {
-                  action: {
-                    TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
-                  },
-                  actionType: 'forward',
-                },
-              ],
-              Port: 80,
-              rules: [],
-            },
-          ],
-          region: stub('${{testModule.model.region}}'),
-          subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
-          targets: [
-            {
-              containerName: 'test-container',
-              containerPort: 80,
-              execution: stub('${{testExecutionModule.model.execution}}'),
-              healthCheck: HEALTH_CHECK_RESPONSE,
-              Name: 'test-container-80',
-            },
-          ],
-        },
-        moduleId: 'alb-module',
-        type: AwsEcsAlbServiceModule,
-      });
-      await testModuleContainer.commit(appCreate);
-
-      const { app: appUpdateListenerRule } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
-        inputs: {
-          albName: 'test-alb',
-          listeners: [
-            {
-              DefaultActions: [
-                {
-                  action: {
-                    TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
-                  },
-                  actionType: 'forward',
-                },
-              ],
-              Port: 80,
-              rules: [
-                {
-                  actions: [
+                  DefaultActions: [
                     {
-                      action: { ContentType: 'text/plain', MessageBody: 'Not implemented!', StatusCode: 404 },
-                      actionType: 'fixed-response',
+                      action: {
+                        TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                      },
+                      actionType: 'forward',
                     },
                   ],
-                  conditions: [{ condition: { Values: ['/api'] }, conditionType: 'path-pattern' }],
-                  Priority: 1,
+                  Port: 80,
+                  rules: [],
+                },
+              ],
+              region: stub('${{testModule.model.region}}'),
+              subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+              targets: [
+                {
+                  containerName: 'test-container',
+                  containerPort: 80,
+                  execution: stub('${{testExecutionModule.model.execution}}'),
+                  healthCheck: HEALTH_CHECK_RESPONSE,
+                  Name: 'test-container-80',
                 },
               ],
             },
-          ],
-          region: stub('${{testModule.model.region}}'),
-          subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
-          targets: [
+            moduleId: 'alb-module',
+            type: AwsEcsAlbServiceModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next();
+
+      const { app: appUpdateListenerRule } = await setup(testModuleContainer);
+      const { hclDiff, resourceDiffs } = (
+        await testModuleContainer
+          .runModules<AwsEcsAlbServiceModule>(
+            appUpdateListenerRule,
             {
-              containerName: 'test-container',
-              containerPort: 80,
-              execution: stub('${{testExecutionModule.model.execution}}'),
-              healthCheck: HEALTH_CHECK_RESPONSE,
-              Name: 'test-container-80',
+              inputs: {
+                albName: 'test-alb',
+                listeners: [
+                  {
+                    DefaultActions: [
+                      {
+                        action: {
+                          TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                        },
+                        actionType: 'forward',
+                      },
+                    ],
+                    Port: 80,
+                    rules: [
+                      {
+                        actions: [
+                          {
+                            action: { ContentType: 'text/plain', MessageBody: 'Not implemented!', StatusCode: 404 },
+                            actionType: 'fixed-response',
+                          },
+                        ],
+                        conditions: [{ condition: { Values: ['/api'] }, conditionType: 'path-pattern' }],
+                        Priority: 1,
+                      },
+                    ],
+                  },
+                ],
+                region: stub('${{testModule.model.region}}'),
+                subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+                targets: [
+                  {
+                    containerName: 'test-container',
+                    containerPort: 80,
+                    execution: stub('${{testExecutionModule.model.execution}}'),
+                    healthCheck: HEALTH_CHECK_RESPONSE,
+                    Name: 'test-container-80',
+                  },
+                ],
+              },
+              moduleId: 'alb-module',
+              type: AwsEcsAlbServiceModule,
             },
-          ],
-        },
-        moduleId: 'alb-module',
-        type: AwsEcsAlbServiceModule,
-      });
-      expect(await testModuleContainer.diffHcl(appUpdateListenerRule)).toMatchSnapshot();
-      const resultUpdateListenerRule = await testModuleContainer.commit(appUpdateListenerRule);
-      expect(testModuleContainer.digestDiffs(resultUpdateListenerRule.resourceDiffs)).toMatchInlineSnapshot(`
+            { skipTerraformApply: true },
+          )
+          .next()
+      ).value!;
+      expect(hclDiff).toMatchSnapshot();
+      expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
          "* @octo/alb-listener=alb-listener-test-alb",
        ]
@@ -1369,66 +1503,78 @@ describe('AwsEcsAlbServiceModule UT', () => {
 
     it('should handle target add change', async () => {
       const { app: appCreate } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
-        inputs: {
-          albName: 'test-alb',
-          listeners: [
-            {
-              DefaultActions: [
+      await testModuleContainer
+        .runModules<AwsEcsAlbServiceModule>(
+          appCreate,
+          {
+            inputs: {
+              albName: 'test-alb',
+              listeners: [
                 {
-                  action: { ContentType: 'text/plain', MessageBody: 'Not Found!', StatusCode: 404 },
-                  actionType: 'fixed-response',
+                  DefaultActions: [
+                    {
+                      action: { ContentType: 'text/plain', MessageBody: 'Not Found!', StatusCode: 404 },
+                      actionType: 'fixed-response',
+                    },
+                  ],
+                  Port: 80,
+                  rules: [],
                 },
               ],
-              Port: 80,
-              rules: [],
+              region: stub('${{testModule.model.region}}'),
+              subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+              targets: [],
             },
-          ],
-          region: stub('${{testModule.model.region}}'),
-          subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
-          targets: [],
-        },
-        moduleId: 'alb-module',
-        type: AwsEcsAlbServiceModule,
-      });
-      await testModuleContainer.commit(appCreate);
+            moduleId: 'alb-module',
+            type: AwsEcsAlbServiceModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next();
 
       const { app: appUpdateTargetAddNewTarget } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
-        inputs: {
-          albName: 'test-alb',
-          listeners: [
+      const { hclDiff, resourceDiffs } = (
+        await testModuleContainer
+          .runModules<AwsEcsAlbServiceModule>(
+            appUpdateTargetAddNewTarget,
             {
-              DefaultActions: [
-                {
-                  action: {
-                    TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+              inputs: {
+                albName: 'test-alb',
+                listeners: [
+                  {
+                    DefaultActions: [
+                      {
+                        action: {
+                          TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                        },
+                        actionType: 'forward',
+                      },
+                    ],
+                    Port: 80,
+                    rules: [],
                   },
-                  actionType: 'forward',
-                },
-              ],
-              Port: 80,
-              rules: [],
+                ],
+                region: stub('${{testModule.model.region}}'),
+                subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+                targets: [
+                  {
+                    containerName: 'test-container',
+                    containerPort: 80,
+                    execution: stub('${{testExecutionModule.model.execution}}'),
+                    healthCheck: HEALTH_CHECK_RESPONSE,
+                    Name: 'test-container-80',
+                  },
+                ],
+              },
+              moduleId: 'alb-module',
+              type: AwsEcsAlbServiceModule,
             },
-          ],
-          region: stub('${{testModule.model.region}}'),
-          subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
-          targets: [
-            {
-              containerName: 'test-container',
-              containerPort: 80,
-              execution: stub('${{testExecutionModule.model.execution}}'),
-              healthCheck: HEALTH_CHECK_RESPONSE,
-              Name: 'test-container-80',
-            },
-          ],
-        },
-        moduleId: 'alb-module',
-        type: AwsEcsAlbServiceModule,
-      });
-      expect(await testModuleContainer.diffHcl(appUpdateTargetAddNewTarget)).toMatchSnapshot();
-      const resultUpdateTargetAddNewTarget = await testModuleContainer.commit(appUpdateTargetAddNewTarget);
-      expect(testModuleContainer.digestDiffs(resultUpdateTargetAddNewTarget.resourceDiffs)).toMatchInlineSnapshot(`
+            { skipTerraformApply: true },
+          )
+          .next()
+      ).value!;
+      expect(hclDiff).toMatchSnapshot();
+      expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
          "* @octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
          "* @octo/alb-listener=alb-listener-test-alb",
@@ -1439,76 +1585,88 @@ describe('AwsEcsAlbServiceModule UT', () => {
 
     it('should handle target containerName change', async () => {
       const { app: appCreate } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
-        inputs: {
-          albName: 'test-alb',
-          listeners: [
-            {
-              DefaultActions: [
+      await testModuleContainer
+        .runModules<AwsEcsAlbServiceModule>(
+          appCreate,
+          {
+            inputs: {
+              albName: 'test-alb',
+              listeners: [
                 {
-                  action: {
-                    TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
-                  },
-                  actionType: 'forward',
+                  DefaultActions: [
+                    {
+                      action: {
+                        TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                      },
+                      actionType: 'forward',
+                    },
+                  ],
+                  Port: 80,
+                  rules: [],
                 },
               ],
-              Port: 80,
-              rules: [],
+              region: stub('${{testModule.model.region}}'),
+              subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+              targets: [
+                {
+                  containerName: 'test-container',
+                  containerPort: 80,
+                  execution: stub('${{testExecutionModule.model.execution}}'),
+                  healthCheck: HEALTH_CHECK_RESPONSE,
+                  Name: 'test-container-80',
+                },
+              ],
             },
-          ],
-          region: stub('${{testModule.model.region}}'),
-          subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
-          targets: [
-            {
-              containerName: 'test-container',
-              containerPort: 80,
-              execution: stub('${{testExecutionModule.model.execution}}'),
-              healthCheck: HEALTH_CHECK_RESPONSE,
-              Name: 'test-container-80',
-            },
-          ],
-        },
-        moduleId: 'alb-module',
-        type: AwsEcsAlbServiceModule,
-      });
-      await testModuleContainer.commit(appCreate);
+            moduleId: 'alb-module',
+            type: AwsEcsAlbServiceModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next();
 
       const { app: appUpdateTargetContainerName } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
-        inputs: {
-          albName: 'test-alb',
-          listeners: [
+      const { hclDiff, resourceDiffs } = (
+        await testModuleContainer
+          .runModules<AwsEcsAlbServiceModule>(
+            appUpdateTargetContainerName,
             {
-              DefaultActions: [
-                {
-                  action: {
-                    TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+              inputs: {
+                albName: 'test-alb',
+                listeners: [
+                  {
+                    DefaultActions: [
+                      {
+                        action: {
+                          TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                        },
+                        actionType: 'forward',
+                      },
+                    ],
+                    Port: 80,
+                    rules: [],
                   },
-                  actionType: 'forward',
-                },
-              ],
-              Port: 80,
-              rules: [],
+                ],
+                region: stub('${{testModule.model.region}}'),
+                subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+                targets: [
+                  {
+                    containerName: 'side-container',
+                    containerPort: 80,
+                    execution: stub('${{testExecutionModule.model.execution}}'),
+                    healthCheck: HEALTH_CHECK_RESPONSE,
+                    Name: 'test-container-80',
+                  },
+                ],
+              },
+              moduleId: 'alb-module',
+              type: AwsEcsAlbServiceModule,
             },
-          ],
-          region: stub('${{testModule.model.region}}'),
-          subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
-          targets: [
-            {
-              containerName: 'side-container',
-              containerPort: 80,
-              execution: stub('${{testExecutionModule.model.execution}}'),
-              healthCheck: HEALTH_CHECK_RESPONSE,
-              Name: 'test-container-80',
-            },
-          ],
-        },
-        moduleId: 'alb-module',
-        type: AwsEcsAlbServiceModule,
-      });
-      expect(await testModuleContainer.diffHcl(appUpdateTargetContainerName)).toMatchSnapshot();
-      const resultUpdateTargetContainerName = await testModuleContainer.commit(appUpdateTargetContainerName);
-      expect(testModuleContainer.digestDiffs(resultUpdateTargetContainerName.resourceDiffs)).toMatchInlineSnapshot(`
+            { skipTerraformApply: true },
+          )
+          .next()
+      ).value!;
+      expect(hclDiff).toMatchSnapshot();
+      expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
          "* @octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
        ]
@@ -1517,76 +1675,88 @@ describe('AwsEcsAlbServiceModule UT', () => {
 
     it('should handle target containerPort change', async () => {
       const { app: appCreate } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
-        inputs: {
-          albName: 'test-alb',
-          listeners: [
-            {
-              DefaultActions: [
+      await testModuleContainer
+        .runModules<AwsEcsAlbServiceModule>(
+          appCreate,
+          {
+            inputs: {
+              albName: 'test-alb',
+              listeners: [
                 {
-                  action: {
-                    TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
-                  },
-                  actionType: 'forward',
+                  DefaultActions: [
+                    {
+                      action: {
+                        TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                      },
+                      actionType: 'forward',
+                    },
+                  ],
+                  Port: 80,
+                  rules: [],
                 },
               ],
-              Port: 80,
-              rules: [],
+              region: stub('${{testModule.model.region}}'),
+              subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+              targets: [
+                {
+                  containerName: 'test-container',
+                  containerPort: 80,
+                  execution: stub('${{testExecutionModule.model.execution}}'),
+                  healthCheck: HEALTH_CHECK_RESPONSE,
+                  Name: 'test-container-80',
+                },
+              ],
             },
-          ],
-          region: stub('${{testModule.model.region}}'),
-          subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
-          targets: [
-            {
-              containerName: 'test-container',
-              containerPort: 80,
-              execution: stub('${{testExecutionModule.model.execution}}'),
-              healthCheck: HEALTH_CHECK_RESPONSE,
-              Name: 'test-container-80',
-            },
-          ],
-        },
-        moduleId: 'alb-module',
-        type: AwsEcsAlbServiceModule,
-      });
-      await testModuleContainer.commit(appCreate);
+            moduleId: 'alb-module',
+            type: AwsEcsAlbServiceModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next();
 
       const { app: appUpdateTargetContainerPort } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
-        inputs: {
-          albName: 'test-alb',
-          listeners: [
-            {
-              DefaultActions: [
-                {
-                  action: {
-                    TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
-                  },
-                  actionType: 'forward',
-                },
-              ],
-              Port: 80,
-              rules: [],
-            },
-          ],
-          region: stub('${{testModule.model.region}}'),
-          subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
-          targets: [
-            {
-              containerName: 'test-container',
-              containerPort: 8080,
-              execution: stub('${{testExecutionModule.model.execution}}'),
-              healthCheck: HEALTH_CHECK_RESPONSE,
-              Name: 'test-container-80',
-            },
-          ],
-        },
-        moduleId: 'alb-module',
-        type: AwsEcsAlbServiceModule,
-      });
       // The target group port is force-new on aws_lb_target_group → octo emits a REPLACE.
-      const resultUpdateTargetContainerPort = await testModuleContainer.commit(appUpdateTargetContainerPort);
-      expect(testModuleContainer.digestDiffs(resultUpdateTargetContainerPort.resourceDiffs)).toMatchInlineSnapshot(`
+      const { resourceDiffs } = (
+        await testModuleContainer
+          .runModules<AwsEcsAlbServiceModule>(
+            appUpdateTargetContainerPort,
+            {
+              inputs: {
+                albName: 'test-alb',
+                listeners: [
+                  {
+                    DefaultActions: [
+                      {
+                        action: {
+                          TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                        },
+                        actionType: 'forward',
+                      },
+                    ],
+                    Port: 80,
+                    rules: [],
+                  },
+                ],
+                region: stub('${{testModule.model.region}}'),
+                subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+                targets: [
+                  {
+                    containerName: 'test-container',
+                    containerPort: 8080,
+                    execution: stub('${{testExecutionModule.model.execution}}'),
+                    healthCheck: HEALTH_CHECK_RESPONSE,
+                    Name: 'test-container-80',
+                  },
+                ],
+              },
+              moduleId: 'alb-module',
+              type: AwsEcsAlbServiceModule,
+            },
+            { skipTerraformApply: true },
+          )
+          .next()
+      ).value!;
+      expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
          "^ @octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
          "* @octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
@@ -1596,76 +1766,88 @@ describe('AwsEcsAlbServiceModule UT', () => {
 
     it('should handle target healthCheck change', async () => {
       const { app: appCreate } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
-        inputs: {
-          albName: 'test-alb',
-          listeners: [
-            {
-              DefaultActions: [
+      await testModuleContainer
+        .runModules<AwsEcsAlbServiceModule>(
+          appCreate,
+          {
+            inputs: {
+              albName: 'test-alb',
+              listeners: [
                 {
-                  action: {
-                    TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
-                  },
-                  actionType: 'forward',
+                  DefaultActions: [
+                    {
+                      action: {
+                        TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                      },
+                      actionType: 'forward',
+                    },
+                  ],
+                  Port: 80,
+                  rules: [],
                 },
               ],
-              Port: 80,
-              rules: [],
+              region: stub('${{testModule.model.region}}'),
+              subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+              targets: [
+                {
+                  containerName: 'test-container',
+                  containerPort: 80,
+                  execution: stub('${{testExecutionModule.model.execution}}'),
+                  healthCheck: HEALTH_CHECK_RESPONSE,
+                  Name: 'test-container-80',
+                },
+              ],
             },
-          ],
-          region: stub('${{testModule.model.region}}'),
-          subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
-          targets: [
-            {
-              containerName: 'test-container',
-              containerPort: 80,
-              execution: stub('${{testExecutionModule.model.execution}}'),
-              healthCheck: HEALTH_CHECK_RESPONSE,
-              Name: 'test-container-80',
-            },
-          ],
-        },
-        moduleId: 'alb-module',
-        type: AwsEcsAlbServiceModule,
-      });
-      await testModuleContainer.commit(appCreate);
+            moduleId: 'alb-module',
+            type: AwsEcsAlbServiceModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next();
 
       const { app: appUpdateTargetHealthCheck } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
-        inputs: {
-          albName: 'test-alb',
-          listeners: [
+      const { hclDiff, resourceDiffs } = (
+        await testModuleContainer
+          .runModules<AwsEcsAlbServiceModule>(
+            appUpdateTargetHealthCheck,
             {
-              DefaultActions: [
-                {
-                  action: {
-                    TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+              inputs: {
+                albName: 'test-alb',
+                listeners: [
+                  {
+                    DefaultActions: [
+                      {
+                        action: {
+                          TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                        },
+                        actionType: 'forward',
+                      },
+                    ],
+                    Port: 80,
+                    rules: [],
                   },
-                  actionType: 'forward',
-                },
-              ],
-              Port: 80,
-              rules: [],
+                ],
+                region: stub('${{testModule.model.region}}'),
+                subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+                targets: [
+                  {
+                    containerName: 'test-container',
+                    containerPort: 80,
+                    execution: stub('${{testExecutionModule.model.execution}}'),
+                    healthCheck: { ...HEALTH_CHECK_RESPONSE, UnhealthyThresholdCount: 4 },
+                    Name: 'test-container-80',
+                  },
+                ],
+              },
+              moduleId: 'alb-module',
+              type: AwsEcsAlbServiceModule,
             },
-          ],
-          region: stub('${{testModule.model.region}}'),
-          subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
-          targets: [
-            {
-              containerName: 'test-container',
-              containerPort: 80,
-              execution: stub('${{testExecutionModule.model.execution}}'),
-              healthCheck: { ...HEALTH_CHECK_RESPONSE, UnhealthyThresholdCount: 4 },
-              Name: 'test-container-80',
-            },
-          ],
-        },
-        moduleId: 'alb-module',
-        type: AwsEcsAlbServiceModule,
-      });
-      expect(await testModuleContainer.diffHcl(appUpdateTargetHealthCheck)).toMatchSnapshot();
-      const resultUpdateTargetHealthCheck = await testModuleContainer.commit(appUpdateTargetHealthCheck);
-      expect(testModuleContainer.digestDiffs(resultUpdateTargetHealthCheck.resourceDiffs)).toMatchInlineSnapshot(`
+            { skipTerraformApply: true },
+          )
+          .next()
+      ).value!;
+      expect(hclDiff).toMatchSnapshot();
+      expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
          "* @octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
          "* @octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
@@ -1675,76 +1857,88 @@ describe('AwsEcsAlbServiceModule UT', () => {
 
     it('should handle target name change', async () => {
       const { app: appCreate } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
-        inputs: {
-          albName: 'test-alb',
-          listeners: [
-            {
-              DefaultActions: [
+      await testModuleContainer
+        .runModules<AwsEcsAlbServiceModule>(
+          appCreate,
+          {
+            inputs: {
+              albName: 'test-alb',
+              listeners: [
                 {
-                  action: {
-                    TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
-                  },
-                  actionType: 'forward',
+                  DefaultActions: [
+                    {
+                      action: {
+                        TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                      },
+                      actionType: 'forward',
+                    },
+                  ],
+                  Port: 80,
+                  rules: [],
                 },
               ],
-              Port: 80,
-              rules: [],
+              region: stub('${{testModule.model.region}}'),
+              subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+              targets: [
+                {
+                  containerName: 'test-container',
+                  containerPort: 80,
+                  execution: stub('${{testExecutionModule.model.execution}}'),
+                  healthCheck: HEALTH_CHECK_RESPONSE,
+                  Name: 'test-container-80',
+                },
+              ],
             },
-          ],
-          region: stub('${{testModule.model.region}}'),
-          subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
-          targets: [
-            {
-              containerName: 'test-container',
-              containerPort: 80,
-              execution: stub('${{testExecutionModule.model.execution}}'),
-              healthCheck: HEALTH_CHECK_RESPONSE,
-              Name: 'test-container-80',
-            },
-          ],
-        },
-        moduleId: 'alb-module',
-        type: AwsEcsAlbServiceModule,
-      });
-      await testModuleContainer.commit(appCreate);
+            moduleId: 'alb-module',
+            type: AwsEcsAlbServiceModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next();
 
       const { app: appUpdateTargetName } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
-        inputs: {
-          albName: 'test-alb',
-          listeners: [
-            {
-              DefaultActions: [
-                {
-                  action: {
-                    TargetGroups: [{ targetGroupName: 'change-container-80', Weight: 100 }],
-                  },
-                  actionType: 'forward',
-                },
-              ],
-              Port: 80,
-              rules: [],
-            },
-          ],
-          region: stub('${{testModule.model.region}}'),
-          subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
-          targets: [
-            {
-              containerName: 'test-container',
-              containerPort: 80,
-              execution: stub('${{testExecutionModule.model.execution}}'),
-              healthCheck: HEALTH_CHECK_RESPONSE,
-              Name: 'change-container-80',
-            },
-          ],
-        },
-        moduleId: 'alb-module',
-        type: AwsEcsAlbServiceModule,
-      });
       // The target group name is force-new on aws_lb_target_group → octo emits a REPLACE.
-      const resultUpdateTargetName = await testModuleContainer.commit(appUpdateTargetName);
-      expect(testModuleContainer.digestDiffs(resultUpdateTargetName.resourceDiffs)).toMatchInlineSnapshot(`
+      const { resourceDiffs } = (
+        await testModuleContainer
+          .runModules<AwsEcsAlbServiceModule>(
+            appUpdateTargetName,
+            {
+              inputs: {
+                albName: 'test-alb',
+                listeners: [
+                  {
+                    DefaultActions: [
+                      {
+                        action: {
+                          TargetGroups: [{ targetGroupName: 'change-container-80', Weight: 100 }],
+                        },
+                        actionType: 'forward',
+                      },
+                    ],
+                    Port: 80,
+                    rules: [],
+                  },
+                ],
+                region: stub('${{testModule.model.region}}'),
+                subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+                targets: [
+                  {
+                    containerName: 'test-container',
+                    containerPort: 80,
+                    execution: stub('${{testExecutionModule.model.execution}}'),
+                    healthCheck: HEALTH_CHECK_RESPONSE,
+                    Name: 'change-container-80',
+                  },
+                ],
+              },
+              moduleId: 'alb-module',
+              type: AwsEcsAlbServiceModule,
+            },
+            { skipTerraformApply: true },
+          )
+          .next()
+      ).value!;
+      expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
          "^ @octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
          "* @octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
@@ -1756,75 +1950,87 @@ describe('AwsEcsAlbServiceModule UT', () => {
 
   it('should handle moduleId change', async () => {
     const { app: appCreate } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
-      inputs: {
-        albName: 'test-alb',
-        listeners: [
-          {
-            DefaultActions: [
+    await testModuleContainer
+      .runModules<AwsEcsAlbServiceModule>(
+        appCreate,
+        {
+          inputs: {
+            albName: 'test-alb',
+            listeners: [
               {
-                action: {
-                  TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
-                },
-                actionType: 'forward',
+                DefaultActions: [
+                  {
+                    action: {
+                      TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                    },
+                    actionType: 'forward',
+                  },
+                ],
+                Port: 80,
+                rules: [],
               },
             ],
-            Port: 80,
-            rules: [],
+            region: stub('${{testModule.model.region}}'),
+            subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+            targets: [
+              {
+                containerName: 'test-container',
+                containerPort: 80,
+                execution: stub('${{testExecutionModule.model.execution}}'),
+                healthCheck: HEALTH_CHECK_RESPONSE,
+                Name: 'test-container-80',
+              },
+            ],
           },
-        ],
-        region: stub('${{testModule.model.region}}'),
-        subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
-        targets: [
-          {
-            containerName: 'test-container',
-            containerPort: 80,
-            execution: stub('${{testExecutionModule.model.execution}}'),
-            healthCheck: HEALTH_CHECK_RESPONSE,
-            Name: 'test-container-80',
-          },
-        ],
-      },
-      moduleId: 'alb-module-1',
-      type: AwsEcsAlbServiceModule,
-    });
-    await testModuleContainer.commit(appCreate);
+          moduleId: 'alb-module-1',
+          type: AwsEcsAlbServiceModule,
+        },
+        { skipTerraformApply: true },
+      )
+      .next();
 
     const { app: appUpdateModuleId } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
-      inputs: {
-        albName: 'test-alb',
-        listeners: [
+    const { hclDiff, resourceDiffs } = (
+      await testModuleContainer
+        .runModules<AwsEcsAlbServiceModule>(
+          appUpdateModuleId,
           {
-            DefaultActions: [
-              {
-                action: {
-                  TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+            inputs: {
+              albName: 'test-alb',
+              listeners: [
+                {
+                  DefaultActions: [
+                    {
+                      action: {
+                        TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                      },
+                      actionType: 'forward',
+                    },
+                  ],
+                  Port: 80,
+                  rules: [],
                 },
-                actionType: 'forward',
-              },
-            ],
-            Port: 80,
-            rules: [],
+              ],
+              region: stub('${{testModule.model.region}}'),
+              subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+              targets: [
+                {
+                  containerName: 'test-container',
+                  containerPort: 80,
+                  execution: stub('${{testExecutionModule.model.execution}}'),
+                  healthCheck: HEALTH_CHECK_RESPONSE,
+                  Name: 'test-container-80',
+                },
+              ],
+            },
+            moduleId: 'alb-module-2',
+            type: AwsEcsAlbServiceModule,
           },
-        ],
-        region: stub('${{testModule.model.region}}'),
-        subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
-        targets: [
-          {
-            containerName: 'test-container',
-            containerPort: 80,
-            execution: stub('${{testExecutionModule.model.execution}}'),
-            healthCheck: HEALTH_CHECK_RESPONSE,
-            Name: 'test-container-80',
-          },
-        ],
-      },
-      moduleId: 'alb-module-2',
-      type: AwsEcsAlbServiceModule,
-    });
-    expect(await testModuleContainer.diffHcl(appUpdateModuleId)).toMatchSnapshot();
-    const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId);
-    expect(testModuleContainer.digestDiffs(resultUpdateModuleId.resourceDiffs)).toMatchInlineSnapshot(`[]`);
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`[]`);
   });
 });

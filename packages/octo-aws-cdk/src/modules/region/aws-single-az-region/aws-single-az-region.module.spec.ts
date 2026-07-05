@@ -36,18 +36,23 @@ describe('AwsSingleAzRegionModule UT', () => {
 
   it('should call correct actions', async () => {
     const { app } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsSingleAzRegionModule>({
-      inputs: {
-        account: stub('${{testModule.model.account}}'),
-        name: 'test-region',
-        regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
-        vpcCidrBlock: '10.0.0.0/16',
+    const runModulesGenerator = testModuleContainer.runModules<AwsSingleAzRegionModule>(
+      app,
+      {
+        inputs: {
+          account: stub('${{testModule.model.account}}'),
+          name: 'test-region',
+          regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
+          vpcCidrBlock: '10.0.0.0/16',
+        },
+        moduleId: 'region',
+        type: AwsSingleAzRegionModule,
       },
-      moduleId: 'region',
-      type: AwsSingleAzRegionModule,
-    });
+      { filterByModuleIds: ['region'], skipTerraformApply: true },
+    );
 
-    expect(await testModuleContainer.renderHcl(app)).toMatchInlineSnapshot(`
+    const { hclRender, modelTransaction, resourceDiffs } = (await runModulesGenerator.next()).value!;
+    expect(hclRender).toMatchInlineSnapshot(`
      "# region/main.tf
      terraform {
        required_version = ">= 1.6.0"
@@ -108,16 +113,14 @@ describe('AwsSingleAzRegionModule UT', () => {
      # region/variables.tf
      <empty>"
     `);
-
-    const result = await testModuleContainer.commit(app, { filterByModuleIds: ['region'] });
-    expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`
+    expect(testModuleContainer.mapTransactionActions(modelTransaction)).toMatchInlineSnapshot(`
      [
        [
          "AddAwsSingleAzRegionModelAction",
        ],
      ]
     `);
-    expect(testModuleContainer.digestDiffs(result.resourceDiffs)).toMatchInlineSnapshot(`
+    expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
        "+ @octo/vpc=vpc-test-region",
        "+ @octo/internet-gateway=igw-test-region",
@@ -127,18 +130,25 @@ describe('AwsSingleAzRegionModule UT', () => {
 
   it('should CUD', async () => {
     const { app: appCreate } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsSingleAzRegionModule>({
-      inputs: {
-        account: stub('${{testModule.model.account}}'),
-        name: 'test-region',
-        regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
-        vpcCidrBlock: '10.0.0.0/16',
-      },
-      moduleId: 'region',
-      type: AwsSingleAzRegionModule,
-    });
-    const resultCreate = await testModuleContainer.commit(appCreate);
-    expect(testModuleContainer.digestDiffs(resultCreate.resourceDiffs)).toMatchInlineSnapshot(`
+    const { resourceDiffs: resourceDiffsCreate } = (
+      await testModuleContainer
+        .runModules<AwsSingleAzRegionModule>(
+          appCreate,
+          {
+            inputs: {
+              account: stub('${{testModule.model.account}}'),
+              name: 'test-region',
+              regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
+              vpcCidrBlock: '10.0.0.0/16',
+            },
+            moduleId: 'region',
+            type: AwsSingleAzRegionModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`
      [
        "+ @octo/vpc=vpc-test-region",
        "+ @octo/internet-gateway=igw-test-region",
@@ -146,9 +156,27 @@ describe('AwsSingleAzRegionModule UT', () => {
     `);
 
     const { app: appDelete } = await setup(testModuleContainer);
-    expect(await testModuleContainer.diffHcl(appDelete)).toMatchSnapshot();
-    const resultDelete = await testModuleContainer.commit(appDelete);
-    expect(testModuleContainer.digestDiffs(resultDelete.resourceDiffs)).toMatchInlineSnapshot(`
+    const { hclDiff, resourceDiffs: resourceDiffsDelete } = (
+      await testModuleContainer
+        .runModules<AwsSingleAzRegionModule>(
+          appDelete,
+          {
+            hidden: true,
+            inputs: {
+              account: stub('${{testModule.model.account}}'),
+              name: 'test-region',
+              regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
+              vpcCidrBlock: '10.0.0.0/16',
+            },
+            moduleId: 'region',
+            type: AwsSingleAzRegionModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(resourceDiffsDelete)).toMatchInlineSnapshot(`
      [
        "- @octo/vpc=vpc-test-region",
        "- @octo/internet-gateway=igw-test-region",
@@ -162,18 +190,25 @@ describe('AwsSingleAzRegionModule UT', () => {
   it('should CUD tags', async () => {
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
     const { app: appCreate } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsSingleAzRegionModule>({
-      inputs: {
-        account: stub('${{testModule.model.account}}'),
-        name: 'test-region',
-        regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
-        vpcCidrBlock: '10.0.0.0/16',
-      },
-      moduleId: 'region',
-      type: AwsSingleAzRegionModule,
-    });
-    const resultCreate = await testModuleContainer.commit(appCreate);
-    expect(testModuleContainer.digestDiffs(resultCreate.resourceDiffs)).toMatchInlineSnapshot(`
+    const { resourceDiffs: resourceDiffsCreate } = (
+      await testModuleContainer
+        .runModules<AwsSingleAzRegionModule>(
+          appCreate,
+          {
+            inputs: {
+              account: stub('${{testModule.model.account}}'),
+              name: 'test-region',
+              regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
+              vpcCidrBlock: '10.0.0.0/16',
+            },
+            moduleId: 'region',
+            type: AwsSingleAzRegionModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`
      [
        "+ @octo/vpc=vpc-test-region",
        "+ @octo/internet-gateway=igw-test-region",
@@ -182,19 +217,26 @@ describe('AwsSingleAzRegionModule UT', () => {
 
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
     const { app: appUpdateTags } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsSingleAzRegionModule>({
-      inputs: {
-        account: stub('${{testModule.model.account}}'),
-        name: 'test-region',
-        regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
-        vpcCidrBlock: '10.0.0.0/16',
-      },
-      moduleId: 'region',
-      type: AwsSingleAzRegionModule,
-    });
-    expect(await testModuleContainer.diffHcl(appUpdateTags)).toMatchSnapshot();
-    const resultUpdateTags = await testModuleContainer.commit(appUpdateTags);
-    expect(testModuleContainer.digestDiffs(resultUpdateTags.resourceDiffs)).toMatchInlineSnapshot(`
+    const updateTags = (
+      await testModuleContainer
+        .runModules<AwsSingleAzRegionModule>(
+          appUpdateTags,
+          {
+            inputs: {
+              account: stub('${{testModule.model.account}}'),
+              name: 'test-region',
+              regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
+              vpcCidrBlock: '10.0.0.0/16',
+            },
+            moduleId: 'region',
+            type: AwsSingleAzRegionModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(updateTags.hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(updateTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/vpc=vpc-test-region",
        "* @octo/internet-gateway=igw-test-region",
@@ -202,19 +244,26 @@ describe('AwsSingleAzRegionModule UT', () => {
     `);
 
     const { app: appDeleteTags } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsSingleAzRegionModule>({
-      inputs: {
-        account: stub('${{testModule.model.account}}'),
-        name: 'test-region',
-        regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
-        vpcCidrBlock: '10.0.0.0/16',
-      },
-      moduleId: 'region',
-      type: AwsSingleAzRegionModule,
-    });
-    expect(await testModuleContainer.diffHcl(appDeleteTags)).toMatchSnapshot();
-    const resultDeleteTags = await testModuleContainer.commit(appDeleteTags);
-    expect(testModuleContainer.digestDiffs(resultDeleteTags.resourceDiffs)).toMatchInlineSnapshot(`
+    const deleteTags = (
+      await testModuleContainer
+        .runModules<AwsSingleAzRegionModule>(
+          appDeleteTags,
+          {
+            inputs: {
+              account: stub('${{testModule.model.account}}'),
+              name: 'test-region',
+              regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
+              vpcCidrBlock: '10.0.0.0/16',
+            },
+            moduleId: 'region',
+            type: AwsSingleAzRegionModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(deleteTags.hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(deleteTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/vpc=vpc-test-region",
        "* @octo/internet-gateway=igw-test-region",
@@ -225,32 +274,44 @@ describe('AwsSingleAzRegionModule UT', () => {
   describe('input changes', () => {
     it('should handle name change', async () => {
       const { app: appCreate } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsSingleAzRegionModule>({
-        inputs: {
-          account: stub('${{testModule.model.account}}'),
-          name: 'test-region',
-          regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
-          vpcCidrBlock: '10.0.0.0/16',
-        },
-        moduleId: 'region',
-        type: AwsSingleAzRegionModule,
-      });
-      await testModuleContainer.commit(appCreate);
+      await testModuleContainer
+        .runModules<AwsSingleAzRegionModule>(
+          appCreate,
+          {
+            inputs: {
+              account: stub('${{testModule.model.account}}'),
+              name: 'test-region',
+              regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
+              vpcCidrBlock: '10.0.0.0/16',
+            },
+            moduleId: 'region',
+            type: AwsSingleAzRegionModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next();
 
       const { app: appUpdateName } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsSingleAzRegionModule>({
-        inputs: {
-          account: stub('${{testModule.model.account}}'),
-          name: 'changed-region',
-          regionId: AwsSingleAzRegionId.AWS_US_EAST_1B,
-          vpcCidrBlock: '10.0.0.0/16',
-        },
-        moduleId: 'region',
-        type: AwsSingleAzRegionModule,
-      });
-      expect(await testModuleContainer.diffHcl(appUpdateName)).toMatchSnapshot();
-      const resultUpdateName = await testModuleContainer.commit(appUpdateName);
-      expect(testModuleContainer.digestDiffs(resultUpdateName.resourceDiffs)).toMatchInlineSnapshot(`
+      const { hclDiff, resourceDiffs } = (
+        await testModuleContainer
+          .runModules<AwsSingleAzRegionModule>(
+            appUpdateName,
+            {
+              inputs: {
+                account: stub('${{testModule.model.account}}'),
+                name: 'changed-region',
+                regionId: AwsSingleAzRegionId.AWS_US_EAST_1B,
+                vpcCidrBlock: '10.0.0.0/16',
+              },
+              moduleId: 'region',
+              type: AwsSingleAzRegionModule,
+            },
+            { skipTerraformApply: true },
+          )
+          .next()
+      ).value!;
+      expect(hclDiff).toMatchSnapshot();
+      expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
          "- @octo/vpc=vpc-test-region",
          "- @octo/internet-gateway=igw-test-region",
@@ -262,33 +323,45 @@ describe('AwsSingleAzRegionModule UT', () => {
 
     it('should handle regionId change', async () => {
       const { app: appCreate } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsSingleAzRegionModule>({
-        inputs: {
-          account: stub('${{testModule.model.account}}'),
-          name: 'test-region',
-          regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
-          vpcCidrBlock: '10.0.0.0/16',
-        },
-        moduleId: 'region',
-        type: AwsSingleAzRegionModule,
-      });
-      await testModuleContainer.commit(appCreate);
+      await testModuleContainer
+        .runModules<AwsSingleAzRegionModule>(
+          appCreate,
+          {
+            inputs: {
+              account: stub('${{testModule.model.account}}'),
+              name: 'test-region',
+              regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
+              vpcCidrBlock: '10.0.0.0/16',
+            },
+            moduleId: 'region',
+            type: AwsSingleAzRegionModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next();
 
       const { app: appUpdateRegionId } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsSingleAzRegionModule>({
-        inputs: {
-          account: stub('${{testModule.model.account}}'),
-          name: 'test-region',
-          regionId: AwsSingleAzRegionId.AWS_US_EAST_1B,
-          vpcCidrBlock: '10.0.0.0/16',
-        },
-        moduleId: 'region',
-        type: AwsSingleAzRegionModule,
-      });
       // regionId change moves the provider region (and AZ) of every resource → terraform recreates
       // them. Octo emits a REPLACE on the force-new resources.
-      const resultUpdateRegionId = await testModuleContainer.commit(appUpdateRegionId);
-      expect(testModuleContainer.digestDiffs(resultUpdateRegionId.resourceDiffs)).toMatchInlineSnapshot(`
+      const { resourceDiffs } = (
+        await testModuleContainer
+          .runModules<AwsSingleAzRegionModule>(
+            appUpdateRegionId,
+            {
+              inputs: {
+                account: stub('${{testModule.model.account}}'),
+                name: 'test-region',
+                regionId: AwsSingleAzRegionId.AWS_US_EAST_1B,
+                vpcCidrBlock: '10.0.0.0/16',
+              },
+              moduleId: 'region',
+              type: AwsSingleAzRegionModule,
+            },
+            { skipTerraformApply: true },
+          )
+          .next()
+      ).value!;
+      expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
          "* @octo/internet-gateway=igw-test-region",
        ]
@@ -297,32 +370,44 @@ describe('AwsSingleAzRegionModule UT', () => {
 
     it('should handle vpcCidrBlock change', async () => {
       const { app: appCreate } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsSingleAzRegionModule>({
-        inputs: {
-          account: stub('${{testModule.model.account}}'),
-          name: 'test-region',
-          regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
-          vpcCidrBlock: '10.0.0.0/16',
-        },
-        moduleId: 'region',
-        type: AwsSingleAzRegionModule,
-      });
-      await testModuleContainer.commit(appCreate);
+      await testModuleContainer
+        .runModules<AwsSingleAzRegionModule>(
+          appCreate,
+          {
+            inputs: {
+              account: stub('${{testModule.model.account}}'),
+              name: 'test-region',
+              regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
+              vpcCidrBlock: '10.0.0.0/16',
+            },
+            moduleId: 'region',
+            type: AwsSingleAzRegionModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next();
 
       const { app: appUpdateVpcCidrBlock } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsSingleAzRegionModule>({
-        inputs: {
-          account: stub('${{testModule.model.account}}'),
-          name: 'test-region',
-          regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
-          vpcCidrBlock: '10.0.0.0/24',
-        },
-        moduleId: 'region',
-        type: AwsSingleAzRegionModule,
-      });
       // cidr_block is force-new on aws_vpc → octo emits a REPLACE on the vpc (and force-new dependents).
-      const resultUpdateVpcCidrBlock = await testModuleContainer.commit(appUpdateVpcCidrBlock);
-      expect(testModuleContainer.digestDiffs(resultUpdateVpcCidrBlock.resourceDiffs)).toMatchInlineSnapshot(`
+      const { resourceDiffs } = (
+        await testModuleContainer
+          .runModules<AwsSingleAzRegionModule>(
+            appUpdateVpcCidrBlock,
+            {
+              inputs: {
+                account: stub('${{testModule.model.account}}'),
+                name: 'test-region',
+                regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
+                vpcCidrBlock: '10.0.0.0/24',
+              },
+              moduleId: 'region',
+              type: AwsSingleAzRegionModule,
+            },
+            { skipTerraformApply: true },
+          )
+          .next()
+      ).value!;
+      expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
          "^ @octo/vpc=vpc-test-region",
          "* @octo/internet-gateway=igw-test-region",
@@ -333,101 +418,135 @@ describe('AwsSingleAzRegionModule UT', () => {
 
   it('should handle moduleId change', async () => {
     const { app: appCreate } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsSingleAzRegionModule>({
-      inputs: {
-        account: stub('${{testModule.model.account}}'),
-        name: 'test-region',
-        regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
-        vpcCidrBlock: '10.0.0.0/16',
-      },
-      moduleId: 'region-1',
-      type: AwsSingleAzRegionModule,
-    });
-    await testModuleContainer.commit(appCreate);
+    await testModuleContainer
+      .runModules<AwsSingleAzRegionModule>(
+        appCreate,
+        {
+          inputs: {
+            account: stub('${{testModule.model.account}}'),
+            name: 'test-region',
+            regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
+            vpcCidrBlock: '10.0.0.0/16',
+          },
+          moduleId: 'region-1',
+          type: AwsSingleAzRegionModule,
+        },
+        { skipTerraformApply: true },
+      )
+      .next();
 
     const { app: appUpdateModuleId } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsSingleAzRegionModule>({
-      inputs: {
-        account: stub('${{testModule.model.account}}'),
-        name: 'test-region',
-        regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
-        vpcCidrBlock: '10.0.0.0/16',
-      },
-      moduleId: 'region-2',
-      type: AwsSingleAzRegionModule,
-    });
-    expect(await testModuleContainer.diffHcl(appUpdateModuleId)).toMatchSnapshot();
-    const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId);
-    expect(testModuleContainer.digestDiffs(resultUpdateModuleId.resourceDiffs)).toMatchInlineSnapshot(`[]`);
+    const { hclDiff, resourceDiffs } = (
+      await testModuleContainer
+        .runModules<AwsSingleAzRegionModule>(
+          appUpdateModuleId,
+          {
+            inputs: {
+              account: stub('${{testModule.model.account}}'),
+              name: 'test-region',
+              regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
+              vpcCidrBlock: '10.0.0.0/16',
+            },
+            moduleId: 'region-2',
+            type: AwsSingleAzRegionModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`[]`);
   });
 
   describe('validation', () => {
     it('should validate duplicate region name', async () => {
-      await setup(testModuleContainer);
-      await expect(async () => {
-        await testModuleContainer.runModule<AwsSingleAzRegionModule>({
-          inputs: {
-            account: stub('${{testModule.model.account}}'),
-            name: 'test-region',
-            regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
-            vpcCidrBlock: '10.0.0.0/16',
-          },
-          moduleId: 'region1',
-          type: AwsSingleAzRegionModule,
-        });
-        await testModuleContainer.runModule<AwsSingleAzRegionModule>({
-          inputs: {
-            account: stub('${{testModule.model.account}}'),
-            name: 'test-region',
-            regionId: AwsSingleAzRegionId.AWS_US_EAST_1B,
-            vpcCidrBlock: '192.168.0.0/24',
-          },
-          moduleId: 'region2',
-          type: AwsSingleAzRegionModule,
-        });
-      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Region "test-region" already exists!"`);
+      const { app } = await setup(testModuleContainer);
+      await expect(
+        testModuleContainer
+          .runModules<AwsSingleAzRegionModule>(
+            app,
+            [
+              {
+                inputs: {
+                  account: stub('${{testModule.model.account}}'),
+                  name: 'test-region',
+                  regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
+                  vpcCidrBlock: '10.0.0.0/16',
+                },
+                moduleId: 'region1',
+                type: AwsSingleAzRegionModule,
+              },
+              {
+                inputs: {
+                  account: stub('${{testModule.model.account}}'),
+                  name: 'test-region',
+                  regionId: AwsSingleAzRegionId.AWS_US_EAST_1B,
+                  vpcCidrBlock: '192.168.0.0/24',
+                },
+                moduleId: 'region2',
+                type: AwsSingleAzRegionModule,
+              },
+            ],
+            { skipTerraformApply: true },
+          )
+          .next(),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`"Region "test-region" already exists!"`);
     });
 
     it('should validate overlapping CIDR blocks', async () => {
-      await setup(testModuleContainer);
-      await expect(async () => {
-        await testModuleContainer.runModule<AwsSingleAzRegionModule>({
-          inputs: {
-            account: stub('${{testModule.model.account}}'),
-            name: 'test-region-1',
-            regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
-            vpcCidrBlock: '10.0.0.0/16',
-          },
-          moduleId: 'region1',
-          type: AwsSingleAzRegionModule,
-        });
-        await testModuleContainer.runModule<AwsSingleAzRegionModule>({
-          inputs: {
-            account: stub('${{testModule.model.account}}'),
-            name: 'test-region-2',
-            regionId: AwsSingleAzRegionId.AWS_US_EAST_1B,
-            vpcCidrBlock: '10.0.0.0/16',
-          },
-          moduleId: 'region2',
-          type: AwsSingleAzRegionModule,
-        });
-      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Overlapping VPC cidr blocks are not allowed!"`);
+      const { app } = await setup(testModuleContainer);
+      await expect(
+        testModuleContainer
+          .runModules<AwsSingleAzRegionModule>(
+            app,
+            [
+              {
+                inputs: {
+                  account: stub('${{testModule.model.account}}'),
+                  name: 'test-region-1',
+                  regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
+                  vpcCidrBlock: '10.0.0.0/16',
+                },
+                moduleId: 'region1',
+                type: AwsSingleAzRegionModule,
+              },
+              {
+                inputs: {
+                  account: stub('${{testModule.model.account}}'),
+                  name: 'test-region-2',
+                  regionId: AwsSingleAzRegionId.AWS_US_EAST_1B,
+                  vpcCidrBlock: '10.0.0.0/16',
+                },
+                moduleId: 'region2',
+                type: AwsSingleAzRegionModule,
+              },
+            ],
+            { skipTerraformApply: true },
+          )
+          .next(),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`"Overlapping VPC cidr blocks are not allowed!"`);
     });
 
     it('should validate invalid VPC cidr block', async () => {
-      await setup(testModuleContainer);
-      await expect(async () => {
-        await testModuleContainer.runModule<AwsSingleAzRegionModule>({
-          inputs: {
-            account: stub('${{testModule.model.account}}'),
-            name: 'test-region',
-            regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
-            vpcCidrBlock: '10.0.0.0/8',
-          },
-          moduleId: 'region',
-          type: AwsSingleAzRegionModule,
-        });
-      }).rejects.toThrowErrorMatchingInlineSnapshot(
+      const { app } = await setup(testModuleContainer);
+      await expect(
+        testModuleContainer
+          .runModules<AwsSingleAzRegionModule>(
+            app,
+            {
+              inputs: {
+                account: stub('${{testModule.model.account}}'),
+                name: 'test-region',
+                regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
+                vpcCidrBlock: '10.0.0.0/8',
+              },
+              moduleId: 'region',
+              type: AwsSingleAzRegionModule,
+            },
+            { skipTerraformApply: true },
+          )
+          .next(),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(
         `"Invalid VPC cidr block "10.0.0.0/8"! AWS requires a valid IpV4 cidr between /16 and /28."`,
       );
     });

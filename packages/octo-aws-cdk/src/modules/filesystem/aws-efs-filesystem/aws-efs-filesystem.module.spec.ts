@@ -53,15 +53,21 @@ describe('AwsEfsFilesystemModule UT', () => {
 
   it('should call correct actions', async () => {
     const { app } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEfsFilesystemModule>({
-      inputs: {
-        filesystemName: 'test-filesystem',
-        region: stub('${{testModule.model.region}}'),
+    const runModulesGenerator = testModuleContainer.runModules<AwsEfsFilesystemModule>(
+      app,
+      {
+        inputs: {
+          filesystemName: 'test-filesystem',
+          region: stub('${{testModule.model.region}}'),
+        },
+        moduleId: 'filesystem',
+        type: AwsEfsFilesystemModule,
       },
-      moduleId: 'filesystem',
-      type: AwsEfsFilesystemModule,
-    });
-    expect(await testModuleContainer.renderHcl(app)).toMatchInlineSnapshot(`
+      { filterByModuleIds: ['filesystem'], skipTerraformApply: true },
+    );
+
+    const { hclRender, modelTransaction, resourceDiffs } = (await runModulesGenerator.next()).value!;
+    expect(hclRender).toMatchInlineSnapshot(`
      "# filesystem/main.tf
      terraform {
        required_version = ">= 1.6.0"
@@ -122,16 +128,14 @@ describe('AwsEfsFilesystemModule UT', () => {
      # filesystem/variables.tf
      <empty>"
     `);
-
-    const result = await testModuleContainer.commit(app, { filterByModuleIds: ['filesystem'] });
-    expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`
+    expect(testModuleContainer.mapTransactionActions(modelTransaction)).toMatchInlineSnapshot(`
      [
        [
          "AddAwsEfsFilesystemModelAction",
        ],
      ]
     `);
-    expect(testModuleContainer.digestDiffs(result.resourceDiffs)).toMatchInlineSnapshot(`
+    expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
        "+ @octo/efs=efs-region-test-filesystem",
      ]
@@ -140,25 +144,48 @@ describe('AwsEfsFilesystemModule UT', () => {
 
   it('should CUD', async () => {
     const { app: appCreate } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEfsFilesystemModule>({
-      inputs: {
-        filesystemName: 'test-filesystem',
-        region: stub('${{testModule.model.region}}'),
-      },
-      moduleId: 'filesystem',
-      type: AwsEfsFilesystemModule,
-    });
-    const resultCreate = await testModuleContainer.commit(appCreate);
-    expect(testModuleContainer.digestDiffs(resultCreate.resourceDiffs)).toMatchInlineSnapshot(`
+    const { resourceDiffs: resourceDiffsCreate } = (
+      await testModuleContainer
+        .runModules<AwsEfsFilesystemModule>(
+          appCreate,
+          {
+            inputs: {
+              filesystemName: 'test-filesystem',
+              region: stub('${{testModule.model.region}}'),
+            },
+            moduleId: 'filesystem',
+            type: AwsEfsFilesystemModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`
      [
        "+ @octo/efs=efs-region-test-filesystem",
      ]
     `);
 
     const { app: appDelete } = await setup(testModuleContainer);
-    expect(await testModuleContainer.diffHcl(appDelete)).toMatchSnapshot();
-    const resultDelete = await testModuleContainer.commit(appDelete);
-    expect(testModuleContainer.digestDiffs(resultDelete.resourceDiffs)).toMatchInlineSnapshot(`
+    const { hclDiff, resourceDiffs: resourceDiffsDelete } = (
+      await testModuleContainer
+        .runModules<AwsEfsFilesystemModule>(
+          appDelete,
+          {
+            hidden: true,
+            inputs: {
+              filesystemName: 'test-filesystem',
+              region: stub('${{testModule.model.region}}'),
+            },
+            moduleId: 'filesystem',
+            type: AwsEfsFilesystemModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(resourceDiffsDelete)).toMatchInlineSnapshot(`
      [
        "- @octo/efs=efs-region-test-filesystem",
      ]
@@ -171,16 +198,23 @@ describe('AwsEfsFilesystemModule UT', () => {
   it('should CUD tags', async () => {
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
     const { app: appCreate } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEfsFilesystemModule>({
-      inputs: {
-        filesystemName: 'test-filesystem',
-        region: stub('${{testModule.model.region}}'),
-      },
-      moduleId: 'filesystem',
-      type: AwsEfsFilesystemModule,
-    });
-    const resultCreate = await testModuleContainer.commit(appCreate);
-    expect(testModuleContainer.digestDiffs(resultCreate.resourceDiffs)).toMatchInlineSnapshot(`
+    const { resourceDiffs: resourceDiffsCreate } = (
+      await testModuleContainer
+        .runModules<AwsEfsFilesystemModule>(
+          appCreate,
+          {
+            inputs: {
+              filesystemName: 'test-filesystem',
+              region: stub('${{testModule.model.region}}'),
+            },
+            moduleId: 'filesystem',
+            type: AwsEfsFilesystemModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`
      [
        "+ @octo/efs=efs-region-test-filesystem",
      ]
@@ -188,34 +222,48 @@ describe('AwsEfsFilesystemModule UT', () => {
 
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
     const { app: appUpdateTags } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEfsFilesystemModule>({
-      inputs: {
-        filesystemName: 'test-filesystem',
-        region: stub('${{testModule.model.region}}'),
-      },
-      moduleId: 'filesystem',
-      type: AwsEfsFilesystemModule,
-    });
-    expect(await testModuleContainer.diffHcl(appUpdateTags)).toMatchSnapshot();
-    const resultUpdateTags = await testModuleContainer.commit(appUpdateTags);
-    expect(testModuleContainer.digestDiffs(resultUpdateTags.resourceDiffs)).toMatchInlineSnapshot(`
+    const updateTags = (
+      await testModuleContainer
+        .runModules<AwsEfsFilesystemModule>(
+          appUpdateTags,
+          {
+            inputs: {
+              filesystemName: 'test-filesystem',
+              region: stub('${{testModule.model.region}}'),
+            },
+            moduleId: 'filesystem',
+            type: AwsEfsFilesystemModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(updateTags.hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(updateTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/efs=efs-region-test-filesystem",
      ]
     `);
 
     const { app: appDeleteTags } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEfsFilesystemModule>({
-      inputs: {
-        filesystemName: 'test-filesystem',
-        region: stub('${{testModule.model.region}}'),
-      },
-      moduleId: 'filesystem',
-      type: AwsEfsFilesystemModule,
-    });
-    expect(await testModuleContainer.diffHcl(appDeleteTags)).toMatchSnapshot();
-    const resultDeleteTags = await testModuleContainer.commit(appDeleteTags);
-    expect(testModuleContainer.digestDiffs(resultDeleteTags.resourceDiffs)).toMatchInlineSnapshot(`
+    const deleteTags = (
+      await testModuleContainer
+        .runModules<AwsEfsFilesystemModule>(
+          appDeleteTags,
+          {
+            inputs: {
+              filesystemName: 'test-filesystem',
+              region: stub('${{testModule.model.region}}'),
+            },
+            moduleId: 'filesystem',
+            type: AwsEfsFilesystemModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(deleteTags.hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(deleteTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/efs=efs-region-test-filesystem",
      ]
@@ -225,28 +273,40 @@ describe('AwsEfsFilesystemModule UT', () => {
   describe('input changes', () => {
     it('should handle filesystemName change', async () => {
       const { app: appCreate } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsEfsFilesystemModule>({
-        inputs: {
-          filesystemName: 'test-filesystem',
-          region: stub('${{testModule.model.region}}'),
-        },
-        moduleId: 'filesystem',
-        type: AwsEfsFilesystemModule,
-      });
-      await testModuleContainer.commit(appCreate);
+      await testModuleContainer
+        .runModules<AwsEfsFilesystemModule>(
+          appCreate,
+          {
+            inputs: {
+              filesystemName: 'test-filesystem',
+              region: stub('${{testModule.model.region}}'),
+            },
+            moduleId: 'filesystem',
+            type: AwsEfsFilesystemModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next();
 
       const { app: appUpdateFilesystemName } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsEfsFilesystemModule>({
-        inputs: {
-          filesystemName: 'changed-filesystem',
-          region: stub('${{testModule.model.region}}'),
-        },
-        moduleId: 'filesystem',
-        type: AwsEfsFilesystemModule,
-      });
-      expect(await testModuleContainer.diffHcl(appUpdateFilesystemName)).toMatchSnapshot();
-      const resultUpdateFilesystemName = await testModuleContainer.commit(appUpdateFilesystemName);
-      expect(testModuleContainer.digestDiffs(resultUpdateFilesystemName.resourceDiffs)).toMatchInlineSnapshot(`
+      const { hclDiff, resourceDiffs } = (
+        await testModuleContainer
+          .runModules<AwsEfsFilesystemModule>(
+            appUpdateFilesystemName,
+            {
+              inputs: {
+                filesystemName: 'changed-filesystem',
+                region: stub('${{testModule.model.region}}'),
+              },
+              moduleId: 'filesystem',
+              type: AwsEfsFilesystemModule,
+            },
+            { skipTerraformApply: true },
+          )
+          .next()
+      ).value!;
+      expect(hclDiff).toMatchSnapshot();
+      expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
          "- @octo/efs=efs-region-test-filesystem",
          "+ @octo/efs=efs-region-changed-filesystem",
@@ -257,43 +317,61 @@ describe('AwsEfsFilesystemModule UT', () => {
 
   it('should handle moduleId change', async () => {
     const { app: appCreate } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEfsFilesystemModule>({
-      inputs: {
-        filesystemName: 'test-filesystem',
-        region: stub('${{testModule.model.region}}'),
-      },
-      moduleId: 'filesystem-1',
-      type: AwsEfsFilesystemModule,
-    });
-    await testModuleContainer.commit(appCreate);
+    await testModuleContainer
+      .runModules<AwsEfsFilesystemModule>(
+        appCreate,
+        {
+          inputs: {
+            filesystemName: 'test-filesystem',
+            region: stub('${{testModule.model.region}}'),
+          },
+          moduleId: 'filesystem-1',
+          type: AwsEfsFilesystemModule,
+        },
+        { skipTerraformApply: true },
+      )
+      .next();
 
     const { app: appUpdateModuleId } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEfsFilesystemModule>({
-      inputs: {
-        filesystemName: 'test-filesystem',
-        region: stub('${{testModule.model.region}}'),
-      },
-      moduleId: 'filesystem-2',
-      type: AwsEfsFilesystemModule,
-    });
-    expect(await testModuleContainer.diffHcl(appUpdateModuleId)).toMatchSnapshot();
-    const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId);
-    expect(testModuleContainer.digestDiffs(resultUpdateModuleId.resourceDiffs)).toMatchInlineSnapshot(`[]`);
+    const { hclDiff, resourceDiffs } = (
+      await testModuleContainer
+        .runModules<AwsEfsFilesystemModule>(
+          appUpdateModuleId,
+          {
+            inputs: {
+              filesystemName: 'test-filesystem',
+              region: stub('${{testModule.model.region}}'),
+            },
+            moduleId: 'filesystem-2',
+            type: AwsEfsFilesystemModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`[]`);
   });
 
   describe('validation', () => {
     it('should validate filesystemName length', async () => {
-      await setup(testModuleContainer);
-      await expect(async () => {
-        await testModuleContainer.runModule<AwsEfsFilesystemModule>({
-          inputs: {
-            filesystemName: '',
-            region: stub('${{testModule.model.region}}'),
-          },
-          moduleId: 'filesystem',
-          type: AwsEfsFilesystemModule,
-        });
-      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "filesystemName" in schema could not be validated!"`);
+      const { app } = await setup(testModuleContainer);
+      await expect(
+        testModuleContainer
+          .runModules<AwsEfsFilesystemModule>(
+            app,
+            {
+              inputs: {
+                filesystemName: '',
+                region: stub('${{testModule.model.region}}'),
+              },
+              moduleId: 'filesystem',
+              type: AwsEfsFilesystemModule,
+            },
+            { skipTerraformApply: true },
+          )
+          .next(),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "filesystemName" in schema could not be validated!"`);
     });
   });
 });

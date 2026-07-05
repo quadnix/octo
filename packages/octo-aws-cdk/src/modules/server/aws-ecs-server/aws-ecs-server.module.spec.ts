@@ -71,21 +71,27 @@ describe('AwsEcsServerModule UT', () => {
 
   it('should call correct actions', async () => {
     const { app } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsServerModule>({
-      inputs: {
-        account: stub('${{testModule.model.account}}'),
-        s3: [
-          {
-            directories: [{ access: AwsEcsServerS3AccessDirectoryPermission.READ, remoteDirectoryPath: 'uploads' }],
-            service: stub('${{testModule.model.service}}'),
-          },
-        ],
-        serverKey: 'backend',
+    const runModulesGenerator = testModuleContainer.runModules<AwsEcsServerModule>(
+      app,
+      {
+        inputs: {
+          account: stub('${{testModule.model.account}}'),
+          s3: [
+            {
+              directories: [{ access: AwsEcsServerS3AccessDirectoryPermission.READ, remoteDirectoryPath: 'uploads' }],
+              service: stub('${{testModule.model.service}}'),
+            },
+          ],
+          serverKey: 'backend',
+        },
+        moduleId: 'server',
+        type: AwsEcsServerModule,
       },
-      moduleId: 'server',
-      type: AwsEcsServerModule,
-    });
-    expect(await testModuleContainer.renderHcl(app)).toMatchInlineSnapshot(`
+      { filterByModuleIds: ['server'], skipTerraformApply: true },
+    );
+
+    const { hclRender, modelTransaction, resourceDiffs } = (await runModulesGenerator.next()).value!;
+    expect(hclRender).toMatchInlineSnapshot(`
      "# server/main.tf
      terraform {
        required_version = ">= 1.6.0"
@@ -250,9 +256,7 @@ describe('AwsEcsServerModule UT', () => {
      # testModule/variables.tf
      variable "iam_role_ServerRole_backend_Arn" {}"
     `);
-
-    const result = await testModuleContainer.commit(app, { filterByModuleIds: ['server'] });
-    expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`
+    expect(testModuleContainer.mapTransactionActions(modelTransaction)).toMatchInlineSnapshot(`
      [
        [
          "AddAwsEcsServerModelAction",
@@ -262,7 +266,7 @@ describe('AwsEcsServerModule UT', () => {
        ],
      ]
     `);
-    expect(testModuleContainer.digestDiffs(result.resourceDiffs)).toMatchInlineSnapshot(`
+    expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
        "+ @octo/iam-role=iam-role-ServerRole-backend",
        "* @octo/iam-role=iam-role-ServerRole-backend",
@@ -273,16 +277,23 @@ describe('AwsEcsServerModule UT', () => {
 
   it('should CUD', async () => {
     const { app: appCreate } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsServerModule>({
-      inputs: {
-        account: stub('${{testModule.model.account}}'),
-        serverKey: 'backend',
-      },
-      moduleId: 'server',
-      type: AwsEcsServerModule,
-    });
-    const resultCreate = await testModuleContainer.commit(appCreate);
-    expect(testModuleContainer.digestDiffs(resultCreate.resourceDiffs)).toMatchInlineSnapshot(`
+    const { resourceDiffs: resourceDiffsCreate } = (
+      await testModuleContainer
+        .runModules<AwsEcsServerModule>(
+          appCreate,
+          {
+            inputs: {
+              account: stub('${{testModule.model.account}}'),
+              serverKey: 'backend',
+            },
+            moduleId: 'server',
+            type: AwsEcsServerModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`
      [
        "+ @octo/iam-role=iam-role-ServerRole-backend",
        "* @octo/iam-role=iam-role-ServerRole-backend",
@@ -291,55 +302,71 @@ describe('AwsEcsServerModule UT', () => {
 
     // Adding security groups should have no effect as they are not created until execution.
     const { app: appAddSecurityGroups } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsServerModule>({
-      inputs: {
-        account: stub('${{testModule.model.account}}'),
-        securityGroupRules: [
+    const addSecurityGroups = (
+      await testModuleContainer
+        .runModules<AwsEcsServerModule>(
+          appAddSecurityGroups,
           {
-            CidrBlock: '0.0.0.0/0',
-            Egress: true,
-            FromPort: 0,
-            IpProtocol: 'tcp',
-            ToPort: 65535,
+            inputs: {
+              account: stub('${{testModule.model.account}}'),
+              securityGroupRules: [
+                {
+                  CidrBlock: '0.0.0.0/0',
+                  Egress: true,
+                  FromPort: 0,
+                  IpProtocol: 'tcp',
+                  ToPort: 65535,
+                },
+              ],
+              serverKey: 'backend',
+            },
+            moduleId: 'server',
+            type: AwsEcsServerModule,
           },
-        ],
-        serverKey: 'backend',
-      },
-      moduleId: 'server',
-      type: AwsEcsServerModule,
-    });
-    expect(await testModuleContainer.diffHcl(appAddSecurityGroups)).toMatchSnapshot();
-    const resultAddSecurityGroups = await testModuleContainer.commit(appAddSecurityGroups);
-    expect(testModuleContainer.digestDiffs(resultAddSecurityGroups.resourceDiffs)).toMatchInlineSnapshot(`[]`);
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(addSecurityGroups.hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(addSecurityGroups.resourceDiffs)).toMatchInlineSnapshot(`[]`);
 
     // Add S3 Storage.
     const { app: appAddS3Storage } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsServerModule>({
-      inputs: {
-        account: stub('${{testModule.model.account}}'),
-        s3: [
+    const addS3Storage = (
+      await testModuleContainer
+        .runModules<AwsEcsServerModule>(
+          appAddS3Storage,
           {
-            directories: [{ access: AwsEcsServerS3AccessDirectoryPermission.READ, remoteDirectoryPath: 'uploads' }],
-            service: stub('${{testModule.model.service}}'),
+            inputs: {
+              account: stub('${{testModule.model.account}}'),
+              s3: [
+                {
+                  directories: [
+                    { access: AwsEcsServerS3AccessDirectoryPermission.READ, remoteDirectoryPath: 'uploads' },
+                  ],
+                  service: stub('${{testModule.model.service}}'),
+                },
+              ],
+              securityGroupRules: [
+                {
+                  CidrBlock: '0.0.0.0/0',
+                  Egress: true,
+                  FromPort: 0,
+                  IpProtocol: 'tcp',
+                  ToPort: 65535,
+                },
+              ],
+              serverKey: 'backend',
+            },
+            moduleId: 'server',
+            type: AwsEcsServerModule,
           },
-        ],
-        securityGroupRules: [
-          {
-            CidrBlock: '0.0.0.0/0',
-            Egress: true,
-            FromPort: 0,
-            IpProtocol: 'tcp',
-            ToPort: 65535,
-          },
-        ],
-        serverKey: 'backend',
-      },
-      moduleId: 'server',
-      type: AwsEcsServerModule,
-    });
-    expect(await testModuleContainer.diffHcl(appAddS3Storage)).toMatchSnapshot();
-    const resultAddS3Storage = await testModuleContainer.commit(appAddS3Storage);
-    expect(testModuleContainer.digestDiffs(resultAddS3Storage.resourceDiffs)).toMatchInlineSnapshot(`
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(addS3Storage.hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(addS3Storage.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/iam-role=iam-role-ServerRole-backend",
        "* @octo/s3-storage=bucket-test-bucket",
@@ -347,9 +374,42 @@ describe('AwsEcsServerModule UT', () => {
     `);
 
     const { app: appDelete } = await setup(testModuleContainer);
-    expect(await testModuleContainer.diffHcl(appDelete)).toMatchSnapshot();
-    const resultDelete = await testModuleContainer.commit(appDelete);
-    expect(testModuleContainer.digestDiffs(resultDelete.resourceDiffs)).toMatchInlineSnapshot(`
+    const deleteResult = (
+      await testModuleContainer
+        .runModules<AwsEcsServerModule>(
+          appDelete,
+          {
+            hidden: true,
+            inputs: {
+              account: stub('${{testModule.model.account}}'),
+              s3: [
+                {
+                  directories: [
+                    { access: AwsEcsServerS3AccessDirectoryPermission.READ, remoteDirectoryPath: 'uploads' },
+                  ],
+                  service: stub('${{testModule.model.service}}'),
+                },
+              ],
+              securityGroupRules: [
+                {
+                  CidrBlock: '0.0.0.0/0',
+                  Egress: true,
+                  FromPort: 0,
+                  IpProtocol: 'tcp',
+                  ToPort: 65535,
+                },
+              ],
+              serverKey: 'backend',
+            },
+            moduleId: 'server',
+            type: AwsEcsServerModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(deleteResult.hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(deleteResult.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/iam-role=iam-role-ServerRole-backend",
        "* @octo/iam-role=iam-role-ServerRole-backend",
@@ -365,16 +425,23 @@ describe('AwsEcsServerModule UT', () => {
   it('should CUD tags', async () => {
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
     const { app: appCreate } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsServerModule>({
-      inputs: {
-        account: stub('${{testModule.model.account}}'),
-        serverKey: 'backend',
-      },
-      moduleId: 'server',
-      type: AwsEcsServerModule,
-    });
-    const resultCreate = await testModuleContainer.commit(appCreate);
-    expect(testModuleContainer.digestDiffs(resultCreate.resourceDiffs)).toMatchInlineSnapshot(`
+    const { resourceDiffs: resourceDiffsCreate } = (
+      await testModuleContainer
+        .runModules<AwsEcsServerModule>(
+          appCreate,
+          {
+            inputs: {
+              account: stub('${{testModule.model.account}}'),
+              serverKey: 'backend',
+            },
+            moduleId: 'server',
+            type: AwsEcsServerModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`
      [
        "+ @octo/iam-role=iam-role-ServerRole-backend",
        "* @octo/iam-role=iam-role-ServerRole-backend",
@@ -383,34 +450,48 @@ describe('AwsEcsServerModule UT', () => {
 
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
     const { app: appUpdateTags } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsServerModule>({
-      inputs: {
-        account: stub('${{testModule.model.account}}'),
-        serverKey: 'backend',
-      },
-      moduleId: 'server',
-      type: AwsEcsServerModule,
-    });
-    expect(await testModuleContainer.diffHcl(appUpdateTags)).toMatchSnapshot();
-    const resultUpdateTags = await testModuleContainer.commit(appUpdateTags);
-    expect(testModuleContainer.digestDiffs(resultUpdateTags.resourceDiffs)).toMatchInlineSnapshot(`
+    const updateTags = (
+      await testModuleContainer
+        .runModules<AwsEcsServerModule>(
+          appUpdateTags,
+          {
+            inputs: {
+              account: stub('${{testModule.model.account}}'),
+              serverKey: 'backend',
+            },
+            moduleId: 'server',
+            type: AwsEcsServerModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(updateTags.hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(updateTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/iam-role=iam-role-ServerRole-backend",
      ]
     `);
 
     const { app: appDeleteTags } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsServerModule>({
-      inputs: {
-        account: stub('${{testModule.model.account}}'),
-        serverKey: 'backend',
-      },
-      moduleId: 'server',
-      type: AwsEcsServerModule,
-    });
-    expect(await testModuleContainer.diffHcl(appDeleteTags)).toMatchSnapshot();
-    const resultDeleteTags = await testModuleContainer.commit(appDeleteTags);
-    expect(testModuleContainer.digestDiffs(resultDeleteTags.resourceDiffs)).toMatchInlineSnapshot(`
+    const deleteTags = (
+      await testModuleContainer
+        .runModules<AwsEcsServerModule>(
+          appDeleteTags,
+          {
+            inputs: {
+              account: stub('${{testModule.model.account}}'),
+              serverKey: 'backend',
+            },
+            moduleId: 'server',
+            type: AwsEcsServerModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(deleteTags.hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(deleteTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/iam-role=iam-role-ServerRole-backend",
      ]
@@ -420,28 +501,40 @@ describe('AwsEcsServerModule UT', () => {
   describe('input changes', () => {
     it('should handle serverKey change', async () => {
       const { app: appCreate } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsEcsServerModule>({
-        inputs: {
-          account: stub('${{testModule.model.account}}'),
-          serverKey: 'backend',
-        },
-        moduleId: 'server',
-        type: AwsEcsServerModule,
-      });
-      await testModuleContainer.commit(appCreate);
+      await testModuleContainer
+        .runModules<AwsEcsServerModule>(
+          appCreate,
+          {
+            inputs: {
+              account: stub('${{testModule.model.account}}'),
+              serverKey: 'backend',
+            },
+            moduleId: 'server',
+            type: AwsEcsServerModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next();
 
       const { app: appUpdateServerKey } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsEcsServerModule>({
-        inputs: {
-          account: stub('${{testModule.model.account}}'),
-          serverKey: 'changed-backend',
-        },
-        moduleId: 'server',
-        type: AwsEcsServerModule,
-      });
-      expect(await testModuleContainer.diffHcl(appUpdateServerKey)).toMatchSnapshot();
-      const resultUpdateServerKey = await testModuleContainer.commit(appUpdateServerKey);
-      expect(testModuleContainer.digestDiffs(resultUpdateServerKey.resourceDiffs)).toMatchInlineSnapshot(`
+      const { hclDiff, resourceDiffs } = (
+        await testModuleContainer
+          .runModules<AwsEcsServerModule>(
+            appUpdateServerKey,
+            {
+              inputs: {
+                account: stub('${{testModule.model.account}}'),
+                serverKey: 'changed-backend',
+              },
+              moduleId: 'server',
+              type: AwsEcsServerModule,
+            },
+            { skipTerraformApply: true },
+          )
+          .next()
+      ).value!;
+      expect(hclDiff).toMatchSnapshot();
+      expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
          "* @octo/iam-role=iam-role-ServerRole-backend",
          "- @octo/iam-role=iam-role-ServerRole-backend",
@@ -454,27 +547,39 @@ describe('AwsEcsServerModule UT', () => {
 
   it('should handle moduleId change', async () => {
     const { app: appCreate } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsServerModule>({
-      inputs: {
-        account: stub('${{testModule.model.account}}'),
-        serverKey: 'backend',
-      },
-      moduleId: 'server-1',
-      type: AwsEcsServerModule,
-    });
-    await testModuleContainer.commit(appCreate);
+    await testModuleContainer
+      .runModules<AwsEcsServerModule>(
+        appCreate,
+        {
+          inputs: {
+            account: stub('${{testModule.model.account}}'),
+            serverKey: 'backend',
+          },
+          moduleId: 'server-1',
+          type: AwsEcsServerModule,
+        },
+        { skipTerraformApply: true },
+      )
+      .next();
 
     const { app: appUpdateModuleId } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsServerModule>({
-      inputs: {
-        account: stub('${{testModule.model.account}}'),
-        serverKey: 'backend',
-      },
-      moduleId: 'server-2',
-      type: AwsEcsServerModule,
-    });
-    expect(await testModuleContainer.diffHcl(appUpdateModuleId)).toMatchSnapshot();
-    const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId);
-    expect(testModuleContainer.digestDiffs(resultUpdateModuleId.resourceDiffs)).toMatchInlineSnapshot(`[]`);
+    const { hclDiff, resourceDiffs } = (
+      await testModuleContainer
+        .runModules<AwsEcsServerModule>(
+          appUpdateModuleId,
+          {
+            inputs: {
+              account: stub('${{testModule.model.account}}'),
+              serverKey: 'backend',
+            },
+            moduleId: 'server-2',
+            type: AwsEcsServerModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`[]`);
   });
 });

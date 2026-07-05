@@ -53,16 +53,23 @@ describe('AwsEcrImageModule UT', () => {
 
   it('should call correct actions', async () => {
     const { app } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcrImageModule>({
-      inputs: {
-        imageFamily: 'family',
-        imageName: 'image',
-        regions: [stub('${{testModule.model.region}}')],
+    const runModulesGenerator = testModuleContainer.runModules<AwsEcrImageModule>(
+      app,
+      {
+        inputs: {
+          imageFamily: 'family',
+          imageName: 'image',
+          regions: [stub('${{testModule.model.region}}')],
+        },
+        moduleId: 'image',
+        type: AwsEcrImageModule,
       },
-      moduleId: 'image',
-      type: AwsEcrImageModule,
-    });
-    expect(await testModuleContainer.renderHcl(app)).toMatchInlineSnapshot(`
+      { filterByModuleIds: ['image'], skipTerraformApply: true },
+    );
+
+    const { hclRender, modelTransaction, resourceDiffs, resourceTransaction } = (await runModulesGenerator.next())
+      .value!;
+    expect(hclRender).toMatchInlineSnapshot(`
      "# image/main.tf
      terraform {
        required_version = ">= 1.6.0"
@@ -134,23 +141,21 @@ describe('AwsEcrImageModule UT', () => {
      # image/variables.tf
      <empty>"
     `);
-
-    const result = await testModuleContainer.commit(app, { filterByModuleIds: ['image'] });
-    expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`
+    expect(testModuleContainer.mapTransactionActions(modelTransaction)).toMatchInlineSnapshot(`
      [
        [
          "AddAwsEcrImageModelAction",
        ],
      ]
     `);
-    expect(testModuleContainer.mapTransactionActions(result.resourceTransaction)).toMatchInlineSnapshot(`
+    expect(testModuleContainer.mapTransactionActions(resourceTransaction)).toMatchInlineSnapshot(`
      [
        [
          "TerraformNoopResourceAction",
        ],
      ]
     `);
-    expect(testModuleContainer.digestDiffs(result.resourceDiffs)).toMatchInlineSnapshot(`
+    expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
        "+ @octo/ecr-image=ecr-us-east-1-family/image",
      ]
@@ -159,26 +164,50 @@ describe('AwsEcrImageModule UT', () => {
 
   it('should CUD', async () => {
     const { app: appCreate } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcrImageModule>({
-      inputs: {
-        imageFamily: 'family',
-        imageName: 'image',
-        regions: [stub('${{testModule.model.region}}')],
-      },
-      moduleId: 'image',
-      type: AwsEcrImageModule,
-    });
-    const resultCreate = await testModuleContainer.commit(appCreate);
-    expect(testModuleContainer.digestDiffs(resultCreate.resourceDiffs)).toMatchInlineSnapshot(`
+    const { resourceDiffs: resourceDiffsCreate } = (
+      await testModuleContainer
+        .runModules<AwsEcrImageModule>(
+          appCreate,
+          {
+            inputs: {
+              imageFamily: 'family',
+              imageName: 'image',
+              regions: [stub('${{testModule.model.region}}')],
+            },
+            moduleId: 'image',
+            type: AwsEcrImageModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`
      [
        "+ @octo/ecr-image=ecr-us-east-1-family/image",
      ]
     `);
 
     const { app: appDelete } = await setup(testModuleContainer);
-    expect(await testModuleContainer.diffHcl(appDelete)).toMatchSnapshot();
-    const resultDelete = await testModuleContainer.commit(appDelete);
-    expect(testModuleContainer.digestDiffs(resultDelete.resourceDiffs)).toMatchInlineSnapshot(`
+    const { hclDiff, resourceDiffs: resourceDiffsDelete } = (
+      await testModuleContainer
+        .runModules<AwsEcrImageModule>(
+          appDelete,
+          {
+            hidden: true,
+            inputs: {
+              imageFamily: 'family',
+              imageName: 'image',
+              regions: [stub('${{testModule.model.region}}')],
+            },
+            moduleId: 'image',
+            type: AwsEcrImageModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(resourceDiffsDelete)).toMatchInlineSnapshot(`
      [
        "- @octo/ecr-image=ecr-us-east-1-family/image",
      ]
@@ -191,17 +220,24 @@ describe('AwsEcrImageModule UT', () => {
   it('should CUD tags', async () => {
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
     const { app: appCreate } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcrImageModule>({
-      inputs: {
-        imageFamily: 'family',
-        imageName: 'image',
-        regions: [stub('${{testModule.model.region}}')],
-      },
-      moduleId: 'image',
-      type: AwsEcrImageModule,
-    });
-    const resultCreate = await testModuleContainer.commit(appCreate);
-    expect(testModuleContainer.digestDiffs(resultCreate.resourceDiffs)).toMatchInlineSnapshot(`
+    const { resourceDiffs: resourceDiffsCreate } = (
+      await testModuleContainer
+        .runModules<AwsEcrImageModule>(
+          appCreate,
+          {
+            inputs: {
+              imageFamily: 'family',
+              imageName: 'image',
+              regions: [stub('${{testModule.model.region}}')],
+            },
+            moduleId: 'image',
+            type: AwsEcrImageModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`
      [
        "+ @octo/ecr-image=ecr-us-east-1-family/image",
      ]
@@ -209,36 +245,50 @@ describe('AwsEcrImageModule UT', () => {
 
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
     const { app: appUpdateTags } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcrImageModule>({
-      inputs: {
-        imageFamily: 'family',
-        imageName: 'image',
-        regions: [stub('${{testModule.model.region}}')],
-      },
-      moduleId: 'image',
-      type: AwsEcrImageModule,
-    });
-    expect(await testModuleContainer.diffHcl(appUpdateTags)).toMatchSnapshot();
-    const resultUpdateTags = await testModuleContainer.commit(appUpdateTags);
-    expect(testModuleContainer.digestDiffs(resultUpdateTags.resourceDiffs)).toMatchInlineSnapshot(`
+    const updateTags = (
+      await testModuleContainer
+        .runModules<AwsEcrImageModule>(
+          appUpdateTags,
+          {
+            inputs: {
+              imageFamily: 'family',
+              imageName: 'image',
+              regions: [stub('${{testModule.model.region}}')],
+            },
+            moduleId: 'image',
+            type: AwsEcrImageModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(updateTags.hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(updateTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/ecr-image=ecr-us-east-1-family/image",
      ]
     `);
 
     const { app: appDeleteTags } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcrImageModule>({
-      inputs: {
-        imageFamily: 'family',
-        imageName: 'image',
-        regions: [stub('${{testModule.model.region}}')],
-      },
-      moduleId: 'image',
-      type: AwsEcrImageModule,
-    });
-    expect(await testModuleContainer.diffHcl(appDeleteTags)).toMatchSnapshot();
-    const resultDeleteTags = await testModuleContainer.commit(appDeleteTags);
-    expect(testModuleContainer.digestDiffs(resultDeleteTags.resourceDiffs)).toMatchInlineSnapshot(`
+    const deleteTags = (
+      await testModuleContainer
+        .runModules<AwsEcrImageModule>(
+          appDeleteTags,
+          {
+            inputs: {
+              imageFamily: 'family',
+              imageName: 'image',
+              regions: [stub('${{testModule.model.region}}')],
+            },
+            moduleId: 'image',
+            type: AwsEcrImageModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(deleteTags.hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(deleteTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/ecr-image=ecr-us-east-1-family/image",
      ]
@@ -248,30 +298,42 @@ describe('AwsEcrImageModule UT', () => {
   describe('input changes', () => {
     it('should handle imageFamily change', async () => {
       const { app: appCreate } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsEcrImageModule>({
-        inputs: {
-          imageFamily: 'family',
-          imageName: 'image',
-          regions: [stub('${{testModule.model.region}}')],
-        },
-        moduleId: 'image',
-        type: AwsEcrImageModule,
-      });
-      await testModuleContainer.commit(appCreate);
+      await testModuleContainer
+        .runModules<AwsEcrImageModule>(
+          appCreate,
+          {
+            inputs: {
+              imageFamily: 'family',
+              imageName: 'image',
+              regions: [stub('${{testModule.model.region}}')],
+            },
+            moduleId: 'image',
+            type: AwsEcrImageModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next();
 
       const { app: appUpdateImageFamily } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsEcrImageModule>({
-        inputs: {
-          imageFamily: 'changed-family',
-          imageName: 'image',
-          regions: [stub('${{testModule.model.region}}')],
-        },
-        moduleId: 'image',
-        type: AwsEcrImageModule,
-      });
-      expect(await testModuleContainer.diffHcl(appUpdateImageFamily)).toMatchSnapshot();
-      const resultUpdateImageFamily = await testModuleContainer.commit(appUpdateImageFamily);
-      expect(testModuleContainer.digestDiffs(resultUpdateImageFamily.resourceDiffs)).toMatchInlineSnapshot(`
+      const { hclDiff, resourceDiffs } = (
+        await testModuleContainer
+          .runModules<AwsEcrImageModule>(
+            appUpdateImageFamily,
+            {
+              inputs: {
+                imageFamily: 'changed-family',
+                imageName: 'image',
+                regions: [stub('${{testModule.model.region}}')],
+              },
+              moduleId: 'image',
+              type: AwsEcrImageModule,
+            },
+            { skipTerraformApply: true },
+          )
+          .next()
+      ).value!;
+      expect(hclDiff).toMatchSnapshot();
+      expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
          "- @octo/ecr-image=ecr-us-east-1-family/image",
          "+ @octo/ecr-image=ecr-us-east-1-changed-family/image",
@@ -281,30 +343,42 @@ describe('AwsEcrImageModule UT', () => {
 
     it('should handle imageName change', async () => {
       const { app: appCreate } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsEcrImageModule>({
-        inputs: {
-          imageFamily: 'family',
-          imageName: 'image',
-          regions: [stub('${{testModule.model.region}}')],
-        },
-        moduleId: 'image',
-        type: AwsEcrImageModule,
-      });
-      await testModuleContainer.commit(appCreate);
+      await testModuleContainer
+        .runModules<AwsEcrImageModule>(
+          appCreate,
+          {
+            inputs: {
+              imageFamily: 'family',
+              imageName: 'image',
+              regions: [stub('${{testModule.model.region}}')],
+            },
+            moduleId: 'image',
+            type: AwsEcrImageModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next();
 
       const { app: appUpdateImageName } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsEcrImageModule>({
-        inputs: {
-          imageFamily: 'family',
-          imageName: 'changed-image',
-          regions: [stub('${{testModule.model.region}}')],
-        },
-        moduleId: 'image',
-        type: AwsEcrImageModule,
-      });
-      expect(await testModuleContainer.diffHcl(appUpdateImageName)).toMatchSnapshot();
-      const resultUpdateImageName = await testModuleContainer.commit(appUpdateImageName);
-      expect(testModuleContainer.digestDiffs(resultUpdateImageName.resourceDiffs)).toMatchInlineSnapshot(`
+      const { hclDiff, resourceDiffs } = (
+        await testModuleContainer
+          .runModules<AwsEcrImageModule>(
+            appUpdateImageName,
+            {
+              inputs: {
+                imageFamily: 'family',
+                imageName: 'changed-image',
+                regions: [stub('${{testModule.model.region}}')],
+              },
+              moduleId: 'image',
+              type: AwsEcrImageModule,
+            },
+            { skipTerraformApply: true },
+          )
+          .next()
+      ).value!;
+      expect(hclDiff).toMatchSnapshot();
+      expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
          "- @octo/ecr-image=ecr-us-east-1-family/image",
          "+ @octo/ecr-image=ecr-us-east-1-family/changed-image",
@@ -315,76 +389,106 @@ describe('AwsEcrImageModule UT', () => {
 
   it('should handle moduleId change', async () => {
     const { app: appCreate } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcrImageModule>({
-      inputs: {
-        imageFamily: 'family',
-        imageName: 'image',
-        regions: [stub('${{testModule.model.region}}')],
-      },
-      moduleId: 'image-1',
-      type: AwsEcrImageModule,
-    });
-    await testModuleContainer.commit(appCreate);
+    await testModuleContainer
+      .runModules<AwsEcrImageModule>(
+        appCreate,
+        {
+          inputs: {
+            imageFamily: 'family',
+            imageName: 'image',
+            regions: [stub('${{testModule.model.region}}')],
+          },
+          moduleId: 'image-1',
+          type: AwsEcrImageModule,
+        },
+        { skipTerraformApply: true },
+      )
+      .next();
 
     const { app: appUpdateModuleId } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcrImageModule>({
-      inputs: {
-        imageFamily: 'family',
-        imageName: 'image',
-        regions: [stub('${{testModule.model.region}}')],
-      },
-      moduleId: 'image-2',
-      type: AwsEcrImageModule,
-    });
-    expect(await testModuleContainer.diffHcl(appUpdateModuleId)).toMatchSnapshot();
-    const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId);
-    expect(testModuleContainer.digestDiffs(resultUpdateModuleId.resourceDiffs)).toMatchInlineSnapshot(`[]`);
+    const { hclDiff, resourceDiffs } = (
+      await testModuleContainer
+        .runModules<AwsEcrImageModule>(
+          appUpdateModuleId,
+          {
+            inputs: {
+              imageFamily: 'family',
+              imageName: 'image',
+              regions: [stub('${{testModule.model.region}}')],
+            },
+            moduleId: 'image-2',
+            type: AwsEcrImageModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`[]`);
   });
 
   describe('validation', () => {
     it('should validate imageFamily is not empty', async () => {
-      await setup(testModuleContainer);
-      await expect(async () => {
-        await testModuleContainer.runModule<AwsEcrImageModule>({
-          inputs: {
-            imageFamily: '',
-            imageName: 'image',
-            regions: [stub('${{testModule.model.region}}')],
-          },
-          moduleId: 'image',
-          type: AwsEcrImageModule,
-        });
-      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "imageFamily" in schema could not be validated!"`);
+      const { app } = await setup(testModuleContainer);
+      await expect(
+        testModuleContainer
+          .runModules<AwsEcrImageModule>(
+            app,
+            {
+              inputs: {
+                imageFamily: '',
+                imageName: 'image',
+                regions: [stub('${{testModule.model.region}}')],
+              },
+              moduleId: 'image',
+              type: AwsEcrImageModule,
+            },
+            { skipTerraformApply: true },
+          )
+          .next(),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "imageFamily" in schema could not be validated!"`);
     });
 
     it('should validate imageName is not empty', async () => {
-      await setup(testModuleContainer);
-      await expect(async () => {
-        await testModuleContainer.runModule<AwsEcrImageModule>({
-          inputs: {
-            imageFamily: 'family',
-            imageName: '',
-            regions: [stub('${{testModule.model.region}}')],
-          },
-          moduleId: 'image',
-          type: AwsEcrImageModule,
-        });
-      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "imageName" in schema could not be validated!"`);
+      const { app } = await setup(testModuleContainer);
+      await expect(
+        testModuleContainer
+          .runModules<AwsEcrImageModule>(
+            app,
+            {
+              inputs: {
+                imageFamily: 'family',
+                imageName: '',
+                regions: [stub('${{testModule.model.region}}')],
+              },
+              moduleId: 'image',
+              type: AwsEcrImageModule,
+            },
+            { skipTerraformApply: true },
+          )
+          .next(),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "imageName" in schema could not be validated!"`);
     });
 
     it('should validate regions array is not empty', async () => {
-      await setup(testModuleContainer);
-      await expect(async () => {
-        await testModuleContainer.runModule<AwsEcrImageModule>({
-          inputs: {
-            imageFamily: 'family',
-            imageName: 'image',
-            regions: [],
-          },
-          moduleId: 'image',
-          type: AwsEcrImageModule,
-        });
-      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "regions" in schema could not be validated!"`);
+      const { app } = await setup(testModuleContainer);
+      await expect(
+        testModuleContainer
+          .runModules<AwsEcrImageModule>(
+            app,
+            {
+              inputs: {
+                imageFamily: 'family',
+                imageName: 'image',
+                regions: [],
+              },
+              moduleId: 'image',
+              type: AwsEcrImageModule,
+            },
+            { skipTerraformApply: true },
+          )
+          .next(),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "regions" in schema could not be validated!"`);
     });
   });
 });

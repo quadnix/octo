@@ -52,86 +52,129 @@ describe('AwsEcsDeploymentModule UT', () => {
 
   it('should call correct actions', async () => {
     const { app } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsDeploymentModule>({
-      inputs: {
-        deploymentContainerProperties: {
-          cpu: 256,
-          image: {
-            command: 'command',
-            ports: [{ containerPort: 80, protocol: 'tcp' }],
-            uri: 'uri',
+    const runModulesGenerator = testModuleContainer.runModules<AwsEcsDeploymentModule>(
+      app,
+      {
+        inputs: {
+          deploymentContainerProperties: {
+            cpu: 256,
+            image: {
+              command: 'command',
+              ports: [{ containerPort: 80, protocol: 'tcp' }],
+              uri: 'uri',
+            },
+            memory: 512,
           },
-          memory: 512,
+          deploymentTag: 'v1',
+          server: stub('${{testModule.model.server}}'),
         },
-        deploymentTag: 'v1',
-        server: stub('${{testModule.model.server}}'),
+        moduleId: 'deployment',
+        type: AwsEcsDeploymentModule,
       },
-      moduleId: 'deployment',
-      type: AwsEcsDeploymentModule,
-    });
+      { filterByModuleIds: ['deployment'], skipTerraformApply: true },
+    );
+
+    const { hclRender, modelTransaction, resourceDiffs } = (await runModulesGenerator.next()).value!;
     // The deployment module contributes no terraform of its own; the task definition only
     // materializes once composed with an execution. The generated tree is therefore empty here.
-    expect(await testModuleContainer.renderHcl(app)).toMatchInlineSnapshot(`""`);
-
-    const result = await testModuleContainer.commit(app, { filterByModuleIds: ['deployment'] });
-    expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`
+    expect(hclRender).toMatchInlineSnapshot(`""`);
+    expect(testModuleContainer.mapTransactionActions(modelTransaction)).toMatchInlineSnapshot(`
      [
        [
          "AddAwsEcsDeploymentModelAction",
        ],
      ]
     `);
-    expect(testModuleContainer.digestDiffs(result.resourceDiffs)).toMatchInlineSnapshot(`[]`);
+    expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`[]`);
   });
 
   it('should CUD', async () => {
     const { app: appCreate } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsDeploymentModule>({
-      inputs: {
-        deploymentContainerProperties: {
-          cpu: 256,
-          image: {
-            command: 'command',
-            ports: [{ containerPort: 80, protocol: 'tcp' }],
-            uri: 'uri',
+    const { resourceDiffs: resourceDiffsCreate } = (
+      await testModuleContainer
+        .runModules<AwsEcsDeploymentModule>(
+          appCreate,
+          {
+            inputs: {
+              deploymentContainerProperties: {
+                cpu: 256,
+                image: {
+                  command: 'command',
+                  ports: [{ containerPort: 80, protocol: 'tcp' }],
+                  uri: 'uri',
+                },
+                memory: 512,
+              },
+              deploymentTag: 'v1',
+              server: stub('${{testModule.model.server}}'),
+            },
+            moduleId: 'deployment',
+            type: AwsEcsDeploymentModule,
           },
-          memory: 512,
-        },
-        deploymentTag: 'v1',
-        server: stub('${{testModule.model.server}}'),
-      },
-      moduleId: 'deployment',
-      type: AwsEcsDeploymentModule,
-    });
-    const resultCreate = await testModuleContainer.commit(appCreate);
-    expect(testModuleContainer.digestDiffs(resultCreate.resourceDiffs)).toMatchInlineSnapshot(`[]`);
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`[]`);
 
     const { app: appUpdate } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsDeploymentModule>({
-      inputs: {
-        deploymentContainerProperties: {
-          cpu: 512,
-          image: {
-            command: 'changed-command',
-            ports: [{ containerPort: 8080, protocol: 'tcp' }],
-            uri: 'changed-uri',
+    const update = (
+      await testModuleContainer
+        .runModules<AwsEcsDeploymentModule>(
+          appUpdate,
+          {
+            inputs: {
+              deploymentContainerProperties: {
+                cpu: 512,
+                image: {
+                  command: 'changed-command',
+                  ports: [{ containerPort: 8080, protocol: 'tcp' }],
+                  uri: 'changed-uri',
+                },
+                memory: 1024,
+              },
+              deploymentTag: 'v1',
+              server: stub('${{testModule.model.server}}'),
+            },
+            moduleId: 'deployment',
+            type: AwsEcsDeploymentModule,
           },
-          memory: 1024,
-        },
-        deploymentTag: 'v1',
-        server: stub('${{testModule.model.server}}'),
-      },
-      moduleId: 'deployment',
-      type: AwsEcsDeploymentModule,
-    });
-    expect(await testModuleContainer.diffHcl(appUpdate)).toMatchSnapshot();
-    const resultUpdate = await testModuleContainer.commit(appUpdate);
-    expect(testModuleContainer.digestDiffs(resultUpdate.resourceDiffs)).toMatchInlineSnapshot(`[]`);
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(update.hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(update.resourceDiffs)).toMatchInlineSnapshot(`[]`);
 
     const { app: appDelete } = await setup(testModuleContainer);
-    expect(await testModuleContainer.diffHcl(appDelete)).toMatchSnapshot();
-    const resultDelete = await testModuleContainer.commit(appDelete);
-    expect(testModuleContainer.digestDiffs(resultDelete.resourceDiffs)).toMatchInlineSnapshot(`[]`);
+    const deleteResult = (
+      await testModuleContainer
+        .runModules<AwsEcsDeploymentModule>(
+          appDelete,
+          {
+            hidden: true,
+            inputs: {
+              deploymentContainerProperties: {
+                cpu: 512,
+                image: {
+                  command: 'changed-command',
+                  ports: [{ containerPort: 8080, protocol: 'tcp' }],
+                  uri: 'changed-uri',
+                },
+                memory: 1024,
+              },
+              deploymentTag: 'v1',
+              server: stub('${{testModule.model.server}}'),
+            },
+            moduleId: 'deployment',
+            type: AwsEcsDeploymentModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(deleteResult.hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(deleteResult.resourceDiffs)).toMatchInlineSnapshot(`[]`);
 
     const isResourceStateEqual = await testModuleContainer.isResourceStateEqual();
     expect(isResourceStateEqual).toBe(true);
@@ -140,215 +183,213 @@ describe('AwsEcsDeploymentModule UT', () => {
   it('should CUD tags', async () => {
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
     const { app: appCreate } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsDeploymentModule>({
-      inputs: {
-        deploymentContainerProperties: {
-          cpu: 256,
-          image: {
-            command: 'command',
-            ports: [{ containerPort: 80, protocol: 'tcp' }],
-            uri: 'uri',
+    const { resourceDiffs: resourceDiffsCreate } = (
+      await testModuleContainer
+        .runModules<AwsEcsDeploymentModule>(
+          appCreate,
+          {
+            inputs: {
+              deploymentContainerProperties: {
+                cpu: 256,
+                image: {
+                  command: 'command',
+                  ports: [{ containerPort: 80, protocol: 'tcp' }],
+                  uri: 'uri',
+                },
+                memory: 512,
+              },
+              deploymentTag: 'v1',
+              server: stub('${{testModule.model.server}}'),
+            },
+            moduleId: 'deployment',
+            type: AwsEcsDeploymentModule,
           },
-          memory: 512,
-        },
-        deploymentTag: 'v1',
-        server: stub('${{testModule.model.server}}'),
-      },
-      moduleId: 'deployment',
-      type: AwsEcsDeploymentModule,
-    });
-    const resultCreate = await testModuleContainer.commit(appCreate);
-    expect(testModuleContainer.digestDiffs(resultCreate.resourceDiffs)).toMatchInlineSnapshot(`[]`);
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`[]`);
 
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
     const { app: appUpdateTags } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsDeploymentModule>({
-      inputs: {
-        deploymentContainerProperties: {
-          cpu: 256,
-          image: {
-            command: 'command',
-            ports: [{ containerPort: 80, protocol: 'tcp' }],
-            uri: 'uri',
+    const updateTags = (
+      await testModuleContainer
+        .runModules<AwsEcsDeploymentModule>(
+          appUpdateTags,
+          {
+            inputs: {
+              deploymentContainerProperties: {
+                cpu: 256,
+                image: {
+                  command: 'command',
+                  ports: [{ containerPort: 80, protocol: 'tcp' }],
+                  uri: 'uri',
+                },
+                memory: 512,
+              },
+              deploymentTag: 'v1',
+              server: stub('${{testModule.model.server}}'),
+            },
+            moduleId: 'deployment',
+            type: AwsEcsDeploymentModule,
           },
-          memory: 512,
-        },
-        deploymentTag: 'v1',
-        server: stub('${{testModule.model.server}}'),
-      },
-      moduleId: 'deployment',
-      type: AwsEcsDeploymentModule,
-    });
-    expect(await testModuleContainer.diffHcl(appUpdateTags)).toMatchSnapshot();
-    const resultUpdateTags = await testModuleContainer.commit(appUpdateTags);
-    expect(testModuleContainer.digestDiffs(resultUpdateTags.resourceDiffs)).toMatchInlineSnapshot(`[]`);
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(updateTags.hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(updateTags.resourceDiffs)).toMatchInlineSnapshot(`[]`);
 
     const { app: appDeleteTags } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsDeploymentModule>({
-      inputs: {
-        deploymentContainerProperties: {
-          cpu: 256,
-          image: {
-            command: 'command',
-            ports: [{ containerPort: 80, protocol: 'tcp' }],
-            uri: 'uri',
+    const deleteTags = (
+      await testModuleContainer
+        .runModules<AwsEcsDeploymentModule>(
+          appDeleteTags,
+          {
+            inputs: {
+              deploymentContainerProperties: {
+                cpu: 256,
+                image: {
+                  command: 'command',
+                  ports: [{ containerPort: 80, protocol: 'tcp' }],
+                  uri: 'uri',
+                },
+                memory: 512,
+              },
+              deploymentTag: 'v1',
+              server: stub('${{testModule.model.server}}'),
+            },
+            moduleId: 'deployment',
+            type: AwsEcsDeploymentModule,
           },
-          memory: 512,
-        },
-        deploymentTag: 'v1',
-        server: stub('${{testModule.model.server}}'),
-      },
-      moduleId: 'deployment',
-      type: AwsEcsDeploymentModule,
-    });
-    expect(await testModuleContainer.diffHcl(appDeleteTags)).toMatchSnapshot();
-    const resultDeleteTags = await testModuleContainer.commit(appDeleteTags);
-    expect(testModuleContainer.digestDiffs(resultDeleteTags.resourceDiffs)).toMatchInlineSnapshot(`[]`);
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(deleteTags.hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(deleteTags.resourceDiffs)).toMatchInlineSnapshot(`[]`);
   });
 
   describe('input changes', () => {
     it('should handle deploymentContainerProperties change', async () => {
       const { app: appCreate } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsEcsDeploymentModule>({
-        inputs: {
-          deploymentContainerProperties: {
-            cpu: 256,
-            image: {
-              command: 'command',
-              ports: [{ containerPort: 80, protocol: 'tcp' }],
-              uri: 'uri',
+      await testModuleContainer
+        .runModules<AwsEcsDeploymentModule>(
+          appCreate,
+          {
+            inputs: {
+              deploymentContainerProperties: {
+                cpu: 256,
+                image: {
+                  command: 'command',
+                  ports: [{ containerPort: 80, protocol: 'tcp' }],
+                  uri: 'uri',
+                },
+                memory: 512,
+              },
+              deploymentTag: 'v1',
+              server: stub('${{testModule.model.server}}'),
             },
-            memory: 512,
+            moduleId: 'deployment',
+            type: AwsEcsDeploymentModule,
           },
-          deploymentTag: 'v1',
-          server: stub('${{testModule.model.server}}'),
-        },
-        moduleId: 'deployment',
-        type: AwsEcsDeploymentModule,
-      });
-      await testModuleContainer.commit(appCreate);
+          { skipTerraformApply: true },
+        )
+        .next();
 
       const { app: appUpdateDeploymentContainerProperties } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsEcsDeploymentModule>({
-        inputs: {
-          deploymentContainerProperties: {
-            cpu: 512,
-            image: {
-              command: 'changed-command',
-              ports: [{ containerPort: 8080, protocol: 'tcp' }],
-              uri: 'changed-uri',
+      const { hclDiff, resourceDiffs } = (
+        await testModuleContainer
+          .runModules<AwsEcsDeploymentModule>(
+            appUpdateDeploymentContainerProperties,
+            {
+              inputs: {
+                deploymentContainerProperties: {
+                  cpu: 512,
+                  image: {
+                    command: 'changed-command',
+                    ports: [{ containerPort: 8080, protocol: 'tcp' }],
+                    uri: 'changed-uri',
+                  },
+                  memory: 1024,
+                },
+                deploymentTag: 'v1',
+                server: stub('${{testModule.model.server}}'),
+              },
+              moduleId: 'deployment',
+              type: AwsEcsDeploymentModule,
             },
-            memory: 1024,
-          },
-          deploymentTag: 'v1',
-          server: stub('${{testModule.model.server}}'),
-        },
-        moduleId: 'deployment',
-        type: AwsEcsDeploymentModule,
-      });
-      expect(await testModuleContainer.diffHcl(appUpdateDeploymentContainerProperties)).toMatchSnapshot();
-      const resultUpdateDeploymentContainerProperties = await testModuleContainer.commit(
-        appUpdateDeploymentContainerProperties,
-      );
-      expect(
-        testModuleContainer.digestDiffs(resultUpdateDeploymentContainerProperties.resourceDiffs),
-      ).toMatchInlineSnapshot(`[]`);
+            { skipTerraformApply: true },
+          )
+          .next()
+      ).value!;
+      expect(hclDiff).toMatchSnapshot();
+      expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`[]`);
     });
 
     it('should handle deploymentTag change', async () => {
       const { app: appCreate } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsEcsDeploymentModule>({
-        inputs: {
-          deploymentContainerProperties: {
-            cpu: 256,
-            image: {
-              command: 'command',
-              ports: [{ containerPort: 80, protocol: 'tcp' }],
-              uri: 'uri',
+      await testModuleContainer
+        .runModules<AwsEcsDeploymentModule>(
+          appCreate,
+          {
+            inputs: {
+              deploymentContainerProperties: {
+                cpu: 256,
+                image: {
+                  command: 'command',
+                  ports: [{ containerPort: 80, protocol: 'tcp' }],
+                  uri: 'uri',
+                },
+                memory: 512,
+              },
+              deploymentTag: 'v1',
+              server: stub('${{testModule.model.server}}'),
             },
-            memory: 512,
+            moduleId: 'deployment',
+            type: AwsEcsDeploymentModule,
           },
-          deploymentTag: 'v1',
-          server: stub('${{testModule.model.server}}'),
-        },
-        moduleId: 'deployment',
-        type: AwsEcsDeploymentModule,
-      });
-      await testModuleContainer.commit(appCreate);
+          { skipTerraformApply: true },
+        )
+        .next();
 
       const { app: appUpdateDeploymentTag } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsEcsDeploymentModule>({
-        inputs: {
-          deploymentContainerProperties: {
-            cpu: 256,
-            image: {
-              command: 'command',
-              ports: [{ containerPort: 80, protocol: 'tcp' }],
-              uri: 'uri',
+      const { hclDiff, resourceDiffs } = (
+        await testModuleContainer
+          .runModules<AwsEcsDeploymentModule>(
+            appUpdateDeploymentTag,
+            {
+              inputs: {
+                deploymentContainerProperties: {
+                  cpu: 256,
+                  image: {
+                    command: 'command',
+                    ports: [{ containerPort: 80, protocol: 'tcp' }],
+                    uri: 'uri',
+                  },
+                  memory: 512,
+                },
+                deploymentTag: 'changed-v1',
+                server: stub('${{testModule.model.server}}'),
+              },
+              moduleId: 'deployment',
+              type: AwsEcsDeploymentModule,
             },
-            memory: 512,
-          },
-          deploymentTag: 'changed-v1',
-          server: stub('${{testModule.model.server}}'),
-        },
-        moduleId: 'deployment',
-        type: AwsEcsDeploymentModule,
-      });
-      expect(await testModuleContainer.diffHcl(appUpdateDeploymentTag)).toMatchSnapshot();
-      const resultUpdateDeploymentTag = await testModuleContainer.commit(appUpdateDeploymentTag);
-      expect(testModuleContainer.digestDiffs(resultUpdateDeploymentTag.resourceDiffs)).toMatchInlineSnapshot(`[]`);
+            { skipTerraformApply: true },
+          )
+          .next()
+      ).value!;
+      expect(hclDiff).toMatchSnapshot();
+      expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`[]`);
     });
   });
 
   it('should handle moduleId change', async () => {
     const { app: appCreate } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsDeploymentModule>({
-      inputs: {
-        deploymentContainerProperties: {
-          cpu: 256,
-          image: {
-            command: 'command',
-            ports: [{ containerPort: 80, protocol: 'tcp' }],
-            uri: 'uri',
-          },
-          memory: 512,
-        },
-        deploymentTag: 'v1',
-        server: stub('${{testModule.model.server}}'),
-      },
-      moduleId: 'deployment-1',
-      type: AwsEcsDeploymentModule,
-    });
-    await testModuleContainer.commit(appCreate);
-
-    const { app: appUpdateModuleId } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsDeploymentModule>({
-      inputs: {
-        deploymentContainerProperties: {
-          cpu: 256,
-          image: {
-            command: 'command',
-            ports: [{ containerPort: 80, protocol: 'tcp' }],
-            uri: 'uri',
-          },
-          memory: 512,
-        },
-        deploymentTag: 'v1',
-        server: stub('${{testModule.model.server}}'),
-      },
-      moduleId: 'deployment-2',
-      type: AwsEcsDeploymentModule,
-    });
-    expect(await testModuleContainer.diffHcl(appUpdateModuleId)).toMatchSnapshot();
-    const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId);
-    expect(testModuleContainer.digestDiffs(resultUpdateModuleId.resourceDiffs)).toMatchInlineSnapshot(`[]`);
-  });
-
-  describe('validation', () => {
-    it('should validate deploymentTag length', async () => {
-      await setup(testModuleContainer);
-      await expect(async () => {
-        await testModuleContainer.runModule<AwsEcsDeploymentModule>({
+    await testModuleContainer
+      .runModules<AwsEcsDeploymentModule>(
+        appCreate,
+        {
           inputs: {
             deploymentContainerProperties: {
               cpu: 256,
@@ -359,13 +400,74 @@ describe('AwsEcsDeploymentModule UT', () => {
               },
               memory: 512,
             },
-            deploymentTag: '',
+            deploymentTag: 'v1',
             server: stub('${{testModule.model.server}}'),
           },
-          moduleId: 'deployment',
+          moduleId: 'deployment-1',
           type: AwsEcsDeploymentModule,
-        });
-      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "deploymentTag" in schema could not be validated!"`);
+        },
+        { skipTerraformApply: true },
+      )
+      .next();
+
+    const { app: appUpdateModuleId } = await setup(testModuleContainer);
+    const { hclDiff, resourceDiffs } = (
+      await testModuleContainer
+        .runModules<AwsEcsDeploymentModule>(
+          appUpdateModuleId,
+          {
+            inputs: {
+              deploymentContainerProperties: {
+                cpu: 256,
+                image: {
+                  command: 'command',
+                  ports: [{ containerPort: 80, protocol: 'tcp' }],
+                  uri: 'uri',
+                },
+                memory: 512,
+              },
+              deploymentTag: 'v1',
+              server: stub('${{testModule.model.server}}'),
+            },
+            moduleId: 'deployment-2',
+            type: AwsEcsDeploymentModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`[]`);
+  });
+
+  describe('validation', () => {
+    it('should validate deploymentTag length', async () => {
+      const { app } = await setup(testModuleContainer);
+      await expect(
+        testModuleContainer
+          .runModules<AwsEcsDeploymentModule>(
+            app,
+            {
+              inputs: {
+                deploymentContainerProperties: {
+                  cpu: 256,
+                  image: {
+                    command: 'command',
+                    ports: [{ containerPort: 80, protocol: 'tcp' }],
+                    uri: 'uri',
+                  },
+                  memory: 512,
+                },
+                deploymentTag: '',
+                server: stub('${{testModule.model.server}}'),
+              },
+              moduleId: 'deployment',
+              type: AwsEcsDeploymentModule,
+            },
+            { skipTerraformApply: true },
+          )
+          .next(),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "deploymentTag" in schema could not be validated!"`);
     });
   });
 });

@@ -53,16 +53,22 @@ describe('AwsEcsEnvironmentModule UT', () => {
 
   it('should call correct actions', async () => {
     const { app } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsEnvironmentModule>({
-      inputs: {
-        environmentName: 'qa',
-        environmentVariables: { ENV_NAME: 'qa' },
-        region: stub('${{testModule.model.region}}'),
+    const runModulesGenerator = testModuleContainer.runModules<AwsEcsEnvironmentModule>(
+      app,
+      {
+        inputs: {
+          environmentName: 'qa',
+          environmentVariables: { ENV_NAME: 'qa' },
+          region: stub('${{testModule.model.region}}'),
+        },
+        moduleId: 'environment',
+        type: AwsEcsEnvironmentModule,
       },
-      moduleId: 'environment',
-      type: AwsEcsEnvironmentModule,
-    });
-    expect(await testModuleContainer.renderHcl(app)).toMatchInlineSnapshot(`
+      { filterByModuleIds: ['environment'], skipTerraformApply: true },
+    );
+
+    const { hclRender, modelTransaction, resourceDiffs } = (await runModulesGenerator.next()).value!;
+    expect(hclRender).toMatchInlineSnapshot(`
      "# environment/main.tf
      terraform {
        required_version = ">= 1.6.0"
@@ -108,16 +114,14 @@ describe('AwsEcsEnvironmentModule UT', () => {
      # environment/variables.tf
      <empty>"
     `);
-
-    const result = await testModuleContainer.commit(app, { filterByModuleIds: ['environment'] });
-    expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`
+    expect(testModuleContainer.mapTransactionActions(modelTransaction)).toMatchInlineSnapshot(`
      [
        [
          "AddAwsEcsEnvironmentModelAction",
        ],
      ]
     `);
-    expect(testModuleContainer.digestDiffs(result.resourceDiffs)).toMatchInlineSnapshot(`
+    expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
        "+ @octo/ecs-cluster=ecs-cluster-region-qa",
      ]
@@ -126,21 +130,33 @@ describe('AwsEcsEnvironmentModule UT', () => {
 
   it('should CUD', async () => {
     const { app: appCreate } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsEnvironmentModule>({
-      inputs: {
-        environmentName: 'qa',
-        region: stub('${{testModule.model.region}}'),
-      },
-      moduleId: 'environment',
-      type: AwsEcsEnvironmentModule,
-    });
-    await testModuleContainer.commit(appCreate);
+    await testModuleContainer
+      .runModules<AwsEcsEnvironmentModule>(
+        appCreate,
+        {
+          inputs: { environmentName: 'qa', region: stub('${{testModule.model.region}}') },
+          moduleId: 'environment',
+          type: AwsEcsEnvironmentModule,
+        },
+        { skipTerraformApply: true },
+      )
+      .next();
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
     const { app: appDelete } = await setup(testModuleContainer);
-    expect(await testModuleContainer.diffHcl(appDelete)).toMatchSnapshot();
-    const resultDelete = await testModuleContainer.commit(appDelete);
-    expect(testModuleContainer.digestDiffs(resultDelete.resourceDiffs)).toMatchInlineSnapshot(`
+    const runModulesGenerator = testModuleContainer.runModules<AwsEcsEnvironmentModule>(
+      appDelete,
+      {
+        hidden: true,
+        inputs: { environmentName: 'qa', region: stub('${{testModule.model.region}}') },
+        moduleId: 'environment',
+        type: AwsEcsEnvironmentModule,
+      },
+      { skipTerraformApply: true },
+    );
+    const { hclDiff, resourceDiffs } = (await runModulesGenerator.next()).value!;
+    expect(hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
        "- @octo/ecs-cluster=ecs-cluster-region-qa",
      ]
@@ -151,32 +167,41 @@ describe('AwsEcsEnvironmentModule UT', () => {
   it('should CUD tags', async () => {
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
     const { app: appCreate } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsEnvironmentModule>({
-      inputs: {
-        environmentName: 'qa',
-        environmentVariables: { ENV_NAME: 'qa' },
-        region: stub('${{testModule.model.region}}'),
-      },
-      moduleId: 'environment',
-      type: AwsEcsEnvironmentModule,
-    });
-    await testModuleContainer.commit(appCreate);
+    await testModuleContainer
+      .runModules<AwsEcsEnvironmentModule>(
+        appCreate,
+        {
+          inputs: {
+            environmentName: 'qa',
+            environmentVariables: { ENV_NAME: 'qa' },
+            region: stub('${{testModule.model.region}}'),
+          },
+          moduleId: 'environment',
+          type: AwsEcsEnvironmentModule,
+        },
+        { skipTerraformApply: true },
+      )
+      .next();
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
     const { app: appUpdateTags } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsEnvironmentModule>({
-      inputs: {
-        environmentName: 'qa',
-        environmentVariables: { ENV_NAME: 'qa' },
-        region: stub('${{testModule.model.region}}'),
+    const updateTagsGenerator = testModuleContainer.runModules<AwsEcsEnvironmentModule>(
+      appUpdateTags,
+      {
+        inputs: {
+          environmentName: 'qa',
+          environmentVariables: { ENV_NAME: 'qa' },
+          region: stub('${{testModule.model.region}}'),
+        },
+        moduleId: 'environment',
+        type: AwsEcsEnvironmentModule,
       },
-      moduleId: 'environment',
-      type: AwsEcsEnvironmentModule,
-    });
-    expect(await testModuleContainer.diffHcl(appUpdateTags)).toMatchSnapshot();
-    const resultUpdateTags = await testModuleContainer.commit(appUpdateTags);
-    expect(testModuleContainer.digestDiffs(resultUpdateTags.resourceDiffs)).toMatchInlineSnapshot(`
+      { skipTerraformApply: true },
+    );
+    const update = (await updateTagsGenerator.next()).value!;
+    expect(update.hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(update.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/ecs-cluster=ecs-cluster-region-qa",
      ]
@@ -184,18 +209,22 @@ describe('AwsEcsEnvironmentModule UT', () => {
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
     const { app: appDeleteTags } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsEnvironmentModule>({
-      inputs: {
-        environmentName: 'qa',
-        environmentVariables: { ENV_NAME: 'qa' },
-        region: stub('${{testModule.model.region}}'),
+    const deleteTagsGenerator = testModuleContainer.runModules<AwsEcsEnvironmentModule>(
+      appDeleteTags,
+      {
+        inputs: {
+          environmentName: 'qa',
+          environmentVariables: { ENV_NAME: 'qa' },
+          region: stub('${{testModule.model.region}}'),
+        },
+        moduleId: 'environment',
+        type: AwsEcsEnvironmentModule,
       },
-      moduleId: 'environment',
-      type: AwsEcsEnvironmentModule,
-    });
-    expect(await testModuleContainer.diffHcl(appDeleteTags)).toMatchSnapshot();
-    const resultDeleteTags = await testModuleContainer.commit(appDeleteTags);
-    expect(testModuleContainer.digestDiffs(resultDeleteTags.resourceDiffs)).toMatchInlineSnapshot(`
+      { skipTerraformApply: true },
+    );
+    const deleteTags = (await deleteTagsGenerator.next()).value!;
+    expect(deleteTags.hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(deleteTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/ecs-cluster=ecs-cluster-region-qa",
      ]
@@ -205,29 +234,32 @@ describe('AwsEcsEnvironmentModule UT', () => {
   describe('input changes', () => {
     it('should handle environmentName change', async () => {
       const { app: appCreate } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsEcsEnvironmentModule>({
-        inputs: {
-          environmentName: 'qa',
-          region: stub('${{testModule.model.region}}'),
-        },
-        moduleId: 'environment',
-        type: AwsEcsEnvironmentModule,
-      });
-      await testModuleContainer.commit(appCreate);
+      await testModuleContainer
+        .runModules<AwsEcsEnvironmentModule>(
+          appCreate,
+          {
+            inputs: { environmentName: 'qa', region: stub('${{testModule.model.region}}') },
+            moduleId: 'environment',
+            type: AwsEcsEnvironmentModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next();
       expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
-      const { app: appUpdateEnvironmentName } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsEcsEnvironmentModule>({
-        inputs: {
-          environmentName: 'changed-qa',
-          region: stub('${{testModule.model.region}}'),
+      const { app: appUpdate } = await setup(testModuleContainer);
+      const runModulesGenerator = testModuleContainer.runModules<AwsEcsEnvironmentModule>(
+        appUpdate,
+        {
+          inputs: { environmentName: 'changed-qa', region: stub('${{testModule.model.region}}') },
+          moduleId: 'environment',
+          type: AwsEcsEnvironmentModule,
         },
-        moduleId: 'environment',
-        type: AwsEcsEnvironmentModule,
-      });
-      expect(await testModuleContainer.diffHcl(appUpdateEnvironmentName)).toMatchSnapshot();
-      const resultUpdateEnvironmentName = await testModuleContainer.commit(appUpdateEnvironmentName);
-      expect(testModuleContainer.digestDiffs(resultUpdateEnvironmentName.resourceDiffs)).toMatchInlineSnapshot(`
+        { skipTerraformApply: true },
+      );
+      const { hclDiff, resourceDiffs } = (await runModulesGenerator.next()).value!;
+      expect(hclDiff).toMatchSnapshot();
+      expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
          "- @octo/ecs-cluster=ecs-cluster-region-qa",
          "+ @octo/ecs-cluster=ecs-cluster-region-changed-qa",
@@ -237,108 +269,133 @@ describe('AwsEcsEnvironmentModule UT', () => {
 
     it('should handle environmentVariables change', async () => {
       const { app: appCreate } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsEcsEnvironmentModule>({
-        inputs: {
-          environmentName: 'qa',
-          environmentVariables: { ENV_NAME: 'qa' },
-          region: stub('${{testModule.model.region}}'),
-        },
-        moduleId: 'environment',
-        type: AwsEcsEnvironmentModule,
-      });
-      await testModuleContainer.commit(appCreate);
+      await testModuleContainer
+        .runModules<AwsEcsEnvironmentModule>(
+          appCreate,
+          {
+            inputs: {
+              environmentName: 'qa',
+              environmentVariables: { ENV_NAME: 'qa' },
+              region: stub('${{testModule.model.region}}'),
+            },
+            moduleId: 'environment',
+            type: AwsEcsEnvironmentModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next();
       expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
-      const { app: appUpdateEnvironmentVariables } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsEcsEnvironmentModule>({
-        inputs: {
-          environmentName: 'qa',
-          environmentVariables: { ENV_NAME: 'qa2' },
-          region: stub('${{testModule.model.region}}'),
+      const { app: appUpdate } = await setup(testModuleContainer);
+      const runModulesGenerator = testModuleContainer.runModules<AwsEcsEnvironmentModule>(
+        appUpdate,
+        {
+          inputs: {
+            environmentName: 'qa',
+            environmentVariables: { ENV_NAME: 'qa2' },
+            region: stub('${{testModule.model.region}}'),
+          },
+          moduleId: 'environment',
+          type: AwsEcsEnvironmentModule,
         },
-        moduleId: 'environment',
-        type: AwsEcsEnvironmentModule,
-      });
-      expect(await testModuleContainer.diffHcl(appUpdateEnvironmentVariables)).toMatchSnapshot();
-      const resultUpdateEnvironmentVariables = await testModuleContainer.commit(appUpdateEnvironmentVariables);
-      expect(testModuleContainer.digestDiffs(resultUpdateEnvironmentVariables.resourceDiffs)).toMatchInlineSnapshot(
-        `[]`,
+        { skipTerraformApply: true },
       );
+      const { hclDiff, resourceDiffs } = (await runModulesGenerator.next()).value!;
+      expect(hclDiff).toMatchSnapshot();
+      expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`[]`);
     });
   });
 
   it('should handle moduleId change', async () => {
     const { app: appCreate } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsEnvironmentModule>({
-      inputs: {
-        environmentName: 'qa',
-        region: stub('${{testModule.model.region}}'),
-      },
-      moduleId: 'environment-1',
-      type: AwsEcsEnvironmentModule,
-    });
-    await testModuleContainer.commit(appCreate);
+    await testModuleContainer
+      .runModules<AwsEcsEnvironmentModule>(
+        appCreate,
+        {
+          inputs: { environmentName: 'qa', region: stub('${{testModule.model.region}}') },
+          moduleId: 'environment-1',
+          type: AwsEcsEnvironmentModule,
+        },
+        { skipTerraformApply: true },
+      )
+      .next();
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
-    const { app: appUpdateModuleId } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsEnvironmentModule>({
-      inputs: {
-        environmentName: 'qa',
-        region: stub('${{testModule.model.region}}'),
+    const { app: appUpdate } = await setup(testModuleContainer);
+    const runModulesGenerator = testModuleContainer.runModules<AwsEcsEnvironmentModule>(
+      appUpdate,
+      {
+        inputs: { environmentName: 'qa', region: stub('${{testModule.model.region}}') },
+        moduleId: 'environment-2',
+        type: AwsEcsEnvironmentModule,
       },
-      moduleId: 'environment-2',
-      type: AwsEcsEnvironmentModule,
-    });
-    expect(await testModuleContainer.diffHcl(appUpdateModuleId)).toMatchSnapshot();
-    const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId);
-    expect(testModuleContainer.digestDiffs(resultUpdateModuleId.resourceDiffs)).toMatchInlineSnapshot(`[]`);
+      { skipTerraformApply: true },
+    );
+    const { hclDiff, resourceDiffs } = (await runModulesGenerator.next()).value!;
+    expect(hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`[]`);
   });
 
   describe('validation', () => {
     it('should validate environmentName is not empty', async () => {
-      await setup(testModuleContainer);
-      await expect(async () => {
-        await testModuleContainer.runModule<AwsEcsEnvironmentModule>({
-          inputs: {
-            environmentName: '',
-            region: stub('${{testModule.model.region}}'),
-          },
-          moduleId: 'environment',
-          type: AwsEcsEnvironmentModule,
-        });
-      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "environmentName" in schema could not be validated!"`);
+      const { app } = await setup(testModuleContainer);
+      await expect(
+        testModuleContainer
+          .runModules<AwsEcsEnvironmentModule>(
+            app,
+            {
+              inputs: { environmentName: '', region: stub('${{testModule.model.region}}') },
+              moduleId: 'environment',
+              type: AwsEcsEnvironmentModule,
+            },
+            { skipTerraformApply: true },
+          )
+          .next(),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "environmentName" in schema could not be validated!"`);
     });
 
     it('should validate environmentVariables keys', async () => {
-      await setup(testModuleContainer);
-      await expect(async () => {
-        await testModuleContainer.runModule<AwsEcsEnvironmentModule>({
-          inputs: {
-            environmentName: 'qa',
-            environmentVariables: { X: 'value' },
-            region: stub('${{testModule.model.region}}'),
-          },
-          moduleId: 'environment',
-          type: AwsEcsEnvironmentModule,
-        });
-      }).rejects.toThrowErrorMatchingInlineSnapshot(
+      const { app } = await setup(testModuleContainer);
+      await expect(
+        testModuleContainer
+          .runModules<AwsEcsEnvironmentModule>(
+            app,
+            {
+              inputs: {
+                environmentName: 'qa',
+                environmentVariables: { X: 'value' },
+                region: stub('${{testModule.model.region}}'),
+              },
+              moduleId: 'environment',
+              type: AwsEcsEnvironmentModule,
+            },
+            { skipTerraformApply: true },
+          )
+          .next(),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(
         `"Property "environmentVariables" in schema could not be validated!"`,
       );
     });
 
     it('should validate environmentVariables values are not empty', async () => {
-      await setup(testModuleContainer);
-      await expect(async () => {
-        await testModuleContainer.runModule<AwsEcsEnvironmentModule>({
-          inputs: {
-            environmentName: 'qa',
-            environmentVariables: { ENV_NAME: '' },
-            region: stub('${{testModule.model.region}}'),
-          },
-          moduleId: 'environment',
-          type: AwsEcsEnvironmentModule,
-        });
-      }).rejects.toThrowErrorMatchingInlineSnapshot(
+      const { app } = await setup(testModuleContainer);
+      await expect(
+        testModuleContainer
+          .runModules<AwsEcsEnvironmentModule>(
+            app,
+            {
+              inputs: {
+                environmentName: 'qa',
+                environmentVariables: { ENV_NAME: '' },
+                region: stub('${{testModule.model.region}}'),
+              },
+              moduleId: 'environment',
+              type: AwsEcsEnvironmentModule,
+            },
+            { skipTerraformApply: true },
+          )
+          .next(),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(
         `"Property "environmentVariables" in schema could not be validated!"`,
       );
     });

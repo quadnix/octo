@@ -48,18 +48,23 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
 
   it('should call correct actions', async () => {
     const { app } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsS3StaticWebsiteServiceModule>({
-      inputs: {
-        account: stub('${{testModule.model.account}}'),
-        awsRegionId: 'us-east-1',
-        bucketName: 'test-bucket',
-        directoryPath: websiteSourcePath,
+    const runModulesGenerator = testModuleContainer.runModules<AwsS3StaticWebsiteServiceModule>(
+      app,
+      {
+        inputs: {
+          account: stub('${{testModule.model.account}}'),
+          awsRegionId: 'us-east-1',
+          bucketName: 'test-bucket',
+          directoryPath: websiteSourcePath,
+        },
+        moduleId: 'service',
+        type: AwsS3StaticWebsiteServiceModule,
       },
-      moduleId: 'service',
-      type: AwsS3StaticWebsiteServiceModule,
-    });
+      { filterByModuleIds: ['service'], skipTerraformApply: true },
+    );
 
-    expect(toRelativePaths(await testModuleContainer.renderHcl(app))).toMatchInlineSnapshot(`
+    const { hclRender, modelTransaction, resourceDiffs } = (await runModulesGenerator.next()).value!;
+    expect(toRelativePaths(hclRender)).toMatchInlineSnapshot(`
      "# service/main.tf
      terraform {
        required_version = ">= 1.6.0"
@@ -179,9 +184,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
      # service/variables.tf
      <empty>"
     `);
-
-    const result = await testModuleContainer.commit(app, { filterByModuleIds: ['service'] });
-    expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`
+    expect(testModuleContainer.mapTransactionActions(modelTransaction)).toMatchInlineSnapshot(`
      [
        [
          "AddAwsS3StaticWebsiteServiceModelAction",
@@ -191,7 +194,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
        ],
      ]
     `);
-    expect(testModuleContainer.digestDiffs(result.resourceDiffs)).toMatchInlineSnapshot(`
+    expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
        "+ @octo/s3-website=bucket-test-bucket",
        "* @octo/s3-website=bucket-test-bucket",
@@ -201,18 +204,25 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
 
   it('should CUD', async () => {
     const { app: appCreate } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsS3StaticWebsiteServiceModule>({
-      inputs: {
-        account: stub('${{testModule.model.account}}'),
-        awsRegionId: 'us-east-1',
-        bucketName: 'test-bucket',
-        directoryPath: websiteSourcePath,
-      },
-      moduleId: 'service',
-      type: AwsS3StaticWebsiteServiceModule,
-    });
-    const resultCreate = await testModuleContainer.commit(appCreate);
-    expect(testModuleContainer.digestDiffs(resultCreate.resourceDiffs)).toMatchInlineSnapshot(`
+    const { resourceDiffs: resourceDiffsCreate } = (
+      await testModuleContainer
+        .runModules<AwsS3StaticWebsiteServiceModule>(
+          appCreate,
+          {
+            inputs: {
+              account: stub('${{testModule.model.account}}'),
+              awsRegionId: 'us-east-1',
+              bucketName: 'test-bucket',
+              directoryPath: websiteSourcePath,
+            },
+            moduleId: 'service',
+            type: AwsS3StaticWebsiteServiceModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`
      [
        "+ @octo/s3-website=bucket-test-bucket",
        "* @octo/s3-website=bucket-test-bucket",
@@ -220,28 +230,53 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
     `);
 
     const { app: appUpdateNoChange } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsS3StaticWebsiteServiceModule>({
-      inputs: {
-        account: stub('${{testModule.model.account}}'),
-        awsRegionId: 'us-east-1',
-        bucketName: 'test-bucket',
-        directoryPath: websiteSourcePath,
-      },
-      moduleId: 'service',
-      type: AwsS3StaticWebsiteServiceModule,
-    });
-    expect(toRelativePaths(await testModuleContainer.diffHcl(appUpdateNoChange))).toMatchSnapshot();
-    const resultUpdateNoChange = await testModuleContainer.commit(appUpdateNoChange);
-    expect(testModuleContainer.digestDiffs(resultUpdateNoChange.resourceDiffs)).toMatchInlineSnapshot(`
+    const updateNoChange = (
+      await testModuleContainer
+        .runModules<AwsS3StaticWebsiteServiceModule>(
+          appUpdateNoChange,
+          {
+            inputs: {
+              account: stub('${{testModule.model.account}}'),
+              awsRegionId: 'us-east-1',
+              bucketName: 'test-bucket',
+              directoryPath: websiteSourcePath,
+            },
+            moduleId: 'service',
+            type: AwsS3StaticWebsiteServiceModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(toRelativePaths(updateNoChange.hclDiff)).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(updateNoChange.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/s3-website=bucket-test-bucket",
      ]
     `);
 
     const { app: appDelete } = await setup(testModuleContainer);
-    expect(toRelativePaths(await testModuleContainer.diffHcl(appDelete))).toMatchSnapshot();
-    const resultDelete = await testModuleContainer.commit(appDelete);
-    expect(testModuleContainer.digestDiffs(resultDelete.resourceDiffs)).toMatchInlineSnapshot(`
+    const deleteResult = (
+      await testModuleContainer
+        .runModules<AwsS3StaticWebsiteServiceModule>(
+          appDelete,
+          {
+            hidden: true,
+            inputs: {
+              account: stub('${{testModule.model.account}}'),
+              awsRegionId: 'us-east-1',
+              bucketName: 'test-bucket',
+              directoryPath: websiteSourcePath,
+            },
+            moduleId: 'service',
+            type: AwsS3StaticWebsiteServiceModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(toRelativePaths(deleteResult.hclDiff)).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(deleteResult.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "- @octo/s3-website=bucket-test-bucket",
      ]
@@ -254,18 +289,25 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
   it('should CUD tags', async () => {
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
     const { app: appCreate } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsS3StaticWebsiteServiceModule>({
-      inputs: {
-        account: stub('${{testModule.model.account}}'),
-        awsRegionId: 'us-east-1',
-        bucketName: 'test-bucket',
-        directoryPath: websiteSourcePath,
-      },
-      moduleId: 'service',
-      type: AwsS3StaticWebsiteServiceModule,
-    });
-    const resultCreate = await testModuleContainer.commit(appCreate);
-    expect(testModuleContainer.digestDiffs(resultCreate.resourceDiffs)).toMatchInlineSnapshot(`
+    const { resourceDiffs: resourceDiffsCreate } = (
+      await testModuleContainer
+        .runModules<AwsS3StaticWebsiteServiceModule>(
+          appCreate,
+          {
+            inputs: {
+              account: stub('${{testModule.model.account}}'),
+              awsRegionId: 'us-east-1',
+              bucketName: 'test-bucket',
+              directoryPath: websiteSourcePath,
+            },
+            moduleId: 'service',
+            type: AwsS3StaticWebsiteServiceModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`
      [
        "+ @octo/s3-website=bucket-test-bucket",
        "* @octo/s3-website=bucket-test-bucket",
@@ -274,19 +316,26 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
 
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
     const { app: appUpdateTags } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsS3StaticWebsiteServiceModule>({
-      inputs: {
-        account: stub('${{testModule.model.account}}'),
-        awsRegionId: 'us-east-1',
-        bucketName: 'test-bucket',
-        directoryPath: websiteSourcePath,
-      },
-      moduleId: 'service',
-      type: AwsS3StaticWebsiteServiceModule,
-    });
-    expect(toRelativePaths(await testModuleContainer.diffHcl(appUpdateTags))).toMatchSnapshot();
-    const resultUpdateTags = await testModuleContainer.commit(appUpdateTags);
-    expect(testModuleContainer.digestDiffs(resultUpdateTags.resourceDiffs)).toMatchInlineSnapshot(`
+    const updateTags = (
+      await testModuleContainer
+        .runModules<AwsS3StaticWebsiteServiceModule>(
+          appUpdateTags,
+          {
+            inputs: {
+              account: stub('${{testModule.model.account}}'),
+              awsRegionId: 'us-east-1',
+              bucketName: 'test-bucket',
+              directoryPath: websiteSourcePath,
+            },
+            moduleId: 'service',
+            type: AwsS3StaticWebsiteServiceModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(toRelativePaths(updateTags.hclDiff)).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(updateTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/s3-website=bucket-test-bucket",
        "* @octo/s3-website=bucket-test-bucket",
@@ -294,19 +343,26 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
     `);
 
     const { app: appDeleteTags } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsS3StaticWebsiteServiceModule>({
-      inputs: {
-        account: stub('${{testModule.model.account}}'),
-        awsRegionId: 'us-east-1',
-        bucketName: 'test-bucket',
-        directoryPath: websiteSourcePath,
-      },
-      moduleId: 'service',
-      type: AwsS3StaticWebsiteServiceModule,
-    });
-    expect(toRelativePaths(await testModuleContainer.diffHcl(appDeleteTags))).toMatchSnapshot();
-    const resultDeleteTags = await testModuleContainer.commit(appDeleteTags);
-    expect(testModuleContainer.digestDiffs(resultDeleteTags.resourceDiffs)).toMatchInlineSnapshot(`
+    const deleteTags = (
+      await testModuleContainer
+        .runModules<AwsS3StaticWebsiteServiceModule>(
+          appDeleteTags,
+          {
+            inputs: {
+              account: stub('${{testModule.model.account}}'),
+              awsRegionId: 'us-east-1',
+              bucketName: 'test-bucket',
+              directoryPath: websiteSourcePath,
+            },
+            moduleId: 'service',
+            type: AwsS3StaticWebsiteServiceModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(toRelativePaths(deleteTags.hclDiff)).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(deleteTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/s3-website=bucket-test-bucket",
        "* @octo/s3-website=bucket-test-bucket",
@@ -317,33 +373,45 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
   describe('input changes', () => {
     it('should handle awsRegionId change', async () => {
       const { app: appCreate } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsS3StaticWebsiteServiceModule>({
-        inputs: {
-          account: stub('${{testModule.model.account}}'),
-          awsRegionId: 'us-east-1',
-          bucketName: 'test-bucket',
-          directoryPath: websiteSourcePath,
-        },
-        moduleId: 'service',
-        type: AwsS3StaticWebsiteServiceModule,
-      });
-      await testModuleContainer.commit(appCreate);
+      await testModuleContainer
+        .runModules<AwsS3StaticWebsiteServiceModule>(
+          appCreate,
+          {
+            inputs: {
+              account: stub('${{testModule.model.account}}'),
+              awsRegionId: 'us-east-1',
+              bucketName: 'test-bucket',
+              directoryPath: websiteSourcePath,
+            },
+            moduleId: 'service',
+            type: AwsS3StaticWebsiteServiceModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next();
 
       testModuleContainer.registerTerraformProvider('aws', '123', 'us-west-2');
       const { app: appUpdateRegionId } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsS3StaticWebsiteServiceModule>({
-        inputs: {
-          account: stub('${{testModule.model.account}}'),
-          awsRegionId: 'us-west-2',
-          bucketName: 'test-bucket',
-          directoryPath: websiteSourcePath,
-        },
-        moduleId: 'service',
-        type: AwsS3StaticWebsiteServiceModule,
-      });
       // awsRegionId selects the provider; Bucket is force-new on aws_s3_bucket → octo emits a REPLACE.
-      const resultUpdateRegionId = await testModuleContainer.commit(appUpdateRegionId);
-      expect(testModuleContainer.digestDiffs(resultUpdateRegionId.resourceDiffs)).toMatchInlineSnapshot(`
+      const { resourceDiffs } = (
+        await testModuleContainer
+          .runModules<AwsS3StaticWebsiteServiceModule>(
+            appUpdateRegionId,
+            {
+              inputs: {
+                account: stub('${{testModule.model.account}}'),
+                awsRegionId: 'us-west-2',
+                bucketName: 'test-bucket',
+                directoryPath: websiteSourcePath,
+              },
+              moduleId: 'service',
+              type: AwsS3StaticWebsiteServiceModule,
+            },
+            { skipTerraformApply: true },
+          )
+          .next()
+      ).value!;
+      expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
          "^ @octo/s3-website=bucket-test-bucket",
        ]
@@ -352,32 +420,44 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
 
     it('should handle bucketName change', async () => {
       const { app: appCreate } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsS3StaticWebsiteServiceModule>({
-        inputs: {
-          account: stub('${{testModule.model.account}}'),
-          awsRegionId: 'us-east-1',
-          bucketName: 'test-bucket',
-          directoryPath: websiteSourcePath,
-        },
-        moduleId: 'service',
-        type: AwsS3StaticWebsiteServiceModule,
-      });
-      await testModuleContainer.commit(appCreate);
+      await testModuleContainer
+        .runModules<AwsS3StaticWebsiteServiceModule>(
+          appCreate,
+          {
+            inputs: {
+              account: stub('${{testModule.model.account}}'),
+              awsRegionId: 'us-east-1',
+              bucketName: 'test-bucket',
+              directoryPath: websiteSourcePath,
+            },
+            moduleId: 'service',
+            type: AwsS3StaticWebsiteServiceModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next();
 
       const { app: appUpdateBucketName } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsS3StaticWebsiteServiceModule>({
-        inputs: {
-          account: stub('${{testModule.model.account}}'),
-          awsRegionId: 'us-east-1',
-          bucketName: 'changed-bucket',
-          directoryPath: websiteSourcePath,
-        },
-        moduleId: 'service',
-        type: AwsS3StaticWebsiteServiceModule,
-      });
-      expect(toRelativePaths(await testModuleContainer.diffHcl(appUpdateBucketName))).toMatchSnapshot();
-      const resultUpdateBucketName = await testModuleContainer.commit(appUpdateBucketName);
-      expect(testModuleContainer.digestDiffs(resultUpdateBucketName.resourceDiffs)).toMatchInlineSnapshot(`
+      const { hclDiff, resourceDiffs } = (
+        await testModuleContainer
+          .runModules<AwsS3StaticWebsiteServiceModule>(
+            appUpdateBucketName,
+            {
+              inputs: {
+                account: stub('${{testModule.model.account}}'),
+                awsRegionId: 'us-east-1',
+                bucketName: 'changed-bucket',
+                directoryPath: websiteSourcePath,
+              },
+              moduleId: 'service',
+              type: AwsS3StaticWebsiteServiceModule,
+            },
+            { skipTerraformApply: true },
+          )
+          .next()
+      ).value!;
+      expect(toRelativePaths(hclDiff)).toMatchSnapshot();
+      expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
          "- @octo/s3-website=bucket-test-bucket",
          "+ @octo/s3-website=bucket-changed-bucket",
@@ -388,32 +468,44 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
 
     it('should handle directoryPath change', async () => {
       const { app: appCreate } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsS3StaticWebsiteServiceModule>({
-        inputs: {
-          account: stub('${{testModule.model.account}}'),
-          awsRegionId: 'us-east-1',
-          bucketName: 'test-bucket',
-          directoryPath: websiteSourcePath,
-        },
-        moduleId: 'service',
-        type: AwsS3StaticWebsiteServiceModule,
-      });
-      await testModuleContainer.commit(appCreate);
+      await testModuleContainer
+        .runModules<AwsS3StaticWebsiteServiceModule>(
+          appCreate,
+          {
+            inputs: {
+              account: stub('${{testModule.model.account}}'),
+              awsRegionId: 'us-east-1',
+              bucketName: 'test-bucket',
+              directoryPath: websiteSourcePath,
+            },
+            moduleId: 'service',
+            type: AwsS3StaticWebsiteServiceModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next();
 
       const { app: appUpdateDirectoryPath } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsS3StaticWebsiteServiceModule>({
-        inputs: {
-          account: stub('${{testModule.model.account}}'),
-          awsRegionId: 'us-east-1',
-          bucketName: 'test-bucket',
-          directoryPath: websiteSourcePath + '/index.html',
-        },
-        moduleId: 'service',
-        type: AwsS3StaticWebsiteServiceModule,
-      });
-      expect(toRelativePaths(await testModuleContainer.diffHcl(appUpdateDirectoryPath))).toMatchSnapshot();
-      const resultUpdateDirectoryPath = await testModuleContainer.commit(appUpdateDirectoryPath);
-      expect(testModuleContainer.digestDiffs(resultUpdateDirectoryPath.resourceDiffs)).toMatchInlineSnapshot(`
+      const { hclDiff, resourceDiffs } = (
+        await testModuleContainer
+          .runModules<AwsS3StaticWebsiteServiceModule>(
+            appUpdateDirectoryPath,
+            {
+              inputs: {
+                account: stub('${{testModule.model.account}}'),
+                awsRegionId: 'us-east-1',
+                bucketName: 'test-bucket',
+                directoryPath: websiteSourcePath + '/index.html',
+              },
+              moduleId: 'service',
+              type: AwsS3StaticWebsiteServiceModule,
+            },
+            { skipTerraformApply: true },
+          )
+          .next()
+      ).value!;
+      expect(toRelativePaths(hclDiff)).toMatchSnapshot();
+      expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
          "* @octo/s3-website=bucket-test-bucket",
        ]
@@ -423,32 +515,44 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
 
   it('should handle moduleId change', async () => {
     const { app: appCreate } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsS3StaticWebsiteServiceModule>({
-      inputs: {
-        account: stub('${{testModule.model.account}}'),
-        awsRegionId: 'us-east-1',
-        bucketName: 'test-bucket',
-        directoryPath: websiteSourcePath,
-      },
-      moduleId: 'service-1',
-      type: AwsS3StaticWebsiteServiceModule,
-    });
-    await testModuleContainer.commit(appCreate);
+    await testModuleContainer
+      .runModules<AwsS3StaticWebsiteServiceModule>(
+        appCreate,
+        {
+          inputs: {
+            account: stub('${{testModule.model.account}}'),
+            awsRegionId: 'us-east-1',
+            bucketName: 'test-bucket',
+            directoryPath: websiteSourcePath,
+          },
+          moduleId: 'service-1',
+          type: AwsS3StaticWebsiteServiceModule,
+        },
+        { skipTerraformApply: true },
+      )
+      .next();
 
     const { app: appUpdateModuleId } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsS3StaticWebsiteServiceModule>({
-      inputs: {
-        account: stub('${{testModule.model.account}}'),
-        awsRegionId: 'us-east-1',
-        bucketName: 'test-bucket',
-        directoryPath: websiteSourcePath,
-      },
-      moduleId: 'service-2',
-      type: AwsS3StaticWebsiteServiceModule,
-    });
-    expect(toRelativePaths(await testModuleContainer.diffHcl(appUpdateModuleId))).toMatchSnapshot();
-    const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId);
-    expect(testModuleContainer.digestDiffs(resultUpdateModuleId.resourceDiffs)).toMatchInlineSnapshot(`
+    const { hclDiff, resourceDiffs } = (
+      await testModuleContainer
+        .runModules<AwsS3StaticWebsiteServiceModule>(
+          appUpdateModuleId,
+          {
+            inputs: {
+              account: stub('${{testModule.model.account}}'),
+              awsRegionId: 'us-east-1',
+              bucketName: 'test-bucket',
+              directoryPath: websiteSourcePath,
+            },
+            moduleId: 'service-2',
+            type: AwsS3StaticWebsiteServiceModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(toRelativePaths(hclDiff)).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/s3-website=bucket-test-bucket",
      ]
@@ -457,51 +561,69 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
 
   describe('validation', () => {
     it('should validate awsRegionId is not empty', async () => {
-      await setup(testModuleContainer);
-      await expect(async () => {
-        await testModuleContainer.runModule<AwsS3StaticWebsiteServiceModule>({
-          inputs: {
-            account: stub('${{testModule.model.account}}'),
-            awsRegionId: '',
-            bucketName: 'test-bucket',
-            directoryPath: websiteSourcePath,
-          },
-          moduleId: 'service',
-          type: AwsS3StaticWebsiteServiceModule,
-        });
-      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "awsRegionId" in schema could not be validated!"`);
+      const { app } = await setup(testModuleContainer);
+      await expect(
+        testModuleContainer
+          .runModules<AwsS3StaticWebsiteServiceModule>(
+            app,
+            {
+              inputs: {
+                account: stub('${{testModule.model.account}}'),
+                awsRegionId: '',
+                bucketName: 'test-bucket',
+                directoryPath: websiteSourcePath,
+              },
+              moduleId: 'service',
+              type: AwsS3StaticWebsiteServiceModule,
+            },
+            { skipTerraformApply: true },
+          )
+          .next(),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "awsRegionId" in schema could not be validated!"`);
     });
 
     it('should validate bucketName is not empty', async () => {
-      await setup(testModuleContainer);
-      await expect(async () => {
-        await testModuleContainer.runModule<AwsS3StaticWebsiteServiceModule>({
-          inputs: {
-            account: stub('${{testModule.model.account}}'),
-            awsRegionId: 'us-east-1',
-            bucketName: '',
-            directoryPath: websiteSourcePath,
-          },
-          moduleId: 'service',
-          type: AwsS3StaticWebsiteServiceModule,
-        });
-      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "bucketName" in schema could not be validated!"`);
+      const { app } = await setup(testModuleContainer);
+      await expect(
+        testModuleContainer
+          .runModules<AwsS3StaticWebsiteServiceModule>(
+            app,
+            {
+              inputs: {
+                account: stub('${{testModule.model.account}}'),
+                awsRegionId: 'us-east-1',
+                bucketName: '',
+                directoryPath: websiteSourcePath,
+              },
+              moduleId: 'service',
+              type: AwsS3StaticWebsiteServiceModule,
+            },
+            { skipTerraformApply: true },
+          )
+          .next(),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "bucketName" in schema could not be validated!"`);
     });
 
     it('should validate directoryPath is not empty', async () => {
-      await setup(testModuleContainer);
-      await expect(async () => {
-        await testModuleContainer.runModule<AwsS3StaticWebsiteServiceModule>({
-          inputs: {
-            account: stub('${{testModule.model.account}}'),
-            awsRegionId: 'us-east-1',
-            bucketName: 'test-bucket',
-            directoryPath: '',
-          },
-          moduleId: 'service',
-          type: AwsS3StaticWebsiteServiceModule,
-        });
-      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "directoryPath" in schema could not be validated!"`);
+      const { app } = await setup(testModuleContainer);
+      await expect(
+        testModuleContainer
+          .runModules<AwsS3StaticWebsiteServiceModule>(
+            app,
+            {
+              inputs: {
+                account: stub('${{testModule.model.account}}'),
+                awsRegionId: 'us-east-1',
+                bucketName: 'test-bucket',
+                directoryPath: '',
+              },
+              moduleId: 'service',
+              type: AwsS3StaticWebsiteServiceModule,
+            },
+            { skipTerraformApply: true },
+          )
+          .next(),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "directoryPath" in schema could not be validated!"`);
     });
   });
 });

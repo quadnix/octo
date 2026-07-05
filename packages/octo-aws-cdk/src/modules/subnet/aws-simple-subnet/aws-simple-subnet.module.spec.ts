@@ -106,18 +106,24 @@ describe('AwsSimpleSubnetModule UT', () => {
 
   it('should call correct actions', async () => {
     const { app } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsSimpleSubnetModule>({
-      inputs: {
-        localFilesystems: [stub('${{testModule.model.filesystem}}')],
-        region: stub('${{testModule.model.region}}'),
-        subnetAvailabilityZone: 'us-east-1a',
-        subnetCidrBlock: '10.0.1.0/24',
-        subnetName: 'private-subnet',
+    const runModulesGenerator = testModuleContainer.runModules<AwsSimpleSubnetModule>(
+      app,
+      {
+        inputs: {
+          localFilesystems: [stub('${{testModule.model.filesystem}}')],
+          region: stub('${{testModule.model.region}}'),
+          subnetAvailabilityZone: 'us-east-1a',
+          subnetCidrBlock: '10.0.1.0/24',
+          subnetName: 'private-subnet',
+        },
+        moduleId: 'subnet',
+        type: AwsSimpleSubnetModule,
       },
-      moduleId: 'subnet',
-      type: AwsSimpleSubnetModule,
-    });
-    expect(await testModuleContainer.renderHcl(app)).toMatchInlineSnapshot(`
+      { filterByModuleIds: ['subnet'], skipTerraformApply: true },
+    );
+
+    const { hclRender, modelTransaction, resourceDiffs } = (await runModulesGenerator.next()).value!;
+    expect(hclRender).toMatchInlineSnapshot(`
      "# subnet/main.tf
      terraform {
        required_version = ">= 1.6.0"
@@ -307,8 +313,7 @@ describe('AwsSimpleSubnetModule UT', () => {
      <empty>"
     `);
 
-    const result = await testModuleContainer.commit(app, { filterByModuleIds: ['subnet'] });
-    expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`
+    expect(testModuleContainer.mapTransactionActions(modelTransaction)).toMatchInlineSnapshot(`
      [
        [
          "AddAwsSimpleSubnetModelAction",
@@ -318,7 +323,7 @@ describe('AwsSimpleSubnetModule UT', () => {
        ],
      ]
     `);
-    expect(testModuleContainer.digestDiffs(result.resourceDiffs)).toMatchInlineSnapshot(`
+    expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
        "+ @octo/subnet=subnet-region-private-subnet",
        "+ @octo/route-table=rt-region-private-subnet",
@@ -332,38 +337,50 @@ describe('AwsSimpleSubnetModule UT', () => {
 
   it('should CUD', async () => {
     const { app: appCreate } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsSimpleSubnetModule>({
-      inputs: {
-        region: stub('${{testModule.model.region}}'),
-        subnetAvailabilityZone: 'us-east-1a',
-        subnetCidrBlock: '10.0.1.0/24',
-        subnetName: 'private-subnet',
-      },
-      moduleId: 'subnet',
-      type: AwsSimpleSubnetModule,
-    });
-    await testModuleContainer.commit(appCreate);
+    await testModuleContainer
+      .runModules<AwsSimpleSubnetModule>(
+        appCreate,
+        {
+          inputs: {
+            region: stub('${{testModule.model.region}}'),
+            subnetAvailabilityZone: 'us-east-1a',
+            subnetCidrBlock: '10.0.1.0/24',
+            subnetName: 'private-subnet',
+          },
+          moduleId: 'subnet',
+          type: AwsSimpleSubnetModule,
+        },
+        { skipTerraformApply: true },
+      )
+      .next();
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
     const { app: appAddSubnetOptions } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsSimpleSubnetModule>({
-      inputs: {
-        region: stub('${{testModule.model.region}}'),
-        subnetAvailabilityZone: 'us-east-1a',
-        subnetCidrBlock: '10.0.1.0/24',
-        subnetName: 'private-subnet',
-        subnetOptions: {
-          createNatGateway: false,
-          disableSubnetIntraNetwork: true,
-          subnetType: SubnetType.PRIVATE,
-        },
-      },
-      moduleId: 'subnet',
-      type: AwsSimpleSubnetModule,
-    });
-    expect(await testModuleContainer.diffHcl(appAddSubnetOptions)).toMatchSnapshot();
-    const resultAddSubnetOptions = await testModuleContainer.commit(appAddSubnetOptions);
-    expect(testModuleContainer.digestDiffs(resultAddSubnetOptions.resourceDiffs)).toMatchInlineSnapshot(`
+    const addSubnetOptions = (
+      await testModuleContainer
+        .runModules<AwsSimpleSubnetModule>(
+          appAddSubnetOptions,
+          {
+            inputs: {
+              region: stub('${{testModule.model.region}}'),
+              subnetAvailabilityZone: 'us-east-1a',
+              subnetCidrBlock: '10.0.1.0/24',
+              subnetName: 'private-subnet',
+              subnetOptions: {
+                createNatGateway: false,
+                disableSubnetIntraNetwork: true,
+                subnetType: SubnetType.PRIVATE,
+              },
+            },
+            moduleId: 'subnet',
+            type: AwsSimpleSubnetModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(addSubnetOptions.hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(addSubnetOptions.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/network-acl=nacl-region-private-subnet",
      ]
@@ -371,25 +388,32 @@ describe('AwsSimpleSubnetModule UT', () => {
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
     const { app: appAddLocalFilesystem } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsSimpleSubnetModule>({
-      inputs: {
-        localFilesystems: [stub('${{testModule.model.filesystem}}')],
-        region: stub('${{testModule.model.region}}'),
-        subnetAvailabilityZone: 'us-east-1a',
-        subnetCidrBlock: '10.0.1.0/24',
-        subnetName: 'private-subnet',
-        subnetOptions: {
-          createNatGateway: false,
-          disableSubnetIntraNetwork: true,
-          subnetType: SubnetType.PRIVATE,
-        },
-      },
-      moduleId: 'subnet',
-      type: AwsSimpleSubnetModule,
-    });
-    expect(await testModuleContainer.diffHcl(appAddLocalFilesystem)).toMatchSnapshot();
-    const resultAddLocalFilesystem = await testModuleContainer.commit(appAddLocalFilesystem);
-    expect(testModuleContainer.digestDiffs(resultAddLocalFilesystem.resourceDiffs)).toMatchInlineSnapshot(`
+    const addLocalFilesystem = (
+      await testModuleContainer
+        .runModules<AwsSimpleSubnetModule>(
+          appAddLocalFilesystem,
+          {
+            inputs: {
+              localFilesystems: [stub('${{testModule.model.filesystem}}')],
+              region: stub('${{testModule.model.region}}'),
+              subnetAvailabilityZone: 'us-east-1a',
+              subnetCidrBlock: '10.0.1.0/24',
+              subnetName: 'private-subnet',
+              subnetOptions: {
+                createNatGateway: false,
+                disableSubnetIntraNetwork: true,
+                subnetType: SubnetType.PRIVATE,
+              },
+            },
+            moduleId: 'subnet',
+            type: AwsSimpleSubnetModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(addLocalFilesystem.hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(addLocalFilesystem.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "+ @octo/security-group=sec-grp-efs-mount-region-private-subnet-test-filesystem",
        "+ @octo/efs-mount-target=efs-mount-region-private-subnet-test-filesystem",
@@ -398,9 +422,33 @@ describe('AwsSimpleSubnetModule UT', () => {
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
     const { app: appDelete } = await setup(testModuleContainer);
-    expect(await testModuleContainer.diffHcl(appDelete)).toMatchSnapshot();
-    const resultDelete = await testModuleContainer.commit(appDelete);
-    expect(testModuleContainer.digestDiffs(resultDelete.resourceDiffs)).toMatchInlineSnapshot(`
+    const deleteResult = (
+      await testModuleContainer
+        .runModules<AwsSimpleSubnetModule>(
+          appDelete,
+          {
+            hidden: true,
+            inputs: {
+              localFilesystems: [stub('${{testModule.model.filesystem}}')],
+              region: stub('${{testModule.model.region}}'),
+              subnetAvailabilityZone: 'us-east-1a',
+              subnetCidrBlock: '10.0.1.0/24',
+              subnetName: 'private-subnet',
+              subnetOptions: {
+                createNatGateway: false,
+                disableSubnetIntraNetwork: true,
+                subnetType: SubnetType.PRIVATE,
+              },
+            },
+            moduleId: 'subnet',
+            type: AwsSimpleSubnetModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(deleteResult.hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(deleteResult.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "- @octo/security-group=sec-grp-efs-mount-region-private-subnet-test-filesystem",
        "- @octo/subnet=subnet-region-private-subnet",
@@ -414,70 +462,86 @@ describe('AwsSimpleSubnetModule UT', () => {
 
   it('should associate and disassociate subnet with siblings', async () => {
     const { app: appAssociateSubnet } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsSimpleSubnetModule>({
-      inputs: {
-        region: stub('${{testModule.model.region}}'),
-        subnetAvailabilityZone: 'us-east-1a',
-        subnetCidrBlock: '10.0.1.0/24',
-        subnetName: 'private-subnet',
-      },
-      moduleId: 'subnet1',
-      type: AwsSimpleSubnetModule,
-    });
-    await testModuleContainer.runModule<AwsSimpleSubnetModule>({
-      inputs: {
-        region: stub('${{testModule.model.region}}'),
-        subnetAvailabilityZone: 'us-east-1a',
-        subnetCidrBlock: '10.0.0.0/24',
-        subnetName: 'public-subnet',
-        subnetOptions: {
-          createNatGateway: false,
-          disableSubnetIntraNetwork: false,
-          subnetType: SubnetType.PUBLIC,
-        },
-        subnetSiblings: [
+    await testModuleContainer
+      .runModules<AwsSimpleSubnetModule>(
+        appAssociateSubnet,
+        [
           {
-            attachToNatGateway: false,
-            subnet: stub('${{subnet1.model.subnet}}'),
+            inputs: {
+              region: stub('${{testModule.model.region}}'),
+              subnetAvailabilityZone: 'us-east-1a',
+              subnetCidrBlock: '10.0.1.0/24',
+              subnetName: 'private-subnet',
+            },
+            moduleId: 'subnet1',
+            type: AwsSimpleSubnetModule,
+          },
+          {
+            inputs: {
+              region: stub('${{testModule.model.region}}'),
+              subnetAvailabilityZone: 'us-east-1a',
+              subnetCidrBlock: '10.0.0.0/24',
+              subnetName: 'public-subnet',
+              subnetOptions: {
+                createNatGateway: false,
+                disableSubnetIntraNetwork: false,
+                subnetType: SubnetType.PUBLIC,
+              },
+              subnetSiblings: [
+                {
+                  attachToNatGateway: false,
+                  subnet: stub('${{subnet1.model.subnet}}'),
+                },
+              ],
+            },
+            moduleId: 'subnet2',
+            type: AwsSimpleSubnetModule,
           },
         ],
-      },
-      moduleId: 'subnet2',
-      type: AwsSimpleSubnetModule,
-    });
-    await testModuleContainer.commit(appAssociateSubnet);
+        { skipTerraformApply: true },
+      )
+      .next();
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
     const { app: appDisassociateSubnet } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsSimpleSubnetModule>({
-      inputs: {
-        region: stub('${{testModule.model.region}}'),
-        subnetAvailabilityZone: 'us-east-1a',
-        subnetCidrBlock: '10.0.1.0/24',
-        subnetName: 'private-subnet',
-      },
-      moduleId: 'subnet1',
-      type: AwsSimpleSubnetModule,
-    });
-    await testModuleContainer.runModule<AwsSimpleSubnetModule>({
-      inputs: {
-        region: stub('${{testModule.model.region}}'),
-        subnetAvailabilityZone: 'us-east-1a',
-        subnetCidrBlock: '10.0.0.0/24',
-        subnetName: 'public-subnet',
-        subnetOptions: {
-          createNatGateway: false,
-          disableSubnetIntraNetwork: false,
-          subnetType: SubnetType.PUBLIC,
-        },
-        subnetSiblings: [],
-      },
-      moduleId: 'subnet2',
-      type: AwsSimpleSubnetModule,
-    });
-    expect(await testModuleContainer.diffHcl(appDisassociateSubnet)).toMatchSnapshot();
-    const resultDisassociateSubnet = await testModuleContainer.commit(appDisassociateSubnet);
-    expect(testModuleContainer.digestDiffs(resultDisassociateSubnet.resourceDiffs)).toMatchInlineSnapshot(`
+    const disassociateSubnet = (
+      await testModuleContainer
+        .runModules<AwsSimpleSubnetModule>(
+          appDisassociateSubnet,
+          [
+            {
+              inputs: {
+                region: stub('${{testModule.model.region}}'),
+                subnetAvailabilityZone: 'us-east-1a',
+                subnetCidrBlock: '10.0.1.0/24',
+                subnetName: 'private-subnet',
+              },
+              moduleId: 'subnet1',
+              type: AwsSimpleSubnetModule,
+            },
+            {
+              inputs: {
+                region: stub('${{testModule.model.region}}'),
+                subnetAvailabilityZone: 'us-east-1a',
+                subnetCidrBlock: '10.0.0.0/24',
+                subnetName: 'public-subnet',
+                subnetOptions: {
+                  createNatGateway: false,
+                  disableSubnetIntraNetwork: false,
+                  subnetType: SubnetType.PUBLIC,
+                },
+                subnetSiblings: [],
+              },
+              moduleId: 'subnet2',
+              type: AwsSimpleSubnetModule,
+            },
+          ],
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(disassociateSubnet.hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(disassociateSubnet.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/network-acl=nacl-region-private-subnet",
        "* @octo/network-acl=nacl-region-public-subnet",
@@ -488,71 +552,86 @@ describe('AwsSimpleSubnetModule UT', () => {
 
   it('should associate and disassociate private subnet with public subnet with a NAT Gateway', async () => {
     const { app: appAssociateSubnet } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsSimpleSubnetModule>({
-      inputs: {
-        region: stub('${{testModule.model.region}}'),
-        subnetAvailabilityZone: 'us-east-1a',
-        subnetCidrBlock: '10.0.0.0/24',
-        subnetName: 'public-subnet',
-        subnetOptions: {
-          createNatGateway: true,
-          disableSubnetIntraNetwork: false,
-          subnetType: SubnetType.PUBLIC,
-        },
-      },
-      moduleId: 'subnet1',
-      type: AwsSimpleSubnetModule,
-    });
-    await testModuleContainer.runModule<AwsSimpleSubnetModule>({
-      inputs: {
-        region: stub('${{testModule.model.region}}'),
-        subnetAvailabilityZone: 'us-east-1a',
-        subnetCidrBlock: '10.0.1.0/24',
-        subnetName: 'private-subnet',
-        subnetSiblings: [
+    await testModuleContainer
+      .runModules<AwsSimpleSubnetModule>(
+        appAssociateSubnet,
+        [
           {
-            attachToNatGateway: true,
-            subnet: stub('${{subnet1.model.subnet}}'),
+            inputs: {
+              region: stub('${{testModule.model.region}}'),
+              subnetAvailabilityZone: 'us-east-1a',
+              subnetCidrBlock: '10.0.0.0/24',
+              subnetName: 'public-subnet',
+              subnetOptions: {
+                createNatGateway: true,
+                disableSubnetIntraNetwork: false,
+                subnetType: SubnetType.PUBLIC,
+              },
+            },
+            moduleId: 'subnet1',
+            type: AwsSimpleSubnetModule,
+          },
+          {
+            inputs: {
+              region: stub('${{testModule.model.region}}'),
+              subnetAvailabilityZone: 'us-east-1a',
+              subnetCidrBlock: '10.0.1.0/24',
+              subnetName: 'private-subnet',
+              subnetSiblings: [
+                {
+                  attachToNatGateway: true,
+                  subnet: stub('${{subnet1.model.subnet}}'),
+                },
+              ],
+            },
+            moduleId: 'subnet2',
+            type: AwsSimpleSubnetModule,
           },
         ],
-      },
-      moduleId: 'subnet2',
-      type: AwsSimpleSubnetModule,
-    });
-
-    await testModuleContainer.commit(appAssociateSubnet);
+        { skipTerraformApply: true },
+      )
+      .next();
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
     const { app: appDisassociateSubnet } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsSimpleSubnetModule>({
-      inputs: {
-        region: stub('${{testModule.model.region}}'),
-        subnetAvailabilityZone: 'us-east-1a',
-        subnetCidrBlock: '10.0.0.0/24',
-        subnetName: 'public-subnet',
-        subnetOptions: {
-          createNatGateway: true,
-          disableSubnetIntraNetwork: false,
-          subnetType: SubnetType.PUBLIC,
-        },
-      },
-      moduleId: 'subnet1',
-      type: AwsSimpleSubnetModule,
-    });
-    await testModuleContainer.runModule<AwsSimpleSubnetModule>({
-      inputs: {
-        region: stub('${{testModule.model.region}}'),
-        subnetAvailabilityZone: 'us-east-1a',
-        subnetCidrBlock: '10.0.1.0/24',
-        subnetName: 'private-subnet',
-        subnetSiblings: [],
-      },
-      moduleId: 'subnet2',
-      type: AwsSimpleSubnetModule,
-    });
-    expect(await testModuleContainer.diffHcl(appDisassociateSubnet)).toMatchSnapshot();
-    const resultDisassociateSubnet = await testModuleContainer.commit(appDisassociateSubnet);
-    expect(testModuleContainer.digestDiffs(resultDisassociateSubnet.resourceDiffs)).toMatchInlineSnapshot(`
+    const disassociateSubnet = (
+      await testModuleContainer
+        .runModules<AwsSimpleSubnetModule>(
+          appDisassociateSubnet,
+          [
+            {
+              inputs: {
+                region: stub('${{testModule.model.region}}'),
+                subnetAvailabilityZone: 'us-east-1a',
+                subnetCidrBlock: '10.0.0.0/24',
+                subnetName: 'public-subnet',
+                subnetOptions: {
+                  createNatGateway: true,
+                  disableSubnetIntraNetwork: false,
+                  subnetType: SubnetType.PUBLIC,
+                },
+              },
+              moduleId: 'subnet1',
+              type: AwsSimpleSubnetModule,
+            },
+            {
+              inputs: {
+                region: stub('${{testModule.model.region}}'),
+                subnetAvailabilityZone: 'us-east-1a',
+                subnetCidrBlock: '10.0.1.0/24',
+                subnetName: 'private-subnet',
+                subnetSiblings: [],
+              },
+              moduleId: 'subnet2',
+              type: AwsSimpleSubnetModule,
+            },
+          ],
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(disassociateSubnet.hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(disassociateSubnet.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/network-acl=nacl-region-private-subnet",
        "* @octo/network-acl=nacl-region-public-subnet",
@@ -561,35 +640,44 @@ describe('AwsSimpleSubnetModule UT', () => {
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
     const { app: appDeleteNATGateway } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsSimpleSubnetModule>({
-      inputs: {
-        region: stub('${{testModule.model.region}}'),
-        subnetAvailabilityZone: 'us-east-1a',
-        subnetCidrBlock: '10.0.0.0/24',
-        subnetName: 'public-subnet',
-        subnetOptions: {
-          createNatGateway: false,
-          disableSubnetIntraNetwork: false,
-          subnetType: SubnetType.PUBLIC,
-        },
-      },
-      moduleId: 'subnet1',
-      type: AwsSimpleSubnetModule,
-    });
-    await testModuleContainer.runModule<AwsSimpleSubnetModule>({
-      inputs: {
-        region: stub('${{testModule.model.region}}'),
-        subnetAvailabilityZone: 'us-east-1a',
-        subnetCidrBlock: '10.0.1.0/24',
-        subnetName: 'private-subnet',
-        subnetSiblings: [],
-      },
-      moduleId: 'subnet2',
-      type: AwsSimpleSubnetModule,
-    });
-    expect(await testModuleContainer.diffHcl(appDeleteNATGateway)).toMatchSnapshot();
-    const resultDeleteNATGateway = await testModuleContainer.commit(appDeleteNATGateway);
-    expect(testModuleContainer.digestDiffs(resultDeleteNATGateway.resourceDiffs)).toMatchInlineSnapshot(`
+    const deleteNATGateway = (
+      await testModuleContainer
+        .runModules<AwsSimpleSubnetModule>(
+          appDeleteNATGateway,
+          [
+            {
+              inputs: {
+                region: stub('${{testModule.model.region}}'),
+                subnetAvailabilityZone: 'us-east-1a',
+                subnetCidrBlock: '10.0.0.0/24',
+                subnetName: 'public-subnet',
+                subnetOptions: {
+                  createNatGateway: false,
+                  disableSubnetIntraNetwork: false,
+                  subnetType: SubnetType.PUBLIC,
+                },
+              },
+              moduleId: 'subnet1',
+              type: AwsSimpleSubnetModule,
+            },
+            {
+              inputs: {
+                region: stub('${{testModule.model.region}}'),
+                subnetAvailabilityZone: 'us-east-1a',
+                subnetCidrBlock: '10.0.1.0/24',
+                subnetName: 'private-subnet',
+                subnetSiblings: [],
+              },
+              moduleId: 'subnet2',
+              type: AwsSimpleSubnetModule,
+            },
+          ],
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(deleteNATGateway.hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(deleteNATGateway.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "- @octo/nat-gateway=nat-gateway-region-public-subnet",
      ]
@@ -600,34 +688,46 @@ describe('AwsSimpleSubnetModule UT', () => {
   it('should CUD tags', async () => {
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
     const { app: appCreate } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsSimpleSubnetModule>({
-      inputs: {
-        region: stub('${{testModule.model.region}}'),
-        subnetAvailabilityZone: 'us-east-1a',
-        subnetCidrBlock: '10.0.1.0/24',
-        subnetName: 'private-subnet',
-      },
-      moduleId: 'subnet',
-      type: AwsSimpleSubnetModule,
-    });
-    await testModuleContainer.commit(appCreate);
+    await testModuleContainer
+      .runModules<AwsSimpleSubnetModule>(
+        appCreate,
+        {
+          inputs: {
+            region: stub('${{testModule.model.region}}'),
+            subnetAvailabilityZone: 'us-east-1a',
+            subnetCidrBlock: '10.0.1.0/24',
+            subnetName: 'private-subnet',
+          },
+          moduleId: 'subnet',
+          type: AwsSimpleSubnetModule,
+        },
+        { skipTerraformApply: true },
+      )
+      .next();
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
     const { app: appUpdateTags } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsSimpleSubnetModule>({
-      inputs: {
-        region: stub('${{testModule.model.region}}'),
-        subnetAvailabilityZone: 'us-east-1a',
-        subnetCidrBlock: '10.0.1.0/24',
-        subnetName: 'private-subnet',
-      },
-      moduleId: 'subnet',
-      type: AwsSimpleSubnetModule,
-    });
-    expect(await testModuleContainer.diffHcl(appUpdateTags)).toMatchSnapshot();
-    const resultUpdateTags = await testModuleContainer.commit(appUpdateTags);
-    expect(testModuleContainer.digestDiffs(resultUpdateTags.resourceDiffs)).toMatchInlineSnapshot(`
+    const updateTags = (
+      await testModuleContainer
+        .runModules<AwsSimpleSubnetModule>(
+          appUpdateTags,
+          {
+            inputs: {
+              region: stub('${{testModule.model.region}}'),
+              subnetAvailabilityZone: 'us-east-1a',
+              subnetCidrBlock: '10.0.1.0/24',
+              subnetName: 'private-subnet',
+            },
+            moduleId: 'subnet',
+            type: AwsSimpleSubnetModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(updateTags.hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(updateTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/subnet=subnet-region-private-subnet",
        "* @octo/network-acl=nacl-region-private-subnet",
@@ -637,19 +737,26 @@ describe('AwsSimpleSubnetModule UT', () => {
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
     const { app: appDeleteTags } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsSimpleSubnetModule>({
-      inputs: {
-        region: stub('${{testModule.model.region}}'),
-        subnetAvailabilityZone: 'us-east-1a',
-        subnetCidrBlock: '10.0.1.0/24',
-        subnetName: 'private-subnet',
-      },
-      moduleId: 'subnet',
-      type: AwsSimpleSubnetModule,
-    });
-    expect(await testModuleContainer.diffHcl(appDeleteTags)).toMatchSnapshot();
-    const resultDeleteTags = await testModuleContainer.commit(appDeleteTags);
-    expect(testModuleContainer.digestDiffs(resultDeleteTags.resourceDiffs)).toMatchInlineSnapshot(`
+    const deleteTags = (
+      await testModuleContainer
+        .runModules<AwsSimpleSubnetModule>(
+          appDeleteTags,
+          {
+            inputs: {
+              region: stub('${{testModule.model.region}}'),
+              subnetAvailabilityZone: 'us-east-1a',
+              subnetCidrBlock: '10.0.1.0/24',
+              subnetName: 'private-subnet',
+            },
+            moduleId: 'subnet',
+            type: AwsSimpleSubnetModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(deleteTags.hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(deleteTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/subnet=subnet-region-private-subnet",
        "* @octo/network-acl=nacl-region-private-subnet",
@@ -662,33 +769,45 @@ describe('AwsSimpleSubnetModule UT', () => {
   describe('input changes', () => {
     it('should handle subnetAvailabilityZone change', async () => {
       const { app: appCreate } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsSimpleSubnetModule>({
-        inputs: {
-          region: stub('${{testModule.model.region}}'),
-          subnetAvailabilityZone: 'us-east-1a',
-          subnetCidrBlock: '10.0.1.0/24',
-          subnetName: 'private-subnet',
-        },
-        moduleId: 'subnet',
-        type: AwsSimpleSubnetModule,
-      });
-      await testModuleContainer.commit(appCreate);
+      await testModuleContainer
+        .runModules<AwsSimpleSubnetModule>(
+          appCreate,
+          {
+            inputs: {
+              region: stub('${{testModule.model.region}}'),
+              subnetAvailabilityZone: 'us-east-1a',
+              subnetCidrBlock: '10.0.1.0/24',
+              subnetName: 'private-subnet',
+            },
+            moduleId: 'subnet',
+            type: AwsSimpleSubnetModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next();
       expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
       const { app: appUpdateAvailabilityZone } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsSimpleSubnetModule>({
-        inputs: {
-          region: stub('${{testModule.model.region}}'),
-          subnetAvailabilityZone: 'us-east-1b',
-          subnetCidrBlock: '10.0.1.0/24',
-          subnetName: 'private-subnet',
-        },
-        moduleId: 'subnet',
-        type: AwsSimpleSubnetModule,
-      });
       // availability_zone is force-new on aws_subnet → octo emits a REPLACE on the subnet.
-      const resultUpdateAvailabilityZone = await testModuleContainer.commit(appUpdateAvailabilityZone);
-      expect(testModuleContainer.digestDiffs(resultUpdateAvailabilityZone.resourceDiffs)).toMatchInlineSnapshot(`
+      const { resourceDiffs } = (
+        await testModuleContainer
+          .runModules<AwsSimpleSubnetModule>(
+            appUpdateAvailabilityZone,
+            {
+              inputs: {
+                region: stub('${{testModule.model.region}}'),
+                subnetAvailabilityZone: 'us-east-1b',
+                subnetCidrBlock: '10.0.1.0/24',
+                subnetName: 'private-subnet',
+              },
+              moduleId: 'subnet',
+              type: AwsSimpleSubnetModule,
+            },
+            { skipTerraformApply: true },
+          )
+          .next()
+      ).value!;
+      expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
          "^ @octo/subnet=subnet-region-private-subnet",
          "* @octo/network-acl=nacl-region-private-subnet",
@@ -699,33 +818,45 @@ describe('AwsSimpleSubnetModule UT', () => {
 
     it('should handle subnetCidrBlock change', async () => {
       const { app: appCreate } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsSimpleSubnetModule>({
-        inputs: {
-          region: stub('${{testModule.model.region}}'),
-          subnetAvailabilityZone: 'us-east-1a',
-          subnetCidrBlock: '10.0.1.0/24',
-          subnetName: 'private-subnet',
-        },
-        moduleId: 'subnet',
-        type: AwsSimpleSubnetModule,
-      });
-      await testModuleContainer.commit(appCreate);
+      await testModuleContainer
+        .runModules<AwsSimpleSubnetModule>(
+          appCreate,
+          {
+            inputs: {
+              region: stub('${{testModule.model.region}}'),
+              subnetAvailabilityZone: 'us-east-1a',
+              subnetCidrBlock: '10.0.1.0/24',
+              subnetName: 'private-subnet',
+            },
+            moduleId: 'subnet',
+            type: AwsSimpleSubnetModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next();
       expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
       const { app: appUpdateCidrBlock } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsSimpleSubnetModule>({
-        inputs: {
-          region: stub('${{testModule.model.region}}'),
-          subnetAvailabilityZone: 'us-east-1a',
-          subnetCidrBlock: '10.0.2.0/24',
-          subnetName: 'private-subnet',
-        },
-        moduleId: 'subnet',
-        type: AwsSimpleSubnetModule,
-      });
       // cidr_block is force-new on aws_subnet → octo emits a REPLACE on the subnet.
-      const resultUpdateCidrBlock = await testModuleContainer.commit(appUpdateCidrBlock);
-      expect(testModuleContainer.digestDiffs(resultUpdateCidrBlock.resourceDiffs)).toMatchInlineSnapshot(`
+      const { resourceDiffs } = (
+        await testModuleContainer
+          .runModules<AwsSimpleSubnetModule>(
+            appUpdateCidrBlock,
+            {
+              inputs: {
+                region: stub('${{testModule.model.region}}'),
+                subnetAvailabilityZone: 'us-east-1a',
+                subnetCidrBlock: '10.0.2.0/24',
+                subnetName: 'private-subnet',
+              },
+              moduleId: 'subnet',
+              type: AwsSimpleSubnetModule,
+            },
+            { skipTerraformApply: true },
+          )
+          .next()
+      ).value!;
+      expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
          "^ @octo/subnet=subnet-region-private-subnet",
          "* @octo/network-acl=nacl-region-private-subnet",
@@ -737,33 +868,45 @@ describe('AwsSimpleSubnetModule UT', () => {
 
     it('should handle subnetName change', async () => {
       const { app: appCreate } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsSimpleSubnetModule>({
-        inputs: {
-          region: stub('${{testModule.model.region}}'),
-          subnetAvailabilityZone: 'us-east-1a',
-          subnetCidrBlock: '10.0.1.0/24',
-          subnetName: 'private-subnet',
-        },
-        moduleId: 'subnet',
-        type: AwsSimpleSubnetModule,
-      });
-      await testModuleContainer.commit(appCreate);
+      await testModuleContainer
+        .runModules<AwsSimpleSubnetModule>(
+          appCreate,
+          {
+            inputs: {
+              region: stub('${{testModule.model.region}}'),
+              subnetAvailabilityZone: 'us-east-1a',
+              subnetCidrBlock: '10.0.1.0/24',
+              subnetName: 'private-subnet',
+            },
+            moduleId: 'subnet',
+            type: AwsSimpleSubnetModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next();
       expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
       const { app: appUpdateSubnetName } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsSimpleSubnetModule>({
-        inputs: {
-          region: stub('${{testModule.model.region}}'),
-          subnetAvailabilityZone: 'us-east-1a',
-          subnetCidrBlock: '10.0.1.0/24',
-          subnetName: 'changed-subnet',
-        },
-        moduleId: 'subnet',
-        type: AwsSimpleSubnetModule,
-      });
-      expect(await testModuleContainer.diffHcl(appUpdateSubnetName)).toMatchSnapshot();
-      const resultUpdateSubnetName = await testModuleContainer.commit(appUpdateSubnetName);
-      expect(testModuleContainer.digestDiffs(resultUpdateSubnetName.resourceDiffs)).toMatchInlineSnapshot(`
+      const updateSubnetName = (
+        await testModuleContainer
+          .runModules<AwsSimpleSubnetModule>(
+            appUpdateSubnetName,
+            {
+              inputs: {
+                region: stub('${{testModule.model.region}}'),
+                subnetAvailabilityZone: 'us-east-1a',
+                subnetCidrBlock: '10.0.1.0/24',
+                subnetName: 'changed-subnet',
+              },
+              moduleId: 'subnet',
+              type: AwsSimpleSubnetModule,
+            },
+            { skipTerraformApply: true },
+          )
+          .next()
+      ).value!;
+      expect(updateSubnetName.hclDiff).toMatchSnapshot();
+      expect(testModuleContainer.digestDiffs(updateSubnetName.resourceDiffs)).toMatchInlineSnapshot(`
        [
          "- @octo/subnet=subnet-region-private-subnet",
          "- @octo/network-acl=nacl-region-private-subnet",
@@ -778,38 +921,50 @@ describe('AwsSimpleSubnetModule UT', () => {
 
     it('should handle subnetOptions change', async () => {
       const { app: appCreate } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsSimpleSubnetModule>({
-        inputs: {
-          region: stub('${{testModule.model.region}}'),
-          subnetAvailabilityZone: 'us-east-1a',
-          subnetCidrBlock: '10.0.1.0/24',
-          subnetName: 'private-subnet',
-        },
-        moduleId: 'subnet',
-        type: AwsSimpleSubnetModule,
-      });
-      await testModuleContainer.commit(appCreate);
+      await testModuleContainer
+        .runModules<AwsSimpleSubnetModule>(
+          appCreate,
+          {
+            inputs: {
+              region: stub('${{testModule.model.region}}'),
+              subnetAvailabilityZone: 'us-east-1a',
+              subnetCidrBlock: '10.0.1.0/24',
+              subnetName: 'private-subnet',
+            },
+            moduleId: 'subnet',
+            type: AwsSimpleSubnetModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next();
       expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
       const { app: appUpdateSubnetOptions } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsSimpleSubnetModule>({
-        inputs: {
-          region: stub('${{testModule.model.region}}'),
-          subnetAvailabilityZone: 'us-east-1a',
-          subnetCidrBlock: '10.0.1.0/24',
-          subnetName: 'private-subnet',
-          subnetOptions: {
-            createNatGateway: false,
-            disableSubnetIntraNetwork: true,
-            subnetType: SubnetType.PRIVATE,
-          },
-        },
-        moduleId: 'subnet',
-        type: AwsSimpleSubnetModule,
-      });
-      expect(await testModuleContainer.diffHcl(appUpdateSubnetOptions)).toMatchSnapshot();
-      const resultUpdateSubnetOptions = await testModuleContainer.commit(appUpdateSubnetOptions);
-      expect(testModuleContainer.digestDiffs(resultUpdateSubnetOptions.resourceDiffs)).toMatchInlineSnapshot(`
+      const updateSubnetOptions = (
+        await testModuleContainer
+          .runModules<AwsSimpleSubnetModule>(
+            appUpdateSubnetOptions,
+            {
+              inputs: {
+                region: stub('${{testModule.model.region}}'),
+                subnetAvailabilityZone: 'us-east-1a',
+                subnetCidrBlock: '10.0.1.0/24',
+                subnetName: 'private-subnet',
+                subnetOptions: {
+                  createNatGateway: false,
+                  disableSubnetIntraNetwork: true,
+                  subnetType: SubnetType.PRIVATE,
+                },
+              },
+              moduleId: 'subnet',
+              type: AwsSimpleSubnetModule,
+            },
+            { skipTerraformApply: true },
+          )
+          .next()
+      ).value!;
+      expect(updateSubnetOptions.hclDiff).toMatchSnapshot();
+      expect(testModuleContainer.digestDiffs(updateSubnetOptions.resourceDiffs)).toMatchInlineSnapshot(`
        [
          "* @octo/network-acl=nacl-region-private-subnet",
        ]
@@ -820,104 +975,140 @@ describe('AwsSimpleSubnetModule UT', () => {
 
   it('should handle moduleId change', async () => {
     const { app: appCreate } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsSimpleSubnetModule>({
-      inputs: {
-        region: stub('${{testModule.model.region}}'),
-        subnetAvailabilityZone: 'us-east-1a',
-        subnetCidrBlock: '10.0.1.0/24',
-        subnetName: 'private-subnet',
-      },
-      moduleId: 'subnet-1',
-      type: AwsSimpleSubnetModule,
-    });
-    await testModuleContainer.commit(appCreate);
+    await testModuleContainer
+      .runModules<AwsSimpleSubnetModule>(
+        appCreate,
+        {
+          inputs: {
+            region: stub('${{testModule.model.region}}'),
+            subnetAvailabilityZone: 'us-east-1a',
+            subnetCidrBlock: '10.0.1.0/24',
+            subnetName: 'private-subnet',
+          },
+          moduleId: 'subnet-1',
+          type: AwsSimpleSubnetModule,
+        },
+        { skipTerraformApply: true },
+      )
+      .next();
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
     const { app: appUpdateModuleId } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsSimpleSubnetModule>({
-      inputs: {
-        region: stub('${{testModule.model.region}}'),
-        subnetAvailabilityZone: 'us-east-1a',
-        subnetCidrBlock: '10.0.1.0/24',
-        subnetName: 'private-subnet',
-      },
-      moduleId: 'subnet-2',
-      type: AwsSimpleSubnetModule,
-    });
-    expect(await testModuleContainer.diffHcl(appUpdateModuleId)).toMatchSnapshot();
-    const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId);
-    expect(testModuleContainer.digestDiffs(resultUpdateModuleId.resourceDiffs)).toMatchInlineSnapshot(`[]`);
+    const updateModuleId = (
+      await testModuleContainer
+        .runModules<AwsSimpleSubnetModule>(
+          appUpdateModuleId,
+          {
+            inputs: {
+              region: stub('${{testModule.model.region}}'),
+              subnetAvailabilityZone: 'us-east-1a',
+              subnetCidrBlock: '10.0.1.0/24',
+              subnetName: 'private-subnet',
+            },
+            moduleId: 'subnet-2',
+            type: AwsSimpleSubnetModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(updateModuleId.hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(updateModuleId.resourceDiffs)).toMatchInlineSnapshot(`[]`);
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
   });
 
   describe('validation', () => {
     it('should validate invalid subnet availability zone', async () => {
-      await setup(testModuleContainer);
-      await expect(async () => {
-        await testModuleContainer.runModule<AwsSimpleSubnetModule>({
-          inputs: {
-            region: stub('${{testModule.model.region}}'),
-            subnetAvailabilityZone: 'us-west-2a',
-            subnetCidrBlock: '10.0.1.0/24',
-            subnetName: 'private-subnet',
-          },
-          moduleId: 'subnet',
-          type: AwsSimpleSubnetModule,
-        });
-      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Invalid subnet availability zone!"`);
+      const { app } = await setup(testModuleContainer);
+      await expect(
+        testModuleContainer
+          .runModules<AwsSimpleSubnetModule>(
+            app,
+            {
+              inputs: {
+                region: stub('${{testModule.model.region}}'),
+                subnetAvailabilityZone: 'us-west-2a',
+                subnetCidrBlock: '10.0.1.0/24',
+                subnetName: 'private-subnet',
+              },
+              moduleId: 'subnet',
+              type: AwsSimpleSubnetModule,
+            },
+            { skipTerraformApply: true },
+          )
+          .next(),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`"Invalid subnet availability zone!"`);
     });
 
     it('should validate NAT Gateway only for public subnets', async () => {
-      await setup(testModuleContainer);
-      await expect(async () => {
-        await testModuleContainer.runModule<AwsSimpleSubnetModule>({
-          inputs: {
-            region: stub('${{testModule.model.region}}'),
-            subnetAvailabilityZone: 'us-east-1a',
-            subnetCidrBlock: '10.0.1.0/24',
-            subnetName: 'private-subnet',
-            subnetOptions: {
-              createNatGateway: true,
-              disableSubnetIntraNetwork: false,
-              subnetType: SubnetType.PRIVATE,
+      const { app } = await setup(testModuleContainer);
+      await expect(
+        testModuleContainer
+          .runModules<AwsSimpleSubnetModule>(
+            app,
+            {
+              inputs: {
+                region: stub('${{testModule.model.region}}'),
+                subnetAvailabilityZone: 'us-east-1a',
+                subnetCidrBlock: '10.0.1.0/24',
+                subnetName: 'private-subnet',
+                subnetOptions: {
+                  createNatGateway: true,
+                  disableSubnetIntraNetwork: false,
+                  subnetType: SubnetType.PRIVATE,
+                },
+              },
+              moduleId: 'subnet',
+              type: AwsSimpleSubnetModule,
             },
-          },
-          moduleId: 'subnet',
-          type: AwsSimpleSubnetModule,
-        });
-      }).rejects.toThrowErrorMatchingInlineSnapshot(`"NAT Gateway can only be created for public subnets!"`);
+            { skipTerraformApply: true },
+          )
+          .next(),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`"NAT Gateway can only be created for public subnets!"`);
     });
 
     it('should validate subnet CIDR within region CIDR', async () => {
-      await setup(testModuleContainer);
-      await expect(async () => {
-        await testModuleContainer.runModule<AwsSimpleSubnetModule>({
-          inputs: {
-            region: stub('${{testModule.model.region}}'),
-            subnetAvailabilityZone: 'us-east-1a',
-            subnetCidrBlock: '192.168.1.0/24',
-            subnetName: 'private-subnet',
-          },
-          moduleId: 'subnet',
-          type: AwsSimpleSubnetModule,
-        });
-      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Subnet CIDR is not within region CIDR!"`);
+      const { app } = await setup(testModuleContainer);
+      await expect(
+        testModuleContainer
+          .runModules<AwsSimpleSubnetModule>(
+            app,
+            {
+              inputs: {
+                region: stub('${{testModule.model.region}}'),
+                subnetAvailabilityZone: 'us-east-1a',
+                subnetCidrBlock: '192.168.1.0/24',
+                subnetName: 'private-subnet',
+              },
+              moduleId: 'subnet',
+              type: AwsSimpleSubnetModule,
+            },
+            { skipTerraformApply: true },
+          )
+          .next(),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`"Subnet CIDR is not within region CIDR!"`);
     });
 
     it('should normalize the all-ports sentinel (-1) to 0 in rendered HCL', async () => {
       const { app } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsSimpleSubnetModule>({
-        inputs: {
-          region: stub('${{testModule.model.region}}'),
-          subnetAvailabilityZone: 'us-east-1a',
-          subnetCidrBlock: '10.0.1.0/24',
-          subnetName: 'private-subnet',
-        },
-        moduleId: 'subnet',
-        type: AwsSimpleSubnetModule,
-      });
-
-      const hcl = await testModuleContainer.renderHcl(app);
+      const { hclRender: hcl } = (
+        await testModuleContainer
+          .runModules<AwsSimpleSubnetModule>(
+            app,
+            {
+              inputs: {
+                region: stub('${{testModule.model.region}}'),
+                subnetAvailabilityZone: 'us-east-1a',
+                subnetCidrBlock: '10.0.1.0/24',
+                subnetName: 'private-subnet',
+              },
+              moduleId: 'subnet',
+              type: AwsSimpleSubnetModule,
+            },
+            { skipTerraformApply: true },
+          )
+          .next()
+      ).value!;
       expect(hcl).toContain('from_port = 0');
       expect(hcl).toContain('to_port = 0');
       expect(hcl).not.toContain('from_port = -1');

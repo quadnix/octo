@@ -231,29 +231,35 @@ describe('AwsEcsExecutionModule UT', () => {
 
   it('should call correct actions', async () => {
     const { app } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsExecutionModule>({
-      inputs: {
-        deployments: {
-          main: {
-            containerProperties: {
-              image: {
-                essential: true,
-                name: 'backend-v1',
+    const runModulesGenerator = testModuleContainer.runModules<AwsEcsExecutionModule>(
+      app,
+      {
+        inputs: {
+          deployments: {
+            main: {
+              containerProperties: {
+                image: {
+                  essential: true,
+                  name: 'backend-v1',
+                },
               },
+              deployment: stub('${{testModule.model.deployment}}'),
             },
-            deployment: stub('${{testModule.model.deployment}}'),
+            sidecars: [],
           },
-          sidecars: [],
+          desiredCount: 1,
+          environment: stub('${{testModule.model.environment}}'),
+          executionId: 'backend-v1-region-qa-private-subnet',
+          subnet: stub('${{testModule.model.subnet}}'),
         },
-        desiredCount: 1,
-        environment: stub('${{testModule.model.environment}}'),
-        executionId: 'backend-v1-region-qa-private-subnet',
-        subnet: stub('${{testModule.model.subnet}}'),
+        moduleId: 'execution',
+        type: AwsEcsExecutionModule,
       },
-      moduleId: 'execution',
-      type: AwsEcsExecutionModule,
-    });
-    expect(await testModuleContainer.renderHcl(app)).toMatchInlineSnapshot(`
+      { filterByModuleIds: ['execution'], skipTerraformApply: true },
+    );
+
+    const { hclRender, modelTransaction, resourceDiffs } = (await runModulesGenerator.next()).value!;
+    expect(hclRender).toMatchInlineSnapshot(`
      "# execution/main.tf
      terraform {
        required_version = ">= 1.6.0"
@@ -561,11 +567,7 @@ describe('AwsEcsExecutionModule UT', () => {
      # testModule/variables.tf
      <empty>"
     `);
-
-    const result = await testModuleContainer.commit(app, {
-      filterByModuleIds: ['execution'],
-    });
-    expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`
+    expect(testModuleContainer.mapTransactionActions(modelTransaction)).toMatchInlineSnapshot(`
      [
        [
          "AddAwsEcsExecutionModelAction",
@@ -578,7 +580,7 @@ describe('AwsEcsExecutionModule UT', () => {
        ],
      ]
     `);
-    expect(testModuleContainer.digestDiffs(result.resourceDiffs)).toMatchInlineSnapshot(`
+    expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
        "+ @octo/security-group=sec-grp-SecurityGroup-backend",
        "+ @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
@@ -590,30 +592,37 @@ describe('AwsEcsExecutionModule UT', () => {
 
   it('should CUD', async () => {
     const { app: appCreate } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsExecutionModule>({
-      inputs: {
-        deployments: {
-          main: {
-            containerProperties: {
-              image: {
-                essential: true,
-                name: 'backend-v1',
+    const { resourceDiffs: resourceDiffsCreate } = (
+      await testModuleContainer
+        .runModules<AwsEcsExecutionModule>(
+          appCreate,
+          {
+            inputs: {
+              deployments: {
+                main: {
+                  containerProperties: {
+                    image: {
+                      essential: true,
+                      name: 'backend-v1',
+                    },
+                  },
+                  deployment: stub('${{testModule.model.deployment}}'),
+                },
+                sidecars: [],
               },
+              desiredCount: 1,
+              environment: stub('${{testModule.model.environment}}'),
+              executionId: 'backend-v1-region-qa-private-subnet',
+              subnet: stub('${{testModule.model.subnet}}'),
             },
-            deployment: stub('${{testModule.model.deployment}}'),
+            moduleId: 'execution',
+            type: AwsEcsExecutionModule,
           },
-          sidecars: [],
-        },
-        desiredCount: 1,
-        environment: stub('${{testModule.model.environment}}'),
-        executionId: 'backend-v1-region-qa-private-subnet',
-        subnet: stub('${{testModule.model.subnet}}'),
-      },
-      moduleId: 'execution',
-      type: AwsEcsExecutionModule,
-    });
-    const resultCreate = await testModuleContainer.commit(appCreate);
-    expect(testModuleContainer.digestDiffs(resultCreate.resourceDiffs)).toMatchInlineSnapshot(`
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`
      [
        "+ @octo/security-group=sec-grp-SecurityGroup-backend",
        "+ @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
@@ -623,32 +632,39 @@ describe('AwsEcsExecutionModule UT', () => {
     `);
 
     const { app: appUpdateDeployment } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsExecutionModule>({
-      inputs: {
-        deployments: {
-          main: {
-            containerProperties: {
-              image: {
-                command: 'npm start',
-                essential: true,
-                name: 'backend-v1',
+    const updateDeployment = (
+      await testModuleContainer
+        .runModules<AwsEcsExecutionModule>(
+          appUpdateDeployment,
+          {
+            inputs: {
+              deployments: {
+                main: {
+                  containerProperties: {
+                    image: {
+                      command: 'npm start',
+                      essential: true,
+                      name: 'backend-v1',
+                    },
+                  },
+                  deployment: stub('${{testModule.model.deployment}}'),
+                },
+                sidecars: [],
               },
+              desiredCount: 1,
+              environment: stub('${{testModule.model.environment}}'),
+              executionId: 'backend-v1-region-qa-private-subnet',
+              subnet: stub('${{testModule.model.subnet}}'),
             },
-            deployment: stub('${{testModule.model.deployment}}'),
+            moduleId: 'execution',
+            type: AwsEcsExecutionModule,
           },
-          sidecars: [],
-        },
-        desiredCount: 1,
-        environment: stub('${{testModule.model.environment}}'),
-        executionId: 'backend-v1-region-qa-private-subnet',
-        subnet: stub('${{testModule.model.subnet}}'),
-      },
-      moduleId: 'execution',
-      type: AwsEcsExecutionModule,
-    });
-    expect(await testModuleContainer.diffHcl(appUpdateDeployment)).toMatchSnapshot();
-    const resultUpdateDeployment = await testModuleContainer.commit(appUpdateDeployment, {});
-    expect(testModuleContainer.digestDiffs(resultUpdateDeployment.resourceDiffs)).toMatchInlineSnapshot(`
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(updateDeployment.hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(updateDeployment.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
        "* @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
@@ -656,31 +672,38 @@ describe('AwsEcsExecutionModule UT', () => {
     `);
 
     const { app: appUpdateDeploymentRevert } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsExecutionModule>({
-      inputs: {
-        deployments: {
-          main: {
-            containerProperties: {
-              image: {
-                essential: true,
-                name: 'backend-v1',
+    const updateDeploymentRevert = (
+      await testModuleContainer
+        .runModules<AwsEcsExecutionModule>(
+          appUpdateDeploymentRevert,
+          {
+            inputs: {
+              deployments: {
+                main: {
+                  containerProperties: {
+                    image: {
+                      essential: true,
+                      name: 'backend-v1',
+                    },
+                  },
+                  deployment: stub('${{testModule.model.deployment}}'),
+                },
+                sidecars: [],
               },
+              desiredCount: 1,
+              environment: stub('${{testModule.model.environment}}'),
+              executionId: 'backend-v1-region-qa-private-subnet',
+              subnet: stub('${{testModule.model.subnet}}'),
             },
-            deployment: stub('${{testModule.model.deployment}}'),
+            moduleId: 'execution',
+            type: AwsEcsExecutionModule,
           },
-          sidecars: [],
-        },
-        desiredCount: 1,
-        environment: stub('${{testModule.model.environment}}'),
-        executionId: 'backend-v1-region-qa-private-subnet',
-        subnet: stub('${{testModule.model.subnet}}'),
-      },
-      moduleId: 'execution',
-      type: AwsEcsExecutionModule,
-    });
-    expect(await testModuleContainer.diffHcl(appUpdateDeploymentRevert)).toMatchSnapshot();
-    const resultUpdateDeploymentRevert = await testModuleContainer.commit(appUpdateDeploymentRevert, {});
-    expect(testModuleContainer.digestDiffs(resultUpdateDeploymentRevert.resourceDiffs)).toMatchInlineSnapshot(`
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(updateDeploymentRevert.hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(updateDeploymentRevert.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
        "* @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
@@ -688,63 +711,77 @@ describe('AwsEcsExecutionModule UT', () => {
     `);
 
     const { app: appUpdateDesiredCount } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsExecutionModule>({
-      inputs: {
-        deployments: {
-          main: {
-            containerProperties: {
-              image: {
-                essential: true,
-                name: 'backend-v1',
+    const updateDesiredCount = (
+      await testModuleContainer
+        .runModules<AwsEcsExecutionModule>(
+          appUpdateDesiredCount,
+          {
+            inputs: {
+              deployments: {
+                main: {
+                  containerProperties: {
+                    image: {
+                      essential: true,
+                      name: 'backend-v1',
+                    },
+                  },
+                  deployment: stub('${{testModule.model.deployment}}'),
+                },
+                sidecars: [],
               },
+              desiredCount: 2,
+              environment: stub('${{testModule.model.environment}}'),
+              executionId: 'backend-v1-region-qa-private-subnet',
+              subnet: stub('${{testModule.model.subnet}}'),
             },
-            deployment: stub('${{testModule.model.deployment}}'),
+            moduleId: 'execution',
+            type: AwsEcsExecutionModule,
           },
-          sidecars: [],
-        },
-        desiredCount: 2,
-        environment: stub('${{testModule.model.environment}}'),
-        executionId: 'backend-v1-region-qa-private-subnet',
-        subnet: stub('${{testModule.model.subnet}}'),
-      },
-      moduleId: 'execution',
-      type: AwsEcsExecutionModule,
-    });
-    expect(await testModuleContainer.diffHcl(appUpdateDesiredCount)).toMatchSnapshot();
-    const resultUpdateDesiredCount = await testModuleContainer.commit(appUpdateDesiredCount, {});
-    expect(testModuleContainer.digestDiffs(resultUpdateDesiredCount.resourceDiffs)).toMatchInlineSnapshot(`
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(updateDesiredCount.hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(updateDesiredCount.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
      ]
     `);
 
     const { app: appAddFilesystem } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsExecutionModule>({
-      inputs: {
-        deployments: {
-          main: {
-            containerProperties: {
-              image: {
-                essential: true,
-                name: 'backend-v1',
+    const addFilesystem = (
+      await testModuleContainer
+        .runModules<AwsEcsExecutionModule>(
+          appAddFilesystem,
+          {
+            inputs: {
+              deployments: {
+                main: {
+                  containerProperties: {
+                    image: {
+                      essential: true,
+                      name: 'backend-v1',
+                    },
+                  },
+                  deployment: stub('${{testModule.model.deployment}}'),
+                },
+                sidecars: [],
               },
+              desiredCount: 2,
+              environment: stub('${{testModule.model.environment}}'),
+              executionId: 'backend-v1-region-qa-private-subnet',
+              filesystems: [stub('${{testModule.model.filesystem}}')],
+              subnet: stub('${{testModule.model.subnet}}'),
             },
-            deployment: stub('${{testModule.model.deployment}}'),
+            moduleId: 'execution',
+            type: AwsEcsExecutionModule,
           },
-          sidecars: [],
-        },
-        desiredCount: 2,
-        environment: stub('${{testModule.model.environment}}'),
-        executionId: 'backend-v1-region-qa-private-subnet',
-        filesystems: [stub('${{testModule.model.filesystem}}')],
-        subnet: stub('${{testModule.model.subnet}}'),
-      },
-      moduleId: 'execution',
-      type: AwsEcsExecutionModule,
-    });
-    expect(await testModuleContainer.diffHcl(appAddFilesystem)).toMatchSnapshot();
-    const resultAddFilesystem = await testModuleContainer.commit(appAddFilesystem);
-    expect(testModuleContainer.digestDiffs(resultAddFilesystem.resourceDiffs)).toMatchInlineSnapshot(`
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(addFilesystem.hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(addFilesystem.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
        "* @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
@@ -752,41 +789,48 @@ describe('AwsEcsExecutionModule UT', () => {
     `);
 
     const { app: appAddSecurityGroupRule } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsExecutionModule>({
-      inputs: {
-        deployments: {
-          main: {
-            containerProperties: {
-              image: {
-                essential: true,
-                name: 'backend-v1',
-              },
-            },
-            deployment: stub('${{testModule.model.deployment}}'),
-          },
-          sidecars: [],
-        },
-        desiredCount: 2,
-        environment: stub('${{testModule.model.environment}}'),
-        executionId: 'backend-v1-region-qa-private-subnet',
-        filesystems: [stub('${{testModule.model.filesystem}}')],
-        securityGroupRules: [
+    const addSecurityGroupRule = (
+      await testModuleContainer
+        .runModules<AwsEcsExecutionModule>(
+          appAddSecurityGroupRule,
           {
-            CidrBlock: '10.0.0.0/8',
-            Egress: true,
-            FromPort: 8080,
-            IpProtocol: 'tcp',
-            ToPort: 8080,
+            inputs: {
+              deployments: {
+                main: {
+                  containerProperties: {
+                    image: {
+                      essential: true,
+                      name: 'backend-v1',
+                    },
+                  },
+                  deployment: stub('${{testModule.model.deployment}}'),
+                },
+                sidecars: [],
+              },
+              desiredCount: 2,
+              environment: stub('${{testModule.model.environment}}'),
+              executionId: 'backend-v1-region-qa-private-subnet',
+              filesystems: [stub('${{testModule.model.filesystem}}')],
+              securityGroupRules: [
+                {
+                  CidrBlock: '10.0.0.0/8',
+                  Egress: true,
+                  FromPort: 8080,
+                  IpProtocol: 'tcp',
+                  ToPort: 8080,
+                },
+              ],
+              subnet: stub('${{testModule.model.subnet}}'),
+            },
+            moduleId: 'execution',
+            type: AwsEcsExecutionModule,
           },
-        ],
-        subnet: stub('${{testModule.model.subnet}}'),
-      },
-      moduleId: 'execution',
-      type: AwsEcsExecutionModule,
-    });
-    expect(await testModuleContainer.diffHcl(appAddSecurityGroupRule)).toMatchSnapshot();
-    const resultAddSecurityGroupRule = await testModuleContainer.commit(appAddSecurityGroupRule, {});
-    expect(testModuleContainer.digestDiffs(resultAddSecurityGroupRule.resourceDiffs)).toMatchInlineSnapshot(`
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(addSecurityGroupRule.hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(addSecurityGroupRule.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
        "* @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
@@ -794,9 +838,49 @@ describe('AwsEcsExecutionModule UT', () => {
     `);
 
     const { app: appDelete } = await setup(testModuleContainer);
-    expect(await testModuleContainer.diffHcl(appDelete)).toMatchSnapshot();
-    const resultDelete = await testModuleContainer.commit(appDelete);
-    expect(testModuleContainer.digestDiffs(resultDelete.resourceDiffs)).toMatchInlineSnapshot(`
+    const deleteResult = (
+      await testModuleContainer
+        .runModules<AwsEcsExecutionModule>(
+          appDelete,
+          {
+            hidden: true,
+            inputs: {
+              deployments: {
+                main: {
+                  containerProperties: {
+                    image: {
+                      essential: true,
+                      name: 'backend-v1',
+                    },
+                  },
+                  deployment: stub('${{testModule.model.deployment}}'),
+                },
+                sidecars: [],
+              },
+              desiredCount: 2,
+              environment: stub('${{testModule.model.environment}}'),
+              executionId: 'backend-v1-region-qa-private-subnet',
+              filesystems: [stub('${{testModule.model.filesystem}}')],
+              securityGroupRules: [
+                {
+                  CidrBlock: '10.0.0.0/8',
+                  Egress: true,
+                  FromPort: 8080,
+                  IpProtocol: 'tcp',
+                  ToPort: 8080,
+                },
+              ],
+              subnet: stub('${{testModule.model.subnet}}'),
+            },
+            moduleId: 'execution',
+            type: AwsEcsExecutionModule,
+          },
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(deleteResult.hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(deleteResult.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "- @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
        "- @octo/security-group=sec-grp-SecurityGroup-backend",
@@ -812,30 +896,37 @@ describe('AwsEcsExecutionModule UT', () => {
   it('should CUD tags', async () => {
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
     const { app: appCreate } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsExecutionModule>({
-      inputs: {
-        deployments: {
-          main: {
-            containerProperties: {
-              image: {
-                essential: true,
-                name: 'backend-v1',
+    const { resourceDiffs: resourceDiffsCreate } = (
+      await testModuleContainer
+        .runModules<AwsEcsExecutionModule>(
+          appCreate,
+          {
+            inputs: {
+              deployments: {
+                main: {
+                  containerProperties: {
+                    image: {
+                      essential: true,
+                      name: 'backend-v1',
+                    },
+                  },
+                  deployment: stub('${{testModule.model.deployment}}'),
+                },
+                sidecars: [],
               },
+              desiredCount: 1,
+              environment: stub('${{testModule.model.environment}}'),
+              executionId: 'backend-v1-region-qa-private-subnet',
+              subnet: stub('${{testModule.model.subnet}}'),
             },
-            deployment: stub('${{testModule.model.deployment}}'),
+            moduleId: 'execution',
+            type: AwsEcsExecutionModule,
           },
-          sidecars: [],
-        },
-        desiredCount: 1,
-        environment: stub('${{testModule.model.environment}}'),
-        executionId: 'backend-v1-region-qa-private-subnet',
-        subnet: stub('${{testModule.model.subnet}}'),
-      },
-      moduleId: 'execution',
-      type: AwsEcsExecutionModule,
-    });
-    const resultCreate = await testModuleContainer.commit(appCreate);
-    expect(testModuleContainer.digestDiffs(resultCreate.resourceDiffs)).toMatchInlineSnapshot(`
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`
      [
        "+ @octo/security-group=sec-grp-SecurityGroup-backend",
        "+ @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
@@ -846,31 +937,38 @@ describe('AwsEcsExecutionModule UT', () => {
 
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
     const { app: appUpdateTags } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsExecutionModule>({
-      inputs: {
-        deployments: {
-          main: {
-            containerProperties: {
-              image: {
-                essential: true,
-                name: 'backend-v1',
+    const updateTags = (
+      await testModuleContainer
+        .runModules<AwsEcsExecutionModule>(
+          appUpdateTags,
+          {
+            inputs: {
+              deployments: {
+                main: {
+                  containerProperties: {
+                    image: {
+                      essential: true,
+                      name: 'backend-v1',
+                    },
+                  },
+                  deployment: stub('${{testModule.model.deployment}}'),
+                },
+                sidecars: [],
               },
+              desiredCount: 1,
+              environment: stub('${{testModule.model.environment}}'),
+              executionId: 'backend-v1-region-qa-private-subnet',
+              subnet: stub('${{testModule.model.subnet}}'),
             },
-            deployment: stub('${{testModule.model.deployment}}'),
+            moduleId: 'execution',
+            type: AwsEcsExecutionModule,
           },
-          sidecars: [],
-        },
-        desiredCount: 1,
-        environment: stub('${{testModule.model.environment}}'),
-        executionId: 'backend-v1-region-qa-private-subnet',
-        subnet: stub('${{testModule.model.subnet}}'),
-      },
-      moduleId: 'execution',
-      type: AwsEcsExecutionModule,
-    });
-    expect(await testModuleContainer.diffHcl(appUpdateTags)).toMatchSnapshot();
-    const resultUpdateTags = await testModuleContainer.commit(appUpdateTags);
-    expect(testModuleContainer.digestDiffs(resultUpdateTags.resourceDiffs)).toMatchInlineSnapshot(`
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(updateTags.hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(updateTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
        "* @octo/security-group=sec-grp-SecurityGroup-backend",
@@ -880,31 +978,38 @@ describe('AwsEcsExecutionModule UT', () => {
     `);
 
     const { app: appDeleteTags } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsExecutionModule>({
-      inputs: {
-        deployments: {
-          main: {
-            containerProperties: {
-              image: {
-                essential: true,
-                name: 'backend-v1',
+    const deleteTags = (
+      await testModuleContainer
+        .runModules<AwsEcsExecutionModule>(
+          appDeleteTags,
+          {
+            inputs: {
+              deployments: {
+                main: {
+                  containerProperties: {
+                    image: {
+                      essential: true,
+                      name: 'backend-v1',
+                    },
+                  },
+                  deployment: stub('${{testModule.model.deployment}}'),
+                },
+                sidecars: [],
               },
+              desiredCount: 1,
+              environment: stub('${{testModule.model.environment}}'),
+              executionId: 'backend-v1-region-qa-private-subnet',
+              subnet: stub('${{testModule.model.subnet}}'),
             },
-            deployment: stub('${{testModule.model.deployment}}'),
+            moduleId: 'execution',
+            type: AwsEcsExecutionModule,
           },
-          sidecars: [],
-        },
-        desiredCount: 1,
-        environment: stub('${{testModule.model.environment}}'),
-        executionId: 'backend-v1-region-qa-private-subnet',
-        subnet: stub('${{testModule.model.subnet}}'),
-      },
-      moduleId: 'execution',
-      type: AwsEcsExecutionModule,
-    });
-    expect(await testModuleContainer.diffHcl(appDeleteTags)).toMatchSnapshot();
-    const resultDeleteTags = await testModuleContainer.commit(appDeleteTags);
-    expect(testModuleContainer.digestDiffs(resultDeleteTags.resourceDiffs)).toMatchInlineSnapshot(`
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(deleteTags.hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(deleteTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
        "* @octo/security-group=sec-grp-SecurityGroup-backend",
@@ -917,56 +1022,68 @@ describe('AwsEcsExecutionModule UT', () => {
   describe('input changes', () => {
     it('should handle deployment change', async () => {
       const { app: appCreate } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsEcsExecutionModule>({
-        inputs: {
-          deployments: {
-            main: {
-              containerProperties: {
-                image: {
-                  essential: true,
-                  name: 'backend-v1',
+      await testModuleContainer
+        .runModules<AwsEcsExecutionModule>(
+          appCreate,
+          {
+            inputs: {
+              deployments: {
+                main: {
+                  containerProperties: {
+                    image: {
+                      essential: true,
+                      name: 'backend-v1',
+                    },
+                  },
+                  deployment: stub('${{testModule.model.deployment}}'),
                 },
+                sidecars: [],
               },
-              deployment: stub('${{testModule.model.deployment}}'),
+              desiredCount: 1,
+              environment: stub('${{testModule.model.environment}}'),
+              executionId: 'backend-v1-region-qa-private-subnet',
+              subnet: stub('${{testModule.model.subnet}}'),
             },
-            sidecars: [],
+            moduleId: 'execution',
+            type: AwsEcsExecutionModule,
           },
-          desiredCount: 1,
-          environment: stub('${{testModule.model.environment}}'),
-          executionId: 'backend-v1-region-qa-private-subnet',
-          subnet: stub('${{testModule.model.subnet}}'),
-        },
-        moduleId: 'execution',
-        type: AwsEcsExecutionModule,
-      });
-      await testModuleContainer.commit(appCreate);
+          { skipTerraformApply: true },
+        )
+        .next();
 
       const { app: appUpdateDeployment } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsEcsExecutionModule>({
-        inputs: {
-          deployments: {
-            main: {
-              containerProperties: {
-                image: {
-                  essential: true,
-                  name: 'change-backend-v1',
+      const { hclDiff, resourceDiffs } = (
+        await testModuleContainer
+          .runModules<AwsEcsExecutionModule>(
+            appUpdateDeployment,
+            {
+              inputs: {
+                deployments: {
+                  main: {
+                    containerProperties: {
+                      image: {
+                        essential: true,
+                        name: 'change-backend-v1',
+                      },
+                    },
+                    deployment: stub('${{testModule.model.deployment}}'),
+                  },
+                  sidecars: [],
                 },
+                desiredCount: 1,
+                environment: stub('${{testModule.model.environment}}'),
+                executionId: 'backend-v1-region-qa-private-subnet',
+                subnet: stub('${{testModule.model.subnet}}'),
               },
-              deployment: stub('${{testModule.model.deployment}}'),
+              moduleId: 'execution',
+              type: AwsEcsExecutionModule,
             },
-            sidecars: [],
-          },
-          desiredCount: 1,
-          environment: stub('${{testModule.model.environment}}'),
-          executionId: 'backend-v1-region-qa-private-subnet',
-          subnet: stub('${{testModule.model.subnet}}'),
-        },
-        moduleId: 'execution',
-        type: AwsEcsExecutionModule,
-      });
-      expect(await testModuleContainer.diffHcl(appUpdateDeployment)).toMatchSnapshot();
-      const resultUpdateDeployment = await testModuleContainer.commit(appUpdateDeployment, {});
-      expect(testModuleContainer.digestDiffs(resultUpdateDeployment.resourceDiffs)).toMatchInlineSnapshot(`
+            { skipTerraformApply: true },
+          )
+          .next()
+      ).value!;
+      expect(hclDiff).toMatchSnapshot();
+      expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
          "* @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
          "* @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
@@ -976,56 +1093,68 @@ describe('AwsEcsExecutionModule UT', () => {
 
     it('should handle desiredCount change', async () => {
       const { app: appCreate } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsEcsExecutionModule>({
-        inputs: {
-          deployments: {
-            main: {
-              containerProperties: {
-                image: {
-                  essential: true,
-                  name: 'backend-v1',
+      await testModuleContainer
+        .runModules<AwsEcsExecutionModule>(
+          appCreate,
+          {
+            inputs: {
+              deployments: {
+                main: {
+                  containerProperties: {
+                    image: {
+                      essential: true,
+                      name: 'backend-v1',
+                    },
+                  },
+                  deployment: stub('${{testModule.model.deployment}}'),
                 },
+                sidecars: [],
               },
-              deployment: stub('${{testModule.model.deployment}}'),
+              desiredCount: 1,
+              environment: stub('${{testModule.model.environment}}'),
+              executionId: 'backend-v1-region-qa-private-subnet',
+              subnet: stub('${{testModule.model.subnet}}'),
             },
-            sidecars: [],
+            moduleId: 'execution',
+            type: AwsEcsExecutionModule,
           },
-          desiredCount: 1,
-          environment: stub('${{testModule.model.environment}}'),
-          executionId: 'backend-v1-region-qa-private-subnet',
-          subnet: stub('${{testModule.model.subnet}}'),
-        },
-        moduleId: 'execution',
-        type: AwsEcsExecutionModule,
-      });
-      await testModuleContainer.commit(appCreate);
+          { skipTerraformApply: true },
+        )
+        .next();
 
       const { app: appUpdateDesiredCount } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsEcsExecutionModule>({
-        inputs: {
-          deployments: {
-            main: {
-              containerProperties: {
-                image: {
-                  essential: true,
-                  name: 'backend-v1',
+      const { hclDiff, resourceDiffs } = (
+        await testModuleContainer
+          .runModules<AwsEcsExecutionModule>(
+            appUpdateDesiredCount,
+            {
+              inputs: {
+                deployments: {
+                  main: {
+                    containerProperties: {
+                      image: {
+                        essential: true,
+                        name: 'backend-v1',
+                      },
+                    },
+                    deployment: stub('${{testModule.model.deployment}}'),
+                  },
+                  sidecars: [],
                 },
+                desiredCount: 2,
+                environment: stub('${{testModule.model.environment}}'),
+                executionId: 'backend-v1-region-qa-private-subnet',
+                subnet: stub('${{testModule.model.subnet}}'),
               },
-              deployment: stub('${{testModule.model.deployment}}'),
+              moduleId: 'execution',
+              type: AwsEcsExecutionModule,
             },
-            sidecars: [],
-          },
-          desiredCount: 2,
-          environment: stub('${{testModule.model.environment}}'),
-          executionId: 'backend-v1-region-qa-private-subnet',
-          subnet: stub('${{testModule.model.subnet}}'),
-        },
-        moduleId: 'execution',
-        type: AwsEcsExecutionModule,
-      });
-      expect(await testModuleContainer.diffHcl(appUpdateDesiredCount)).toMatchSnapshot();
-      const resultUpdateDesiredCount = await testModuleContainer.commit(appUpdateDesiredCount, {});
-      expect(testModuleContainer.digestDiffs(resultUpdateDesiredCount.resourceDiffs)).toMatchInlineSnapshot(`
+            { skipTerraformApply: true },
+          )
+          .next()
+      ).value!;
+      expect(hclDiff).toMatchSnapshot();
+      expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
          "* @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
        ]
@@ -1034,56 +1163,68 @@ describe('AwsEcsExecutionModule UT', () => {
 
     it('should handle executionId change', async () => {
       const { app: appCreate } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsEcsExecutionModule>({
-        inputs: {
-          deployments: {
-            main: {
-              containerProperties: {
-                image: {
-                  essential: true,
-                  name: 'backend-v1',
+      await testModuleContainer
+        .runModules<AwsEcsExecutionModule>(
+          appCreate,
+          {
+            inputs: {
+              deployments: {
+                main: {
+                  containerProperties: {
+                    image: {
+                      essential: true,
+                      name: 'backend-v1',
+                    },
+                  },
+                  deployment: stub('${{testModule.model.deployment}}'),
                 },
+                sidecars: [],
               },
-              deployment: stub('${{testModule.model.deployment}}'),
+              desiredCount: 1,
+              environment: stub('${{testModule.model.environment}}'),
+              executionId: 'backend-v1-region-qa-private-subnet',
+              subnet: stub('${{testModule.model.subnet}}'),
             },
-            sidecars: [],
+            moduleId: 'execution',
+            type: AwsEcsExecutionModule,
           },
-          desiredCount: 1,
-          environment: stub('${{testModule.model.environment}}'),
-          executionId: 'backend-v1-region-qa-private-subnet',
-          subnet: stub('${{testModule.model.subnet}}'),
-        },
-        moduleId: 'execution',
-        type: AwsEcsExecutionModule,
-      });
-      await testModuleContainer.commit(appCreate);
+          { skipTerraformApply: true },
+        )
+        .next();
 
       const { app: appUpdateExecutionId } = await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsEcsExecutionModule>({
-        inputs: {
-          deployments: {
-            main: {
-              containerProperties: {
-                image: {
-                  essential: true,
-                  name: 'backend-v1',
+      const { hclDiff, resourceDiffs } = (
+        await testModuleContainer
+          .runModules<AwsEcsExecutionModule>(
+            appUpdateExecutionId,
+            {
+              inputs: {
+                deployments: {
+                  main: {
+                    containerProperties: {
+                      image: {
+                        essential: true,
+                        name: 'backend-v1',
+                      },
+                    },
+                    deployment: stub('${{testModule.model.deployment}}'),
+                  },
+                  sidecars: [],
                 },
+                desiredCount: 1,
+                environment: stub('${{testModule.model.environment}}'),
+                executionId: 'changed-execution-id',
+                subnet: stub('${{testModule.model.subnet}}'),
               },
-              deployment: stub('${{testModule.model.deployment}}'),
+              moduleId: 'execution',
+              type: AwsEcsExecutionModule,
             },
-            sidecars: [],
-          },
-          desiredCount: 1,
-          environment: stub('${{testModule.model.environment}}'),
-          executionId: 'changed-execution-id',
-          subnet: stub('${{testModule.model.subnet}}'),
-        },
-        moduleId: 'execution',
-        type: AwsEcsExecutionModule,
-      });
-      expect(await testModuleContainer.diffHcl(appUpdateExecutionId)).toMatchSnapshot();
-      const resultUpdateExecutionId = await testModuleContainer.commit(appUpdateExecutionId, {});
-      expect(testModuleContainer.digestDiffs(resultUpdateExecutionId.resourceDiffs)).toMatchInlineSnapshot(`
+            { skipTerraformApply: true },
+          )
+          .next()
+      ).value!;
+      expect(hclDiff).toMatchSnapshot();
+      expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
          "- @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
          "- @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
@@ -1098,55 +1239,67 @@ describe('AwsEcsExecutionModule UT', () => {
 
   it('should handle moduleId change', async () => {
     const { app: appCreate } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsExecutionModule>({
-      inputs: {
-        deployments: {
-          main: {
-            containerProperties: {
-              image: {
-                essential: true,
-                name: 'backend-v1',
+    await testModuleContainer
+      .runModules<AwsEcsExecutionModule>(
+        appCreate,
+        {
+          inputs: {
+            deployments: {
+              main: {
+                containerProperties: {
+                  image: {
+                    essential: true,
+                    name: 'backend-v1',
+                  },
+                },
+                deployment: stub('${{testModule.model.deployment}}'),
               },
+              sidecars: [],
             },
-            deployment: stub('${{testModule.model.deployment}}'),
+            desiredCount: 1,
+            environment: stub('${{testModule.model.environment}}'),
+            executionId: 'backend-v1-region-qa-private-subnet',
+            subnet: stub('${{testModule.model.subnet}}'),
           },
-          sidecars: [],
+          moduleId: 'execution-1',
+          type: AwsEcsExecutionModule,
         },
-        desiredCount: 1,
-        environment: stub('${{testModule.model.environment}}'),
-        executionId: 'backend-v1-region-qa-private-subnet',
-        subnet: stub('${{testModule.model.subnet}}'),
-      },
-      moduleId: 'execution-1',
-      type: AwsEcsExecutionModule,
-    });
-    await testModuleContainer.commit(appCreate);
+        { skipTerraformApply: true },
+      )
+      .next();
 
     const { app: appUpdateModuleId } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsExecutionModule>({
-      inputs: {
-        deployments: {
-          main: {
-            containerProperties: {
-              image: {
-                essential: true,
-                name: 'backend-v1',
+    const { hclDiff, resourceDiffs } = (
+      await testModuleContainer
+        .runModules<AwsEcsExecutionModule>(
+          appUpdateModuleId,
+          {
+            inputs: {
+              deployments: {
+                main: {
+                  containerProperties: {
+                    image: {
+                      essential: true,
+                      name: 'backend-v1',
+                    },
+                  },
+                  deployment: stub('${{testModule.model.deployment}}'),
+                },
+                sidecars: [],
               },
+              desiredCount: 1,
+              environment: stub('${{testModule.model.environment}}'),
+              executionId: 'backend-v1-region-qa-private-subnet',
+              subnet: stub('${{testModule.model.subnet}}'),
             },
-            deployment: stub('${{testModule.model.deployment}}'),
+            moduleId: 'execution-2',
+            type: AwsEcsExecutionModule,
           },
-          sidecars: [],
-        },
-        desiredCount: 1,
-        environment: stub('${{testModule.model.environment}}'),
-        executionId: 'backend-v1-region-qa-private-subnet',
-        subnet: stub('${{testModule.model.subnet}}'),
-      },
-      moduleId: 'execution-2',
-      type: AwsEcsExecutionModule,
-    });
-    expect(await testModuleContainer.diffHcl(appUpdateModuleId)).toMatchSnapshot();
-    const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId);
-    expect(testModuleContainer.digestDiffs(resultUpdateModuleId.resourceDiffs)).toMatchInlineSnapshot(`[]`);
+          { skipTerraformApply: true },
+        )
+        .next()
+    ).value!;
+    expect(hclDiff).toMatchSnapshot();
+    expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`[]`);
   });
 });
