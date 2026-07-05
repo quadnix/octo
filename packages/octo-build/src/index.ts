@@ -3,6 +3,7 @@
 import * as process from 'process';
 import chalk from 'chalk';
 import yargs from 'yargs/yargs';
+import { applyCommand } from './commands/apply/index.js';
 import { buildCommand } from './commands/build/index.js';
 import { commitCommand } from './commands/commit/index.js';
 import { createAnchorCommand } from './commands/create-anchor/index.js';
@@ -34,6 +35,7 @@ parser.command(createModuleCommand);
 parser.command(createOverlayCommand);
 parser.command(createResourceCommand);
 parser.command(createTerraformResourceCommand);
+parser.command(applyCommand);
 parser.command(buildCommand);
 parser.command(commitCommand);
 parser.command(generateCommand);
