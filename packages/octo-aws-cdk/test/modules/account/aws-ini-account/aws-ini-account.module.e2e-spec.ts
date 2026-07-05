@@ -37,19 +37,24 @@ describe('AwsIniAccountModule E2E', () => {
 
   it('should generate no terraform resources to run against AWS', async () => {
     const { app } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsIniAccountModule>({
-      inputs: {
-        accountId: AWS_ACCOUNT_ID,
-        app: stub('${{testModule.model.app}}'),
-      },
-      moduleId: 'account',
-      type: AwsIniAccountModule,
-    });
+    const { resourceDiffs } = (
+      await testModuleContainer
+        .runModules<AwsIniAccountModule>(
+          app,
+          {
+            inputs: {
+              accountId: AWS_ACCOUNT_ID,
+              app: stub('${{testModule.model.app}}'),
+            },
+            moduleId: 'account',
+            type: AwsIniAccountModule,
+          },
+          { outputDir: OUTPUT_DIR, terraformTarget: 'plan' },
+        )
+        .next()
+    ).value!;
 
-    const { outputDir, resourceDiffs } = await testModuleContainer.generateHcl(app, { outputDir: OUTPUT_DIR });
-
-    // The account module creates no resources, so generateHcl emits nothing for terragrunt to run.
     expect(resourceDiffs.flat()).toHaveLength(0);
-    expect(await TerragruntUtility.collectTerraformResources(outputDir)).toEqual([]);
+    expect(await TerragruntUtility.collectTerraformResources(OUTPUT_DIR)).toEqual([]);
   }, 300_000);
 });

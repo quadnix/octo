@@ -1,17 +1,10 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-  type Account,
-  type App,
-  type Region,
-  TerraformUtility,
-  TestContainer,
-  TestModuleContainer,
-  stub,
-} from '@quadnix/octo';
+import { type Account, type App, type Region, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsRegionAnchorSchema } from '../../../../src/anchors/aws-region/aws-region.anchor.schema.js';
 import { AwsDynamoDBServiceModule } from '../../../../src/modules/service/aws-dynamodb-service/index.js';
 import { config } from '../../../test.config.js';
+import { TerragruntUtility } from '../../../utilities/terragrunt/terragrunt.utility.js';
 
 const { AWS_ACCOUNT_ID, AWS_REGION_ID } = config;
 
@@ -48,7 +41,6 @@ async function setup(
 }
 
 describe('AwsDynamoDBServiceModule E2E', () => {
-  let terraformUtility: TerraformUtility;
   let testModuleContainer: TestModuleContainer;
 
   beforeEach(async () => {
@@ -56,7 +48,6 @@ describe('AwsDynamoDBServiceModule E2E', () => {
 
     testModuleContainer = new TestModuleContainer(container);
     await testModuleContainer.initialize();
-    terraformUtility = await container.get(TerraformUtility);
 
     testModuleContainer.registerTerraformConfig({
       providers: { aws: { minVersion: '5.49', source: 'hashicorp/aws' } },
@@ -71,24 +62,31 @@ describe('AwsDynamoDBServiceModule E2E', () => {
 
   it('should generate terragrunt that validates and plans against AWS', async () => {
     const { app } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsDynamoDBServiceModule>({
-      inputs: {
-        AttributeDefinitions: [{ AttributeName: 'AccountId', AttributeType: 'S' }],
-        billingMode: {
-          settings: { ProvisionedThroughput: { ReadCapacityUnits: 5, WriteCapacityUnits: 5 } },
-          type: 'PROVISIONED',
+    await testModuleContainer
+      .runModules<AwsDynamoDBServiceModule>(
+        app,
+        {
+          inputs: {
+            AttributeDefinitions: [{ AttributeName: 'AccountId', AttributeType: 'S' }],
+            billingMode: {
+              settings: { ProvisionedThroughput: { ReadCapacityUnits: 5, WriteCapacityUnits: 5 } },
+              type: 'PROVISIONED',
+            },
+            KeySchema: [{ AttributeName: 'AccountId', KeyType: 'HASH' }],
+            region: stub('${{testModule.model.region}}'),
+            TableName: 'test-table',
+          },
+          moduleId: 'dynamodb-module',
+          type: AwsDynamoDBServiceModule,
         },
-        KeySchema: [{ AttributeName: 'AccountId', KeyType: 'HASH' }],
-        region: stub('${{testModule.model.region}}'),
-        TableName: 'test-table',
-      },
-      moduleId: 'dynamodb-module',
-      type: AwsDynamoDBServiceModule,
-    });
+        { outputDir: OUTPUT_DIR, terraformTarget: 'plan' },
+      )
+      .next();
 
-    const { outputDir } = await testModuleContainer.generateHcl(app, { outputDir: OUTPUT_DIR });
-
-    await terraformUtility.validate(outputDir);
-    await terraformUtility.plan(outputDir);
+    expect(await TerragruntUtility.collectTerraformResources(OUTPUT_DIR)).toMatchInlineSnapshot(`
+     [
+       "aws_dynamodb_table.dynamodb-test-table",
+     ]
+    `);
   }, 300_000);
 });

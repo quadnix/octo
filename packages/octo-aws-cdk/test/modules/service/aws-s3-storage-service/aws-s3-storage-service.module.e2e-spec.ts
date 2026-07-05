@@ -1,17 +1,10 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-  type Account,
-  type App,
-  type Region,
-  TerraformUtility,
-  TestContainer,
-  TestModuleContainer,
-  stub,
-} from '@quadnix/octo';
+import { type Account, type App, type Region, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsRegionAnchorSchema } from '../../../../src/anchors/aws-region/aws-region.anchor.schema.js';
 import { AwsS3StorageServiceModule } from '../../../../src/modules/service/aws-s3-storage-service/index.js';
 import { config } from '../../../test.config.js';
+import { TerragruntUtility } from '../../../utilities/terragrunt/terragrunt.utility.js';
 
 const { AWS_ACCOUNT_ID, AWS_REGION_ID } = config;
 
@@ -48,7 +41,6 @@ async function setup(
 }
 
 describe('AwsS3StorageServiceModule E2E', () => {
-  let terraformUtility: TerraformUtility;
   let testModuleContainer: TestModuleContainer;
 
   beforeEach(async () => {
@@ -56,7 +48,6 @@ describe('AwsS3StorageServiceModule E2E', () => {
 
     testModuleContainer = new TestModuleContainer(container);
     await testModuleContainer.initialize();
-    terraformUtility = await container.get(TerraformUtility);
 
     testModuleContainer.registerTerraformConfig({
       providers: { aws: { minVersion: '5.49', source: 'hashicorp/aws' } },
@@ -71,19 +62,26 @@ describe('AwsS3StorageServiceModule E2E', () => {
 
   it('should generate terragrunt that validates and plans against AWS', async () => {
     const { app } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsS3StorageServiceModule>({
-      inputs: {
-        bucketName: 'test-bucket',
-        region: stub('${{testModule.model.region}}'),
-        remoteDirectoryPaths: ['uploads'],
-      },
-      moduleId: 'service',
-      type: AwsS3StorageServiceModule,
-    });
+    await testModuleContainer
+      .runModules<AwsS3StorageServiceModule>(
+        app,
+        {
+          inputs: {
+            bucketName: 'test-bucket',
+            region: stub('${{testModule.model.region}}'),
+            remoteDirectoryPaths: ['uploads'],
+          },
+          moduleId: 'service',
+          type: AwsS3StorageServiceModule,
+        },
+        { outputDir: OUTPUT_DIR, terraformTarget: 'plan' },
+      )
+      .next();
 
-    const { outputDir } = await testModuleContainer.generateHcl(app, { outputDir: OUTPUT_DIR });
-
-    await terraformUtility.validate(outputDir);
-    await terraformUtility.plan(outputDir);
+    expect(await TerragruntUtility.collectTerraformResources(OUTPUT_DIR)).toMatchInlineSnapshot(`
+     [
+       "aws_s3_bucket.bucket-test-bucket",
+     ]
+    `);
   }, 300_000);
 });

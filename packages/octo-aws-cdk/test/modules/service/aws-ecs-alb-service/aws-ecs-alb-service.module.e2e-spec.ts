@@ -7,7 +7,6 @@ import {
   MatchingResource,
   type Region,
   SubnetType,
-  TerraformUtility,
   TestContainer,
   TestModuleContainer,
   stub,
@@ -22,6 +21,7 @@ import { InternetGatewaySchema } from '../../../../src/resources/internet-gatewa
 import { SubnetSchema } from '../../../../src/resources/subnet/index.schema.js';
 import { VpcSchema } from '../../../../src/resources/vpc/index.schema.js';
 import { config } from '../../../test.config.js';
+import { TerragruntUtility } from '../../../utilities/terragrunt/terragrunt.utility.js';
 
 const { AWS_ACCOUNT_ID, AWS_REGION_ID } = config;
 
@@ -275,7 +275,6 @@ async function setup(
 }
 
 describe('AwsEcsAlbServiceModule E2E', () => {
-  let terraformUtility: TerraformUtility;
   let testModuleContainer: TestModuleContainer;
 
   beforeEach(async () => {
@@ -283,7 +282,6 @@ describe('AwsEcsAlbServiceModule E2E', () => {
 
     testModuleContainer = new TestModuleContainer(container);
     await testModuleContainer.initialize();
-    terraformUtility = await container.get(TerraformUtility);
 
     testModuleContainer.registerTerraformConfig({
       providers: { aws: { minVersion: '5.49', source: 'hashicorp/aws' } },
@@ -298,23 +296,15 @@ describe('AwsEcsAlbServiceModule E2E', () => {
 
   it('should generate terragrunt that validates and plans against AWS', async () => {
     const { app } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
-      inputs: {
-        albName: 'test-alb',
-        listeners: [
-          {
-            DefaultActions: [
+    await testModuleContainer
+      .runModules<AwsEcsAlbServiceModule>(
+        app,
+        {
+          inputs: {
+            albName: 'test-alb',
+            listeners: [
               {
-                action: {
-                  TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
-                },
-                actionType: 'forward',
-              },
-            ],
-            Port: 80,
-            rules: [
-              {
-                actions: [
+                DefaultActions: [
                   {
                     action: {
                       TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
@@ -322,36 +312,58 @@ describe('AwsEcsAlbServiceModule E2E', () => {
                     actionType: 'forward',
                   },
                 ],
-                conditions: [
+                Port: 80,
+                rules: [
                   {
-                    condition: { Values: ['/api'] },
-                    conditionType: 'path-pattern',
+                    actions: [
+                      {
+                        action: {
+                          TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                        },
+                        actionType: 'forward',
+                      },
+                    ],
+                    conditions: [
+                      {
+                        condition: { Values: ['/api'] },
+                        conditionType: 'path-pattern',
+                      },
+                    ],
+                    Priority: 1,
                   },
                 ],
-                Priority: 1,
+              },
+            ],
+            region: stub('${{testModule.model.region}}'),
+            subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+            targets: [
+              {
+                containerName: 'test-container',
+                containerPort: 80,
+                execution: stub('${{testExecutionModule.model.execution}}'),
+                healthCheck: HEALTH_CHECK_RESPONSE,
+                Name: 'test-container-80',
               },
             ],
           },
-        ],
-        region: stub('${{testModule.model.region}}'),
-        subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
-        targets: [
-          {
-            containerName: 'test-container',
-            containerPort: 80,
-            execution: stub('${{testExecutionModule.model.execution}}'),
-            healthCheck: HEALTH_CHECK_RESPONSE,
-            Name: 'test-container-80',
-          },
-        ],
-      },
-      moduleId: 'alb-module',
-      type: AwsEcsAlbServiceModule,
-    });
+          moduleId: 'alb-module',
+          type: AwsEcsAlbServiceModule,
+        },
+        { outputDir: OUTPUT_DIR, terraformTarget: 'plan' },
+      )
+      .next();
 
-    const { outputDir } = await testModuleContainer.generateHcl(app, { outputDir: OUTPUT_DIR });
-
-    await terraformUtility.validate(outputDir);
-    await terraformUtility.plan(outputDir);
+    expect(await TerragruntUtility.collectTerraformResources(OUTPUT_DIR)).toMatchInlineSnapshot(`
+     [
+       "aws_security_group.sec-grp-region-test-alb",
+       "aws_vpc_security_group_ingress_rule.sec-grp-region-test-alb_ingress_0",
+       "aws_vpc_security_group_egress_rule.sec-grp-region-test-alb_egress_0",
+       "aws_lb.alb-region-test-alb",
+       "aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1",
+       "aws_lb_listener.alb-listener-test-alb",
+       "aws_lb_listener_rule.alb-listener-test-alb_rule_1",
+       "aws_ecs_service.ecs-service-backend-v1-region-qa-public-subnet-1",
+     ]
+    `);
   }, 300_000);
 });

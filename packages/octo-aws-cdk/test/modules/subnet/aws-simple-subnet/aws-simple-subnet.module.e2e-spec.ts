@@ -5,7 +5,6 @@ import {
   type App,
   type Filesystem,
   type Region,
-  TerraformUtility,
   TestContainer,
   TestModuleContainer,
   stub,
@@ -17,6 +16,7 @@ import type { EfsSchema } from '../../../../src/resources/efs/index.schema.js';
 import type { InternetGatewaySchema } from '../../../../src/resources/internet-gateway/index.schema.js';
 import type { VpcSchema } from '../../../../src/resources/vpc/index.schema.js';
 import { config } from '../../../test.config.js';
+import { TerragruntUtility } from '../../../utilities/terragrunt/terragrunt.utility.js';
 
 const { AWS_ACCOUNT_ID, AWS_REGION_ID } = config;
 
@@ -93,7 +93,6 @@ async function setup(
 }
 
 describe('AwsSimpleSubnetModule E2E', () => {
-  let terraformUtility: TerraformUtility;
   let testModuleContainer: TestModuleContainer;
 
   beforeEach(async () => {
@@ -101,7 +100,6 @@ describe('AwsSimpleSubnetModule E2E', () => {
 
     testModuleContainer = new TestModuleContainer(container);
     await testModuleContainer.initialize();
-    terraformUtility = await container.get(TerraformUtility);
 
     testModuleContainer.registerTerraformConfig({
       providers: { aws: { minVersion: '5.49', source: 'hashicorp/aws' } },
@@ -116,21 +114,34 @@ describe('AwsSimpleSubnetModule E2E', () => {
 
   it('should generate terragrunt that validates and plans against AWS', async () => {
     const { app } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsSimpleSubnetModule>({
-      inputs: {
-        localFilesystems: [stub('${{testModule.model.filesystem}}')],
-        region: stub('${{testModule.model.region}}'),
-        subnetAvailabilityZone: 'us-east-1a',
-        subnetCidrBlock: '10.0.1.0/24',
-        subnetName: 'private-subnet',
-      },
-      moduleId: 'subnet',
-      type: AwsSimpleSubnetModule,
-    });
+    await testModuleContainer
+      .runModules<AwsSimpleSubnetModule>(
+        app,
+        {
+          inputs: {
+            localFilesystems: [stub('${{testModule.model.filesystem}}')],
+            region: stub('${{testModule.model.region}}'),
+            subnetAvailabilityZone: 'us-east-1a',
+            subnetCidrBlock: '10.0.1.0/24',
+            subnetName: 'private-subnet',
+          },
+          moduleId: 'subnet',
+          type: AwsSimpleSubnetModule,
+        },
+        { outputDir: OUTPUT_DIR, terraformTarget: 'plan' },
+      )
+      .next();
 
-    const { outputDir } = await testModuleContainer.generateHcl(app, { outputDir: OUTPUT_DIR });
-
-    await terraformUtility.validate(outputDir);
-    await terraformUtility.plan(outputDir);
+    expect(await TerragruntUtility.collectTerraformResources(OUTPUT_DIR)).toMatchInlineSnapshot(`
+     [
+       "aws_subnet.subnet-region-private-subnet",
+       "aws_route_table.rt-region-private-subnet",
+       "aws_route_table_association.rt-region-private-subnet_assoc",
+       "aws_network_acl.nacl-region-private-subnet",
+       "aws_security_group.sec-grp-efs-mount-region-private-subnet-test-filesystem",
+       "aws_vpc_security_group_ingress_rule.sec-grp-efs-mount-region-private-subnet-test-filesystem_ingress_0",
+       "aws_efs_mount_target.efs-mount-region-private-subnet-test-filesystem",
+     ]
+    `);
   }, 300_000);
 });

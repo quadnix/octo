@@ -37,16 +37,21 @@ describe('SimpleAppModule E2E', () => {
 
   it('should generate no terraform resources to run against AWS', async () => {
     const { app } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<SimpleAppModule>({
-      inputs: { name: 'test-app' },
-      moduleId: 'app',
-      type: SimpleAppModule,
-    });
+    const { resourceDiffs } = (
+      await testModuleContainer
+        .runModules<SimpleAppModule>(
+          app,
+          {
+            inputs: { name: 'test-app' },
+            moduleId: 'app',
+            type: SimpleAppModule,
+          },
+          { outputDir: OUTPUT_DIR, terraformTarget: 'plan' },
+        )
+        .next()
+    ).value!;
 
-    const { outputDir, resourceDiffs } = await testModuleContainer.generateHcl(app, { outputDir: OUTPUT_DIR });
-
-    // The app module creates no resources, so generateHcl emits nothing for terragrunt to run.
     expect(resourceDiffs.flat()).toHaveLength(0);
-    expect(await TerragruntUtility.collectTerraformResources(outputDir)).toEqual([]);
+    expect(await TerragruntUtility.collectTerraformResources(OUTPUT_DIR)).toEqual([]);
   }, 300_000);
 });

@@ -61,29 +61,35 @@ describe('AwsEcsDeploymentModule E2E', () => {
 
   it('should generate no terraform resources to run against AWS', async () => {
     const { app } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsDeploymentModule>({
-      inputs: {
-        deploymentContainerProperties: {
-          cpu: 256,
-          image: {
-            command: 'command',
-            ports: [{ containerPort: 80, protocol: 'tcp' }],
-            uri: 'uri',
+    const { resourceDiffs } = (
+      await testModuleContainer
+        .runModules<AwsEcsDeploymentModule>(
+          app,
+          {
+            inputs: {
+              deploymentContainerProperties: {
+                cpu: 256,
+                image: {
+                  command: 'command',
+                  ports: [{ containerPort: 80, protocol: 'tcp' }],
+                  uri: 'uri',
+                },
+                memory: 512,
+              },
+              deploymentTag: 'v1',
+              server: stub('${{testModule.model.server}}'),
+            },
+            moduleId: 'deployment',
+            type: AwsEcsDeploymentModule,
           },
-          memory: 512,
-        },
-        deploymentTag: 'v1',
-        server: stub('${{testModule.model.server}}'),
-      },
-      moduleId: 'deployment',
-      type: AwsEcsDeploymentModule,
-    });
-
-    const { outputDir, resourceDiffs } = await testModuleContainer.generateHcl(app, { outputDir: OUTPUT_DIR });
+          { outputDir: OUTPUT_DIR, terraformTarget: 'plan' },
+        )
+        .next()
+    ).value!;
 
     // The deployment module contributes no terraform of its own (the task definition only materializes
-    // once composed with an execution), so generateHcl emits nothing for terragrunt to run.
+    // once composed with an execution), so generate emits nothing for terragrunt to run.
     expect(resourceDiffs.flat()).toHaveLength(0);
-    expect(await TerragruntUtility.collectTerraformResources(outputDir)).toEqual([]);
+    expect(await TerragruntUtility.collectTerraformResources(OUTPUT_DIR)).toEqual([]);
   }, 300_000);
 });

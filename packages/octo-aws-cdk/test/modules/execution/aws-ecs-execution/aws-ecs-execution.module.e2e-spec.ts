@@ -9,7 +9,6 @@ import {
   type Region,
   type Server,
   type Subnet,
-  TerraformUtility,
   TestContainer,
   TestModuleContainer,
   stub,
@@ -30,6 +29,7 @@ import { IamRoleSchema } from '../../../../src/resources/iam-role/index.schema.j
 import { SubnetSchema } from '../../../../src/resources/subnet/index.schema.js';
 import { VpcSchema } from '../../../../src/resources/vpc/index.schema.js';
 import { config } from '../../../test.config.js';
+import { TerragruntUtility } from '../../../utilities/terragrunt/terragrunt.utility.js';
 
 const { AWS_ACCOUNT_ID, AWS_REGION_ID } = config;
 
@@ -174,24 +174,28 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{
         resourceContext: '@octo/ecs-cluster=ecs-cluster-region-qa',
         response: { clusterArn: 'clusterArn' },
         schema: EcsClusterSchema,
+        terraform: true,
       },
       {
         properties: { awsAccountId: AWS_ACCOUNT_ID, awsRegionId: 'us-east-1', filesystemName: 'test-filesystem' },
         resourceContext: '@octo/efs=efs-region-test-filesystem',
         response: { FileSystemArn: 'FileSystemArn', FileSystemId: 'FileSystemId' },
         schema: EfsSchema,
+        terraform: true,
       },
       {
         properties: { awsAccountId: AWS_ACCOUNT_ID, awsRegionId: 'us-east-1' },
         resourceContext: '@octo/efs-mount-target=efs-mount-region-private-subnet-test-filesystem',
         response: { MountTargetId: 'MountTargetId', NetworkInterfaceId: 'NetworkInterfaceId' },
         schema: EfsMountTargetSchema,
+        terraform: true,
       },
       {
         properties: { awsAccountId: AWS_ACCOUNT_ID, policies: [], rolename: 'iam-role-ServerRole-backend' },
         resourceContext: '@octo/iam-role=iam-role-ServerRole-backend',
         response: { Arn: 'Arn', RoleId: 'RoleId', RoleName: 'iam-role-ServerRole-backend' },
         schema: IamRoleSchema,
+        terraform: true,
       },
       {
         properties: {
@@ -204,6 +208,7 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{
         resourceContext: '@octo/subnet=subnet-region-private-subnet',
         response: { SubnetId: 'SubnetId' },
         schema: SubnetSchema,
+        terraform: true,
       },
       {
         properties: {
@@ -216,6 +221,7 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{
         resourceContext: '@octo/vpc=vpc-region',
         response: { VpcId: 'VpcId' },
         schema: VpcSchema,
+        terraform: true,
       },
     ],
     { save: true },
@@ -225,7 +231,6 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{
 }
 
 describe('AwsEcsExecutionModule E2E', () => {
-  let terraformUtility: TerraformUtility;
   let testModuleContainer: TestModuleContainer;
 
   beforeEach(async () => {
@@ -233,7 +238,6 @@ describe('AwsEcsExecutionModule E2E', () => {
 
     testModuleContainer = new TestModuleContainer(container);
     await testModuleContainer.initialize();
-    terraformUtility = await container.get(TerraformUtility);
 
     testModuleContainer.registerTerraformConfig({
       providers: { aws: { minVersion: '5.49', source: 'hashicorp/aws' } },
@@ -248,32 +252,42 @@ describe('AwsEcsExecutionModule E2E', () => {
 
   it('should generate terragrunt that validates and plans against AWS', async () => {
     const { app } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEcsExecutionModule>({
-      inputs: {
-        deployments: {
-          main: {
-            containerProperties: {
-              image: {
-                essential: true,
-                name: 'backend-v1',
+    await testModuleContainer
+      .runModules<AwsEcsExecutionModule>(
+        app,
+        {
+          inputs: {
+            deployments: {
+              main: {
+                containerProperties: {
+                  image: {
+                    essential: true,
+                    name: 'backend-v1',
+                  },
+                },
+                deployment: stub('${{testModule.model.deployment}}'),
               },
+              sidecars: [],
             },
-            deployment: stub('${{testModule.model.deployment}}'),
+            desiredCount: 1,
+            environment: stub('${{testModule.model.environment}}'),
+            executionId: 'backend-v1-region-qa-private-subnet',
+            subnet: stub('${{testModule.model.subnet}}'),
           },
-          sidecars: [],
+          moduleId: 'execution',
+          type: AwsEcsExecutionModule,
         },
-        desiredCount: 1,
-        environment: stub('${{testModule.model.environment}}'),
-        executionId: 'backend-v1-region-qa-private-subnet',
-        subnet: stub('${{testModule.model.subnet}}'),
-      },
-      moduleId: 'execution',
-      type: AwsEcsExecutionModule,
-    });
+        { outputDir: OUTPUT_DIR, terraformTarget: 'plan' },
+      )
+      .next();
 
-    const { outputDir } = await testModuleContainer.generateHcl(app, { outputDir: OUTPUT_DIR });
-
-    await terraformUtility.validate(outputDir);
-    await terraformUtility.plan(outputDir);
+    expect(await TerragruntUtility.collectTerraformResources(OUTPUT_DIR)).toMatchInlineSnapshot(`
+     [
+       "aws_security_group.sec-grp-SecurityGroup-backend",
+       "aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
+       "aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet",
+       "aws_ecs_service.ecs-service-backend-v1-region-qa-private-subnet",
+     ]
+    `);
   }, 300_000);
 });
