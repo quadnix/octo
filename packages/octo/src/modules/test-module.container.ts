@@ -585,8 +585,23 @@ export class TestModuleContainer {
     const diffHcl = HclUtility.diffBlocks(this.previousHcl ?? '', currentHcl);
     this.previousHcl = currentHcl;
 
+    // octo.generate() saves model state, which flushes the overlay repository's new-overlays to
+    // baseline — mirroring the real CLI, where the next command (validate/commit) reloads them from
+    // disk. runModules() keeps a single in-memory graph across generate → validate → commit, so it never
+    // reloads: capture the overlays before generate and restore them after, otherwise the subsequent
+    // applyModels re-boot cannot resolve the module's overlay node keys.
+    const overlayDataRepository = await this.container.get(OverlayDataRepository);
+    const overlaysBeforeGenerate = overlayDataRepository.getByProperties();
+
     // Generate.
     const { outputDir: dir, resourceDiffs } = await this.generateHcl(app as App, { outputDir });
+
+    // Restore overlays.
+    for (const overlay of overlaysBeforeGenerate) {
+      if (!overlayDataRepository.getByContext(overlay.getContext())) {
+        overlayDataRepository.add(overlay);
+      }
+    }
 
     // Validate.
     const validation = await this.validateHcl(app as App, { plans: await terraformUtility.plan(dir, { json: true }) });
