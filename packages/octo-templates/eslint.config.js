@@ -38,8 +38,12 @@ export default [
           default: 'disallow',
           rules: [
             {
-              allow: [['templates', { family: '${from.family}' }]],
+              allow: [['templates', { family: '${from.family}' }], 'utilities'],
               from: ['templates'],
+            },
+            {
+              allow: [],
+              from: ['utilities'],
             },
           ],
         },
@@ -48,6 +52,11 @@ export default [
     },
     settings: {
       'boundaries/elements': [
+        {
+          mode: 'folder',
+          pattern: 'src/utilities/*',
+          type: 'utilities',
+        },
         {
           capture: ['family'],
           mode: 'folder',
