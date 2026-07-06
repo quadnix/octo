@@ -249,11 +249,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
         .next()
     ).value!;
     expect(toRelativePaths(updateNoChange.hclDiff)).toMatchSnapshot();
-    expect(testModuleContainer.digestDiffs(updateNoChange.resourceDiffs)).toMatchInlineSnapshot(`
-     [
-       "* @octo/s3-website=bucket-test-bucket",
-     ]
-    `);
+    expect(testModuleContainer.digestDiffs(updateNoChange.resourceDiffs)).toMatchInlineSnapshot(`[]`);
 
     const { app: appDelete } = await setup(testModuleContainer);
     const deleteResult = (
@@ -338,7 +334,6 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
     expect(testModuleContainer.digestDiffs(updateTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/s3-website=bucket-test-bucket",
-       "* @octo/s3-website=bucket-test-bucket",
      ]
     `);
 
@@ -364,7 +359,6 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
     expect(toRelativePaths(deleteTags.hclDiff)).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(deleteTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "* @octo/s3-website=bucket-test-bucket",
        "* @octo/s3-website=bucket-test-bucket",
      ]
     `);
@@ -552,11 +546,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
         .next()
     ).value!;
     expect(toRelativePaths(hclDiff)).toMatchSnapshot();
-    expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
-     [
-       "* @octo/s3-website=bucket-test-bucket",
-     ]
-    `);
+    expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`[]`);
   });
 
   describe('validation', () => {

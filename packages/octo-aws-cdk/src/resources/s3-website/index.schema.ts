@@ -65,4 +65,6 @@ export class S3WebsiteSchema extends BaseResourceSchema {
     Arn: 'arn:aws:s3:::mock-website-bucket',
     awsRegionId: 'us-east-1',
   });
+
+  sourcePathDigests = Schema<{ [remotePath: string]: string }>({});
 }

@@ -1,4 +1,13 @@
-import { ATerraformResource, Diff, DiffAction, DiffUtility, Resource, type TerraformModuleScope } from '@quadnix/octo';
+import {
+  AResource,
+  ATerraformResource,
+  type BaseResourceSchema,
+  Diff,
+  DiffAction,
+  DiffUtility,
+  Resource,
+  type TerraformModuleScope,
+} from '@quadnix/octo';
 import mime from 'mime';
 import { PolicyUtility } from '../../utilities/policy/policy.utility.js';
 import { S3WebsiteSchema } from './index.schema.js';
@@ -15,6 +24,7 @@ type IManifest = { [key: string]: { algorithm: 'sha1'; digest: string | 'deleted
 export class S3Website extends ATerraformResource<S3WebsiteSchema, S3Website> {
   declare properties: S3WebsiteSchema['properties'];
   declare response: S3WebsiteSchema['response'];
+  private sourcePathDigests: S3WebsiteSchema['sourcePathDigests'] = {};
 
   private readonly manifest: IManifest = {};
 
@@ -37,7 +47,8 @@ export class S3Website extends ATerraformResource<S3WebsiteSchema, S3Website> {
 
     const diffs: Diff[] = [];
 
-    if (this.manifest && Object.keys(this.manifest).length > 0) {
+    // Only propose a content update when the digests differ from what was last committed.
+    if (!DiffUtility.isObjectDeepEquals(previous.sourcePathDigests, this.sourcePathDigests)) {
       diffs.push(
         new Diff<any, IManifest>(
           this,
@@ -151,6 +162,30 @@ export class S3Website extends ATerraformResource<S3WebsiteSchema, S3Website> {
   updateManifest(manifestDiff: IManifest): void {
     for (const key of Object.keys(manifestDiff)) {
       this.manifest[key] = { ...manifestDiff[key] };
+
+      if (manifestDiff[key].digest === 'deleted') {
+        delete this.sourcePathDigests[key];
+      } else {
+        this.sourcePathDigests[key] = manifestDiff[key].digest;
+      }
     }
+  }
+
+  override synth(): S3WebsiteSchema {
+    return {
+      ...super.synth(),
+      sourcePathDigests: JSON.parse(JSON.stringify(this.sourcePathDigests)),
+    };
+  }
+
+  static override async unSynth<S extends BaseResourceSchema, T>(
+    deserializationClass: any,
+    resource: S,
+    deReferenceResource: (context: string) => Promise<AResource<BaseResourceSchema, any>>,
+  ): Promise<T> {
+    const s3Website = (await super.unSynth(deserializationClass, resource, deReferenceResource)) as S3Website;
+    const digests = (resource as unknown as S3WebsiteSchema).sourcePathDigests;
+    s3Website.sourcePathDigests = digests ? { ...digests } : {};
+    return s3Website as T;
   }
 }
