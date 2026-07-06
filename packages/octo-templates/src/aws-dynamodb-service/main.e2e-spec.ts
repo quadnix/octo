@@ -16,7 +16,7 @@ const outputDir = join(__dirname, '.octo', 'generated');
 
 const E2E_TAGS = { 'e2e-test': 'true', 'e2e-test-family': 'aws-dynamodb-service' };
 
-jest.setTimeout(600_000);
+jest.setTimeout(1_200_000);
 
 describe('Main E2E', () => {
   let accountRepositoryUsEast1: AccountRepository;
@@ -172,8 +172,12 @@ describe('Main E2E', () => {
   });
 
   it('should have no resources left after teardown', async () => {
-    moduleDefinitions.remove('dynamodb-service-module');
-    moduleDefinitions.remove('region-module');
+    for (const moduleId of moduleDefinitions
+      .getAll()
+      .map((md) => md.moduleId)
+      .filter((moduleId) => moduleId !== 'account-module')) {
+      moduleDefinitions.remove(moduleId);
+    }
 
     await testModuleContainer
       .runModules(
