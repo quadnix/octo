@@ -45,11 +45,12 @@ export class ModuleDefinitions {
   }
 
   private init(): void {
-    this.add(SimpleAppModule, 'app-module', { name: 'aws-s3-website' });
+    this.add(SimpleAppModule, 'app-module', { name: 'aws-dynamodb-service' });
 
     this.add(AwsIniAccountModule, 'account-module', {
       accountId: config.AWS_ACCOUNT_ID,
       app: stub<App>('${{app-module.model.app}}'),
+      iniProfile: 'default',
     });
 
     this.add(AwsSingleAzRegionModule, 'region-module', {

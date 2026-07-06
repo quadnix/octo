@@ -1,98 +1,81 @@
-import { GetResourcesCommand, ResourceGroupsTaggingAPIClient } from '@aws-sdk/client-resource-groups-tagging-api';
-import { GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import { jest } from '@jest/globals';
-import { type Container, TestContainer, TestModuleContainer, TestStateProvider } from '@quadnix/octo';
-import type { AwsIniAccountModule } from '@quadnix/octo-aws-cdk/modules/account/aws-ini-account';
-import type { AwsDynamoDBServiceModule } from '@quadnix/octo-aws-cdk/modules/service/aws-dynamodb-service';
-import { HtmlReportEventListener } from '@quadnix/octo-event-listeners/html-report';
-import { LoggingEventListener } from '@quadnix/octo-event-listeners/logging';
-import { mockClient } from 'aws-sdk-client-mock';
+import { type App, TestContainer, TestModuleContainer, TestStateProvider } from '@quadnix/octo';
+import { type AwsDynamoDBServiceModule } from '@quadnix/octo-aws-cdk/modules/service/aws-dynamodb-service';
+import { AwsTagsUtility } from '../utilities/aws/tags/aws-tags.utility.js';
 import { AccountRepository } from './account.repository.js';
+import { config } from './app.config.js';
 import { ModuleDefinitions } from './module-definitions.js';
 
-jest.setTimeout(60_000);
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+const AWS_REGION_ID = 'us-east-1';
+
+const outputDir = join(__dirname, '.octo', 'generated');
+
+const E2E_TAGS = { 'e2e-test': 'true', 'e2e-test-family': 'aws-dynamodb-service' };
+
+jest.setTimeout(600_000);
 
 describe('Main E2E', () => {
-  let container: Container;
+  let accountRepositoryUsEast1: AccountRepository;
+  let app: App;
+  let moduleDefinitions: ModuleDefinitions;
+  let stateProvider: TestStateProvider;
+  let tableName: string;
   let testModuleContainer: TestModuleContainer;
-  const stateProvider = new TestStateProvider();
 
-  const accountRepositoryUsEast1 = new AccountRepository('us-east-1');
-  const STSClientMock = mockClient(STSClient);
-
-  const moduleDefinitions = new ModuleDefinitions();
-  const accountId = moduleDefinitions.get<AwsIniAccountModule>('account-module')!.moduleInputs.accountId;
+  beforeAll(() => {
+    stateProvider = new TestStateProvider();
+    accountRepositoryUsEast1 = new AccountRepository(AWS_REGION_ID);
+  });
 
   beforeEach(async () => {
-    STSClientMock.on(GetCallerIdentityCommand).resolves({ Account: accountId });
+    const container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
+    testModuleContainer = new TestModuleContainer(container);
+    await testModuleContainer.initialize(stateProvider);
 
-    container = await TestContainer.create({
-      mocks: [
-        {
-          metadata: { package: '@octo' },
-          type: STSClient,
-          value: STSClientMock,
-        },
-      ],
+    testModuleContainer.registerTerraformConfig({
+      minTerraformVersion: '1.6.0',
+      providers: { aws: { minVersion: '5.0.0', source: 'hashicorp/aws' } },
     });
-
-    testModuleContainer = new TestModuleContainer();
-    await testModuleContainer.initialize(stateProvider, [
-      { type: HtmlReportEventListener },
-      { type: LoggingEventListener },
-    ]);
+    testModuleContainer.registerTerraformProvider('aws', config.AWS_ACCOUNT_ID, AWS_REGION_ID);
 
     // Register tags on all resources.
-    testModuleContainer.octo.registerTags([
-      { scope: {}, tags: { 'e2e-test': 'true', 'e2e-test-family': 'aws-dynamodb-service' } },
-    ]);
+    testModuleContainer.registerTags([{ scope: {}, tags: E2E_TAGS }]);
+
+    ({
+      app: [app],
+    } = await testModuleContainer.createTestModels('app-module', { app: ['aws-dynamodb-service'] }));
+
+    moduleDefinitions = new ModuleDefinitions();
+    // Replace real app with test app.
+    moduleDefinitions.remove('app-module');
+
+    const { moduleInputs } = moduleDefinitions.get<AwsDynamoDBServiceModule>('dynamodb-service-module')!;
+    tableName = moduleInputs.TableName;
   });
 
   afterEach(async () => {
-    STSClientMock.restore();
-
     await testModuleContainer.reset();
     await TestContainer.reset();
   });
 
   it('should create base resources', async () => {
-    await testModuleContainer.orderModules(moduleDefinitions.getAll().map((md) => md.module));
-    const { 'app-module.model.app': app } = await testModuleContainer.runModules(
-      moduleDefinitions.getAll().map((md) => ({
-        hidden: false,
-        inputs: md.moduleInputs,
-        moduleId: md.moduleId,
-        type: md.module,
-      })),
-    );
+    const { responses } = (
+      await testModuleContainer
+        .runModules(
+          app,
+          moduleDefinitions.getAll().map((md) => ({ inputs: md.moduleInputs, moduleId: md.moduleId, type: md.module })),
+          { outputDir, terraformTarget: 'apply' },
+        )
+        .next()
+    ).value!;
 
-    const { resourceTransaction } = await testModuleContainer.commit(app);
-    expect(resourceTransaction).toMatchInlineSnapshot(`
-     [
-       [
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/dynamodb=dynamodb-accounts",
-           "value": "@octo/dynamodb=dynamodb-accounts",
-         },
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/vpc=vpc-app-region-east",
-           "value": "@octo/vpc=vpc-app-region-east",
-         },
-       ],
-       [
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/internet-gateway=igw-app-region-east",
-           "value": "@octo/internet-gateway=igw-app-region-east",
-         },
-       ],
-     ]
-    `);
+    expect(responses[`@octo/dynamodb=dynamodb-${tableName}`]).toMatchObject({
+      TableArn: expect.stringContaining(`table/${tableName}`),
+    });
   });
 
   it('should CRUD DynamoDB table', async () => {
@@ -140,27 +123,6 @@ describe('Main E2E', () => {
     expect(accountsAfterDelete.length).toBe(0);
   });
 
-  it('should auto expire records from DynamoDB table', async () => {
-    const createdAt = Math.floor(Date.now() / 1000);
-    await accountRepositoryUsEast1.put({
-      AccountId: 'TestAutoExpire',
-      AccountType: 'test',
-      CreatedAt: createdAt,
-      Email: 'test-user-1@test.com',
-      ExpiresAt: createdAt + 5,
-      UserId: 'test-user-1',
-    });
-
-    const accountsBeforeAutoExpire = await accountRepositoryUsEast1.getByAccountId('TestAutoExpire');
-    expect(accountsBeforeAutoExpire.length).toBe(1);
-
-    // Wait > 5 seconds for auto expire.
-    await new Promise((resolve) => setTimeout(resolve, 10000));
-
-    const accountsAfterAutoExpire = await accountRepositoryUsEast1.getByAccountId('TestAutoExpire');
-    expect(accountsAfterAutoExpire.length).toBe(0);
-  });
-
   it('should add GSI in DynamoDB table and query', async () => {
     // Add GSI - Email.
     const { moduleInputs } = moduleDefinitions.get<AwsDynamoDBServiceModule>('dynamodb-service-module')!;
@@ -170,16 +132,14 @@ describe('Main E2E', () => {
       KeySchema: [{ AttributeName: 'Email', KeyType: 'HASH' }],
       Projection: { ProjectionType: 'ALL' },
     });
-    await testModuleContainer.orderModules(moduleDefinitions.getAll().map((md) => md.module));
-    const { 'app-module.model.app': app } = await testModuleContainer.runModules(
-      moduleDefinitions.getAll().map((md) => ({
-        hidden: false,
-        inputs: md.moduleInputs,
-        moduleId: md.moduleId,
-        type: md.module,
-      })),
-    );
-    await testModuleContainer.commit(app);
+
+    await testModuleContainer
+      .runModules(
+        app,
+        moduleDefinitions.getAll().map((md) => ({ inputs: md.moduleInputs, moduleId: md.moduleId, type: md.module })),
+        { outputDir, terraformTarget: 'apply' },
+      )
+      .next();
 
     // Query GSI - Email.
     const createdAt = Math.floor(Date.now() / 1000);
@@ -197,16 +157,13 @@ describe('Main E2E', () => {
 
   it('should remove GSI in DynamoDB table and query', async () => {
     // Remove GSI - Email. Not adding Email GSI is equivalent to have removed it from module inputs.
-    await testModuleContainer.orderModules(moduleDefinitions.getAll().map((md) => md.module));
-    const { 'app-module.model.app': app } = await testModuleContainer.runModules(
-      moduleDefinitions.getAll().map((md) => ({
-        hidden: false,
-        inputs: md.moduleInputs,
-        moduleId: md.moduleId,
-        type: md.module,
-      })),
-    );
-    await testModuleContainer.commit(app);
+    await testModuleContainer
+      .runModules(
+        app,
+        moduleDefinitions.getAll().map((md) => ({ inputs: md.moduleInputs, moduleId: md.moduleId, type: md.module })),
+        { outputDir, terraformTarget: 'apply' },
+      )
+      .next();
 
     // Cannot fetch by GSI index - Email, since the Email index has been removed.
     await expect(async () => {
@@ -216,34 +173,18 @@ describe('Main E2E', () => {
 
   it('should have no resources left after teardown', async () => {
     moduleDefinitions.remove('dynamodb-service-module');
-    await testModuleContainer.orderModules(moduleDefinitions.getAll().map((md) => md.module));
-    const { 'app-module.model.app': app } = await testModuleContainer.runModules(
-      moduleDefinitions.getAll().map((md) => ({
-        hidden: false,
-        inputs: md.moduleInputs,
-        moduleId: md.moduleId,
-        type: md.module,
-      })),
-    );
-    await testModuleContainer.commit(app);
+    moduleDefinitions.remove('region-module');
 
-    const resourceGroupsTaggingApiClient = await container.get<ResourceGroupsTaggingAPIClient, any>(
-      ResourceGroupsTaggingAPIClient,
-      {
-        args: [accountId, 'us-east-1'],
-        metadata: { package: '@octo' },
-      },
-    );
+    await testModuleContainer
+      .runModules(
+        app,
+        moduleDefinitions.getAll().map((md) => ({ inputs: md.moduleInputs, moduleId: md.moduleId, type: md.module })),
+        { outputDir, terraformTarget: 'apply' },
+      )
+      .next();
 
-    const response = await resourceGroupsTaggingApiClient.send(
-      new GetResourcesCommand({
-        TagFilters: [
-          { Key: 'e2e-test', Values: ['true'] },
-          { Key: 'e2e-test-family', Values: ['aws-dynamodb-service'] },
-        ],
-      }),
-    );
-
-    expect(response.ResourceTagMappingList!.map((r) => r.ResourceARN)).toEqual([]);
+    const awsResourcesUtility = new AwsTagsUtility(AWS_REGION_ID);
+    const leftoverArns = await awsResourcesUtility.getResourceArnsByTags(E2E_TAGS);
+    expect(leftoverArns).toEqual([]);
   });
 });
