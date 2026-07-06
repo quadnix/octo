@@ -61,6 +61,7 @@ export class ModuleDefinitions {
     this.add(AwsIniAccountModule, 'account-module', {
       accountId: config.AWS_ACCOUNT_ID,
       app: stub<App>('${{app-module.model.app}}'),
+      iniProfile: 'default',
     });
 
     this.add(AwsMultiAzRegionModule, 'region-module', {
@@ -162,6 +163,20 @@ export class ModuleDefinitions {
           FromPort: 80,
           IpProtocol: 'tcp',
           ToPort: 80,
+        },
+        {
+          CidrBlock: '0.0.0.0/0',
+          Egress: true,
+          FromPort: 0,
+          IpProtocol: 'tcp',
+          ToPort: 65535,
+        },
+        {
+          CidrBlock: '0.0.0.0/0',
+          Egress: true,
+          FromPort: 0,
+          IpProtocol: 'udp',
+          ToPort: 65535,
         },
       ],
       subnet: stub<Subnet>('${{private-subnet-module.model.subnet}}'),
