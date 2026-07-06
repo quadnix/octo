@@ -84,6 +84,20 @@ describe('Main E2E', () => {
     expect(errorContent.data).toContain('This is an error!');
   });
 
+  it('should re-apply the identical intent with no octo changes', async () => {
+    const { resourceDiffs } = (
+      await testModuleContainer
+        .runModules(
+          app,
+          moduleDefinitions.getAll().map((md) => ({ inputs: md.moduleInputs, moduleId: md.moduleId, type: md.module })),
+          { outputDir, terraformTarget: 'plan' },
+        )
+        .next()
+    ).value!;
+
+    expect(testModuleContainer.digestDiffs(resourceDiffs)).toEqual([]);
+  });
+
   it('should have no resources left after teardown', async () => {
     for (const moduleId of moduleDefinitions
       .getAll()

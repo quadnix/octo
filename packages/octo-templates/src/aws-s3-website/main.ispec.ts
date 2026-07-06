@@ -104,8 +104,27 @@ describe('Main IT', () => {
     expect(errorContent.data).toContain('This is an error!');
   });
 
+  it('should re-apply the identical intent with no octo changes', async () => {
+    const { resourceDiffs } = (
+      await testModuleContainer
+        .runModules(
+          app,
+          moduleDefinitions.getAll().map((md) => ({ inputs: md.moduleInputs, moduleId: md.moduleId, type: md.module })),
+          { outputDir, terraformTarget: 'plan' },
+        )
+        .next()
+    ).value!;
+
+    expect(testModuleContainer.digestDiffs(resourceDiffs)).toEqual([]);
+  });
+
   it('should delete the website and leave octo state empty', async () => {
-    moduleDefinitions.remove('s3-website-service-module');
+    for (const moduleId of moduleDefinitions
+      .getAll()
+      .map((md) => md.moduleId)
+      .filter((moduleId) => moduleId !== 'account-module')) {
+      moduleDefinitions.remove(moduleId);
+    }
 
     const { responses } = (
       await testModuleContainer
