@@ -283,9 +283,9 @@ describe('TerraformUtility UT', () => {
       expect(terraform.execFileAsyncMock.mock.calls[0][2].env?.TG_TF_PATH).toBeUndefined();
     });
 
-    it('passes timeoutInMs as the timeout option, defaulting to 5 minutes', async () => {
+    it('passes timeoutInMs as the timeout option, defaulting to 60 minutes', async () => {
       await terraform.validate(terragruntDir);
-      expect(terraform.execFileAsyncMock.mock.calls[0][2].timeout).toBe(5 * 60 * 1000);
+      expect(terraform.execFileAsyncMock.mock.calls[0][2].timeout).toBe(60 * 60 * 1000);
 
       const withCustom = new TestableTerraformUtility({ timeoutInMs: 1000 });
       await withCustom.validate(terragruntDir);

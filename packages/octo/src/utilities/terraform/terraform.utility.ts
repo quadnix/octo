@@ -8,7 +8,7 @@ import { TerraformCommandError } from '../../errors/index.js';
 import type { TerraformOutputs } from '../../modes/commit.mode.js';
 import type { TerraformPlan } from '../../modes/validate.mode.js';
 
-const DEFAULT_TIMEOUT_IN_MS = 5 * 60 * 1000; // 5 minutes.
+const DEFAULT_TIMEOUT_IN_MS = 60 * 60 * 1000; // 60 minutes.
 const MAX_BUFFER = 256 * 1024 * 1024; // 256 KB.
 
 interface TerraformRawResult {
