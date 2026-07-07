@@ -31,7 +31,7 @@ export const createAppCommand = {
   },
   command: 'create-app',
   describe: 'Create a new Octo app from a template.',
-  handler: async (argv: ArgumentsCamelCase<{ name: string; path: string; template: string; }>): Promise<void> => {
+  handler: async (argv: ArgumentsCamelCase<{ name: string; path: string; template: string }>): Promise<void> => {
     const { name, path, template } = argv;
 
     console.log(chalk.blue(`Creating app with template "${template}"...`));
