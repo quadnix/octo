@@ -183,6 +183,7 @@ polyrepos
 postbuild
 pressable
 prettierrc
+prismjs
 proj
 promisify
 provisioner

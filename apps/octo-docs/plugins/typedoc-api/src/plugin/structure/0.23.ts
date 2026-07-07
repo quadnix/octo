@@ -2,8 +2,8 @@ import { type JSONOutput } from 'typedoc';
 
 interface OldComment {
   shortText?: string;
-  text?: string;
   tags?: { tag: string; text: string }[];
+  text?: string;
 }
 
 interface OldDeclarationReflection {

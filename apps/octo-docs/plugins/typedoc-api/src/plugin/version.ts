@@ -26,17 +26,17 @@ function getDefaultLastVersionName(versionNames: string[]): string {
 }
 
 function createVersionMetadata({
+  context,
+  lastVersionName,
+  options,
   versionName,
   versionNames,
-  lastVersionName,
-  context,
-  options,
 }: {
+  context: LoadContext;
+  lastVersionName: string;
+  options: DocusaurusNativePluginOptions & DocusaurusPluginTypeDocApiOptions;
   versionName: string;
   versionNames: string[];
-  lastVersionName: string;
-  context: LoadContext;
-  options: DocusaurusNativePluginOptions & DocusaurusPluginTypeDocApiOptions;
 }): VersionMetadata {
   const isLast = versionName === lastVersionName;
   const versionOptions = options.versions[versionName] ?? {};

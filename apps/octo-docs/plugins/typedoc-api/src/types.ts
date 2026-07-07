@@ -10,30 +10,30 @@ export interface DocusaurusPluginTypeDocApiOptions
   breadcrumbs?: boolean;
   changelogName?: string;
   changelogs?: boolean;
-  gitRefName?: string;
   debug?: boolean;
+  // Versioning, based on Docusaurus
+  disableVersioning?: boolean;
   exclude?: string[];
+  gitRefName?: string;
   id?: string;
+  includeCurrentVersion?: boolean;
   minimal?: boolean;
   packageJsonName?: string;
   packages: (PackageConfig | string)[];
+  projectDocuments?: string[];
   projectRoot: string;
   readmeName?: string;
   readmes?: boolean;
+  rehypePlugins: MDXPlugin[];
+  remarkPlugins: MDXPlugin[];
+
   removeScopes?: string[];
+  routeBasePath?: string;
+
   sortPackages?: (a: PackageReflectionGroup, d: PackageReflectionGroup) => number;
   sortSidebar?: (a: string, d: string) => number;
   tsconfigName?: string;
   typedocOptions?: Partial<TypeDocOptions>;
-
-  remarkPlugins: MDXPlugin[];
-  rehypePlugins: MDXPlugin[];
-
-  // Versioning, based on Docusaurus
-  disableVersioning?: boolean;
-  includeCurrentVersion?: boolean;
-  routeBasePath?: string;
-  projectDocuments?: string[];
 }
 
 // CONFIG
@@ -53,24 +53,24 @@ export interface PackageConfig {
 
 export interface ResolvedPackageConfig {
   entryPoints: Record<string, PackageEntryConfig>;
-  packageRoot: string;
-  packagePath: string;
-  packageSlug: string;
   packageName: string;
+  packagePath: string;
+  packageRoot: string;
+  packageSlug: string;
   packageVersion: string;
 }
 
 // VERSIONING
 
 export interface VersionMetadata {
-  versionName: string; // 1.0.0
-  versionLabel: string; // Version 1.0.0
-  versionPath: string; // /baseUrl/api/1.0.0
+  isLast: boolean;
+  routePriority: number | undefined; // -1 for the latest
   versionBadge: boolean;
   versionBanner: VersionBanner | null;
   versionClassName: string;
-  isLast: boolean;
-  routePriority: number | undefined; // -1 for the latest
+  versionLabel: string; // Version 1.0.0
+  versionName: string; // 1.0.0
+  versionPath: string; // /baseUrl/api/1.0.0
 }
 
 export interface LoadedVersion extends VersionMetadata {
@@ -99,9 +99,9 @@ export interface ApiOptions {
 }
 
 export interface TOCItem {
-  readonly value: string;
   readonly id: string;
   readonly level: number;
+  readonly value: string;
 }
 
 // REFLECTIONS
@@ -114,27 +114,27 @@ export interface PackageReflectionGroupEntry {
 }
 
 export interface PackageReflectionGroup {
+  changelogPath?: string;
   entryPoints: PackageReflectionGroupEntry[];
   packageName: string;
   packageVersion: string;
-  changelogPath?: string;
   readmePath?: string;
 }
 
 export interface ApiMetadata {
   id: number;
   name: string;
+  nextId?: number;
   permalink: string;
   previousId?: number;
-  nextId?: number;
 }
 
 // TYPEDOC COMPAT
 
 export interface TSDReflection extends Omit<JSONOutput.Reflection, 'signatures'>, Omit<ApiMetadata, 'id'> {
-  signatures: TSDSignatureReflection[];
   // Added by us for convenience
   parentId?: number;
+  signatures: TSDSignatureReflection[];
 }
 
 export interface TSDDeclarationReflection

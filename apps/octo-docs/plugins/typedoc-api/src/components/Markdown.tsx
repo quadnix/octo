@@ -9,12 +9,12 @@ import { useReflectionMap } from '../hooks/useReflectionMap.js';
 import { replaceLinkTokens } from '../utils/markdown.js';
 
 interface Admonition {
-  type: 'admonition';
-  raw: string;
-  title?: string;
   keyword?: string;
+  raw: string;
   text: string;
+  title?: string;
   tokens: Token[];
+  type: 'admonition';
 }
 
 type Token =

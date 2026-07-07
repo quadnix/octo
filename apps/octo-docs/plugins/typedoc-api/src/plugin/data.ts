@@ -49,7 +49,7 @@ export async function generateJson(
   outFile: string,
   options: DocusaurusPluginTypeDocApiOptions,
 ): Promise<boolean> {
-  /* eslint-disable sort-keys */
+   
 
   // Running the TypeDoc compiler is pretty slow...
   // We should only load on the 1st build, and use cache for subsequent reloads.
@@ -63,9 +63,6 @@ export async function generateJson(
 
   const app = await TypeDoc.Application.bootstrapWithPlugins(
     {
-      gitRevision: options.gitRefName,
-      includeVersion: true,
-      skipErrorChecking: true,
       // stripYamlFrontmatter: true,
       // Only emit when using project references
       emit: shouldEmit(projectRoot, tsconfig),
@@ -74,8 +71,8 @@ export async function generateJson(
       excludeInternal: true,
       excludePrivate: true,
       excludeProtected: true,
-      // Enable verbose logging when debugging
-      logLevel: options.debug ? 'Verbose' : 'Info',
+      gitRevision: options.gitRefName,
+      includeVersion: true,
       inlineTags: [
         '@link',
         '@inheritDoc',
@@ -85,14 +82,15 @@ export async function generateJson(
         '@apilink',
         '@doclink',
       ] as `@${string}`[],
+      // Enable verbose logging when debugging
+      logLevel: options.debug ? 'Verbose' : 'Info',
+      skipErrorChecking: true,
       ...options.typedocOptions,
-      // Control how config and packages are detected
-      tsconfig,
+      // We use a fake category title so that we can fallback to the parent group
+      defaultCategory: '__CATEGORY__',
       entryPoints: entryPoints.map((ep) => path.join(projectRoot, ep)),
       entryPointStrategy: 'expand',
       exclude: options.exclude,
-      // We use a fake category title so that we can fallback to the parent group
-      defaultCategory: '__CATEGORY__',
       projectDocuments: [
         ...options.packages
           .filter((pkg) => typeof pkg === 'object')
@@ -100,6 +98,8 @@ export async function generateJson(
           .map((pkg) => path.join(options.projectRoot, pkg.path, '**/*.md')),
         ...(options.projectDocuments || []).map((doc) => path.join(options.projectRoot, doc)),
       ],
+      // Control how config and packages are detected
+      tsconfig,
       watch: false,
     },
     [new TypeDoc.TSConfigReader(), new TypeDoc.TypeDocReader()],
@@ -123,7 +123,7 @@ export function createReflectionMap(items: TSDDeclarationReflection[] = []): TSD
 
   items.forEach((item) => {
     // Add @reference categories to reflection.
-    const referenceCategories: Record<string, { title: string; children: ReflectionId[] }> = {};
+    const referenceCategories: Record<string, { children: ReflectionId[]; title: string; }> = {};
     for (const tag of item.comment?.blockTags ?? []) {
       if (tag.tag === '@reference' && tag.content.length >= 2 && tag.content[0].kind === 'text') {
         const categoryName = tag.content[0].text.trim();
@@ -131,7 +131,7 @@ export function createReflectionMap(items: TSDDeclarationReflection[] = []): TSD
 
         if (ref && typeof ref.target === 'number') {
           if (!(categoryName in referenceCategories)) {
-            referenceCategories[categoryName] = { title: categoryName, children: [] };
+            referenceCategories[categoryName] = { children: [], title: categoryName };
           }
 
           if (!referenceCategories[categoryName].children.includes(ref.target)) {
@@ -172,7 +172,7 @@ export function loadPackageJsonAndDocs(
   pkgFileName: string = 'package.json',
   readmeFileName: string = 'README.md',
   changelogFileName: string = 'CHANGELOG.md',
-): { packageJson: { name: string; version: string }; readmePath: string; changelogPath: string } {
+): { changelogPath: string; packageJson: { name: string; version: string }; readmePath: string; } {
   let currentDir = initialDir;
 
   while (!fs.existsSync(path.join(currentDir, pkgFileName))) {
@@ -183,12 +183,12 @@ export function loadPackageJsonAndDocs(
   const changelogPath = path.join(currentDir, changelogFileName);
 
   return {
+    changelogPath: fs.existsSync(changelogPath) ? changelogPath : '',
     packageJson: JSON.parse(fs.readFileSync(path.join(currentDir, pkgFileName), 'utf8')) as {
       name: string;
       version: string;
     },
     readmePath: fs.existsSync(readmePath) ? readmePath : '',
-    changelogPath: fs.existsSync(changelogPath) ? changelogPath : '',
   };
 }
 
@@ -301,10 +301,10 @@ function modContainsEntryPoint(
   entry: PackageEntryConfig,
   meta: {
     allSourceFiles: Record<string, boolean>;
-    packagePath: string;
-    packageRoot: string;
     isSinglePackage: boolean;
     isUsingDeepImports: boolean;
+    packagePath: string;
+    packageRoot: string;
   },
 ): boolean {
   const relModSources = mod.sources ?? [];
@@ -446,7 +446,7 @@ export function flattenAndGroupPackages(
 
         // We have a matching entry point, so store the record
         if (!packages[cfg.packagePath]) {
-          const { packageJson, readmePath, changelogPath } = loadPackageJsonAndDocs(
+          const { changelogPath, packageJson, readmePath } = loadPackageJsonAndDocs(
             path.join(options.projectRoot, cfg.packagePath),
             options.packageJsonName,
             options.readmeName,
@@ -454,11 +454,11 @@ export function flattenAndGroupPackages(
           );
 
           packages[cfg.packagePath] = {
+            changelogPath,
             entryPoints: [],
             packageName: (versioned && cfg.packageName) || packageJson.name,
             packageVersion: (versioned && cfg.packageVersion) || packageJson.version,
             readmePath,
-            changelogPath,
           };
 
           cfg.packageName = packages[cfg.packagePath].packageName;

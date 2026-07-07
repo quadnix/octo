@@ -22,9 +22,9 @@ import { VersionBanner } from './VersionBanner.js';
 export interface ApiItemLayoutProps extends Pick<DocItemProps, 'route'> {
   children: React.ReactNode;
   heading: React.ReactNode;
-  toc: readonly TOCItem[];
   pageMetadata?: React.ReactNode;
   pagingMetadata?: PropNavigation;
+  toc: readonly TOCItem[];
 }
 
 export default function ApiItemLayout({

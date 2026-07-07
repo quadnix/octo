@@ -41,7 +41,7 @@ function addVersionToUrl(
   return url;
 }
 
-export default function ApiIndex({ options, packages, history }: ApiIndexProps): ReactElement {
+export default function ApiIndex({ history, options, packages }: ApiIndexProps): ReactElement {
   const latestVersion = useDocsVersion();
   const { preferredVersion } = useDocsPreferredVersion(latestVersion.pluginId);
 

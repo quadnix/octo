@@ -19,7 +19,7 @@ function extractDefaultTag(comment?: JSONOutput.Comment): string | null {
   return displayPartsToMarkdown(tag.content);
 }
 
-export function DefaultValue({ comment, value, type }: DefaultValueProps): ReactElement | null {
+export function DefaultValue({ comment, type, value }: DefaultValueProps): ReactElement | null {
   if (!comment && !value) {
     return null;
   }

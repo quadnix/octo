@@ -7,12 +7,12 @@ import { Type } from './Type.js';
 import { TypeParametersGeneric } from './TypeParametersGeneric.js';
 
 export interface MemberSignatureTitleProps {
-  useArrow?: boolean;
   hideName?: boolean;
   sig: TSDSignatureReflection;
+  useArrow?: boolean;
 }
 
-export function MemberSignatureTitle({ useArrow, hideName, sig }: MemberSignatureTitleProps): ReactElement {
+export function MemberSignatureTitle({ hideName, sig, useArrow }: MemberSignatureTitleProps): ReactElement {
   return (
     <>
       {!hideName && sig.name !== '__type' ? (

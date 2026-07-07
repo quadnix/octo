@@ -4,34 +4,34 @@ import type { ReflectionKind } from 'typedoc';
 
 // We have to map these manually instead of using the `ReflectionKind` enum,
 // otherwise the `typedoc` package ends up in the bundle and crashes.
-/* eslint-disable sort-keys */
+ 
 const KIND_ICONS: Record<ReflectionKind, string> = {
   1: 'project', // Project
-  2: 'package', // Module
-  4: 'symbol-namespace', // Namespace
-  8: 'symbol-enum', // Enum
-  16: 'symbol-enum-member', // EnumMember
-  32: 'symbol-variable', // Variable
-  64: 'symbol-function', // Function
-  128: 'symbol-class', // Class
-  256: 'symbol-interface', // Interface
-  512: 'symbol-constructor', // Constructor
   1024: 'symbol-property', // Property
-  2048: 'symbol-method', // Method
-  4096: 'symbol-method', // CallSignature
-  8192: 'bracket-dot', // IndexSignature
-  16_384: 'symbol-method', // ConstructorSignature
-  32_768: 'symbol-property', // Parameter
-  65_536: 'symbol-key', // TypeLiteral
-  131_072: 'symbol-type-parameter', // TypeParameter
-  262_144: 'symbol-field', // Accessor
-  524_288: 'symbol-field', // GetSignature
   1_048_576: 'symbol-field', // SetSignature
+  128: 'symbol-class', // Class
+  131_072: 'symbol-type-parameter', // TypeParameter
+  16: 'symbol-enum-member', // EnumMember
+  16_384: 'symbol-method', // ConstructorSignature
+  2: 'package', // Module
+  2048: 'symbol-method', // Method
   2_097_152: 'symbol-parameter', // TypeAlias
+  256: 'symbol-interface', // Interface
+  262_144: 'symbol-field', // Accessor
+  32: 'symbol-variable', // Variable
+  32_768: 'symbol-property', // Parameter
+  4: 'symbol-namespace', // Namespace
+  4096: 'symbol-method', // CallSignature
   4_194_304: 'references', // Reference
+  512: 'symbol-constructor', // Constructor
+  524_288: 'symbol-field', // GetSignature
+  64: 'symbol-function', // Function
+  65_536: 'symbol-key', // TypeLiteral
+  8: 'symbol-enum', // Enum
+  8192: 'bracket-dot', // IndexSignature
   8_388_608: 'references', // Document
 };
-/* eslint-enable */
+ 
 
 export function getKindIcon(kind: ReflectionKind, name: string): string {
   let icon = KIND_ICONS[kind];

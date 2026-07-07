@@ -9,12 +9,12 @@ import { MemberSignatureBody, hasSigBody } from './MemberSignatureBody.js';
 import { MemberSignatureTitle } from './MemberSignatureTitle.js';
 
 export interface MemberGetterSetterProps {
-  inPanel?: boolean;
   getter?: TSDDeclarationReflection['getSignature'];
+  inPanel?: boolean;
   setter?: TSDDeclarationReflection['setSignature'];
 }
 
-export function MemberGetterSetter({ inPanel, getter, setter }: MemberGetterSetterProps): ReactElement | null {
+export function MemberGetterSetter({ getter, inPanel, setter }: MemberGetterSetterProps): ReactElement | null {
   const minimal = useMinimalLayout();
 
   if (!getter && !setter) {

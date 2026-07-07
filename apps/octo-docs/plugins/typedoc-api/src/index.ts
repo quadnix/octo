@@ -78,8 +78,8 @@ export default function typedocApiPlugin(
     banner,
     breadcrumbs,
     changelogs,
-    id: pluginId,
     gitRefName,
+    id: pluginId,
     minimal,
     projectRoot,
     readmes,
@@ -182,7 +182,7 @@ export default function typedocApiPlugin(
       };
     },
 
-    async contentLoaded({ content, actions }): Promise<void> {
+    async contentLoaded({ actions, content }): Promise<void> {
       if (!content) {
         return;
       }

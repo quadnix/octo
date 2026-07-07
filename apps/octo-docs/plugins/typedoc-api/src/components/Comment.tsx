@@ -5,8 +5,8 @@ import { Markdown } from './Markdown.js';
 
 export interface CommentProps {
   comment?: JSONOutput.Comment;
-  root?: boolean;
   hideTags?: string[];
+  root?: boolean;
 }
 
 export function hasComment(comment?: JSONOutput.Comment): boolean {
@@ -32,7 +32,7 @@ export function displayPartsToMarkdown(parts: JSONOutput.CommentDisplayPart[]): 
     .join('');
 }
 
-export function Comment({ comment, root, hideTags = [] }: CommentProps): ReactElement | null {
+export function Comment({ comment, hideTags = [], root }: CommentProps): ReactElement | null {
   if (!comment || !hasComment(comment)) {
     return null;
   }

@@ -1,9 +1,9 @@
 import type { JSONOutput } from 'typedoc';
 
 export interface HierarchyNode {
-  types: JSONOutput.SomeType[];
-  next?: HierarchyNode;
   isTarget?: boolean;
+  next?: HierarchyNode;
+  types: JSONOutput.SomeType[];
 }
 
 // The JSON output does not include hierarchy information, so we need to duplicate the logic!

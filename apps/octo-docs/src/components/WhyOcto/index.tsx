@@ -7,9 +7,9 @@ import React, { type ReactElement, useCallback, useEffect, useRef, useState } fr
 import styles from './styles.module.scss';
 
 type BenefitItem = {
-  title: string;
   description: ReactElement;
   icon: string;
+  title: string;
 };
 
 const BenefitList: BenefitItem[] = [
@@ -175,7 +175,7 @@ const BenefitList: BenefitItem[] = [
   },
 ];
 
-function Benefit({ title, description, icon, index }: BenefitItem & { index: number }): ReactElement {
+function Benefit({ description, icon, index, title }: BenefitItem & { index: number }): ReactElement {
   const isImageLeft = index % 2 === 0;
 
   return (
