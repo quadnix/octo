@@ -28,7 +28,7 @@ const { validateCommand } = await import('./validate.command.js');
 describe('validateCommand UT', () => {
   const terragruntDir = 'my-terragrunt-dir';
   const resolvedDir = resolve(process.cwd(), terragruntDir);
-  const argv = { $0: 'octo', _: [], terragruntDir } as unknown as ArgumentsCamelCase<{ terragruntDir: string }>;
+  const argv = { _: [], $0: 'octo', terragruntDir } as unknown as ArgumentsCamelCase<{ terragruntDir: string }>;
 
   let octoValidateMock: jest.Mock<(...args: unknown[]) => Promise<ValidateResult>>;
   let terraformUtilityMock: {

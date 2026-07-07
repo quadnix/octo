@@ -19,6 +19,17 @@ export default class extends Generator {
     this.projectRootDir = args[3];
   }
 
+  end(): void {
+    const targetPath = resolve(
+      join(this.projectRootDir, 'src', 'modules', this.modelType, this.moduleName, 'models', this.modelType),
+    );
+
+    this.log('✅ Your model has been generated successfully!');
+    this.log(`📁 Model created at: ${targetPath}`);
+    this.log('📦 Next steps:');
+    this.log(`   Address all "Fix me" in generated files`);
+  }
+
   async initializing(): Promise<void> {
     const targetPath = resolve(
       join(this.projectRootDir, 'src', 'modules', this.modelType, this.moduleName, 'models', this.modelType),
@@ -84,16 +95,5 @@ export default class extends Generator {
         moduleNamePascal: StringUtility.toPascalCase(this.moduleName),
       },
     );
-  }
-
-  end(): void {
-    const targetPath = resolve(
-      join(this.projectRootDir, 'src', 'modules', this.modelType, this.moduleName, 'models', this.modelType),
-    );
-
-    this.log('✅ Your model has been generated successfully!');
-    this.log(`📁 Model created at: ${targetPath}`);
-    this.log('📦 Next steps:');
-    this.log(`   Address all "Fix me" in generated files`);
   }
 }

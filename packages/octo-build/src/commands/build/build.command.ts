@@ -49,10 +49,10 @@ export const buildCommand = {
   handler: async (
     argv: ArgumentsCamelCase<{
       buildFilePath: string;
-      sourcePath: string;
       concurrency: number;
       dryRun: boolean;
       logsDir: string;
+      sourcePath: string;
       timeout: number;
     }>,
   ): Promise<void> => {

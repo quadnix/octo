@@ -85,7 +85,7 @@ export default [
           memberSyntaxSortOrder: ['none', 'all', 'multiple', 'single'],
         },
       ],
-      'sort-keys': ['error', 'asc', { caseSensitive: false, minKeys: 2, natural: false }],
+      'sort-keys': 'off',
       'spellcheck/spell-checker': [
         'warn',
         {

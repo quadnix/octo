@@ -19,6 +19,16 @@ export default class extends Generator {
     this.projectRootDir = args[3];
   }
 
+  end(): void {
+    const targetPath = resolve(join(this.projectRootDir, 'src', 'modules', this.modelType, this.moduleName));
+
+    this.log('✅ Your module has been generated successfully!');
+    this.log(`📁 Module created at: ${targetPath}`);
+    this.log('📦 Next steps:');
+    this.log(`   Update index.schema.ts`);
+    this.log(`   Implement the logic in ${this.moduleName}.module.ts`);
+  }
+
   async initializing(): Promise<void> {
     const targetPath = resolve(join(this.projectRootDir, 'src', 'modules', this.modelType, this.moduleName));
 
@@ -60,15 +70,5 @@ export default class extends Generator {
       moduleName: this.moduleName,
       moduleNamePascal: StringUtility.toPascalCase(this.moduleName),
     });
-  }
-
-  end(): void {
-    const targetPath = resolve(join(this.projectRootDir, 'src', 'modules', this.modelType, this.moduleName));
-
-    this.log('✅ Your module has been generated successfully!');
-    this.log(`📁 Module created at: ${targetPath}`);
-    this.log('📦 Next steps:');
-    this.log(`   Update index.schema.ts`);
-    this.log(`   Implement the logic in ${this.moduleName}.module.ts`);
   }
 }

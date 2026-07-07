@@ -21,6 +21,25 @@ export default class extends Generator {
     this.projectRootDir = args[4];
   }
 
+  end(): void {
+    const targetPath = resolve(
+      join(
+        this.projectRootDir,
+        'src',
+        'modules',
+        this.modelType,
+        this.moduleName,
+        'overlays',
+        `${this.moduleName}-${this.overlayName}`,
+      ),
+    );
+
+    this.log('✅ Your overlay has been generated successfully!');
+    this.log(`📁 Overlay created at: ${targetPath}`);
+    this.log('📦 Next steps:');
+    this.log(`   Address all "Fix me" in generated files`);
+  }
+
   async initializing(): Promise<void> {
     const targetPath = resolve(
       join(
@@ -97,24 +116,5 @@ export default class extends Generator {
         overlayNamePascal: StringUtility.toPascalCase(this.overlayName),
       },
     );
-  }
-
-  end(): void {
-    const targetPath = resolve(
-      join(
-        this.projectRootDir,
-        'src',
-        'modules',
-        this.modelType,
-        this.moduleName,
-        'overlays',
-        `${this.moduleName}-${this.overlayName}`,
-      ),
-    );
-
-    this.log('✅ Your overlay has been generated successfully!');
-    this.log(`📁 Overlay created at: ${targetPath}`);
-    this.log('📦 Next steps:');
-    this.log(`   Address all "Fix me" in generated files`);
   }
 }

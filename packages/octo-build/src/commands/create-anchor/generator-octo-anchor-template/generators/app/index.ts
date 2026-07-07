@@ -7,11 +7,11 @@ import { StringUtility } from '../../../../../utilities/string/string.utility.js
 export default class extends Generator {
   private readonly anchorFamily: string;
   private readonly anchorName: string;
+  private readonly isModelAnchor: boolean;
   private readonly modelType: string;
   private readonly packageName: string;
-  private readonly projectRootDir: string;
 
-  private readonly isModelAnchor: boolean;
+  private readonly projectRootDir: string;
 
   constructor(args: string[], opts: BaseOptions) {
     super(args, opts);
@@ -24,6 +24,15 @@ export default class extends Generator {
 
     // Determine if this is a model anchor or overlay anchor.
     this.isModelAnchor = StringUtility.AVAILABLE_MODEL_TYPES.includes(this.modelType as any);
+  }
+
+  end(): void {
+    const targetPath = resolve(join(this.projectRootDir, 'src', 'anchors', this.anchorFamily));
+
+    this.log('✅ Your anchor has been generated successfully!');
+    this.log(`📁 Anchor created at: ${targetPath}`);
+    this.log('📦 Next steps:');
+    this.log(`   Address all "Fix me" in generated files`);
   }
 
   async initializing(): Promise<void> {
@@ -73,14 +82,5 @@ export default class extends Generator {
         modelTypePascal: StringUtility.toPascalCase(this.modelType),
       },
     );
-  }
-
-  end(): void {
-    const targetPath = resolve(join(this.projectRootDir, 'src', 'anchors', this.anchorFamily));
-
-    this.log('✅ Your anchor has been generated successfully!');
-    this.log(`📁 Anchor created at: ${targetPath}`);
-    this.log('📦 Next steps:');
-    this.log(`   Address all "Fix me" in generated files`);
   }
 }

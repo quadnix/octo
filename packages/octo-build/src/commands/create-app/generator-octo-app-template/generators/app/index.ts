@@ -16,6 +16,18 @@ export default class extends Generator {
     this.appTemplate = args[2];
   }
 
+  end(): void {
+    const targetPath = resolve(join(this.appPath, this.appName));
+
+    this.log('✅ Your TypeScript app has been generated successfully!');
+    this.log(`📁 App created at: ${targetPath}`);
+    this.log('📦 Next steps:');
+    this.log(`   cd ${targetPath}`);
+    this.log('   npm install');
+    this.log('   npm run build');
+    this.log('   npm start');
+  }
+
   async initializing(): Promise<void> {
     const targetPath = resolve(join(this.appPath, this.appName));
 
@@ -124,17 +136,5 @@ export default class extends Generator {
     } else {
       throw new Error(`Unsupported app template: ${this.appTemplate}`);
     }
-  }
-
-  end(): void {
-    const targetPath = resolve(join(this.appPath, this.appName));
-
-    this.log('✅ Your TypeScript app has been generated successfully!');
-    this.log(`📁 App created at: ${targetPath}`);
-    this.log('📦 Next steps:');
-    this.log(`   cd ${targetPath}`);
-    this.log('   npm install');
-    this.log('   npm run build');
-    this.log('   npm start');
   }
 }

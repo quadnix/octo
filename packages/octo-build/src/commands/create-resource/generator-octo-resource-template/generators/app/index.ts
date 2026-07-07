@@ -17,6 +17,15 @@ export default class extends Generator {
     this.projectRootDir = args[2];
   }
 
+  end(): void {
+    const targetPath = resolve(join(this.projectRootDir, 'src', 'resources', this.resourceName));
+
+    this.log('✅ Your resource has been generated successfully!');
+    this.log(`📁 Resource created at: ${targetPath}`);
+    this.log('📦 Next steps:');
+    this.log(`   Address all "Fix me" in generated files`);
+  }
+
   async initializing(): Promise<void> {
     const targetPath = resolve(join(this.projectRootDir, 'src', 'resources', this.resourceName));
 
@@ -93,14 +102,5 @@ export default class extends Generator {
       this.destinationPath('actions', `validate-${this.resourceName}.resource.action.ts`),
       templateData,
     );
-  }
-
-  end(): void {
-    const targetPath = resolve(join(this.projectRootDir, 'src', 'resources', this.resourceName));
-
-    this.log('✅ Your resource has been generated successfully!');
-    this.log(`📁 Resource created at: ${targetPath}`);
-    this.log('📦 Next steps:');
-    this.log(`   Address all "Fix me" in generated files`);
   }
 }
