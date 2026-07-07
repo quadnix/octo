@@ -30,6 +30,26 @@ import { ExecutionSchema } from './execution.schema.js';
 export class Execution extends AModel<ExecutionSchema, Execution> {
   readonly environmentVariables: Map<string, string> = new Map();
 
+  /**
+   * An `executionId` is a unique identifier for this execution.
+   * - Format of executionId is `{serverKey}-{deploymentTag}-{regionId}-{environmentName}-{subnetName}`
+   */
+  get executionId(): string {
+    const parents = this.getParents();
+    const deployment = parents['deployment'][0].to as Deployment;
+    const server = deployment.getParents()['server'][0].to as Server;
+    const environment = parents['environment'][0].to as Environment;
+    const region = environment.getParents()['region'][0].to as Region;
+    const subnet = parents['subnet'][0].to as Subnet;
+    return [
+      server.serverKey,
+      deployment.deploymentTag,
+      region.regionId,
+      environment.environmentName,
+      subnet.subnetName,
+    ].join('-');
+  }
+
   constructor(deployment: Deployment, environment: Environment, subnet: Subnet) {
     super();
 
@@ -75,24 +95,22 @@ export class Execution extends AModel<ExecutionSchema, Execution> {
     subnet.addChild('subnetId', this, 'executionId');
   }
 
-  /**
-   * An `executionId` is a unique identifier for this execution.
-   * - Format of executionId is `{serverKey}-{deploymentTag}-{regionId}-{environmentName}-{subnetName}`
-   */
-  get executionId(): string {
-    const parents = this.getParents();
-    const deployment = parents['deployment'][0].to as Deployment;
-    const server = deployment.getParents()['server'][0].to as Server;
-    const environment = parents['environment'][0].to as Environment;
-    const region = environment.getParents()['region'][0].to as Region;
-    const subnet = parents['subnet'][0].to as Subnet;
-    return [
-      server.serverKey,
-      deployment.deploymentTag,
-      region.regionId,
-      environment.environmentName,
-      subnet.subnetName,
-    ].join('-');
+  static override async unSynth(
+    execution: ExecutionSchema,
+    deReferenceContext: (context: string) => Promise<UnknownModel>,
+  ): Promise<Execution> {
+    const [deployment, environment, subnet] = (await Promise.all([
+      deReferenceContext(execution.deployment.context),
+      deReferenceContext(execution.environment.context),
+      deReferenceContext(execution.subnet.context),
+    ])) as [Deployment, Environment, Subnet];
+    const newExecution = new Execution(deployment, environment, subnet);
+
+    for (const [key, value] of Object.entries(execution.environmentVariables)) {
+      newExecution.environmentVariables.set(key, value);
+    }
+
+    return newExecution;
   }
 
   override setContext(): string | undefined {
@@ -123,23 +141,5 @@ export class Execution extends AModel<ExecutionSchema, Execution> {
       environmentVariables: Object.fromEntries(this.environmentVariables || new Map()),
       subnet: { context: subnet.getContext() },
     };
-  }
-
-  static override async unSynth(
-    execution: ExecutionSchema,
-    deReferenceContext: (context: string) => Promise<UnknownModel>,
-  ): Promise<Execution> {
-    const [deployment, environment, subnet] = (await Promise.all([
-      deReferenceContext(execution.deployment.context),
-      deReferenceContext(execution.environment.context),
-      deReferenceContext(execution.subnet.context),
-    ])) as [Deployment, Environment, Subnet];
-    const newExecution = new Execution(deployment, environment, subnet);
-
-    for (const [key, value] of Object.entries(execution.environmentVariables)) {
-      newExecution.environmentVariables.set(key, value);
-    }
-
-    return newExecution;
   }
 }

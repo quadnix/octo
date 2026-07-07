@@ -32,6 +32,15 @@ export class App extends AModel<AppSchema, App> {
     this.name = name;
   }
 
+  static override async unSynth(
+    app: AppSchema,
+    deReferenceContext: (context: string) => Promise<UnknownModel>,
+  ): Promise<App> {
+    assert(!!deReferenceContext);
+
+    return new App(app.name);
+  }
+
   addAccount(account: Account): void {
     const childrenDependencies = this.getChildren('account');
     if (!childrenDependencies['account']) childrenDependencies['account'] = [];
@@ -112,14 +121,5 @@ export class App extends AModel<AppSchema, App> {
     return {
       name: this.name,
     };
-  }
-
-  static override async unSynth(
-    app: AppSchema,
-    deReferenceContext: (context: string) => Promise<UnknownModel>,
-  ): Promise<App> {
-    assert(!!deReferenceContext);
-
-    return new App(app.name);
   }
 }

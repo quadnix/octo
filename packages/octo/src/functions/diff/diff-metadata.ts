@@ -12,18 +12,18 @@ import type { Diff, DiffAction } from './diff.js';
  * @group Functions/Diff
  */
 export class DiffMetadata {
+  readonly action: DiffAction;
   readonly actions: IUnknownModelAction[] | IUnknownResourceAction[];
   applied: boolean;
+
   applyOrder: number;
-
   readonly diff: Diff;
-  readonly action: DiffAction;
   readonly field: string;
-  readonly node: UnknownNode;
-  readonly value: unknown;
-
   readonly inputs: ActionInputs = { inputs: {}, metadata: {}, models: {}, overlays: {}, resources: {} };
+  readonly node: UnknownNode;
+
   readonly outputs: ActionOutputs = {};
+  readonly value: unknown;
 
   constructor(diff: Diff, actions: IUnknownModelAction[] | IUnknownResourceAction[]) {
     if (!actions?.length) {

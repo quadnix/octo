@@ -32,6 +32,17 @@ export class Pipeline extends AModel<PipelineSchema, Pipeline> {
     this.pipelineName = pipelineName;
   }
 
+  static override async unSynth(
+    pipeline: PipelineSchema,
+    deReferenceContext: (context: string) => Promise<UnknownModel>,
+  ): Promise<Pipeline> {
+    assert(!!deReferenceContext);
+
+    const newPipeline = new Pipeline(pipeline.pipelineName);
+    newPipeline.instructionSet.push(...pipeline.instructionSet);
+    return newPipeline;
+  }
+
   override setContext(): string | undefined {
     const parents = this.getParents();
     const app = parents['app']?.[0]?.to;
@@ -46,16 +57,5 @@ export class Pipeline extends AModel<PipelineSchema, Pipeline> {
       instructionSet: JSON.parse(JSON.stringify(this.instructionSet)),
       pipelineName: this.pipelineName,
     };
-  }
-
-  static override async unSynth(
-    pipeline: PipelineSchema,
-    deReferenceContext: (context: string) => Promise<UnknownModel>,
-  ): Promise<Pipeline> {
-    assert(!!deReferenceContext);
-
-    const newPipeline = new Pipeline(pipeline.pipelineName);
-    newPipeline.instructionSet.push(...pipeline.instructionSet);
-    return newPipeline;
   }
 }

@@ -21,14 +21,55 @@ import { InputService } from '../../input/input.service.js';
  * @internal
  */
 export class ResourceSerializationService {
-  private RESOURCE_DESERIALIZATION_TIMEOUT_IN_MS = 3000;
-
   private readonly classMapping: { [key: string]: any } = {};
+
+  private RESOURCE_DESERIALIZATION_TIMEOUT_IN_MS = 3000;
 
   constructor(
     private readonly resourceDataRepository: ResourceDataRepository,
     private readonly inputService: InputService,
   ) {}
+
+  @EventSource(ResourceDeserializedEvent)
+  async deserialize(
+    actualSerializedOutput: ResourceSerializedOutput,
+    oldSerializedOutput: ResourceSerializedOutput,
+  ): Promise<void> {
+    const actualResources = await this._deserialize(JSON.parse(JSON.stringify(actualSerializedOutput)), false);
+    const oldResources = await this._deserialize(JSON.parse(JSON.stringify(oldSerializedOutput)), true);
+
+    // Refresh the resource data repository.
+    await Container.getInstance().get<ResourceDataRepository, typeof ResourceDataRepositoryFactory>(
+      ResourceDataRepository,
+      {
+        args: [true, Object.values(actualResources), Object.values(oldResources), []],
+      },
+    );
+  }
+
+  @EventSource(ResourceRegistrationEvent)
+  registerClass(className: string, deserializationClass: any): void {
+    if (this.classMapping[className]) {
+      throw new Error(`Class "${className}" is already registered!`);
+    }
+    this.classMapping[className] = deserializationClass;
+  }
+
+  @EventSource(ActualResourceSerializedEvent)
+  async serializeActualResources(): Promise<ResourceSerializedOutput> {
+    const resources = this.resourceDataRepository.getActualResourcesByProperties();
+    return this.serialize(resources);
+  }
+
+  @EventSource(NewResourceSerializedEvent)
+  async serializeNewResources(): Promise<ResourceSerializedOutput> {
+    const resources = this.resourceDataRepository.getNewResourcesByProperties();
+    return this.serialize(resources);
+  }
+
+  setResourceDeserializationTimeout(timeoutInMs: number): void {
+    this.RESOURCE_DESERIALIZATION_TIMEOUT_IN_MS = timeoutInMs;
+  }
 
   private async _deserialize(serializedOutput: ResourceSerializedOutput, freeze: boolean): Promise<ActionOutputs> {
     const deReferencePromises: {
@@ -94,31 +135,6 @@ export class ResourceSerializationService {
     return seen;
   }
 
-  @EventSource(ResourceDeserializedEvent)
-  async deserialize(
-    actualSerializedOutput: ResourceSerializedOutput,
-    oldSerializedOutput: ResourceSerializedOutput,
-  ): Promise<void> {
-    const actualResources = await this._deserialize(JSON.parse(JSON.stringify(actualSerializedOutput)), false);
-    const oldResources = await this._deserialize(JSON.parse(JSON.stringify(oldSerializedOutput)), true);
-
-    // Refresh the resource data repository.
-    await Container.getInstance().get<ResourceDataRepository, typeof ResourceDataRepositoryFactory>(
-      ResourceDataRepository,
-      {
-        args: [true, Object.values(actualResources), Object.values(oldResources), []],
-      },
-    );
-  }
-
-  @EventSource(ResourceRegistrationEvent)
-  registerClass(className: string, deserializationClass: any): void {
-    if (this.classMapping[className]) {
-      throw new Error(`Class "${className}" is already registered!`);
-    }
-    this.classMapping[className] = deserializationClass;
-  }
-
   private async serialize(resources: UnknownResource[]): Promise<ResourceSerializedOutput> {
     const dependencies: IDependency[] = [];
     const serializedResources: ResourceSerializedOutput['resources'] = {};
@@ -149,22 +165,6 @@ export class ResourceSerializationService {
     }
 
     return { dependencies, resources: serializedResources };
-  }
-
-  @EventSource(ActualResourceSerializedEvent)
-  async serializeActualResources(): Promise<ResourceSerializedOutput> {
-    const resources = this.resourceDataRepository.getActualResourcesByProperties();
-    return this.serialize(resources);
-  }
-
-  @EventSource(NewResourceSerializedEvent)
-  async serializeNewResources(): Promise<ResourceSerializedOutput> {
-    const resources = this.resourceDataRepository.getNewResourcesByProperties();
-    return this.serialize(resources);
-  }
-
-  setResourceDeserializationTimeout(timeoutInMs: number): void {
-    this.RESOURCE_DESERIALIZATION_TIMEOUT_IN_MS = timeoutInMs;
   }
 }
 

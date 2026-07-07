@@ -18,15 +18,22 @@ type FactoryContainer<T> = { factory: FactoryValue<T>; metadata: { [key: string]
  * @group Functions/Container
  */
 export class Container {
-  private FACTORY_TIMEOUT_IN_MS = 3000;
+  private static instance: Container;
 
   private readonly factories: { [key: string]: FactoryContainer<unknown>[] } = {};
 
-  private static instance: Container;
+  private FACTORY_TIMEOUT_IN_MS = 3000;
 
   private readonly startupUnhandledPromises: Promise<unknown>[] = [];
 
   private constructor() {}
+
+  static getInstance(): Container {
+    if (!this.instance) {
+      this.instance = new Container();
+    }
+    return this.instance;
+  }
 
   copyFactories(): { [key: string]: FactoryContainer<unknown>[] } {
     const newFactoriesCopy: { [key: string]: FactoryContainer<unknown>[] } = {};
@@ -101,13 +108,6 @@ export class Container {
     return factory.create(...args);
   }
 
-  static getInstance(): Container {
-    if (!this.instance) {
-      this.instance = new Container();
-    }
-    return this.instance;
-  }
-
   has<T>(
     type: Constructable<T> | string,
     options?: {
@@ -164,6 +164,10 @@ export class Container {
     this.factories[name].push({ factory, metadata });
   }
 
+  registerStartupUnhandledPromise<T>(promise: Promise<T>): void {
+    this.startupUnhandledPromises.push(promise);
+  }
+
   registerValue<T>(
     type: Constructable<T> | string,
     value: T,
@@ -180,10 +184,6 @@ export class Container {
       },
       options,
     );
-  }
-
-  registerStartupUnhandledPromise<T>(promise: Promise<T>): void {
-    this.startupUnhandledPromises.push(promise);
   }
 
   /**

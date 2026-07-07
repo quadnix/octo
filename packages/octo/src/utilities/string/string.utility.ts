@@ -23,19 +23,19 @@ export class StringUtility {
   }
 
   /**
-   * Replaces every character that is not a letter, digit, underscore, or dash with an underscore.
-   * Suitable for terraform identifiers (resource names, output names), which allow dashes.
-   */
-  static sanitizeForIdentifier(value: string): string {
-    return value.replace(/[^a-zA-Z0-9_-]/g, '_');
-  }
-
-  /**
    * Replaces every character that is not a letter, digit, or underscore with an underscore.
    * Suitable for names that travel through environment variables (e.g. terraform variables,
    * which terragrunt passes as `TF_VAR_<name>`), where dashes are not allowed.
    */
   static sanitizeForEnvironmentVariable(value: string): string {
     return value.replace(/[^a-zA-Z0-9_]/g, '_');
+  }
+
+  /**
+   * Replaces every character that is not a letter, digit, underscore, or dash with an underscore.
+   * Suitable for terraform identifiers (resource names, output names), which allow dashes.
+   */
+  static sanitizeForIdentifier(value: string): string {
+    return value.replace(/[^a-zA-Z0-9_-]/g, '_');
   }
 }

@@ -31,6 +31,15 @@ export class Region extends AModel<RegionSchema, Region> {
     this.regionId = regionId;
   }
 
+  static override async unSynth(
+    region: RegionSchema,
+    deReferenceContext: (context: string) => Promise<UnknownModel>,
+  ): Promise<Region> {
+    assert(!!deReferenceContext);
+
+    return new Region(region.regionId);
+  }
+
   /**
    * To add an {@link Environment}.
    */
@@ -86,14 +95,5 @@ export class Region extends AModel<RegionSchema, Region> {
     return {
       regionId: this.regionId,
     };
-  }
-
-  static override async unSynth(
-    region: RegionSchema,
-    deReferenceContext: (context: string) => Promise<UnknownModel>,
-  ): Promise<Region> {
-    assert(!!deReferenceContext);
-
-    return new Region(region.regionId);
   }
 }

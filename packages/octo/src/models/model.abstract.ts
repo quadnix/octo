@@ -31,6 +31,14 @@ import type { IModel } from './model.interface.js';
 export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> implements IModel<S, T> {
   readonly anchors: (MatchingAnchor<BaseAnchorSchema> | UnknownAnchor)[] = [];
 
+  static override async unSynth(...args: unknown[]): Promise<UnknownModel> {
+    if (args.length > 4) {
+      throw new Error('Too many args in unSynth()');
+    }
+
+    throw new Error('Method not implemented! Use derived class implementation');
+  }
+
   addAnchor(anchor: MatchingAnchor<BaseAnchorSchema> | UnknownAnchor): void {
     const existingAnchor =
       anchor instanceof MatchingAnchor
@@ -335,12 +343,4 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
   abstract override setContext(): string | undefined;
 
   abstract override synth(): S;
-
-  static override async unSynth(...args: unknown[]): Promise<UnknownModel> {
-    if (args.length > 4) {
-      throw new Error('Too many args in unSynth()');
-    }
-
-    throw new Error('Method not implemented! Use derived class implementation');
-  }
 }

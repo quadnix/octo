@@ -23,13 +23,13 @@ export function createAppModule(): Constructable<AModule<TestAppModuleSchema, Ap
 
     static override readonly MODULE_SCHEMA = TestAppModuleSchema;
 
-    async onInit(inputs: TestAppModuleSchema): Promise<App> {
-      return new App(inputs.name);
-    }
-
     static setClassName(className: string): Constructable<AModule<TestAppModuleSchema, App>> {
       Object.defineProperty(this, 'name', { value: className });
       return this;
+    }
+
+    async onInit(inputs: TestAppModuleSchema): Promise<App> {
+      return new App(inputs.name);
     }
   };
 }
@@ -42,14 +42,14 @@ export function createAppOverlayModule(): Constructable<AModule<TestAppOverlayMo
 
     static override readonly MODULE_SCHEMA = TestAppOverlayModuleSchema;
 
-    async onInit(inputs: TestAppOverlayModuleSchema): Promise<TestOverlay> {
-      const anchor = inputs.app.getAnchor(inputs.anchorName)!;
-      return new TestOverlay('test-overlay', {}, [anchor]);
-    }
-
     static setClassName(className: string): Constructable<AModule<TestAppOverlayModuleSchema, TestOverlay>> {
       Object.defineProperty(this, 'name', { value: className });
       return this;
+    }
+
+    async onInit(inputs: TestAppOverlayModuleSchema): Promise<TestOverlay> {
+      const anchor = inputs.app.getAnchor(inputs.anchorName)!;
+      return new TestOverlay('test-overlay', {}, [anchor]);
     }
   };
 }

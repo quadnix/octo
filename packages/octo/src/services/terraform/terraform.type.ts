@@ -28,9 +28,9 @@ export function toHclNode(value: unknown): HclExpression {
 }
 
 export abstract class HclExpression {
-  abstract render(indent: string, context: RenderContext): string;
-
   collectRefs(_into: RefHclNode[]): void {}
+
+  abstract render(indent: string, context: RenderContext): string;
 }
 
 export class ExpressionHclNode extends HclExpression {
@@ -51,6 +51,14 @@ export class InterpolatedStringHclNode extends HclExpression {
     super();
   }
 
+  override collectRefs(into: RefHclNode[]): void {
+    this.parts.forEach((p) => {
+      if (p instanceof HclExpression) {
+        p.collectRefs(into);
+      }
+    });
+  }
+
   /**
    * Renders a quoted terraform string built from text parts and embedded `${...}` expressions,
    * e.g. the `local-exec` command of an external resource wrapper:
@@ -60,19 +68,24 @@ export class InterpolatedStringHclNode extends HclExpression {
     const content = this.parts.map((p) => (typeof p === 'string' ? p : `\${${p.render(indent, context)}}`)).join('');
     return `"${content}"`;
   }
-
-  override collectRefs(into: RefHclNode[]): void {
-    this.parts.forEach((p) => {
-      if (p instanceof HclExpression) {
-        p.collectRefs(into);
-      }
-    });
-  }
 }
 
 export class JsonEncodeHclNode extends HclExpression {
   constructor(private readonly subject: object | unknown[]) {
     super();
+  }
+
+  override collectRefs(into: RefHclNode[]): void {
+    const walk = (value: unknown): void => {
+      if (value instanceof HclExpression) {
+        value.collectRefs(into);
+      } else if (Array.isArray(value)) {
+        value.forEach(walk);
+      } else if (value !== null && typeof value === 'object') {
+        Object.values(value).forEach(walk);
+      }
+    };
+    walk(this.subject);
   }
 
   /**
@@ -126,24 +139,15 @@ export class JsonEncodeHclNode extends HclExpression {
 
     return `jsonencode({\n${body}\n${currentIndent}})`;
   }
-
-  override collectRefs(into: RefHclNode[]): void {
-    const walk = (value: unknown): void => {
-      if (value instanceof HclExpression) {
-        value.collectRefs(into);
-      } else if (Array.isArray(value)) {
-        value.forEach(walk);
-      } else if (value !== null && typeof value === 'object') {
-        Object.values(value).forEach(walk);
-      }
-    };
-    walk(this.subject);
-  }
 }
 
 export class ListHclNode extends HclExpression {
   constructor(private readonly items: HclExpression[]) {
     super();
+  }
+
+  override collectRefs(into: RefHclNode[]): void {
+    this.items.forEach((i) => i.collectRefs(into));
   }
 
   /**
@@ -152,10 +156,6 @@ export class ListHclNode extends HclExpression {
    */
   override render(indent: string, context: RenderContext): string {
     return `[${this.items.map((i) => i.render(indent, context)).join(', ')}]`;
-  }
-
-  override collectRefs(into: RefHclNode[]): void {
-    this.items.forEach((i) => i.collectRefs(into));
   }
 }
 
@@ -177,6 +177,10 @@ export class MapHclNode extends HclExpression {
     super();
   }
 
+  override collectRefs(into: RefHclNode[]): void {
+    this.entries.forEach(([, v]) => v.collectRefs(into));
+  }
+
   /**
    * Renders a `{ key = value }` map value, one entry per line.
    * This is a map ATTRIBUTE (`key = { }`),
@@ -186,10 +190,6 @@ export class MapHclNode extends HclExpression {
     const nextIndent = indent + context.step;
     const entries = this.entries.map(([k, v]) => `${nextIndent}${k} = ${v.render(nextIndent, context)}`);
     return `{\n${entries.join('\n')}\n${indent}}`;
-  }
-
-  override collectRefs(into: RefHclNode[]): void {
-    this.entries.forEach(([, v]) => v.collectRefs(into));
   }
 }
 
@@ -229,6 +229,10 @@ export class RefHclNode extends HclExpression {
     super();
   }
 
+  override collectRefs(into: RefHclNode[]): void {
+    into.push(this);
+  }
+
   /**
    * Renders a reference to a resource's response key whose final form is unknown until render time:
    * same folder → the producer's native expression; other folder → a `var.*` wired through terragrunt.
@@ -237,10 +241,6 @@ export class RefHclNode extends HclExpression {
   override render(_indent: string, context: RenderContext): string {
     const resolved = context.resolveRef(this);
     return this.entireResponse ? `jsonencode(${resolved})` : resolved;
-  }
-
-  override collectRefs(into: RefHclNode[]): void {
-    into.push(this);
   }
 }
 
@@ -337,21 +337,14 @@ export class TerraformBlock {
 export class TerraformData {
   private readonly children: (TerraformAttribute | TerraformBlock)[] = [];
 
-  constructor(
-    private readonly type: string,
-    private readonly name: string,
-  ) {}
-
   private get address(): string {
     return `data.${this.type}.${this.name}`;
   }
 
-  /**
-   * Returns an expression referencing an attribute of this data source.
-   */
-  ref(attribute: string): HclExpression {
-    return new ExpressionHclNode(`${this.address}.${attribute}`);
-  }
+  constructor(
+    private readonly type: string,
+    private readonly name: string,
+  ) {}
 
   attribute(key: string, value: unknown): void {
     this.children.push(new TerraformAttribute(key, toHclNode(value)));
@@ -365,6 +358,13 @@ export class TerraformData {
 
   collectRefs(into: RefHclNode[]): void {
     this.children.forEach((c) => c.collectRefs(into));
+  }
+
+  /**
+   * Returns an expression referencing an attribute of this data source.
+   */
+  ref(attribute: string): HclExpression {
+    return new ExpressionHclNode(`${this.address}.${attribute}`);
   }
 
   /**
@@ -398,6 +398,10 @@ export class TerraformOutput {
 }
 
 export class TerraformResource {
+  get address(): string {
+    return `${this.type}.${this.name}`;
+  }
+
   private readonly children: (TerraformAttribute | TerraformBlock)[] = [];
 
   constructor(
@@ -405,10 +409,6 @@ export class TerraformResource {
     private readonly name: string,
     private readonly intraDependsOn: string[], // Each intra TF resource of an octo resource depends on previous one.
   ) {}
-
-  get address(): string {
-    return `${this.type}.${this.name}`;
-  }
 
   attribute(key: string, value: unknown): void {
     this.children.push(new TerraformAttribute(key, toHclNode(value)));
@@ -450,18 +450,18 @@ export class TerraformResource {
 }
 
 export class TerraformVariable {
-  constructor(
-    private readonly name: string,
-    private readonly typeExpression: HclExpression,
-    private readonly options: { default: TerraformLiteralType; sensitive: boolean },
-  ) {}
-
   /**
    * Returns the `var.<name>` expression for consuming this variable.
    */
   get ref(): HclExpression {
     return new ExpressionHclNode(`var.${this.name}`);
   }
+
+  constructor(
+    private readonly name: string,
+    private readonly typeExpression: HclExpression,
+    private readonly options: { default: TerraformLiteralType; sensitive: boolean },
+  ) {}
 
   collectRefs(into: RefHclNode[]): void {
     this.typeExpression.collectRefs(into);

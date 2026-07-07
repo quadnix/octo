@@ -26,6 +26,15 @@ export class Deployment extends AModel<DeploymentSchema, Deployment> {
     this.deploymentTag = deploymentTag;
   }
 
+  static override async unSynth(
+    deployment: DeploymentSchema,
+    deReferenceContext: (context: string) => Promise<UnknownModel>,
+  ): Promise<Deployment> {
+    assert(!!deReferenceContext);
+
+    return new Deployment(deployment.deploymentTag);
+  }
+
   override setContext(): string | undefined {
     const parents = this.getParents();
     const parent = parents['server']?.[0]?.to;
@@ -41,14 +50,5 @@ export class Deployment extends AModel<DeploymentSchema, Deployment> {
     return {
       deploymentTag: this.deploymentTag,
     };
-  }
-
-  static override async unSynth(
-    deployment: DeploymentSchema,
-    deReferenceContext: (context: string) => Promise<UnknownModel>,
-  ): Promise<Deployment> {
-    assert(!!deReferenceContext);
-
-    return new Deployment(deployment.deploymentTag);
   }
 }

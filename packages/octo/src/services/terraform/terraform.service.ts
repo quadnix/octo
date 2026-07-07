@@ -36,6 +36,11 @@ import {
  */
 interface OctoTerraformResourceMapping {
   /**
+   * Set for external resources only: the single output carrying the entire response map.
+   */
+  entireResponseOutput?: string;
+
+  /**
    * The terragrunt folder this octo resource lives in (one folder per octo module).
    */
   moduleId: string;
@@ -45,11 +50,6 @@ interface OctoTerraformResourceMapping {
    * Empty array for external resources (see {@link entireResponseOutput}).
    */
   outputMappings: { key: string; outputName: string }[];
-
-  /**
-   * Set for external resources only: the single output carrying the entire response map.
-   */
-  entireResponseOutput?: string;
 
   /**
    * The octo resource context, used during validate to match a TF plan entry back to its octo resource.
@@ -97,8 +97,6 @@ interface TerraformModuleFiles {
 }
 
 export interface TerraformModuleScope {
-  readonly moduleId: string;
-
   /**
    * Wraps an octo resource whose lifecycle runs outside Terraform (e.g. a script or SDK call).
    * Generates a `null_resource` + `data "external"` pair that calls `octo run-action`
@@ -143,8 +141,8 @@ export interface TerraformModuleScope {
    * or a `var.*` wired through terragrunt when it is in a different module.
    */
   getRef<T extends UnknownResource>(resource: T, key: keyof ResourceSchema<T>['response'] & string): HclExpression;
-  getRef<S extends BaseResourceSchema>(resource: MatchingResource<S>, key: keyof S['response'] & string): HclExpression;
 
+  getRef<S extends BaseResourceSchema>(resource: MatchingResource<S>, key: keyof S['response'] & string): HclExpression;
   /**
    * Wraps a value in a `jsonencode(...)` call.
    */
@@ -156,6 +154,8 @@ export interface TerraformModuleScope {
    * The distinction matters: blocks have no `=`. Check the provider docs for each argument.
    */
   mapAttr(value: Record<string, unknown>): HclExpression;
+
+  readonly moduleId: string;
 
   /**
    * Emits a value verbatim as a terraform expression (no quoting).
@@ -366,118 +366,14 @@ export class TerraformService {
   private readonly resourceRegistry: Map<string, OctoTerraformResource> = new Map();
   private readonly sanitizedResourceIds: Map<string, string> = new Map(); // Sanitized id -> original id.
 
+  private get step(): string {
+    return ' '.repeat(this.indentLength);
+  }
+
   constructor(
     private readonly runOctoResourceActionCommandPrefix: string = 'octo run-action',
     private readonly indentLength: number = 2,
   ) {}
-
-  /**
-   * Generates the `null_resource` + `data "external"` wrapper for an external resource.
-   *
-   * Only the parts that depend on no other resource are built here:
-   * - the `null_resource` shell (its triggers and `local-exec` provisioners are filled in later),
-   * - the `data "external"` read of `.octo-outputs/<id>.json`, deferred to apply time via `depends_on`,
-   * - the single whole-result output (`data.external.<name>.result`) that carries the entire response.
-   *
-   * The external resource is never enumerated per response key: its response shape is unknown at
-   * generation time (the action has not run) and is, by the `data "external"` protocol, a flat map of
-   * strings. Refs to it (`getRef`) resolve by indexing this one expression; commit reads the whole map back.
-   *
-   * The parent-input wiring (triggers + create/destroy commands) reads every parent's outputs, which
-   * only all exist once registration is complete. It is therefore deferred to
-   * {@link wireExternalResourceInputs} (run at the start of {@link computeWiring}). This deferral is
-   * what lets the generate sweep contribute resources in any order, rather than parents-first.
-   */
-  private addOctoTerraformExternalResource<T extends UnknownResource>(
-    moduleId: string,
-    octoResource: T,
-  ): OctoTerraformResourceScope<ResourceSchema<T>['response']> {
-    const resourceId = octoResource.resourceId;
-    const name = StringUtility.sanitizeForIdentifier(resourceId);
-
-    const parents: UnknownResource[] = (octoResource.parents || []).map((p) =>
-      p instanceof MatchingResource ? p.getActual() : p,
-    );
-
-    const octoTerraformResource = this.addOctoTerraformResource(moduleId, octoResource, {
-      explicitParents: parents,
-      externalResultExpression: `data.external.${name}.result`,
-    });
-    this.module(moduleId).hasExternalResources = true;
-
-    // The null_resource shell. Its triggers and provisioner are added by wireExternalResourceInputs(),
-    // once every parent's outputs are known.
-    const nullResource = octoTerraformResource.addTerraformResource('null_resource', name);
-
-    const outputsFile = `\${path.module}/.octo-outputs/${name}.json`;
-    const dataExternal = this.addTerraformData(moduleId, 'external', name, {
-      program: ['cat', new ExpressionHclNode(`"${outputsFile}"`)],
-    });
-    dataExternal.attribute('depends_on', new ExpressionHclNode(`[null_resource.${name}]`));
-
-    this.pendingExternalResourcesInputWiring.push({ name, nullResource, octoResource, resourceId });
-
-    return octoTerraformResource;
-  }
-
-  private addOctoTerraformResource<T extends UnknownResource>(
-    moduleId: string,
-    octoResource: T,
-    options: {
-      explicitParents?: (UnknownResource | MatchingResource<BaseResourceSchema>)[];
-      externalResultExpression?: string;
-      provider?: TerraformProviderContext;
-    } = {},
-  ): OctoTerraformResource<ResourceSchema<T>['response']> {
-    const explicitParentResourceIds = (options.explicitParents || []).map((p) =>
-      p instanceof MatchingResource ? p.getSchemaInstanceInResourceAction().resourceId : p.resourceId,
-    );
-
-    // Distinct resource ids must stay distinct after sanitization, or else the generated output names,
-    // identifiers, and variable names would silently collide. Environment-variable sanitization
-    // merges strictly more characters than identifier sanitization, so this one check covers both.
-    const sanitizedResourceId = StringUtility.sanitizeForEnvironmentVariable(octoResource.resourceId);
-    const existingResourceId = this.sanitizedResourceIds.get(sanitizedResourceId);
-    if (existingResourceId !== undefined) {
-      if (existingResourceId === octoResource.resourceId) {
-        throw new Error(`Resource id "${octoResource.resourceId}" is already registered!`);
-      }
-      throw new Error(
-        `Resource id "${octoResource.resourceId}" collides with resource id "${existingResourceId}" after sanitization!`,
-      );
-    }
-    this.sanitizedResourceIds.set(sanitizedResourceId, octoResource.resourceId);
-
-    const module = this.module(moduleId);
-
-    let providerRef: string | undefined;
-    if (options.provider) {
-      const { alias, key, providerType } = this.findProvider(options.provider.accountId, options.provider.regionId);
-      providerRef = `${providerType}.${alias}`;
-      module.providerKeys.add(key);
-    }
-
-    // Seed mock outputs from the producer schema's declared response defaults — never the live
-    // response — so a regenerate after a commit cannot inline real (possibly secret) applied values.
-    // Test resources carry a non-constructable NODE_SCHEMA; they fall back to synthetic placeholders.
-    const schemaClass = (octoResource.constructor as unknown as { NODE_SCHEMA?: Constructable<BaseResourceSchema> })
-      .NODE_SCHEMA;
-    const responseDefaults: BaseResourceSchema['response'] =
-      typeof schemaClass === 'function' ? (getSchemaDefaults(schemaClass).response ?? {}) : {};
-
-    const newResource = new OctoTerraformResource<ResourceSchema<T>['response']>(
-      octoResource.resourceId,
-      octoResource.getContext(),
-      moduleId,
-      explicitParentResourceIds,
-      providerRef,
-      options.externalResultExpression,
-      responseDefaults,
-    );
-    module.resources.push(newResource);
-    this.resourceRegistry.set(octoResource.resourceId, newResource);
-    return newResource;
-  }
 
   /**
    * Sets the minimum terraform version and the `required_providers` sources/versions that render
@@ -535,6 +431,364 @@ export class TerraformService {
       addTerraformResourceSpec(block, spec);
       this.providers.set(key, { accountId, alias, block, providerType, regionId });
     }
+  }
+
+  /**
+   * Returns the folder record of the current sweep: one entry per folder-bearing module — a
+   * preloaded shell the sweep left empty is an emptied folder, not folder-bearing, so it drops out
+   * of the record. Call after the sweep has contributed every resource (the same point
+   * {@link renderAllModules} is valid).
+   */
+  getFolderRecords(): TerraformFolderOutput[] {
+    // Provider blocks are registration-time constants; a resource reference inside one is invalid.
+    const context: RenderContext = {
+      resolveRef: () => {
+        throw new Error('Resource references are not supported in provider blocks!');
+      },
+      step: this.step,
+    };
+
+    return [...this.modules.values()]
+      .filter((module) => module.resources.length > 0)
+      .map((module) => ({
+        hasExternalResources: module.hasExternalResources,
+        moduleId: module.moduleId,
+        providers: [...module.providerKeys].sort().map((key) => {
+          const provider = this.providers.get(key)!;
+          return {
+            accountId: provider.accountId,
+            blockHcl: provider.block.render('', context),
+            providerType: provider.providerType,
+            regionId: provider.regionId,
+            requiredProvider: this.requiredProviders[provider.providerType],
+          };
+        }),
+      }));
+  }
+
+  getModuleIds(): string[] {
+    return [...this.modules.keys()];
+  }
+
+  getOctoTerraformResourceMappings(): OctoTerraformResourceMapping[] {
+    return [...this.resourceRegistry.values()].map((r) => {
+      const isExternal = r.externalResultExpression !== undefined;
+      return {
+        entireResponseOutput: isExternal ? r.outputs.get(r.resourceId)!.name : undefined,
+        moduleId: r.moduleId,
+        outputMappings: isExternal ? [] : [...r.outputs.entries()].map(([key, o]) => ({ key, outputName: o.name })),
+        resourceContext: r.resourceContext,
+        resourceId: r.resourceId,
+        terraformAddresses: r.terraformResources.map((t) => t.address),
+      };
+    });
+  }
+
+  /**
+   * Resource→resource value-reference edges, keyed by the referenced (producer) resourceId → the set
+   * of resourceIds that reference it. Edges follow `getRef` value references only — the same graph
+   * terraform cascades replacement along (force-new). `depends_on`/explicit parents are excluded:
+   * an ordering edge carries no value and does not force a dependent's replacement.
+   *
+   * Used by validate to attribute terraform's transitive replacement cascade: when octo replaces a
+   * resource, terraform recreates everything that (transitively) references it, so those changes are
+   * expected rather than unattributed.
+   */
+  getResourceReferrers(): Map<string, Set<string>> {
+    const referrers = new Map<string, Set<string>>();
+    const addEdge = (referentId: string, referrerId: string): void => {
+      if (referentId === referrerId) {
+        return;
+      }
+      if (!referrers.has(referentId)) {
+        referrers.set(referentId, new Set());
+      }
+      referrers.get(referentId)!.add(referrerId);
+    };
+
+    for (const resource of this.resourceRegistry.values()) {
+      const refs: RefHclNode[] = [];
+      resource.collectRefs(refs);
+      for (const ref of refs) {
+        addEdge(ref.resourceId, resource.resourceId);
+      }
+
+      // An external resource consumes each parent's outputs as inputs — its null_resource triggers
+      // embed the parent's values, so a parent replace recreates it. That is a true value edge, even
+      // though it is recorded as an explicit parent (and its trigger refs are wired only at render
+      // time, so they are not yet in `collectRefs` here).
+      if (resource.externalResultExpression !== undefined) {
+        for (const parentResourceId of resource.explicitParentResourceIds) {
+          addEdge(parentResourceId, resource.resourceId);
+        }
+      }
+    }
+    return referrers;
+  }
+
+  /**
+   * Phase 2 of rendering: prints the four files of every folder from the wiring computed in
+   * phase 1. Makes no decisions — when a {@link RefHclNode} renders, its answer is looked up in the
+   * folder's precomputed `resolvedRefs`. Cross-folder dependency cycles throw (in phase 1).
+   */
+  renderAllModules(): Map<string, TerraformModuleFiles> {
+    const wiring = this.computeWiring();
+
+    const result = new Map<string, TerraformModuleFiles>();
+    for (const module of this.modules.values()) {
+      const moduleWiring = wiring.get(module.moduleId)!;
+      const context: RenderContext = {
+        resolveRef: (ref) => moduleWiring.resolvedRefs.get(`${ref.resourceId}.${ref.key}`)!,
+        step: this.step,
+      };
+
+      // main.tf: terraform config, provider blocks, data sources, resources.
+      const requiredProviders: Record<string, { minVersion?: string; source: string }> = {};
+      for (const key of module.providerKeys) {
+        const providerType = this.providers.get(key)!.providerType;
+        requiredProviders[providerType] = this.requiredProviders[providerType];
+      }
+      if (module.hasExternalResources) {
+        requiredProviders['null'] = this.requiredProviders['null'] ?? { source: 'hashicorp/null' };
+        requiredProviders['external'] = this.requiredProviders['external'] ?? { source: 'hashicorp/external' };
+      }
+
+      const mainTf = [
+        this.renderConfigBlock(requiredProviders, context),
+        ...[...module.providerKeys].sort().map((key) => this.providers.get(key)!.block.render('', context)),
+        ...module.dataSources.map((d) => d.render(context)),
+        ...module.resources.map((r) =>
+          r.terraformResources.map((t) => t.render(context, moduleWiring.parentDependsOn.get(r) ?? [])).join('\n\n'),
+        ),
+      ]
+        .filter(Boolean)
+        .join('\n\n');
+
+      // variables.tf: auto variables from cross-module refs, then user variables. An external
+      // producer's variable carries its entire response object (consumed as `var.<name>.<key>`), so it
+      // must be typed `map(string)` — terraform's external-data contract — otherwise an un-typed variable
+      // coerces the object to a JSON string and `var.<name>.<key>` fails at plan/apply. Per-key scalar
+      // variables stay un-typed.
+      const variablesTf = [
+        ...[...moduleWiring.autoVariables.entries()]
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([name, v]) =>
+            v.objectKeys ? `variable "${name}" {\n${this.step}type = map(string)\n}` : `variable "${name}" {}`,
+          ),
+        ...module.variables.map((v) => v.render(context)),
+      ]
+        .filter(Boolean)
+        .join('\n\n');
+
+      // outputs.tf: every resource's declared outputs.
+      const outputsTf = module.resources
+        .map((r) =>
+          [...r.outputs.values()]
+            .map((o) => new TerraformOutput(o.name, o.value, o.sensitive).render(context))
+            .join('\n\n'),
+        )
+        .filter(Boolean)
+        .join('\n\n');
+
+      const terragruntHcl = this.renderTerragrunt(moduleWiring);
+
+      result.set(module.moduleId, {
+        mainTf: mainTf + '\n',
+        outputsTf: outputsTf ? outputsTf + '\n' : '',
+        terragruntHcl: terragruntHcl + '\n',
+        variablesTf: variablesTf ? variablesTf + '\n' : '',
+      });
+    }
+
+    return result;
+  }
+
+  /**
+   * Prints the four files of an **empty** folder from a recorded folder: a `main.tf` with the
+   * config block rebuilt from the recorded `required_providers` entries (plus null/external when
+   * the folder had external resources) and the recorded provider blocks verbatim; empty
+   * variables/outputs; a remote_state-only `terragrunt.hcl`.
+   *
+   * Reads no module state;
+   * the generate mode decides which folders are emptied and which recorded folder each renders from.
+   */
+  renderEmptyModule(record: TerraformFolderOutput): TerraformModuleFiles {
+    const context: RenderContext = {
+      resolveRef: () => {
+        throw new Error('Resource references are not supported in emptied folders!');
+      },
+      step: this.step,
+    };
+
+    const requiredProviders: Record<string, { minVersion?: string; source: string }> = {};
+    for (const provider of record.providers) {
+      requiredProviders[provider.providerType] = provider.requiredProvider;
+    }
+    if (record.hasExternalResources) {
+      requiredProviders['null'] = this.requiredProviders['null'] ?? { source: 'hashicorp/null' };
+      requiredProviders['external'] = this.requiredProviders['external'] ?? { source: 'hashicorp/external' };
+    }
+
+    const mainTf = [this.renderConfigBlock(requiredProviders, context), ...record.providers.map((p) => p.blockHcl)]
+      .filter(Boolean)
+      .join('\n\n');
+
+    return {
+      mainTf: mainTf + '\n',
+      outputsTf: '',
+      terragruntHcl:
+        this.renderTerragrunt({
+          autoVariables: new Map(),
+          moduleDependencies: new Map(),
+          parentDependsOn: new Map(),
+          resolvedRefs: new Map(),
+        }) + '\n',
+      variablesTf: '',
+    };
+  }
+
+  reset(): void {
+    this.minTerraformVersion = '1.6.0';
+    this.providers.clear();
+    this.requiredProviders = {};
+    this.resetTransactionState();
+  }
+
+  /**
+   * Clears what a transaction's sweep contributed (modules, resources, wiring), keeping the
+   * per-process registrations (terraform config and providers) intact. Test harnesses that run
+   * multiple transactions in one process call this between them; a real octo process runs one
+   * transaction, so production code never resets.
+   */
+  resetTransactionState(): void {
+    this.modules.clear();
+    this.pendingExternalResourcesInputWiring.length = 0;
+    this.resourceRegistry.clear();
+    this.sanitizedResourceIds.clear();
+  }
+
+  scope(moduleId: string): TerraformModuleScope {
+    return {
+      addOctoTerraformExternalResource: (octoResource) => this.addOctoTerraformExternalResource(moduleId, octoResource),
+      addOctoTerraformResource: (octoResource, options = {}) =>
+        this.addOctoTerraformResource(moduleId, octoResource, options),
+      addTerraformData: (type, name, spec = {}) => this.addTerraformData(moduleId, type, name, spec),
+      getProviderAliasRef: (accountId, regionId) => this.getProviderAliasRef(moduleId, accountId, regionId),
+      getRef: ((resource: UnknownResource | MatchingResource<any>, key: string) =>
+        this.getRef(resource as UnknownResource, key)) as TerraformModuleScope['getRef'],
+      jsonencode: (subject) => this.jsonencode(subject),
+      mapAttr: (value) => this.mapAttr(value),
+      moduleId,
+      raw: (value) => this.raw(value),
+      type: (schema) => this.type(schema),
+      variable: (name, typeExpression, options) => this.variable(moduleId, name, typeExpression, options),
+    };
+  }
+  /**
+   * Generates the `null_resource` + `data "external"` wrapper for an external resource.
+   *
+   * Only the parts that depend on no other resource are built here:
+   * - the `null_resource` shell (its triggers and `local-exec` provisioners are filled in later),
+   * - the `data "external"` read of `.octo-outputs/<id>.json`, deferred to apply time via `depends_on`,
+   * - the single whole-result output (`data.external.<name>.result`) that carries the entire response.
+   *
+   * The external resource is never enumerated per response key: its response shape is unknown at
+   * generation time (the action has not run) and is, by the `data "external"` protocol, a flat map of
+   * strings. Refs to it (`getRef`) resolve by indexing this one expression; commit reads the whole map back.
+   *
+   * The parent-input wiring (triggers + create/destroy commands) reads every parent's outputs, which
+   * only all exist once registration is complete. It is therefore deferred to
+   * {@link wireExternalResourceInputs} (run at the start of {@link computeWiring}). This deferral is
+   * what lets the generate sweep contribute resources in any order, rather than parents-first.
+   */
+  private addOctoTerraformExternalResource<T extends UnknownResource>(
+    moduleId: string,
+    octoResource: T,
+  ): OctoTerraformResourceScope<ResourceSchema<T>['response']> {
+    const resourceId = octoResource.resourceId;
+    const name = StringUtility.sanitizeForIdentifier(resourceId);
+
+    const parents: UnknownResource[] = (octoResource.parents || []).map((p) =>
+      p instanceof MatchingResource ? p.getActual() : p,
+    );
+
+    const octoTerraformResource = this.addOctoTerraformResource(moduleId, octoResource, {
+      explicitParents: parents,
+      externalResultExpression: `data.external.${name}.result`,
+    });
+    this.module(moduleId).hasExternalResources = true;
+
+    // The null_resource shell. Its triggers and provisioner are added by wireExternalResourceInputs(),
+    // once every parent's outputs are known.
+    const nullResource = octoTerraformResource.addTerraformResource('null_resource', name);
+
+    const outputsFile = `\${path.module}/.octo-outputs/${name}.json`;
+    const dataExternal = this.addTerraformData(moduleId, 'external', name, {
+      program: ['cat', new ExpressionHclNode(`"${outputsFile}"`)],
+    });
+    dataExternal.attribute('depends_on', new ExpressionHclNode(`[null_resource.${name}]`));
+
+    this.pendingExternalResourcesInputWiring.push({ name, nullResource, octoResource, resourceId });
+
+    return octoTerraformResource;
+  }
+  private addOctoTerraformResource<T extends UnknownResource>(
+    moduleId: string,
+    octoResource: T,
+    options: {
+      explicitParents?: (UnknownResource | MatchingResource<BaseResourceSchema>)[];
+      externalResultExpression?: string;
+      provider?: TerraformProviderContext;
+    } = {},
+  ): OctoTerraformResource<ResourceSchema<T>['response']> {
+    const explicitParentResourceIds = (options.explicitParents || []).map((p) =>
+      p instanceof MatchingResource ? p.getSchemaInstanceInResourceAction().resourceId : p.resourceId,
+    );
+
+    // Distinct resource ids must stay distinct after sanitization, or else the generated output names,
+    // identifiers, and variable names would silently collide. Environment-variable sanitization
+    // merges strictly more characters than identifier sanitization, so this one check covers both.
+    const sanitizedResourceId = StringUtility.sanitizeForEnvironmentVariable(octoResource.resourceId);
+    const existingResourceId = this.sanitizedResourceIds.get(sanitizedResourceId);
+    if (existingResourceId !== undefined) {
+      if (existingResourceId === octoResource.resourceId) {
+        throw new Error(`Resource id "${octoResource.resourceId}" is already registered!`);
+      }
+      throw new Error(
+        `Resource id "${octoResource.resourceId}" collides with resource id "${existingResourceId}" after sanitization!`,
+      );
+    }
+    this.sanitizedResourceIds.set(sanitizedResourceId, octoResource.resourceId);
+
+    const module = this.module(moduleId);
+
+    let providerRef: string | undefined;
+    if (options.provider) {
+      const { alias, key, providerType } = this.findProvider(options.provider.accountId, options.provider.regionId);
+      providerRef = `${providerType}.${alias}`;
+      module.providerKeys.add(key);
+    }
+
+    // Seed mock outputs from the producer schema's declared response defaults — never the live
+    // response — so a regenerate after a commit cannot inline real (possibly secret) applied values.
+    // Test resources carry a non-constructable NODE_SCHEMA; they fall back to synthetic placeholders.
+    const schemaClass = (octoResource.constructor as unknown as { NODE_SCHEMA?: Constructable<BaseResourceSchema> })
+      .NODE_SCHEMA;
+    const responseDefaults: BaseResourceSchema['response'] =
+      typeof schemaClass === 'function' ? (getSchemaDefaults(schemaClass).response ?? {}) : {};
+
+    const newResource = new OctoTerraformResource<ResourceSchema<T>['response']>(
+      octoResource.resourceId,
+      octoResource.getContext(),
+      moduleId,
+      explicitParentResourceIds,
+      providerRef,
+      options.externalResultExpression,
+      responseDefaults,
+    );
+    module.resources.push(newResource);
+    this.resourceRegistry.set(octoResource.resourceId, newResource);
+    return newResource;
   }
 
   private addTerraformData(
@@ -765,43 +1019,6 @@ export class TerraformService {
     return { alias: provider.alias, key, providerType: provider.providerType };
   }
 
-  /**
-   * Returns the folder record of the current sweep: one entry per folder-bearing module — a
-   * preloaded shell the sweep left empty is an emptied folder, not folder-bearing, so it drops out
-   * of the record. Call after the sweep has contributed every resource (the same point
-   * {@link renderAllModules} is valid).
-   */
-  getFolderRecords(): TerraformFolderOutput[] {
-    // Provider blocks are registration-time constants; a resource reference inside one is invalid.
-    const context: RenderContext = {
-      resolveRef: () => {
-        throw new Error('Resource references are not supported in provider blocks!');
-      },
-      step: this.step,
-    };
-
-    return [...this.modules.values()]
-      .filter((module) => module.resources.length > 0)
-      .map((module) => ({
-        hasExternalResources: module.hasExternalResources,
-        moduleId: module.moduleId,
-        providers: [...module.providerKeys].sort().map((key) => {
-          const provider = this.providers.get(key)!;
-          return {
-            accountId: provider.accountId,
-            blockHcl: provider.block.render('', context),
-            providerType: provider.providerType,
-            regionId: provider.regionId,
-            requiredProvider: this.requiredProviders[provider.providerType],
-          };
-        }),
-      }));
-  }
-
-  getModuleIds(): string[] {
-    return [...this.modules.keys()];
-  }
-
   private getProviderAliasRef(moduleId: string, accountId: string, regionId?: string): HclExpression {
     const { alias, key, providerType } = this.findProvider(accountId, regionId);
     this.module(moduleId).providerKeys.add(key);
@@ -822,62 +1039,6 @@ export class TerraformService {
         ? resource.getSchemaInstanceInResourceAction().resourceId
         : resource.resourceId;
     return new RefHclNode(resourceId, key);
-  }
-
-  /**
-   * Resource→resource value-reference edges, keyed by the referenced (producer) resourceId → the set
-   * of resourceIds that reference it. Edges follow `getRef` value references only — the same graph
-   * terraform cascades replacement along (force-new). `depends_on`/explicit parents are excluded:
-   * an ordering edge carries no value and does not force a dependent's replacement.
-   *
-   * Used by validate to attribute terraform's transitive replacement cascade: when octo replaces a
-   * resource, terraform recreates everything that (transitively) references it, so those changes are
-   * expected rather than unattributed.
-   */
-  getResourceReferrers(): Map<string, Set<string>> {
-    const referrers = new Map<string, Set<string>>();
-    const addEdge = (referentId: string, referrerId: string): void => {
-      if (referentId === referrerId) {
-        return;
-      }
-      if (!referrers.has(referentId)) {
-        referrers.set(referentId, new Set());
-      }
-      referrers.get(referentId)!.add(referrerId);
-    };
-
-    for (const resource of this.resourceRegistry.values()) {
-      const refs: RefHclNode[] = [];
-      resource.collectRefs(refs);
-      for (const ref of refs) {
-        addEdge(ref.resourceId, resource.resourceId);
-      }
-
-      // An external resource consumes each parent's outputs as inputs — its null_resource triggers
-      // embed the parent's values, so a parent replace recreates it. That is a true value edge, even
-      // though it is recorded as an explicit parent (and its trigger refs are wired only at render
-      // time, so they are not yet in `collectRefs` here).
-      if (resource.externalResultExpression !== undefined) {
-        for (const parentResourceId of resource.explicitParentResourceIds) {
-          addEdge(parentResourceId, resource.resourceId);
-        }
-      }
-    }
-    return referrers;
-  }
-
-  getOctoTerraformResourceMappings(): OctoTerraformResourceMapping[] {
-    return [...this.resourceRegistry.values()].map((r) => {
-      const isExternal = r.externalResultExpression !== undefined;
-      return {
-        entireResponseOutput: isExternal ? r.outputs.get(r.resourceId)!.name : undefined,
-        moduleId: r.moduleId,
-        outputMappings: isExternal ? [] : [...r.outputs.entries()].map(([key, o]) => ({ key, outputName: o.name })),
-        resourceContext: r.resourceContext,
-        resourceId: r.resourceId,
-        terraformAddresses: r.terraformResources.map((t) => t.address),
-      };
-    });
   }
 
   private jsonencode(subject: object | unknown[]): HclExpression {
@@ -904,83 +1065,6 @@ export class TerraformService {
   }
 
   /**
-   * Phase 2 of rendering: prints the four files of every folder from the wiring computed in
-   * phase 1. Makes no decisions — when a {@link RefHclNode} renders, its answer is looked up in the
-   * folder's precomputed `resolvedRefs`. Cross-folder dependency cycles throw (in phase 1).
-   */
-  renderAllModules(): Map<string, TerraformModuleFiles> {
-    const wiring = this.computeWiring();
-
-    const result = new Map<string, TerraformModuleFiles>();
-    for (const module of this.modules.values()) {
-      const moduleWiring = wiring.get(module.moduleId)!;
-      const context: RenderContext = {
-        resolveRef: (ref) => moduleWiring.resolvedRefs.get(`${ref.resourceId}.${ref.key}`)!,
-        step: this.step,
-      };
-
-      // main.tf: terraform config, provider blocks, data sources, resources.
-      const requiredProviders: Record<string, { minVersion?: string; source: string }> = {};
-      for (const key of module.providerKeys) {
-        const providerType = this.providers.get(key)!.providerType;
-        requiredProviders[providerType] = this.requiredProviders[providerType];
-      }
-      if (module.hasExternalResources) {
-        requiredProviders['null'] = this.requiredProviders['null'] ?? { source: 'hashicorp/null' };
-        requiredProviders['external'] = this.requiredProviders['external'] ?? { source: 'hashicorp/external' };
-      }
-
-      const mainTf = [
-        this.renderConfigBlock(requiredProviders, context),
-        ...[...module.providerKeys].sort().map((key) => this.providers.get(key)!.block.render('', context)),
-        ...module.dataSources.map((d) => d.render(context)),
-        ...module.resources.map((r) =>
-          r.terraformResources.map((t) => t.render(context, moduleWiring.parentDependsOn.get(r) ?? [])).join('\n\n'),
-        ),
-      ]
-        .filter(Boolean)
-        .join('\n\n');
-
-      // variables.tf: auto variables from cross-module refs, then user variables. An external
-      // producer's variable carries its entire response object (consumed as `var.<name>.<key>`), so it
-      // must be typed `map(string)` — terraform's external-data contract — otherwise an un-typed variable
-      // coerces the object to a JSON string and `var.<name>.<key>` fails at plan/apply. Per-key scalar
-      // variables stay un-typed.
-      const variablesTf = [
-        ...[...moduleWiring.autoVariables.entries()]
-          .sort(([a], [b]) => a.localeCompare(b))
-          .map(([name, v]) =>
-            v.objectKeys ? `variable "${name}" {\n${this.step}type = map(string)\n}` : `variable "${name}" {}`,
-          ),
-        ...module.variables.map((v) => v.render(context)),
-      ]
-        .filter(Boolean)
-        .join('\n\n');
-
-      // outputs.tf: every resource's declared outputs.
-      const outputsTf = module.resources
-        .map((r) =>
-          [...r.outputs.values()]
-            .map((o) => new TerraformOutput(o.name, o.value, o.sensitive).render(context))
-            .join('\n\n'),
-        )
-        .filter(Boolean)
-        .join('\n\n');
-
-      const terragruntHcl = this.renderTerragrunt(moduleWiring);
-
-      result.set(module.moduleId, {
-        mainTf: mainTf + '\n',
-        outputsTf: outputsTf ? outputsTf + '\n' : '',
-        terragruntHcl: terragruntHcl + '\n',
-        variablesTf: variablesTf ? variablesTf + '\n' : '',
-      });
-    }
-
-    return result;
-  }
-
-  /**
    * Prints one folder's `terraform { required_version, required_providers }` config block.
    */
   private renderConfigBlock(
@@ -1004,50 +1088,6 @@ export class TerraformService {
     }
 
     return configBlock.render('', context);
-  }
-
-  /**
-   * Prints the four files of an **empty** folder from a recorded folder: a `main.tf` with the
-   * config block rebuilt from the recorded `required_providers` entries (plus null/external when
-   * the folder had external resources) and the recorded provider blocks verbatim; empty
-   * variables/outputs; a remote_state-only `terragrunt.hcl`.
-   *
-   * Reads no module state;
-   * the generate mode decides which folders are emptied and which recorded folder each renders from.
-   */
-  renderEmptyModule(record: TerraformFolderOutput): TerraformModuleFiles {
-    const context: RenderContext = {
-      resolveRef: () => {
-        throw new Error('Resource references are not supported in emptied folders!');
-      },
-      step: this.step,
-    };
-
-    const requiredProviders: Record<string, { minVersion?: string; source: string }> = {};
-    for (const provider of record.providers) {
-      requiredProviders[provider.providerType] = provider.requiredProvider;
-    }
-    if (record.hasExternalResources) {
-      requiredProviders['null'] = this.requiredProviders['null'] ?? { source: 'hashicorp/null' };
-      requiredProviders['external'] = this.requiredProviders['external'] ?? { source: 'hashicorp/external' };
-    }
-
-    const mainTf = [this.renderConfigBlock(requiredProviders, context), ...record.providers.map((p) => p.blockHcl)]
-      .filter(Boolean)
-      .join('\n\n');
-
-    return {
-      mainTf: mainTf + '\n',
-      outputsTf: '',
-      terragruntHcl:
-        this.renderTerragrunt({
-          autoVariables: new Map(),
-          moduleDependencies: new Map(),
-          parentDependsOn: new Map(),
-          resolvedRefs: new Map(),
-        }) + '\n',
-      variablesTf: '',
-    };
   }
 
   /**
@@ -1150,48 +1190,6 @@ export class TerraformService {
     }
 
     return sections.join('\n\n');
-  }
-
-  reset(): void {
-    this.minTerraformVersion = '1.6.0';
-    this.providers.clear();
-    this.requiredProviders = {};
-    this.resetTransactionState();
-  }
-
-  /**
-   * Clears what a transaction's sweep contributed (modules, resources, wiring), keeping the
-   * per-process registrations (terraform config and providers) intact. Test harnesses that run
-   * multiple transactions in one process call this between them; a real octo process runs one
-   * transaction, so production code never resets.
-   */
-  resetTransactionState(): void {
-    this.modules.clear();
-    this.pendingExternalResourcesInputWiring.length = 0;
-    this.resourceRegistry.clear();
-    this.sanitizedResourceIds.clear();
-  }
-
-  private get step(): string {
-    return ' '.repeat(this.indentLength);
-  }
-
-  scope(moduleId: string): TerraformModuleScope {
-    return {
-      addOctoTerraformExternalResource: (octoResource) => this.addOctoTerraformExternalResource(moduleId, octoResource),
-      addOctoTerraformResource: (octoResource, options = {}) =>
-        this.addOctoTerraformResource(moduleId, octoResource, options),
-      addTerraformData: (type, name, spec = {}) => this.addTerraformData(moduleId, type, name, spec),
-      getProviderAliasRef: (accountId, regionId) => this.getProviderAliasRef(moduleId, accountId, regionId),
-      getRef: ((resource: UnknownResource | MatchingResource<any>, key: string) =>
-        this.getRef(resource as UnknownResource, key)) as TerraformModuleScope['getRef'],
-      jsonencode: (subject) => this.jsonencode(subject),
-      mapAttr: (value) => this.mapAttr(value),
-      moduleId,
-      raw: (value) => this.raw(value),
-      type: (schema) => this.type(schema),
-      variable: (name, typeExpression, options) => this.variable(moduleId, name, typeExpression, options),
-    };
   }
 
   private type(schema: unknown): HclExpression {

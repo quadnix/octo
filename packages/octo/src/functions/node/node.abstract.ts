@@ -54,6 +54,19 @@ export abstract class ANode<S, T> implements INode<S, T> {
    */
   private readonly dependencies: Dependency[] = [];
 
+  /**
+   * To create self given its serialized representation.
+   * - First argument is the serialized representation.
+   * - Second argument is the `deReferenceContext()` function to resolve other nodes self depends on.
+   */
+  static async unSynth(...args: unknown[]): Promise<UnknownNode> {
+    if (args.length > 4) {
+      throw new Error('Too many args in unSynth()');
+    }
+
+    throw new Error('Method not implemented! Use derived class implementation');
+  }
+
   addChild(
     onField: keyof T | string,
     child: UnknownNode,
@@ -419,18 +432,5 @@ export abstract class ANode<S, T> implements INode<S, T> {
       context: this.getContext(),
       ...this.synth(),
     };
-  }
-
-  /**
-   * To create self given its serialized representation.
-   * - First argument is the serialized representation.
-   * - Second argument is the `deReferenceContext()` function to resolve other nodes self depends on.
-   */
-  static async unSynth(...args: unknown[]): Promise<UnknownNode> {
-    if (args.length > 4) {
-      throw new Error('Too many args in unSynth()');
-    }
-
-    throw new Error('Method not implemented! Use derived class implementation');
   }
 }

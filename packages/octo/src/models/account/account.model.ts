@@ -22,6 +22,15 @@ export class Account extends AModel<AccountSchema, Account> {
     this.accountType = accountType;
   }
 
+  static override async unSynth(
+    account: AccountSchema,
+    deReferenceContext: (context: string) => Promise<UnknownModel>,
+  ): Promise<Account> {
+    assert(!!deReferenceContext);
+
+    return new Account(account.accountType, account.accountId);
+  }
+
   /**
    * To add a {@link Region}.
    */
@@ -51,14 +60,5 @@ export class Account extends AModel<AccountSchema, Account> {
       accountId: this.accountId,
       accountType: this.accountType,
     };
-  }
-
-  static override async unSynth(
-    account: AccountSchema,
-    deReferenceContext: (context: string) => Promise<UnknownModel>,
-  ): Promise<Account> {
-    assert(!!deReferenceContext);
-
-    return new Account(account.accountType, account.accountId);
   }
 }

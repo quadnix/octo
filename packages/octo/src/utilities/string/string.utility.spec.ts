@@ -16,8 +16,8 @@ describe('StringUtility UT', () => {
     });
 
     it('should return the same hash for objects regardless of key insertion order', () => {
-      // eslint-disable-next-line sort-keys
-      const a = { z: 1, a: 2 };
+       
+      const a = { a: 2, z: 1 };
       const b = { a: 2, z: 1 };
       expect(StringUtility.deterministicHash(a)).toBe(StringUtility.deterministicHash(b));
     });
@@ -39,8 +39,8 @@ describe('StringUtility UT', () => {
     });
 
     it('should handle nested objects with any key insertion order', () => {
-      // eslint-disable-next-line sort-keys
-      const a = { outer: { z: 1, a: 2 } };
+       
+      const a = { outer: { a: 2, z: 1 } };
       const b = { outer: { a: 2, z: 1 } };
       expect(StringUtility.deterministicHash(a)).toBe(StringUtility.deterministicHash(b));
     });

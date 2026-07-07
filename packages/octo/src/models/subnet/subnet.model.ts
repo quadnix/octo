@@ -22,20 +22,9 @@ import { SubnetSchema, SubnetType } from './subnet.schema.js';
  */
 @Model<Subnet>('@octo', 'subnet', SubnetSchema)
 export class Subnet extends AModel<SubnetSchema, Subnet> {
-  private options: SubnetSchema['options'] = {
-    disableSubnetIntraNetwork: false,
-    subnetType: SubnetType.PRIVATE,
-  };
-
   readonly subnetId: string;
 
   readonly subnetName: string;
-
-  constructor(region: Region, name: string) {
-    super();
-    this.subnetId = region.regionId + '-' + name;
-    this.subnetName = name;
-  }
 
   /**
    * To block/disable intra-network communication within self.
@@ -61,6 +50,30 @@ export class Subnet extends AModel<SubnetSchema, Subnet> {
     this.options.subnetType = subnetType || SubnetType.PRIVATE;
   }
 
+  private options: SubnetSchema['options'] = {
+    disableSubnetIntraNetwork: false,
+    subnetType: SubnetType.PRIVATE,
+  };
+
+  constructor(region: Region, name: string) {
+    super();
+    this.subnetId = region.regionId + '-' + name;
+    this.subnetName = name;
+  }
+
+  static override async unSynth(
+    subnet: SubnetSchema,
+    deReferenceContext: (context: string) => Promise<UnknownModel>,
+  ): Promise<Subnet> {
+    const region = (await deReferenceContext(subnet.region.context)) as Region;
+    const newSubnet = new Subnet(region, subnet.subnetName);
+
+    newSubnet.disableSubnetIntraNetwork = subnet.options.disableSubnetIntraNetwork;
+    newSubnet.subnetType = subnet.options.subnetType;
+
+    return newSubnet;
+  }
+
   override setContext(): string | undefined {
     const parents = this.getParents();
     const region = parents['region']?.[0]?.to;
@@ -80,19 +93,6 @@ export class Subnet extends AModel<SubnetSchema, Subnet> {
       subnetId: this.subnetId,
       subnetName: this.subnetName,
     };
-  }
-
-  static override async unSynth(
-    subnet: SubnetSchema,
-    deReferenceContext: (context: string) => Promise<UnknownModel>,
-  ): Promise<Subnet> {
-    const region = (await deReferenceContext(subnet.region.context)) as Region;
-    const newSubnet = new Subnet(region, subnet.subnetName);
-
-    newSubnet.disableSubnetIntraNetwork = subnet.options.disableSubnetIntraNetwork;
-    newSubnet.subnetType = subnet.options.subnetType;
-
-    return newSubnet;
   }
 
   /**

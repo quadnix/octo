@@ -15,13 +15,13 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
   extends ANode<S, T>
   implements IResource<S, T>
 {
-  private _deleteMarker = false;
-
   readonly parents: (MatchingResource<BaseResourceSchema> | UnknownResource)[] = [];
 
   readonly response: S['response'] = {};
 
   readonly tags: S['tags'] = {};
+
+  private _deleteMarker = false;
 
   protected constructor(
     readonly resourceId: S['resourceId'],
@@ -41,6 +41,41 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
         parent.addChild('resourceId', this, 'resourceId');
       }
     }
+  }
+
+  static async cloneResource<T extends UnknownResource>(
+    sourceResource: T,
+    deReferenceResource: (context: string) => Promise<UnknownResource>,
+  ): Promise<T> {
+    const deserializationClass = sourceResource.constructor as typeof AResource<BaseResourceSchema, T>;
+    return deserializationClass.unSynth(deserializationClass, sourceResource.synth(), deReferenceResource);
+  }
+
+  static override async unSynth<S extends BaseResourceSchema, T>(
+    deserializationClass: any,
+    resource: S,
+    deReferenceResource: (context: string) => Promise<UnknownResource>,
+  ): Promise<T> {
+    const parents = await Promise.all(resource.parents.map((p) => deReferenceResource(p.context)));
+
+    const resourceInlineParents = parents.map((p) => {
+      const parentMetadata = resource.parents.find((pm) => pm.context === p.getContext())!;
+      if (parentMetadata.parentSchemaTranslator) {
+        const parentSchemaTranslator = new Function('return ' + parentMetadata.parentSchemaTranslator)();
+        return new MatchingResource(p, parentSchemaTranslator);
+      } else {
+        return p;
+      }
+    });
+
+    const newResource = new deserializationClass(resource.resourceId, resource.properties, resourceInlineParents);
+    for (const key of Object.keys(resource.response)) {
+      newResource.response[key] = resource.response[key];
+    }
+    for (const key of Object.keys(resource.tags)) {
+      newResource.tags[key] = resource.tags[key];
+    }
+    return newResource;
   }
 
   override addChild(
@@ -89,14 +124,6 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
           ? undefined
           : JSON.parse(JSON.stringify(sourceResource.properties[key]));
     }
-  }
-
-  static async cloneResource<T extends UnknownResource>(
-    sourceResource: T,
-    deReferenceResource: (context: string) => Promise<UnknownResource>,
-  ): Promise<T> {
-    const deserializationClass = sourceResource.constructor as typeof AResource<BaseResourceSchema, T>;
-    return deserializationClass.unSynth(deserializationClass, sourceResource.synth(), deReferenceResource);
   }
 
   async cloneResourceInPlace(
@@ -468,32 +495,5 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
       tags: JSON.parse(JSON.stringify(this.tags)),
     };
     return resourceSynth as S;
-  }
-
-  static override async unSynth<S extends BaseResourceSchema, T>(
-    deserializationClass: any,
-    resource: S,
-    deReferenceResource: (context: string) => Promise<UnknownResource>,
-  ): Promise<T> {
-    const parents = await Promise.all(resource.parents.map((p) => deReferenceResource(p.context)));
-
-    const resourceInlineParents = parents.map((p) => {
-      const parentMetadata = resource.parents.find((pm) => pm.context === p.getContext())!;
-      if (parentMetadata.parentSchemaTranslator) {
-        const parentSchemaTranslator = new Function('return ' + parentMetadata.parentSchemaTranslator)();
-        return new MatchingResource(p, parentSchemaTranslator);
-      } else {
-        return p;
-      }
-    });
-
-    const newResource = new deserializationClass(resource.resourceId, resource.properties, resourceInlineParents);
-    for (const key of Object.keys(resource.response)) {
-      newResource.response[key] = resource.response[key];
-    }
-    for (const key of Object.keys(resource.tags)) {
-      newResource.tags[key] = resource.tags[key];
-    }
-    return newResource;
   }
 }

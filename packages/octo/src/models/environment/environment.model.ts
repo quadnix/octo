@@ -28,6 +28,19 @@ export class Environment extends AModel<EnvironmentSchema, Environment> {
     this.environmentName = environmentName;
   }
 
+  static override async unSynth(
+    environment: EnvironmentSchema,
+    deReferenceContext: (context: string) => Promise<UnknownModel>,
+  ): Promise<Environment> {
+    assert(!!deReferenceContext);
+
+    const newEnvironment = new Environment(environment.environmentName);
+    for (const key in environment.environmentVariables) {
+      newEnvironment.environmentVariables.set(key, environment.environmentVariables[key]);
+    }
+    return newEnvironment;
+  }
+
   override setContext(): string | undefined {
     const parents = this.getParents();
     const region = parents['region']?.[0]?.to;
@@ -44,18 +57,5 @@ export class Environment extends AModel<EnvironmentSchema, Environment> {
       environmentName: this.environmentName,
       environmentVariables: Object.fromEntries(this.environmentVariables || new Map()),
     };
-  }
-
-  static override async unSynth(
-    environment: EnvironmentSchema,
-    deReferenceContext: (context: string) => Promise<UnknownModel>,
-  ): Promise<Environment> {
-    assert(!!deReferenceContext);
-
-    const newEnvironment = new Environment(environment.environmentName);
-    for (const key in environment.environmentVariables) {
-      newEnvironment.environmentVariables.set(key, environment.environmentVariables[key]);
-    }
-    return newEnvironment;
   }
 }

@@ -178,10 +178,10 @@ export class RefusingTfResource extends ATerraformResource<BaseResourceSchema, R
  */
 export class TestModes {
   readonly igwActionHandledDiffs: Diff[] = [];
-  private readonly igwResponse: BaseResourceSchema['response'] = { igwId: 'igw-0real' };
-
   readonly outputs = new Map<string, Record<string, { value: unknown }>>();
+
   readonly plans = new Map<string, TerraformPlan>();
+  private readonly igwResponse: BaseResourceSchema['response'] = { igwId: 'igw-0real' };
 
   private readonly terraformConfigs: Parameters<Octo['registerTerraformConfig']>[] = [];
   private readonly terraformProviders: Parameters<Octo['registerTerraformProvider']>[] = [];
@@ -194,30 +194,6 @@ export class TestModes {
     private readonly terraformService: TerraformService,
     private readonly testModuleContainer: TestModuleContainer,
   ) {}
-
-  /**
-   * Registers an additional resource into an existing module folder, the way a model action would
-   * contribute a new resource on a re-run. Use after {@link createResourceGraph} to exercise an add
-   * of a brand-new resource (module-attributed, so it lands in the named folder rather than the
-   * provider-less `default` folder).
-   */
-  async addResource(moduleId: string, resource: UnknownResource): Promise<void> {
-    await this.testModuleContainer.createResources(moduleId, [resource]);
-  }
-
-  /**
-   * Simulates deleting every terraform config/provider declaration from `octo.yml`: the next
-   * simulated fresh process boots without them, the way a real process would after the edit.
-   */
-  clearTerraformRegistrations(): void {
-    this.terraformConfigs.length = 0;
-    this.terraformProviders.length = 0;
-  }
-
-  async commit(...args: Parameters<Octo['commit']>): ReturnType<Octo['commit']> {
-    await this.simulateFreshProcess();
-    return this.octo.commit(...args);
-  }
 
   static async create(): Promise<TestModes> {
     const container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500, force: true });
@@ -257,6 +233,30 @@ export class TestModes {
     return instance;
   }
 
+  /**
+   * Registers an additional resource into an existing module folder, the way a model action would
+   * contribute a new resource on a re-run. Use after {@link createResourceGraph} to exercise an add
+   * of a brand-new resource (module-attributed, so it lands in the named folder rather than the
+   * provider-less `default` folder).
+   */
+  async addResource(moduleId: string, resource: UnknownResource): Promise<void> {
+    await this.testModuleContainer.createResources(moduleId, [resource]);
+  }
+
+  /**
+   * Simulates deleting every terraform config/provider declaration from `octo.yml`: the next
+   * simulated fresh process boots without them, the way a real process would after the edit.
+   */
+  clearTerraformRegistrations(): void {
+    this.terraformConfigs.length = 0;
+    this.terraformProviders.length = 0;
+  }
+
+  async commit(...args: Parameters<Octo['commit']>): ReturnType<Octo['commit']> {
+    await this.simulateFreshProcess();
+    return this.octo.commit(...args);
+  }
+
   async createProviderBoundResourceGraph(provider: { accountId: string; regionId?: string }): Promise<{
     app: App;
     vpc: TfVpcResource;
@@ -273,22 +273,6 @@ export class TestModes {
     await this.testModuleContainer.createResources('region-module', [vpc]);
 
     return { app: app as App, vpc };
-  }
-
-  async createResourceGraph(options?: {
-    save?: boolean;
-  }): Promise<{ app: App; igw: ExternalIgwResource; sg: TfSgResource; vpc: TfVpcResource }> {
-    const {
-      app: [app],
-    } = await this.testModuleContainer.createTestModels('app-module', { app: ['test-app'] });
-
-    const vpc = new TfVpcResource('vpc-1', { CidrBlock: '10.0.0.0/16' });
-    const igw = new ExternalIgwResource('igw-1', { Type: 'internet-gateway' }, [vpc]);
-    const sg = new TfSgResource('sg-1', {}, [igw]);
-    await this.testModuleContainer.createResources('region-module', [vpc, igw], options);
-    await this.testModuleContainer.createResources('sg-module', [sg], options);
-
-    return { app: app as App, igw, sg, vpc };
   }
 
   /**
@@ -328,19 +312,25 @@ export class TestModes {
     return { app: app as App, igw, sg, vpc };
   }
 
+  async createResourceGraph(options?: {
+    save?: boolean;
+  }): Promise<{ app: App; igw: ExternalIgwResource; sg: TfSgResource; vpc: TfVpcResource }> {
+    const {
+      app: [app],
+    } = await this.testModuleContainer.createTestModels('app-module', { app: ['test-app'] });
+
+    const vpc = new TfVpcResource('vpc-1', { CidrBlock: '10.0.0.0/16' });
+    const igw = new ExternalIgwResource('igw-1', { Type: 'internet-gateway' }, [vpc]);
+    const sg = new TfSgResource('sg-1', {}, [igw]);
+    await this.testModuleContainer.createResources('region-module', [vpc, igw], options);
+    await this.testModuleContainer.createResources('sg-module', [sg], options);
+
+    return { app: app as App, igw, sg, vpc };
+  }
+
   async generate(...args: Parameters<Octo['generate']>): ReturnType<Octo['generate']> {
     await this.simulateFreshProcess();
     return this.octo.generate(...args);
-  }
-
-  async getModelState(): Promise<ModelSerializedOutput> {
-    const { data } = await this.stateManagementService.getModelState('models.json');
-    return data;
-  }
-
-  async getResourceState(fileName = 'resources-old.json'): Promise<ResourceSerializedOutput> {
-    const { data } = await this.stateManagementService.getResourceState(fileName);
-    return data;
   }
 
   async getCommittedTerraformState(): Promise<{
@@ -352,6 +342,16 @@ export class TestModes {
       terraformFolders: userData.terraformFolders ?? [],
       terraformResources: userData.terraformResources ?? [],
     };
+  }
+
+  async getModelState(): Promise<ModelSerializedOutput> {
+    const { data } = await this.stateManagementService.getModelState('models.json');
+    return data;
+  }
+
+  async getResourceState(fileName = 'resources-old.json'): Promise<ResourceSerializedOutput> {
+    const { data } = await this.stateManagementService.getResourceState(fileName);
+    return data;
   }
 
   async getTerraformFolderRecords(): Promise<TerraformFolderOutput[]> {

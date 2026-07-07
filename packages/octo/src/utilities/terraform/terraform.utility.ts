@@ -39,41 +39,8 @@ export class TerraformUtility {
     return this.runAll(terragruntDir, 'apply', ['-input=false', '-auto-approve', ...this.consumeArgs()]);
   }
 
-  private buildEnv(): NodeJS.ProcessEnv {
-    const env = { ...process.env };
-    if (this.options.terraformBinary) {
-      env.TG_TF_PATH = this.options.terraformBinary;
-    }
-    return env;
-  }
-
-  private consumeArgs(): string[] {
-    const args = this.onceArgs ?? [];
-    this.onceArgs = undefined;
-    return args;
-  }
-
   async destroy(terragruntDir: string): Promise<TerraformRawResult> {
     return this.runAll(terragruntDir, 'destroy', ['-input=false', '-auto-approve', ...this.consumeArgs()]);
-  }
-
-  protected execFileAsync(
-    file: string,
-    args: string[],
-    options: ExecFileOptionsWithStringEncoding,
-  ): Promise<{
-    stderr: string;
-    stdout: string;
-  }> {
-    return new Promise((resolve, reject) => {
-      execFile(file, args, options, (error, stdout, stderr) => {
-        if (error) {
-          reject(Object.assign(error, { stderr: stderr ?? '', stdout: stdout ?? '' }));
-        } else {
-          resolve({ stderr: stderr ?? '', stdout: stdout ?? '' });
-        }
-      });
-    });
   }
 
   /**
@@ -148,6 +115,46 @@ export class TerraformUtility {
     return plans;
   }
 
+  setArgsOnce(args: string[]): this {
+    this.onceArgs = args;
+    return this;
+  }
+  async validate(terragruntDir: string): Promise<TerraformRawResult> {
+    return this.runAll(terragruntDir, 'validate', this.consumeArgs());
+  }
+  protected execFileAsync(
+    file: string,
+    args: string[],
+    options: ExecFileOptionsWithStringEncoding,
+  ): Promise<{
+    stderr: string;
+    stdout: string;
+  }> {
+    return new Promise((resolve, reject) => {
+      execFile(file, args, options, (error, stdout, stderr) => {
+        if (error) {
+          reject(Object.assign(error, { stderr: stderr ?? '', stdout: stdout ?? '' }));
+        } else {
+          resolve({ stderr: stderr ?? '', stdout: stdout ?? '' });
+        }
+      });
+    });
+  }
+
+  private buildEnv(): NodeJS.ProcessEnv {
+    const env = { ...process.env };
+    if (this.options.terraformBinary) {
+      env.TG_TF_PATH = this.options.terraformBinary;
+    }
+    return env;
+  }
+
+  private consumeArgs(): string[] {
+    const args = this.onceArgs ?? [];
+    this.onceArgs = undefined;
+    return args;
+  }
+
   /**
    * Runs `terragrunt output -json` in one module folder.
    *
@@ -195,7 +202,7 @@ export class TerraformUtility {
     const binary = this.options.terragruntBinary;
 
     try {
-      const { stdout, stderr } = await this.execFileAsync(binary, args, {
+      const { stderr, stdout } = await this.execFileAsync(binary, args, {
         cwd: moduleDir,
         env: this.buildEnv(),
         maxBuffer: MAX_BUFFER,
@@ -225,7 +232,7 @@ export class TerraformUtility {
     ];
 
     try {
-      const { stdout, stderr } = await this.execFileAsync(binary, args, {
+      const { stderr, stdout } = await this.execFileAsync(binary, args, {
         env: this.buildEnv(),
         maxBuffer: MAX_BUFFER,
         timeout: this.options.timeoutInMs,
@@ -236,11 +243,6 @@ export class TerraformUtility {
     }
   }
 
-  setArgsOnce(args: string[]): this {
-    this.onceArgs = args;
-    return this;
-  }
-
   private toTerraformCommandError(binary: string, args: string[], dir: string, error: unknown): TerraformCommandError {
     const e = error as { code?: number | string; message?: string; stderr?: string; stdout?: string };
     const exitCode = typeof e.code === 'number' ? e.code : -1;
@@ -248,10 +250,6 @@ export class TerraformUtility {
       e.stderr || e.message || String(error)
     }`;
     return new TerraformCommandError(message, args, exitCode, e.stdout ?? '', e.stderr ?? '');
-  }
-
-  async validate(terragruntDir: string): Promise<TerraformRawResult> {
-    return this.runAll(terragruntDir, 'validate', this.consumeArgs());
   }
 }
 

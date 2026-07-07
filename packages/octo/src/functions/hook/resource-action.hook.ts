@@ -28,6 +28,13 @@ export class ResourceActionHook implements IHook<PreHookSignature, PostHookSigna
 
   private constructor() {}
 
+  static getInstance(): ResourceActionHook {
+    if (!this.instance) {
+      this.instance = new ResourceActionHook();
+    }
+    return this.instance;
+  }
+
   collectHooks(hooks: { postHooks?: PostHookSignature[]; preHooks?: PreHookSignature[] }): void {
     for (const { action, handle } of hooks.postHooks || []) {
       if (!this.postResourceActionHooks[action.constructor.name]) {
@@ -42,13 +49,6 @@ export class ResourceActionHook implements IHook<PreHookSignature, PostHookSigna
       }
       this.preResourceActionHooks[action.constructor.name].push({ handle });
     }
-  }
-
-  static getInstance(): ResourceActionHook {
-    if (!this.instance) {
-      this.instance = new ResourceActionHook();
-    }
-    return this.instance;
   }
 
   registrar(resourceAction: IUnknownResourceAction): void {

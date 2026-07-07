@@ -18,6 +18,13 @@ export class CommitHook implements IHook<PreHookSignature, PostHookSignature> {
 
   private constructor() {}
 
+  static getInstance(): CommitHook {
+    if (!this.instance) {
+      this.instance = new CommitHook();
+    }
+    return this.instance;
+  }
+
   collectHooks(hooks: { postHooks?: PostHookSignature[]; preHooks?: PreHookSignature[] }): void {
     for (const { handle } of hooks.postHooks || []) {
       this.postCommitHooks.push({ handle });
@@ -26,13 +33,6 @@ export class CommitHook implements IHook<PreHookSignature, PostHookSignature> {
     for (const { handle } of hooks.preHooks || []) {
       this.preCommitHooks.push({ handle });
     }
-  }
-
-  static getInstance(): CommitHook {
-    if (!this.instance) {
-      this.instance = new CommitHook();
-    }
-    return this.instance;
   }
 
   registrar(descriptor: PropertyDescriptor): void {

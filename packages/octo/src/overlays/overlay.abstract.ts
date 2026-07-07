@@ -32,6 +32,29 @@ export abstract class AOverlay<S extends BaseOverlaySchema, T extends UnknownOve
     }
   }
 
+  static override async unSynth(
+    deserializationClass: any,
+    overlay: OverlaySchema<UnknownOverlay>,
+    deReferenceContext: (context: string) => Promise<UnknownModel>,
+  ): Promise<UnknownOverlay> {
+    const anchors = await Promise.all(
+      overlay.anchors.map(async (a: AnchorSchema<UnknownAnchor>): Promise<UnknownAnchor> => {
+        const parent = await deReferenceContext(a.parent.context);
+        const anchor = parent.getAnchor(a.anchorId);
+        if (!anchor) {
+          throw new NodeUnsynthError('Cannot find anchor while deserializing overlay!', overlay.overlayId);
+        }
+        return anchor as UnknownAnchor;
+      }),
+    );
+
+    const newOverlay: UnknownOverlay = new deserializationClass(overlay.overlayId, overlay.properties, []);
+    for (const anchor of anchors) {
+      newOverlay['anchors'].push(anchor);
+    }
+    return newOverlay;
+  }
+
   override addAnchor(anchor: MatchingAnchor<BaseAnchorSchema> | UnknownAnchor): void {
     super.addAnchor(anchor);
 
@@ -119,28 +142,5 @@ export abstract class AOverlay<S extends BaseOverlaySchema, T extends UnknownOve
       overlayId: this.overlayId,
       properties: JSON.parse(JSON.stringify(this.properties)),
     } as S;
-  }
-
-  static override async unSynth(
-    deserializationClass: any,
-    overlay: OverlaySchema<UnknownOverlay>,
-    deReferenceContext: (context: string) => Promise<UnknownModel>,
-  ): Promise<UnknownOverlay> {
-    const anchors = await Promise.all(
-      overlay.anchors.map(async (a: AnchorSchema<UnknownAnchor>): Promise<UnknownAnchor> => {
-        const parent = await deReferenceContext(a.parent.context);
-        const anchor = parent.getAnchor(a.anchorId);
-        if (!anchor) {
-          throw new NodeUnsynthError('Cannot find anchor while deserializing overlay!', overlay.overlayId);
-        }
-        return anchor as UnknownAnchor;
-      }),
-    );
-
-    const newOverlay: UnknownOverlay = new deserializationClass(overlay.overlayId, overlay.properties, []);
-    for (const anchor of anchors) {
-      newOverlay['anchors'].push(anchor);
-    }
-    return newOverlay;
   }
 }

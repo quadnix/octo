@@ -37,7 +37,7 @@ export class ValidationService {
     }
   }
 
-  validate(): { pass: boolean; errors: { constraint: any; type: ValidationType; value: any }[] } {
+  validate(): { errors: { constraint: any; type: ValidationType; value: any }[]; pass: boolean; } {
     const result: ReturnType<typeof this.validate> = { errors: [], pass: true };
 
     for (const subject of this.subjects) {

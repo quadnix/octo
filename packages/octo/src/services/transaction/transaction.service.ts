@@ -66,9 +66,9 @@ class TerraformNoopResourceAction implements IUnknownResourceAction {
  * @internal
  */
 export class TransactionService {
-  private modelActions: { modelClass: Constructable<UnknownModel>; actions: IUnknownModelAction[] }[] = [];
-  private overlayActions: { overlayClass: Constructable<UnknownOverlay>; actions: IUnknownModelAction[] }[] = [];
-  private resourceActions: { resourceClass: Constructable<UnknownResource>; actions: IUnknownResourceAction[] }[] = [];
+  private modelActions: { actions: IUnknownModelAction[]; modelClass: Constructable<UnknownModel>; }[] = [];
+  private overlayActions: { actions: IUnknownModelAction[]; overlayClass: Constructable<UnknownOverlay>; }[] = [];
+  private resourceActions: { actions: IUnknownResourceAction[]; resourceClass: Constructable<UnknownResource>; }[] = [];
 
   constructor(
     private readonly eventService: EventService,
@@ -78,6 +78,259 @@ export class TransactionService {
     private readonly resourceDataRepository: ResourceDataRepository,
     private readonly terraformService: TerraformService,
   ) {}
+
+  async *beginTransaction(
+    diffs: Diff[],
+    {
+      enableResourceValidation = false,
+      filterResourceDiffsByResourceId = undefined,
+      generateTerraform = false,
+      skipActualResourceUpdate = false,
+      yieldModelDiffs = false,
+      yieldModelTransaction = false,
+      yieldResourceDiffs = false,
+      yieldResourceTransaction = false,
+    }: TransactionOptions = {},
+  ): AsyncGenerator<DiffMetadata[][], DiffMetadata[][]> {
+    // Diff overlays and add to existing diffs.
+    const overlayDiffs = await this.overlayDataRepository.diff();
+    diffs.push(...overlayDiffs);
+
+    // Generate diff on models.
+    const modelDiffs = diffs.map((d) => {
+      if ((d.node.constructor as typeof ANode).NODE_TYPE === NodeType.OVERLAY) {
+        return new DiffMetadata(
+          d,
+          (
+            this.overlayActions.find(
+              (a) => (a.overlayClass as unknown as typeof AOverlay) === (d.node.constructor as typeof AOverlay),
+            )?.actions || []
+          ).filter((a) => a.filter(d)),
+        );
+      } else {
+        return new DiffMetadata(
+          d,
+          (
+            this.modelActions.find(
+              (a) => (a.modelClass as unknown as typeof AModel) === (d.node.constructor as typeof AModel),
+            )?.actions || []
+          ).filter((a) => a.filter(d)),
+        );
+      }
+    });
+    // Set apply order on model diffs.
+    for (const diff of modelDiffs) {
+      this.setApplyOrder(diff, modelDiffs);
+    }
+
+    this.eventService.emit(new ModelDiffsTransactionEvent(undefined, [modelDiffs]));
+    if (yieldModelDiffs) {
+      yield [modelDiffs];
+    }
+
+    // Apply model diffs.
+    const modelTransaction = await this.applyModels(modelDiffs);
+
+    this.eventService.emit(new ModelTransactionTransactionEvent(undefined, modelTransaction));
+    if (yieldModelTransaction) {
+      yield modelTransaction;
+    }
+
+    // Generate resource diffs.
+    let newDiffs = await this.resourceDataRepository.diff();
+    let dirtyDiffs = await this.resourceDataRepository.diffDirty();
+
+    // Scope diffs to a single resource, e.g. when terraform invokes octo for one resource action.
+    if (filterResourceDiffsByResourceId !== undefined) {
+      newDiffs = newDiffs.filter((d) => (d.node as UnknownResource).resourceId === filterResourceDiffsByResourceId);
+      dirtyDiffs = dirtyDiffs.filter((d) => (d.node as UnknownResource).resourceId === filterResourceDiffsByResourceId);
+
+      // Prefer dirty diffs (actual-graph nodes) over equal new diffs (old-graph nodes) for
+      // execution: deserialized old resources are frozen and cannot receive injected inputs.
+      for (let i = newDiffs.length - 1; i >= 0; i--) {
+        const newDiff = newDiffs[i];
+        if (
+          dirtyDiffs.some(
+            (d) =>
+              d.node.getContext() === newDiff.node.getContext() &&
+              d.action === newDiff.action &&
+              d.field === newDiff.field &&
+              DiffUtility.isObjectDeepEquals(d.value, newDiff.value),
+          )
+        ) {
+          newDiffs.splice(i, 1);
+        }
+      }
+    }
+
+    if (enableResourceValidation && (newDiffs.length > 0 || dirtyDiffs.length > 0)) {
+      throw new TransactionError('Cannot run resource validation with pending resource diffs!');
+    }
+
+    if (enableResourceValidation) {
+      const validationDiffs = this.resourceDataRepository.diffValidate();
+      newDiffs.push(...validationDiffs);
+      dirtyDiffs.push(...validationDiffs);
+    }
+
+    // new diffs = new - old | dirty diffs = new - actual
+    // Any new diff that is also not part of dirty diffs should be skipped, as the actual is already in desired state.
+    for (let i = newDiffs.length - 1; i >= 0; i--) {
+      const newDiff = newDiffs[i];
+      if (
+        !dirtyDiffs.some(
+          (d) =>
+            d.node.getContext() === newDiff.node.getContext() &&
+            d.action === newDiff.action &&
+            d.field === newDiff.field &&
+            DiffUtility.isObjectDeepEquals(d.value, newDiff.value),
+        )
+      ) {
+        newDiffs.splice(i, 1);
+      }
+    }
+
+    // Ensure any new diffs are not operating on dirty resources.
+    this.resourceDataRepository.ensureDiffsNotOperatingOnDirtyResources(newDiffs);
+
+    // Skip processing dirty diffs that are already accounted for in new diffs.
+    for (let i = dirtyDiffs.length - 1; i >= 0; i--) {
+      const dirtyDiff = dirtyDiffs[i];
+      if (
+        newDiffs.some(
+          (d) =>
+            d.node.getContext() === dirtyDiff.node.getContext() &&
+            d.action === dirtyDiff.action &&
+            d.field === dirtyDiff.field &&
+            DiffUtility.isObjectDeepEquals(d.value, dirtyDiff.value),
+        )
+      ) {
+        dirtyDiffs.splice(i, 1);
+      }
+    }
+
+    // Terraform resources have no resource actions - terraform owns their lifecycle. Their diffs
+    // remain part of the transaction as review artifacts, backed by a no-op action.
+    const resolveResourceActions = (d: Diff): IUnknownResourceAction[] => {
+      if (d.node instanceof ATerraformResource) {
+        return [new TerraformNoopResourceAction()];
+      }
+      return (
+        this.resourceActions.find(
+          (a) => (a.resourceClass as unknown as typeof AResource) === (d.node.constructor as typeof AResource),
+        )?.actions || []
+      ).filter((a) => a.filter(d));
+    };
+
+    // Generate diff on resources.
+    const resourceDiffs = newDiffs.map((d) => new DiffMetadata(d, resolveResourceActions(d)));
+    // Set apply order on resource diffs.
+    for (const diff of resourceDiffs) {
+      this.setApplyOrder(diff, resourceDiffs);
+    }
+    // Generate diff on dirty resources.
+    const dirtyResourceDiffs = dirtyDiffs.map((d) => new DiffMetadata(d, resolveResourceActions(d)));
+    // Set apply order on dirty resource diffs.
+    for (const diff of dirtyResourceDiffs) {
+      this.setApplyOrder(diff, dirtyResourceDiffs);
+    }
+
+    // Contribute the full desired resource graph to terraform. Deferred until after resource diffs
+    // are computed and ordered, so an author refusal (a throw in diff*) or an ordering/cycle error
+    // aborts generation before any HCL is built — diffs gate generation.
+    if (generateTerraform) {
+      await this.generateTerraform();
+    }
+
+    this.eventService.emit(new ResourceDiffsTransactionEvent(undefined, [[resourceDiffs], [dirtyResourceDiffs]]));
+    if (yieldResourceDiffs) {
+      yield [resourceDiffs, dirtyResourceDiffs];
+    }
+
+    // Apply resource diffs.
+    const resourceTransaction = await this.applyResources(resourceDiffs, { skipActualResourceUpdate });
+    // Apply dirty resource diffs.
+    const dirtyResourceTransaction = await this.applyResources(dirtyResourceDiffs, { skipActualResourceUpdate });
+
+    this.eventService.emit(
+      new ResourceTransactionTransactionEvent(undefined, [resourceTransaction, dirtyResourceTransaction]),
+    );
+    if (yieldResourceTransaction) {
+      yield [...resourceTransaction, ...dirtyResourceTransaction];
+    }
+
+    return modelTransaction;
+  }
+
+  @EventSource(ModelActionRegistrationEvent)
+  registerModelActions(forModel: Constructable<UnknownModel>, actions: IUnknownModelAction[]): void {
+    const modelActions = this.modelActions.find((a) => a.modelClass === forModel);
+    if (!modelActions) {
+      this.modelActions.push({ actions: actions, modelClass: forModel });
+    } else {
+      for (const action of actions) {
+        if (modelActions.actions.find((a) => a.constructor.name === action.constructor.name)) {
+          throw new Error(`Action "${action.constructor.name}" already registered for model "${forModel.name}"!`);
+        }
+        modelActions.actions.push(action);
+      }
+    }
+  }
+
+  @EventSource(ModelActionRegistrationEvent)
+  registerOverlayActions(forOverlay: Constructable<UnknownOverlay>, actions: IUnknownModelAction[]): void {
+    const overlayActions = this.overlayActions.find((a) => a.overlayClass === forOverlay);
+    if (!overlayActions) {
+      this.overlayActions.push({ actions: actions, overlayClass: forOverlay });
+    } else {
+      for (const action of actions) {
+        if (overlayActions.actions.find((a) => a.constructor.name === action.constructor.name)) {
+          throw new Error(`Action "${action.constructor.name}" already registered for overlay "${forOverlay.name}"!`);
+        }
+        overlayActions.actions.push(action);
+      }
+    }
+  }
+
+  @EventSource(ResourceActionRegistrationEvent)
+  registerResourceActions(forResource: Constructable<UnknownResource>, actions: IUnknownResourceAction[]): void {
+    if (forResource.prototype instanceof ATerraformResource) {
+      throw new TransactionError(
+        `Cannot register resource actions for terraform resource "${forResource.name}"! ` +
+          'Terraform resources are managed by terraform via toHCL().',
+      );
+    }
+
+    const resourceActions = this.resourceActions.find((a) => a.resourceClass === forResource);
+    if (!resourceActions) {
+      this.resourceActions.push({ actions: actions, resourceClass: forResource });
+    } else {
+      for (const action of actions) {
+        if (resourceActions.actions.find((a) => a.constructor.name === action.constructor.name)) {
+          throw new Error(`Action "${action.constructor.name}" already registered for resource "${forResource.name}"!`);
+        }
+        resourceActions.actions.push(action);
+      }
+    }
+  }
+
+  unregisterModelActions(forModel: Constructable<UnknownModel>): void {
+    const modelActions = this.modelActions.find((a) => a.modelClass === forModel);
+    if (!modelActions) {
+      return;
+    }
+
+    modelActions.actions = [];
+  }
+
+  unregisterOverlayActions(forOverlay: Constructable<UnknownOverlay>): void {
+    const overlayActions = this.overlayActions.find((a) => a.overlayClass === forOverlay);
+    if (!overlayActions) {
+      return;
+    }
+
+    overlayActions.actions = [];
+  }
 
   private async applyModels(diffs: DiffMetadata[]): Promise<DiffMetadata[][]> {
     const transaction: DiffMetadata[][] = [];
@@ -462,259 +715,6 @@ export class TransactionService {
     }
 
     diff.applyOrder = Math.max(...dependencyApplyOrders) + 1;
-  }
-
-  async *beginTransaction(
-    diffs: Diff[],
-    {
-      enableResourceValidation = false,
-      filterResourceDiffsByResourceId = undefined,
-      generateTerraform = false,
-      skipActualResourceUpdate = false,
-      yieldModelDiffs = false,
-      yieldModelTransaction = false,
-      yieldResourceDiffs = false,
-      yieldResourceTransaction = false,
-    }: TransactionOptions = {},
-  ): AsyncGenerator<DiffMetadata[][], DiffMetadata[][]> {
-    // Diff overlays and add to existing diffs.
-    const overlayDiffs = await this.overlayDataRepository.diff();
-    diffs.push(...overlayDiffs);
-
-    // Generate diff on models.
-    const modelDiffs = diffs.map((d) => {
-      if ((d.node.constructor as typeof ANode).NODE_TYPE === NodeType.OVERLAY) {
-        return new DiffMetadata(
-          d,
-          (
-            this.overlayActions.find(
-              (a) => (a.overlayClass as unknown as typeof AOverlay) === (d.node.constructor as typeof AOverlay),
-            )?.actions || []
-          ).filter((a) => a.filter(d)),
-        );
-      } else {
-        return new DiffMetadata(
-          d,
-          (
-            this.modelActions.find(
-              (a) => (a.modelClass as unknown as typeof AModel) === (d.node.constructor as typeof AModel),
-            )?.actions || []
-          ).filter((a) => a.filter(d)),
-        );
-      }
-    });
-    // Set apply order on model diffs.
-    for (const diff of modelDiffs) {
-      this.setApplyOrder(diff, modelDiffs);
-    }
-
-    this.eventService.emit(new ModelDiffsTransactionEvent(undefined, [modelDiffs]));
-    if (yieldModelDiffs) {
-      yield [modelDiffs];
-    }
-
-    // Apply model diffs.
-    const modelTransaction = await this.applyModels(modelDiffs);
-
-    this.eventService.emit(new ModelTransactionTransactionEvent(undefined, modelTransaction));
-    if (yieldModelTransaction) {
-      yield modelTransaction;
-    }
-
-    // Generate resource diffs.
-    let newDiffs = await this.resourceDataRepository.diff();
-    let dirtyDiffs = await this.resourceDataRepository.diffDirty();
-
-    // Scope diffs to a single resource, e.g. when terraform invokes octo for one resource action.
-    if (filterResourceDiffsByResourceId !== undefined) {
-      newDiffs = newDiffs.filter((d) => (d.node as UnknownResource).resourceId === filterResourceDiffsByResourceId);
-      dirtyDiffs = dirtyDiffs.filter((d) => (d.node as UnknownResource).resourceId === filterResourceDiffsByResourceId);
-
-      // Prefer dirty diffs (actual-graph nodes) over equal new diffs (old-graph nodes) for
-      // execution: deserialized old resources are frozen and cannot receive injected inputs.
-      for (let i = newDiffs.length - 1; i >= 0; i--) {
-        const newDiff = newDiffs[i];
-        if (
-          dirtyDiffs.some(
-            (d) =>
-              d.node.getContext() === newDiff.node.getContext() &&
-              d.action === newDiff.action &&
-              d.field === newDiff.field &&
-              DiffUtility.isObjectDeepEquals(d.value, newDiff.value),
-          )
-        ) {
-          newDiffs.splice(i, 1);
-        }
-      }
-    }
-
-    if (enableResourceValidation && (newDiffs.length > 0 || dirtyDiffs.length > 0)) {
-      throw new TransactionError('Cannot run resource validation with pending resource diffs!');
-    }
-
-    if (enableResourceValidation) {
-      const validationDiffs = this.resourceDataRepository.diffValidate();
-      newDiffs.push(...validationDiffs);
-      dirtyDiffs.push(...validationDiffs);
-    }
-
-    // new diffs = new - old | dirty diffs = new - actual
-    // Any new diff that is also not part of dirty diffs should be skipped, as the actual is already in desired state.
-    for (let i = newDiffs.length - 1; i >= 0; i--) {
-      const newDiff = newDiffs[i];
-      if (
-        !dirtyDiffs.some(
-          (d) =>
-            d.node.getContext() === newDiff.node.getContext() &&
-            d.action === newDiff.action &&
-            d.field === newDiff.field &&
-            DiffUtility.isObjectDeepEquals(d.value, newDiff.value),
-        )
-      ) {
-        newDiffs.splice(i, 1);
-      }
-    }
-
-    // Ensure any new diffs are not operating on dirty resources.
-    this.resourceDataRepository.ensureDiffsNotOperatingOnDirtyResources(newDiffs);
-
-    // Skip processing dirty diffs that are already accounted for in new diffs.
-    for (let i = dirtyDiffs.length - 1; i >= 0; i--) {
-      const dirtyDiff = dirtyDiffs[i];
-      if (
-        newDiffs.some(
-          (d) =>
-            d.node.getContext() === dirtyDiff.node.getContext() &&
-            d.action === dirtyDiff.action &&
-            d.field === dirtyDiff.field &&
-            DiffUtility.isObjectDeepEquals(d.value, dirtyDiff.value),
-        )
-      ) {
-        dirtyDiffs.splice(i, 1);
-      }
-    }
-
-    // Terraform resources have no resource actions - terraform owns their lifecycle. Their diffs
-    // remain part of the transaction as review artifacts, backed by a no-op action.
-    const resolveResourceActions = (d: Diff): IUnknownResourceAction[] => {
-      if (d.node instanceof ATerraformResource) {
-        return [new TerraformNoopResourceAction()];
-      }
-      return (
-        this.resourceActions.find(
-          (a) => (a.resourceClass as unknown as typeof AResource) === (d.node.constructor as typeof AResource),
-        )?.actions || []
-      ).filter((a) => a.filter(d));
-    };
-
-    // Generate diff on resources.
-    const resourceDiffs = newDiffs.map((d) => new DiffMetadata(d, resolveResourceActions(d)));
-    // Set apply order on resource diffs.
-    for (const diff of resourceDiffs) {
-      this.setApplyOrder(diff, resourceDiffs);
-    }
-    // Generate diff on dirty resources.
-    const dirtyResourceDiffs = dirtyDiffs.map((d) => new DiffMetadata(d, resolveResourceActions(d)));
-    // Set apply order on dirty resource diffs.
-    for (const diff of dirtyResourceDiffs) {
-      this.setApplyOrder(diff, dirtyResourceDiffs);
-    }
-
-    // Contribute the full desired resource graph to terraform. Deferred until after resource diffs
-    // are computed and ordered, so an author refusal (a throw in diff*) or an ordering/cycle error
-    // aborts generation before any HCL is built — diffs gate generation.
-    if (generateTerraform) {
-      await this.generateTerraform();
-    }
-
-    this.eventService.emit(new ResourceDiffsTransactionEvent(undefined, [[resourceDiffs], [dirtyResourceDiffs]]));
-    if (yieldResourceDiffs) {
-      yield [resourceDiffs, dirtyResourceDiffs];
-    }
-
-    // Apply resource diffs.
-    const resourceTransaction = await this.applyResources(resourceDiffs, { skipActualResourceUpdate });
-    // Apply dirty resource diffs.
-    const dirtyResourceTransaction = await this.applyResources(dirtyResourceDiffs, { skipActualResourceUpdate });
-
-    this.eventService.emit(
-      new ResourceTransactionTransactionEvent(undefined, [resourceTransaction, dirtyResourceTransaction]),
-    );
-    if (yieldResourceTransaction) {
-      yield [...resourceTransaction, ...dirtyResourceTransaction];
-    }
-
-    return modelTransaction;
-  }
-
-  @EventSource(ModelActionRegistrationEvent)
-  registerModelActions(forModel: Constructable<UnknownModel>, actions: IUnknownModelAction[]): void {
-    const modelActions = this.modelActions.find((a) => a.modelClass === forModel);
-    if (!modelActions) {
-      this.modelActions.push({ actions: actions, modelClass: forModel });
-    } else {
-      for (const action of actions) {
-        if (modelActions.actions.find((a) => a.constructor.name === action.constructor.name)) {
-          throw new Error(`Action "${action.constructor.name}" already registered for model "${forModel.name}"!`);
-        }
-        modelActions.actions.push(action);
-      }
-    }
-  }
-
-  @EventSource(ModelActionRegistrationEvent)
-  registerOverlayActions(forOverlay: Constructable<UnknownOverlay>, actions: IUnknownModelAction[]): void {
-    const overlayActions = this.overlayActions.find((a) => a.overlayClass === forOverlay);
-    if (!overlayActions) {
-      this.overlayActions.push({ actions: actions, overlayClass: forOverlay });
-    } else {
-      for (const action of actions) {
-        if (overlayActions.actions.find((a) => a.constructor.name === action.constructor.name)) {
-          throw new Error(`Action "${action.constructor.name}" already registered for overlay "${forOverlay.name}"!`);
-        }
-        overlayActions.actions.push(action);
-      }
-    }
-  }
-
-  @EventSource(ResourceActionRegistrationEvent)
-  registerResourceActions(forResource: Constructable<UnknownResource>, actions: IUnknownResourceAction[]): void {
-    if (forResource.prototype instanceof ATerraformResource) {
-      throw new TransactionError(
-        `Cannot register resource actions for terraform resource "${forResource.name}"! ` +
-          'Terraform resources are managed by terraform via toHCL().',
-      );
-    }
-
-    const resourceActions = this.resourceActions.find((a) => a.resourceClass === forResource);
-    if (!resourceActions) {
-      this.resourceActions.push({ actions: actions, resourceClass: forResource });
-    } else {
-      for (const action of actions) {
-        if (resourceActions.actions.find((a) => a.constructor.name === action.constructor.name)) {
-          throw new Error(`Action "${action.constructor.name}" already registered for resource "${forResource.name}"!`);
-        }
-        resourceActions.actions.push(action);
-      }
-    }
-  }
-
-  unregisterModelActions(forModel: Constructable<UnknownModel>): void {
-    const modelActions = this.modelActions.find((a) => a.modelClass === forModel);
-    if (!modelActions) {
-      return;
-    }
-
-    modelActions.actions = [];
-  }
-
-  unregisterOverlayActions(forOverlay: Constructable<UnknownOverlay>): void {
-    const overlayActions = this.overlayActions.find((a) => a.overlayClass === forOverlay);
-    if (!overlayActions) {
-      return;
-    }
-
-    overlayActions.actions = [];
   }
 }
 

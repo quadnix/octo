@@ -18,18 +18,6 @@ export abstract class AAnchor<S extends BaseAnchorSchema, T extends UnknownModel
     private readonly parent: T,
   ) {}
 
-  getParent(): T {
-    return this.parent;
-  }
-
-  synth(): S {
-    return {
-      anchorId: this.anchorId,
-      parent: { context: this.parent.getContext(), type: (this.parent.constructor as typeof ANode).NODE_TYPE },
-      properties: JSON.parse(JSON.stringify(this.properties)),
-    } as S;
-  }
-
   static async unSynth(
     deserializationClass: any,
     anchor: AnchorSchema<UnknownAnchor>,
@@ -45,5 +33,17 @@ export abstract class AAnchor<S extends BaseAnchorSchema, T extends UnknownModel
       newAnchor.properties[key] = value === undefined ? undefined : JSON.parse(JSON.stringify(value));
     }
     return newAnchor;
+  }
+
+  getParent(): T {
+    return this.parent;
+  }
+
+  synth(): S {
+    return {
+      anchorId: this.anchorId,
+      parent: { context: this.parent.getContext(), type: (this.parent.constructor as typeof ANode).NODE_TYPE },
+      properties: JSON.parse(JSON.stringify(this.properties)),
+    } as S;
   }
 }

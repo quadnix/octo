@@ -33,6 +33,15 @@ export class Image extends AModel<ImageSchema, Image> {
     this.imageName = imageName;
   }
 
+  static override async unSynth(
+    image: ImageSchema,
+    deReferenceContext: (context: string) => Promise<UnknownModel>,
+  ): Promise<Image> {
+    assert(!!deReferenceContext);
+
+    return new Image(image.imageFamily, image.imageName);
+  }
+
   override setContext(): string | undefined {
     const parents = this.getParents();
     const app = parents['app']?.[0]?.to;
@@ -48,14 +57,5 @@ export class Image extends AModel<ImageSchema, Image> {
       imageId: this.imageId,
       imageName: this.imageName,
     };
-  }
-
-  static override async unSynth(
-    image: ImageSchema,
-    deReferenceContext: (context: string) => Promise<UnknownModel>,
-  ): Promise<Image> {
-    assert(!!deReferenceContext);
-
-    return new Image(image.imageFamily, image.imageName);
   }
 }

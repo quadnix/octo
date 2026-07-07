@@ -28,11 +28,99 @@ import { InputService } from '../../input/input.service.js';
  * @internal
  */
 export class ModelSerializationService {
-  private MODEL_DESERIALIZATION_TIMEOUT_IN_MS = 3000;
-
   private readonly classMapping: { [key: string]: any } = {};
 
+  private MODEL_DESERIALIZATION_TIMEOUT_IN_MS = 3000;
+
   constructor(private readonly inputService: InputService) {}
+
+  @EventSource(ModelDeserializedEvent)
+  async deserialize(
+    serializedOutput: ModelSerializedOutput,
+    { freeze = true }: { freeze?: boolean } = {},
+  ): Promise<UnknownModel> {
+    const { overlays: oldOverlays, root } = await this._deserialize(serializedOutput, freeze);
+
+    // Refresh the overlay data repository.
+    await Container.getInstance().get<OverlayDataRepository, typeof OverlayDataRepositoryFactory>(
+      OverlayDataRepository,
+      { args: [true, oldOverlays] },
+    );
+
+    return root;
+  }
+
+  @EventSource(AnchorRegistrationEvent)
+  @EventSource(ModelRegistrationEvent)
+  @EventSource(OverlayRegistrationEvent)
+  registerClass(className: string, deserializationClass: any): void {
+    if (this.classMapping[className]) {
+      throw new Error(`Class "${className}" is already registered!`);
+    }
+    this.classMapping[className] = deserializationClass;
+  }
+
+  @EventSource(ModelSerializedEvent)
+  async serialize(root: UnknownModel): Promise<ModelSerializedOutput> {
+    const boundary = root.getBoundaryMembers();
+    const anchors: ModelSerializedOutput['anchors'] = [];
+    const dependencies: ModelSerializedOutput['dependencies'] = [];
+    const models: ModelSerializedOutput['models'] = {};
+    const overlays: ModelSerializedOutput['overlays'] = [];
+
+    for (const model of boundary) {
+      for (const d of model.getDependencies()) {
+        // Skip dependencies that are not part of boundary.
+        if (
+          !boundary.some((m) => m.getContext() === d.from.getContext()) ||
+          !boundary.some((m) => m.getContext() === d.to.getContext())
+        ) {
+          continue;
+        }
+
+        dependencies.push(d.synth());
+      }
+
+      if ((model.constructor as typeof ANode).NODE_TYPE === NodeType.MODEL) {
+        const context = model.getContext();
+        if (!models[context]) {
+          models[context] = {
+            className: `${(model.constructor as typeof ANode).NODE_PACKAGE}/${model.constructor.name}`,
+            model: model.synth() as IUnknownModel,
+          };
+
+          // Record which module produced this model. A model not registered with the input service
+          // (e.g. a synthetic test model) has no owning module — leave moduleId unset.
+          const moduleId = this.inputService.getModuleIdFromModel(model as UnknownModel);
+          if (moduleId !== undefined) {
+            models[context].moduleId = moduleId;
+          }
+        }
+
+        for (const a of (model as UnknownModel).getAnchors()) {
+          anchors.push({
+            ...a.synth(),
+            className: `${(a.constructor as typeof AAnchor).NODE_PACKAGE}/${a.constructor.name}`,
+            location: {
+              context: model.getContext(),
+              type: NodeType.MODEL,
+            },
+          });
+        }
+      } else if ((model.constructor as typeof ANode).NODE_TYPE === NodeType.OVERLAY) {
+        overlays.push({
+          className: `${(model.constructor as typeof ANode).NODE_PACKAGE}/${model.constructor.name}`,
+          overlay: (model as UnknownOverlay).synth(),
+        });
+      }
+    }
+
+    return { anchors, dependencies, models, overlays };
+  }
+
+  setModelDeserializationTimeout(timeoutInMs: number): void {
+    this.MODEL_DESERIALIZATION_TIMEOUT_IN_MS = timeoutInMs;
+  }
 
   private async _deserialize(
     serializedOutput: ModelSerializedOutput,
@@ -147,94 +235,6 @@ export class ModelSerializationService {
         : seen[Object.keys(seen)[0]];
 
     return { overlays, root };
-  }
-
-  @EventSource(ModelDeserializedEvent)
-  async deserialize(
-    serializedOutput: ModelSerializedOutput,
-    { freeze = true }: { freeze?: boolean } = {},
-  ): Promise<UnknownModel> {
-    const { overlays: oldOverlays, root } = await this._deserialize(serializedOutput, freeze);
-
-    // Refresh the overlay data repository.
-    await Container.getInstance().get<OverlayDataRepository, typeof OverlayDataRepositoryFactory>(
-      OverlayDataRepository,
-      { args: [true, oldOverlays] },
-    );
-
-    return root;
-  }
-
-  @EventSource(AnchorRegistrationEvent)
-  @EventSource(ModelRegistrationEvent)
-  @EventSource(OverlayRegistrationEvent)
-  registerClass(className: string, deserializationClass: any): void {
-    if (this.classMapping[className]) {
-      throw new Error(`Class "${className}" is already registered!`);
-    }
-    this.classMapping[className] = deserializationClass;
-  }
-
-  @EventSource(ModelSerializedEvent)
-  async serialize(root: UnknownModel): Promise<ModelSerializedOutput> {
-    const boundary = root.getBoundaryMembers();
-    const anchors: ModelSerializedOutput['anchors'] = [];
-    const dependencies: ModelSerializedOutput['dependencies'] = [];
-    const models: ModelSerializedOutput['models'] = {};
-    const overlays: ModelSerializedOutput['overlays'] = [];
-
-    for (const model of boundary) {
-      for (const d of model.getDependencies()) {
-        // Skip dependencies that are not part of boundary.
-        if (
-          !boundary.some((m) => m.getContext() === d.from.getContext()) ||
-          !boundary.some((m) => m.getContext() === d.to.getContext())
-        ) {
-          continue;
-        }
-
-        dependencies.push(d.synth());
-      }
-
-      if ((model.constructor as typeof ANode).NODE_TYPE === NodeType.MODEL) {
-        const context = model.getContext();
-        if (!models[context]) {
-          models[context] = {
-            className: `${(model.constructor as typeof ANode).NODE_PACKAGE}/${model.constructor.name}`,
-            model: model.synth() as IUnknownModel,
-          };
-
-          // Record which module produced this model. A model not registered with the input service
-          // (e.g. a synthetic test model) has no owning module — leave moduleId unset.
-          const moduleId = this.inputService.getModuleIdFromModel(model as UnknownModel);
-          if (moduleId !== undefined) {
-            models[context].moduleId = moduleId;
-          }
-        }
-
-        for (const a of (model as UnknownModel).getAnchors()) {
-          anchors.push({
-            ...a.synth(),
-            className: `${(a.constructor as typeof AAnchor).NODE_PACKAGE}/${a.constructor.name}`,
-            location: {
-              context: model.getContext(),
-              type: NodeType.MODEL,
-            },
-          });
-        }
-      } else if ((model.constructor as typeof ANode).NODE_TYPE === NodeType.OVERLAY) {
-        overlays.push({
-          className: `${(model.constructor as typeof ANode).NODE_PACKAGE}/${model.constructor.name}`,
-          overlay: (model as UnknownOverlay).synth(),
-        });
-      }
-    }
-
-    return { anchors, dependencies, models, overlays };
-  }
-
-  setModelDeserializationTimeout(timeoutInMs: number): void {
-    this.MODEL_DESERIALIZATION_TIMEOUT_IN_MS = timeoutInMs;
   }
 }
 

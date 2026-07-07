@@ -8,56 +8,6 @@ import { Diff, DiffAction } from './diff.js';
  * @group Functions/Diff
  */
 export class DiffUtility {
-  private static generateDeleteDiff(node: UnknownNode, field: string): Diff[] {
-    const diff: Diff[] = [];
-
-    const children = node.getChildren();
-    for (const name of Object.keys(children)) {
-      for (const dependency of children[name]) {
-        const child = dependency.to;
-        const childField = dependency.getRelationship()!.toField;
-        diff.push(...DiffUtility.generateDeleteDiff(child, childField));
-      }
-    }
-
-    diff.push(new Diff(node, DiffAction.DELETE, field, node[field]));
-    return diff;
-  }
-
-  static isObjectDeepEquals(x: unknown, y: unknown, excludePaths: string[] = [], currentPath: string[] = []): boolean {
-    if (x instanceof AAnchor && y instanceof AAnchor) {
-      return this.isObjectDeepEquals(x.synth(), y.synth(), excludePaths, currentPath);
-    } else if (x instanceof ANode && y instanceof ANode) {
-      return this.isObjectDeepEquals(x.synth(), y.synth(), excludePaths, currentPath);
-    } else if (x instanceof Dependency && y instanceof Dependency) {
-      return this.isObjectDeepEquals(x.synth(), y.synth(), excludePaths, currentPath);
-    } else if (x instanceof Diff && y instanceof Diff) {
-      // `reason` is informational only and must not affect whether two diffs are considered equal.
-      return this.isObjectDeepEquals(
-        x.toJSON(),
-        y.toJSON(),
-        [...excludePaths, [...currentPath, 'reason'].join('.')],
-        currentPath,
-      );
-    }
-
-    const ok = (subject: object): string[] =>
-        Object.keys(Object.fromEntries(Object.entries(subject).filter(([, value]) => value !== undefined))),
-      tx = typeof x,
-      ty = typeof y;
-
-    if (x && y && tx === 'object' && tx === ty) {
-      const xKeys = ok(x).filter((k) => !excludePaths.includes([...currentPath, k].join('.')));
-      const yKeys = ok(y).filter((k) => !excludePaths.includes([...currentPath, k].join('.')));
-      return (
-        xKeys.length === yKeys.length &&
-        xKeys.every((key) => this.isObjectDeepEquals(x[key], y[key], excludePaths, [...currentPath, key]))
-      );
-    } else {
-      return x === y;
-    }
-  }
-
   /**
    * Generate a deep diff of an array of basic types from the previous node vs the latest node.
    * @param a previous node.
@@ -223,6 +173,56 @@ export class DiffUtility {
       }
     }
 
+    return diff;
+  }
+
+  static isObjectDeepEquals(x: unknown, y: unknown, excludePaths: string[] = [], currentPath: string[] = []): boolean {
+    if (x instanceof AAnchor && y instanceof AAnchor) {
+      return this.isObjectDeepEquals(x.synth(), y.synth(), excludePaths, currentPath);
+    } else if (x instanceof ANode && y instanceof ANode) {
+      return this.isObjectDeepEquals(x.synth(), y.synth(), excludePaths, currentPath);
+    } else if (x instanceof Dependency && y instanceof Dependency) {
+      return this.isObjectDeepEquals(x.synth(), y.synth(), excludePaths, currentPath);
+    } else if (x instanceof Diff && y instanceof Diff) {
+      // `reason` is informational only and must not affect whether two diffs are considered equal.
+      return this.isObjectDeepEquals(
+        x.toJSON(),
+        y.toJSON(),
+        [...excludePaths, [...currentPath, 'reason'].join('.')],
+        currentPath,
+      );
+    }
+
+    const ok = (subject: object): string[] =>
+        Object.keys(Object.fromEntries(Object.entries(subject).filter(([, value]) => value !== undefined))),
+      tx = typeof x,
+      ty = typeof y;
+
+    if (x && y && tx === 'object' && tx === ty) {
+      const xKeys = ok(x).filter((k) => !excludePaths.includes([...currentPath, k].join('.')));
+      const yKeys = ok(y).filter((k) => !excludePaths.includes([...currentPath, k].join('.')));
+      return (
+        xKeys.length === yKeys.length &&
+        xKeys.every((key) => this.isObjectDeepEquals(x[key], y[key], excludePaths, [...currentPath, key]))
+      );
+    } else {
+      return x === y;
+    }
+  }
+
+  private static generateDeleteDiff(node: UnknownNode, field: string): Diff[] {
+    const diff: Diff[] = [];
+
+    const children = node.getChildren();
+    for (const name of Object.keys(children)) {
+      for (const dependency of children[name]) {
+        const child = dependency.to;
+        const childField = dependency.getRelationship()!.toField;
+        diff.push(...DiffUtility.generateDeleteDiff(child, childField));
+      }
+    }
+
+    diff.push(new Diff(node, DiffAction.DELETE, field, node[field]));
     return diff;
   }
 }

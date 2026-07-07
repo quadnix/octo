@@ -344,7 +344,7 @@ describe('TerraformService UT', () => {
       const internetGateway = new TestExternalResource('igw-1', { someProperty: 'value' }, [vpc]);
       scope.addOctoTerraformExternalResource(internetGateway);
 
-      const { mainTf, variablesTf, terragruntHcl } = service.renderAllModules().get('m1')!;
+      const { mainTf, terragruntHcl, variablesTf } = service.renderAllModules().get('m1')!;
 
       expect(mainTf).toMatchSnapshot();
       expect(variablesTf).toBe('');

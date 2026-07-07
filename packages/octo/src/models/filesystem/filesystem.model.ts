@@ -16,6 +16,15 @@ export class Filesystem extends AModel<FilesystemSchema, Filesystem> {
     this.filesystemName = filesystemName;
   }
 
+  static override async unSynth(
+    filesystem: FilesystemSchema,
+    deReferenceContext: (context: string) => Promise<UnknownModel>,
+  ): Promise<Filesystem> {
+    assert(!!deReferenceContext);
+
+    return new Filesystem(filesystem.filesystemName);
+  }
+
   override setContext(): string | undefined {
     const parents = this.getParents();
     const region = parents['region']?.[0]?.to;
@@ -31,14 +40,5 @@ export class Filesystem extends AModel<FilesystemSchema, Filesystem> {
     return {
       filesystemName: this.filesystemName,
     };
-  }
-
-  static override async unSynth(
-    filesystem: FilesystemSchema,
-    deReferenceContext: (context: string) => Promise<UnknownModel>,
-  ): Promise<Filesystem> {
-    assert(!!deReferenceContext);
-
-    return new Filesystem(filesystem.filesystemName);
   }
 }

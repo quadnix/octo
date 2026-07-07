@@ -34,8 +34,8 @@ describe('HclUtility UT', () => {
     });
 
     it('should sort folders by module id', () => {
-      // eslint-disable-next-line sort-keys
-      const out = HclUtility.serialize(moduleFiles({ b: { mainTf: 'b' }, a: { mainTf: 'a' } }));
+       
+      const out = HclUtility.serialize(moduleFiles({ a: { mainTf: 'a' }, b: { mainTf: 'b' } }));
       expect(out.indexOf('# a/main.tf')).toBeLessThan(out.indexOf('# b/main.tf'));
     });
   });

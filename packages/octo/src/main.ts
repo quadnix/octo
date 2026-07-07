@@ -32,35 +32,17 @@ import { TerraformService } from './services/terraform/terraform.service.js';
  * @group Main
  */
 export class Octo {
-  private readonly modelStateFileName: string = 'models.json';
   private readonly actualResourceStateFileName: string = 'resources-actual.json';
-  private readonly oldResourceStateFileName: string = 'resources-old.json';
-
   private inputService: InputService;
   private modelSerializationService: ModelSerializationService;
+
+  private readonly modelStateFileName: string = 'models.json';
   private moduleContainer: ModuleContainer;
+  private readonly oldResourceStateFileName: string = 'resources-old.json';
   private resourceSerializationService: ResourceSerializationService;
   private schemaTranslationService: SchemaTranslationService;
   private stateManagementService: StateManagementService;
   private terraformService: TerraformService;
-
-  @EnableHook('CommitHook')
-  private async commitTransaction(
-    app: App,
-    modelTransaction: DiffMetadata[][],
-    resourceTransaction: DiffMetadata[][] = [],
-  ): Promise<void> {
-    // `modelTransaction` and `resourceTransaction` is used by hooks of type CommitHook.
-    assert(!!modelTransaction);
-    assert(!!resourceTransaction);
-
-    // Save the state of the new app and its resources.
-    await this.saveModelState(app);
-    await this.saveResourceState();
-
-    // Reset the runtime environment with the latest state.
-    await this.retrieveResourceState();
-  }
 
   /**
    * Commits the result of a terraform apply back into octo's state.
@@ -126,8 +108,8 @@ export class Octo {
   async initialize(
     stateProvider: IStateProvider,
     initializeInContainer: {
-      type: Parameters<Container['get']>[0];
       options?: Parameters<Container['get']>[1];
+      type: Parameters<Container['get']>[0];
     }[] = [],
     excludeInContainer: {
       type: Parameters<Container['unRegisterFactory']>[0];
@@ -221,6 +203,54 @@ export class Octo {
     return this.terraformService.addTerraformProvider(...args);
   }
 
+  /**
+   * Runs a single resource action, invoked by terraform mid-apply for an external resource.
+   * See the `runAction` mode.
+   */
+  async runAction(
+    app: App,
+    options: { inputs?: Record<string, unknown>; resourceId: string },
+  ): ReturnType<typeof runRunAction> {
+    return runRunAction(app, options);
+  }
+
+  /**
+   * Validates the generated terraform plans against octo's resource diff.
+   *
+   * Also reads the terraform memory persisted by the last commit (in the actual resource state):
+   * the octo→terraform mapping keyed by resource context, and the committed folder record used to
+   * recognize emptied folders and folders octo does not track. Both empty when nothing has been committed yet.
+   */
+  async validate(app: App, { plans }: { plans: Map<string, TerraformPlan> }): ReturnType<typeof runValidate> {
+    const { userData } = await this.stateManagementService.getResourceState(this.actualResourceStateFileName);
+    const { terraformFolders, terraformResources } = userData;
+
+    const persistedMappings = new Map<string, TerraformResourceOutput>();
+    for (const mapping of terraformResources ?? []) {
+      persistedMappings.set(mapping.resourceContext, mapping);
+    }
+
+    return runValidate(app, { persistedMappings, plans, previousFolders: terraformFolders ?? [] });
+  }
+
+  @EnableHook('CommitHook')
+  private async commitTransaction(
+    app: App,
+    modelTransaction: DiffMetadata[][],
+    resourceTransaction: DiffMetadata[][] = [],
+  ): Promise<void> {
+    // `modelTransaction` and `resourceTransaction` is used by hooks of type CommitHook.
+    assert(!!modelTransaction);
+    assert(!!resourceTransaction);
+
+    // Save the state of the new app and its resources.
+    await this.saveModelState(app);
+    await this.saveResourceState();
+
+    // Reset the runtime environment with the latest state.
+    await this.retrieveResourceState();
+  }
+
   private async retrieveResourceState(): Promise<void> {
     const { data: actualSerializedOutput } = await this.stateManagementService.getResourceState(
       this.actualResourceStateFileName,
@@ -231,17 +261,6 @@ export class Octo {
 
     // Initialize previous resource state.
     await this.resourceSerializationService.deserialize(actualSerializedOutput, oldSerializedOutput);
-  }
-
-  /**
-   * Runs a single resource action, invoked by terraform mid-apply for an external resource.
-   * See the `runAction` mode.
-   */
-  async runAction(
-    app: App,
-    options: { inputs?: Record<string, unknown>; resourceId: string },
-  ): ReturnType<typeof runRunAction> {
-    return runRunAction(app, options);
   }
 
   private async saveModelState(app: App): Promise<void> {
@@ -281,24 +300,5 @@ export class Octo {
     await this.stateManagementService.saveResourceState(this.oldResourceStateFileName, oldSerializedOutput, {
       version: 1,
     });
-  }
-
-  /**
-   * Validates the generated terraform plans against octo's resource diff.
-   *
-   * Also reads the terraform memory persisted by the last commit (in the actual resource state):
-   * the octo→terraform mapping keyed by resource context, and the committed folder record used to
-   * recognize emptied folders and folders octo does not track. Both empty when nothing has been committed yet.
-   */
-  async validate(app: App, { plans }: { plans: Map<string, TerraformPlan> }): ReturnType<typeof runValidate> {
-    const { userData } = await this.stateManagementService.getResourceState(this.actualResourceStateFileName);
-    const { terraformFolders, terraformResources } = userData;
-
-    const persistedMappings = new Map<string, TerraformResourceOutput>();
-    for (const mapping of terraformResources ?? []) {
-      persistedMappings.set(mapping.resourceContext, mapping);
-    }
-
-    return runValidate(app, { persistedMappings, plans, previousFolders: terraformFolders ?? [] });
   }
 }

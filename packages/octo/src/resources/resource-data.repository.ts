@@ -183,26 +183,16 @@ export class ResourceDataRepository {
     return this.actualResources.find((r) => r.getContext() === context);
   }
 
-  getNewResourceByContext(context: string): UnknownResource | undefined {
-    return this.newResources.find((r) => r.getContext() === context);
-  }
-
   getActualResourcesByProperties(filters: { key: string; value: any }[] = []): UnknownResource[] {
     return this.actualResources.filter((r) => filters.every((c) => r.properties[c.key] === c.value));
   }
 
-  getNewResourcesByProperties(filters: { key: string; value: any }[] = []): UnknownResource[] {
-    return this.newResources.filter((r) => filters.every((c) => r.properties[c.key] === c.value));
+  getNewResourceByContext(context: string): UnknownResource | undefined {
+    return this.newResources.find((r) => r.getContext() === context);
   }
 
-  /**
-   * Marks the new (desired) resource graph as fully applied: the actual graph becomes the new
-   * graph and nothing is dirty. Used by terraform commit, where terraform has already applied
-   * the full desired state.
-   */
-  syncActualToNew(): void {
-    this.actualResources = [...this.newResources];
-    this.dirtyResources = [];
+  getNewResourcesByProperties(filters: { key: string; value: any }[] = []): UnknownResource[] {
+    return this.newResources.filter((r) => filters.every((c) => r.properties[c.key] === c.value));
   }
 
   removeNewResource(resource: UnknownResource): void {
@@ -218,6 +208,16 @@ export class ResourceDataRepository {
     if (rIndex > -1) {
       this.newResources.splice(rIndex, 1);
     }
+  }
+
+  /**
+   * Marks the new (desired) resource graph as fully applied: the actual graph becomes the new
+   * graph and nothing is dirty. Used by terraform commit, where terraform has already applied
+   * the full desired state.
+   */
+  syncActualToNew(): void {
+    this.actualResources = [...this.newResources];
+    this.dirtyResources = [];
   }
 }
 

@@ -28,6 +28,15 @@ export class Server extends AModel<ServerSchema, Server> {
     this.serverKey = serverKey;
   }
 
+  static override async unSynth(
+    server: ServerSchema,
+    deReferenceContext: (context: string) => Promise<UnknownModel>,
+  ): Promise<Server> {
+    assert(!!deReferenceContext);
+
+    return new Server(server.serverKey);
+  }
+
   /**
    * To add a {@link Deployment}.
    */
@@ -56,14 +65,5 @@ export class Server extends AModel<ServerSchema, Server> {
     return {
       serverKey: this.serverKey,
     };
-  }
-
-  static override async unSynth(
-    server: ServerSchema,
-    deReferenceContext: (context: string) => Promise<UnknownModel>,
-  ): Promise<Server> {
-    assert(!!deReferenceContext);
-
-    return new Server(server.serverKey);
   }
 }

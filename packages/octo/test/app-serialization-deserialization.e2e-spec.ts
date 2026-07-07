@@ -53,8 +53,8 @@ describe('App Serialization and Deserialization E2E Test', () => {
   it('should serialize and deserialize a complex app', async () => {
     // Create an initial state of the app.
     const {
-      app: [app],
       account: [account1],
+      app: [app],
     } = create({
       account: ['aws,account1', 'aws,account2:-1', 'aws,account3:-2'],
       app: ['test-app'],

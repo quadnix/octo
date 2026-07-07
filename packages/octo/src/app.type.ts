@@ -24,16 +24,16 @@ export class MatchingAnchor<S extends BaseAnchorSchema> {
     private readonly schemaTranslator?: (synth: any) => S,
   ) {}
 
-  hasSchemaTranslator(): boolean {
-    return !!this.schemaTranslator;
-  }
-
   getActual(): AAnchor<Omit<S, 'properties'> & { properties: Record<never, never> }, any> {
     return this.actual;
   }
 
   getSchemaInstance(): S {
     return this.hasSchemaTranslator() ? this.schemaTranslator!(this.actual.synth()) : (this.actual.synth() as S);
+  }
+
+  hasSchemaTranslator(): boolean {
+    return !!this.schemaTranslator;
   }
 }
 
@@ -46,16 +46,16 @@ export class MatchingModel<S extends object> {
     private readonly schemaTranslator?: (synth: any) => S,
   ) {}
 
-  hasSchemaTranslator(): boolean {
-    return !!this.schemaTranslator;
-  }
-
   getActual(): AModel<Record<never, never>, any> {
     return this.actual;
   }
 
   getSchemaInstance(): S {
     return this.hasSchemaTranslator() ? this.schemaTranslator!(this.actual.synth()) : (this.actual.synth() as S);
+  }
+
+  hasSchemaTranslator(): boolean {
+    return !!this.schemaTranslator;
   }
 }
 
@@ -84,10 +84,6 @@ export class MatchingResource<S extends BaseResourceSchema> {
     return results;
   }
 
-  hasSchemaTranslator(): boolean {
-    return !!this.schemaTranslator;
-  }
-
   getActual(): AResource<
     Omit<S, 'properties' | 'response' | 'tags'> & { properties: Record<never, never> } & {
       response: Record<never, never>;
@@ -103,6 +99,10 @@ export class MatchingResource<S extends BaseResourceSchema> {
 
   getSchemaInstanceInResourceAction(): Omit<S, 'response'> & { response: Required<S['response']> } {
     return this.getSchemaInstance() as unknown as Omit<S, 'response'> & { response: Required<S['response']> };
+  }
+
+  hasSchemaTranslator(): boolean {
+    return !!this.schemaTranslator;
   }
 }
 

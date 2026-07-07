@@ -28,6 +28,13 @@ export class ModelActionHook implements IHook<PreHookSignature, PostHookSignatur
 
   private constructor() {}
 
+  static getInstance(): ModelActionHook {
+    if (!this.instance) {
+      this.instance = new ModelActionHook();
+    }
+    return this.instance;
+  }
+
   collectHooks(hooks: { postHooks?: PostHookSignature[]; preHooks?: PreHookSignature[] }): void {
     for (const { action, handle } of hooks.postHooks || []) {
       if (!this.postModelActionHooks[action.constructor.name]) {
@@ -42,13 +49,6 @@ export class ModelActionHook implements IHook<PreHookSignature, PostHookSignatur
       }
       this.preModelActionHooks[action.constructor.name].push({ handle });
     }
-  }
-
-  static getInstance(): ModelActionHook {
-    if (!this.instance) {
-      this.instance = new ModelActionHook();
-    }
-    return this.instance;
   }
 
   registrar(modelAction: IUnknownModelAction): void {

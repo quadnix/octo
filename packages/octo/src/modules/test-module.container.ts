@@ -91,135 +91,6 @@ export class TestModuleContainer {
     this.octo = new Octo();
   }
 
-  private async commit(
-    app: App,
-    {
-      filterByModuleIds = [],
-      skipResourceTransaction = false,
-    }: {
-      filterByModuleIds?: string[];
-      skipResourceTransaction?: boolean;
-    } = {},
-  ): Promise<{
-    modelDiffs: DiffMetadata[][];
-    modelTransaction: DiffMetadata[][];
-    resourceDiffs: DiffMetadata[][];
-    resourceTransaction: DiffMetadata[][];
-  }> {
-    const [terraformService, transactionService] = await Promise.all([
-      this.container.get(TerraformService),
-      this.container.get(TransactionService),
-    ]);
-
-    // Each transaction sweeps the full resource graph into the terraform service, so the previous
-    // call's sweep must be cleared first. Config and providers survive, as they would in a real
-    // process — tests register them once (in beforeEach), not per transaction.
-    terraformService.resetTransactionState();
-
-    const diffs = await app.diff();
-    const generator = transactionService.beginTransaction(diffs, {
-      generateTerraform: true,
-      yieldModelDiffs: true,
-      yieldModelTransaction: true,
-      yieldResourceDiffs: true,
-      yieldResourceTransaction: true,
-    });
-
-    const response = {} as Awaited<ReturnType<TestModuleContainer['commit']>>;
-
-    try {
-      response.modelDiffs = (await generator.next()).value;
-      response.modelTransaction = (await generator.next()).value;
-      response.resourceDiffs = (await generator.next()).value;
-      if (!skipResourceTransaction) {
-        response.resourceTransaction = (await generator.next()).value;
-        await generator.next();
-      } else {
-        response.resourceTransaction = [];
-      }
-    } catch (error) {
-      await this.reset();
-      throw error;
-    }
-
-    if (!skipResourceTransaction) {
-      await this.octo['commitTransaction'](app, response.modelTransaction, response.resourceTransaction);
-    }
-
-    // Establish the HCL diff baseline from the same transaction that just applied the models, so the
-    // next runModules() render reports its `diff` against the committed state. Captured before
-    // reset(), which wipes the model attribution renderAllModules() depends on.
-    this.previousHcl = HclUtility.serialize(terraformService.renderAllModules());
-
-    const inputService = await this.container.get(InputService);
-
-    for (const moduleId of filterByModuleIds) {
-      response.modelDiffs = response.modelDiffs
-        .map((i) =>
-          i.filter((j) => {
-            if (j.node instanceof AModel && !(j.node instanceof AOverlay)) {
-              return inputService.getModuleIdFromModel(j.node) === moduleId;
-            } else if (j.node instanceof AOverlay) {
-              return inputService.getModuleIdFromOverlay(j.node) === moduleId;
-            } else {
-              return false;
-            }
-          }),
-        )
-        .filter((i) => i.length);
-
-      response.modelTransaction = response.modelTransaction
-        .map((i) =>
-          i.filter((j) => {
-            if (j.node instanceof AModel && !(j.node instanceof AOverlay)) {
-              return inputService.getModuleIdFromModel(j.node) === moduleId;
-            } else if (j.node instanceof AOverlay) {
-              return inputService.getModuleIdFromOverlay(j.node) === moduleId;
-            } else {
-              return false;
-            }
-          }),
-        )
-        .filter((i) => i.length);
-
-      response.resourceDiffs = response.resourceDiffs
-        .map((i) =>
-          i.filter((j) => {
-            if (j.node instanceof AResource) {
-              return inputService.getModuleIdFromResource(j.node) === moduleId;
-            } else {
-              return false;
-            }
-          }),
-        )
-        .filter((i) => i.length);
-
-      if (!skipResourceTransaction) {
-        response.resourceTransaction = response.resourceTransaction
-          .map((i) =>
-            i.filter((j) => {
-              if (j.node instanceof AResource) {
-                return inputService.getModuleIdFromResource(j.node) === moduleId;
-              } else {
-                return false;
-              }
-            }),
-          )
-          .filter((i) => i.length);
-      }
-    }
-
-    await this.reset();
-
-    return response;
-  }
-
-  private async commitHcl(...args: Parameters<Octo['commit']>): ReturnType<Octo['commit']> {
-    // Clear the previous call's sweep; config and providers survive (registered once per process).
-    (await this.container.get(TerraformService)).resetTransactionState();
-    return this.octo.commit(...args);
-  }
-
   async createResources(
     moduleId: string,
     args: Parameters<typeof createResources>[0],
@@ -390,18 +261,6 @@ export class TestModuleContainer {
     return changes;
   }
 
-  private async generateHcl(
-    app: App,
-    { outputDir }: { outputDir?: string } = {},
-  ): Promise<{ outputDir: string; resourceDiffs: DiffMetadata[][] }> {
-    // Clear the previous call's sweep; config and providers survive (registered once per process).
-    (await this.container.get(TerraformService)).resetTransactionState();
-
-    const dir = outputDir ?? (await mkdtemp(join(tmpdir(), 'octo-hcl-')));
-    const resourceDiffs = await this.octo.generate(app, { outputDir: dir });
-    return { outputDir: dir, resourceDiffs };
-  }
-
   async initialize(
     stateProvider?: IStateProvider,
     initializeInContainer?: Parameters<typeof Octo.prototype.initialize>[1],
@@ -457,33 +316,6 @@ export class TestModuleContainer {
     ...args: Parameters<Octo['registerTerraformProvider']>
   ): ReturnType<Octo['registerTerraformProvider']> {
     return this.octo.registerTerraformProvider(...args);
-  }
-
-  /**
-   * Runs the generate sweep for `app` and serializes the rendered terragrunt folders to a single
-   * deterministic string. Does not touch the stored previous render — callers manage that.
-   *
-   * @internal
-   */
-  private async renderCurrentHcl(app: App): Promise<string> {
-    const container = this.container;
-    const [terraformService, transactionService] = await Promise.all([
-      container.get(TerraformService),
-      container.get(TransactionService),
-    ]);
-
-    // Clear the previous call's sweep; config and providers survive (registered once per process).
-    terraformService.resetTransactionState();
-
-    const diffs = await app.diff();
-    const transaction = transactionService.beginTransaction(diffs, {
-      generateTerraform: true,
-      yieldResourceDiffs: true,
-    });
-    // Drains the resource-diff yield; the contribution to TerraformService happens as a side effect.
-    await transaction.next();
-
-    return HclUtility.serialize(terraformService.renderAllModules());
   }
 
   async reset(): Promise<void> {
@@ -640,6 +472,174 @@ export class TestModuleContainer {
     // Re-collect responses after the commit: it is commitHcl that maps terraform outputs onto the
     // actual resource graph, so a snapshot taken before it (as `response` holds) would miss them.
     yield { ...result, responses: collectResponses(), warnings };
+  }
+
+  private async commit(
+    app: App,
+    {
+      filterByModuleIds = [],
+      skipResourceTransaction = false,
+    }: {
+      filterByModuleIds?: string[];
+      skipResourceTransaction?: boolean;
+    } = {},
+  ): Promise<{
+    modelDiffs: DiffMetadata[][];
+    modelTransaction: DiffMetadata[][];
+    resourceDiffs: DiffMetadata[][];
+    resourceTransaction: DiffMetadata[][];
+  }> {
+    const [terraformService, transactionService] = await Promise.all([
+      this.container.get(TerraformService),
+      this.container.get(TransactionService),
+    ]);
+
+    // Each transaction sweeps the full resource graph into the terraform service, so the previous
+    // call's sweep must be cleared first. Config and providers survive, as they would in a real
+    // process — tests register them once (in beforeEach), not per transaction.
+    terraformService.resetTransactionState();
+
+    const diffs = await app.diff();
+    const generator = transactionService.beginTransaction(diffs, {
+      generateTerraform: true,
+      yieldModelDiffs: true,
+      yieldModelTransaction: true,
+      yieldResourceDiffs: true,
+      yieldResourceTransaction: true,
+    });
+
+    const response = {} as Awaited<ReturnType<TestModuleContainer['commit']>>;
+
+    try {
+      response.modelDiffs = (await generator.next()).value;
+      response.modelTransaction = (await generator.next()).value;
+      response.resourceDiffs = (await generator.next()).value;
+      if (!skipResourceTransaction) {
+        response.resourceTransaction = (await generator.next()).value;
+        await generator.next();
+      } else {
+        response.resourceTransaction = [];
+      }
+    } catch (error) {
+      await this.reset();
+      throw error;
+    }
+
+    if (!skipResourceTransaction) {
+      await this.octo['commitTransaction'](app, response.modelTransaction, response.resourceTransaction);
+    }
+
+    // Establish the HCL diff baseline from the same transaction that just applied the models, so the
+    // next runModules() render reports its `diff` against the committed state. Captured before
+    // reset(), which wipes the model attribution renderAllModules() depends on.
+    this.previousHcl = HclUtility.serialize(terraformService.renderAllModules());
+
+    const inputService = await this.container.get(InputService);
+
+    for (const moduleId of filterByModuleIds) {
+      response.modelDiffs = response.modelDiffs
+        .map((i) =>
+          i.filter((j) => {
+            if (j.node instanceof AModel && !(j.node instanceof AOverlay)) {
+              return inputService.getModuleIdFromModel(j.node) === moduleId;
+            } else if (j.node instanceof AOverlay) {
+              return inputService.getModuleIdFromOverlay(j.node) === moduleId;
+            } else {
+              return false;
+            }
+          }),
+        )
+        .filter((i) => i.length);
+
+      response.modelTransaction = response.modelTransaction
+        .map((i) =>
+          i.filter((j) => {
+            if (j.node instanceof AModel && !(j.node instanceof AOverlay)) {
+              return inputService.getModuleIdFromModel(j.node) === moduleId;
+            } else if (j.node instanceof AOverlay) {
+              return inputService.getModuleIdFromOverlay(j.node) === moduleId;
+            } else {
+              return false;
+            }
+          }),
+        )
+        .filter((i) => i.length);
+
+      response.resourceDiffs = response.resourceDiffs
+        .map((i) =>
+          i.filter((j) => {
+            if (j.node instanceof AResource) {
+              return inputService.getModuleIdFromResource(j.node) === moduleId;
+            } else {
+              return false;
+            }
+          }),
+        )
+        .filter((i) => i.length);
+
+      if (!skipResourceTransaction) {
+        response.resourceTransaction = response.resourceTransaction
+          .map((i) =>
+            i.filter((j) => {
+              if (j.node instanceof AResource) {
+                return inputService.getModuleIdFromResource(j.node) === moduleId;
+              } else {
+                return false;
+              }
+            }),
+          )
+          .filter((i) => i.length);
+      }
+    }
+
+    await this.reset();
+
+    return response;
+  }
+
+  private async commitHcl(...args: Parameters<Octo['commit']>): ReturnType<Octo['commit']> {
+    // Clear the previous call's sweep; config and providers survive (registered once per process).
+    (await this.container.get(TerraformService)).resetTransactionState();
+    return this.octo.commit(...args);
+  }
+
+  private async generateHcl(
+    app: App,
+    { outputDir }: { outputDir?: string } = {},
+  ): Promise<{ outputDir: string; resourceDiffs: DiffMetadata[][] }> {
+    // Clear the previous call's sweep; config and providers survive (registered once per process).
+    (await this.container.get(TerraformService)).resetTransactionState();
+
+    const dir = outputDir ?? (await mkdtemp(join(tmpdir(), 'octo-hcl-')));
+    const resourceDiffs = await this.octo.generate(app, { outputDir: dir });
+    return { outputDir: dir, resourceDiffs };
+  }
+
+  /**
+   * Runs the generate sweep for `app` and serializes the rendered terragrunt folders to a single
+   * deterministic string. Does not touch the stored previous render — callers manage that.
+   *
+   * @internal
+   */
+  private async renderCurrentHcl(app: App): Promise<string> {
+    const container = this.container;
+    const [terraformService, transactionService] = await Promise.all([
+      container.get(TerraformService),
+      container.get(TransactionService),
+    ]);
+
+    // Clear the previous call's sweep; config and providers survive (registered once per process).
+    terraformService.resetTransactionState();
+
+    const diffs = await app.diff();
+    const transaction = transactionService.beginTransaction(diffs, {
+      generateTerraform: true,
+      yieldResourceDiffs: true,
+    });
+    // Drains the resource-diff yield; the contribution to TerraformService happens as a side effect.
+    await transaction.next();
+
+    return HclUtility.serialize(terraformService.renderAllModules());
   }
 
   private async validateHcl(...args: Parameters<Octo['validate']>): ReturnType<Octo['validate']> {

@@ -44,64 +44,6 @@ export class TestContainer {
   private static originalFactories: Container['factories'];
 
   /**
-   * Bootstrap the Container with the necessary factories internal to Octo.
-   * Between test runs, when the container is reset, many of Octo's internal classes must be reset as well.
-   * Since these classes are not exposed outside of Octo, we must bootstrap them.
-   *
-   * Some factories defined in Octo using `@Factory` must be placed here,
-   * the exact criteria being any factory that needs to reset its state.
-   *
-   * Exceptions:
-   * - {@link ModelSerializationService}: We do not want to loose class mapping already instantiated via decorators.
-   * - {@link ResourceSerializationService}: We do not want to loose class mapping already instantiated via decorators.
-   * - {@link TransactionService}: We do not want to loose action mapping already instantiated via decorators.
-   */
-  private static async bootstrap(container: Container, force: boolean = false): Promise<void> {
-    const overlayDataRepository = await container.get<OverlayDataRepository, typeof OverlayDataRepositoryFactory>(
-      OverlayDataRepository,
-      { args: [true, []] },
-    );
-
-    const resourceDataRepository = await container.get<ResourceDataRepository, typeof ResourceDataRepositoryFactory>(
-      ResourceDataRepository,
-      { args: [true, [], [], []] },
-    );
-
-    const inputService = await container.get<InputService, typeof InputServiceFactory>(InputService, { args: [true] });
-
-    const moduleContainer = await container.get<ModuleContainer, typeof ModuleContainerFactory>(ModuleContainer, {
-      args: [true],
-    });
-
-    const terraformService = await container.get<TerraformService, typeof TerraformServiceFactory>(TerraformService, {
-      args: [{}, true],
-    });
-
-    if (force) {
-      const eventService = await container.get(EventService);
-
-      const modelSerializationService = new ModelSerializationService(inputService);
-      container.unRegisterFactory(ModelSerializationService);
-      container.registerValue(ModelSerializationService, modelSerializationService);
-
-      const resourceSerializationService = new ResourceSerializationService(resourceDataRepository, inputService);
-      container.unRegisterFactory(ResourceSerializationService);
-      container.registerValue(ResourceSerializationService, resourceSerializationService);
-
-      const transactionService = new TransactionService(
-        eventService,
-        inputService,
-        moduleContainer,
-        overlayDataRepository,
-        resourceDataRepository,
-        terraformService,
-      );
-      container.unRegisterFactory(TransactionService);
-      container.registerValue(TransactionService, transactionService);
-    }
-  }
-
-  /**
    * The `TestContainer.create()` method allows you to mock factories.
    *
    * @example
@@ -164,5 +106,63 @@ export class TestContainer {
    */
   static async reset(): Promise<void> {
     Container.getInstance().reset();
+  }
+
+  /**
+   * Bootstrap the Container with the necessary factories internal to Octo.
+   * Between test runs, when the container is reset, many of Octo's internal classes must be reset as well.
+   * Since these classes are not exposed outside of Octo, we must bootstrap them.
+   *
+   * Some factories defined in Octo using `@Factory` must be placed here,
+   * the exact criteria being any factory that needs to reset its state.
+   *
+   * Exceptions:
+   * - {@link ModelSerializationService}: We do not want to loose class mapping already instantiated via decorators.
+   * - {@link ResourceSerializationService}: We do not want to loose class mapping already instantiated via decorators.
+   * - {@link TransactionService}: We do not want to loose action mapping already instantiated via decorators.
+   */
+  private static async bootstrap(container: Container, force: boolean = false): Promise<void> {
+    const overlayDataRepository = await container.get<OverlayDataRepository, typeof OverlayDataRepositoryFactory>(
+      OverlayDataRepository,
+      { args: [true, []] },
+    );
+
+    const resourceDataRepository = await container.get<ResourceDataRepository, typeof ResourceDataRepositoryFactory>(
+      ResourceDataRepository,
+      { args: [true, [], [], []] },
+    );
+
+    const inputService = await container.get<InputService, typeof InputServiceFactory>(InputService, { args: [true] });
+
+    const moduleContainer = await container.get<ModuleContainer, typeof ModuleContainerFactory>(ModuleContainer, {
+      args: [true],
+    });
+
+    const terraformService = await container.get<TerraformService, typeof TerraformServiceFactory>(TerraformService, {
+      args: [{}, true],
+    });
+
+    if (force) {
+      const eventService = await container.get(EventService);
+
+      const modelSerializationService = new ModelSerializationService(inputService);
+      container.unRegisterFactory(ModelSerializationService);
+      container.registerValue(ModelSerializationService, modelSerializationService);
+
+      const resourceSerializationService = new ResourceSerializationService(resourceDataRepository, inputService);
+      container.unRegisterFactory(ResourceSerializationService);
+      container.registerValue(ResourceSerializationService, resourceSerializationService);
+
+      const transactionService = new TransactionService(
+        eventService,
+        inputService,
+        moduleContainer,
+        overlayDataRepository,
+        resourceDataRepository,
+        terraformService,
+      );
+      container.unRegisterFactory(TransactionService);
+      container.registerValue(TransactionService, transactionService);
+    }
   }
 }

@@ -53,23 +53,31 @@ export interface IDependency {
  * @group Functions/Dependency
  */
 export class Dependency {
-  private readonly behaviors: DependencyBehavior[] = [];
-
   readonly from: UnknownNode;
 
-  private relationship: { onField: string; toField: string; type: DependencyRelationship };
-
   readonly to: UnknownNode;
+
+  private readonly behaviors: DependencyBehavior[] = [];
+
+  private relationship: { onField: string; toField: string; type: DependencyRelationship };
 
   constructor(from: UnknownNode, to: UnknownNode) {
     this.from = from;
     this.to = to;
   }
 
-  private getBehaviorIndex(onField: string, onAction: DiffAction, toField: string, forAction: DiffAction): number {
-    return this.behaviors.findIndex(
-      (b) => b.onField === onField && b.onAction === onAction && b.toField === toField && b.forAction === forAction,
-    );
+  static unSynth(from: UnknownNode, to: UnknownNode, dependency: IDependency): Dependency {
+    const newDependency = new Dependency(from, to);
+
+    dependency.behaviors.forEach((b) => {
+      newDependency.addBehavior(b.onField, b.onAction, b.toField, b.forAction);
+    });
+
+    if (dependency.relationship) {
+      newDependency.relationship = { ...dependency.relationship };
+    }
+
+    return newDependency;
   }
 
   addBehavior(onField: string, onAction: DiffAction, toField: string, forAction: DiffAction): void {
@@ -90,6 +98,10 @@ export class Dependency {
       throw new DependencyError('Dependency relationship already exists!', this);
     }
     this.relationship = { onField, toField, type: DependencyRelationship.PARENT };
+  }
+
+  getRelationship(): { onField: string; toField: string; type: DependencyRelationship } | undefined {
+    return this.relationship;
   }
 
   hasMatchingBehavior(onField?: string, onAction?: DiffAction, toField?: string, forAction?: DiffAction): boolean {
@@ -114,10 +126,6 @@ export class Dependency {
 
   isParentRelationship(): boolean {
     return this.relationship && this.relationship.type === DependencyRelationship.PARENT;
-  }
-
-  getRelationship(): { onField: string; toField: string; type: DependencyRelationship } | undefined {
-    return this.relationship;
   }
 
   removeBehavior(onField: string, onAction: DiffAction, toField: string, forAction: DiffAction): void {
@@ -154,17 +162,9 @@ export class Dependency {
     };
   }
 
-  static unSynth(from: UnknownNode, to: UnknownNode, dependency: IDependency): Dependency {
-    const newDependency = new Dependency(from, to);
-
-    dependency.behaviors.forEach((b) => {
-      newDependency.addBehavior(b.onField, b.onAction, b.toField, b.forAction);
-    });
-
-    if (dependency.relationship) {
-      newDependency.relationship = { ...dependency.relationship };
-    }
-
-    return newDependency;
+  private getBehaviorIndex(onField: string, onAction: DiffAction, toField: string, forAction: DiffAction): number {
+    return this.behaviors.findIndex(
+      (b) => b.onField === onField && b.onAction === onAction && b.toField === toField && b.forAction === forAction,
+    );
   }
 }

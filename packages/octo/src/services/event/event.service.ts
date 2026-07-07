@@ -8,15 +8,15 @@ import { Container } from '../../functions/container/container.js';
  * @internal
  */
 export class EventService {
-  private readonly EVENT_BUFFER_SIZE = 50;
+  private static instance: EventService | undefined;
 
   private readonly emitter = new EventEmitter();
+
+  private readonly EVENT_BUFFER_SIZE = 50;
 
   private readonly eventBuffer: {
     [key: string]: { eventClass: Constructable<Event<unknown>>; events: Event<unknown>[] };
   } = {};
-
-  private static instance: EventService | undefined;
 
   private readonly listeners: {
     [key: string]: {
@@ -41,6 +41,13 @@ export class EventService {
     });
   }
 
+  static getInstance(): EventService {
+    if (!this.instance) {
+      this.instance = new EventService();
+    }
+    return this.instance;
+  }
+
   emit(event: Event<unknown>): void {
     this.emitter.emit('*', event);
   }
@@ -63,13 +70,6 @@ export class EventService {
         });
       }
     }
-  }
-
-  static getInstance(): EventService {
-    if (!this.instance) {
-      this.instance = new EventService();
-    }
-    return this.instance;
   }
 
   // TODO: https://github.com/quadnix/octo/issues/6
