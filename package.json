@@ -39,6 +39,7 @@
     "testcontainers": "~11.5.1",
     "ts-jest": "~29.4.1",
     "ts-loader": "~9.5.2",
+    "ts-morph": "~28.0.0",
     "ts-node": "~10.9.2",
     "tsconfig-paths": "~4.2.0",
     "typescript": "~5.9.2"
@@ -60,9 +61,11 @@
   "scripts": {
     "build": "nx run-many -t build",
     "format": "nx run-many -t format",
+    "generate:jsdoc": "node --loader ts-node/esm utilities/generate-jsdoc.utility.ts",
     "lint": "nx run-many -t lint && npm run lint:root",
     "lint:fix": "nx run-many -t lint:fix",
     "lint:root": "eslint . --ignore-pattern \"apps\" --ignore-pattern \"packages\"",
+    "ollama:dev": "OLLAMA_HOST=0.0.0.0 ollama serve",
     "prepare": "husky install",
     "test": "nx run-many -t test",
     "test:cov": "nx run-many -t test:cov",

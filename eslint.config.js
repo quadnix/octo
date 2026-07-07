@@ -61,6 +61,28 @@ export default [
           noZeroLineText: true, // Reports text immediately after /**
         },
       ],
+      'jsdoc/require-description': 'off',
+      'jsdoc/require-jsdoc': [
+        'warn',
+        {
+          enableFixer: false,
+          require: {
+            ArrowFunctionExpression: false,
+            ClassDeclaration: true,
+            FunctionDeclaration: true,
+            FunctionExpression: false,
+            MethodDefinition: true,
+          },
+        },
+      ],
+      'jsdoc/sort-tags': [
+        'warn',
+        {
+          alphabetizeExtras: true,
+          reportIntraTagGroupSpacing: false,
+          tagSequence: [{ tags: [] }],
+        },
+      ],
       'max-len': ['error', { code: 120, ignoreStrings: true }],
       'no-async-promise-executor': 'off',
       'no-duplicate-imports': ['error', { includeExports: true }],
@@ -137,6 +159,14 @@ export default [
       '@typescript-eslint/no-unused-vars': 'off',
       '@typescript-eslint/prefer-nullish-coalescing': 'off',
       '@typescript-eslint/prefer-optional-chain': 'error',
+    },
+  },
+
+  // Spec files.
+  {
+    files: ['**/*.e2e-spec.{js,ts}', '**/*.ispec.{js,ts}', '**/*.spec.{js,ts}'],
+    rules: {
+      'jsdoc/require-jsdoc': 'off',
     },
   },
 
