@@ -81,7 +81,7 @@ export class DynamoDBSecondaryIndexSchema {
       options: { minLength: 3 },
     },
   ])
-  Projection = Schema<{ NonKeyAttributes?: string[]; ProjectionType: 'ALL' | 'INCLUDE' | 'KEYS_ONLY'; }>();
+  Projection = Schema<{ NonKeyAttributes?: string[]; ProjectionType: 'ALL' | 'INCLUDE' | 'KEYS_ONLY' }>();
 }
 
 /**
