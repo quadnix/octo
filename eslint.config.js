@@ -9,14 +9,16 @@ import tsparser from '@typescript-eslint/parser';
 import prettierConfig from 'eslint-config-prettier';
 import boundaries from 'eslint-plugin-boundaries';
 import importPlugin from 'eslint-plugin-import';
+import jsdoc from 'eslint-plugin-jsdoc';
 import jsonc from 'eslint-plugin-jsonc';
+import perfectionist from 'eslint-plugin-perfectionist';
 import prettier from 'eslint-plugin-prettier';
 import spellcheck from 'eslint-plugin-spellcheck';
 import globals from 'globals';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// Read dictionary words for spellcheck
+// Read dictionary words for spellcheck.
 const dictionarySkipWords = readFileSync(__dirname + '/dictionary.dic')
   .toString()
   .split('\n');
@@ -37,6 +39,8 @@ export default [
     },
     plugins: {
       import: importPlugin,
+      jsdoc,
+      perfectionist,
       spellcheck: spellcheck,
     },
     rules: {
@@ -49,10 +53,28 @@ export default [
           named: { enabled: true, types: 'mixed' },
         },
       ],
+      'jsdoc/multiline-blocks': [
+        'error',
+        {
+          noFinalLineText: true, // Reports text immediately before */
+          noSingleLineBlocks: true,
+          noZeroLineText: true, // Reports text immediately after /**
+        },
+      ],
       'max-len': ['error', { code: 120, ignoreStrings: true }],
       'no-async-promise-executor': 'off',
       'no-duplicate-imports': ['error', { includeExports: true }],
       'no-unused-vars': 'off',
+      'perfectionist/sort-classes': [
+        'error',
+        {
+          order: 'asc',
+          type: 'alphabetical',
+        },
+      ],
+      'perfectionist/sort-interfaces': ['error', { type: 'alphabetical' }],
+      'perfectionist/sort-object-types': ['error', { type: 'alphabetical' }],
+      'perfectionist/sort-objects': ['error', { type: 'alphabetical' }],
       'sort-imports': [
         'error',
         {
