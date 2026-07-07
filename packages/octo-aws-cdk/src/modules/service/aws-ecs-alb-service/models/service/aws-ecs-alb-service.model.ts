@@ -19,6 +19,14 @@ export class AwsEcsAlbService extends Service {
     }
   }
 
+  static override async unSynth(
+    service: AwsEcsAlbServiceSchema,
+    deReferenceContext: (context: string) => Promise<AModel<any, any>>,
+  ): Promise<AwsEcsAlbService> {
+    const subnets = (await Promise.all(service.subnets.map((s) => deReferenceContext(s.context)))) as Subnet[];
+    return new AwsEcsAlbService(service.albName, subnets);
+  }
+
   override setContext(): string | undefined {
     const parents = this.getParents();
     const app = parents['app']?.[0]?.to;
@@ -40,13 +48,5 @@ export class AwsEcsAlbService extends Service {
       serviceId: this.serviceId,
       subnets: subnets.map((s) => ({ context: s.getContext() })),
     };
-  }
-
-  static override async unSynth(
-    service: AwsEcsAlbServiceSchema,
-    deReferenceContext: (context: string) => Promise<AModel<any, any>>,
-  ): Promise<AwsEcsAlbService> {
-    const subnets = (await Promise.all(service.subnets.map((s) => deReferenceContext(s.context)))) as Subnet[];
-    return new AwsEcsAlbService(service.albName, subnets);
   }
 }

@@ -81,7 +81,7 @@ export class DynamoDBSecondaryIndexSchema {
       options: { minLength: 3 },
     },
   ])
-  Projection = Schema<{ ProjectionType: 'ALL' | 'INCLUDE' | 'KEYS_ONLY'; NonKeyAttributes?: string[] }>();
+  Projection = Schema<{ NonKeyAttributes?: string[]; ProjectionType: 'ALL' | 'INCLUDE' | 'KEYS_ONLY'; }>();
 }
 
 /**
@@ -200,9 +200,9 @@ export class DynamoDBSchema extends BaseResourceSchema {
     },
   ])
   override properties = Schema<{
+    AttributeDefinitions: { AttributeName: string; AttributeType: 'B' | 'N' | 'S' }[];
     awsAccountId: string;
     awsRegionId: string;
-    AttributeDefinitions: { AttributeName: string; AttributeType: 'B' | 'N' | 'S' }[];
     billingMode: {
       [K in keyof IDynamoDBBillingTypes]: {
         settings: IDynamoDBBillingTypes[K];

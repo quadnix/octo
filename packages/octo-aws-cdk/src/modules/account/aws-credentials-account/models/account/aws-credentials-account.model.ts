@@ -14,15 +14,15 @@ export class AwsCredentialsAccount extends Account {
     this.credentials = credentials;
   }
 
+  static override async unSynth(account: AwsCredentialsAccountSchema): Promise<AwsCredentialsAccount> {
+    return new AwsCredentialsAccount(account.accountId, account.credentials);
+  }
+
   override synth(): AwsCredentialsAccountSchema {
     return {
       accountId: this.accountId,
       accountType: this.accountType,
       credentials: JSON.parse(JSON.stringify(this.credentials)),
     };
-  }
-
-  static override async unSynth(account: AwsCredentialsAccountSchema): Promise<AwsCredentialsAccount> {
-    return new AwsCredentialsAccount(account.accountId, account.credentials);
   }
 }

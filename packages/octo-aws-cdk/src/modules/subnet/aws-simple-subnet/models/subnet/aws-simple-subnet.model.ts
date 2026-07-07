@@ -6,10 +6,6 @@ import { AwsSimpleSubnetSchema } from './aws-simple-subnet.schema.js';
  */
 @Model<AwsSimpleSubnet>('@octo', 'subnet', AwsSimpleSubnetSchema)
 export class AwsSimpleSubnet extends Subnet {
-  private optionsExtension: AwsSimpleSubnetSchema['optionsExtension'] = {
-    createNatGateway: false,
-  };
-
   get createNatGateway(): boolean {
     return this.optionsExtension.createNatGateway;
   }
@@ -17,6 +13,10 @@ export class AwsSimpleSubnet extends Subnet {
   set createNatGateway(createNatGateway: boolean) {
     this.optionsExtension.createNatGateway = createNatGateway;
   }
+
+  private optionsExtension: AwsSimpleSubnetSchema['optionsExtension'] = {
+    createNatGateway: false,
+  };
 
   static override async unSynth(
     subnet: AwsSimpleSubnetSchema,

@@ -14,15 +14,15 @@ export class AwsIniAccount extends Account {
     this.iniProfile = iniProfile;
   }
 
+  static override async unSynth(account: AwsIniAccountSchema): Promise<AwsIniAccount> {
+    return new AwsIniAccount(account.accountId, account.iniProfile);
+  }
+
   override synth(): AwsIniAccountSchema {
     return {
       accountId: this.accountId,
       accountType: this.accountType,
       iniProfile: this.iniProfile,
     };
-  }
-
-  static override async unSynth(account: AwsIniAccountSchema): Promise<AwsIniAccount> {
-    return new AwsIniAccount(account.accountId, account.iniProfile);
   }
 }

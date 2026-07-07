@@ -27,14 +27,6 @@ export class AwsIniAccountModuleSchema {
   app = Schema<App>();
 
   /**
-   * The name of the AWS credential profile to use from the INI files.
-   * This profile should be configured in ~/.aws/credentials or ~/.aws/config.
-   * Defaults to 'default' if not specified.
-   */
-  @Validate({ options: { minLength: 1 } })
-  iniProfile? = Schema<string>('default');
-
-  /**
    * A map of AWS service name to endpoint URL.
    * Keys are Terraform AWS provider service names (e.g. `s3`, `ec2`, `sts`).
    */
@@ -43,4 +35,12 @@ export class AwsIniAccountModuleSchema {
     options: { minLength: 1 },
   })
   endpoints? = Schema<Record<string, string>>({});
+
+  /**
+   * The name of the AWS credential profile to use from the INI files.
+   * This profile should be configured in ~/.aws/credentials or ~/.aws/config.
+   * Defaults to 'default' if not specified.
+   */
+  @Validate({ options: { minLength: 1 } })
+  iniProfile? = Schema<string>('default');
 }

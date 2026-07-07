@@ -15,14 +15,14 @@ export class AwsDynamoDBGlobalService extends Service {
     this.tableName = tableName;
   }
 
+  static override async unSynth(service: AwsDynamoDBGlobalServiceSchema): Promise<AwsDynamoDBGlobalService> {
+    return new AwsDynamoDBGlobalService(service.tableName);
+  }
+
   override synth(): AwsDynamoDBGlobalServiceSchema {
     return {
       serviceId: this.serviceId,
       tableName: this.tableName,
     };
-  }
-
-  static override async unSynth(service: AwsDynamoDBGlobalServiceSchema): Promise<AwsDynamoDBGlobalService> {
-    return new AwsDynamoDBGlobalService(service.tableName);
   }
 }

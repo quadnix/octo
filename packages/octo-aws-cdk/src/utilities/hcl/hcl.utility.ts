@@ -6,6 +6,18 @@ export type HclShape = Record<string, HclBlock>;
  * @internal
  */
 export class HclUtility {
+  static parse(rendered: string): HclShape {
+    const shape: HclShape = {};
+
+    for (const address of HclUtility.extractAddresses(rendered)) {
+      const block = HclUtility.extractBlock(HclUtility.addressToKeyword(address), rendered);
+      const lines = block.split('\n');
+      shape[address] = HclUtility.parseBlockLines(lines.slice(1, -1));
+    }
+
+    return shape;
+  }
+
   private static addressToKeyword(address: string): string {
     const [type, ...rest] = address.split('.');
 
@@ -149,17 +161,5 @@ export class HclUtility {
     }
 
     return result;
-  }
-
-  static parse(rendered: string): HclShape {
-    const shape: HclShape = {};
-
-    for (const address of HclUtility.extractAddresses(rendered)) {
-      const block = HclUtility.extractBlock(HclUtility.addressToKeyword(address), rendered);
-      const lines = block.split('\n');
-      shape[address] = HclUtility.parseBlockLines(lines.slice(1, -1));
-    }
-
-    return shape;
   }
 }

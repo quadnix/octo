@@ -19,6 +19,12 @@ export class AwsS3StorageService extends Service {
     this.bucketName = bucketName;
   }
 
+  static override async unSynth(service: AwsS3StorageServiceSchema): Promise<AwsS3StorageService> {
+    const newService = new AwsS3StorageService(service.bucketName);
+    newService.directories.push(...(service.directories || []));
+    return newService;
+  }
+
   addDirectory(remoteDirectoryPath: string): void {
     if (this.directories.find((d) => d.remoteDirectoryPath === remoteDirectoryPath)) {
       throw new ModelError('Remote directory already added in S3 bucket!', this);
@@ -46,11 +52,5 @@ export class AwsS3StorageService extends Service {
       directories: JSON.parse(JSON.stringify(this.directories)),
       serviceId: this.serviceId,
     };
-  }
-
-  static override async unSynth(service: AwsS3StorageServiceSchema): Promise<AwsS3StorageService> {
-    const newService = new AwsS3StorageService(service.bucketName);
-    newService.directories.push(...(service.directories || []));
-    return newService;
   }
 }

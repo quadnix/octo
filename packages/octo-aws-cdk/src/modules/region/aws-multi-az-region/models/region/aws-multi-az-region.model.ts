@@ -56,6 +56,10 @@ export class AwsMultiAzRegion extends Region {
     this.regionId = name;
   }
 
+  static override async unSynth(region: AwsMultiAzRegionSchema): Promise<AwsMultiAzRegion> {
+    return new AwsMultiAzRegion(region.regionId, region.awsRegionAZs.map((az) => `aws-${az}`) as AwsMultiAzRegionId[]);
+  }
+
   private static getRegionIdParts(regionId: AwsMultiAzRegionId): { awsRegionAZ: string; awsRegionId: string } {
     const regionIdParts = regionId.split('-');
     regionIdParts.shift();
@@ -70,9 +74,5 @@ export class AwsMultiAzRegion extends Region {
       awsRegionId: this.awsRegionId,
       regionId: this.regionId,
     };
-  }
-
-  static override async unSynth(region: AwsMultiAzRegionSchema): Promise<AwsMultiAzRegion> {
-    return new AwsMultiAzRegion(region.regionId, region.awsRegionAZs.map((az) => `aws-${az}`) as AwsMultiAzRegionId[]);
   }
 }

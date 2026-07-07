@@ -29,35 +29,8 @@ export class AwsS3StaticWebsiteService extends Service {
     this.bucketName = bucketName;
   }
 
-  private async generateSourceManifest(): Promise<IManifest> {
-    const manifest: IManifest = {};
-    const sourcePaths = [...this.sourcePaths];
-
-    for (const sourcePath of sourcePaths) {
-      if (!sourcePath.isDirectory) {
-        const filePath = join(sourcePath.directoryPath, sourcePath.subDirectoryOrFilePath);
-        const digest = await FileUtility.hash(filePath);
-        manifest[sourcePath.remotePath] = { algorithm: 'sha1', digest, filePath };
-      } else {
-        const directoryPath = join(sourcePath.directoryPath, sourcePath.subDirectoryOrFilePath);
-        const directoryFilePaths = await readdir(directoryPath, { recursive: true });
-        for (const directoryFilePath of directoryFilePaths) {
-          const filePath = join(directoryPath, directoryFilePath);
-          const stats = await lstat(filePath);
-          if (stats.isDirectory()) {
-            continue;
-          }
-
-          if (this.excludePaths.findIndex((p) => join(p.directoryPath, p.subDirectoryOrFilePath) === filePath) === -1) {
-            const remotePath = join(sourcePath.remotePath, directoryFilePath);
-            const digest = await FileUtility.hash(filePath);
-            manifest[remotePath] = { algorithm: 'sha1', digest, filePath };
-          }
-        }
-      }
-    }
-
-    return manifest;
+  static override async unSynth(service: AwsS3StaticWebsiteServiceSchema): Promise<AwsS3StaticWebsiteService> {
+    return new AwsS3StaticWebsiteService(service.bucketName);
   }
 
   async addSource(
@@ -145,7 +118,34 @@ export class AwsS3StaticWebsiteService extends Service {
     };
   }
 
-  static override async unSynth(service: AwsS3StaticWebsiteServiceSchema): Promise<AwsS3StaticWebsiteService> {
-    return new AwsS3StaticWebsiteService(service.bucketName);
+  private async generateSourceManifest(): Promise<IManifest> {
+    const manifest: IManifest = {};
+    const sourcePaths = [...this.sourcePaths];
+
+    for (const sourcePath of sourcePaths) {
+      if (!sourcePath.isDirectory) {
+        const filePath = join(sourcePath.directoryPath, sourcePath.subDirectoryOrFilePath);
+        const digest = await FileUtility.hash(filePath);
+        manifest[sourcePath.remotePath] = { algorithm: 'sha1', digest, filePath };
+      } else {
+        const directoryPath = join(sourcePath.directoryPath, sourcePath.subDirectoryOrFilePath);
+        const directoryFilePaths = await readdir(directoryPath, { recursive: true });
+        for (const directoryFilePath of directoryFilePaths) {
+          const filePath = join(directoryPath, directoryFilePath);
+          const stats = await lstat(filePath);
+          if (stats.isDirectory()) {
+            continue;
+          }
+
+          if (this.excludePaths.findIndex((p) => join(p.directoryPath, p.subDirectoryOrFilePath) === filePath) === -1) {
+            const remotePath = join(sourcePath.remotePath, directoryFilePath);
+            const digest = await FileUtility.hash(filePath);
+            manifest[remotePath] = { algorithm: 'sha1', digest, filePath };
+          }
+        }
+      }
+    }
+
+    return manifest;
   }
 }

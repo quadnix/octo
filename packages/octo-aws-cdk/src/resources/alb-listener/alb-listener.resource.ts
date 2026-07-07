@@ -271,8 +271,8 @@ export class AlbListener extends ATerraformResource<AlbListenerSchema, AlbListen
     );
 
     const buildActionSpec = (action: {
-      actionType: keyof IAlbListenerActionTypes;
       action: IAlbListenerActionTypes[keyof IAlbListenerActionTypes];
+      actionType: keyof IAlbListenerActionTypes;
     }): Record<string, unknown> => {
       if (action.actionType === 'fixed-response') {
         const a = action.action as IAlbListenerActionTypes['fixed-response'];
@@ -319,8 +319,8 @@ export class AlbListener extends ATerraformResource<AlbListenerSchema, AlbListen
     };
 
     const buildConditionSpec = (condition: {
-      conditionType: keyof IAlbListenerRuleTypes;
       condition: IAlbListenerRuleTypes[keyof IAlbListenerRuleTypes];
+      conditionType: keyof IAlbListenerRuleTypes;
     }): Record<string, unknown> => {
       if (condition.conditionType === 'host-header') {
         return { host_header: { values: (condition.condition as IAlbListenerRuleTypes['host-header']).Values } };

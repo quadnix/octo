@@ -10,13 +10,19 @@ import { AwsSecurityGroupAnchorRuleSchema } from '../../../anchors/aws-security-
  * @group Modules/Server/AwsEcsServer
  */
 export enum AwsEcsServerS3AccessDirectoryPermission {
-  /** Read-only access to S3 storage */
+  /**
+   * Read-only access to S3 storage
+   */
   READ = 'READ',
 
-  /** Read and write access to S3 storage */
+  /**
+   * Read and write access to S3 storage
+   */
   READ_WRITE = 'READ_WRITE',
 
-  /** Write-only access to S3 storage */
+  /**
+   * Write-only access to S3 storage
+   */
   WRITE = 'WRITE',
 }
 

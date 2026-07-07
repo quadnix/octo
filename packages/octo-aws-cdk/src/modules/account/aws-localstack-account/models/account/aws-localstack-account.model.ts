@@ -10,11 +10,11 @@ export class AwsLocalstackAccount extends Account {
     super(AccountType.AWS, accountId);
   }
 
-  override synth(): AwsLocalstackAccountSchema {
-    return super.synth();
-  }
-
   static override async unSynth(account: AwsLocalstackAccountSchema): Promise<AwsLocalstackAccount> {
     return new AwsLocalstackAccount(account.accountId);
+  }
+
+  override synth(): AwsLocalstackAccountSchema {
+    return super.synth();
   }
 }

@@ -10,11 +10,11 @@ export class AwsMotoAccount extends Account {
     super(AccountType.AWS, accountId);
   }
 
-  override synth(): AwsMotoAccountSchema {
-    return super.synth();
-  }
-
   static override async unSynth(account: AwsMotoAccountSchema): Promise<AwsMotoAccount> {
     return new AwsMotoAccount(account.accountId);
+  }
+
+  override synth(): AwsMotoAccountSchema {
+    return super.synth();
   }
 }

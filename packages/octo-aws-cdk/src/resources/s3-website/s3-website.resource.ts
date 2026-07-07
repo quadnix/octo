@@ -24,12 +24,23 @@ type IManifest = { [key: string]: { algorithm: 'sha1'; digest: string | 'deleted
 export class S3Website extends ATerraformResource<S3WebsiteSchema, S3Website> {
   declare properties: S3WebsiteSchema['properties'];
   declare response: S3WebsiteSchema['response'];
-  private sourcePathDigests: S3WebsiteSchema['sourcePathDigests'] = {};
-
   private readonly manifest: IManifest = {};
+
+  private sourcePathDigests: S3WebsiteSchema['sourcePathDigests'] = {};
 
   constructor(resourceId: string, properties: S3WebsiteSchema['properties']) {
     super(resourceId, properties, []);
+  }
+
+  static override async unSynth<S extends BaseResourceSchema, T>(
+    deserializationClass: any,
+    resource: S,
+    deReferenceResource: (context: string) => Promise<AResource<BaseResourceSchema, any>>,
+  ): Promise<T> {
+    const s3Website = (await super.unSynth(deserializationClass, resource, deReferenceResource)) as S3Website;
+    const digests = (resource as unknown as S3WebsiteSchema).sourcePathDigests;
+    s3Website.sourcePathDigests = digests ? { ...digests } : {};
+    return s3Website as T;
   }
 
   override async diffProperties(previous: S3Website): Promise<Diff[]> {
@@ -81,6 +92,13 @@ export class S3Website extends ATerraformResource<S3WebsiteSchema, S3Website> {
     } else {
       return [diff];
     }
+  }
+
+  override synth(): S3WebsiteSchema {
+    return {
+      ...super.synth(),
+      sourcePathDigests: JSON.parse(JSON.stringify(this.sourcePathDigests)),
+    };
   }
 
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {
@@ -169,23 +187,5 @@ export class S3Website extends ATerraformResource<S3WebsiteSchema, S3Website> {
         this.sourcePathDigests[key] = manifestDiff[key].digest;
       }
     }
-  }
-
-  override synth(): S3WebsiteSchema {
-    return {
-      ...super.synth(),
-      sourcePathDigests: JSON.parse(JSON.stringify(this.sourcePathDigests)),
-    };
-  }
-
-  static override async unSynth<S extends BaseResourceSchema, T>(
-    deserializationClass: any,
-    resource: S,
-    deReferenceResource: (context: string) => Promise<AResource<BaseResourceSchema, any>>,
-  ): Promise<T> {
-    const s3Website = (await super.unSynth(deserializationClass, resource, deReferenceResource)) as S3Website;
-    const digests = (resource as unknown as S3WebsiteSchema).sourcePathDigests;
-    s3Website.sourcePathDigests = digests ? { ...digests } : {};
-    return s3Website as T;
   }
 }

@@ -46,11 +46,6 @@ export class NetworkAcl extends ATerraformResource<NetworkAclSchema, NetworkAcl>
     return super.diffProperties(previous);
   }
 
-  updateNaclEntries(entries: NetworkAclSchema['properties']['entries']): void {
-    this.properties.entries.push(...entries);
-    NetworkAclUtility.assignRuleNumber(this.properties.entries);
-  }
-
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {
     const ingressEntries = this.properties.entries
       .filter((e) => !e.Egress)
@@ -97,5 +92,10 @@ export class NetworkAcl extends ATerraformResource<NetworkAclSchema, NetworkAcl>
     if (Object.keys(this.tags).length > 0) {
       naclTFResource.attribute('tags', this.tags);
     }
+  }
+
+  updateNaclEntries(entries: NetworkAclSchema['properties']['entries']): void {
+    this.properties.entries.push(...entries);
+    NetworkAclUtility.assignRuleNumber(this.properties.entries);
   }
 }

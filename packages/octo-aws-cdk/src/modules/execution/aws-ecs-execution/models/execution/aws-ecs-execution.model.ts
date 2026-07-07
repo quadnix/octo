@@ -6,8 +6,12 @@ import { AwsEcsExecutionSchema } from './aws-ecs-execution.schema.js';
  */
 @Model<AwsEcsExecution>('@octo', 'execution', AwsEcsExecutionSchema)
 export class AwsEcsExecution extends Execution {
-  readonly deployments: { main: Deployment; sidecars: Deployment[] };
   readonly customExecutionId: string;
+  readonly deployments: { main: Deployment; sidecars: Deployment[] };
+
+  override get executionId(): string {
+    return this.customExecutionId;
+  }
 
   constructor(
     executionId: string,
@@ -35,8 +39,30 @@ export class AwsEcsExecution extends Execution {
     this.customExecutionId = executionId;
   }
 
-  override get executionId(): string {
-    return this.customExecutionId;
+  static override async unSynth(
+    execution: AwsEcsExecutionSchema,
+    deReferenceContext: (context: string) => Promise<AModel<any, any>>,
+  ): Promise<AwsEcsExecution> {
+    const [deployment, environment, subnet] = (await Promise.all([
+      deReferenceContext(execution.deployment.context),
+      deReferenceContext(execution.environment.context),
+      deReferenceContext(execution.subnet.context),
+    ])) as [Deployment, Environment, Subnet];
+
+    const sidecars = (await Promise.all(execution.sidecars.map((d) => deReferenceContext(d.context)))) as Deployment[];
+
+    const newExecution = new AwsEcsExecution(
+      execution.executionId,
+      { main: deployment, sidecars },
+      environment,
+      subnet,
+    );
+
+    for (const [key, value] of Object.entries(execution.environmentVariables)) {
+      newExecution.environmentVariables.set(key, value);
+    }
+
+    return newExecution;
   }
 
   override setContext(): string | undefined {
@@ -73,31 +99,5 @@ export class AwsEcsExecution extends Execution {
       sidecars: this.deployments.sidecars.map((d) => ({ context: d.getContext() })),
       subnet: { context: subnet.getContext() },
     };
-  }
-
-  static override async unSynth(
-    execution: AwsEcsExecutionSchema,
-    deReferenceContext: (context: string) => Promise<AModel<any, any>>,
-  ): Promise<AwsEcsExecution> {
-    const [deployment, environment, subnet] = (await Promise.all([
-      deReferenceContext(execution.deployment.context),
-      deReferenceContext(execution.environment.context),
-      deReferenceContext(execution.subnet.context),
-    ])) as [Deployment, Environment, Subnet];
-
-    const sidecars = (await Promise.all(execution.sidecars.map((d) => deReferenceContext(d.context)))) as Deployment[];
-
-    const newExecution = new AwsEcsExecution(
-      execution.executionId,
-      { main: deployment, sidecars },
-      environment,
-      subnet,
-    );
-
-    for (const [key, value] of Object.entries(execution.environmentVariables)) {
-      newExecution.environmentVariables.set(key, value);
-    }
-
-    return newExecution;
   }
 }
