@@ -46,20 +46,11 @@ export class ModuleDefinitions {
     return this.moduleDefinitions;
   }
 
-  private init(): void {
-    this.add(SimpleAppModule, 'app-module', { name: 'aws-s3-website' });
-
-    this.add(AwsIniAccountModule, 'account-module', {
-      accountId: config.AWS_ACCOUNT_ID,
-      app: stub<App>('${{app-module.model.app}}'),
-    });
-
-    this.add(AwsS3StaticWebsiteServiceModule, 's3-website-service-module', {
-      account: stub<Account>('${{account-module.model.account}}'),
-      awsRegionId: 'us-east-1',
-      bucketName: config.AWS_S3_WEBSITE_BUCKET_NAME,
-      directoryPath: websiteSourcePath,
-    });
+  remove(moduleId: string): void {
+    const index = this.moduleDefinitions.findIndex((m) => m.moduleId === moduleId);
+    if (index > -1) {
+      this.moduleDefinitions.splice(index, 1);
+    }
   }
 
   update<T extends AModule<unknown, any>>(
@@ -79,11 +70,20 @@ export class ModuleDefinitions {
     }
   }
 
-  remove(moduleId: string): void {
-    const index = this.moduleDefinitions.findIndex((m) => m.moduleId === moduleId);
-    if (index > -1) {
-      this.moduleDefinitions.splice(index, 1);
-    }
+  private init(): void {
+    this.add(SimpleAppModule, 'app-module', { name: 'aws-s3-website' });
+
+    this.add(AwsIniAccountModule, 'account-module', {
+      accountId: config.AWS_ACCOUNT_ID,
+      app: stub<App>('${{app-module.model.app}}'),
+    });
+
+    this.add(AwsS3StaticWebsiteServiceModule, 's3-website-service-module', {
+      account: stub<Account>('${{account-module.model.account}}'),
+      awsRegionId: 'us-east-1',
+      bucketName: config.AWS_S3_WEBSITE_BUCKET_NAME,
+      directoryPath: websiteSourcePath,
+    });
   }
 }
 

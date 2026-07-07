@@ -55,6 +55,30 @@ export class ModuleDefinitions {
     return this.moduleDefinitions;
   }
 
+  remove(moduleId: string): void {
+    const index = this.moduleDefinitions.findIndex((m) => m.moduleId === moduleId);
+    if (index > -1) {
+      this.moduleDefinitions.splice(index, 1);
+    }
+  }
+
+  update<T extends AModule<unknown, any>>(
+    module: Constructable<T>,
+    moduleId: string,
+    moduleInputs: ModuleSchemaInputs<T>,
+  ): void {
+    const index = this.moduleDefinitions.findIndex((m) => m.moduleId === moduleId);
+    if (index === -1) {
+      this.add(module, moduleId, moduleInputs);
+    } else {
+      this.moduleDefinitions[index] = {
+        module,
+        moduleId,
+        moduleInputs,
+      };
+    }
+  }
+
   private init(): void {
     this.add(SimpleAppModule, 'app-module', { name: 'aws-ecs-server' });
 
@@ -217,30 +241,6 @@ export class ModuleDefinitions {
         },
       ],
     });
-  }
-
-  update<T extends AModule<unknown, any>>(
-    module: Constructable<T>,
-    moduleId: string,
-    moduleInputs: ModuleSchemaInputs<T>,
-  ): void {
-    const index = this.moduleDefinitions.findIndex((m) => m.moduleId === moduleId);
-    if (index === -1) {
-      this.add(module, moduleId, moduleInputs);
-    } else {
-      this.moduleDefinitions[index] = {
-        module,
-        moduleId,
-        moduleInputs,
-      };
-    }
-  }
-
-  remove(moduleId: string): void {
-    const index = this.moduleDefinitions.findIndex((m) => m.moduleId === moduleId);
-    if (index > -1) {
-      this.moduleDefinitions.splice(index, 1);
-    }
   }
 }
 

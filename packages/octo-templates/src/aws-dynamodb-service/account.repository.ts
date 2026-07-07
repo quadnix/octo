@@ -43,15 +43,6 @@ export class AccountRepository {
     );
   }
 
-  async put(item: AccountItem): Promise<void> {
-    await this.documentClient.send(
-      new PutCommand({
-        Item: item,
-        TableName: this.tableName,
-      }),
-    );
-  }
-
   async getByAccountId(accountId: string): Promise<AccountItem[]> {
     const { Items } = await this.documentClient.send(
       new QueryCommand({
@@ -107,6 +98,15 @@ export class AccountRepository {
       }),
     );
     return (Items as AccountItem[]) || [];
+  }
+
+  async put(item: AccountItem): Promise<void> {
+    await this.documentClient.send(
+      new PutCommand({
+        Item: item,
+        TableName: this.tableName,
+      }),
+    );
   }
 
   async update(
