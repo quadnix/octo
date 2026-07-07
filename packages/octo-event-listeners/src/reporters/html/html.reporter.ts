@@ -71,6 +71,53 @@ interface IResourceTransactionSummaryReportData {
 }
 
 export class HtmlReporter {
+  static async generateReport(
+    resourceActionSummaryEvents: IResourceActionSummaryEvent[],
+    resourceTransactionPlan: IResourceTransactionPlan,
+    options: {
+      outputPath: string;
+      title: string;
+    },
+  ): Promise<void> {
+    const { outputPath, title } = options;
+    const rows: IResourceActionSummaryRow[] = [];
+
+    for (const { action, eventPayloads } of resourceActionSummaryEvents) {
+      for (const payload of eventPayloads) {
+        const delta = diff(payload.values.previous, payload.values.current);
+        const htmlDelta = HtmlFormatter.format(delta, payload.values.previous);
+        rows.push({
+          action: action,
+          changes: htmlDelta!,
+          diffAction: payload.diff.action,
+          diffField: payload.diff.field,
+          diffValue: JSON.stringify(payload.diff.value, null, 2),
+          resourceContext: payload.diff.node.getContext(),
+        });
+      }
+    }
+
+    // Prepare data for the template
+    const templateData: IResourceTransactionSummaryReportData = {
+      resourceActionSummaryRows: rows.map((row) => ({
+        action: this.escapeHtml(row.action),
+        changes: row.changes || 'No changes',
+        diffAction: row.diffAction,
+        diffField: this.escapeHtml(row.diffField),
+        diffValue: row.diffValue || 'No value',
+        resourceContext: this.escapeHtml(row.resourceContext),
+      })),
+      resourceActionSummaryStats: this.calculateResourceActionSummaryStats(rows),
+      resourceTransactionPlan,
+      timestamp: new Date().toLocaleString(),
+      title,
+    };
+
+    const templateFilePath = join(this.getTemplateDirectory(), 'resource-summary-layout.ejs');
+    const html = await renderFile(templateFilePath, templateData);
+    writeFileSync(outputPath, html, 'utf8');
+  }
+
   private static calculateResourceActionSummaryStats(rows: IResourceActionSummaryRow[]): IResourceActionSummaryStats {
     const stats = {
       add: 0,
@@ -108,53 +155,6 @@ export class HtmlReporter {
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
-  }
-
-  static async generateReport(
-    resourceActionSummaryEvents: IResourceActionSummaryEvent[],
-    resourceTransactionPlan: IResourceTransactionPlan,
-    options: {
-      outputPath: string;
-      title: string;
-    },
-  ): Promise<void> {
-    const { title, outputPath } = options;
-    const rows: IResourceActionSummaryRow[] = [];
-
-    for (const { action, eventPayloads } of resourceActionSummaryEvents) {
-      for (const payload of eventPayloads) {
-        const delta = diff(payload.values.previous, payload.values.current);
-        const htmlDelta = HtmlFormatter.format(delta, payload.values.previous);
-        rows.push({
-          action: action,
-          changes: htmlDelta!,
-          diffAction: payload.diff.action,
-          diffField: payload.diff.field,
-          diffValue: JSON.stringify(payload.diff.value, null, 2),
-          resourceContext: payload.diff.node.getContext(),
-        });
-      }
-    }
-
-    // Prepare data for the template
-    const templateData: IResourceTransactionSummaryReportData = {
-      resourceActionSummaryRows: rows.map((row) => ({
-        action: this.escapeHtml(row.action),
-        changes: row.changes || 'No changes',
-        diffAction: row.diffAction,
-        diffField: this.escapeHtml(row.diffField),
-        diffValue: row.diffValue || 'No value',
-        resourceContext: this.escapeHtml(row.resourceContext),
-      })),
-      resourceActionSummaryStats: this.calculateResourceActionSummaryStats(rows),
-      resourceTransactionPlan,
-      timestamp: new Date().toLocaleString(),
-      title,
-    };
-
-    const templateFilePath = join(this.getTemplateDirectory(), 'resource-summary-layout.ejs');
-    const html = await renderFile(templateFilePath, templateData);
-    writeFileSync(outputPath, html, 'utf8');
   }
 
   private static getTemplateDirectory(): string {

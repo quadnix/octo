@@ -20,37 +20,10 @@ import {
 
 export class HtmlReportEventListener {
   private readonly resourceActionSummaryEvents: IResourceActionSummaryEvent[] = [];
-  private readonly resourceTransactionPlan: IResourceTransactionPlan = { dirtyResources: [], goodResources: [] };
   private readonly resourceStatuses: Map<string, IResourceTransactionPlan['goodResources'][0]> = new Map();
+  private readonly resourceTransactionPlan: IResourceTransactionPlan = { dirtyResources: [], goodResources: [] };
 
   constructor(private readonly logger: Logger) {}
-
-  private createUniqueTransactionResourceActionKey(diff: DiffMetadata): string {
-    return [diff.node.getContext(), diff.field, diff.action].join(':');
-  }
-
-  private async generateResourceTransactionSummaryReport(): Promise<void> {
-    try {
-      const outputPath = `resource-transaction-summary-${Date.now()}.html`;
-      await HtmlReporter.generateReport(this.resourceActionSummaryEvents, this.resourceTransactionPlan, {
-        outputPath,
-        title: 'Resource Transaction Summary',
-      });
-      this.logger.log
-        .withMetadata({ payload: { outputPath }, timestamp: Date.now() })
-        .info(`Resource Transaction Summary HTML report generated.`);
-    } catch (error) {
-      this.logger.log
-        .withMetadata({ payload: { error }, timestamp: Date.now() })
-        .error(`Failed to generate Resource Transaction Summary HTML report.`);
-    }
-
-    // Clear data for next transaction.
-    this.resourceActionSummaryEvents.splice(0, this.resourceActionSummaryEvents.length);
-    this.resourceTransactionPlan.dirtyResources.splice(0, this.resourceTransactionPlan.dirtyResources.length);
-    this.resourceTransactionPlan.goodResources.splice(0, this.resourceTransactionPlan.goodResources.length);
-    this.resourceStatuses.clear();
-  }
 
   @OnEvent(SerializationEvent)
   async onSerialization(event: SerializationEvent<unknown>): Promise<void> {
@@ -114,6 +87,33 @@ export class HtmlReportEventListener {
         this.resourceStatuses.set(this.createUniqueTransactionResourceActionKey(diff), resourceTransactionPlanRow);
       }
     }
+  }
+
+  private createUniqueTransactionResourceActionKey(diff: DiffMetadata): string {
+    return [diff.node.getContext(), diff.field, diff.action].join(':');
+  }
+
+  private async generateResourceTransactionSummaryReport(): Promise<void> {
+    try {
+      const outputPath = `resource-transaction-summary-${Date.now()}.html`;
+      await HtmlReporter.generateReport(this.resourceActionSummaryEvents, this.resourceTransactionPlan, {
+        outputPath,
+        title: 'Resource Transaction Summary',
+      });
+      this.logger.log
+        .withMetadata({ payload: { outputPath }, timestamp: Date.now() })
+        .info(`Resource Transaction Summary HTML report generated.`);
+    } catch (error) {
+      this.logger.log
+        .withMetadata({ payload: { error }, timestamp: Date.now() })
+        .error(`Failed to generate Resource Transaction Summary HTML report.`);
+    }
+
+    // Clear data for next transaction.
+    this.resourceActionSummaryEvents.splice(0, this.resourceActionSummaryEvents.length);
+    this.resourceTransactionPlan.dirtyResources.splice(0, this.resourceTransactionPlan.dirtyResources.length);
+    this.resourceTransactionPlan.goodResources.splice(0, this.resourceTransactionPlan.goodResources.length);
+    this.resourceStatuses.clear();
   }
 }
 
