@@ -34,7 +34,6 @@ describe('HclUtility UT', () => {
     });
 
     it('should sort folders by module id', () => {
-       
       const out = HclUtility.serialize(moduleFiles({ a: { mainTf: 'a' }, b: { mainTf: 'b' } }));
       expect(out.indexOf('# a/main.tf')).toBeLessThan(out.indexOf('# b/main.tf'));
     });

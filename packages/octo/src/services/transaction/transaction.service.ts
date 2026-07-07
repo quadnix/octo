@@ -66,9 +66,9 @@ class TerraformNoopResourceAction implements IUnknownResourceAction {
  * @internal
  */
 export class TransactionService {
-  private modelActions: { actions: IUnknownModelAction[]; modelClass: Constructable<UnknownModel>; }[] = [];
-  private overlayActions: { actions: IUnknownModelAction[]; overlayClass: Constructable<UnknownOverlay>; }[] = [];
-  private resourceActions: { actions: IUnknownResourceAction[]; resourceClass: Constructable<UnknownResource>; }[] = [];
+  private modelActions: { actions: IUnknownModelAction[]; modelClass: Constructable<UnknownModel> }[] = [];
+  private overlayActions: { actions: IUnknownModelAction[]; overlayClass: Constructable<UnknownOverlay> }[] = [];
+  private resourceActions: { actions: IUnknownResourceAction[]; resourceClass: Constructable<UnknownResource> }[] = [];
 
   constructor(
     private readonly eventService: EventService,
