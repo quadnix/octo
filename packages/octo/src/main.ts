@@ -16,7 +16,6 @@ import { generate as runGenerate } from './modes/generate.mode.js';
 import { runAction as runRunAction } from './modes/run-action.mode.js';
 import { type TerraformPlan, validate as runValidate } from './modes/validate.mode.js';
 import { ModuleContainer } from './modules/module.container.js';
-import { OverlayDataRepository, OverlayDataRepositoryFactory } from './overlays/overlay-data.repository.js';
 import { InputService } from './services/input/input.service.js';
 import { SchemaTranslationService } from './services/schema-translation/schema-translation.service.js';
 import { ModelSerializationService } from './services/serialization/model/model-serialization.service.js';
@@ -384,11 +383,6 @@ export class Octo {
       terraformFolders: this.terraformService.getFolderRecords(),
       version: 1,
     });
-
-    await Container.getInstance().get<OverlayDataRepository, typeof OverlayDataRepositoryFactory>(
-      OverlayDataRepository,
-      { args: [true] },
-    );
   }
 
   /**

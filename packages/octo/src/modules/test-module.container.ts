@@ -318,6 +318,10 @@ export class TestModuleContainer {
     return this.octo.registerTerraformProvider(...args);
   }
 
+  /**
+   * This function tears down the *composed* graph (models, overlays, inputs, modules) at the end of a lifecycle
+   * so the next `runModules()` composes fresh.
+   */
   async reset(): Promise<void> {
     const container = this.container;
 
@@ -337,8 +341,8 @@ export class TestModuleContainer {
    *
    * The `terraformTarget` flag is the key here - it dictates how the lifecycle completes.
    * - 'skip' → calls commit() — pure in-memory model-graph apply.
-   * - 'plan' → renderCurrentHcl → generateHcl → terraformUtility.plan
-   * - 'apply' → renderCurrentHcl → generateHcl → terraformUtility.plan/apply → commitHcl.
+   * - 'plan' → generate → terraformUtility.plan
+   * - 'apply' → generate → terraformUtility.plan/apply → commit.
    */
   async *runModules<M extends UnknownModule>(
     app: UnknownModel,
@@ -358,9 +362,10 @@ export class TestModuleContainer {
     responses: { [resourceContext: string]: unknown };
     warnings: { message: string; moduleId?: string }[];
   }> {
-    const [moduleContainer, resourceDataRepository, terraformUtility] = await Promise.all([
+    const [moduleContainer, resourceDataRepository, terraformService, terraformUtility] = await Promise.all([
       this.container.get(ModuleContainer),
       this.container.get(ResourceDataRepository),
+      this.container.get(TerraformService),
       this.container.get(TerraformUtility),
     ]);
 
@@ -412,31 +417,23 @@ export class TestModuleContainer {
       return;
     }
 
-    // Render the full HCL and the block diff against the previous run (terraform apply path).
-    const currentHcl = await this.renderCurrentHcl(app as App);
+    await this.resetTransactionGraph();
+
+    // Generate.
+    const dir = outputDir ?? (await mkdtemp(join(tmpdir(), 'octo-hcl-')));
+    const resourceDiffs = await this.octo.generate(app as App, { outputDir: dir });
+
+    // Render the full HCL and the block diff from generate's sweep, before the next reset clears it.
+    const currentHcl = HclUtility.serialize(terraformService.renderAllModules());
     const diffHcl = HclUtility.diffBlocks(this.previousHcl ?? '', currentHcl);
     this.previousHcl = currentHcl;
 
-    // octo.generate() saves model state, which flushes the overlay repository's new-overlays to
-    // baseline — mirroring the real CLI, where the next command (validate/commit) reloads them from
-    // disk. runModules() keeps a single in-memory graph across generate → validate → commit, so it never
-    // reloads: capture the overlays before generate and restore them after, otherwise the subsequent
-    // applyModels re-boot cannot resolve the module's overlay node keys.
-    const overlayDataRepository = await this.container.get(OverlayDataRepository);
-    const overlaysBeforeGenerate = overlayDataRepository.getByProperties();
-
-    // Generate.
-    const { outputDir: dir, resourceDiffs } = await this.generateHcl(app as App, { outputDir });
-
-    // Restore overlays.
-    for (const overlay of overlaysBeforeGenerate) {
-      if (!overlayDataRepository.getByContext(overlay.getContext())) {
-        overlayDataRepository.add(overlay);
-      }
-    }
+    await this.resetTransactionGraph();
 
     // Validate.
-    const validation = await this.validateHcl(app as App, { plans: await terraformUtility.plan(dir, { json: true }) });
+    const validation = await this.octo.validate(app as App, {
+      plans: await terraformUtility.plan(dir, { json: true }),
+    });
     if (!validation.pass) {
       throw new Error(
         `runModules(): terraform plan failed octo validation:\n${validation.errors
@@ -464,12 +461,14 @@ export class TestModuleContainer {
     // Apply.
     await terraformUtility.apply(dir);
 
+    await this.resetTransactionGraph();
+
     // Commit.
-    const { warnings } = await this.commitHcl(app as App, {
+    const { warnings } = await this.octo.commit(app as App, {
       outputs: await terraformUtility.output(dir, { json: true }),
     });
 
-    // Re-collect responses after the commit: it is commitHcl that maps terraform outputs onto the
+    // Re-collect responses after the commit: it is commit that maps terraform outputs onto the
     // actual resource graph, so a snapshot taken before it (as `response` holds) would miss them.
     yield { ...result, responses: collectResponses(), warnings };
   }
@@ -597,54 +596,21 @@ export class TestModuleContainer {
     return response;
   }
 
-  private async commitHcl(...args: Parameters<Octo['commit']>): ReturnType<Octo['commit']> {
-    // Clear the previous call's sweep; config and providers survive (registered once per process).
-    (await this.container.get(TerraformService)).resetTransactionState();
-    return this.octo.commit(...args);
-  }
-
-  private async generateHcl(
-    app: App,
-    { outputDir }: { outputDir?: string } = {},
-  ): Promise<{ outputDir: string; resourceDiffs: DiffMetadata[][] }> {
-    // Clear the previous call's sweep; config and providers survive (registered once per process).
-    (await this.container.get(TerraformService)).resetTransactionState();
-
-    const dir = outputDir ?? (await mkdtemp(join(tmpdir(), 'octo-hcl-')));
-    const resourceDiffs = await this.octo.generate(app, { outputDir: dir });
-    return { outputDir: dir, resourceDiffs };
-  }
-
   /**
-   * Runs the generate sweep for `app` and serializes the rendered terragrunt folders to a single
-   * deterministic string. Does not touch the stored previous render — callers manage that.
+   * This function rewinds the transaction-built state to the committed baseline between lifecycle stages — the
+   * state a fresh octo process sees after boot, before it runs a transaction.
+   * This is deliberately narrower than {@link reset} which tears down everything.
    *
    * @internal
    */
-  private async renderCurrentHcl(app: App): Promise<string> {
-    const container = this.container;
-    const [terraformService, transactionService] = await Promise.all([
-      container.get(TerraformService),
-      container.get(TransactionService),
+  private async resetTransactionGraph(): Promise<void> {
+    const [inputService, terraformService] = await Promise.all([
+      this.container.get(InputService),
+      this.container.get(TerraformService),
     ]);
 
-    // Clear the previous call's sweep; config and providers survive (registered once per process).
+    await this.octo['retrieveResourceState']();
+    inputService['resources'] = {};
     terraformService.resetTransactionState();
-
-    const diffs = await app.diff();
-    const transaction = transactionService.beginTransaction(diffs, {
-      generateTerraform: true,
-      yieldResourceDiffs: true,
-    });
-    // Drains the resource-diff yield; the contribution to TerraformService happens as a side effect.
-    await transaction.next();
-
-    return HclUtility.serialize(terraformService.renderAllModules());
-  }
-
-  private async validateHcl(...args: Parameters<Octo['validate']>): ReturnType<Octo['validate']> {
-    // Clear the previous call's sweep; config and providers survive (registered once per process).
-    (await this.container.get(TerraformService)).resetTransactionState();
-    return this.octo.validate(...args);
   }
 }
