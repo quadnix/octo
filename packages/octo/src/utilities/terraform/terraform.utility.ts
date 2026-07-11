@@ -143,6 +143,7 @@ export class TerraformUtility {
 
   private buildEnv(): NodeJS.ProcessEnv {
     const env = { ...process.env };
+    env.TG_PROVIDER_CACHE ??= '1'; // Enable Terragrunt shared provider cache by default.
     if (this.options.terraformBinary) {
       env.TG_TF_PATH = this.options.terraformBinary;
     }
