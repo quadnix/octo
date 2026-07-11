@@ -64,7 +64,7 @@
     "access": "public"
   },
   "scripts": {
-    "build": "rimraf dist && tsc -p tsconfig.build.json && npm run copy-assets && chmod +x ./dist/index.js",
+    "build": "rimraf dist && tsc -p tsconfig.build.json && pnpm run copy-assets && chmod +x ./dist/index.js",
     "check:circular-dependency": "dpdm --no-tree --exit-code circular:1 --no-warning ./dist/index.js",
     "copy-assets": "copyfiles -u 1 \"src/**/*.{ejs,json}\" dist/",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",

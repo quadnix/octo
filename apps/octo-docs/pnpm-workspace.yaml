@@ -1,0 +1,9 @@
+allowBuilds:
+  '@parcel/watcher': true # For docusaurus dev server.
+  core-js: true
+  core-js-pure: true
+autoInstallPeers: true
+nodeLinker: hoisted
+overrides:
+  webpack: 5.99.9 # Pinned to an older version until docusaurus is updated to use latest webpack.
+packages: [] # `apps` are independent workspaces.

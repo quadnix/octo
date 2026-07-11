@@ -43,12 +43,12 @@ jobs:
         uses: ./.github/actions/restore-cache
       - id: restore-cache-install-dependencies
         name: Install Dependencies
-        run: npm install
+        run: pnpm install --frozen-lockfile
       - if: steps.restore-cache-install-dependencies.outcome == 'failure'
         name: Bust Cache
         run: |-
           rm -rf node_modules
-          npm install
+          pnpm install --frozen-lockfile
 
   code-quality-check:
     continue-on-error: false
@@ -63,9 +63,9 @@ jobs:
       - name: Restore Cache
         uses: ./.github/actions/restore-cache
       - name: Install Dependencies
-        run: npm install
+        run: pnpm install --frozen-lockfile
       - name: Lint
-        run: npm run lint
+        run: pnpm run lint
 
   build-check:
     continue-on-error: false
@@ -80,8 +80,8 @@ jobs:
       - name: Restore Cache
         uses: ./.github/actions/restore-cache
       - name: Install Dependencies
-        run: npm install
+        run: pnpm install --frozen-lockfile
       - name: Build
-        run: npm run build
+        run: pnpm run build
       - name: Unit Tests
-        run: npm test
+        run: pnpm test

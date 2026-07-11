@@ -28,16 +28,19 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
       - env:
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
         name: Setup NPM
         uses: actions/setup-node@v4
         with:
+          cache: 'pnpm'
           registry-url: 'https://registry.npmjs.org'
       - name: Install Dependencies
-        run: npm install
+        run: pnpm install --frozen-lockfile
       - name: Build
-        run: npm run build
+        run: pnpm run build
       - env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         name: Version & Changelog

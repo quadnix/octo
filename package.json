@@ -53,6 +53,7 @@
   ],
   "license": "AGPL-3.0 license",
   "name": "@quadnix/packages",
+  "packageManager": "pnpm@11.11.0",
   "private": true,
   "repository": {
     "type": "git",
@@ -62,7 +63,7 @@
     "build": "nx run-many -t build",
     "format": "nx run-many -t format",
     "generate:jsdoc": "node --loader ts-node/esm utilities/generate-jsdoc.utility.ts",
-    "lint": "nx run-many -t lint && npm run lint:root",
+    "lint": "nx run-many -t lint && pnpm run lint:root",
     "lint:fix": "nx run-many -t lint:fix",
     "lint:root": "eslint . --ignore-pattern \"apps\" --ignore-pattern \"packages\"",
     "ollama:dev": "OLLAMA_HOST=0.0.0.0 ollama serve",
@@ -74,8 +75,5 @@
     "test:watch": "nx run-many -t test:watch"
   },
   "type": "module",
-  "version": "0.0.0",
-  "workspaces": [
-    "packages/*"
-  ]
+  "version": "0.0.0"
 }

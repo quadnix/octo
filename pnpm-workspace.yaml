@@ -1,0 +1,12 @@
+allowBuilds:
+  cpu-features: true # Native SSH deps pulled in by testcontainers.
+  nx: true # Builds native task-runner bits.
+  protobufjs: true # Post-Install codegen.
+  ssh2: true # Native SSH deps pulled in by testcontainers.
+  unrs-resolver: true # Native resolver used by `eslint-import-resolver-typescript`.
+autoInstallPeers: true
+linkWorkspacePackages: true
+nodeLinker: hoisted
+packages:
+  - 'packages/*' # Shares local builds.
+preferWorkspacePackages: true

@@ -28,11 +28,17 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
       - env:
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
         name: Setup NPM
         uses: actions/setup-node@v4
         with:
+          cache: 'pnpm'
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            apps/octo-docs/pnpm-lock.yaml
           registry-url: 'https://registry.npmjs.org'
       - name: Setup AWS
         uses: aws-actions/configure-aws-credentials@v4
@@ -41,21 +47,21 @@ jobs:
           aws-region: us-east-1
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       - name: Install Root Dependencies
-        run: npm install
+        run: pnpm install --frozen-lockfile
       - name: Install Docs Dependencies
-        run: npm install
+        run: pnpm install --frozen-lockfile
         working-directory: apps/octo-docs
       - name: Plugin Pre Script
-        run: npm run plugin:pre-script
+        run: pnpm run plugin:pre-script
         working-directory: apps/octo-docs
       - name: Build Plugin
-        run: npm run plugin:build
+        run: pnpm run plugin:build
         working-directory: apps/octo-docs
       - name: Build Docs
-        run: npm run build
+        run: pnpm run build
         working-directory: apps/octo-docs
       - name: Plugin Post Script
-        run: npm run plugin:post-script
+        run: pnpm run plugin:post-script
         working-directory: apps/octo-docs
       - env:
           AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}

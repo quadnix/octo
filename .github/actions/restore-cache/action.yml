@@ -2,13 +2,15 @@ name: Restore Cache
 
 runs:
   steps:
+    - name: Install pnpm
+      uses: pnpm/action-setup@v4
     - name: Cache Setup
       uses: actions/setup-node@v4
       with:
-        cache: 'npm'
+        cache: 'pnpm'
     - name: Cache node_modules
       uses: actions/cache@v4
       with:
         path: node_modules
-        key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+        key: ${{ runner.os }}-node-${{ hashFiles('pnpm-lock.yaml') }}
   using: composite
