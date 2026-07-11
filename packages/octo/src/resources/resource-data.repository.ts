@@ -211,15 +211,6 @@ export class ResourceDataRepository {
   }
 
   /**
-   * Discards the entire new (desired) resource graph, leaving the actual and old (committed) tiers
-   * untouched. Used by the test harness to rebuild `new` from scratch between lifecycle stages, the
-   * way a fresh production process boots with `new = []` and re-derives the graph.
-   */
-  resetNewResources(): void {
-    this.newResources = [];
-  }
-
-  /**
    * Marks the new (desired) resource graph as fully applied: the actual graph becomes the new
    * graph and nothing is dirty. Used by terraform commit, where terraform has already applied
    * the full desired state.

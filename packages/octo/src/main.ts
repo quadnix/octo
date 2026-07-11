@@ -11,7 +11,8 @@ import { EnableHook } from './decorators/enable-hook.decorator.js';
 import { Container } from './functions/container/container.js';
 import { DiffMetadata } from './functions/diff/diff-metadata.js';
 import { App } from './models/app/app.model.js';
-import { commit as runCommit } from './modes/commit.mode.js';
+import { type ModelTransactionResult, applyModelTransaction } from './modes/apply-transaction.js';
+import { type TerraformOutputs, commit as runCommit } from './modes/commit.mode.js';
 import { generate as runGenerate } from './modes/generate.mode.js';
 import { runAction as runRunAction } from './modes/run-action.mode.js';
 import { type TerraformPlan, validate as runValidate } from './modes/validate.mode.js';
@@ -57,13 +58,21 @@ export class Octo {
    * state) are ignored — returned as warnings for the caller to surface.
    */
   async commit(
-    ...args: Parameters<typeof runCommit>
+    app: App,
+    options: { outputs: Map<string, TerraformOutputs> },
+    transaction?: ModelTransactionResult,
   ): Promise<Pick<Awaited<ReturnType<typeof runCommit>>, 'warnings'>> {
     const { userData } = await this.stateManagementService.getResourceState(this.actualResourceStateFileName);
     const previousFolders = userData.terraformFolders ?? [];
 
-    const { modelTransaction, warnings } = await runCommit(args[0], { ...args[1], previousFolders });
-    await this.commitTransaction(args[0], modelTransaction, []);
+    // Build the transaction unless a single-process driver already built it and passed it in.
+    const resolvedTransaction = transaction ?? (await applyModelTransaction(app));
+    const { modelTransaction, warnings } = await runCommit({
+      ...options,
+      previousFolders,
+      transaction: resolvedTransaction,
+    });
+    await this.commitTransaction(app, modelTransaction, []);
     return { warnings };
   }
 
@@ -91,7 +100,11 @@ export class Octo {
    *
    * Octo never deletes a folder.
    */
-  async generate(app: App, options: { outputDir: string }): ReturnType<typeof runGenerate> {
+  async generate(
+    app: App,
+    options: { outputDir: string },
+    transaction?: ModelTransactionResult,
+  ): ReturnType<typeof runGenerate> {
     // The previous folder records must be read before this run writes the new `models.json`, so a
     // module deleted from intent is caught on the generate right after its removal.
     const [{ userData: modelUserData }, { userData: actualResourceUserData }] = await Promise.all([
@@ -106,7 +119,13 @@ export class Octo {
       previousFolders.set(record.moduleId, record);
     }
 
-    const resourceDiffs = await runGenerate(app, { ...options, previousFolders: [...previousFolders.values()] });
+    // Build the transaction unless a single-process driver already built it and passed it in.
+    const resolvedTransaction = transaction ?? (await applyModelTransaction(app));
+    const resourceDiffs = await runGenerate({
+      ...options,
+      previousFolders: [...previousFolders.values()],
+      transaction: resolvedTransaction,
+    });
     await this.saveModelState(app);
     return resourceDiffs;
   }
@@ -317,7 +336,11 @@ export class Octo {
    * This function correctly identifies resource add, update, replace, and delete operations.
    * Additionally, it ignores all Terragrunt folders that Octo is not tracking.
    */
-  async validate(app: App, { plans }: { plans: Map<string, TerraformPlan> }): ReturnType<typeof runValidate> {
+  async validate(
+    app: App,
+    { plans }: { plans: Map<string, TerraformPlan> },
+    transaction?: ModelTransactionResult,
+  ): ReturnType<typeof runValidate> {
     const { userData } = await this.stateManagementService.getResourceState(this.actualResourceStateFileName);
     const { terraformFolders, terraformResources } = userData;
 
@@ -326,7 +349,14 @@ export class Octo {
       persistedMappings.set(mapping.resourceContext, mapping);
     }
 
-    return runValidate(app, { persistedMappings, plans, previousFolders: terraformFolders ?? [] });
+    // Build the transaction unless a single-process driver already built it and passed it in.
+    const resolvedTransaction = transaction ?? (await applyModelTransaction(app));
+    return runValidate({
+      persistedMappings,
+      plans,
+      previousFolders: terraformFolders ?? [],
+      transaction: resolvedTransaction,
+    });
   }
 
   /**

@@ -3,17 +3,17 @@ import { join } from 'path';
 import type { TerraformFolderOutput } from '../app.type.js';
 import { Container } from '../functions/container/container.js';
 import type { DiffMetadata } from '../functions/diff/diff-metadata.js';
-import type { App } from '../models/app/app.model.js';
 import { TerraformService } from '../services/terraform/terraform.service.js';
-import { TransactionService } from '../services/transaction/transaction.service.js';
+import type { ModelTransactionResult } from './apply-transaction.js';
 
 /**
  * Generates terragrunt module folders representing the full desired state: Folders ← Intent.
  *
- * Boots normally (modules → model actions → resource graph), contributes every resource to
- * terraform (terraform resources via `toHCL()`, external resources via the `null_resource`
- * wrapper), and writes one folder per octo module. Persists nothing to octo state — the returned
- * resource diffs are a review artifact only.
+ * Renders the resource graph the `transaction` already built — every resource contributed to
+ * terraform (terraform resources via `toHCL()`, external resources via the `null_resource` wrapper) — and
+ * writes one folder per octo module. Persists nothing to octo state; the returned resource
+ * diffs are a review artifact only. (An author's refusal in a `diff*` method surfaces earlier, when
+ * {@link applyModelTransaction} builds the transaction, so no folder is ever written from a bad graph.)
  *
  * `previousFolders` is the folder record persisted by previous runs (the caller reads it from
  * `models.json` ∪ `resources.json`). A recorded folder the sweep does not produce was deleted from
@@ -21,30 +21,24 @@ import { TransactionService } from '../services/transaction/transaction.service.
  * terragrunt still discovers it and a later apply destroys whatever its state holds (and cannot
  * redeploy it). Folders are emptied, never removed.
  *
- * Rejects by throwing before any folder is written — a resource author's refusal in a `diff*`
- * method aborts the run with no partial writes. Writes are gentle: each folder is overwritten in
- * place, and `outputDir` is not wiped, so `terraform.tfstate`, `.terragrunt-cache`, and any folder
- * octo does not recognize (a user's own, or an emptied leftover) are preserved across runs.
+ * Writes are gentle: each folder is overwritten in place, and `outputDir` is not wiped, so
+ * `terraform.tfstate`, `.terragrunt-cache`, and any folder octo does not recognize (a user's own, or
+ * an emptied leftover) are preserved across runs.
  *
  * @internal
  */
-export async function generate(
-  app: App,
-  { outputDir, previousFolders = [] }: { outputDir: string; previousFolders?: TerraformFolderOutput[] },
-): Promise<DiffMetadata[][]> {
-  const container = Container.getInstance();
-  const [terraformService, transactionService] = await Promise.all([
-    container.get(TerraformService),
-    container.get(TransactionService),
-  ]);
+export async function generate({
+  outputDir,
+  previousFolders = [],
+  transaction,
+}: {
+  outputDir: string;
+  previousFolders?: TerraformFolderOutput[];
+  transaction: ModelTransactionResult;
+}): Promise<DiffMetadata[][]> {
+  const terraformService = await Container.getInstance().get(TerraformService);
 
-  const diffs = await app.diff();
-  const transaction = transactionService.beginTransaction(diffs, {
-    generateTerraform: true,
-    yieldResourceDiffs: true,
-  });
-
-  const resourceDiffs = await transaction.next();
+  const { resourceDiffs } = transaction;
 
   const moduleFiles = terraformService.renderAllModules();
 
@@ -67,5 +61,5 @@ export async function generate(
     await writeFile(join(moduleDir, 'terragrunt.hcl'), files.terragruntHcl, 'utf-8');
   }
 
-  return resourceDiffs.value as DiffMetadata[][];
+  return resourceDiffs;
 }

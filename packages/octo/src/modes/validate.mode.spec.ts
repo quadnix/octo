@@ -8,6 +8,7 @@ import {
   TfVpcResource,
 } from '../utilities/test-helpers/test-modes.js';
 import { commitResources } from '../utilities/test-helpers/test-resources.js';
+import { applyModelTransaction } from './apply-transaction.js';
 import { validate } from './validate.mode.js';
 
 describe('validate()', () => {
@@ -44,6 +45,16 @@ describe('validate()', () => {
     testModes.resourceDataRepository.addNewResource(igw2);
     testModes.resourceDataRepository.addNewResource(secGroup2);
   }
+
+  // validate() consumes a prebuilt transaction. Build it from
+  // the staged graph the way each mode does internally, then run validate against it.
+  const runValidate = async (
+    app: App,
+    options: Omit<Parameters<typeof validate>[0], 'transaction'>,
+  ): ReturnType<typeof validate> => {
+    const transaction = await applyModelTransaction(app);
+    return validate({ ...options, transaction });
+  };
 
   // Stages a committed full graph, then re-creates a desired graph of just vpc-1 so igw-1 and sg-1
   // are deletes. Returns the app handle plus the persisted mapping the last commit would have written.
@@ -84,7 +95,7 @@ describe('validate()', () => {
     ]);
     testModes.writePlan('sg-module', [{ actions: ['create'], address: 'aws_security_group.sg-1' }]);
 
-    const result = await validate(app, {
+    const result = await runValidate(app, {
       persistedMappings: noPersisted(),
       plans: testModes.plans,
     });
@@ -101,7 +112,7 @@ describe('validate()', () => {
     ]);
     testModes.writePlan('sg-module', [{ actions: ['create'], address: 'aws_security_group.sg-1' }]);
 
-    const result = await validate(app, {
+    const result = await runValidate(app, {
       persistedMappings: noPersisted(),
       plans: testModes.plans,
     });
@@ -119,7 +130,7 @@ describe('validate()', () => {
     ]);
     testModes.writePlan('sg-module', [{ actions: ['create'], address: 'aws_security_group.sg-1' }]);
 
-    const result = await validate(app, {
+    const result = await runValidate(app, {
       persistedMappings: noPersisted(),
       plans: testModes.plans,
     });
@@ -138,7 +149,7 @@ describe('validate()', () => {
     ]);
     testModes.writePlan('sg-module', [{ actions: ['no-op'], address: 'aws_security_group.sg-1' }]);
 
-    const result = await validate(app, {
+    const result = await runValidate(app, {
       persistedMappings: noPersisted(),
       plans: testModes.plans,
     });
@@ -155,7 +166,7 @@ describe('validate()', () => {
     ]);
     testModes.writePlan('sg-module', [{ actions: ['create'], address: 'aws_security_group.sg-1' }]);
 
-    const result = await validate(app, {
+    const result = await runValidate(app, {
       persistedMappings: noPersisted(),
       plans: testModes.plans,
     });
@@ -178,7 +189,7 @@ describe('validate()', () => {
     ]);
     testModes.writePlan('sg-module', [{ actions: ['no-op'], address: 'aws_security_group.sg-1' }]);
 
-    const result = await validate(app, {
+    const result = await runValidate(app, {
       persistedMappings: noPersisted(),
       plans: testModes.plans,
     });
@@ -196,7 +207,7 @@ describe('validate()', () => {
       { actions: ['delete'], address: 'null_resource.igw-1' },
     ]);
 
-    const result = await validate(app, {
+    const result = await runValidate(app, {
       persistedMappings: persisted,
       plans: testModes.plans,
     });
@@ -217,7 +228,7 @@ describe('validate()', () => {
     ]);
     testModes.writePlan('sg-module', [{ actions: ['delete'], address: 'aws_security_group.sg-1' }]);
 
-    const result = await validate(app, {
+    const result = await runValidate(app, {
       persistedMappings: persisted,
       plans: testModes.plans,
       previousFolders: [{ hasExternalResources: false, moduleId: 'sg-module', providers: [] }],
@@ -236,7 +247,7 @@ describe('validate()', () => {
     ]);
     testModes.writePlan('sg-module', [{ actions: ['update'], address: 'aws_security_group.sg-1' }]);
 
-    const result = await validate(app, {
+    const result = await runValidate(app, {
       persistedMappings: persisted,
       plans: testModes.plans,
       previousFolders: [{ hasExternalResources: false, moduleId: 'sg-module', providers: [] }],
@@ -260,7 +271,7 @@ describe('validate()', () => {
     // A folder octo never wrote: its changes must not surface as "maps to no octo diff" errors.
     testModes.writePlan('user-module', [{ actions: ['create'], address: 'aws_instance.hand-written' }]);
 
-    const result = await validate(app, {
+    const result = await runValidate(app, {
       persistedMappings: noPersisted(),
       plans: testModes.plans,
     });
@@ -279,7 +290,7 @@ describe('validate()', () => {
       { actions: ['no-op'], address: 'null_resource.igw-1' },
     ]);
 
-    const result = await validate(app, {
+    const result = await runValidate(app, {
       persistedMappings: persisted,
       plans: testModes.plans,
     });
@@ -299,7 +310,7 @@ describe('validate()', () => {
       { actions: ['update'], address: 'null_resource.igw-1' },
     ]);
 
-    const result = await validate(app, {
+    const result = await runValidate(app, {
       persistedMappings: persisted,
       plans: testModes.plans,
     });
@@ -320,7 +331,7 @@ describe('validate()', () => {
       { actions: ['delete'], address: 'null_resource.igw-10' },
     ]);
 
-    const result = await validate(app, {
+    const result = await runValidate(app, {
       persistedMappings: persisted,
       plans: testModes.plans,
     });
@@ -336,7 +347,7 @@ describe('validate()', () => {
       { actions: ['delete'], address: 'null_resource.igw-1' },
     ]);
 
-    const result = await validate(app, {
+    const result = await runValidate(app, {
       persistedMappings: noPersisted(),
       plans: testModes.plans,
     });
@@ -357,7 +368,7 @@ describe('validate()', () => {
     ]);
     testModes.writePlan('sg-module', [{ actions: ['no-op'], address: 'aws_security_group.sg-1' }]);
 
-    const result = await validate(app, { persistedMappings: noPersisted(), plans: testModes.plans });
+    const result = await runValidate(app, { persistedMappings: noPersisted(), plans: testModes.plans });
     expect(result.errors).toEqual([]);
     expect(result.pass).toBe(true);
   });
@@ -373,7 +384,7 @@ describe('validate()', () => {
     ]);
     testModes.writePlan('sg-module', [{ actions: ['no-op'], address: 'aws_security_group.sg-1' }]);
 
-    const result = await validate(app, { persistedMappings: noPersisted(), plans: testModes.plans });
+    const result = await runValidate(app, { persistedMappings: noPersisted(), plans: testModes.plans });
     expect(result.pass).toBe(false);
     expect(
       result.errors.some((e) => e.message.includes('has octo action "replace"') && e.message.includes('aws_vpc.vpc-1')),
@@ -394,7 +405,7 @@ describe('validate()', () => {
     ]);
     testModes.writePlan('sg-module', [{ actions: ['create', 'delete'], address: 'aws_security_group.sg-1' }]);
 
-    const result = await validate(app, { persistedMappings: noPersisted(), plans: testModes.plans });
+    const result = await runValidate(app, { persistedMappings: noPersisted(), plans: testModes.plans });
     expect(result.errors).toEqual([]);
     expect(result.pass).toBe(true);
   });
@@ -407,7 +418,7 @@ describe('validate()', () => {
       { actions: ['create'], address: 'null_resource.igw-1' },
     ]);
 
-    const result = await validate(app, {
+    const result = await runValidate(app, {
       persistedMappings: noPersisted(),
       plans: testModes.plans,
     });

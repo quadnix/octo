@@ -205,15 +205,6 @@ export class InputService {
     }
   }
 
-  /**
-   * Clears every resource registration, leaving models, overlays, modules, inputs, and tags intact.
-   * Used by the test harness to rebuild the resource layer between lifecycle stages without tearing
-   * down the composed model graph (which the test still holds references to).
-   */
-  resetResources(): void {
-    this.resources = {};
-  }
-
   resolve(key: string): unknown | undefined {
     if (!['metadata', 'tag'].includes(key.split('.')[1])) {
       key = this.resolveInputKey(key);

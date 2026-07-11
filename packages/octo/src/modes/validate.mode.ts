@@ -1,10 +1,8 @@
 import type { TerraformFolderOutput, TerraformResourceOutput, UnknownResource } from '../app.type.js';
 import { Container } from '../functions/container/container.js';
-import type { DiffMetadata } from '../functions/diff/diff-metadata.js';
 import { DiffAction } from '../functions/diff/diff.js';
-import type { App } from '../models/app/app.model.js';
 import { TerraformService } from '../services/terraform/terraform.service.js';
-import { TransactionService } from '../services/transaction/transaction.service.js';
+import type { ModelTransactionResult } from './apply-transaction.js';
 
 interface ValidateResult {
   errors: { message: string; moduleId?: string }[];
@@ -43,32 +41,20 @@ export interface TerraformPlan {
  *
  * @internal
  */
-export async function validate(
-  app: App,
-  {
-    persistedMappings,
-    plans,
-    previousFolders = [],
-  }: {
-    persistedMappings: Map<string, TerraformResourceOutput>;
-    plans: Map<string, TerraformPlan>;
-    previousFolders?: TerraformFolderOutput[];
-  },
-): Promise<ValidateResult> {
-  const container = Container.getInstance();
-  const [terraformService, transactionService] = await Promise.all([
-    container.get(TerraformService),
-    container.get(TransactionService),
-  ]);
+export async function validate({
+  persistedMappings,
+  plans,
+  previousFolders = [],
+  transaction,
+}: {
+  persistedMappings: Map<string, TerraformResourceOutput>;
+  plans: Map<string, TerraformPlan>;
+  previousFolders?: TerraformFolderOutput[];
+  transaction: ModelTransactionResult;
+}): Promise<ValidateResult> {
+  const terraformService = await Container.getInstance().get(TerraformService);
 
-  const diffs = await app.diff();
-  const transaction = transactionService.beginTransaction(diffs, {
-    generateTerraform: true,
-    yieldResourceDiffs: true,
-  });
-
-  const resourceDiffs = await transaction.next();
-  const allDiffs = (resourceDiffs.value as DiffMetadata[][]).flat();
+  const allDiffs = transaction.resourceDiffs.flat();
 
   const mappings = terraformService.getOctoTerraformResourceMappings();
 

@@ -2,10 +2,9 @@ import type { TerraformFolderOutput, UnknownResource } from '../app.type.js';
 import { TransactionError } from '../errors/index.js';
 import { Container } from '../functions/container/container.js';
 import type { DiffMetadata } from '../functions/diff/diff-metadata.js';
-import type { App } from '../models/app/app.model.js';
 import { ResourceDataRepository } from '../resources/resource-data.repository.js';
 import { TerraformService } from '../services/terraform/terraform.service.js';
-import { TransactionService } from '../services/transaction/transaction.service.js';
+import type { ModelTransactionResult } from './apply-transaction.js';
 
 export type TerraformOutputs = Record<string, { value: unknown }>;
 
@@ -13,7 +12,7 @@ export type TerraformOutputs = Record<string, { value: unknown }>;
  * Records a terraform apply back into octo's state: Committed ← Cloud. The catch-up step of the
  * cycle, not a drift resolver.
  *
- * Boots normally (modules → model actions → resource graph), reads every module folder's outputs
+ * Operates on the resource graph the `transaction` already built: reads every module folder's outputs
  * from the caller-supplied `outputs` map (keyed by module id), populates resource responses by the
  * `${resourceId}-${key}` convention, and syncs the actual graph to the new graph.
  *
@@ -29,30 +28,22 @@ export type TerraformOutputs = Record<string, { value: unknown }>;
  *
  * @internal
  */
-export async function commit(
-  app: App,
-  {
-    outputs,
-    previousFolders = [],
-  }: { outputs: Map<string, TerraformOutputs>; previousFolders?: TerraformFolderOutput[] },
-): Promise<{ modelTransaction: DiffMetadata[][]; warnings: { message: string; moduleId?: string }[] }> {
+export async function commit({
+  outputs,
+  previousFolders = [],
+  transaction,
+}: {
+  outputs: Map<string, TerraformOutputs>;
+  previousFolders?: TerraformFolderOutput[];
+  transaction: ModelTransactionResult;
+}): Promise<{ modelTransaction: DiffMetadata[][]; warnings: { message: string; moduleId?: string }[] }> {
   const container = Container.getInstance();
-  const [resourceDataRepository, terraformService, transactionService] = await Promise.all([
+  const [resourceDataRepository, terraformService] = await Promise.all([
     container.get(ResourceDataRepository),
     container.get(TerraformService),
-    container.get(TransactionService),
   ]);
 
-  const diffs = await app.diff();
-  const transaction = transactionService.beginTransaction(diffs, {
-    generateTerraform: true,
-    yieldModelTransaction: true,
-    yieldResourceDiffs: true,
-  });
-
-  const modelTransaction = await transaction.next();
-  // Advance past terraform generation and resource diff computation. No resource actions run.
-  await transaction.next();
+  const { modelTransaction } = transaction;
 
   const mappings = terraformService.getOctoTerraformResourceMappings();
 
@@ -149,5 +140,5 @@ export async function commit(
   // Terraform has applied the full desired state: actual ← new.
   resourceDataRepository.syncActualToNew();
 
-  return { modelTransaction: modelTransaction.value as DiffMetadata[][], warnings };
+  return { modelTransaction, warnings };
 }

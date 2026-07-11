@@ -1,4 +1,5 @@
 import { TestModes } from '../utilities/test-helpers/test-modes.js';
+import { applyModelTransaction } from './apply-transaction.js';
 import { commit } from './commit.mode.js';
 
 describe('commit()', () => {
@@ -18,7 +19,8 @@ describe('commit()', () => {
     testModes.writeTfState('region-module', { 'igw-1': { igwId: 'igw-0real' }, 'vpc-1-VpcId': 'vpc-0real' });
     testModes.writeTfState('sg-module', { 'sg-1-SgId': 'sg-0real' });
 
-    const { modelTransaction, warnings } = await commit(app, { outputs: testModes.outputs });
+    const transaction = await applyModelTransaction(app);
+    const { modelTransaction, warnings } = await commit({ outputs: testModes.outputs, transaction });
 
     expect(Array.isArray(modelTransaction)).toBe(true);
     // Every supplied folder is in intent — no not-tracked warns, even with nothing committed yet.
@@ -47,9 +49,8 @@ describe('commit()', () => {
     testModes.writeTfState('region-module', { 'igw-1': { igwId: 'igw-0real' }, 'vpc-1-VpcId': 12345 });
     testModes.writeTfState('sg-module', { 'sg-1-SgId': 'sg-0real' });
 
-    await commit(app, {
-      outputs: testModes.outputs,
-    });
+    const transaction = await applyModelTransaction(app);
+    await commit({ outputs: testModes.outputs, transaction });
 
     const newVpc = testModes.resourceDataRepository
       .getNewResourcesByProperties()
@@ -63,7 +64,8 @@ describe('commit()', () => {
     testModes.writeTfState('region-module', { 'vpc-1-VpcId': 'vpc-0real' });
     testModes.writeTfState('sg-module', {});
 
-    await expect(commit(app, { outputs: testModes.outputs })).rejects.toThrow(
+    const transaction = await applyModelTransaction(app);
+    await expect(commit({ outputs: testModes.outputs, transaction })).rejects.toThrow(
       /missing terraform outputs.*region-module\/igw-1.*Octo state is unchanged/,
     );
 
@@ -79,7 +81,8 @@ describe('commit()', () => {
     testModes.writeTfState('region-module', { 'igw-1': { igwId: 'igw-0real' }, 'vpc-1-VpcId': null });
     testModes.writeTfState('sg-module', { 'sg-1-SgId': 'sg-0real' });
 
-    await expect(commit(app, { outputs: testModes.outputs })).rejects.toThrow(
+    const transaction = await applyModelTransaction(app);
+    await expect(commit({ outputs: testModes.outputs, transaction })).rejects.toThrow(
       /null terraform outputs.*region-module\/vpc-1-VpcId.*Octo state is unchanged/,
     );
 
@@ -95,7 +98,8 @@ describe('commit()', () => {
     testModes.writeTfState('region-module', { 'igw-1': { igwId: null }, 'vpc-1-VpcId': 'vpc-0real' });
     testModes.writeTfState('sg-module', { 'sg-1-SgId': 'sg-0real' });
 
-    await expect(commit(app, { outputs: testModes.outputs })).rejects.toThrow(
+    const transaction = await applyModelTransaction(app);
+    await expect(commit({ outputs: testModes.outputs, transaction })).rejects.toThrow(
       /null terraform outputs.*region-module\/igw-1\.igwId/,
     );
   });
@@ -103,7 +107,8 @@ describe('commit()', () => {
   it('should error when a module has no provided outputs', async () => {
     const { app } = await testModes.createResourceGraph();
 
-    await expect(commit(app, { outputs: testModes.outputs })).rejects.toThrow(/No terraform outputs provided/);
+    const transaction = await applyModelTransaction(app);
+    await expect(commit({ outputs: testModes.outputs, transaction })).rejects.toThrow(/No terraform outputs provided/);
   });
 
   it('should warn on outputs for a folder octo does not track without rejecting', async () => {
@@ -114,7 +119,8 @@ describe('commit()', () => {
     // A folder octo never wrote (not in intent, not in the committed folder record).
     testModes.writeTfState('user-module', { anything: 'x' });
 
-    const { warnings } = await commit(app, { outputs: testModes.outputs });
+    const transaction = await applyModelTransaction(app);
+    const { warnings } = await commit({ outputs: testModes.outputs, transaction });
 
     expect(warnings).toEqual([
       { message: expect.stringContaining('folder "user-module", which octo does not track'), moduleId: 'user-module' },
@@ -135,9 +141,11 @@ describe('commit()', () => {
     // (empty) outputs are tracked — no not-tracked warn — and never demanded.
     testModes.writeTfState('legacy-module', {});
 
-    const { warnings } = await commit(app, {
+    const transaction = await applyModelTransaction(app);
+    const { warnings } = await commit({
       outputs: testModes.outputs,
       previousFolders: [{ hasExternalResources: false, moduleId: 'legacy-module', providers: [] }],
+      transaction,
     });
 
     expect(warnings).toEqual([]);

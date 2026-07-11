@@ -9,7 +9,6 @@ import type {
   UnknownAnchor,
   UnknownModel,
   UnknownModule,
-  UnknownResource,
 } from '../app.type.js';
 import { type Container } from '../functions/container/container.js';
 import type { DiffMetadata } from '../functions/diff/diff-metadata.js';
@@ -19,6 +18,7 @@ import { Octo } from '../main.js';
 import type { App } from '../models/app/app.model.js';
 import type { IModelAction } from '../models/model-action.interface.js';
 import { AModel } from '../models/model.abstract.js';
+import { applyModelTransaction } from '../modes/apply-transaction.js';
 import type { BaseAnchorSchema } from '../overlays/anchor.schema.js';
 import { OverlayDataRepository, type OverlayDataRepositoryFactory } from '../overlays/overlay-data.repository.js';
 import { AOverlay } from '../overlays/overlay.abstract.js';
@@ -35,7 +35,6 @@ import { TestStateProvider } from '../services/state-management/test.state-provi
 import { TerraformService } from '../services/terraform/terraform.service.js';
 import { TransactionService } from '../services/transaction/transaction.service.js';
 import { HclUtility } from '../utilities/hcl/hcl.utility.js';
-import { NodeUtility } from '../utilities/node/node.utility.js';
 import { TerraformUtility } from '../utilities/terraform/terraform.utility.js';
 import { TestAnchor } from '../utilities/test-helpers/test-classes.js';
 import { create } from '../utilities/test-helpers/test-models.js';
@@ -364,14 +363,12 @@ export class TestModuleContainer {
     responses: { [resourceContext: string]: unknown };
     warnings: { message: string; moduleId?: string }[];
   }> {
-    const [inputService, moduleContainer, resourceDataRepository, terraformService, terraformUtility] =
-      await Promise.all([
-        this.container.get(InputService),
-        this.container.get(ModuleContainer),
-        this.container.get(ResourceDataRepository),
-        this.container.get(TerraformService),
-        this.container.get(TerraformUtility),
-      ]);
+    const [moduleContainer, resourceDataRepository, terraformService, terraformUtility] = await Promise.all([
+      this.container.get(ModuleContainer),
+      this.container.get(ResourceDataRepository),
+      this.container.get(TerraformService),
+      this.container.get(TerraformUtility),
+    ]);
 
     // Load modules.
     const moduleList = Array.isArray(modules) ? modules : [modules];
@@ -421,69 +418,26 @@ export class TestModuleContainer {
       return;
     }
 
-    // octo runs generate/validate/commit as separate processes, each of which boots from committed
-    // state and re-derives the entire resource graph once, from scratch, via app.diff()'s model
-    // actions. runModules shares one composed graph across all three stages, so before each stage it
-    // must reset that graph back to the same pre-stage baseline — otherwise a stage's model actions
-    // run on top of the previous stage's resources (which the transaction merges in), and an action
-    // that mutates the graph (e.g. a subnet sibling association) sees a graph it already mutated.
-    // Module authors write actions for a single run against a fresh graph; the harness honors that.
-    //
-    // The baseline is the resource graph right after compose: empty in a full run, or the caller's
-    // injected prerequisites (createTestResources/createResources) in a single-module test. Capture a
-    // pristine clone of each one now — while it is pristine, before any stage's transaction can hang
-    // derived dependencies on it or mutate it in place — in dependency order so parents rebuild before
-    // children. Each stage is then rebuilt from these snapshots, so it runs against FRESH prerequisite
-    // objects (never a previous stage's mutated ones), independent of whether the caller saved them.
-    const snapshotDeReferenceResource = async (context: string): Promise<UnknownResource> =>
-      resourceDataRepository.getNewResourceByContext(context)!;
-    const baselinePrerequisites: { moduleId: string | undefined; pristine: UnknownResource }[] = [];
-    for (const resource of NodeUtility.sortResourcesByDependency(
-      resourceDataRepository.getNewResourcesByProperties(),
-    )) {
-      baselinePrerequisites.push({
-        moduleId: inputService.getModuleIdFromResource(resource),
-        pristine: await AResource.cloneResource(resource, snapshotDeReferenceResource),
-      });
-    }
-
-    const resetResourceGraph = async (): Promise<void> => {
-      // Discard the previous stage's entire resource graph (prerequisites and everything its actions
-      // derived on top), the resource-input registrations, and the terraform sweep. The composed
-      // model/overlay graph is left intact — it is not mutated by a transaction and the caller holds
-      // references to it.
-      resourceDataRepository.resetNewResources();
-      inputService.resetResources();
-      terraformService.resetTransactionState();
-
-      // Rebuild the prerequisites fresh from the pristine snapshots, in dependency order so each parent
-      // exists in `new` before its children re-link to it.
-      const deReferenceResource = async (context: string): Promise<UnknownResource> =>
-        resourceDataRepository.getNewResourceByContext(context)!;
-      for (const { moduleId, pristine } of baselinePrerequisites) {
-        const prerequisiteClone = await AResource.cloneResource(pristine, deReferenceResource);
-        resourceDataRepository.addNewResource(prerequisiteClone);
-        if (moduleId !== undefined) {
-          inputService.registerResource(moduleId, prerequisiteClone);
-        }
-      }
-    };
+    // In production octo runs generate/validate/commit as three separate processes, each of which
+    // derives the resource graph once from intent. runModules drives all three in one process, so it
+    // builds the model transaction once and hands the same result to each mode.
+    const transaction = await applyModelTransaction(app as App);
 
     // Generate.
-    await resetResourceGraph();
     const dir = outputDir ?? (await mkdtemp(join(tmpdir(), 'octo-hcl-')));
-    const resourceDiffs = await this.octo.generate(app as App, { outputDir: dir });
+    const resourceDiffs = await this.octo.generate(app as App, { outputDir: dir }, transaction);
 
-    // Render the full HCL and the block diff from generate's sweep, before the next stage rewinds it.
+    // Render the full HCL and the block diff from the sweep the transaction produced.
     const currentHcl = HclUtility.serialize(terraformService.renderAllModules());
     const diffHcl = HclUtility.diffBlocks(this.previousHcl ?? '', currentHcl);
     this.previousHcl = currentHcl;
 
     // Validate.
-    await resetResourceGraph();
-    const validation = await this.octo.validate(app as App, {
-      plans: await terraformUtility.plan(dir, { json: true }),
-    });
+    const validation = await this.octo.validate(
+      app as App,
+      { plans: await terraformUtility.plan(dir, { json: true }) },
+      transaction,
+    );
     if (!validation.pass) {
       throw new Error(
         `runModules(): terraform plan failed octo validation:\n${validation.errors
@@ -512,10 +466,11 @@ export class TestModuleContainer {
     await terraformUtility.apply(dir);
 
     // Commit.
-    await resetResourceGraph();
-    const { warnings } = await this.octo.commit(app as App, {
-      outputs: await terraformUtility.output(dir, { json: true }),
-    });
+    const { warnings } = await this.octo.commit(
+      app as App,
+      { outputs: await terraformUtility.output(dir, { json: true }) },
+      transaction,
+    );
 
     // Re-collect responses after the commit: it is commit that maps terraform outputs onto the
     // actual resource graph, so a snapshot taken before it (as `response` holds) would miss them.
