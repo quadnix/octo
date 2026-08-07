@@ -1,13 +1,9 @@
-import { type Account, type App, type Region, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import { AwsEcrImageModule } from './index.js';
 
-async function setup(
-  testModuleContainer: TestModuleContainer,
-): Promise<{ account: Account; app: App; region: Region }> {
+async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
   const {
-    account: [account],
-    app: [app],
     region: [region],
   } = await testModuleContainer.createTestModels('testModule', {
     account: ['aws,123'],
@@ -27,8 +23,6 @@ async function setup(
       region,
     ),
   );
-
-  return { account, app, region };
 }
 
 describe('AwsEcrImageModule UT', () => {
@@ -52,9 +46,8 @@ describe('AwsEcrImageModule UT', () => {
   });
 
   it('should call correct actions', async () => {
-    const { app } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const runModulesGenerator = testModuleContainer.runModules<AwsEcrImageModule>(
-      app,
       {
         inputs: {
           imageFamily: 'family',
@@ -163,11 +156,10 @@ describe('AwsEcrImageModule UT', () => {
   });
 
   it('should CUD', async () => {
-    const { app: appCreate } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const { resourceDiffs: resourceDiffsCreate } = (
       await testModuleContainer
         .runModules<AwsEcrImageModule>(
-          appCreate,
           {
             inputs: {
               imageFamily: 'family',
@@ -187,11 +179,10 @@ describe('AwsEcrImageModule UT', () => {
      ]
     `);
 
-    const { app: appDelete } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const { hclDiff, resourceDiffs: resourceDiffsDelete } = (
       await testModuleContainer
         .runModules<AwsEcrImageModule>(
-          appDelete,
           {
             hidden: true,
             inputs: {
@@ -219,11 +210,10 @@ describe('AwsEcrImageModule UT', () => {
 
   it('should CUD tags', async () => {
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
-    const { app: appCreate } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const { resourceDiffs: resourceDiffsCreate } = (
       await testModuleContainer
         .runModules<AwsEcrImageModule>(
-          appCreate,
           {
             inputs: {
               imageFamily: 'family',
@@ -244,11 +234,10 @@ describe('AwsEcrImageModule UT', () => {
     `);
 
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
-    const { app: appUpdateTags } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const updateTags = (
       await testModuleContainer
         .runModules<AwsEcrImageModule>(
-          appUpdateTags,
           {
             inputs: {
               imageFamily: 'family',
@@ -269,11 +258,10 @@ describe('AwsEcrImageModule UT', () => {
      ]
     `);
 
-    const { app: appDeleteTags } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const deleteTags = (
       await testModuleContainer
         .runModules<AwsEcrImageModule>(
-          appDeleteTags,
           {
             inputs: {
               imageFamily: 'family',
@@ -297,10 +285,9 @@ describe('AwsEcrImageModule UT', () => {
 
   describe('input changes', () => {
     it('should handle imageFamily change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await testModuleContainer
         .runModules<AwsEcrImageModule>(
-          appCreate,
           {
             inputs: {
               imageFamily: 'family',
@@ -314,11 +301,10 @@ describe('AwsEcrImageModule UT', () => {
         )
         .next();
 
-      const { app: appUpdateImageFamily } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       const { hclDiff, resourceDiffs } = (
         await testModuleContainer
           .runModules<AwsEcrImageModule>(
-            appUpdateImageFamily,
             {
               inputs: {
                 imageFamily: 'changed-family',
@@ -342,10 +328,9 @@ describe('AwsEcrImageModule UT', () => {
     });
 
     it('should handle imageName change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await testModuleContainer
         .runModules<AwsEcrImageModule>(
-          appCreate,
           {
             inputs: {
               imageFamily: 'family',
@@ -359,11 +344,10 @@ describe('AwsEcrImageModule UT', () => {
         )
         .next();
 
-      const { app: appUpdateImageName } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       const { hclDiff, resourceDiffs } = (
         await testModuleContainer
           .runModules<AwsEcrImageModule>(
-            appUpdateImageName,
             {
               inputs: {
                 imageFamily: 'family',
@@ -388,10 +372,9 @@ describe('AwsEcrImageModule UT', () => {
   });
 
   it('should handle moduleId change', async () => {
-    const { app: appCreate } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     await testModuleContainer
       .runModules<AwsEcrImageModule>(
-        appCreate,
         {
           inputs: {
             imageFamily: 'family',
@@ -405,11 +388,10 @@ describe('AwsEcrImageModule UT', () => {
       )
       .next();
 
-    const { app: appUpdateModuleId } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const { hclDiff, resourceDiffs } = (
       await testModuleContainer
         .runModules<AwsEcrImageModule>(
-          appUpdateModuleId,
           {
             inputs: {
               imageFamily: 'family',
@@ -429,11 +411,10 @@ describe('AwsEcrImageModule UT', () => {
 
   describe('validation', () => {
     it('should validate imageFamily is not empty', async () => {
-      const { app } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await expect(
         testModuleContainer
           .runModules<AwsEcrImageModule>(
-            app,
             {
               inputs: {
                 imageFamily: '',
@@ -450,11 +431,10 @@ describe('AwsEcrImageModule UT', () => {
     });
 
     it('should validate imageName is not empty', async () => {
-      const { app } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await expect(
         testModuleContainer
           .runModules<AwsEcrImageModule>(
-            app,
             {
               inputs: {
                 imageFamily: 'family',
@@ -471,11 +451,10 @@ describe('AwsEcrImageModule UT', () => {
     });
 
     it('should validate regions array is not empty', async () => {
-      const { app } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await expect(
         testModuleContainer
           .runModules<AwsEcrImageModule>(
-            app,
             {
               inputs: {
                 imageFamily: 'family',

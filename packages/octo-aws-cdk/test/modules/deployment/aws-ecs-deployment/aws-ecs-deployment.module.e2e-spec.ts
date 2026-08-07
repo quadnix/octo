@@ -1,6 +1,6 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { type App, type Server, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsEcsServerAnchorSchema } from '../../../../src/anchors/aws-ecs/aws-ecs-server.anchor.schema.js';
 import type { AwsIamRoleAnchorSchema } from '../../../../src/anchors/aws-iam/aws-iam-role.anchor.schema.js';
 import { AwsEcsDeploymentModule } from '../../../../src/modules/deployment/aws-ecs-deployment/index.js';
@@ -12,9 +12,8 @@ const { AWS_ACCOUNT_ID, AWS_REGION_ID } = config;
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUTPUT_DIR = join(__dirname, 'generated');
 
-async function setup(testModuleContainer: TestModuleContainer): Promise<{ app: App; server: Server }> {
+async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
   const {
-    app: [app],
     server: [server],
   } = await testModuleContainer.createTestModels('testModule', {
     app: ['test-app'],
@@ -35,8 +34,6 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{ app: A
       server,
     ),
   );
-
-  return { app, server };
 }
 
 describe('AwsEcsDeploymentModule E2E', () => {
@@ -60,11 +57,10 @@ describe('AwsEcsDeploymentModule E2E', () => {
   });
 
   it('should generate no terraform resources to run against AWS', async () => {
-    const { app } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const { resourceDiffs } = (
       await testModuleContainer
         .runModules<AwsEcsDeploymentModule>(
-          app,
           {
             inputs: {
               deploymentContainerProperties: {

@@ -1,11 +1,10 @@
-import { type App, type Server, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsEcsServerAnchorSchema } from '../../../anchors/aws-ecs/aws-ecs-server.anchor.schema.js';
 import type { AwsIamRoleAnchorSchema } from '../../../anchors/aws-iam/aws-iam-role.anchor.schema.js';
 import { AwsEcsDeploymentModule } from './index.js';
 
-async function setup(testModuleContainer: TestModuleContainer): Promise<{ app: App; server: Server }> {
+async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
   const {
-    app: [app],
     server: [server],
   } = await testModuleContainer.createTestModels('testModule', {
     app: ['test-app'],
@@ -26,8 +25,6 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{ app: A
       server,
     ),
   );
-
-  return { app, server };
 }
 
 describe('AwsEcsDeploymentModule UT', () => {
@@ -51,9 +48,8 @@ describe('AwsEcsDeploymentModule UT', () => {
   });
 
   it('should call correct actions', async () => {
-    const { app } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const runModulesGenerator = testModuleContainer.runModules<AwsEcsDeploymentModule>(
-      app,
       {
         inputs: {
           deploymentContainerProperties: {
@@ -89,11 +85,10 @@ describe('AwsEcsDeploymentModule UT', () => {
   });
 
   it('should CUD', async () => {
-    const { app: appCreate } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const { resourceDiffs: resourceDiffsCreate } = (
       await testModuleContainer
         .runModules<AwsEcsDeploymentModule>(
-          appCreate,
           {
             inputs: {
               deploymentContainerProperties: {
@@ -117,11 +112,10 @@ describe('AwsEcsDeploymentModule UT', () => {
     ).value!;
     expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`[]`);
 
-    const { app: appUpdate } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const update = (
       await testModuleContainer
         .runModules<AwsEcsDeploymentModule>(
-          appUpdate,
           {
             inputs: {
               deploymentContainerProperties: {
@@ -146,11 +140,10 @@ describe('AwsEcsDeploymentModule UT', () => {
     expect(update.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(update.resourceDiffs)).toMatchInlineSnapshot(`[]`);
 
-    const { app: appDelete } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const deleteResult = (
       await testModuleContainer
         .runModules<AwsEcsDeploymentModule>(
-          appDelete,
           {
             hidden: true,
             inputs: {
@@ -182,11 +175,10 @@ describe('AwsEcsDeploymentModule UT', () => {
 
   it('should CUD tags', async () => {
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
-    const { app: appCreate } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const { resourceDiffs: resourceDiffsCreate } = (
       await testModuleContainer
         .runModules<AwsEcsDeploymentModule>(
-          appCreate,
           {
             inputs: {
               deploymentContainerProperties: {
@@ -211,11 +203,10 @@ describe('AwsEcsDeploymentModule UT', () => {
     expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`[]`);
 
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
-    const { app: appUpdateTags } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const updateTags = (
       await testModuleContainer
         .runModules<AwsEcsDeploymentModule>(
-          appUpdateTags,
           {
             inputs: {
               deploymentContainerProperties: {
@@ -240,11 +231,10 @@ describe('AwsEcsDeploymentModule UT', () => {
     expect(updateTags.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(updateTags.resourceDiffs)).toMatchInlineSnapshot(`[]`);
 
-    const { app: appDeleteTags } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const deleteTags = (
       await testModuleContainer
         .runModules<AwsEcsDeploymentModule>(
-          appDeleteTags,
           {
             inputs: {
               deploymentContainerProperties: {
@@ -272,10 +262,9 @@ describe('AwsEcsDeploymentModule UT', () => {
 
   describe('input changes', () => {
     it('should handle deploymentContainerProperties change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await testModuleContainer
         .runModules<AwsEcsDeploymentModule>(
-          appCreate,
           {
             inputs: {
               deploymentContainerProperties: {
@@ -297,11 +286,10 @@ describe('AwsEcsDeploymentModule UT', () => {
         )
         .next();
 
-      const { app: appUpdateDeploymentContainerProperties } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       const { hclDiff, resourceDiffs } = (
         await testModuleContainer
           .runModules<AwsEcsDeploymentModule>(
-            appUpdateDeploymentContainerProperties,
             {
               inputs: {
                 deploymentContainerProperties: {
@@ -328,10 +316,9 @@ describe('AwsEcsDeploymentModule UT', () => {
     });
 
     it('should handle deploymentTag change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await testModuleContainer
         .runModules<AwsEcsDeploymentModule>(
-          appCreate,
           {
             inputs: {
               deploymentContainerProperties: {
@@ -353,11 +340,10 @@ describe('AwsEcsDeploymentModule UT', () => {
         )
         .next();
 
-      const { app: appUpdateDeploymentTag } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       const { hclDiff, resourceDiffs } = (
         await testModuleContainer
           .runModules<AwsEcsDeploymentModule>(
-            appUpdateDeploymentTag,
             {
               inputs: {
                 deploymentContainerProperties: {
@@ -385,10 +371,9 @@ describe('AwsEcsDeploymentModule UT', () => {
   });
 
   it('should handle moduleId change', async () => {
-    const { app: appCreate } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     await testModuleContainer
       .runModules<AwsEcsDeploymentModule>(
-        appCreate,
         {
           inputs: {
             deploymentContainerProperties: {
@@ -410,11 +395,10 @@ describe('AwsEcsDeploymentModule UT', () => {
       )
       .next();
 
-    const { app: appUpdateModuleId } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const { hclDiff, resourceDiffs } = (
       await testModuleContainer
         .runModules<AwsEcsDeploymentModule>(
-          appUpdateModuleId,
           {
             inputs: {
               deploymentContainerProperties: {
@@ -442,11 +426,10 @@ describe('AwsEcsDeploymentModule UT', () => {
 
   describe('validation', () => {
     it('should validate deploymentTag length', async () => {
-      const { app } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await expect(
         testModuleContainer
           .runModules<AwsEcsDeploymentModule>(
-            app,
             {
               inputs: {
                 deploymentContainerProperties: {

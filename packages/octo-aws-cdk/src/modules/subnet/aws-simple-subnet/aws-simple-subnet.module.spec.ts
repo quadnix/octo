@@ -1,13 +1,4 @@
-import {
-  type Account,
-  type App,
-  type Filesystem,
-  type Region,
-  SubnetType,
-  TestContainer,
-  TestModuleContainer,
-  stub,
-} from '@quadnix/octo';
+import { SubnetType, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsEfsAnchorSchema } from '../../../anchors/aws-efs/aws-efs.anchor.schema.js';
 import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import type { EfsSchema } from '../../../resources/efs/index.schema.js';
@@ -15,12 +6,8 @@ import type { InternetGatewaySchema } from '../../../resources/internet-gateway/
 import type { VpcSchema } from '../../../resources/vpc/index.schema.js';
 import { AwsSimpleSubnetModule } from './index.js';
 
-async function setup(
-  testModuleContainer: TestModuleContainer,
-): Promise<{ account: Account; app: App; filesystem: Filesystem; region: Region }> {
+async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
   const {
-    account: [account],
-    app: [app],
     filesystem: [filesystem],
     region: [region],
   } = await testModuleContainer.createTestModels('testModule', {
@@ -80,8 +67,6 @@ async function setup(
     ],
     { save: true },
   );
-
-  return { account, app, filesystem, region };
 }
 
 describe('AwsSimpleSubnetModule UT', () => {
@@ -105,9 +90,8 @@ describe('AwsSimpleSubnetModule UT', () => {
   });
 
   it('should call correct actions', async () => {
-    const { app } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const runModulesGenerator = testModuleContainer.runModules<AwsSimpleSubnetModule>(
-      app,
       {
         inputs: {
           localFilesystems: [stub('${{testModule.model.filesystem}}')],
@@ -336,10 +320,9 @@ describe('AwsSimpleSubnetModule UT', () => {
   });
 
   it('should CUD', async () => {
-    const { app: appCreate } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     await testModuleContainer
       .runModules<AwsSimpleSubnetModule>(
-        appCreate,
         {
           inputs: {
             region: stub('${{testModule.model.region}}'),
@@ -355,11 +338,10 @@ describe('AwsSimpleSubnetModule UT', () => {
       .next();
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
-    const { app: appAddSubnetOptions } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const addSubnetOptions = (
       await testModuleContainer
         .runModules<AwsSimpleSubnetModule>(
-          appAddSubnetOptions,
           {
             inputs: {
               region: stub('${{testModule.model.region}}'),
@@ -387,11 +369,10 @@ describe('AwsSimpleSubnetModule UT', () => {
     `);
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
-    const { app: appAddLocalFilesystem } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const addLocalFilesystem = (
       await testModuleContainer
         .runModules<AwsSimpleSubnetModule>(
-          appAddLocalFilesystem,
           {
             inputs: {
               localFilesystems: [stub('${{testModule.model.filesystem}}')],
@@ -421,11 +402,10 @@ describe('AwsSimpleSubnetModule UT', () => {
     `);
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
-    const { app: appDelete } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const deleteResult = (
       await testModuleContainer
         .runModules<AwsSimpleSubnetModule>(
-          appDelete,
           {
             hidden: true,
             inputs: {
@@ -461,10 +441,9 @@ describe('AwsSimpleSubnetModule UT', () => {
   });
 
   it('should associate and disassociate subnet with siblings', async () => {
-    const { app: appAssociateSubnet } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     await testModuleContainer
       .runModules<AwsSimpleSubnetModule>(
-        appAssociateSubnet,
         [
           {
             inputs: {
@@ -503,11 +482,10 @@ describe('AwsSimpleSubnetModule UT', () => {
       .next();
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
-    const { app: appDisassociateSubnet } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const disassociateSubnet = (
       await testModuleContainer
         .runModules<AwsSimpleSubnetModule>(
-          appDisassociateSubnet,
           [
             {
               inputs: {
@@ -551,10 +529,9 @@ describe('AwsSimpleSubnetModule UT', () => {
   });
 
   it('should associate and disassociate private subnet with public subnet with a NAT Gateway', async () => {
-    const { app: appAssociateSubnet } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     await testModuleContainer
       .runModules<AwsSimpleSubnetModule>(
-        appAssociateSubnet,
         [
           {
             inputs: {
@@ -593,11 +570,10 @@ describe('AwsSimpleSubnetModule UT', () => {
       .next();
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
-    const { app: appDisassociateSubnet } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const disassociateSubnet = (
       await testModuleContainer
         .runModules<AwsSimpleSubnetModule>(
-          appDisassociateSubnet,
           [
             {
               inputs: {
@@ -639,11 +615,10 @@ describe('AwsSimpleSubnetModule UT', () => {
     `);
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
-    const { app: appDeleteNATGateway } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const deleteNATGateway = (
       await testModuleContainer
         .runModules<AwsSimpleSubnetModule>(
-          appDeleteNATGateway,
           [
             {
               inputs: {
@@ -687,10 +662,9 @@ describe('AwsSimpleSubnetModule UT', () => {
 
   it('should CUD tags', async () => {
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
-    const { app: appCreate } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     await testModuleContainer
       .runModules<AwsSimpleSubnetModule>(
-        appCreate,
         {
           inputs: {
             region: stub('${{testModule.model.region}}'),
@@ -707,11 +681,10 @@ describe('AwsSimpleSubnetModule UT', () => {
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
-    const { app: appUpdateTags } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const updateTags = (
       await testModuleContainer
         .runModules<AwsSimpleSubnetModule>(
-          appUpdateTags,
           {
             inputs: {
               region: stub('${{testModule.model.region}}'),
@@ -736,11 +709,10 @@ describe('AwsSimpleSubnetModule UT', () => {
     `);
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
-    const { app: appDeleteTags } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const deleteTags = (
       await testModuleContainer
         .runModules<AwsSimpleSubnetModule>(
-          appDeleteTags,
           {
             inputs: {
               region: stub('${{testModule.model.region}}'),
@@ -768,10 +740,9 @@ describe('AwsSimpleSubnetModule UT', () => {
 
   describe('input changes', () => {
     it('should handle subnetAvailabilityZone change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await testModuleContainer
         .runModules<AwsSimpleSubnetModule>(
-          appCreate,
           {
             inputs: {
               region: stub('${{testModule.model.region}}'),
@@ -787,12 +758,11 @@ describe('AwsSimpleSubnetModule UT', () => {
         .next();
       expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
-      const { app: appUpdateAvailabilityZone } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       // availability_zone is force-new on aws_subnet → octo emits a REPLACE on the subnet.
       const { resourceDiffs } = (
         await testModuleContainer
           .runModules<AwsSimpleSubnetModule>(
-            appUpdateAvailabilityZone,
             {
               inputs: {
                 region: stub('${{testModule.model.region}}'),
@@ -817,10 +787,9 @@ describe('AwsSimpleSubnetModule UT', () => {
     });
 
     it('should handle subnetCidrBlock change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await testModuleContainer
         .runModules<AwsSimpleSubnetModule>(
-          appCreate,
           {
             inputs: {
               region: stub('${{testModule.model.region}}'),
@@ -836,12 +805,11 @@ describe('AwsSimpleSubnetModule UT', () => {
         .next();
       expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
-      const { app: appUpdateCidrBlock } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       // cidr_block is force-new on aws_subnet → octo emits a REPLACE on the subnet.
       const { resourceDiffs } = (
         await testModuleContainer
           .runModules<AwsSimpleSubnetModule>(
-            appUpdateCidrBlock,
             {
               inputs: {
                 region: stub('${{testModule.model.region}}'),
@@ -867,10 +835,9 @@ describe('AwsSimpleSubnetModule UT', () => {
     });
 
     it('should handle subnetName change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await testModuleContainer
         .runModules<AwsSimpleSubnetModule>(
-          appCreate,
           {
             inputs: {
               region: stub('${{testModule.model.region}}'),
@@ -886,11 +853,10 @@ describe('AwsSimpleSubnetModule UT', () => {
         .next();
       expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
-      const { app: appUpdateSubnetName } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       const updateSubnetName = (
         await testModuleContainer
           .runModules<AwsSimpleSubnetModule>(
-            appUpdateSubnetName,
             {
               inputs: {
                 region: stub('${{testModule.model.region}}'),
@@ -920,10 +886,9 @@ describe('AwsSimpleSubnetModule UT', () => {
     });
 
     it('should handle subnetOptions change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await testModuleContainer
         .runModules<AwsSimpleSubnetModule>(
-          appCreate,
           {
             inputs: {
               region: stub('${{testModule.model.region}}'),
@@ -939,11 +904,10 @@ describe('AwsSimpleSubnetModule UT', () => {
         .next();
       expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
-      const { app: appUpdateSubnetOptions } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       const updateSubnetOptions = (
         await testModuleContainer
           .runModules<AwsSimpleSubnetModule>(
-            appUpdateSubnetOptions,
             {
               inputs: {
                 region: stub('${{testModule.model.region}}'),
@@ -974,10 +938,9 @@ describe('AwsSimpleSubnetModule UT', () => {
   });
 
   it('should handle moduleId change', async () => {
-    const { app: appCreate } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     await testModuleContainer
       .runModules<AwsSimpleSubnetModule>(
-        appCreate,
         {
           inputs: {
             region: stub('${{testModule.model.region}}'),
@@ -993,11 +956,10 @@ describe('AwsSimpleSubnetModule UT', () => {
       .next();
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
-    const { app: appUpdateModuleId } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const updateModuleId = (
       await testModuleContainer
         .runModules<AwsSimpleSubnetModule>(
-          appUpdateModuleId,
           {
             inputs: {
               region: stub('${{testModule.model.region}}'),
@@ -1019,11 +981,10 @@ describe('AwsSimpleSubnetModule UT', () => {
 
   describe('validation', () => {
     it('should validate invalid subnet availability zone', async () => {
-      const { app } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await expect(
         testModuleContainer
           .runModules<AwsSimpleSubnetModule>(
-            app,
             {
               inputs: {
                 region: stub('${{testModule.model.region}}'),
@@ -1041,11 +1002,10 @@ describe('AwsSimpleSubnetModule UT', () => {
     });
 
     it('should validate NAT Gateway only for public subnets', async () => {
-      const { app } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await expect(
         testModuleContainer
           .runModules<AwsSimpleSubnetModule>(
-            app,
             {
               inputs: {
                 region: stub('${{testModule.model.region}}'),
@@ -1068,11 +1028,10 @@ describe('AwsSimpleSubnetModule UT', () => {
     });
 
     it('should validate subnet CIDR within region CIDR', async () => {
-      const { app } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await expect(
         testModuleContainer
           .runModules<AwsSimpleSubnetModule>(
-            app,
             {
               inputs: {
                 region: stub('${{testModule.model.region}}'),
@@ -1090,11 +1049,10 @@ describe('AwsSimpleSubnetModule UT', () => {
     });
 
     it('should normalize the all-ports sentinel (-1) to 0 in rendered HCL', async () => {
-      const { app } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       const { hclRender: hcl } = (
         await testModuleContainer
           .runModules<AwsSimpleSubnetModule>(
-            app,
             {
               inputs: {
                 region: stub('${{testModule.model.region}}'),

@@ -1,6 +1,6 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { type Account, type App, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsAccountAnchorSchema } from '../../../../src/anchors/aws-account/aws-account.anchor.schema.js';
 import { AwsS3StaticWebsiteServiceModule } from '../../../../src/modules/service/aws-s3-static-website-service/index.js';
 import { config } from '../../../test.config.js';
@@ -12,10 +12,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUTPUT_DIR = join(__dirname, 'generated');
 const websiteSourcePath = join(__dirname, '../../../../resources', 's3-static-website');
 
-async function setup(testModuleContainer: TestModuleContainer): Promise<{ account: Account; app: App }> {
+async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
   const {
     account: [account],
-    app: [app],
   } = await testModuleContainer.createTestModels('testModule', {
     account: [`aws,${AWS_ACCOUNT_ID}`],
     app: ['test-app'],
@@ -28,8 +27,6 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{ accoun
       account,
     ),
   );
-
-  return { account, app };
 }
 
 describe('AwsS3StaticWebsiteServiceModule E2E', () => {
@@ -53,10 +50,9 @@ describe('AwsS3StaticWebsiteServiceModule E2E', () => {
   });
 
   it('should generate terragrunt that validates and plans against AWS', async () => {
-    const { app } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     await testModuleContainer
       .runModules<AwsS3StaticWebsiteServiceModule>(
-        app,
         {
           inputs: {
             account: stub('${{testModule.model.account}}'),

@@ -96,6 +96,34 @@ export class InputService {
   }
 
   /**
+   * Returns the root model of the graph - the one and only `App` registered by any module.
+   */
+  getRootModel(): UnknownModel {
+    const matches = Object.entries(this.models).filter(
+      ([, model]) => (model.constructor as typeof ANode).NODE_NAME === 'app',
+    );
+
+    const distinct: [string, UnknownModel][] = [];
+    for (const match of matches) {
+      if (!distinct.some(([, model]) => model === match[1])) {
+        distinct.push(match);
+      }
+    }
+
+    if (distinct.length === 0) {
+      throw new InputResolutionError('No app model is registered!', 'model.app');
+    }
+    if (distinct.length > 1) {
+      throw new InputResolutionError(
+        `Multiple app models are registered: ${distinct.map(([key]) => key).join(', ')}!`,
+        'model.app',
+      );
+    }
+
+    return distinct[0][1];
+  }
+
+  /**
    * Registers the inputs passed to an instance of module.
    * It maps the input key provided to the module with the input value.
    * The value can be a direct value, or can be a reference "${{var}}" to

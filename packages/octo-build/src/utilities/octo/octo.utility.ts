@@ -71,9 +71,8 @@ export async function bootOcto({ noConsole = false }: { noConsole?: boolean } = 
   octo.orderModules(modules.map((m) => m.moduleClass));
 
   // Compose.
-  const appModuleId = modules[0].moduleId;
-  const initializedModules = await octo.compose();
-  const app = initializedModules[`${appModuleId}.model.app`] as App;
+  await octo.compose();
+  const app = octo.getRootModel();
 
   return { app, octo };
 }

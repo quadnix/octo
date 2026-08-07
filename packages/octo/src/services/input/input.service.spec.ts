@@ -3,6 +3,7 @@ import type { Container } from '../../functions/container/container.js';
 import { TestContainer } from '../../functions/container/test-container.js';
 import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
 import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
+import { create } from '../../utilities/test-helpers/test-models.js';
 import { createTestResources } from '../../utilities/test-helpers/test-resources.js';
 import { InputService } from './input.service.js';
 
@@ -15,6 +16,60 @@ describe('InputService UT', () => {
 
   afterEach(async () => {
     await TestContainer.reset();
+  });
+
+  describe('getRootModel()', () => {
+    let inputService: InputService;
+
+    beforeEach(async () => {
+      const [overlayDataRepository, resourceDataRepository] = await Promise.all([
+        container.get(OverlayDataRepository),
+        container.get(ResourceDataRepository),
+      ]);
+      inputService = new InputService(overlayDataRepository, resourceDataRepository);
+    });
+
+    it('should throw when no app model is registered', () => {
+      expect(() => {
+        inputService.getRootModel();
+      }).toThrow('No app model is registered!');
+    });
+
+    it('should return the app model, ignoring all other models', () => {
+      const {
+        account: [account1],
+        app: [app1],
+      } = create({ account: ['aws,account'], app: ['test-app'] });
+      inputService.registerModel('testModule', app1);
+      inputService.registerModel('testModule', account1);
+
+      expect(inputService.getRootModel()).toBe(app1);
+    });
+
+    it('should return the app model when registered under multiple module ids', () => {
+      const {
+        app: [app1],
+      } = create({ app: ['test-app'] });
+      inputService.registerModel('module1', app1);
+      inputService.registerModel('module2', app1);
+
+      expect(inputService.getRootModel()).toBe(app1);
+    });
+
+    it('should throw when two distinct app models are registered', () => {
+      const {
+        app: [app1],
+      } = create({ app: ['test-app'] });
+      const {
+        app: [app2],
+      } = create({ app: ['test-app'] });
+      inputService.registerModel('module1', app1);
+      inputService.registerModel('module2', app2);
+
+      expect(() => {
+        inputService.getRootModel();
+      }).toThrow('Multiple app models are registered: module1.model.app, module2.model.app!');
+    });
   });
 
   describe('resolve()', () => {

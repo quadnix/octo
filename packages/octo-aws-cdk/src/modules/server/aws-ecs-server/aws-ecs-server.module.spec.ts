@@ -1,4 +1,4 @@
-import { type Account, type App, type Service, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsAccountAnchorSchema } from '../../../anchors/aws-account/aws-account.anchor.schema.js';
 import type { AwsS3StorageServiceDirectoryAnchorSchema } from '../../../anchors/aws-s3-storage-service/aws-s3-storage-service-directory.anchor.schema.js';
 import type { AwsS3StorageServiceAnchorSchema } from '../../../anchors/aws-s3-storage-service/aws-s3-storage-service.anchor.schema.js';
@@ -6,12 +6,9 @@ import { S3Storage } from '../../../resources/s3-storage/index.js';
 import { AwsEcsServerS3AccessDirectoryPermission } from './index.schema.js';
 import { AwsEcsServerModule } from './index.js';
 
-async function setup(
-  testModuleContainer: TestModuleContainer,
-): Promise<{ account: Account; app: App; service: Service }> {
+async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
   const {
     account: [account],
-    app: [app],
     service: [service],
   } = await testModuleContainer.createTestModels('testModule', {
     account: ['aws,123'],
@@ -45,8 +42,6 @@ async function setup(
     permissions: [],
   });
   await testModuleContainer.createResources('testModule', [s3Storage], { save: true });
-
-  return { account, app, service };
 }
 
 describe('AwsEcsServerModule UT', () => {
@@ -70,9 +65,8 @@ describe('AwsEcsServerModule UT', () => {
   });
 
   it('should call correct actions', async () => {
-    const { app } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const runModulesGenerator = testModuleContainer.runModules<AwsEcsServerModule>(
-      app,
       {
         inputs: {
           account: stub('${{testModule.model.account}}'),
@@ -276,11 +270,10 @@ describe('AwsEcsServerModule UT', () => {
   });
 
   it('should CUD', async () => {
-    const { app: appCreate } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const { resourceDiffs: resourceDiffsCreate } = (
       await testModuleContainer
         .runModules<AwsEcsServerModule>(
-          appCreate,
           {
             inputs: {
               account: stub('${{testModule.model.account}}'),
@@ -301,11 +294,10 @@ describe('AwsEcsServerModule UT', () => {
     `);
 
     // Adding security groups should have no effect as they are not created until execution.
-    const { app: appAddSecurityGroups } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const addSecurityGroups = (
       await testModuleContainer
         .runModules<AwsEcsServerModule>(
-          appAddSecurityGroups,
           {
             inputs: {
               account: stub('${{testModule.model.account}}'),
@@ -331,11 +323,10 @@ describe('AwsEcsServerModule UT', () => {
     expect(testModuleContainer.digestDiffs(addSecurityGroups.resourceDiffs)).toMatchInlineSnapshot(`[]`);
 
     // Add S3 Storage.
-    const { app: appAddS3Storage } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const addS3Storage = (
       await testModuleContainer
         .runModules<AwsEcsServerModule>(
-          appAddS3Storage,
           {
             inputs: {
               account: stub('${{testModule.model.account}}'),
@@ -373,11 +364,10 @@ describe('AwsEcsServerModule UT', () => {
      ]
     `);
 
-    const { app: appDelete } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const deleteResult = (
       await testModuleContainer
         .runModules<AwsEcsServerModule>(
-          appDelete,
           {
             hidden: true,
             inputs: {
@@ -424,11 +414,10 @@ describe('AwsEcsServerModule UT', () => {
 
   it('should CUD tags', async () => {
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
-    const { app: appCreate } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const { resourceDiffs: resourceDiffsCreate } = (
       await testModuleContainer
         .runModules<AwsEcsServerModule>(
-          appCreate,
           {
             inputs: {
               account: stub('${{testModule.model.account}}'),
@@ -449,11 +438,10 @@ describe('AwsEcsServerModule UT', () => {
     `);
 
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
-    const { app: appUpdateTags } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const updateTags = (
       await testModuleContainer
         .runModules<AwsEcsServerModule>(
-          appUpdateTags,
           {
             inputs: {
               account: stub('${{testModule.model.account}}'),
@@ -473,11 +461,10 @@ describe('AwsEcsServerModule UT', () => {
      ]
     `);
 
-    const { app: appDeleteTags } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const deleteTags = (
       await testModuleContainer
         .runModules<AwsEcsServerModule>(
-          appDeleteTags,
           {
             inputs: {
               account: stub('${{testModule.model.account}}'),
@@ -500,10 +487,9 @@ describe('AwsEcsServerModule UT', () => {
 
   describe('input changes', () => {
     it('should handle serverKey change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await testModuleContainer
         .runModules<AwsEcsServerModule>(
-          appCreate,
           {
             inputs: {
               account: stub('${{testModule.model.account}}'),
@@ -516,11 +502,10 @@ describe('AwsEcsServerModule UT', () => {
         )
         .next();
 
-      const { app: appUpdateServerKey } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       const { hclDiff, resourceDiffs } = (
         await testModuleContainer
           .runModules<AwsEcsServerModule>(
-            appUpdateServerKey,
             {
               inputs: {
                 account: stub('${{testModule.model.account}}'),
@@ -546,10 +531,9 @@ describe('AwsEcsServerModule UT', () => {
   });
 
   it('should handle moduleId change', async () => {
-    const { app: appCreate } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     await testModuleContainer
       .runModules<AwsEcsServerModule>(
-        appCreate,
         {
           inputs: {
             account: stub('${{testModule.model.account}}'),
@@ -562,11 +546,10 @@ describe('AwsEcsServerModule UT', () => {
       )
       .next();
 
-    const { app: appUpdateModuleId } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const { hclDiff, resourceDiffs } = (
       await testModuleContainer
         .runModules<AwsEcsServerModule>(
-          appUpdateModuleId,
           {
             inputs: {
               account: stub('${{testModule.model.account}}'),

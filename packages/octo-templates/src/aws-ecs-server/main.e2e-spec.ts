@@ -2,7 +2,6 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { jest } from '@jest/globals';
 import {
-  type App,
   type Deployment,
   type Execution,
   SubnetType,
@@ -29,7 +28,6 @@ const E2E_TAGS = { 'e2e-test': 'true', 'e2e-test-family': 'aws-ecs-server' };
 jest.setTimeout(1_800_000);
 
 describe('Main E2E', () => {
-  let app: App;
   let moduleDefinitions: ModuleDefinitions;
   let stateProvider: TestStateProvider;
   let testModuleContainer: TestModuleContainer;
@@ -52,13 +50,7 @@ describe('Main E2E', () => {
     // Register tags on all resources.
     testModuleContainer.registerTags([{ scope: {}, tags: E2E_TAGS }]);
 
-    ({
-      app: [app],
-    } = await testModuleContainer.createTestModels('app-module', { app: ['aws-ecs-server'] }));
-
     moduleDefinitions = new ModuleDefinitions();
-    // Replace real app with test app.
-    moduleDefinitions.remove('app-module');
   });
 
   afterEach(async () => {
@@ -77,7 +69,7 @@ describe('Main E2E', () => {
 
   const planDigest = async (overrides: { [moduleId: string]: (inputs: any) => any }): Promise<string[]> => {
     const { resourceDiffs } = (
-      await testModuleContainer.runModules(app, buildModules(overrides), { outputDir, terraformTarget: 'plan' }).next()
+      await testModuleContainer.runModules(buildModules(overrides), { outputDir, terraformTarget: 'plan' }).next()
     ).value!;
     return testModuleContainer.digestDiffs(resourceDiffs);
   };
@@ -86,7 +78,6 @@ describe('Main E2E', () => {
     const { responses } = (
       await testModuleContainer
         .runModules(
-          app,
           moduleDefinitions.getAll().map((md) => ({ inputs: md.moduleInputs, moduleId: md.moduleId, type: md.module })),
           { outputDir, terraformTarget: 'apply' },
         )
@@ -112,7 +103,7 @@ describe('Main E2E', () => {
   describe('input changes', () => {
     describe('SimpleAppModule', () => {
       it('should handle name change', async () => {
-        expect(await planDigest({ 'app-module': (i) => ({ ...i, name: 'changed-name' }) })).toMatchInlineSnapshot();
+        expect(await planDigest({ 'app-module': (i) => ({ ...i, name: 'changed-name' }) })).toMatchInlineSnapshot(`[]`);
       });
     });
 
@@ -178,7 +169,12 @@ describe('Main E2E', () => {
               },
             }),
           }),
-        ).toMatchInlineSnapshot();
+        ).toMatchInlineSnapshot(`
+         [
+           "* @octo/ecs-task-definition=ecs-task-definition-backend-v1-qa-execution",
+           "* @octo/ecs-service=ecs-service-backend-v1-qa-execution",
+         ]
+        `);
       });
 
       it('should handle deploymentTag change', async () => {
@@ -200,7 +196,12 @@ describe('Main E2E', () => {
           await planDigest({
             'qa-environment-module': (i) => ({ ...i, environmentVariables: { EXTRA_VAR: 'value', NODE_ENV: 'qa' } }),
           }),
-        ).toMatchInlineSnapshot();
+        ).toMatchInlineSnapshot(`
+         [
+           "* @octo/ecs-task-definition=ecs-task-definition-backend-v1-qa-execution",
+           "* @octo/ecs-service=ecs-service-backend-v1-qa-execution",
+         ]
+        `);
       });
     });
 
@@ -235,7 +236,11 @@ describe('Main E2E', () => {
               },
             }),
           }),
-        ).toMatchInlineSnapshot();
+        ).toMatchInlineSnapshot(`
+         [
+           "* @octo/network-acl=nacl-app-region-east-public-subnet",
+         ]
+        `);
       });
     });
 
@@ -280,13 +285,44 @@ describe('Main E2E', () => {
               ],
             }),
           }),
-        ).toMatchInlineSnapshot();
+        ).toMatchInlineSnapshot(`
+         [
+           "* @octo/ecs-task-definition=ecs-task-definition-backend-v1-qa-execution",
+           "* @octo/ecs-service=ecs-service-backend-v1-qa-execution",
+         ]
+        `);
       });
 
       it('should handle desiredCount change', async () => {
-        expect(
-          await planDigest({ 'backend-v1-qa-execution-module': (i) => ({ ...i, desiredCount: 2 }) }),
-        ).toMatchInlineSnapshot();
+        expect(await planDigest({ 'backend-v1-qa-execution-module': (i) => ({ ...i, desiredCount: 2 }) }))
+          .toMatchInlineSnapshot(`
+         [
+           "+ @octo/iam-role=iam-role-ServerRole-backend",
+           "* @octo/iam-role=iam-role-ServerRole-backend",
+           "+ @octo/vpc=vpc-app-region-east",
+           "+ @octo/internet-gateway=igw-app-region-east",
+           "+ @octo/ecs-cluster=ecs-cluster-app-region-east-qa",
+           "+ @octo/subnet=subnet-app-region-east-public-subnet",
+           "+ @octo/nat-gateway=nat-gateway-app-region-east-public-subnet",
+           "+ @octo/route-table=rt-app-region-east-public-subnet",
+           "+ @octo/network-acl=nacl-app-region-east-public-subnet",
+           "+ @octo/subnet=subnet-app-region-east-public-backup-subnet",
+           "+ @octo/route-table=rt-app-region-east-public-backup-subnet",
+           "+ @octo/network-acl=nacl-app-region-east-public-backup-subnet",
+           "+ @octo/subnet=subnet-app-region-east-private-subnet",
+           "+ @octo/route-table=rt-app-region-east-private-subnet",
+           "+ @octo/network-acl=nacl-app-region-east-private-subnet",
+           "+ @octo/security-group=sec-grp-app-region-east-qa-api-alb",
+           "+ @octo/alb=alb-app-region-east-qa-api-alb",
+           "+ @octo/security-group=sec-grp-SecurityGroup-backend",
+           "+ @octo/security-group=sec-grp-SecurityGroup-backend-v1-qa-execution",
+           "+ @octo/ecs-task-definition=ecs-task-definition-backend-v1-qa-execution",
+           "+ @octo/ecs-service=ecs-service-backend-v1-qa-execution",
+           "+ @octo/alb-target-group=alb-target-group-backend-v1-qa-execution",
+           "+ @octo/alb-listener=alb-listener-qa-api-alb",
+           "* @octo/alb-listener=alb-listener-qa-api-alb",
+         ]
+        `);
       });
 
       it('should handle executionId change', async () => {
@@ -326,9 +362,18 @@ describe('Main E2E', () => {
 
     describe('AwsEcsAlbServiceModule', () => {
       it('should handle albName change', async () => {
-        expect(
-          await planDigest({ 'qa-api-alb-module': (i) => ({ ...i, albName: 'changed-qa-api-alb' }) }),
-        ).toMatchInlineSnapshot();
+        expect(await planDigest({ 'qa-api-alb-module': (i) => ({ ...i, albName: 'changed-qa-api-alb' }) }))
+          .toMatchInlineSnapshot(`
+         [
+           "- @octo/security-group=sec-grp-app-region-east-qa-api-alb",
+           "- @octo/alb=alb-app-region-east-qa-api-alb",
+           "- @octo/alb-listener=alb-listener-qa-api-alb",
+           "+ @octo/security-group=sec-grp-app-region-east-changed-qa-api-alb",
+           "+ @octo/alb=alb-app-region-east-changed-qa-api-alb",
+           "+ @octo/alb-listener=alb-listener-changed-qa-api-alb",
+           "* @octo/alb-listener=alb-listener-changed-qa-api-alb",
+         ]
+        `);
       });
 
       it('should handle listeners Port change', async () => {
@@ -344,13 +389,18 @@ describe('Main E2E', () => {
                       actionType: 'forward',
                     },
                   ],
+
                   Port: 443,
                   rules: [],
                 },
               ],
             }),
           }),
-        ).toMatchInlineSnapshot();
+        ).toMatchInlineSnapshot(`
+         [
+           "* @octo/alb-listener=alb-listener-qa-api-alb",
+         ]
+        `);
       });
 
       it('should handle listeners rules change', async () => {
@@ -366,6 +416,7 @@ describe('Main E2E', () => {
                       actionType: 'forward',
                     },
                   ],
+
                   Port: 80,
                   rules: [
                     {
@@ -375,6 +426,7 @@ describe('Main E2E', () => {
                           actionType: 'forward',
                         },
                       ],
+
                       conditions: [{ condition: { Values: ['/api'] }, conditionType: 'path-pattern' }],
                       Priority: 1,
                     },
@@ -383,7 +435,11 @@ describe('Main E2E', () => {
               ],
             }),
           }),
-        ).toMatchInlineSnapshot();
+        ).toMatchInlineSnapshot(`
+         [
+           "* @octo/alb-listener=alb-listener-qa-api-alb",
+         ]
+        `);
       });
 
       it('should handle targets healthCheck change', async () => {
@@ -420,13 +476,12 @@ describe('Main E2E', () => {
     for (const moduleId of moduleDefinitions
       .getAll()
       .map((md) => md.moduleId)
-      .filter((moduleId) => moduleId !== 'account-module')) {
+      .filter((moduleId) => moduleId !== 'app-module' && moduleId !== 'account-module')) {
       moduleDefinitions.remove(moduleId);
     }
 
     await testModuleContainer
       .runModules(
-        app,
         moduleDefinitions.getAll().map((md) => ({ inputs: md.moduleInputs, moduleId: md.moduleId, type: md.module })),
         { outputDir, terraformTarget: 'apply' },
       )

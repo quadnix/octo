@@ -1,16 +1,6 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-  type AResource,
-  type Account,
-  type App,
-  MatchingResource,
-  type Region,
-  SubnetType,
-  TestContainer,
-  TestModuleContainer,
-  stub,
-} from '@quadnix/octo';
+import { type AResource, MatchingResource, SubnetType, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsEcsServiceAnchorSchema } from '../../../../src/anchors/aws-ecs/aws-ecs-service.anchor.schema.js';
 import type { AwsRegionAnchorSchema } from '../../../../src/anchors/aws-region/aws-region.anchor.schema.js';
 import { AwsEcsAlbServiceModule } from '../../../../src/modules/service/aws-ecs-alb-service/index.js';
@@ -39,12 +29,9 @@ const HEALTH_CHECK_RESPONSE = {
   UnhealthyThresholdCount: 3,
 };
 
-async function setup(
-  testModuleContainer: TestModuleContainer,
-): Promise<{ account: Account; app: App; region: Region }> {
+async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
   const {
     account: [account],
-    app: [app],
     deployment: [deployment],
     environment: [environment],
     region: [region],
@@ -62,7 +49,6 @@ async function setup(
     subnet: [subnet1],
   } = await testModuleContainer.createTestModels('testSubnet1Module', {
     account: [account],
-    app: [app],
     region: [region],
     subnet: ['public-subnet-1'],
   });
@@ -71,7 +57,6 @@ async function setup(
     subnet: [subnet2],
   } = await testModuleContainer.createTestModels('testSubnet2Module', {
     account: [account],
-    app: [app],
     region: [region],
     subnet: ['public-subnet-2'],
   });
@@ -81,7 +66,6 @@ async function setup(
     execution: [execution],
   } = await testModuleContainer.createTestModels('testExecutionModule', {
     account: [account],
-    app: [app],
     deployment: [deployment],
     environment: [environment],
     execution: [':0:0:0'],
@@ -270,8 +254,6 @@ async function setup(
     [new MatchingResource(ecsCluster), new MatchingResource(ecsTaskDefinition), new MatchingResource(publicSubnet)],
   );
   await testModuleContainer.createResources('testExecutionModule', [ecsService], { save: true });
-
-  return { account, app, region };
 }
 
 describe('AwsEcsAlbServiceModule E2E', () => {
@@ -295,10 +277,9 @@ describe('AwsEcsAlbServiceModule E2E', () => {
   });
 
   it('should generate terragrunt that validates and plans against AWS', async () => {
-    const { app } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     await testModuleContainer
       .runModules<AwsEcsAlbServiceModule>(
-        app,
         {
           inputs: {
             albName: 'test-alb',

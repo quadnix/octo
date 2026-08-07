@@ -1,13 +1,9 @@
-import { type Account, type App, type Region, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import { AwsDynamoDBServiceModule } from './index.js';
 
-async function setup(
-  testModuleContainer: TestModuleContainer,
-): Promise<{ account: Account; app: App; region: Region }> {
+async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
   const {
-    account: [account],
-    app: [app],
     region: [region],
   } = await testModuleContainer.createTestModels('testModule', {
     account: ['aws,123'],
@@ -27,8 +23,6 @@ async function setup(
       region,
     ),
   );
-
-  return { account, app, region };
 }
 
 describe('AwsDynamoDBServiceModule UT', () => {
@@ -51,9 +45,8 @@ describe('AwsDynamoDBServiceModule UT', () => {
   });
 
   it('should call correct actions', async () => {
-    const { app } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const runModulesGenerator = testModuleContainer.runModules<AwsDynamoDBServiceModule>(
-      app,
       {
         inputs: {
           AttributeDefinitions: [{ AttributeName: 'AccountId', AttributeType: 'S' }],
@@ -139,11 +132,10 @@ describe('AwsDynamoDBServiceModule UT', () => {
   });
 
   it('should CUD', async () => {
-    const { app: appCreate } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const { resourceDiffs: resourceDiffsCreate } = (
       await testModuleContainer
         .runModules<AwsDynamoDBServiceModule>(
-          appCreate,
           {
             inputs: {
               AttributeDefinitions: [{ AttributeName: 'AccountId', AttributeType: 'S' }],
@@ -168,11 +160,10 @@ describe('AwsDynamoDBServiceModule UT', () => {
      ]
     `);
 
-    const { app: appNoChange } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const noChange = (
       await testModuleContainer
         .runModules<AwsDynamoDBServiceModule>(
-          appNoChange,
           {
             inputs: {
               AttributeDefinitions: [{ AttributeName: 'AccountId', AttributeType: 'S' }],
@@ -194,11 +185,10 @@ describe('AwsDynamoDBServiceModule UT', () => {
     expect(noChange.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(noChange.resourceDiffs)).toMatchInlineSnapshot(`[]`);
 
-    const { app: appDelete } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const deleteResult = (
       await testModuleContainer
         .runModules<AwsDynamoDBServiceModule>(
-          appDelete,
           {
             hidden: true,
             inputs: {
@@ -231,11 +221,10 @@ describe('AwsDynamoDBServiceModule UT', () => {
 
   it('should CUD tags', async () => {
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
-    const { app: appCreate } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const { resourceDiffs: resourceDiffsCreate } = (
       await testModuleContainer
         .runModules<AwsDynamoDBServiceModule>(
-          appCreate,
           {
             inputs: {
               AttributeDefinitions: [{ AttributeName: 'AccountId', AttributeType: 'S' }],
@@ -261,11 +250,10 @@ describe('AwsDynamoDBServiceModule UT', () => {
     `);
 
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
-    const { app: appUpdateTags } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const updateTags = (
       await testModuleContainer
         .runModules<AwsDynamoDBServiceModule>(
-          appUpdateTags,
           {
             inputs: {
               AttributeDefinitions: [{ AttributeName: 'AccountId', AttributeType: 'S' }],
@@ -291,11 +279,10 @@ describe('AwsDynamoDBServiceModule UT', () => {
      ]
     `);
 
-    const { app: appDeleteTags } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const deleteTags = (
       await testModuleContainer
         .runModules<AwsDynamoDBServiceModule>(
-          appDeleteTags,
           {
             inputs: {
               AttributeDefinitions: [{ AttributeName: 'AccountId', AttributeType: 'S' }],
@@ -324,10 +311,9 @@ describe('AwsDynamoDBServiceModule UT', () => {
 
   describe('input changes', () => {
     it('should handle billingMode change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await testModuleContainer
         .runModules<AwsDynamoDBServiceModule>(
-          appCreate,
           {
             inputs: {
               AttributeDefinitions: [{ AttributeName: 'AccountId', AttributeType: 'S' }],
@@ -346,11 +332,10 @@ describe('AwsDynamoDBServiceModule UT', () => {
         )
         .next();
 
-      const { app: appUpdateBillingProvisionedThroughput } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       const updateBillingProvisionedThroughput = (
         await testModuleContainer
           .runModules<AwsDynamoDBServiceModule>(
-            appUpdateBillingProvisionedThroughput,
             {
               inputs: {
                 AttributeDefinitions: [{ AttributeName: 'AccountId', AttributeType: 'S' }],
@@ -376,11 +361,10 @@ describe('AwsDynamoDBServiceModule UT', () => {
        ]
       `);
 
-      const { app: appUpdateBillingPayPerRequest } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       const updateBillingPayPerRequest = (
         await testModuleContainer
           .runModules<AwsDynamoDBServiceModule>(
-            appUpdateBillingPayPerRequest,
             {
               inputs: {
                 AttributeDefinitions: [{ AttributeName: 'AccountId', AttributeType: 'S' }],
@@ -409,11 +393,10 @@ describe('AwsDynamoDBServiceModule UT', () => {
 
     describe('should handle GlobalSecondaryIndexes change', () => {
       it('should create table with GSI', async () => {
-        const { app: appCreate } = await setup(testModuleContainer);
+        await setup(testModuleContainer);
         const { hclRender, resourceDiffs } = (
           await testModuleContainer
             .runModules<AwsDynamoDBServiceModule>(
-              appCreate,
               {
                 inputs: {
                   AttributeDefinitions: [
@@ -452,10 +435,9 @@ describe('AwsDynamoDBServiceModule UT', () => {
       });
 
       it('should add a GSI to an existing table', async () => {
-        const { app: appCreate } = await setup(testModuleContainer);
+        await setup(testModuleContainer);
         await testModuleContainer
           .runModules<AwsDynamoDBServiceModule>(
-            appCreate,
             {
               inputs: {
                 AttributeDefinitions: [{ AttributeName: 'AccountId', AttributeType: 'S' }],
@@ -475,11 +457,10 @@ describe('AwsDynamoDBServiceModule UT', () => {
           )
           .next();
 
-        const { app: appAddGSI } = await setup(testModuleContainer);
+        await setup(testModuleContainer);
         const addGSI = (
           await testModuleContainer
             .runModules<AwsDynamoDBServiceModule>(
-              appAddGSI,
               {
                 inputs: {
                   AttributeDefinitions: [
@@ -518,10 +499,9 @@ describe('AwsDynamoDBServiceModule UT', () => {
       });
 
       it('should throw error updating a GSI in an existing table', async () => {
-        const { app: appCreate } = await setup(testModuleContainer);
+        await setup(testModuleContainer);
         await testModuleContainer
           .runModules<AwsDynamoDBServiceModule>(
-            appCreate,
             {
               inputs: {
                 AttributeDefinitions: [
@@ -551,11 +531,10 @@ describe('AwsDynamoDBServiceModule UT', () => {
           )
           .next();
 
-        const { app: appUpdateGSIWithoutUpdatingIndex } = await setup(testModuleContainer);
+        await setup(testModuleContainer);
         await expect(
           testModuleContainer
             .runModules<AwsDynamoDBServiceModule>(
-              appUpdateGSIWithoutUpdatingIndex,
               {
                 inputs: {
                   AttributeDefinitions: [
@@ -590,10 +569,9 @@ describe('AwsDynamoDBServiceModule UT', () => {
       });
 
       it('should replace a GSI in an existing table', async () => {
-        const { app: appCreate } = await setup(testModuleContainer);
+        await setup(testModuleContainer);
         await testModuleContainer
           .runModules<AwsDynamoDBServiceModule>(
-            appCreate,
             {
               inputs: {
                 AttributeDefinitions: [
@@ -623,11 +601,10 @@ describe('AwsDynamoDBServiceModule UT', () => {
           )
           .next();
 
-        const { app: appUpdateGSI } = await setup(testModuleContainer);
+        await setup(testModuleContainer);
         const updateGSI = (
           await testModuleContainer
             .runModules<AwsDynamoDBServiceModule>(
-              appUpdateGSI,
               {
                 inputs: {
                   AttributeDefinitions: [
@@ -666,10 +643,9 @@ describe('AwsDynamoDBServiceModule UT', () => {
       });
 
       it('should delete a GSI from an existing table', async () => {
-        const { app: appCreate } = await setup(testModuleContainer);
+        await setup(testModuleContainer);
         await testModuleContainer
           .runModules<AwsDynamoDBServiceModule>(
-            appCreate,
             {
               inputs: {
                 AttributeDefinitions: [
@@ -699,11 +675,10 @@ describe('AwsDynamoDBServiceModule UT', () => {
           )
           .next();
 
-        const { app: appRemoveGSI } = await setup(testModuleContainer);
+        await setup(testModuleContainer);
         const removeGSI = (
           await testModuleContainer
             .runModules<AwsDynamoDBServiceModule>(
-              appRemoveGSI,
               {
                 inputs: {
                   AttributeDefinitions: [{ AttributeName: 'AccountId', AttributeType: 'S' }],
@@ -734,11 +709,10 @@ describe('AwsDynamoDBServiceModule UT', () => {
 
     describe('should handle LocalSecondaryIndexes change', () => {
       it('should create table with LSI', async () => {
-        const { app: appCreate } = await setup(testModuleContainer);
+        await setup(testModuleContainer);
         const { hclRender, resourceDiffs } = (
           await testModuleContainer
             .runModules<AwsDynamoDBServiceModule>(
-              appCreate,
               {
                 inputs: {
                   AttributeDefinitions: [
@@ -783,10 +757,9 @@ describe('AwsDynamoDBServiceModule UT', () => {
       });
 
       it('should throw error updating a LSI on an existing table', async () => {
-        const { app: appCreate } = await setup(testModuleContainer);
+        await setup(testModuleContainer);
         await testModuleContainer
           .runModules<AwsDynamoDBServiceModule>(
-            appCreate,
             {
               inputs: {
                 AttributeDefinitions: [
@@ -822,12 +795,11 @@ describe('AwsDynamoDBServiceModule UT', () => {
           )
           .next();
 
-        const { app: appUpdateLSI } = await setup(testModuleContainer);
+        await setup(testModuleContainer);
         // local_secondary_index is force-new on aws_dynamodb_table → octo emits a REPLACE.
         const { resourceDiffs } = (
           await testModuleContainer
             .runModules<AwsDynamoDBServiceModule>(
-              appUpdateLSI,
               {
                 inputs: {
                   AttributeDefinitions: [
@@ -872,10 +844,9 @@ describe('AwsDynamoDBServiceModule UT', () => {
     });
 
     it('should handle StreamSpecification change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await testModuleContainer
         .runModules<AwsDynamoDBServiceModule>(
-          appCreate,
           {
             inputs: {
               AttributeDefinitions: [{ AttributeName: 'AccountId', AttributeType: 'S' }],
@@ -894,11 +865,10 @@ describe('AwsDynamoDBServiceModule UT', () => {
         )
         .next();
 
-      const { app: appAddStream } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       const addStream = (
         await testModuleContainer
           .runModules<AwsDynamoDBServiceModule>(
-            appAddStream,
             {
               inputs: {
                 AttributeDefinitions: [{ AttributeName: 'AccountId', AttributeType: 'S' }],
@@ -925,11 +895,10 @@ describe('AwsDynamoDBServiceModule UT', () => {
        ]
       `);
 
-      const { app: appRemoveStream } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       const removeStream = (
         await testModuleContainer
           .runModules<AwsDynamoDBServiceModule>(
-            appRemoveStream,
             {
               inputs: {
                 AttributeDefinitions: [{ AttributeName: 'AccountId', AttributeType: 'S' }],
@@ -957,10 +926,9 @@ describe('AwsDynamoDBServiceModule UT', () => {
     });
 
     it('should handle timeToLiveAttribute change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await testModuleContainer
         .runModules<AwsDynamoDBServiceModule>(
-          appCreate,
           {
             inputs: {
               AttributeDefinitions: [{ AttributeName: 'AccountId', AttributeType: 'S' }],
@@ -979,11 +947,10 @@ describe('AwsDynamoDBServiceModule UT', () => {
         )
         .next();
 
-      const { app: appAddTTL } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       const addTTL = (
         await testModuleContainer
           .runModules<AwsDynamoDBServiceModule>(
-            appAddTTL,
             {
               inputs: {
                 AttributeDefinitions: [{ AttributeName: 'AccountId', AttributeType: 'S' }],
@@ -1010,11 +977,10 @@ describe('AwsDynamoDBServiceModule UT', () => {
        ]
       `);
 
-      const { app: appRemoveTTL } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       const removeTTL = (
         await testModuleContainer
           .runModules<AwsDynamoDBServiceModule>(
-            appRemoveTTL,
             {
               inputs: {
                 AttributeDefinitions: [{ AttributeName: 'AccountId', AttributeType: 'S' }],
@@ -1043,10 +1009,9 @@ describe('AwsDynamoDBServiceModule UT', () => {
   });
 
   it('should handle moduleId change', async () => {
-    const { app: appCreate } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     await testModuleContainer
       .runModules<AwsDynamoDBServiceModule>(
-        appCreate,
         {
           inputs: {
             AttributeDefinitions: [{ AttributeName: 'AccountId', AttributeType: 'S' }],
@@ -1065,11 +1030,10 @@ describe('AwsDynamoDBServiceModule UT', () => {
       )
       .next();
 
-    const { app: appUpdateModuleId } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const { hclDiff, resourceDiffs } = (
       await testModuleContainer
         .runModules<AwsDynamoDBServiceModule>(
-          appUpdateModuleId,
           {
             inputs: {
               AttributeDefinitions: [{ AttributeName: 'AccountId', AttributeType: 'S' }],
@@ -1094,11 +1058,10 @@ describe('AwsDynamoDBServiceModule UT', () => {
 
   describe('validation', () => {
     it('should validate TableName', async () => {
-      const { app } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await expect(
         testModuleContainer
           .runModules<AwsDynamoDBServiceModule>(
-            app,
             {
               inputs: {
                 AttributeDefinitions: [{ AttributeName: 'AccountId', AttributeType: 'S' }],
@@ -1120,11 +1083,10 @@ describe('AwsDynamoDBServiceModule UT', () => {
     });
 
     it('should validate AttributeType', async () => {
-      const { app } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await expect(
         testModuleContainer
           .runModules<AwsDynamoDBServiceModule>(
-            app,
             {
               inputs: {
                 AttributeDefinitions: [{ AttributeName: 'AccountId', AttributeType: 'X' as any }],

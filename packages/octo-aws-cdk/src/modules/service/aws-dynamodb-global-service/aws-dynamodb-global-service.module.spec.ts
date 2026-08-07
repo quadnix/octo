@@ -1,13 +1,12 @@
-import { type Account, type App, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsDynamoDBAnchorSchema } from '../../../anchors/aws-dynamodb/aws-dynamodb.anchor.schema.js';
 import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import type { DynamoDBSchema } from '../../../resources/dynamodb/index.schema.js';
 import { AwsDynamoDBGlobalServiceModule } from './index.js';
 
-async function setup(testModuleContainer: TestModuleContainer): Promise<{ account: Account; app: App }> {
+async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
   const {
     account: [account],
-    app: [app],
     service: [service],
   } = await testModuleContainer.createTestModels('testModule', {
     account: ['aws,123'],
@@ -19,14 +18,12 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{ accoun
     region: [region1],
   } = await testModuleContainer.createTestModels('testRegion1Module', {
     account: [account],
-    app: [app],
     region: ['region-1'],
   });
   const {
     region: [region2],
   } = await testModuleContainer.createTestModels('testRegion2Module', {
     account: [account],
-    app: [app],
     region: ['region-2'],
   });
 
@@ -91,8 +88,6 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{ accoun
     ],
     { save: true },
   );
-
-  return { account, app };
 }
 
 describe('AwsDynamoDBGlobalServiceModule UT', () => {
@@ -116,9 +111,8 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
   });
 
   it('should call correct actions', async () => {
-    const { app } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const runModulesGenerator = testModuleContainer.runModules<AwsDynamoDBGlobalServiceModule>(
-      app,
       {
         inputs: {
           dynamoDBService: stub('${{testModule.model.service}}'),
@@ -229,11 +223,10 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
   });
 
   it('should CUD', async () => {
-    const { app: appCreate } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const { resourceDiffs: resourceDiffsCreate } = (
       await testModuleContainer
         .runModules<AwsDynamoDBGlobalServiceModule>(
-          appCreate,
           {
             inputs: {
               dynamoDBService: stub('${{testModule.model.service}}'),
@@ -252,11 +245,10 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
      ]
     `);
 
-    const { app: appNoChange } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const noChange = (
       await testModuleContainer
         .runModules<AwsDynamoDBGlobalServiceModule>(
-          appNoChange,
           {
             inputs: {
               dynamoDBService: stub('${{testModule.model.service}}'),
@@ -272,11 +264,10 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
     expect(noChange.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(noChange.resourceDiffs)).toMatchInlineSnapshot(`[]`);
 
-    const { app: appAddReplica } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const addReplica = (
       await testModuleContainer
         .runModules<AwsDynamoDBGlobalServiceModule>(
-          appAddReplica,
           {
             inputs: {
               dynamoDBService: stub('${{testModule.model.service}}'),
@@ -299,11 +290,10 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
      ]
     `);
 
-    const { app: appRemoveReplica } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const removeReplica = (
       await testModuleContainer
         .runModules<AwsDynamoDBGlobalServiceModule>(
-          appRemoveReplica,
           {
             inputs: {
               dynamoDBService: stub('${{testModule.model.service}}'),
@@ -323,11 +313,10 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
      ]
     `);
 
-    const { app: appDelete } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const deleteResult = (
       await testModuleContainer
         .runModules<AwsDynamoDBGlobalServiceModule>(
-          appDelete,
           {
             hidden: true,
             inputs: {
@@ -350,11 +339,10 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
 
   it('should CUD tags', async () => {
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
-    const { app: appCreate } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const { resourceDiffs: resourceDiffsCreate } = (
       await testModuleContainer
         .runModules<AwsDynamoDBGlobalServiceModule>(
-          appCreate,
           {
             inputs: {
               dynamoDBService: stub('${{testModule.model.service}}'),
@@ -374,11 +362,10 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
     `);
 
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
-    const { app: appUpdateTags } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const updateTags = (
       await testModuleContainer
         .runModules<AwsDynamoDBGlobalServiceModule>(
-          appUpdateTags,
           {
             inputs: {
               dynamoDBService: stub('${{testModule.model.service}}'),
@@ -400,11 +387,10 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
      ]
     `);
 
-    const { app: appDeleteTags } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const deleteTags = (
       await testModuleContainer
         .runModules<AwsDynamoDBGlobalServiceModule>(
-          appDeleteTags,
           {
             inputs: {
               dynamoDBService: stub('${{testModule.model.service}}'),
@@ -427,10 +413,9 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
 
   describe('input changes', () => {
     it('should handle replica add', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await testModuleContainer
         .runModules<AwsDynamoDBGlobalServiceModule>(
-          appCreate,
           {
             inputs: {
               dynamoDBService: stub('${{testModule.model.service}}'),
@@ -443,11 +428,10 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
         )
         .next();
 
-      const { app: appAddReplica } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       const addReplica = (
         await testModuleContainer
           .runModules<AwsDynamoDBGlobalServiceModule>(
-            appAddReplica,
             {
               inputs: {
                 dynamoDBService: stub('${{testModule.model.service}}'),
@@ -472,10 +456,9 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
     });
 
     it('should handle replica delete', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await testModuleContainer
         .runModules<AwsDynamoDBGlobalServiceModule>(
-          appCreate,
           {
             inputs: {
               dynamoDBService: stub('${{testModule.model.service}}'),
@@ -491,11 +474,10 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
         )
         .next();
 
-      const { app: appRemoveReplica } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       const removeReplica = (
         await testModuleContainer
           .runModules<AwsDynamoDBGlobalServiceModule>(
-            appRemoveReplica,
             {
               inputs: {
                 dynamoDBService: stub('${{testModule.model.service}}'),
@@ -517,10 +499,9 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
     });
 
     it('should handle replica tags update', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await testModuleContainer
         .runModules<AwsDynamoDBGlobalServiceModule>(
-          appCreate,
           {
             inputs: {
               dynamoDBService: stub('${{testModule.model.service}}'),
@@ -533,11 +514,10 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
         )
         .next();
 
-      const { app: appUpdateReplicaTags } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       const updateReplicaTags = (
         await testModuleContainer
           .runModules<AwsDynamoDBGlobalServiceModule>(
-            appUpdateReplicaTags,
             {
               inputs: {
                 dynamoDBService: stub('${{testModule.model.service}}'),
@@ -560,10 +540,9 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
   });
 
   it('should handle moduleId change', async () => {
-    const { app: appCreate } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     await testModuleContainer
       .runModules<AwsDynamoDBGlobalServiceModule>(
-        appCreate,
         {
           inputs: {
             dynamoDBService: stub('${{testModule.model.service}}'),
@@ -576,11 +555,10 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
       )
       .next();
 
-    const { app: appUpdateModuleId } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const { hclDiff, resourceDiffs } = (
       await testModuleContainer
         .runModules<AwsDynamoDBGlobalServiceModule>(
-          appUpdateModuleId,
           {
             inputs: {
               dynamoDBService: stub('${{testModule.model.service}}'),
@@ -599,11 +577,10 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
 
   describe('validation', () => {
     it('should validate replicas is not empty', async () => {
-      const { app } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await expect(
         testModuleContainer
           .runModules<AwsDynamoDBGlobalServiceModule>(
-            app,
             {
               inputs: {
                 dynamoDBService: stub('${{testModule.model.service}}'),
@@ -619,11 +596,10 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
     });
 
     it('should validate replica tag keys and values are non-empty', async () => {
-      const { app } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await expect(
         testModuleContainer
           .runModules<AwsDynamoDBGlobalServiceModule>(
-            app,
             {
               inputs: {
                 dynamoDBService: stub('${{testModule.model.service}}'),

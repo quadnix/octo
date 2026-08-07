@@ -1,11 +1,8 @@
-import { type App, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import { AwsIniAccountModule } from './index.js';
 
-async function setup(testModuleContainer: TestModuleContainer): Promise<{ app: App }> {
-  const {
-    app: [app],
-  } = await testModuleContainer.createTestModels('testModule', { app: ['test-app'] });
-  return { app };
+async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
+  await testModuleContainer.createTestModels('testModule', { app: ['test-app'] });
 }
 
 describe('AwsIniAccountModule UT', () => {
@@ -27,9 +24,8 @@ describe('AwsIniAccountModule UT', () => {
   });
 
   it('should call correct actions', async () => {
-    const { app } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const runModulesGenerator = testModuleContainer.runModules<AwsIniAccountModule>(
-      app,
       {
         inputs: {
           accountId: '123',
@@ -54,10 +50,9 @@ describe('AwsIniAccountModule UT', () => {
   });
 
   it('should CUD', async () => {
-    const { app: appCreate } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     await testModuleContainer
       .runModules<AwsIniAccountModule>(
-        appCreate,
         {
           inputs: {
             accountId: '123',
@@ -70,11 +65,10 @@ describe('AwsIniAccountModule UT', () => {
       )
       .next();
 
-    const { app: appDelete } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const { hclDiff, resourceDiffs } = (
       await testModuleContainer
         .runModules<AwsIniAccountModule>(
-          appDelete,
           {
             hidden: true,
             inputs: {
@@ -97,10 +91,9 @@ describe('AwsIniAccountModule UT', () => {
 
   it('should CUD tags', async () => {
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
-    const { app: appCreate } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     await testModuleContainer
       .runModules<AwsIniAccountModule>(
-        appCreate,
         {
           inputs: {
             accountId: '123',
@@ -114,11 +107,10 @@ describe('AwsIniAccountModule UT', () => {
       .next();
 
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
-    const { app: appUpdateTags } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const updateTags = (
       await testModuleContainer
         .runModules<AwsIniAccountModule>(
-          appUpdateTags,
           {
             inputs: {
               accountId: '123',
@@ -134,11 +126,10 @@ describe('AwsIniAccountModule UT', () => {
     expect(updateTags.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(updateTags.resourceDiffs)).toMatchInlineSnapshot(`[]`);
 
-    const { app: appDeleteTags } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const deleteTags = (
       await testModuleContainer
         .runModules<AwsIniAccountModule>(
-          appDeleteTags,
           {
             inputs: {
               accountId: '123',
@@ -157,10 +148,9 @@ describe('AwsIniAccountModule UT', () => {
 
   describe('input changes', () => {
     it('should handle accountId change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await testModuleContainer
         .runModules<AwsIniAccountModule>(
-          appCreate,
           {
             inputs: {
               accountId: '123',
@@ -173,11 +163,10 @@ describe('AwsIniAccountModule UT', () => {
         )
         .next();
 
-      const { app: appUpdate } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       const { hclDiff, resourceDiffs } = (
         await testModuleContainer
           .runModules<AwsIniAccountModule>(
-            appUpdate,
             {
               inputs: {
                 accountId: '456',
@@ -195,10 +184,9 @@ describe('AwsIniAccountModule UT', () => {
     });
 
     it('should handle iniProfile change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await testModuleContainer
         .runModules<AwsIniAccountModule>(
-          appCreate,
           {
             inputs: {
               accountId: '123',
@@ -212,11 +200,10 @@ describe('AwsIniAccountModule UT', () => {
         )
         .next();
 
-      const { app: appUpdate } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       const { hclDiff, resourceDiffs } = (
         await testModuleContainer
           .runModules<AwsIniAccountModule>(
-            appUpdate,
             {
               inputs: {
                 accountId: '123',
@@ -235,10 +222,9 @@ describe('AwsIniAccountModule UT', () => {
     });
 
     it('should handle endpoints change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await testModuleContainer
         .runModules<AwsIniAccountModule>(
-          appCreate,
           {
             inputs: {
               accountId: '123',
@@ -252,11 +238,10 @@ describe('AwsIniAccountModule UT', () => {
         )
         .next();
 
-      const { app: appUpdate } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       const { hclDiff, resourceDiffs } = (
         await testModuleContainer
           .runModules<AwsIniAccountModule>(
-            appUpdate,
             {
               inputs: {
                 accountId: '123',
@@ -276,10 +261,9 @@ describe('AwsIniAccountModule UT', () => {
   });
 
   it('should handle moduleId change', async () => {
-    const { app: appCreate } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     await testModuleContainer
       .runModules<AwsIniAccountModule>(
-        appCreate,
         {
           inputs: {
             accountId: '123',
@@ -292,11 +276,10 @@ describe('AwsIniAccountModule UT', () => {
       )
       .next();
 
-    const { app: appUpdate } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const { hclDiff, resourceDiffs } = (
       await testModuleContainer
         .runModules<AwsIniAccountModule>(
-          appUpdate,
           {
             inputs: {
               accountId: '123',
@@ -315,11 +298,10 @@ describe('AwsIniAccountModule UT', () => {
 
   describe('validation', () => {
     it('should validate accountId is not empty', async () => {
-      const { app } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await expect(
         testModuleContainer
           .runModules<AwsIniAccountModule>(
-            app,
             {
               inputs: {
                 accountId: '',
@@ -335,11 +317,10 @@ describe('AwsIniAccountModule UT', () => {
     });
 
     it('should validate iniProfile is not empty', async () => {
-      const { app } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await expect(
         testModuleContainer
           .runModules<AwsIniAccountModule>(
-            app,
             {
               inputs: {
                 accountId: '123',
@@ -356,11 +337,10 @@ describe('AwsIniAccountModule UT', () => {
     });
 
     it('should validate endpoints values are not empty', async () => {
-      const { app } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await expect(
         testModuleContainer
           .runModules<AwsIniAccountModule>(
-            app,
             {
               inputs: {
                 accountId: '123',

@@ -1,7 +1,7 @@
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { jest } from '@jest/globals';
-import { type App, TestContainer, TestModuleContainer, TestStateProvider } from '@quadnix/octo';
+import { TestContainer, TestModuleContainer, TestStateProvider } from '@quadnix/octo';
 import { type AwsS3StaticWebsiteServiceModule } from '@quadnix/octo-aws-cdk/modules/service/aws-s3-static-website-service';
 import axios from 'axios';
 import { AwsTagsUtility } from '../utilities/aws/tags/aws-tags.utility.js';
@@ -19,7 +19,6 @@ const E2E_TAGS = { 'e2e-test': 'true', 'e2e-test-family': 'aws-s3-website' };
 jest.setTimeout(600_000);
 
 describe('Main E2E', () => {
-  let app: App;
   let bucketName: string;
   let bucketNameNormalized: string;
   let moduleDefinitions: ModuleDefinitions;
@@ -44,13 +43,7 @@ describe('Main E2E', () => {
     // Register tags on all resources.
     testModuleContainer.registerTags([{ scope: {}, tags: E2E_TAGS }]);
 
-    ({
-      app: [app],
-    } = await testModuleContainer.createTestModels('app-module', { app: ['aws-s3-website'] }));
-
     moduleDefinitions = new ModuleDefinitions();
-    // Replace real app with test app.
-    moduleDefinitions.remove('app-module');
 
     const { moduleInputs } = moduleDefinitions.get<AwsS3StaticWebsiteServiceModule>('s3-website-service-module')!;
     bucketName = moduleInputs.bucketName;
@@ -66,7 +59,6 @@ describe('Main E2E', () => {
     const { responses } = (
       await testModuleContainer
         .runModules(
-          app,
           moduleDefinitions.getAll().map((md) => ({ inputs: md.moduleInputs, moduleId: md.moduleId, type: md.module })),
           { outputDir, terraformTarget: 'apply' },
         )
@@ -88,7 +80,6 @@ describe('Main E2E', () => {
     const { resourceDiffs } = (
       await testModuleContainer
         .runModules(
-          app,
           moduleDefinitions.getAll().map((md) => ({ inputs: md.moduleInputs, moduleId: md.moduleId, type: md.module })),
           { outputDir, terraformTarget: 'plan' },
         )
@@ -102,13 +93,12 @@ describe('Main E2E', () => {
     for (const moduleId of moduleDefinitions
       .getAll()
       .map((md) => md.moduleId)
-      .filter((moduleId) => moduleId !== 'account-module')) {
+      .filter((moduleId) => moduleId !== 'app-module' && moduleId !== 'account-module')) {
       moduleDefinitions.remove(moduleId);
     }
 
     await testModuleContainer
       .runModules(
-        app,
         moduleDefinitions.getAll().map((md) => ({ inputs: md.moduleInputs, moduleId: md.moduleId, type: md.module })),
         { outputDir, terraformTarget: 'apply' },
       )

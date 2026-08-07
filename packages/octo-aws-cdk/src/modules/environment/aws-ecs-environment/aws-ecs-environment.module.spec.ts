@@ -1,13 +1,9 @@
-import { type Account, type App, type Region, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import { AwsEcsEnvironmentModule } from './index.js';
 
-async function setup(
-  testModuleContainer: TestModuleContainer,
-): Promise<{ account: Account; app: App; region: Region }> {
+async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
   const {
-    account: [account],
-    app: [app],
     region: [region],
   } = await testModuleContainer.createTestModels('testModule', {
     account: ['aws,123'],
@@ -27,8 +23,6 @@ async function setup(
       region,
     ),
   );
-
-  return { account, app, region };
 }
 
 describe('AwsEcsEnvironmentModule UT', () => {
@@ -52,9 +46,8 @@ describe('AwsEcsEnvironmentModule UT', () => {
   });
 
   it('should call correct actions', async () => {
-    const { app } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const runModulesGenerator = testModuleContainer.runModules<AwsEcsEnvironmentModule>(
-      app,
       {
         inputs: {
           environmentName: 'qa',
@@ -129,10 +122,9 @@ describe('AwsEcsEnvironmentModule UT', () => {
   });
 
   it('should CUD', async () => {
-    const { app: appCreate } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     await testModuleContainer
       .runModules<AwsEcsEnvironmentModule>(
-        appCreate,
         {
           inputs: { environmentName: 'qa', region: stub('${{testModule.model.region}}') },
           moduleId: 'environment',
@@ -143,9 +135,8 @@ describe('AwsEcsEnvironmentModule UT', () => {
       .next();
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
-    const { app: appDelete } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const runModulesGenerator = testModuleContainer.runModules<AwsEcsEnvironmentModule>(
-      appDelete,
       {
         hidden: true,
         inputs: { environmentName: 'qa', region: stub('${{testModule.model.region}}') },
@@ -166,10 +157,9 @@ describe('AwsEcsEnvironmentModule UT', () => {
 
   it('should CUD tags', async () => {
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
-    const { app: appCreate } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     await testModuleContainer
       .runModules<AwsEcsEnvironmentModule>(
-        appCreate,
         {
           inputs: {
             environmentName: 'qa',
@@ -185,9 +175,8 @@ describe('AwsEcsEnvironmentModule UT', () => {
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
-    const { app: appUpdateTags } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const updateTagsGenerator = testModuleContainer.runModules<AwsEcsEnvironmentModule>(
-      appUpdateTags,
       {
         inputs: {
           environmentName: 'qa',
@@ -208,9 +197,8 @@ describe('AwsEcsEnvironmentModule UT', () => {
     `);
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
-    const { app: appDeleteTags } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const deleteTagsGenerator = testModuleContainer.runModules<AwsEcsEnvironmentModule>(
-      appDeleteTags,
       {
         inputs: {
           environmentName: 'qa',
@@ -233,10 +221,9 @@ describe('AwsEcsEnvironmentModule UT', () => {
 
   describe('input changes', () => {
     it('should handle environmentName change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await testModuleContainer
         .runModules<AwsEcsEnvironmentModule>(
-          appCreate,
           {
             inputs: { environmentName: 'qa', region: stub('${{testModule.model.region}}') },
             moduleId: 'environment',
@@ -247,9 +234,8 @@ describe('AwsEcsEnvironmentModule UT', () => {
         .next();
       expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
-      const { app: appUpdate } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       const runModulesGenerator = testModuleContainer.runModules<AwsEcsEnvironmentModule>(
-        appUpdate,
         {
           inputs: { environmentName: 'changed-qa', region: stub('${{testModule.model.region}}') },
           moduleId: 'environment',
@@ -268,10 +254,9 @@ describe('AwsEcsEnvironmentModule UT', () => {
     });
 
     it('should handle environmentVariables change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await testModuleContainer
         .runModules<AwsEcsEnvironmentModule>(
-          appCreate,
           {
             inputs: {
               environmentName: 'qa',
@@ -286,9 +271,8 @@ describe('AwsEcsEnvironmentModule UT', () => {
         .next();
       expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
-      const { app: appUpdate } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       const runModulesGenerator = testModuleContainer.runModules<AwsEcsEnvironmentModule>(
-        appUpdate,
         {
           inputs: {
             environmentName: 'qa',
@@ -307,10 +291,9 @@ describe('AwsEcsEnvironmentModule UT', () => {
   });
 
   it('should handle moduleId change', async () => {
-    const { app: appCreate } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     await testModuleContainer
       .runModules<AwsEcsEnvironmentModule>(
-        appCreate,
         {
           inputs: { environmentName: 'qa', region: stub('${{testModule.model.region}}') },
           moduleId: 'environment-1',
@@ -321,9 +304,8 @@ describe('AwsEcsEnvironmentModule UT', () => {
       .next();
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
-    const { app: appUpdate } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const runModulesGenerator = testModuleContainer.runModules<AwsEcsEnvironmentModule>(
-      appUpdate,
       {
         inputs: { environmentName: 'qa', region: stub('${{testModule.model.region}}') },
         moduleId: 'environment-2',
@@ -338,11 +320,10 @@ describe('AwsEcsEnvironmentModule UT', () => {
 
   describe('validation', () => {
     it('should validate environmentName is not empty', async () => {
-      const { app } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await expect(
         testModuleContainer
           .runModules<AwsEcsEnvironmentModule>(
-            app,
             {
               inputs: { environmentName: '', region: stub('${{testModule.model.region}}') },
               moduleId: 'environment',
@@ -355,11 +336,10 @@ describe('AwsEcsEnvironmentModule UT', () => {
     });
 
     it('should validate environmentVariables keys', async () => {
-      const { app } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await expect(
         testModuleContainer
           .runModules<AwsEcsEnvironmentModule>(
-            app,
             {
               inputs: {
                 environmentName: 'qa',
@@ -378,11 +358,10 @@ describe('AwsEcsEnvironmentModule UT', () => {
     });
 
     it('should validate environmentVariables values are not empty', async () => {
-      const { app } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await expect(
         testModuleContainer
           .runModules<AwsEcsEnvironmentModule>(
-            app,
             {
               inputs: {
                 environmentName: 'qa',

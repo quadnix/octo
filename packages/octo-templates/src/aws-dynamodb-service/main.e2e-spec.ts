@@ -1,7 +1,7 @@
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { jest } from '@jest/globals';
-import { type App, TestContainer, TestModuleContainer, TestStateProvider } from '@quadnix/octo';
+import { TestContainer, TestModuleContainer, TestStateProvider } from '@quadnix/octo';
 import { type AwsDynamoDBServiceModule } from '@quadnix/octo-aws-cdk/modules/service/aws-dynamodb-service';
 import { AwsTagsUtility } from '../utilities/aws/tags/aws-tags.utility.js';
 import { AccountRepository } from './account.repository.js';
@@ -20,7 +20,6 @@ jest.setTimeout(1_200_000);
 
 describe('Main E2E', () => {
   let accountRepositoryUsEast1: AccountRepository;
-  let app: App;
   let moduleDefinitions: ModuleDefinitions;
   let stateProvider: TestStateProvider;
   let tableName: string;
@@ -45,13 +44,7 @@ describe('Main E2E', () => {
     // Register tags on all resources.
     testModuleContainer.registerTags([{ scope: {}, tags: E2E_TAGS }]);
 
-    ({
-      app: [app],
-    } = await testModuleContainer.createTestModels('app-module', { app: ['aws-dynamodb-service'] }));
-
     moduleDefinitions = new ModuleDefinitions();
-    // Replace real app with test app.
-    moduleDefinitions.remove('app-module');
 
     const { moduleInputs } = moduleDefinitions.get<AwsDynamoDBServiceModule>('dynamodb-service-module')!;
     tableName = moduleInputs.TableName;
@@ -66,7 +59,6 @@ describe('Main E2E', () => {
     const { responses } = (
       await testModuleContainer
         .runModules(
-          app,
           moduleDefinitions.getAll().map((md) => ({ inputs: md.moduleInputs, moduleId: md.moduleId, type: md.module })),
           { outputDir, terraformTarget: 'apply' },
         )
@@ -135,7 +127,6 @@ describe('Main E2E', () => {
 
     await testModuleContainer
       .runModules(
-        app,
         moduleDefinitions.getAll().map((md) => ({ inputs: md.moduleInputs, moduleId: md.moduleId, type: md.module })),
         { outputDir, terraformTarget: 'apply' },
       )
@@ -159,7 +150,6 @@ describe('Main E2E', () => {
     // Remove GSI - Email. Not adding Email GSI is equivalent to have removed it from module inputs.
     await testModuleContainer
       .runModules(
-        app,
         moduleDefinitions.getAll().map((md) => ({ inputs: md.moduleInputs, moduleId: md.moduleId, type: md.module })),
         { outputDir, terraformTarget: 'apply' },
       )
@@ -175,13 +165,12 @@ describe('Main E2E', () => {
     for (const moduleId of moduleDefinitions
       .getAll()
       .map((md) => md.moduleId)
-      .filter((moduleId) => moduleId !== 'account-module')) {
+      .filter((moduleId) => moduleId !== 'app-module' && moduleId !== 'account-module')) {
       moduleDefinitions.remove(moduleId);
     }
 
     await testModuleContainer
       .runModules(
-        app,
         moduleDefinitions.getAll().map((md) => ({ inputs: md.moduleInputs, moduleId: md.moduleId, type: md.module })),
         { outputDir, terraformTarget: 'apply' },
       )

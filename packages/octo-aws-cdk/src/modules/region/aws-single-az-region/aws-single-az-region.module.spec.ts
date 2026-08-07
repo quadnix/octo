@@ -1,19 +1,16 @@
-import { type Account, type App, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsAccountAnchorSchema } from '../../../anchors/aws-account/aws-account.anchor.schema.js';
 import { AwsSingleAzRegionId } from './index.schema.js';
 import { AwsSingleAzRegionModule } from './index.js';
 
-async function setup(testModuleContainer: TestModuleContainer): Promise<{ account: Account; app: App }> {
+async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
   const {
     account: [account],
-    app: [app],
   } = await testModuleContainer.createTestModels('testModule', { account: ['aws,123'], app: ['test-app'] });
 
   account.addAnchor(
     testModuleContainer.createTestAnchor<AwsAccountAnchorSchema>('AwsAccountAnchor', { awsAccountId: '123' }, account),
   );
-
-  return { account, app };
 }
 
 describe('AwsSingleAzRegionModule UT', () => {
@@ -35,9 +32,8 @@ describe('AwsSingleAzRegionModule UT', () => {
   });
 
   it('should call correct actions', async () => {
-    const { app } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const runModulesGenerator = testModuleContainer.runModules<AwsSingleAzRegionModule>(
-      app,
       {
         inputs: {
           account: stub('${{testModule.model.account}}'),
@@ -129,11 +125,10 @@ describe('AwsSingleAzRegionModule UT', () => {
   });
 
   it('should CUD', async () => {
-    const { app: appCreate } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const { resourceDiffs: resourceDiffsCreate } = (
       await testModuleContainer
         .runModules<AwsSingleAzRegionModule>(
-          appCreate,
           {
             inputs: {
               account: stub('${{testModule.model.account}}'),
@@ -155,11 +150,10 @@ describe('AwsSingleAzRegionModule UT', () => {
      ]
     `);
 
-    const { app: appDelete } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const { hclDiff, resourceDiffs: resourceDiffsDelete } = (
       await testModuleContainer
         .runModules<AwsSingleAzRegionModule>(
-          appDelete,
           {
             hidden: true,
             inputs: {
@@ -189,11 +183,10 @@ describe('AwsSingleAzRegionModule UT', () => {
 
   it('should CUD tags', async () => {
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
-    const { app: appCreate } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const { resourceDiffs: resourceDiffsCreate } = (
       await testModuleContainer
         .runModules<AwsSingleAzRegionModule>(
-          appCreate,
           {
             inputs: {
               account: stub('${{testModule.model.account}}'),
@@ -216,11 +209,10 @@ describe('AwsSingleAzRegionModule UT', () => {
     `);
 
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
-    const { app: appUpdateTags } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const updateTags = (
       await testModuleContainer
         .runModules<AwsSingleAzRegionModule>(
-          appUpdateTags,
           {
             inputs: {
               account: stub('${{testModule.model.account}}'),
@@ -243,11 +235,10 @@ describe('AwsSingleAzRegionModule UT', () => {
      ]
     `);
 
-    const { app: appDeleteTags } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const deleteTags = (
       await testModuleContainer
         .runModules<AwsSingleAzRegionModule>(
-          appDeleteTags,
           {
             inputs: {
               account: stub('${{testModule.model.account}}'),
@@ -273,10 +264,9 @@ describe('AwsSingleAzRegionModule UT', () => {
 
   describe('input changes', () => {
     it('should handle name change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await testModuleContainer
         .runModules<AwsSingleAzRegionModule>(
-          appCreate,
           {
             inputs: {
               account: stub('${{testModule.model.account}}'),
@@ -291,11 +281,10 @@ describe('AwsSingleAzRegionModule UT', () => {
         )
         .next();
 
-      const { app: appUpdateName } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       const { hclDiff, resourceDiffs } = (
         await testModuleContainer
           .runModules<AwsSingleAzRegionModule>(
-            appUpdateName,
             {
               inputs: {
                 account: stub('${{testModule.model.account}}'),
@@ -322,10 +311,9 @@ describe('AwsSingleAzRegionModule UT', () => {
     });
 
     it('should handle regionId change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await testModuleContainer
         .runModules<AwsSingleAzRegionModule>(
-          appCreate,
           {
             inputs: {
               account: stub('${{testModule.model.account}}'),
@@ -340,13 +328,12 @@ describe('AwsSingleAzRegionModule UT', () => {
         )
         .next();
 
-      const { app: appUpdateRegionId } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       // regionId change moves the provider region (and AZ) of every resource → terraform recreates
       // them. Octo emits a REPLACE on the force-new resources.
       const { resourceDiffs } = (
         await testModuleContainer
           .runModules<AwsSingleAzRegionModule>(
-            appUpdateRegionId,
             {
               inputs: {
                 account: stub('${{testModule.model.account}}'),
@@ -369,10 +356,9 @@ describe('AwsSingleAzRegionModule UT', () => {
     });
 
     it('should handle vpcCidrBlock change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await testModuleContainer
         .runModules<AwsSingleAzRegionModule>(
-          appCreate,
           {
             inputs: {
               account: stub('${{testModule.model.account}}'),
@@ -387,12 +373,11 @@ describe('AwsSingleAzRegionModule UT', () => {
         )
         .next();
 
-      const { app: appUpdateVpcCidrBlock } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       // cidr_block is force-new on aws_vpc → octo emits a REPLACE on the vpc (and force-new dependents).
       const { resourceDiffs } = (
         await testModuleContainer
           .runModules<AwsSingleAzRegionModule>(
-            appUpdateVpcCidrBlock,
             {
               inputs: {
                 account: stub('${{testModule.model.account}}'),
@@ -417,10 +402,9 @@ describe('AwsSingleAzRegionModule UT', () => {
   });
 
   it('should handle moduleId change', async () => {
-    const { app: appCreate } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     await testModuleContainer
       .runModules<AwsSingleAzRegionModule>(
-        appCreate,
         {
           inputs: {
             account: stub('${{testModule.model.account}}'),
@@ -435,11 +419,10 @@ describe('AwsSingleAzRegionModule UT', () => {
       )
       .next();
 
-    const { app: appUpdateModuleId } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const { hclDiff, resourceDiffs } = (
       await testModuleContainer
         .runModules<AwsSingleAzRegionModule>(
-          appUpdateModuleId,
           {
             inputs: {
               account: stub('${{testModule.model.account}}'),
@@ -460,11 +443,10 @@ describe('AwsSingleAzRegionModule UT', () => {
 
   describe('validation', () => {
     it('should validate duplicate region name', async () => {
-      const { app } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await expect(
         testModuleContainer
           .runModules<AwsSingleAzRegionModule>(
-            app,
             [
               {
                 inputs: {
@@ -494,11 +476,10 @@ describe('AwsSingleAzRegionModule UT', () => {
     });
 
     it('should validate overlapping CIDR blocks', async () => {
-      const { app } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await expect(
         testModuleContainer
           .runModules<AwsSingleAzRegionModule>(
-            app,
             [
               {
                 inputs: {
@@ -528,11 +509,10 @@ describe('AwsSingleAzRegionModule UT', () => {
     });
 
     it('should validate invalid VPC cidr block', async () => {
-      const { app } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await expect(
         testModuleContainer
           .runModules<AwsSingleAzRegionModule>(
-            app,
             {
               inputs: {
                 account: stub('${{testModule.model.account}}'),

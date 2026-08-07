@@ -346,7 +346,6 @@ export class TestModuleContainer {
    * - 'apply' → generate → terraformUtility.plan/apply → commit.
    */
   async *runModules<M extends UnknownModule>(
-    app: UnknownModel,
     modules: TestModule<M> | TestModule<M>[],
     {
       filterByModuleIds = [],
@@ -354,7 +353,6 @@ export class TestModuleContainer {
       terraformTarget = 'skip',
     }: { filterByModuleIds?: string[]; outputDir?: string; terraformTarget?: 'apply' | 'plan' | 'skip' } = {},
   ): AsyncGenerator<{
-    app: UnknownModel;
     hclDiff: string;
     hclRender: string;
     modelTransaction: DiffMetadata[][];
@@ -391,6 +389,8 @@ export class TestModuleContainer {
     moduleContainer.order(moduleList.map((m) => m.type));
     await this.octo.compose();
 
+    const app = this.octo.getRootModel();
+
     const collectResponses = (): { [resourceContext: string]: unknown } =>
       Object.fromEntries(
         resourceDataRepository.getActualResourcesByProperties().map((r) => [r.getContext(), r.response]),
@@ -402,11 +402,10 @@ export class TestModuleContainer {
       // apply rather than a separate preview render — a preview would re-run model actions, and
       // non-idempotent ones (e.g. sibling associations) would then apply twice.
       const priorHcl = this.previousHcl ?? '';
-      const transaction = await this.commit(app as App, { filterByModuleIds });
+      const transaction = await this.commit(app, { filterByModuleIds });
       const currentHcl = this.previousHcl ?? '';
 
       yield {
-        app,
         hclDiff: HclUtility.diffBlocks(priorHcl, currentHcl),
         hclRender: currentHcl,
         modelTransaction: transaction.modelTransaction,
@@ -421,11 +420,11 @@ export class TestModuleContainer {
     // In production octo runs generate/validate/commit as three separate processes, each of which
     // derives the resource graph once from intent. runModules drives all three in one process, so it
     // builds the model transaction once and hands the same result to each mode.
-    const transaction = await applyModelTransaction(app as App);
+    const transaction = await applyModelTransaction(app);
 
     // Generate.
     const dir = outputDir ?? (await mkdtemp(join(tmpdir(), 'octo-hcl-')));
-    const resourceDiffs = await this.octo.generate(app as App, { outputDir: dir }, transaction);
+    const resourceDiffs = await this.octo.generate(app, { outputDir: dir }, transaction);
 
     // Render the full HCL and the block diff from the sweep the transaction produced.
     const currentHcl = HclUtility.serialize(terraformService.renderAllModules());
@@ -434,7 +433,7 @@ export class TestModuleContainer {
 
     // Validate.
     const validation = await this.octo.validate(
-      app as App,
+      app,
       { plans: await terraformUtility.plan(dir, { json: true }) },
       transaction,
     );
@@ -447,7 +446,6 @@ export class TestModuleContainer {
     }
 
     const result: GeneratorYieldType<typeof this.runModules> = {
-      app,
       hclDiff: diffHcl,
       hclRender: currentHcl,
       modelTransaction: [],
@@ -467,7 +465,7 @@ export class TestModuleContainer {
 
     // Commit.
     const { warnings } = await this.octo.commit(
-      app as App,
+      app,
       { outputs: await terraformUtility.output(dir, { json: true }) },
       transaction,
     );

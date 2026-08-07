@@ -149,6 +149,17 @@ export class Octo {
   }
 
   /**
+   * This function derives the root of the model graph - the one and only `App` any loaded module
+   * produced. Call after {@link compose}.
+   *
+   * @returns The root {@link App} model.
+   * @throws If no app model, or more than one distinct app model, has been registered.
+   */
+  getRootModel(): App {
+    return this.inputService.getRootModel() as App;
+  }
+
+  /**
    * This function allows the {@link Octo} class to be initialized with a
    * state provider {@link IStateProvider}, and optional registration or exclusion
    * of custom Factories {@link Factory} created by you.

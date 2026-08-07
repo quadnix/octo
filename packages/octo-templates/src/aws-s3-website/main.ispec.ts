@@ -19,7 +19,6 @@ const outputDir = join(__dirname, '.octo', 'generated');
 jest.setTimeout(600_000);
 
 describe('Main IT', () => {
-  let app: App;
   let bucketName: string;
   let bucketNameNormalized: string;
   let environment: StartedDockerComposeEnvironment;
@@ -54,13 +53,7 @@ describe('Main IT', () => {
       skip_requesting_account_id: true,
     });
 
-    ({
-      app: [app],
-    } = await testModuleContainer.createTestModels('app-module', { app: ['aws-s3-website'] }));
-
     moduleDefinitions = new ModuleDefinitions();
-    // Replace real app with test app.
-    moduleDefinitions.remove('app-module');
     // Replace real aws credentials with localstack.
     moduleDefinitions.update(AwsLocalstackAccountModule, 'account-module', {
       app: stub<App>('${{app-module.model.app}}'),
@@ -86,7 +79,6 @@ describe('Main IT', () => {
     const { responses } = (
       await testModuleContainer
         .runModules(
-          app,
           moduleDefinitions.getAll().map((md) => ({ inputs: md.moduleInputs, moduleId: md.moduleId, type: md.module })),
           { outputDir, terraformTarget: 'apply' },
         )
@@ -108,7 +100,6 @@ describe('Main IT', () => {
     const { resourceDiffs } = (
       await testModuleContainer
         .runModules(
-          app,
           moduleDefinitions.getAll().map((md) => ({ inputs: md.moduleInputs, moduleId: md.moduleId, type: md.module })),
           { outputDir, terraformTarget: 'plan' },
         )
@@ -122,14 +113,13 @@ describe('Main IT', () => {
     for (const moduleId of moduleDefinitions
       .getAll()
       .map((md) => md.moduleId)
-      .filter((moduleId) => moduleId !== 'account-module')) {
+      .filter((moduleId) => moduleId !== 'app-module' && moduleId !== 'account-module')) {
       moduleDefinitions.remove(moduleId);
     }
 
     const { responses } = (
       await testModuleContainer
         .runModules(
-          app,
           moduleDefinitions.getAll().map((md) => ({ inputs: md.moduleInputs, moduleId: md.moduleId, type: md.module })),
           { outputDir, terraformTarget: 'apply' },
         )

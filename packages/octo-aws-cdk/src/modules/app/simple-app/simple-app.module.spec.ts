@@ -1,12 +1,5 @@
-import { type App, TestContainer, TestModuleContainer } from '@quadnix/octo';
+import { TestContainer, TestModuleContainer } from '@quadnix/octo';
 import { SimpleAppModule } from './index.js';
-
-async function setup(testModuleContainer: TestModuleContainer): Promise<{ app: App }> {
-  const {
-    app: [app],
-  } = await testModuleContainer.createTestModels('testModule', { app: ['test-app'] });
-  return { app };
-}
 
 describe('SimpleAppModule UT', () => {
   let testModuleContainer: TestModuleContainer;
@@ -27,9 +20,7 @@ describe('SimpleAppModule UT', () => {
   });
 
   it('should call correct actions', async () => {
-    const { app } = await setup(testModuleContainer);
     const runModulesGenerator = testModuleContainer.runModules<SimpleAppModule>(
-      app,
       {
         inputs: { name: 'test-app' },
         moduleId: 'app',
@@ -40,16 +31,20 @@ describe('SimpleAppModule UT', () => {
 
     const { hclRender, modelTransaction, resourceDiffs } = (await runModulesGenerator.next()).value!;
     expect(hclRender).toMatchInlineSnapshot(`""`);
-    expect(testModuleContainer.mapTransactionActions(modelTransaction)).toMatchInlineSnapshot(`[]`);
+    expect(testModuleContainer.mapTransactionActions(modelTransaction)).toMatchInlineSnapshot(`
+      [
+        [
+          "AddSimpleAppModelAction",
+        ],
+      ]
+    `);
     expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`[]`);
   });
 
   it('should CUD', async () => {
-    const { app: appCreate } = await setup(testModuleContainer);
     const { resourceDiffs: resourceDiffsCreate } = (
       await testModuleContainer
         .runModules<SimpleAppModule>(
-          appCreate,
           {
             inputs: { name: 'test-app' },
             moduleId: 'app',
@@ -61,11 +56,11 @@ describe('SimpleAppModule UT', () => {
     ).value!;
     expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`[]`);
 
-    const { app: appDelete } = await setup(testModuleContainer);
+    // The module under test is hidden below, so nothing produces the root app - seed a test double.
+    await testModuleContainer.createTestModels('testModule', { app: ['test-app'] });
     const { hclDiff, resourceDiffs: resourceDiffsDelete } = (
       await testModuleContainer
         .runModules<SimpleAppModule>(
-          appDelete,
           {
             hidden: true,
             inputs: { name: 'test-app' },
@@ -85,11 +80,9 @@ describe('SimpleAppModule UT', () => {
 
   it('should CUD tags', async () => {
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
-    const { app: appCreate } = await setup(testModuleContainer);
     const { resourceDiffs: resourceDiffsCreate } = (
       await testModuleContainer
         .runModules<SimpleAppModule>(
-          appCreate,
           {
             inputs: { name: 'test-app' },
             moduleId: 'app',
@@ -102,11 +95,9 @@ describe('SimpleAppModule UT', () => {
     expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`[]`);
 
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
-    const { app: appUpdateTags } = await setup(testModuleContainer);
     const { hclDiff: hclDiffUpdateTags, resourceDiffs: resourceDiffsUpdateTags } = (
       await testModuleContainer
         .runModules<SimpleAppModule>(
-          appUpdateTags,
           {
             inputs: { name: 'test-app' },
             moduleId: 'app',
@@ -119,11 +110,9 @@ describe('SimpleAppModule UT', () => {
     expect(hclDiffUpdateTags).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(resourceDiffsUpdateTags)).toMatchInlineSnapshot(`[]`);
 
-    const { app: appDeleteTags } = await setup(testModuleContainer);
     const { hclDiff: hclDiffDeleteTags, resourceDiffs: resourceDiffsDeleteTags } = (
       await testModuleContainer
         .runModules<SimpleAppModule>(
-          appDeleteTags,
           {
             inputs: { name: 'test-app' },
             moduleId: 'app',
@@ -139,10 +128,8 @@ describe('SimpleAppModule UT', () => {
 
   describe('input changes', () => {
     it('should handle name change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
       await testModuleContainer
         .runModules<SimpleAppModule>(
-          appCreate,
           {
             inputs: { name: 'test-app' },
             moduleId: 'app',
@@ -152,11 +139,9 @@ describe('SimpleAppModule UT', () => {
         )
         .next();
 
-      const { app: appUpdateName } = await setup(testModuleContainer);
       const { hclDiff, resourceDiffs } = (
         await testModuleContainer
           .runModules<SimpleAppModule>(
-            appUpdateName,
             {
               inputs: { name: 'changed-app' },
               moduleId: 'app',
@@ -172,10 +157,8 @@ describe('SimpleAppModule UT', () => {
   });
 
   it('should handle moduleId change', async () => {
-    const { app: appCreate } = await setup(testModuleContainer);
     await testModuleContainer
       .runModules<SimpleAppModule>(
-        appCreate,
         {
           inputs: { name: 'test-app' },
           moduleId: 'app-1',
@@ -185,11 +168,9 @@ describe('SimpleAppModule UT', () => {
       )
       .next();
 
-    const { app: appUpdateModuleId } = await setup(testModuleContainer);
     const { hclDiff, resourceDiffs } = (
       await testModuleContainer
         .runModules<SimpleAppModule>(
-          appUpdateModuleId,
           {
             inputs: { name: 'test-app' },
             moduleId: 'app-2',
@@ -205,11 +186,9 @@ describe('SimpleAppModule UT', () => {
 
   describe('validation', () => {
     it('should validate name length', async () => {
-      const { app } = await setup(testModuleContainer);
       await expect(
         testModuleContainer
           .runModules<SimpleAppModule>(
-            app,
             {
               inputs: { name: '' },
               moduleId: 'app',

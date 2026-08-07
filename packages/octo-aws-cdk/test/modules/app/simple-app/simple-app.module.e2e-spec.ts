@@ -1,6 +1,6 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { type App, TestContainer, TestModuleContainer } from '@quadnix/octo';
+import { TestContainer, TestModuleContainer } from '@quadnix/octo';
 import { SimpleAppModule } from '../../../../src/modules/app/simple-app/index.js';
 import { config } from '../../../test.config.js';
 import { TerragruntUtility } from '../../../utilities/terragrunt/terragrunt.utility.js';
@@ -9,13 +9,6 @@ const { AWS_ACCOUNT_ID, AWS_REGION_ID } = config;
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUTPUT_DIR = join(__dirname, 'generated');
-
-async function setup(testModuleContainer: TestModuleContainer): Promise<{ app: App }> {
-  const {
-    app: [app],
-  } = await testModuleContainer.createTestModels('testModule', { app: ['test-app'] });
-  return { app };
-}
 
 describe('SimpleAppModule E2E', () => {
   let testModuleContainer: TestModuleContainer;
@@ -36,11 +29,9 @@ describe('SimpleAppModule E2E', () => {
   });
 
   it('should generate no terraform resources to run against AWS', async () => {
-    const { app } = await setup(testModuleContainer);
     const { resourceDiffs } = (
       await testModuleContainer
         .runModules<SimpleAppModule>(
-          app,
           {
             inputs: { name: 'test-app' },
             moduleId: 'app',

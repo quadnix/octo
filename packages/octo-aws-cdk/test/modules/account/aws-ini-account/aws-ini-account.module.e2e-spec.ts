@@ -1,6 +1,6 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { type App, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import { AwsIniAccountModule } from '../../../../src/modules/account/aws-ini-account/index.js';
 import { config } from '../../../test.config.js';
 import { TerragruntUtility } from '../../../utilities/terragrunt/terragrunt.utility.js';
@@ -10,11 +10,8 @@ const { AWS_ACCOUNT_ID, AWS_REGION_ID } = config;
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUTPUT_DIR = join(__dirname, 'generated');
 
-async function setup(testModuleContainer: TestModuleContainer): Promise<{ app: App }> {
-  const {
-    app: [app],
-  } = await testModuleContainer.createTestModels('testModule', { app: ['test-app'] });
-  return { app };
+async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
+  await testModuleContainer.createTestModels('testModule', { app: ['test-app'] });
 }
 
 describe('AwsIniAccountModule E2E', () => {
@@ -36,11 +33,10 @@ describe('AwsIniAccountModule E2E', () => {
   });
 
   it('should generate no terraform resources to run against AWS', async () => {
-    const { app } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const { resourceDiffs } = (
       await testModuleContainer
         .runModules<AwsIniAccountModule>(
-          app,
           {
             inputs: {
               accountId: AWS_ACCOUNT_ID,

@@ -1,14 +1,4 @@
-import {
-  type AResource,
-  type Account,
-  type App,
-  MatchingResource,
-  type Region,
-  SubnetType,
-  TestContainer,
-  TestModuleContainer,
-  stub,
-} from '@quadnix/octo';
+import { type AResource, MatchingResource, SubnetType, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsEcsServiceAnchorSchema } from '../../../anchors/aws-ecs/aws-ecs-service.anchor.schema.js';
 import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import type { EcsClusterSchema } from '../../../resources/ecs-cluster/index.schema.js';
@@ -30,12 +20,9 @@ const HEALTH_CHECK_RESPONSE = {
   UnhealthyThresholdCount: 3,
 };
 
-async function setup(
-  testModuleContainer: TestModuleContainer,
-): Promise<{ account: Account; app: App; region: Region }> {
+async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
   const {
     account: [account],
-    app: [app],
     deployment: [deployment],
     environment: [environment],
     region: [region],
@@ -53,7 +40,6 @@ async function setup(
     subnet: [subnet1],
   } = await testModuleContainer.createTestModels('testSubnet1Module', {
     account: [account],
-    app: [app],
     region: [region],
     subnet: ['public-subnet-1'],
   });
@@ -62,7 +48,6 @@ async function setup(
     subnet: [subnet2],
   } = await testModuleContainer.createTestModels('testSubnet2Module', {
     account: [account],
-    app: [app],
     region: [region],
     subnet: ['public-subnet-2'],
   });
@@ -72,7 +57,6 @@ async function setup(
     execution: [execution],
   } = await testModuleContainer.createTestModels('testExecutionModule', {
     account: [account],
-    app: [app],
     deployment: [deployment],
     environment: [environment],
     execution: [':0:0:0'],
@@ -255,8 +239,6 @@ async function setup(
     [new MatchingResource(ecsCluster), new MatchingResource(ecsTaskDefinition), new MatchingResource(publicSubnet)],
   );
   await testModuleContainer.createResources('testExecutionModule', [ecsService], { save: true });
-
-  return { account, app, region };
 }
 
 describe('AwsEcsAlbServiceModule UT', () => {
@@ -280,9 +262,8 @@ describe('AwsEcsAlbServiceModule UT', () => {
   });
 
   it('should call correct actions', async () => {
-    const { app } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const runModulesGenerator = testModuleContainer.runModules<AwsEcsAlbServiceModule>(
-      app,
       {
         inputs: {
           albName: 'test-alb',
@@ -743,11 +724,10 @@ describe('AwsEcsAlbServiceModule UT', () => {
   });
 
   it('should CUD', async () => {
-    const { app: appCreate } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const { resourceDiffs: resourceDiffsCreate } = (
       await testModuleContainer
         .runModules<AwsEcsAlbServiceModule>(
-          appCreate,
           {
             inputs: {
               albName: 'test-alb',
@@ -795,11 +775,10 @@ describe('AwsEcsAlbServiceModule UT', () => {
      ]
     `);
 
-    const { app: appAddListenerRule } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const addListenerRule = (
       await testModuleContainer
         .runModules<AwsEcsAlbServiceModule>(
-          appAddListenerRule,
           {
             inputs: {
               albName: 'test-alb',
@@ -854,11 +833,10 @@ describe('AwsEcsAlbServiceModule UT', () => {
      ]
     `);
 
-    const { app: appUpdateListenerRule } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const updateListenerRule = (
       await testModuleContainer
         .runModules<AwsEcsAlbServiceModule>(
-          appUpdateListenerRule,
           {
             inputs: {
               albName: 'test-alb',
@@ -914,11 +892,10 @@ describe('AwsEcsAlbServiceModule UT', () => {
      ]
     `);
 
-    const { app: appDelete } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const deleteResult = (
       await testModuleContainer
         .runModules<AwsEcsAlbServiceModule>(
-          appDelete,
           {
             hidden: true,
             inputs: {
@@ -972,11 +949,10 @@ describe('AwsEcsAlbServiceModule UT', () => {
 
   it('should CUD tags', async () => {
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
-    const { app: appCreate } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const { resourceDiffs: resourceDiffsCreate } = (
       await testModuleContainer
         .runModules<AwsEcsAlbServiceModule>(
-          appCreate,
           {
             inputs: {
               albName: 'test-alb',
@@ -1026,11 +1002,10 @@ describe('AwsEcsAlbServiceModule UT', () => {
     `);
 
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
-    const { app: appUpdateTags } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const updateTags = (
       await testModuleContainer
         .runModules<AwsEcsAlbServiceModule>(
-          appUpdateTags,
           {
             inputs: {
               albName: 'test-alb',
@@ -1078,11 +1053,10 @@ describe('AwsEcsAlbServiceModule UT', () => {
      ]
     `);
 
-    const { app: appDeleteTags } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const deleteTags = (
       await testModuleContainer
         .runModules<AwsEcsAlbServiceModule>(
-          appDeleteTags,
           {
             inputs: {
               albName: 'test-alb',
@@ -1133,10 +1107,9 @@ describe('AwsEcsAlbServiceModule UT', () => {
 
   describe('input changes', () => {
     it('should handle albName change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await testModuleContainer
         .runModules<AwsEcsAlbServiceModule>(
-          appCreate,
           {
             inputs: {
               albName: 'test-alb',
@@ -1173,11 +1146,10 @@ describe('AwsEcsAlbServiceModule UT', () => {
         )
         .next();
 
-      const { app: appUpdateAlbName } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       const { hclDiff, resourceDiffs } = (
         await testModuleContainer
           .runModules<AwsEcsAlbServiceModule>(
-            appUpdateAlbName,
             {
               inputs: {
                 albName: 'changed-alb',
@@ -1229,10 +1201,9 @@ describe('AwsEcsAlbServiceModule UT', () => {
     });
 
     it('should handle listener DefaultActions change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await testModuleContainer
         .runModules<AwsEcsAlbServiceModule>(
-          appCreate,
           {
             inputs: {
               albName: 'test-alb',
@@ -1269,11 +1240,10 @@ describe('AwsEcsAlbServiceModule UT', () => {
         )
         .next();
 
-      const { app: appUpdateListenerDefaultAction } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       const { hclDiff, resourceDiffs } = (
         await testModuleContainer
           .runModules<AwsEcsAlbServiceModule>(
-            appUpdateListenerDefaultAction,
             {
               inputs: {
                 albName: 'test-alb',
@@ -1311,10 +1281,9 @@ describe('AwsEcsAlbServiceModule UT', () => {
     });
 
     it('should handle listener Port change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await testModuleContainer
         .runModules<AwsEcsAlbServiceModule>(
-          appCreate,
           {
             inputs: {
               albName: 'test-alb',
@@ -1351,11 +1320,10 @@ describe('AwsEcsAlbServiceModule UT', () => {
         )
         .next();
 
-      const { app: appUpdateListenerPort } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       const { hclDiff, resourceDiffs } = (
         await testModuleContainer
           .runModules<AwsEcsAlbServiceModule>(
-            appUpdateListenerPort,
             {
               inputs: {
                 albName: 'test-alb',
@@ -1401,10 +1369,9 @@ describe('AwsEcsAlbServiceModule UT', () => {
     });
 
     it('should handle listener rules change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await testModuleContainer
         .runModules<AwsEcsAlbServiceModule>(
-          appCreate,
           {
             inputs: {
               albName: 'test-alb',
@@ -1441,11 +1408,10 @@ describe('AwsEcsAlbServiceModule UT', () => {
         )
         .next();
 
-      const { app: appUpdateListenerRule } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       const { hclDiff, resourceDiffs } = (
         await testModuleContainer
           .runModules<AwsEcsAlbServiceModule>(
-            appUpdateListenerRule,
             {
               inputs: {
                 albName: 'test-alb',
@@ -1502,10 +1468,9 @@ describe('AwsEcsAlbServiceModule UT', () => {
     });
 
     it('should handle target add change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await testModuleContainer
         .runModules<AwsEcsAlbServiceModule>(
-          appCreate,
           {
             inputs: {
               albName: 'test-alb',
@@ -1532,11 +1497,10 @@ describe('AwsEcsAlbServiceModule UT', () => {
         )
         .next();
 
-      const { app: appUpdateTargetAddNewTarget } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       const { hclDiff, resourceDiffs } = (
         await testModuleContainer
           .runModules<AwsEcsAlbServiceModule>(
-            appUpdateTargetAddNewTarget,
             {
               inputs: {
                 albName: 'test-alb',
@@ -1584,10 +1548,9 @@ describe('AwsEcsAlbServiceModule UT', () => {
     });
 
     it('should handle target containerName change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await testModuleContainer
         .runModules<AwsEcsAlbServiceModule>(
-          appCreate,
           {
             inputs: {
               albName: 'test-alb',
@@ -1624,11 +1587,10 @@ describe('AwsEcsAlbServiceModule UT', () => {
         )
         .next();
 
-      const { app: appUpdateTargetContainerName } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       const { hclDiff, resourceDiffs } = (
         await testModuleContainer
           .runModules<AwsEcsAlbServiceModule>(
-            appUpdateTargetContainerName,
             {
               inputs: {
                 albName: 'test-alb',
@@ -1674,10 +1636,9 @@ describe('AwsEcsAlbServiceModule UT', () => {
     });
 
     it('should handle target containerPort change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await testModuleContainer
         .runModules<AwsEcsAlbServiceModule>(
-          appCreate,
           {
             inputs: {
               albName: 'test-alb',
@@ -1714,12 +1675,11 @@ describe('AwsEcsAlbServiceModule UT', () => {
         )
         .next();
 
-      const { app: appUpdateTargetContainerPort } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       // The target group port is force-new on aws_lb_target_group → octo emits a REPLACE.
       const { resourceDiffs } = (
         await testModuleContainer
           .runModules<AwsEcsAlbServiceModule>(
-            appUpdateTargetContainerPort,
             {
               inputs: {
                 albName: 'test-alb',
@@ -1765,10 +1725,9 @@ describe('AwsEcsAlbServiceModule UT', () => {
     });
 
     it('should handle target healthCheck change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await testModuleContainer
         .runModules<AwsEcsAlbServiceModule>(
-          appCreate,
           {
             inputs: {
               albName: 'test-alb',
@@ -1805,11 +1764,10 @@ describe('AwsEcsAlbServiceModule UT', () => {
         )
         .next();
 
-      const { app: appUpdateTargetHealthCheck } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       const { hclDiff, resourceDiffs } = (
         await testModuleContainer
           .runModules<AwsEcsAlbServiceModule>(
-            appUpdateTargetHealthCheck,
             {
               inputs: {
                 albName: 'test-alb',
@@ -1856,10 +1814,9 @@ describe('AwsEcsAlbServiceModule UT', () => {
     });
 
     it('should handle target name change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await testModuleContainer
         .runModules<AwsEcsAlbServiceModule>(
-          appCreate,
           {
             inputs: {
               albName: 'test-alb',
@@ -1896,12 +1853,11 @@ describe('AwsEcsAlbServiceModule UT', () => {
         )
         .next();
 
-      const { app: appUpdateTargetName } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       // The target group name is force-new on aws_lb_target_group → octo emits a REPLACE.
       const { resourceDiffs } = (
         await testModuleContainer
           .runModules<AwsEcsAlbServiceModule>(
-            appUpdateTargetName,
             {
               inputs: {
                 albName: 'test-alb',
@@ -1949,10 +1905,9 @@ describe('AwsEcsAlbServiceModule UT', () => {
   });
 
   it('should handle moduleId change', async () => {
-    const { app: appCreate } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     await testModuleContainer
       .runModules<AwsEcsAlbServiceModule>(
-        appCreate,
         {
           inputs: {
             albName: 'test-alb',
@@ -1989,11 +1944,10 @@ describe('AwsEcsAlbServiceModule UT', () => {
       )
       .next();
 
-    const { app: appUpdateModuleId } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const { hclDiff, resourceDiffs } = (
       await testModuleContainer
         .runModules<AwsEcsAlbServiceModule>(
-          appUpdateModuleId,
           {
             inputs: {
               albName: 'test-alb',

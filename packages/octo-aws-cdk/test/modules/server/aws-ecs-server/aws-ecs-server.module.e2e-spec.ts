@@ -1,6 +1,6 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { type Account, type App, type Service, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsAccountAnchorSchema } from '../../../../src/anchors/aws-account/aws-account.anchor.schema.js';
 import type { AwsS3StorageServiceDirectoryAnchorSchema } from '../../../../src/anchors/aws-s3-storage-service/aws-s3-storage-service-directory.anchor.schema.js';
 import type { AwsS3StorageServiceAnchorSchema } from '../../../../src/anchors/aws-s3-storage-service/aws-s3-storage-service.anchor.schema.js';
@@ -15,12 +15,9 @@ const { AWS_ACCOUNT_ID, AWS_REGION_ID } = config;
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUTPUT_DIR = join(__dirname, 'generated');
 
-async function setup(
-  testModuleContainer: TestModuleContainer,
-): Promise<{ account: Account; app: App; service: Service }> {
+async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
   const {
     account: [account],
-    app: [app],
     service: [service],
   } = await testModuleContainer.createTestModels('testModule', {
     account: [`aws,${AWS_ACCOUNT_ID}`],
@@ -58,8 +55,6 @@ async function setup(
     permissions: [],
   });
   await testModuleContainer.createResources('testModule', [s3Storage], { save: true });
-
-  return { account, app, service };
 }
 
 describe('AwsEcsServerModule E2E', () => {
@@ -83,10 +78,9 @@ describe('AwsEcsServerModule E2E', () => {
   });
 
   it('should generate terragrunt that validates and plans against AWS', async () => {
-    const { app } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     await testModuleContainer
       .runModules<AwsEcsServerModule>(
-        app,
         {
           inputs: {
             account: stub('${{testModule.model.account}}'),

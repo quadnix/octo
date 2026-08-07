@@ -1,6 +1,6 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { type Account, type App, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsDynamoDBAnchorSchema } from '../../../../src/anchors/aws-dynamodb/aws-dynamodb.anchor.schema.js';
 import type { AwsRegionAnchorSchema } from '../../../../src/anchors/aws-region/aws-region.anchor.schema.js';
 import { AwsDynamoDBGlobalServiceModule } from '../../../../src/modules/service/aws-dynamodb-global-service/index.js';
@@ -13,10 +13,9 @@ const { AWS_ACCOUNT_ID, AWS_REGION_ID } = config;
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUTPUT_DIR = join(__dirname, 'generated');
 
-async function setup(testModuleContainer: TestModuleContainer): Promise<{ account: Account; app: App }> {
+async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
   const {
     account: [account],
-    app: [app],
     service: [service],
   } = await testModuleContainer.createTestModels('testModule', {
     account: [`aws,${AWS_ACCOUNT_ID}`],
@@ -28,14 +27,12 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{ accoun
     region: [region1],
   } = await testModuleContainer.createTestModels('testRegion1Module', {
     account: [account],
-    app: [app],
     region: ['region-1'],
   });
   const {
     region: [region2],
   } = await testModuleContainer.createTestModels('testRegion2Module', {
     account: [account],
-    app: [app],
     region: ['region-2'],
   });
 
@@ -101,8 +98,6 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{ accoun
     ],
     { save: true },
   );
-
-  return { account, app };
 }
 
 describe('AwsDynamoDBGlobalServiceModule E2E', () => {
@@ -127,10 +122,9 @@ describe('AwsDynamoDBGlobalServiceModule E2E', () => {
   });
 
   it('should generate terragrunt that validates and plans against AWS', async () => {
-    const { app } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     await testModuleContainer
       .runModules<AwsDynamoDBGlobalServiceModule>(
-        app,
         {
           inputs: {
             dynamoDBService: stub('${{testModule.model.service}}'),

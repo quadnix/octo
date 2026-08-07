@@ -1,18 +1,6 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-  type Account,
-  type App,
-  type Deployment,
-  type Environment,
-  type Filesystem,
-  type Region,
-  type Server,
-  type Subnet,
-  TestContainer,
-  TestModuleContainer,
-  stub,
-} from '@quadnix/octo';
+import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsEcsClusterAnchorSchema } from '../../../../src/anchors/aws-ecs/aws-ecs-cluster.anchor.schema.js';
 import type { AwsEcsTaskDefinitionAnchorSchema } from '../../../../src/anchors/aws-ecs/aws-ecs-task-definition.anchor.schema.js';
 import type { AwsEfsAnchorSchema } from '../../../../src/anchors/aws-efs/aws-efs.anchor.schema.js';
@@ -36,19 +24,8 @@ const { AWS_ACCOUNT_ID, AWS_REGION_ID } = config;
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUTPUT_DIR = join(__dirname, 'generated');
 
-async function setup(testModuleContainer: TestModuleContainer): Promise<{
-  account: Account;
-  app: App;
-  deployment: Deployment;
-  environment: Environment;
-  filesystem: Filesystem;
-  region: Region;
-  server: Server;
-  subnet: Subnet;
-}> {
+async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
   const {
-    account: [account],
-    app: [app],
     deployment: [deployment],
     environment: [environment],
     filesystem: [filesystem],
@@ -226,8 +203,6 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{
     ],
     { save: true },
   );
-
-  return { account, app, deployment, environment, filesystem, region, server, subnet };
 }
 
 describe('AwsEcsExecutionModule E2E', () => {
@@ -251,10 +226,9 @@ describe('AwsEcsExecutionModule E2E', () => {
   });
 
   it('should generate terragrunt that validates and plans against AWS', async () => {
-    const { app } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     await testModuleContainer
       .runModules<AwsEcsExecutionModule>(
-        app,
         {
           inputs: {
             deployments: {

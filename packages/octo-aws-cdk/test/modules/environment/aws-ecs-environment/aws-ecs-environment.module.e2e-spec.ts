@@ -1,6 +1,6 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { type Account, type App, type Region, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsRegionAnchorSchema } from '../../../../src/anchors/aws-region/aws-region.anchor.schema.js';
 import { AwsEcsEnvironmentModule } from '../../../../src/modules/environment/aws-ecs-environment/index.js';
 import { config } from '../../../test.config.js';
@@ -11,12 +11,8 @@ const { AWS_ACCOUNT_ID, AWS_REGION_ID } = config;
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUTPUT_DIR = join(__dirname, 'generated');
 
-async function setup(
-  testModuleContainer: TestModuleContainer,
-): Promise<{ account: Account; app: App; region: Region }> {
+async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
   const {
-    account: [account],
-    app: [app],
     region: [region],
   } = await testModuleContainer.createTestModels('testModule', {
     account: [`aws,${AWS_ACCOUNT_ID}`],
@@ -36,8 +32,6 @@ async function setup(
       region,
     ),
   );
-
-  return { account, app, region };
 }
 
 describe('AwsEcsEnvironmentModule E2E', () => {
@@ -61,10 +55,9 @@ describe('AwsEcsEnvironmentModule E2E', () => {
   });
 
   it('should generate terragrunt that validates and plans against AWS', async () => {
-    const { app } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     await testModuleContainer
       .runModules<AwsEcsEnvironmentModule>(
-        app,
         {
           inputs: {
             environmentName: 'qa',

@@ -1,14 +1,6 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-  type Account,
-  type App,
-  type Filesystem,
-  type Region,
-  TestContainer,
-  TestModuleContainer,
-  stub,
-} from '@quadnix/octo';
+import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsEfsAnchorSchema } from '../../../../src/anchors/aws-efs/aws-efs.anchor.schema.js';
 import type { AwsRegionAnchorSchema } from '../../../../src/anchors/aws-region/aws-region.anchor.schema.js';
 import { AwsSimpleSubnetModule } from '../../../../src/modules/subnet/aws-simple-subnet/index.js';
@@ -23,12 +15,8 @@ const { AWS_ACCOUNT_ID, AWS_REGION_ID } = config;
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUTPUT_DIR = join(__dirname, 'generated');
 
-async function setup(
-  testModuleContainer: TestModuleContainer,
-): Promise<{ account: Account; app: App; filesystem: Filesystem; region: Region }> {
+async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
   const {
-    account: [account],
-    app: [app],
     filesystem: [filesystem],
     region: [region],
   } = await testModuleContainer.createTestModels('testModule', {
@@ -88,8 +76,6 @@ async function setup(
     ],
     { save: true },
   );
-
-  return { account, app, filesystem, region };
 }
 
 describe('AwsSimpleSubnetModule E2E', () => {
@@ -113,10 +99,9 @@ describe('AwsSimpleSubnetModule E2E', () => {
   });
 
   it('should generate terragrunt that validates and plans against AWS', async () => {
-    const { app } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     await testModuleContainer
       .runModules<AwsSimpleSubnetModule>(
-        app,
         {
           inputs: {
             localFilesystems: [stub('${{testModule.model.filesystem}}')],

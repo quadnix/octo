@@ -1,19 +1,16 @@
-import { type Account, type App, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsAccountAnchorSchema } from '../../../anchors/aws-account/aws-account.anchor.schema.js';
 import { AwsMultiAzRegionId } from './index.schema.js';
 import { AwsMultiAzRegionModule } from './index.js';
 
-async function setup(testModuleContainer: TestModuleContainer): Promise<{ account: Account; app: App }> {
+async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
   const {
     account: [account],
-    app: [app],
   } = await testModuleContainer.createTestModels('testModule', { account: ['aws,123'], app: ['test-app'] });
 
   account.addAnchor(
     testModuleContainer.createTestAnchor<AwsAccountAnchorSchema>('AwsAccountAnchor', { awsAccountId: '123' }, account),
   );
-
-  return { account, app };
 }
 
 describe('AwsMultiAzRegionModule UT', () => {
@@ -37,9 +34,8 @@ describe('AwsMultiAzRegionModule UT', () => {
   });
 
   it('should call correct actions', async () => {
-    const { app } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const runModulesGenerator = testModuleContainer.runModules<AwsMultiAzRegionModule>(
-      app,
       {
         inputs: {
           account: stub('${{testModule.model.account}}'),
@@ -132,10 +128,9 @@ describe('AwsMultiAzRegionModule UT', () => {
   });
 
   it('should CUD', async () => {
-    const { app: appCreate } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     await testModuleContainer
       .runModules<AwsMultiAzRegionModule>(
-        appCreate,
         {
           inputs: {
             account: stub('${{testModule.model.account}}'),
@@ -150,11 +145,10 @@ describe('AwsMultiAzRegionModule UT', () => {
       )
       .next();
 
-    const { app: appDelete } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const { hclDiff, resourceDiffs } = (
       await testModuleContainer
         .runModules<AwsMultiAzRegionModule>(
-          appDelete,
           {
             hidden: true,
             inputs: {
@@ -184,10 +178,9 @@ describe('AwsMultiAzRegionModule UT', () => {
 
   it('should CUD tags', async () => {
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
-    const { app: appCreate } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     await testModuleContainer
       .runModules<AwsMultiAzRegionModule>(
-        appCreate,
         {
           inputs: {
             account: stub('${{testModule.model.account}}'),
@@ -203,11 +196,10 @@ describe('AwsMultiAzRegionModule UT', () => {
       .next();
 
     testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
-    const { app: appUpdateTags } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const updateTags = (
       await testModuleContainer
         .runModules<AwsMultiAzRegionModule>(
-          appUpdateTags,
           {
             inputs: {
               account: stub('${{testModule.model.account}}'),
@@ -230,11 +222,10 @@ describe('AwsMultiAzRegionModule UT', () => {
      ]
     `);
 
-    const { app: appDeleteTags } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const deleteTags = (
       await testModuleContainer
         .runModules<AwsMultiAzRegionModule>(
-          appDeleteTags,
           {
             inputs: {
               account: stub('${{testModule.model.account}}'),
@@ -260,10 +251,9 @@ describe('AwsMultiAzRegionModule UT', () => {
 
   describe('input changes', () => {
     it('should handle name change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await testModuleContainer
         .runModules<AwsMultiAzRegionModule>(
-          appCreate,
           {
             inputs: {
               account: stub('${{testModule.model.account}}'),
@@ -278,11 +268,10 @@ describe('AwsMultiAzRegionModule UT', () => {
         )
         .next();
 
-      const { app: appUpdateName } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       const { hclDiff, resourceDiffs } = (
         await testModuleContainer
           .runModules<AwsMultiAzRegionModule>(
-            appUpdateName,
             {
               inputs: {
                 account: stub('${{testModule.model.account}}'),
@@ -309,10 +298,9 @@ describe('AwsMultiAzRegionModule UT', () => {
     });
 
     it('should handle regionId change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await testModuleContainer
         .runModules<AwsMultiAzRegionModule>(
-          appCreate,
           {
             inputs: {
               account: stub('${{testModule.model.account}}'),
@@ -327,13 +315,12 @@ describe('AwsMultiAzRegionModule UT', () => {
         )
         .next();
 
-      const { app: appUpdateRegionId } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       // regionIds change only the availability zones (region stays us-east-1), which is VPC metadata
       // not rendered into the aws_vpc block → no VPC diff; the change ripples a parent-update to igw.
       const { resourceDiffs } = (
         await testModuleContainer
           .runModules<AwsMultiAzRegionModule>(
-            appUpdateRegionId,
             {
               inputs: {
                 account: stub('${{testModule.model.account}}'),
@@ -356,10 +343,9 @@ describe('AwsMultiAzRegionModule UT', () => {
     });
 
     it('should handle vpcCidrBlock change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await testModuleContainer
         .runModules<AwsMultiAzRegionModule>(
-          appCreate,
           {
             inputs: {
               account: stub('${{testModule.model.account}}'),
@@ -374,12 +360,11 @@ describe('AwsMultiAzRegionModule UT', () => {
         )
         .next();
 
-      const { app: appUpdateVpcCidrBlock } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       // cidr_block is force-new on aws_vpc → octo emits a REPLACE on the vpc.
       const { resourceDiffs } = (
         await testModuleContainer
           .runModules<AwsMultiAzRegionModule>(
-            appUpdateVpcCidrBlock,
             {
               inputs: {
                 account: stub('${{testModule.model.account}}'),
@@ -404,10 +389,9 @@ describe('AwsMultiAzRegionModule UT', () => {
   });
 
   it('should handle moduleId change', async () => {
-    const { app: appCreate } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     await testModuleContainer
       .runModules<AwsMultiAzRegionModule>(
-        appCreate,
         {
           inputs: {
             account: stub('${{testModule.model.account}}'),
@@ -422,11 +406,10 @@ describe('AwsMultiAzRegionModule UT', () => {
       )
       .next();
 
-    const { app: appUpdateModuleId } = await setup(testModuleContainer);
+    await setup(testModuleContainer);
     const { hclDiff, resourceDiffs } = (
       await testModuleContainer
         .runModules<AwsMultiAzRegionModule>(
-          appUpdateModuleId,
           {
             inputs: {
               account: stub('${{testModule.model.account}}'),
@@ -447,11 +430,10 @@ describe('AwsMultiAzRegionModule UT', () => {
 
   describe('validation', () => {
     it('should validate minimum regionIds', async () => {
-      const { app } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await expect(
         testModuleContainer
           .runModules<AwsMultiAzRegionModule>(
-            app,
             {
               inputs: {
                 account: stub('${{testModule.model.account}}'),
@@ -469,11 +451,10 @@ describe('AwsMultiAzRegionModule UT', () => {
     });
 
     it('should validate duplicate region name', async () => {
-      const { app } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await expect(
         testModuleContainer
           .runModules<AwsMultiAzRegionModule>(
-            app,
             [
               {
                 inputs: {
@@ -503,11 +484,10 @@ describe('AwsMultiAzRegionModule UT', () => {
     });
 
     it('should validate overlapping CIDR blocks', async () => {
-      const { app } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await expect(
         testModuleContainer
           .runModules<AwsMultiAzRegionModule>(
-            app,
             [
               {
                 inputs: {
@@ -537,11 +517,10 @@ describe('AwsMultiAzRegionModule UT', () => {
     });
 
     it('should validate invalid VPC cidr block', async () => {
-      const { app } = await setup(testModuleContainer);
+      await setup(testModuleContainer);
       await expect(
         testModuleContainer
           .runModules<AwsMultiAzRegionModule>(
-            app,
             {
               inputs: {
                 account: stub('${{testModule.model.account}}'),
