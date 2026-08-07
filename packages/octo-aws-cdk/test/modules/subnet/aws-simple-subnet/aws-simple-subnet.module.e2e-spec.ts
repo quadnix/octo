@@ -1,12 +1,14 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
-import type { AwsEfsAnchorSchema } from '../../../../src/anchors/aws-efs/aws-efs.anchor.schema.js';
-import type { AwsRegionAnchorSchema } from '../../../../src/anchors/aws-region/aws-region.anchor.schema.js';
-import { AwsSimpleSubnetModule } from '../../../../src/modules/subnet/aws-simple-subnet/index.js';
-import type { EfsSchema } from '../../../../src/resources/efs/index.schema.js';
-import type { InternetGatewaySchema } from '../../../../src/resources/internet-gateway/index.schema.js';
-import type { VpcSchema } from '../../../../src/resources/vpc/index.schema.js';
+import {
+  type AwsEfsAnchorSchema,
+  type AwsRegionAnchorSchema,
+  AwsSimpleSubnetModule,
+  type EfsSchema,
+  type InternetGatewaySchema,
+  type VpcSchema,
+} from '../../../../src/index.js';
 import { config } from '../../../test.config.js';
 import { TerragruntUtility } from '../../../utilities/terragrunt/terragrunt.utility.js';
 

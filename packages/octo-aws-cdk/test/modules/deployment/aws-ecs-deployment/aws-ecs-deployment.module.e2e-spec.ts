@@ -1,9 +1,11 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
-import type { AwsEcsServerAnchorSchema } from '../../../../src/anchors/aws-ecs/aws-ecs-server.anchor.schema.js';
-import type { AwsIamRoleAnchorSchema } from '../../../../src/anchors/aws-iam/aws-iam-role.anchor.schema.js';
-import { AwsEcsDeploymentModule } from '../../../../src/modules/deployment/aws-ecs-deployment/index.js';
+import {
+  AwsEcsDeploymentModule,
+  type AwsEcsServerAnchorSchema,
+  type AwsIamRoleAnchorSchema,
+} from '../../../../src/index.js';
 import { config } from '../../../test.config.js';
 import { TerragruntUtility } from '../../../utilities/terragrunt/terragrunt.utility.js';
 

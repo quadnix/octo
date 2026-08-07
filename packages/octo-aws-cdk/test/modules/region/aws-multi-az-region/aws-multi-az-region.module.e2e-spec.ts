@@ -1,9 +1,7 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
-import type { AwsAccountAnchorSchema } from '../../../../src/anchors/aws-account/aws-account.anchor.schema.js';
-import { AwsMultiAzRegionModule } from '../../../../src/modules/region/aws-multi-az-region/index.js';
-import { AwsMultiAzRegionId } from '../../../../src/modules/region/aws-multi-az-region/index.schema.js';
+import { type AwsAccountAnchorSchema, AwsMultiAzRegionId, AwsMultiAzRegionModule } from '../../../../src/index.js';
 import { config } from '../../../test.config.js';
 import { TerragruntUtility } from '../../../utilities/terragrunt/terragrunt.utility.js';
 

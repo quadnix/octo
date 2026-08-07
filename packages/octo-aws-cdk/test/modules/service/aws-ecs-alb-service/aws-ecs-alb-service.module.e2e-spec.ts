@@ -1,15 +1,17 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { type AResource, MatchingResource, SubnetType, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
-import type { AwsEcsServiceAnchorSchema } from '../../../../src/anchors/aws-ecs/aws-ecs-service.anchor.schema.js';
-import type { AwsRegionAnchorSchema } from '../../../../src/anchors/aws-region/aws-region.anchor.schema.js';
-import { AwsEcsAlbServiceModule } from '../../../../src/modules/service/aws-ecs-alb-service/index.js';
-import { EcsClusterSchema } from '../../../../src/resources/ecs-cluster/index.schema.js';
-import { EcsService } from '../../../../src/resources/ecs-service/index.js';
-import { EcsTaskDefinitionSchema } from '../../../../src/resources/ecs-task-definition/index.schema.js';
-import { InternetGatewaySchema } from '../../../../src/resources/internet-gateway/index.schema.js';
-import { SubnetSchema } from '../../../../src/resources/subnet/index.schema.js';
-import { VpcSchema } from '../../../../src/resources/vpc/index.schema.js';
+import {
+  AwsEcsAlbServiceModule,
+  type AwsEcsServiceAnchorSchema,
+  type AwsRegionAnchorSchema,
+  EcsClusterSchema,
+  EcsService,
+  EcsTaskDefinitionSchema,
+  InternetGatewaySchema,
+  SubnetSchema,
+  VpcSchema,
+} from '../../../../src/index.js';
 import { config } from '../../../test.config.js';
 import { TerragruntUtility } from '../../../utilities/terragrunt/terragrunt.utility.js';
 

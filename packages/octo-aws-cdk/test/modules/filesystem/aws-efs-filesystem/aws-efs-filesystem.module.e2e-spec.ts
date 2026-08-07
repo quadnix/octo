@@ -1,8 +1,7 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
-import type { AwsRegionAnchorSchema } from '../../../../src/anchors/aws-region/aws-region.anchor.schema.js';
-import { AwsEfsFilesystemModule } from '../../../../src/modules/filesystem/aws-efs-filesystem/index.js';
+import { AwsEfsFilesystemModule, type AwsRegionAnchorSchema } from '../../../../src/index.js';
 import { config } from '../../../test.config.js';
 import { TerragruntUtility } from '../../../utilities/terragrunt/terragrunt.utility.js';
 

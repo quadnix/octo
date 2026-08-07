@@ -1,12 +1,14 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
-import type { AwsAccountAnchorSchema } from '../../../../src/anchors/aws-account/aws-account.anchor.schema.js';
-import type { AwsS3StorageServiceDirectoryAnchorSchema } from '../../../../src/anchors/aws-s3-storage-service/aws-s3-storage-service-directory.anchor.schema.js';
-import type { AwsS3StorageServiceAnchorSchema } from '../../../../src/anchors/aws-s3-storage-service/aws-s3-storage-service.anchor.schema.js';
-import { AwsEcsServerModule } from '../../../../src/modules/server/aws-ecs-server/index.js';
-import { AwsEcsServerS3AccessDirectoryPermission } from '../../../../src/modules/server/aws-ecs-server/index.schema.js';
-import { S3Storage } from '../../../../src/resources/s3-storage/index.js';
+import {
+  type AwsAccountAnchorSchema,
+  AwsEcsServerModule,
+  AwsEcsServerS3AccessDirectoryPermission,
+  type AwsS3StorageServiceAnchorSchema,
+  type AwsS3StorageServiceDirectoryAnchorSchema,
+  S3Storage,
+} from '../../../../src/index.js';
 import { config } from '../../../test.config.js';
 import { TerragruntUtility } from '../../../utilities/terragrunt/terragrunt.utility.js';
 
