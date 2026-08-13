@@ -220,15 +220,22 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
     const deletedParents = previousParents.filter(
       (p) => currentParents.findIndex((c) => c.getContext() === p.getContext()) === -1,
     );
+
     for (const parent of deletedParents) {
       diffs.push(new Diff(this, DiffAction.DELETE, 'parent', parent));
     }
+
     const newParents = currentParents.filter(
       (c) => previousParents.findIndex((p) => p.getContext() === c.getContext()) === -1,
     );
+
     for (const parent of newParents) {
       diffs.push(new Diff(this, DiffAction.ADD, 'parent', parent));
     }
+
+    // Deep-compare the parent's whole object rather than delegating to its `diffProperties()`. A
+    // parent that excludes a field the child renders would otherwise produce no octo diff anywhere
+    // while terraform plans a change on the child, which validate would report as drift.
     for (const currentParent of currentParents) {
       const previousParent = previousParents.find((p) => p.getContext() === currentParent.getContext());
       if (previousParent && !DiffUtility.isObjectDeepEquals(currentParent, previousParent, ['tags'])) {

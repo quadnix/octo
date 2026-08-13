@@ -167,10 +167,11 @@ describe('TerraformUtility UT', () => {
         return { stderr: '', stdout: '' };
       });
 
-      const plans = await terraform.plan(terragruntDir, { json: true });
+      const { errors, plans } = await terraform.plan(terragruntDir, { json: true });
 
       expect([...plans.keys()].sort()).toEqual(['module-a', 'module-b']);
       expect(plans.get('module-a')).toEqual({ resource_changes: [] });
+      expect(errors.size).toBe(0);
     });
 
     it('runs the two-step plan-then-show-json per folder', async () => {
@@ -191,7 +192,7 @@ describe('TerraformUtility UT', () => {
     });
 
     it('resolves an empty Map without invoking execFileAsync when there are no module folders', async () => {
-      const plans = await terraform.plan(terragruntDir, { json: true });
+      const { plans } = await terraform.plan(terragruntDir, { json: true });
 
       expect(plans.size).toBe(0);
       expect(terraform.execFileAsyncMock).not.toHaveBeenCalled();
@@ -211,9 +212,10 @@ describe('TerraformUtility UT', () => {
         return { stderr: '', stdout: '' };
       });
 
-      const plans = await terraform.plan(terragruntDir, { json: true });
+      const { errors, plans } = await terraform.plan(terragruntDir, { json: true });
 
       expect([...plans.keys()]).toEqual(['module-good']);
+      expect([...errors.keys()]).toEqual(['module-bad']);
     });
 
     it('cleans up its per-folder temp directory even when show -json throws', async () => {
@@ -225,9 +227,41 @@ describe('TerraformUtility UT', () => {
         return { stderr: '', stdout: '' };
       });
 
-      const plans = await terraform.plan(terragruntDir, { json: true });
+      const { plans } = await terraform.plan(terragruntDir, { json: true });
 
       expect(plans.size).toBe(0);
+    });
+
+    it("carries terraform's own error for a folder that failed to plan", async () => {
+      await createModuleFolder('region-module');
+      terraform.execFileAsyncMock.mockImplementation(async (_file, args) => {
+        if (args[0] === 'plan') {
+          throw Object.assign(new Error('exit 1'), {
+            stderr: 'Error: "10.0.1.0/16" is not a valid CIDR block: has host bits set\n',
+            stdout: '',
+          });
+        }
+        return { stderr: '', stdout: '' };
+      });
+
+      const { errors, plans } = await terraform.plan(terragruntDir, { json: true });
+
+      expect(plans.size).toBe(0);
+      expect(errors.get('region-module')).toBe('Error: "10.0.1.0/16" is not a valid CIDR block: has host bits set');
+    });
+
+    it('falls back to the wrapped error message when the failure carried no stderr', async () => {
+      await createModuleFolder('module-a');
+      terraform.execFileAsyncMock.mockImplementation(async (_file, args) => {
+        if (args[0] === 'show') {
+          return { stderr: '', stdout: 'not json' };
+        }
+        return { stderr: '', stdout: '' };
+      });
+
+      const { errors } = await terraform.plan(terragruntDir, { json: true });
+
+      expect(errors.get('module-a')).toContain('JSON');
     });
   });
 
@@ -313,6 +347,52 @@ describe('TerraformUtility UT', () => {
       );
 
       await expect(terraform.validate(terragruntDir)).rejects.toThrow(/terragrunt/);
+    });
+  });
+
+  describe('findPlannedDestroys()', () => {
+    it('collects every destroy, counting a recreate, and ignores data sources and no-ops', () => {
+      const destroys = terraform.findPlannedDestroys(
+        new Map([
+          [
+            'region-module',
+            {
+              resource_changes: [
+                { address: 'aws_vpc.vpc-1', change: { actions: ['no-op'] } },
+                { address: 'aws_efs_file_system.efs-1', change: { actions: ['create', 'delete'] } },
+                { address: 'data.aws_image.stale', change: { actions: ['delete'] }, mode: 'data' },
+              ],
+            },
+          ],
+          [
+            'sg-module',
+            { resource_changes: [{ address: 'aws_security_group.sg-1', change: { actions: ['delete'] } }] },
+          ],
+        ]),
+      );
+
+      expect(destroys).toEqual([
+        { address: 'aws_efs_file_system.efs-1', moduleId: 'region-module', tfActions: ['create', 'delete'] },
+        { address: 'aws_security_group.sg-1', moduleId: 'sg-module', tfActions: ['delete'] },
+      ]);
+    });
+
+    it('finds nothing in a plan that only creates and updates', () => {
+      const destroys = terraform.findPlannedDestroys(
+        new Map([
+          [
+            'region-module',
+            {
+              resource_changes: [
+                { address: 'aws_vpc.vpc-1', change: { actions: ['create'] } },
+                { address: 'aws_subnet.subnet-1', change: { actions: ['update'] } },
+              ],
+            },
+          ],
+        ]),
+      );
+
+      expect(destroys).toEqual([]);
     });
   });
 

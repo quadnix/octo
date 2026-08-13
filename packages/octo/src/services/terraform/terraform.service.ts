@@ -1092,8 +1092,9 @@ export class TerraformService {
 
   /**
    * Prints one folder's `terragrunt.hcl`: a `dependency` block per producer folder (with
-   * `mock_outputs` so `run-all plan` works before the first apply), and the `inputs` map wiring
-   * each auto variable to the producer's output.
+   * `mock_outputs`, shallow-merged over any applied state, so `run-all plan` works both before the
+   * first apply and when intent renames a producer resource), and the `inputs` map wiring each auto
+   * variable to the producer's output.
    */
   private renderTerragrunt(moduleWiring: TerraformModuleWiring): string {
     const step = this.step;
@@ -1171,6 +1172,7 @@ export class TerraformService {
         }
         lines.push(`${step}}`);
         lines.push(`${step}mock_outputs_allowed_terraform_commands = ["init", "plan", "show", "validate"]`);
+        lines.push(`${step}mock_outputs_merge_strategy_with_state = "shallow"`);
       }
       lines.push('}');
       sections.push(lines.join('\n'));
