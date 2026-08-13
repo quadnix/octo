@@ -478,6 +478,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
          "vpc-region-VpcId" = "mock-vpc-region-VpcId"
        }
        mock_outputs_allowed_terraform_commands = ["init", "plan", "show", "validate"]
+       mock_outputs_merge_strategy_with_state = "shallow"
      }
 
      dependency "testSubnet1Module" {
@@ -487,6 +488,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
          "subnet-region-public-subnet-1-SubnetId" = "mock-subnet-region-public-subnet-1-SubnetId"
        }
        mock_outputs_allowed_terraform_commands = ["init", "plan", "show", "validate"]
+       mock_outputs_merge_strategy_with_state = "shallow"
      }
 
      dependency "testSubnet2Module" {
@@ -496,6 +498,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
          "subnet-region-public-subnet-2-SubnetId" = "mock-subnet-region-public-subnet-2-SubnetId"
        }
        mock_outputs_allowed_terraform_commands = ["init", "plan", "show", "validate"]
+       mock_outputs_merge_strategy_with_state = "shallow"
      }
 
      inputs = {
@@ -577,6 +580,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
          "alb-target-group-backend-v1-region-qa-public-subnet-1-TargetGroupArn" = "arn:aws:elasticloadbalancing:us-east-1:000000000000:targetgroup/mock-tg/0123456789abcdef"
        }
        mock_outputs_allowed_terraform_commands = ["init", "plan", "show", "validate"]
+       mock_outputs_merge_strategy_with_state = "shallow"
      }
 
      dependency "testModule" {
@@ -586,6 +590,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
          "ecs-cluster-region-qa-clusterArn" = "mock-ecs-cluster-region-qa-clusterArn"
        }
        mock_outputs_allowed_terraform_commands = ["init", "plan", "show", "validate"]
+       mock_outputs_merge_strategy_with_state = "shallow"
      }
 
      dependency "testSubnet1Module" {
@@ -595,6 +600,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
          "subnet-region-public-subnet-1-SubnetId" = "mock-subnet-region-public-subnet-1-SubnetId"
        }
        mock_outputs_allowed_terraform_commands = ["init", "plan", "show", "validate"]
+       mock_outputs_merge_strategy_with_state = "shallow"
      }
 
      inputs = {

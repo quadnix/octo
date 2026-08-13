@@ -241,6 +241,7 @@ describe('AwsEcsServerModule UT', () => {
          "iam-role-ServerRole-backend-Arn" = "arn:aws:iam::000000000000:role/mock-role"
        }
        mock_outputs_allowed_terraform_commands = ["init", "plan", "show", "validate"]
+       mock_outputs_merge_strategy_with_state = "shallow"
      }
 
      inputs = {

@@ -174,6 +174,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
          "dynamodb-test-table-TableArn" = "mock-dynamodb-test-table-TableArn"
        }
        mock_outputs_allowed_terraform_commands = ["init", "plan", "show", "validate"]
+       mock_outputs_merge_strategy_with_state = "shallow"
      }
 
      inputs = {
