@@ -47,9 +47,10 @@ describe('applyModelTransaction()', () => {
     expect(existsSync(join(testModes.outputDir, 'region-module'))).toBe(true);
     expect(existsSync(join(testModes.outputDir, 'sg-module'))).toBe(true);
 
-    const result = await validate({ persistedMappings: new Map(), plans: testModes.plans, transaction });
-    expect(result.errors).toEqual([]);
-    expect(result.pass).toBe(true);
+    const report = await validate({ persistedMappings: new Map(), plans: testModes.plans, transaction });
+    expect(report.failures).toEqual([]);
+    expect(report.drift).toEqual([]);
+    expect(report.intentChanges).toHaveLength(3);
   });
 
   it('throws on a refusing diff before any terraform is generated', async () => {

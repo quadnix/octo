@@ -56,9 +56,14 @@ describe('Main UT', () => {
         { actions: ['delete'], address: 'null_resource.igw-1' },
       ]);
 
-      const result = await testModes.validate(app, { plans: testModes.plans });
-      expect(result.errors).toEqual([]);
-      expect(result.pass).toBe(true);
+      const report = await testModes.validate(app, { plans: testModes.plans });
+      expect(report.failures).toEqual([]);
+      expect(report.drift).toEqual([]);
+      // Recovered from the committed mapping: without it igw-1's address is unknown to this boot, and
+      // terraform's destroy of it would read as drift.
+      expect(report.intentChanges.find((c) => c.resourceId === 'igw-1')!.terraformChanges).toEqual([
+        { address: 'null_resource.igw-1', tfActions: ['delete'] },
+      ]);
     });
 
     it('should persist resource state with each resource attributed to its module', async () => {

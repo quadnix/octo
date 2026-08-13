@@ -19,6 +19,7 @@ import type { App } from '../models/app/app.model.js';
 import type { IModelAction } from '../models/model-action.interface.js';
 import { AModel } from '../models/model.abstract.js';
 import { applyModelTransaction } from '../modes/apply-transaction.js';
+import type { ValidateReport } from '../modes/validate.mode.js';
 import type { BaseAnchorSchema } from '../overlays/anchor.schema.js';
 import { OverlayDataRepository, type OverlayDataRepositoryFactory } from '../overlays/overlay-data.repository.js';
 import { AOverlay } from '../overlays/overlay.abstract.js';
@@ -359,6 +360,7 @@ export class TestModuleContainer {
     resourceDiffs: DiffMetadata[][];
     resourceTransaction: DiffMetadata[][];
     responses: { [resourceContext: string]: unknown };
+    validateReport: ValidateReport | undefined;
     warnings: { message: string; moduleId?: string }[];
   }> {
     const [moduleContainer, resourceDataRepository, terraformService, terraformUtility] = await Promise.all([
@@ -412,6 +414,7 @@ export class TestModuleContainer {
         resourceDiffs: transaction.resourceDiffs,
         resourceTransaction: transaction.resourceTransaction,
         responses: collectResponses(),
+        validateReport: undefined,
         warnings: [],
       };
       return;
@@ -432,15 +435,12 @@ export class TestModuleContainer {
     this.previousHcl = currentHcl;
 
     // Validate.
-    const validation = await this.octo.validate(
-      app,
-      { plans: await terraformUtility.plan(dir, { json: true }) },
-      transaction,
-    );
-    if (!validation.pass) {
+    const validateReport = await this.octo.validate(app, await terraformUtility.plan(dir, { json: true }), transaction);
+
+    if (validateReport.failures.length > 0) {
       throw new Error(
-        `runModules(): terraform plan failed octo validation:\n${validation.errors
-          .map((error) => `${error.moduleId ? `[${error.moduleId}] ` : ''}${error.message}`)
+        `runModules(): terraform could not plan:\n${validateReport.failures
+          .map((failure) => `${failure.moduleId ? `[${failure.moduleId}] ` : ''}${failure.message}`)
           .join('\n')}`,
       );
     }
@@ -452,6 +452,7 @@ export class TestModuleContainer {
       resourceDiffs,
       resourceTransaction: [],
       responses: collectResponses(),
+      validateReport,
       warnings: [],
     };
 

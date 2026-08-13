@@ -119,17 +119,19 @@ describe('App Modes E2E Test', () => {
     testModes.writePlan('sg-module', [{ actions: ['create'], address: 'aws_security_group.sg-1' }]);
 
     const validation = await testModes.validate(app, { plans: testModes.plans });
-    expect(validation.errors).toEqual([]);
-    expect(validation.pass).toBe(true);
+    expect(validation.failures).toEqual([]);
+    expect(validation.drift).toEqual([]);
 
-    // A plan that disagrees with octo's diff fails validation.
+    // A plan that disagrees with octo's diff is reported, not rejected. Octo wants to add vpc-1 and
+    // terraform plans nothing for it, which is an intent change with no infrastructure cost.
     testModes.writePlan('region-module', [
       { actions: ['no-op'], address: 'aws_vpc.vpc-1' },
       { actions: ['create'], address: 'null_resource.igw-1' },
     ]);
-    const badValidation = await testModes.validate(app, { plans: testModes.plans });
-    expect(badValidation.pass).toBe(false);
-    expect(badValidation.errors.some((e) => e.message.includes('aws_vpc.vpc-1'))).toBe(true);
+    const disagreeingValidation = await testModes.validate(app, { plans: testModes.plans });
+    expect(disagreeingValidation.failures).toEqual([]);
+    expect(disagreeingValidation.drift).toEqual([]);
+    expect(disagreeingValidation.intentChanges.find((c) => c.resourceId === 'vpc-1')!.terraformChanges).toEqual([]);
 
     // ------------------------------------------------------------------------------------------
     // Mode 3: run-action. Terraform shells back into octo mid-apply for the external resource.
@@ -187,8 +189,8 @@ describe('App Modes E2E Test', () => {
       ]);
       testModes.writePlan('sg-module', [{ actions: ['no-op'], address: 'aws_security_group.sg-1' }]);
       const validation = await testModes.validate(app, { plans: testModes.plans });
-      expect(validation.errors).toEqual([]);
-      expect(validation.pass).toBe(true);
+      expect(validation.failures).toEqual([]);
+      expect(validation.drift).toEqual([]);
 
       // run-action: the external resource is unchanged, so the action does not run.
       const actionResult = await testModes.runAction(app, {
@@ -215,8 +217,8 @@ describe('App Modes E2E Test', () => {
       ]);
       testModes.writePlan('sg-module', [{ actions: ['update'], address: 'aws_security_group.sg-1' }]);
       const validation = await testModes.validate(app, { plans: testModes.plans });
-      expect(validation.errors).toEqual([]);
-      expect(validation.pass).toBe(true);
+      expect(validation.failures).toEqual([]);
+      expect(validation.drift).toEqual([]);
 
       // run-action: octo determines this is an update from the property change and runs the action.
       const actionResult = await testModes.runAction(app, {
@@ -241,8 +243,8 @@ describe('App Modes E2E Test', () => {
       ]);
       testModes.writePlan('sg-module', [{ actions: ['no-op'], address: 'aws_security_group.sg-1' }]);
       const validation = await testModes.validate(app, { plans: testModes.plans });
-      expect(validation.errors).toEqual([]);
-      expect(validation.pass).toBe(true);
+      expect(validation.failures).toEqual([]);
+      expect(validation.drift).toEqual([]);
 
       // A terraform resource still cannot be driven by run-action, even when it is the thing changing.
       await expect(testModes.runAction(app, { resourceId: 'vpc-1' })).rejects.toThrow(
@@ -274,8 +276,8 @@ describe('App Modes E2E Test', () => {
       ]);
       testModes.writePlan('sg-module', [{ actions: ['no-op'], address: 'aws_security_group.sg-1' }]);
       const validation = await testModes.validate(app, { plans: testModes.plans });
-      expect(validation.errors).toEqual([]);
-      expect(validation.pass).toBe(true);
+      expect(validation.failures).toEqual([]);
+      expect(validation.drift).toEqual([]);
 
       // run-action: octo determines igw-2 is an add and runs the action.
       const actionResult = await testModes.runAction(app, {
@@ -329,9 +331,9 @@ describe('App Modes E2E Test', () => {
       ]);
       testModes.writePlan('sg-module', [{ actions: ['delete'], address: 'aws_security_group.sg-1' }]);
       const validation = await testModes.validate(app, { plans: testModes.plans });
-      expect(validation.errors).toEqual([]);
-      expect(validation.warnings).toEqual([]);
-      expect(validation.pass).toBe(true);
+      expect(validation.failures).toEqual([]);
+      expect(validation.notes).toEqual([]);
+      expect(validation.drift).toEqual([]);
 
       // run-action: octo determines igw is a delete and runs the delete action (empty response).
       const actionResult = await testModes.runAction(app, {
@@ -361,9 +363,9 @@ describe('App Modes E2E Test', () => {
       ]);
       testModes.writePlan('sg-module', [{ actions: ['delete'], address: 'aws_security_group.sg-1' }]);
       const deleteValidation = await testModes.validate(app, { plans: testModes.plans });
-      expect(deleteValidation.errors).toEqual([]);
-      expect(deleteValidation.warnings).toEqual([]);
-      expect(deleteValidation.pass).toBe(true);
+      expect(deleteValidation.failures).toEqual([]);
+      expect(deleteValidation.notes).toEqual([]);
+      expect(deleteValidation.drift).toEqual([]);
 
       // The user applies (destroying igw and sg), then commits. Outputs exist only for the filled
       // folder — nothing is demanded for the emptied one — and the destroyed module drops out of
@@ -386,10 +388,10 @@ describe('App Modes E2E Test', () => {
       testModes.writePlan('region-module', [{ actions: ['no-op'], address: 'aws_vpc.vpc-1' }]);
       testModes.writePlan('sg-module', []);
       const leftoverValidation = await testModes.validate(app, { plans: testModes.plans });
-      expect(leftoverValidation.errors).toEqual([]);
-      expect(leftoverValidation.pass).toBe(true);
+      expect(leftoverValidation.failures).toEqual([]);
+      expect(leftoverValidation.drift).toEqual([]);
       expect(
-        leftoverValidation.warnings.some((w) => w.moduleId === 'sg-module' && w.message.includes('does not track')),
+        leftoverValidation.notes.some((w) => w.moduleId === 'sg-module' && w.message.includes('does not track')),
       ).toBe(true);
 
       // The user brings igw and sg back (vpc is still staged from the run above — only a commit
@@ -439,9 +441,9 @@ describe('App Modes E2E Test', () => {
       ]);
       testModes.writePlan('sg-module', [{ actions: ['delete'], address: 'aws_security_group.sg-1' }]);
       const validation = await testModes.validate(app, { plans: testModes.plans });
-      expect(validation.errors).toEqual([]);
-      expect(validation.pass).toBe(true);
-      expect(validation.warnings.some((w) => w.moduleId === 'sg-module' && w.message.includes('does not track'))).toBe(
+      expect(validation.failures).toEqual([]);
+      expect(validation.drift).toEqual([]);
+      expect(validation.notes.some((w) => w.moduleId === 'sg-module' && w.message.includes('does not track'))).toBe(
         true,
       );
     });
@@ -471,9 +473,9 @@ describe('App Modes E2E Test', () => {
       testModes.plans.clear();
       testModes.writePlan('region-module', [{ actions: ['delete'], address: 'aws_vpc.vpc-1' }]);
       const validation = await testModes.validate(app, { plans: testModes.plans });
-      expect(validation.errors).toEqual([]);
-      expect(validation.warnings).toEqual([]);
-      expect(validation.pass).toBe(true);
+      expect(validation.failures).toEqual([]);
+      expect(validation.notes).toEqual([]);
+      expect(validation.drift).toEqual([]);
 
       // The destroy commit demands nothing (no filled folders); supplying the emptied folder's
       // (empty) outputs is tracked, not warned. The committed state ends empty.
@@ -507,10 +509,10 @@ describe('App Modes E2E Test', () => {
       testModes.writePlan('sg-module', [{ actions: ['create'], address: 'aws_security_group.sg-1' }]);
       testModes.writePlan('hand-written-module', [{ actions: ['create'], address: 'aws_s3_bucket.mine' }]);
       const validation = await testModes.validate(app, { plans: testModes.plans });
-      expect(validation.errors).toEqual([]);
-      expect(validation.pass).toBe(true);
+      expect(validation.failures).toEqual([]);
+      expect(validation.drift).toEqual([]);
       expect(
-        validation.warnings.some((w) => w.moduleId === 'hand-written-module' && w.message.includes('does not track')),
+        validation.notes.some((w) => w.moduleId === 'hand-written-module' && w.message.includes('does not track')),
       ).toBe(true);
 
       // commit: its outputs are ignored with the same warning; the tracked modules commit fine.

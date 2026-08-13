@@ -332,24 +332,26 @@ export class Octo {
   }
 
   /**
-   * The second step of the octo lifecycle - this function validates the generated terraform plans
-   * against octo's resource diff.
+   * The second step of the octo lifecycle - this function correlates the generated terraform plans
+   * with octo's resource diff and reports what it finds.
    *
-   * This function can be used in 2 ways,
-   * 1. Validate your infrastructure intent against the actual infrastructure reported by Terraform.
-   * Since Terraform can catch a resource that has drifted from its original configuration,
-   * you can run this function to identify which octo resource(s) have a drift.
-   * This will allow you to either fix the drift, or modify your infrastructure intent to match the actual.
-   * 2. Validate your infrastructure intent against Terraform plan.
-   * When you change your infrastructure intent, Terraform will produce a plan to apply those changes.
-   * This function will additionally help you validate the diffs produced by Octo matches the plan.
+   * The report answers two questions separately:
+   * 1. What will change, and why — including terraform changes octo did not flag directly but can
+   *    attribute to something it did (a referenced resource whose identity moved, or an address the
+   *    resource no longer renders).
+   * 2. What changed that intent does *not* explain — drift, i.e. infrastructure modified outside
+   *    octo. Read {@link ValidateReport.confidence} first: drift detection is only reliable when
+   *    intent itself is unchanged.
    *
-   * This function correctly identifies resource add, update, replace, and delete operations.
-   * Additionally, it ignores all Terragrunt folders that Octo is not tracking.
+   * The report is unsuccessful only when terraform could not plan a folder octo generated
+   * ({@link ValidateReport.failures}). Folders octo does not track are excluded and noted.
+   *
+   * Pass the whole result of `TerraformUtility.plan(dir, { json: true })`, whose `errors` map carries
+   * terraform's own message for each folder that failed.
    */
   async validate(
     app: App,
-    { plans }: { plans: Map<string, TerraformPlan> },
+    { errors: planErrors, plans }: { errors?: Map<string, string>; plans: Map<string, TerraformPlan> },
     transaction?: ModelTransactionResult,
   ): ReturnType<typeof runValidate> {
     const { userData } = await this.stateManagementService.getResourceState(this.actualResourceStateFileName);
@@ -364,6 +366,7 @@ export class Octo {
     const resolvedTransaction = transaction ?? (await applyModelTransaction(app));
     return runValidate({
       persistedMappings,
+      planErrors,
       plans,
       previousFolders: terraformFolders ?? [],
       transaction: resolvedTransaction,
