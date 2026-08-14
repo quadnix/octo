@@ -1,5 +1,33 @@
 # aws-ecs-server
 
+## Tests
+
+| File                | Covers                                                                                                         | Cost    |
+|---------------------|----------------------------------------------------------------------------------------------------------------|---------|
+| `main.e2e-spec.ts`  | Full stack: applies everything (NAT gateway + ALB), asserts HTTP 200, 22 `input changes` plan cases, teardown. | ~25 min |
+| `drift.e2e-spec.ts` | Infrastructure changed outside octo, intent untouched. Region + subnets, NAT off.                              | ~3 min  |
+
+Both create real AWS resources. They need `.env` (see `.env.defaults`) and credentials for that
+account. Build octo first — this package imports `@quadnix/octo` from **dist**.
+
+```bash
+npx nx run-many -t build --projects=octo
+cd packages/octo-templates
+
+NODE_OPTIONS=--experimental-vm-modules npx jest --testRegex "drift\.e2e-spec\.ts$"
+NODE_OPTIONS=--experimental-vm-modules npx jest --testRegex "aws-ecs-server/main\.e2e-spec\.ts$" --runInBand
+```
+
+**Do not use `pnpm test:e2e`.** It matches all four template e2e specs and builds three unrelated
+stacks at once.
+
+`main.e2e-spec.ts` is one sequence sharing a single state provider: the first test applies the stack,
+the 22 `input changes` tests plan against it, the last tears it down. Filtering with `-t` plans
+against an empty stack and records meaningless snapshots. Run the whole file — and if the applied test
+fails, discard the run rather than the snapshots it wrote, because the plan tests still "pass"
+against empty state. Abort the run, and the stack stays applied; re-run the teardown test, or use
+`incremental.e2e-harness.ts`'s teardown phase.
+
 ## Debugging harnesses
 
 `*.e2e-harness.ts` files are debugging tools, not tests. They match no test script — `test` is
@@ -10,13 +38,7 @@ They exist because `main.e2e-spec.ts` takes ~20 min per iteration, dominated by 
 create/delete, which is unusable when bisecting a bug. Each harness strips a different part of that
 cost.
 
-Build octo first — this package imports `@quadnix/octo` from **dist**, so otherwise you are
-debugging stale code:
-
-```bash
-npx nx run-many -t build --projects=octo
-cd packages/octo-templates      # all commands below run from here
-```
+Same prerequisites as the tests above, and every command below runs from `packages/octo-templates`.
 
 ### `diff-probe` — octo's raw diffs, no terraform, no AWS (~10 s)
 
