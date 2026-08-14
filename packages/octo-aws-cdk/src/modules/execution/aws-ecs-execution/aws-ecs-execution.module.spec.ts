@@ -1,4 +1,4 @@
-import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import { type ModuleSchemaInputs, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsEcsClusterAnchorSchema } from '../../../anchors/aws-ecs/aws-ecs-cluster.anchor.schema.js';
 import type { AwsEcsTaskDefinitionAnchorSchema } from '../../../anchors/aws-ecs/aws-ecs-task-definition.anchor.schema.js';
 import type { AwsEfsAnchorSchema } from '../../../anchors/aws-efs/aws-efs.anchor.schema.js';
@@ -15,7 +15,14 @@ import type { SubnetSchema } from '../../../resources/subnet/index.schema.js';
 import type { VpcSchema } from '../../../resources/vpc/index.schema.js';
 import { AwsEcsExecutionModule } from './index.js';
 
-async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
+/**
+ * `clusterName` names both the cluster anchor the execution reads and the ECS Cluster resource it
+ * resolves to, so passing a different one is how a test hands the same execution a different cluster.
+ */
+async function setup(
+  testModuleContainer: TestModuleContainer,
+  { clusterName = 'region-qa' }: { clusterName?: string } = {},
+): Promise<void> {
   const {
     deployment: [deployment],
     environment: [environment],
@@ -48,7 +55,7 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
   environment.addAnchor(
     testModuleContainer.createTestAnchor<AwsEcsClusterAnchorSchema>(
       'AwsEcsClusterAnchor',
-      { clusterName: 'region-qa', environmentVariables: { NODE_ENV: 'qa' } },
+      { clusterName, environmentVariables: { NODE_ENV: 'qa' } },
       environment,
     ),
   );
@@ -138,8 +145,8 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
     'testModule',
     [
       {
-        properties: { awsAccountId: '123', awsRegionId: 'us-east-1', clusterName: 'region-qa' },
-        resourceContext: '@octo/ecs-cluster=ecs-cluster-region-qa',
+        properties: { awsAccountId: '123', awsRegionId: 'us-east-1', clusterName },
+        resourceContext: `@octo/ecs-cluster=ecs-cluster-${clusterName}`,
         response: { clusterArn: 'clusterArn' },
       },
       {
@@ -1258,5 +1265,49 @@ describe('AwsEcsExecutionModule UT', () => {
     ).value!;
     expect(hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`[]`);
+  });
+
+  it('should replace the service when it is handed a different cluster', async () => {
+    const inputs: ModuleSchemaInputs<AwsEcsExecutionModule> = {
+      deployments: {
+        main: {
+          containerProperties: { image: { essential: true, name: 'backend-v1' } },
+          deployment: stub('${{testModule.model.deployment}}'),
+        },
+        sidecars: [],
+      },
+      desiredCount: 1,
+      environment: stub('${{testModule.model.environment}}'),
+      executionId: 'backend-v1-region-qa-private-subnet',
+      subnet: stub('${{testModule.model.subnet}}'),
+    };
+
+    await setup(testModuleContainer);
+    await testModuleContainer
+      .runModules<AwsEcsExecutionModule>({ inputs, moduleId: 'execution', type: AwsEcsExecutionModule }, {
+        terraformTarget: 'skip',
+      })
+      .next();
+
+    // Renaming an environment recreates its cluster, which hands this execution's service a cluster
+    // it did not have before. `cluster` is force-new on aws_ecs_service, so the service is recreated -
+    // and octo has to say so itself, since validate cascades from a REPLACE but not from an UPDATE.
+    await setup(testModuleContainer, { clusterName: 'region-changed-qa' });
+    const { resourceDiffs } = (
+      await testModuleContainer
+        .runModules<AwsEcsExecutionModule>({ inputs, moduleId: 'execution', type: AwsEcsExecutionModule }, {
+          terraformTarget: 'skip',
+        })
+        .next()
+    ).value!;
+
+    // The cluster's own delete is the fixture's: `setup` rebuilds the test resources, so the cluster
+    // the first run resolved is no longer in the graph.
+    expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
+     [
+       "- @octo/ecs-cluster=ecs-cluster-region-qa",
+       "^ @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
+     ]
+    `);
   });
 });

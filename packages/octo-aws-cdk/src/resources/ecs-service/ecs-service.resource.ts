@@ -103,6 +103,34 @@ export class EcsService extends ATerraformResource<EcsServiceSchema, EcsService>
   override async diff(previous: EcsService): Promise<Diff[]> {
     const diffs: Diff[] = await super.diff(previous);
 
+    // `cluster` is force-new on aws_ecs_service, so a service handed a different cluster is recreated,
+    // not updated. Saying REPLACE keeps octo's own diff in step with the plan terraform plans, and
+    // lets validate cascade from this service to whatever references it - an UPDATE seeds no cascade,
+    // so a referrer's recreate would surface as unexplained drift.
+    //
+    // Only an add/delete of the parent is a different cluster. A cluster replaced in place keeps this
+    // service's parent, and validate already attributes the consequence to the cluster's own REPLACE.
+    if (
+      diffs.some(
+        (d) =>
+          d.field === 'parent' &&
+          (d.action === DiffAction.ADD || d.action === DiffAction.DELETE) &&
+          hasNodeName(d.value as AResource<any, any>, 'ecs-cluster'),
+      )
+    ) {
+      // Alone, as diffProperties' REPLACE is: `diffInverse` clones the whole resource, parents
+      // included, so the diffs consolidated below would be re-applying what the clone already carried.
+      return [
+        new Diff(
+          this,
+          DiffAction.REPLACE,
+          'resourceId',
+          this.getContext(),
+          'cluster is force-new on aws_ecs_service; moving the service recreates it',
+        ),
+      ];
+    }
+
     let shouldConsolidateDiffs = false;
     for (let i = diffs.length - 1; i >= 0; i--) {
       if (diffs[i].field === 'parent' && hasNodeName(diffs[i].value as AResource<any, any>, 'security-group')) {
