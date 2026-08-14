@@ -327,7 +327,7 @@ exports[`Main E2E input changes AwsEcsEnvironmentModule should handle environmen
 [
   "- @octo/ecs-cluster=ecs-cluster-app-region-east-qa",
   "^ @octo/ecs-task-definition=ecs-task-definition-backend-v1-qa-execution",
-  "* @octo/ecs-service=ecs-service-backend-v1-qa-execution",
+  "^ @octo/ecs-service=ecs-service-backend-v1-qa-execution",
   "+ @octo/ecs-cluster=ecs-cluster-app-region-east-changed-qa",
 ]
 `;
@@ -370,7 +370,7 @@ exports[`Main E2E input changes AwsEcsEnvironmentModule should handle environmen
     },
     {
       "moduleId": "backend-v1-qa-execution-module",
-      "octoAction": "update",
+      "octoAction": "replace",
       "resourceContext": "@octo/ecs-service=ecs-service-backend-v1-qa-execution",
       "resourceId": "ecs-service-backend-v1-qa-execution",
       "terraformChanges": [
@@ -1124,12 +1124,18 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle name change
   "- @octo/ecs-cluster=ecs-cluster-app-region-east-qa",
   "- @octo/vpc=vpc-app-region-east",
   "^ @octo/ecs-task-definition=ecs-task-definition-backend-v1-qa-execution",
+  "* @octo/alb-target-group=alb-target-group-backend-v1-qa-execution",
+  "* @octo/alb-target-group=alb-target-group-backend-v1-qa-execution",
   "- @octo/internet-gateway=igw-app-region-east",
   "- @octo/security-group=sec-grp-app-region-east-qa-api-alb",
+  "* @octo/security-group=sec-grp-SecurityGroup-backend",
+  "* @octo/security-group=sec-grp-SecurityGroup-backend",
+  "* @octo/security-group=sec-grp-SecurityGroup-backend-v1-qa-execution",
+  "* @octo/security-group=sec-grp-SecurityGroup-backend-v1-qa-execution",
   "- @octo/subnet=subnet-app-region-east-private-subnet",
   "- @octo/subnet=subnet-app-region-east-public-backup-subnet",
   "- @octo/subnet=subnet-app-region-east-public-subnet",
-  "* @octo/ecs-service=ecs-service-backend-v1-qa-execution",
+  "^ @octo/ecs-service=ecs-service-backend-v1-qa-execution",
   "- @octo/network-acl=nacl-app-region-east-private-subnet",
   "- @octo/network-acl=nacl-app-region-east-public-backup-subnet",
   "- @octo/route-table=rt-app-region-east-public-backup-subnet",
@@ -1488,7 +1494,7 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle name change
     },
     {
       "moduleId": "backend-v1-qa-execution-module",
-      "octoAction": "update",
+      "octoAction": "replace",
       "resourceContext": "@octo/ecs-service=ecs-service-backend-v1-qa-execution",
       "resourceId": "ecs-service-backend-v1-qa-execution",
       "terraformChanges": [
@@ -2374,6 +2380,8 @@ exports[`Main E2E input changes AwsSimpleSubnetModule should handle subnetName c
   "- @octo/nat-gateway=nat-gateway-app-region-east-public-subnet",
   "- @octo/network-acl=nacl-app-region-east-public-subnet",
   "- @octo/route-table=rt-app-region-east-public-subnet",
+  "* @octo/route-table=rt-app-region-east-private-subnet",
+  "* @octo/route-table=rt-app-region-east-private-subnet",
   "+ @octo/subnet=subnet-app-region-east-changed-public-subnet",
   "+ @octo/nat-gateway=nat-gateway-app-region-east-changed-public-subnet",
   "+ @octo/route-table=rt-app-region-east-changed-public-subnet",

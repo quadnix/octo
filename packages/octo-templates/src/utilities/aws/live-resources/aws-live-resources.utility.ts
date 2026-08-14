@@ -1,6 +1,7 @@
 import {
   DescribeInternetGatewaysCommand,
   DescribeNatGatewaysCommand,
+  type DescribeNatGatewaysCommandOutput,
   DescribeNetworkAclsCommand,
   DescribeRouteTablesCommand,
   DescribeSecurityGroupsCommand,
@@ -152,20 +153,38 @@ export class AwsLiveResourcesUtility {
     return dead;
   }
 
+  /**
+   * Describes each NAT gateway by its own id, for the same reason {@link deadVpcFamilyArns} does: EC2
+   * fails the whole describe with `NatGatewayNotFound` if any single id is unknown, so one gateway
+   * would decide the answer for all of them.
+   *
+   * A NAT gateway lingers in the `deleted` state for a while and then stops resolving altogether,
+   * while the tagging API goes on listing it for longer still — so a previous run's gateway, aged out
+   * between runs, is the id that turns this into a throw.
+   */
   private async deadNatGatewayArns(arns: string[]): Promise<string[]> {
-    const natGatewayArns = arns.filter((arn) => arn.includes(':natgateway/'));
-    if (natGatewayArns.length === 0) {
-      return [];
-    }
-
-    const idToArn = new Map(natGatewayArns.map((arn) => [arn.split(':natgateway/')[1], arn]));
-    const response = await this.ec2Client.send(new DescribeNatGatewaysCommand({ NatGatewayIds: [...idToArn.keys()] }));
-
     const dead: string[] = [];
-    for (const natGateway of response.NatGateways ?? []) {
-      const arn = natGateway.NatGatewayId ? idToArn.get(natGateway.NatGatewayId) : undefined;
-      if (arn && natGateway.State !== 'available' && natGateway.State !== 'pending') {
+
+    for (const arn of arns.filter((a) => a.includes(':natgateway/'))) {
+      const natGatewayId = arn.split(':natgateway/')[1];
+
+      let response: DescribeNatGatewaysCommandOutput;
+      try {
+        response = await this.ec2Client.send(new DescribeNatGatewaysCommand({ NatGatewayIds: [natGatewayId] }));
+      } catch (error) {
+        // Only a NotFound proves the gateway is gone. Throttling, credentials or a network blip must
+        // not be read as "destroyed".
+        if (!/NotFound/.test(`${error.name ?? ''} ${error.message ?? ''}`)) {
+          throw error;
+        }
         dead.push(arn);
+        continue;
+      }
+
+      for (const natGateway of response.NatGateways ?? []) {
+        if (natGateway.State !== 'available' && natGateway.State !== 'pending') {
+          dead.push(arn);
+        }
       }
     }
 

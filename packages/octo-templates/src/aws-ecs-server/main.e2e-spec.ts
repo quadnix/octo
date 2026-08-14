@@ -119,6 +119,13 @@ describe('Main E2E', () => {
         // Resources bind to a provider by { accountId, regionId }, so the destination account needs a
         // registered provider before it can be rendered, as a real edit would also have to do. An
         // unused provider is never emitted, so this affects nothing else.
+        //
+        // Read the snapshot as octo's intent, not as a verified account migration: the accountId
+        // reaches terraform only as the provider *alias*, and this provider is registered with no
+        // spec, so both aliases resolve to the credentials this suite already runs under. Terraform
+        // therefore plans nothing, and the report says exactly that - every resource replaced, no
+        // terraform change. A real move needs `assume_role` or `profile` in the provider spec, and a
+        // second account to move into.
         testModuleContainer.registerTerraformProvider('aws', 'changed-account-id', AWS_REGION_ID);
 
         expect(

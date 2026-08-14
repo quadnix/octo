@@ -8,10 +8,13 @@
 | `drift.e2e-spec.ts` | Infrastructure changed outside octo, intent untouched. Region + subnets, NAT off.                              | ~3 min  |
 
 Both create real AWS resources. They need `.env` (see `.env.defaults`) and credentials for that
-account. Build octo first — this package imports `@quadnix/octo` from **dist**.
+account. Build **both** packages first — this one imports `@quadnix/octo` and
+`@quadnix/octo-aws-cdk` from their **dist**, so a change to either that you did not build is a change
+these tests will not see. Skipping the `octo-aws-cdk` build is the quieter mistake: the tests still
+pass, and record snapshots of the old behaviour.
 
 ```bash
-npx nx run-many -t build --projects=octo
+npx nx run-many -t build --projects=octo,octo-aws-cdk
 cd packages/octo-templates
 
 NODE_OPTIONS=--experimental-vm-modules npx jest --testRegex "drift\.e2e-spec\.ts$"
