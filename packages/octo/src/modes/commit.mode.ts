@@ -1,6 +1,8 @@
-import type { TerraformFolderOutput, UnknownResource } from '../app.type.js';
+import type { TerraformFolderOutput, TerraformResourceOutput, UnknownResource } from '../app.type.js';
 import { TransactionError } from '../errors/index.js';
+import type { CommitModeCompletedEvent } from '../events/index.js';
 import { Container } from '../functions/container/container.js';
+import { aggregateResourceActions } from '../functions/diff/aggregate-resource-actions.js';
 import type { DiffMetadata } from '../functions/diff/diff-metadata.js';
 import { ResourceDataRepository } from '../resources/resource-data.repository.js';
 import { TerraformService } from '../services/terraform/terraform.service.js';
@@ -24,19 +26,30 @@ export type TerraformOutputs = Record<string, { value: unknown }>;
  * or touches, a folder it does not recognize; re-declaring the module in intent re-adopts it.
  *
  * Returns the model transaction so {@link Octo} can run the persistence + commit hooks it owns,
- * plus the warnings for the caller to surface.
+ * plus a description of what was committed for the caller to emit and surface.
+ *
+ * `previousMappings` is the octo→terraform mapping persisted by the last commit. It supplies the
+ * module and addresses of resources being deleted, which this run's sweep no longer renders.
  *
  * @internal
  */
 export async function commit({
   outputs,
   previousFolders = [],
+  previousMappings = [],
   transaction,
 }: {
   outputs: Map<string, TerraformOutputs>;
   previousFolders?: TerraformFolderOutput[];
+  previousMappings?: TerraformResourceOutput[];
   transaction: ModelTransactionResult;
-}): Promise<{ modelTransaction: DiffMetadata[][]; warnings: { message: string; moduleId?: string }[] }> {
+}): Promise<{
+  emptiedModuleIds: string[];
+  modelTransaction: DiffMetadata[][];
+  resources: CommitModeCompletedEvent['payload']['resources'];
+  responses: { key: string; previousValue?: string; resourceContext: string; value: string }[];
+  warnings: { message: string; moduleId?: string }[];
+}> {
   const container = Container.getInstance();
   const [resourceDataRepository, terraformService] = await Promise.all([
     container.get(ResourceDataRepository),
@@ -133,12 +146,45 @@ export async function commit({
     );
   }
 
+  // Capture the previous value before overwriting.
+  const responses: { key: string; previousValue?: string; resourceContext: string; value: string }[] = [];
   for (const { key, resource, value } of responseUpdates) {
+    const previousValue = resource.response[key];
+    responses.push({
+      key,
+      previousValue: previousValue === undefined ? undefined : String(previousValue),
+      resourceContext: resource.getContext(),
+      value,
+    });
     resource.response[key] = value;
   }
 
   // Terraform has applied the full desired state: actual ← new.
   resourceDataRepository.syncActualToNew();
 
-  return { modelTransaction, warnings };
+  // Describe what was committed. Addresses come from this run's sweep, falling back to the last
+  // commit's mapping for deleted resources, which the sweep no longer renders.
+  const mappingByContext = new Map(mappings.map((mapping) => [mapping.resourceContext, mapping]));
+  const previousByContext = new Map(previousMappings.map((mapping) => [mapping.resourceContext, mapping]));
+
+  const resources = [...aggregateResourceActions(transaction.resourceDiffs.flat()).entries()].map(
+    ([resourceContext, action]) => {
+      const mapping = mappingByContext.get(resourceContext) ?? previousByContext.get(resourceContext);
+      return {
+        action: action.action,
+        moduleId: mapping?.moduleId,
+        reason: action.reason,
+        resourceContext,
+        resourceId: action.resourceId,
+        terraformAddresses: mapping?.terraformAddresses ?? [],
+      };
+    },
+  );
+
+  const writtenModuleIds = terraformService.getModuleIds();
+  const emptiedModuleIds = previousFolders
+    .map((folder) => folder.moduleId)
+    .filter((moduleId) => !writtenModuleIds.includes(moduleId));
+
+  return { emptiedModuleIds, modelTransaction, resources, responses, warnings };
 }

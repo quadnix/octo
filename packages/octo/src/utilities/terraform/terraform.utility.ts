@@ -5,8 +5,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Factory } from '../../decorators/factory.decorator.js';
 import { TerraformCommandError } from '../../errors/index.js';
+import { TerraformCommandFinishedEvent, TerraformCommandStartedEvent } from '../../events/index.js';
 import type { TerraformOutputs } from '../../modes/commit.mode.js';
 import type { TerraformPlan } from '../../modes/validate.mode.js';
+import { EventService } from '../../services/event/event.service.js';
 
 const DEFAULT_TIMEOUT_IN_MS = 60 * 60 * 1000; // 60 minutes.
 const MAX_BUFFER = 256 * 1024 * 1024; // 256 KB.
@@ -286,15 +288,38 @@ export class TerraformUtility {
       ...commandArgs,
     ];
 
+    const eventService = EventService.getInstance();
+    const startedAt = Date.now();
+    eventService.emit(new TerraformCommandStartedEvent(command, { command, dir: terragruntDir }));
+
     try {
       const { stderr, stdout } = await this.execFileAsync(binary, args, {
         env: this.buildEnv(),
         maxBuffer: MAX_BUFFER,
         timeout: this.options.timeoutInMs,
       });
+
+      eventService.emit(
+        new TerraformCommandFinishedEvent(command, {
+          command,
+          dir: terragruntDir,
+          durationInMs: Date.now() - startedAt,
+          exitCode: 0,
+        }),
+      );
+
       return { args, exitCode: 0, stderr, stdout };
     } catch (error) {
-      throw this.toTerraformCommandError(binary, args, terragruntDir, error);
+      const commandError = this.toTerraformCommandError(binary, args, terragruntDir, error);
+      eventService.emit(
+        new TerraformCommandFinishedEvent(command, {
+          command,
+          dir: terragruntDir,
+          durationInMs: Date.now() - startedAt,
+          exitCode: (commandError as unknown as { exitCode?: number }).exitCode ?? -1,
+        }),
+      );
+      throw commandError;
     }
   }
 

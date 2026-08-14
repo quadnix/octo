@@ -27,14 +27,7 @@ export class EventService {
 
   constructor() {
     this.emitter.on('*', (event: Event<unknown>) => {
-      // Save event to EventBuffer.
-      if (!this.eventBuffer[event.constructor.name]) {
-        this.eventBuffer[event.constructor.name] = { eventClass: Object.getPrototypeOf(event).constructor, events: [] };
-      }
-      if (this.eventBuffer[event.constructor.name].events.length >= this.EVENT_BUFFER_SIZE) {
-        this.eventBuffer[event.constructor.name].events.shift();
-      }
-      this.eventBuffer[event.constructor.name].events.push(event);
+      this.bufferEvent(event);
 
       // Forward event to matching listeners.
       this.forwardEvent(event);
@@ -50,6 +43,29 @@ export class EventService {
 
   emit(event: Event<unknown>): void {
     this.emitter.emit('*', event);
+  }
+
+  /**
+   * Emits an event and waits for every matching listener to settle, throwing the first failure.
+   * Unlike {@link emit}, which is fire-and-forget.
+   */
+  async emitAndWait(event: Event<unknown>): Promise<void> {
+    this.bufferEvent(event);
+
+    const pending: Promise<unknown>[] = [];
+    for (const eventClassName of Object.keys(this.listeners)) {
+      if (event instanceof this.listeners[eventClassName].eventClass) {
+        for (const listener of this.listeners[eventClassName].eventListeners) {
+          pending.push(listener(event));
+        }
+      }
+    }
+
+    const results = await Promise.allSettled(pending);
+    const failure = results.find((result): result is PromiseRejectedResult => result.status === 'rejected');
+    if (failure) {
+      throw failure.reason;
+    }
   }
 
   forwardEvent(event: Event<unknown>, listeners: ((event: Event<unknown>) => Promise<any>)[] = []): void {
@@ -98,6 +114,16 @@ export class EventService {
         }
       }
     }
+  }
+
+  private bufferEvent(event: Event<unknown>): void {
+    if (!this.eventBuffer[event.constructor.name]) {
+      this.eventBuffer[event.constructor.name] = { eventClass: Object.getPrototypeOf(event).constructor, events: [] };
+    }
+    if (this.eventBuffer[event.constructor.name].events.length >= this.EVENT_BUFFER_SIZE) {
+      this.eventBuffer[event.constructor.name].events.shift();
+    }
+    this.eventBuffer[event.constructor.name].events.push(event);
   }
 }
 

@@ -487,6 +487,11 @@ export class TransactionService {
         for (const a of diff.actions as IUnknownResourceAction[]) {
           this.eventService.emit(new ResourceActionInitiatedTransactionEvent(a.constructor.name, diff));
 
+          // Captured before `handle()` mutates the resource, for the summary event below.
+          const preHandleSynth = skipActualResourceUpdate
+            ? this.resourceDataRepository.getNewResourceByContext(diffToProcess.node.getContext())?.synth()
+            : undefined;
+
           let actionTimeoutId: NodeJS.Timeout | undefined;
           try {
             await Promise.race([
@@ -534,7 +539,19 @@ export class TransactionService {
 
           if (skipActualResourceUpdate) {
             // Stateless invocation (run-action): the actual resource graph is not maintained;
-            // terraform state is the source of truth until the next commit.
+            // terraform state is the source of truth until the next commit. The summary is therefore
+            // derived from the new-graph resource either side of `handle()`.
+            const postHandleSynth =
+              diffToProcess.action === DiffAction.DELETE && diffToProcess.field === 'resourceId'
+                ? {}
+                : this.resourceDataRepository.getNewResourceByContext(diffToProcess.node.getContext())?.synth();
+
+            this.eventService.emit(
+              new ResourceActionSummaryTransactionEvent(a.constructor.name, {
+                diff,
+                values: { current: postHandleSynth ?? {}, previous: preHandleSynth ?? {} },
+              }),
+            );
             this.eventService.emit(new ResourceActionCompletedTransactionEvent(a.constructor.name, diff));
             continue;
           }

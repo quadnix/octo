@@ -8,6 +8,16 @@ import type {
   UnknownResource,
 } from './app.type.js';
 import { EnableHook } from './decorators/enable-hook.decorator.js';
+import {
+  CommitModeCompletedEvent,
+  type ModeEventPayload,
+  ModeFailedEvent,
+  ModeFinishedEvent,
+  ModeStartedEvent,
+  type OctoMode,
+  TerraformFoldersWrittenEvent,
+  ValidateModeCompletedEvent,
+} from './events/index.js';
 import { Container } from './functions/container/container.js';
 import { DiffMetadata } from './functions/diff/diff-metadata.js';
 import { App } from './models/app/app.model.js';
@@ -17,6 +27,7 @@ import { generate as runGenerate } from './modes/generate.mode.js';
 import { runAction as runRunAction } from './modes/run-action.mode.js';
 import { type TerraformPlan, validate as runValidate } from './modes/validate.mode.js';
 import { ModuleContainer } from './modules/module.container.js';
+import { EventService } from './services/event/event.service.js';
 import { InputService } from './services/input/input.service.js';
 import { SchemaTranslationService } from './services/schema-translation/schema-translation.service.js';
 import { ModelSerializationService } from './services/serialization/model/model-serialization.service.js';
@@ -33,6 +44,7 @@ import { TerraformService } from './services/terraform/terraform.service.js';
  */
 export class Octo {
   private readonly actualResourceStateFileName: string = 'resources-actual.json';
+  private eventService: EventService;
   private inputService: InputService;
   private modelSerializationService: ModelSerializationService;
 
@@ -62,18 +74,24 @@ export class Octo {
     options: { outputs: Map<string, TerraformOutputs> },
     transaction?: ModelTransactionResult,
   ): Promise<Pick<Awaited<ReturnType<typeof runCommit>>, 'warnings'>> {
-    const { userData } = await this.stateManagementService.getResourceState(this.actualResourceStateFileName);
-    const previousFolders = userData.terraformFolders ?? [];
+    return this.runMode('commit', app.name, async () => {
+      const { userData } = await this.stateManagementService.getResourceState(this.actualResourceStateFileName);
 
-    // Build the transaction unless a single-process driver already built it and passed it in.
-    const resolvedTransaction = transaction ?? (await applyModelTransaction(app));
-    const { modelTransaction, warnings } = await runCommit({
-      ...options,
-      previousFolders,
-      transaction: resolvedTransaction,
+      // Build the transaction unless a single-process driver already built it and passed it in.
+      const resolvedTransaction = transaction ?? (await applyModelTransaction(app));
+      const { modelTransaction, ...completed } = await runCommit({
+        ...options,
+        previousFolders: userData.terraformFolders ?? [],
+        previousMappings: userData.terraformResources ?? [],
+        transaction: resolvedTransaction,
+      });
+
+      // Emitted after the state is persisted, so a listener never sees an uncommitted commit.
+      await this.commitTransaction(app, modelTransaction, []);
+      this.eventService.emit(new CommitModeCompletedEvent(undefined, completed));
+
+      return { warnings: completed.warnings };
     });
-    await this.commitTransaction(app, modelTransaction, []);
-    return { warnings };
   }
 
   /**
@@ -105,29 +123,44 @@ export class Octo {
     options: { outputDir: string },
     transaction?: ModelTransactionResult,
   ): ReturnType<typeof runGenerate> {
-    // The previous folder records must be read before this run writes the new `models.json`, so a
-    // module deleted from intent is caught on the generate right after its removal.
-    const [{ userData: modelUserData }, { userData: actualResourceUserData }] = await Promise.all([
-      this.stateManagementService.getModelState(this.modelStateFileName),
-      this.stateManagementService.getResourceState(this.actualResourceStateFileName),
-    ]);
-    const previousFolders = new Map<string, TerraformFolderOutput>();
-    for (const record of [
-      ...(actualResourceUserData.terraformFolders ?? []),
-      ...(modelUserData.terraformFolders ?? []),
-    ]) {
-      previousFolders.set(record.moduleId, record);
-    }
+    return this.runMode('generate', app.name, async () => {
+      // The previous folder records must be read before this run writes the new `models.json`, so a
+      // module deleted from intent is caught on the generate right after its removal.
+      const [{ userData: modelUserData }, { userData: actualResourceUserData }] = await Promise.all([
+        this.stateManagementService.getModelState(this.modelStateFileName),
+        this.stateManagementService.getResourceState(this.actualResourceStateFileName),
+      ]);
+      const previousFolders = new Map<string, TerraformFolderOutput>();
+      for (const record of [
+        ...(actualResourceUserData.terraformFolders ?? []),
+        ...(modelUserData.terraformFolders ?? []),
+      ]) {
+        previousFolders.set(record.moduleId, record);
+      }
 
-    // Build the transaction unless a single-process driver already built it and passed it in.
-    const resolvedTransaction = transaction ?? (await applyModelTransaction(app));
-    const resourceDiffs = await runGenerate({
-      ...options,
-      previousFolders: [...previousFolders.values()],
-      transaction: resolvedTransaction,
+      // Build the transaction unless a single-process driver already built it and passed it in.
+      const resolvedTransaction = transaction ?? (await applyModelTransaction(app));
+      const previousFolderList = [...previousFolders.values()];
+      const resourceDiffs = await runGenerate({
+        ...options,
+        previousFolders: previousFolderList,
+        transaction: resolvedTransaction,
+      });
+
+      const written = this.terraformService.getModuleIds();
+      this.eventService.emit(
+        new TerraformFoldersWrittenEvent(undefined, {
+          emptied: previousFolderList
+            .map((folder) => folder.moduleId)
+            .filter((moduleId) => !written.includes(moduleId)),
+          outputDir: options.outputDir,
+          written,
+        }),
+      );
+
+      await this.saveModelState(app);
+      return resourceDiffs;
     });
-    await this.saveModelState(app);
-    return resourceDiffs;
   }
 
   /**
@@ -180,6 +213,7 @@ export class Octo {
     const container = Container.getInstance();
 
     [
+      this.eventService,
       this.inputService,
       this.modelSerializationService,
       this.moduleContainer,
@@ -188,6 +222,7 @@ export class Octo {
       this.stateManagementService,
       this.terraformService,
     ] = await Promise.all([
+      container.get(EventService),
       container.get(InputService),
       container.get(ModelSerializationService),
       container.get(ModuleContainer),
@@ -354,22 +389,29 @@ export class Octo {
     { errors: planErrors, plans }: { errors?: Map<string, string>; plans: Map<string, TerraformPlan> },
     transaction?: ModelTransactionResult,
   ): ReturnType<typeof runValidate> {
-    const { userData } = await this.stateManagementService.getResourceState(this.actualResourceStateFileName);
-    const { terraformFolders, terraformResources } = userData;
+    return this.runMode('validate', app.name, async () => {
+      const { userData } = await this.stateManagementService.getResourceState(this.actualResourceStateFileName);
+      const { terraformFolders, terraformResources } = userData;
 
-    const persistedMappings = new Map<string, TerraformResourceOutput>();
-    for (const mapping of terraformResources ?? []) {
-      persistedMappings.set(mapping.resourceContext, mapping);
-    }
+      const previousMappings = terraformResources ?? [];
+      const persistedMappings = new Map<string, TerraformResourceOutput>();
+      for (const mapping of previousMappings) {
+        persistedMappings.set(mapping.resourceContext, mapping);
+      }
 
-    // Build the transaction unless a single-process driver already built it and passed it in.
-    const resolvedTransaction = transaction ?? (await applyModelTransaction(app));
-    return runValidate({
-      persistedMappings,
-      planErrors,
-      plans,
-      previousFolders: terraformFolders ?? [],
-      transaction: resolvedTransaction,
+      // Build the transaction unless a single-process driver already built it and passed it in.
+      const resolvedTransaction = transaction ?? (await applyModelTransaction(app));
+      const report = await runValidate({
+        persistedMappings,
+        planErrors,
+        plans,
+        previousFolders: terraformFolders ?? [],
+        transaction: resolvedTransaction,
+      });
+
+      this.eventService.emit(new ValidateModeCompletedEvent(undefined, { report }));
+
+      return report;
     });
   }
 
@@ -414,6 +456,38 @@ export class Octo {
 
     // Initialize previous resource state.
     await this.resourceSerializationService.deserialize(actualSerializedOutput, oldSerializedOutput);
+  }
+
+  /**
+   * Wraps a mode to emit its boundary events, and re-throws whatever the mode threw.
+   * The finishing events use `emitAndWait`, so a listener that writes a file completes first.
+   *
+   * @internal
+   */
+  private async runMode<T>(mode: OctoMode, appName: string | undefined, body: () => Promise<T>): Promise<T> {
+    const startedAt = Date.now();
+    const payload: ModeEventPayload = { appName, mode };
+
+    this.eventService.emit(new ModeStartedEvent(mode, payload));
+
+    let result: T;
+    try {
+      result = await body();
+    } catch (error) {
+      await this.eventService.emitAndWait(
+        new ModeFailedEvent(mode, {
+          ...payload,
+          durationInMs: Date.now() - startedAt,
+          error: error?.message ?? String(error),
+        }),
+      );
+      throw error;
+    }
+
+    await this.eventService.emitAndWait(
+      new ModeFinishedEvent(mode, { ...payload, durationInMs: Date.now() - startedAt }),
+    );
+    return result;
   }
 
   /**

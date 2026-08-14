@@ -1,13 +1,12 @@
-import type { TerraformFolderOutput, TerraformResourceOutput, UnknownResource } from '../app.type.js';
+import type { TerraformFolderOutput, TerraformResourceOutput } from '../app.type.js';
 import { Container } from '../functions/container/container.js';
+import {
+  type AggregatedResourceAction,
+  aggregateResourceActions,
+} from '../functions/diff/aggregate-resource-actions.js';
 import { DiffAction } from '../functions/diff/diff.js';
 import { TerraformService } from '../services/terraform/terraform.service.js';
 import type { ModelTransactionResult } from './apply-transaction.js';
-
-/**
- * The subset of {@link DiffAction} a resource can be aggregated to for reporting.
- */
-export type ValidateOctoAction = DiffAction.ADD | DiffAction.DELETE | DiffAction.REPLACE | DiffAction.UPDATE;
 
 /**
  * One terraform address and the actions terraform plans on it (`create`, `update`, `delete`, …).
@@ -67,7 +66,8 @@ export interface ValidateReport {
    */
   intentChanges: {
     moduleId?: string;
-    octoAction: ValidateOctoAction;
+    octoAction: AggregatedResourceAction['action'];
+    reason?: string;
     resourceContext: string;
     resourceId: string;
     terraformChanges: ValidateTerraformChange[];
@@ -142,28 +142,8 @@ export async function validate({
     uncertain: [],
   };
 
-  // Aggregate octo diffs to one action per resource. A resourceId add/delete is definitive; a
-  // REPLACE (author-declared recreate, on any field) dominates a plain update; otherwise the
-  // resource is an update.
-  const octoActions = new Map<string, { action: ValidateOctoAction; resourceId: string }>();
-
-  for (const diff of allDiffs) {
-    const node = diff.node as UnknownResource;
-    const context = node.getContext();
-
-    if (diff.action === DiffAction.DELETE && diff.field === 'resourceId') {
-      octoActions.set(context, { action: DiffAction.DELETE, resourceId: node.resourceId });
-    } else if (diff.action === DiffAction.ADD && diff.field === 'resourceId') {
-      octoActions.set(context, { action: DiffAction.ADD, resourceId: node.resourceId });
-    } else if (diff.action === DiffAction.REPLACE) {
-      const existing = octoActions.get(context);
-      if (!existing || existing.action === DiffAction.UPDATE) {
-        octoActions.set(context, { action: DiffAction.REPLACE, resourceId: node.resourceId });
-      }
-    } else if (!octoActions.has(context)) {
-      octoActions.set(context, { action: DiffAction.UPDATE, resourceId: node.resourceId });
-    }
-  }
+  // Aggregate octo diffs to one action per resource.
+  const octoActions = aggregateResourceActions(allDiffs);
 
   const parsePlanChanges = (plan: TerraformPlan): Map<string, string[]> => {
     const changes = new Map<string, string[]>();
@@ -396,6 +376,7 @@ export async function validate({
       report.intentChanges.push({
         moduleId: mapping.moduleId,
         octoAction: octoAction.action,
+        reason: octoAction.reason,
         resourceContext: mapping.resourceContext,
         resourceId: mapping.resourceId,
         terraformChanges: changed,
@@ -427,6 +408,7 @@ export async function validate({
       });
       report.intentChanges.push({
         octoAction: DiffAction.DELETE,
+        reason: octoAction.reason,
         resourceContext: context,
         resourceId: octoAction.resourceId,
         terraformChanges: [],
@@ -449,6 +431,7 @@ export async function validate({
       report.intentChanges.push({
         moduleId: persisted.moduleId,
         octoAction: DiffAction.DELETE,
+        reason: octoAction.reason,
         resourceContext: context,
         resourceId: octoAction.resourceId,
         terraformChanges: [],
@@ -471,6 +454,7 @@ export async function validate({
     report.intentChanges.push({
       moduleId: persisted.moduleId,
       octoAction: DiffAction.DELETE,
+      reason: octoAction.reason,
       resourceContext: context,
       resourceId: octoAction.resourceId,
       terraformChanges,
