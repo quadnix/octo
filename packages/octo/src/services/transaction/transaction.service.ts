@@ -539,13 +539,23 @@ export class TransactionService {
             continue;
           }
 
-          // De-reference from actual resources.
+          // De-reference from actual resources. The lookup can miss when a diff references a resource
+          // this transaction has not applied yet, so name what is missing rather than letting
+          // `undefined` surface as a TypeError several frames away.
           const deReferenceResource = async (context: string): Promise<UnknownResource> => {
-            return this.resourceDataRepository.getActualResourceByContext(context)!;
+            const referencedResource = this.resourceDataRepository.getActualResourceByContext(context);
+            if (!referencedResource) {
+              throw new TransactionError(
+                `Cannot apply "${diffToProcess.action}" on field "${String(diffToProcess.field)}" of resource ` +
+                  `"${diffToProcess.node.getContext()}": it references "${context}", which is not in the actual ` +
+                  'resource graph yet. The referenced resource is applied later in this transaction, or not at all.',
+              );
+            }
+            return referencedResource;
           };
 
           // Incrementally apply diff inverse to the respective actual resource.
-          let actualResource = this.resourceDataRepository.getActualResourceByContext(diffToProcess.node.getContext())!;
+          let actualResource = this.resourceDataRepository.getActualResourceByContext(diffToProcess.node.getContext());
           if (!actualResource) {
             actualResource = await AResource.cloneResource(diffToProcess.node as UnknownResource, deReferenceResource);
             this.resourceDataRepository.addActualResource(actualResource);

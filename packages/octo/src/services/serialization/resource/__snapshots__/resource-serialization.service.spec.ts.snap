@@ -109,6 +109,12 @@ exports[`Resource Serialization Service UT serialize() should serialize dependen
           "onField": "resourceId",
           "toField": "resourceId",
         },
+        {
+          "forAction": "add",
+          "onAction": "add",
+          "onField": "parent",
+          "toField": "resourceId",
+        },
       ],
       "from": "@octo/test-resource=resource-2",
       "relationship": {
@@ -188,6 +194,12 @@ exports[`Resource Serialization Service UT serialize() should serialize multiple
           "forAction": "update",
           "onAction": "add",
           "onField": "resourceId",
+          "toField": "resourceId",
+        },
+        {
+          "forAction": "add",
+          "onAction": "add",
+          "onField": "parent",
           "toField": "resourceId",
         },
       ],

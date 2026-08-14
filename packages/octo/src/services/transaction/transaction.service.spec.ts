@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { type UnknownModel, type UnknownModule, type UnknownResource, stub } from '../../app.type.js';
+import { MatchingResource, type UnknownModel, type UnknownModule, type UnknownResource, stub } from '../../app.type.js';
 import { ResourceActionExceptionTransactionError } from '../../errors/index.js';
 import type { Container } from '../../functions/container/container.js';
 import { TestContainer } from '../../functions/container/test-container.js';
@@ -475,6 +475,94 @@ describe('TransactionService UT', () => {
         expect(resourceDataRepository.getActualResourcesByProperties().map((r) => r.resourceId)).toEqual([
           'resource-1',
         ]);
+      });
+    });
+
+    describe('when an existing resource gains a parent', () => {
+      let setApplyOrder: TransactionService['setApplyOrder'];
+
+      beforeEach(async () => {
+        const service = await container.get(TransactionService);
+        setApplyOrder = service['setApplyOrder'].bind(service);
+      });
+
+      /**
+       * A child that already exists has no ADD of its own - only an `ADD 'parent'`. Applying it
+       * de-references the new parent out of the *actual* resource graph, where it only appears once
+       * its own diff has been applied.
+       */
+      const createChildGainingAParent = async (): Promise<{
+        child: UnknownResource;
+        childGainsParentDiff: Diff;
+        parent: UnknownResource;
+        parentAddDiff: Diff;
+      }> => {
+        // Saved, so it is in the actual graph already: this is the "already exists" half.
+        const { '@octo/test-resource=resource-1': child } = await createTestResources(
+          [{ resourceContext: '@octo/test-resource=resource-1' }],
+          { save: true },
+        );
+        // Not saved: the parent is in the desired graph only, and is added by this transaction.
+        const { '@octo/test-resource=resource-2': parent } = await createTestResources([
+          { resourceContext: '@octo/test-resource=resource-2' },
+        ]);
+        parent.addChild('resourceId', child, 'resourceId');
+
+        return {
+          child,
+          childGainsParentDiff: new Diff(child, DiffAction.ADD, 'parent', parent),
+          parent,
+          parentAddDiff: new Diff(parent, DiffAction.ADD, 'resourceId', 'resource-2'),
+        };
+      };
+
+      it('should order the parent-add before the child that gains it', async () => {
+        const { childGainsParentDiff, parentAddDiff } = await createChildGainingAParent();
+
+        const diffsMetadata = [childGainsParentDiff, parentAddDiff].map(
+          (d) => new DiffMetadata(d, [universalResourceAction]),
+        );
+        setApplyOrder(diffsMetadata[0], diffsMetadata);
+
+        expect(diffsMetadata[0].applyOrder).toBe(1);
+        expect(diffsMetadata[1].applyOrder).toBe(0);
+      });
+
+      it('should apply the parent-add and wire it into the actual graph', async () => {
+        (universalResourceAction.handle as jest.Mocked<any>).mockResolvedValue();
+        const { childGainsParentDiff, parentAddDiff } = await createChildGainingAParent();
+        const resourceDataRepository = await container.get(ResourceDataRepository);
+
+        // Deliberately listed child-first: ordering must come from the dependency graph, not the
+        // order the diffs happen to arrive in.
+        const diffsMetadata = [childGainsParentDiff, parentAddDiff].map(
+          (d) => new DiffMetadata(d, [universalResourceAction]),
+        );
+        for (const diffMetadata of diffsMetadata) {
+          setApplyOrder(diffMetadata, diffsMetadata);
+        }
+
+        await applyResources(diffsMetadata);
+
+        const actualChild = resourceDataRepository.getActualResourceByContext('@octo/test-resource=resource-1')!;
+        expect(
+          actualChild.parents.map((p) => (p instanceof MatchingResource ? p.getActual() : p).getContext()),
+        ).toEqual(['@octo/test-resource=resource-2']);
+      });
+
+      it('should name the missing resource when the parent is never applied', async () => {
+        (universalResourceAction.handle as jest.Mocked<any>).mockResolvedValue();
+        const { childGainsParentDiff } = await createChildGainingAParent();
+
+        // The parent's own diff is withheld, so it never reaches the actual graph.
+        const diffMetadata = new DiffMetadata(childGainsParentDiff, [universalResourceAction]);
+        diffMetadata.applyOrder = 0;
+
+        await expect(applyResources([diffMetadata])).rejects.toThrow(
+          'Cannot apply "add" on field "parent" of resource "@octo/test-resource=resource-1": it references ' +
+            '"@octo/test-resource=resource-2", which is not in the actual resource graph yet. The referenced ' +
+            'resource is applied later in this transaction, or not at all.',
+        );
       });
     });
   });

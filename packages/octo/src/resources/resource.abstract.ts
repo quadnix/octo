@@ -35,11 +35,7 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
     }
 
     for (const parent of parents) {
-      if (parent instanceof MatchingResource) {
-        parent.addChild('resourceId', this, 'resourceId');
-      } else {
-        parent.addChild('resourceId', this, 'resourceId');
-      }
+      parent.addChild('resourceId', this, 'resourceId');
     }
   }
 
@@ -87,6 +83,16 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
     parentToChildDependency: Dependency;
   } {
     const result = super.addChild(onField, child, toField);
+
+    // Order a child's `ADD 'parent'` after the parent's own ADD. Applying that diff runs
+    // `cloneResourceInPlace`, which de-references every parent out of the *actual* resource graph,
+    // and a parent only lands there once its own diff has been applied.
+    //
+    // `super.addChild` registers this ordering for the child's `('resourceId', ADD)` only, which
+    // covers a child created alongside its parent but not one that already exists and is gaining a
+    // parent - there the child has no ADD of its own, just an `ADD 'parent'`, and nothing held it back.
+    result.childToParentDependency.addBehavior('parent', DiffAction.ADD, onField as string, DiffAction.ADD);
+
     if (
       child.parents.findIndex((p) =>
         p instanceof MatchingResource
