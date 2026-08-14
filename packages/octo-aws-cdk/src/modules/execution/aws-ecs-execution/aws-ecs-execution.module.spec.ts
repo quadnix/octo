@@ -1293,7 +1293,7 @@ describe('AwsEcsExecutionModule UT', () => {
     // it did not have before. `cluster` is force-new on aws_ecs_service, so the service is recreated -
     // and octo has to say so itself, since validate cascades from a REPLACE but not from an UPDATE.
     await setup(testModuleContainer, { clusterName: 'region-changed-qa' });
-    const { resourceDiffs } = (
+    const { hclRender, resourceDiffs } = (
       await testModuleContainer
         .runModules<AwsEcsExecutionModule>({ inputs, moduleId: 'execution', type: AwsEcsExecutionModule }, {
           terraformTarget: 'skip',
@@ -1301,8 +1301,12 @@ describe('AwsEcsExecutionModule UT', () => {
         .next()
     ).value!;
 
-    // The cluster's own delete is the fixture's: `setup` rebuilds the test resources, so the cluster
-    // the first run resolved is no longer in the graph.
+    // The service is recreated onto the new cluster, not orphaned by the old one's delete. Asserted
+    // because the digest below cannot show it: `setup` saves its fixtures straight into applied state,
+    // so the new cluster's arrival produces no diff while the old cluster's departure does, and the
+    // two lines alone read as a service left without a cluster.
+    expect(hclRender).toContain('cluster = var.ecs_cluster_region_changed_qa.clusterArn');
+
     expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
        "- @octo/ecs-cluster=ecs-cluster-region-qa",
