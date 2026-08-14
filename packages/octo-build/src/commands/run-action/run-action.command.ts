@@ -38,7 +38,7 @@ export const runActionCommand = {
 
       // stdout carries ONLY the response JSON (terraform's `data "external"` consumes it), so suppress
       // boot output and route this command's own diagnostics to stderr.
-      const { app, octo } = await bootOcto({ noConsole: true });
+      const { app, octo } = await bootOcto({ quietStdout: true });
 
       const result = await octo.runAction(app, {
         inputs,

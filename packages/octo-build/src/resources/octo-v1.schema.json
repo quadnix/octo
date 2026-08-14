@@ -81,6 +81,9 @@
               {
                 "additionalProperties": false,
                 "properties": {
+                  "reportDir": {
+                    "type": "string"
+                  },
                   "type": {
                     "const": "HtmlReportEventListener",
                     "type": "string"
@@ -92,6 +95,13 @@
               {
                 "additionalProperties": false,
                 "properties": {
+                  "colorize": {
+                    "type": "boolean"
+                  },
+                  "level": {
+                    "enum": ["debug", "error", "fatal", "info", "silent", "trace", "warn"],
+                    "type": "string"
+                  },
                   "type": {
                     "const": "LoggingEventListener",
                     "type": "string"

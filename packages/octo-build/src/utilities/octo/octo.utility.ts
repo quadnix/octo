@@ -20,7 +20,15 @@ function resolveDefinitionFilePath(): string {
   return definitionFilePath;
 }
 
-export async function bootOcto({ noConsole = false }: { noConsole?: boolean } = {}): Promise<{
+/**
+ * @param quietStdout Keeps **stdout** free of everything but the command's own output. Set by
+ * `run-action`, whose stdout is consumed by terraform's `data "external"` as JSON.
+ *
+ * It does not disable listeners — it routes them to stderr. Disabling them (what this flag used to
+ * do) left the SDK resource-action path, the only place resource actions actually execute, with no
+ * logging at all.
+ */
+export async function bootOcto({ quietStdout = false }: { quietStdout?: boolean } = {}): Promise<{
   app: App;
   octo: Octo;
 }> {
@@ -28,12 +36,12 @@ export async function bootOcto({ noConsole = false }: { noConsole?: boolean } = 
 
   const hooks = await definition.resolveHooks();
   const imports = await definition.resolveImports();
-  const listeners = noConsole ? [] : await definition.resolveListeners();
+  const listeners = await definition.resolveListeners({ logDestination: quietStdout ? 'stderr' : 'stdout' });
   const modules = definition.resolveModules(imports);
   const stateProvider = definition.resolveStateProvider();
   const terraformOptions = definition.resolveTerraformOptions();
 
-  if (!noConsole) {
+  if (!quietStdout) {
     console.log(chalk.green('Definition file is valid and all modules were successfully imported.'));
   }
 

@@ -27,9 +27,12 @@ interface IYamlDefinition {
   settings: {
     listeners?: (
       | {
+          reportDir?: string;
           type: 'HtmlReportEventListener';
         }
       | {
+          colorize?: boolean;
+          level?: string;
           type: 'LoggingEventListener';
         }
     )[];
@@ -177,7 +180,14 @@ export class YamlDefinitionUtility {
     return imports;
   }
 
-  async resolveListeners(): Promise<
+  /**
+   * @param logDestination Where the logging listener writes. `run-action` passes `stderr`, because
+   * terraform's `data "external"` protocol requires that command's stdout to carry only the response
+   * JSON — the reason it previously ran with no listeners at all.
+   */
+  async resolveListeners(
+    { logDestination = 'stdout' }: { logDestination?: 'stderr' | 'stdout' } = {},
+  ): Promise<
     {
       args?: unknown[];
       metadata?: Record<string, string>;
@@ -192,15 +202,23 @@ export class YamlDefinitionUtility {
 
     for (const listenerDef of this.definition.settings.listeners) {
       if (listenerDef.type === 'HtmlReportEventListener') {
-        if (process.env.OCTO_DISABLE_HTML_REPORT_EVENT_LISTENER?.toLowerCase() !== 'true') {
-          const imported = await import('@quadnix/octo-event-listeners/html-report');
-          listeners.push({ type: imported.HtmlReportEventListener });
-        }
+        const imported = await import('@quadnix/octo-event-listeners/html-report');
+        listeners.push({
+          args: [{ reportDir: listenerDef.reportDir }],
+          type: imported.HtmlReportEventListener,
+        });
       } else if (listenerDef.type === 'LoggingEventListener') {
-        if (process.env.OCTO_DISABLE_LOGGING_EVENT_LISTENER?.toLowerCase() !== 'true') {
-          const imported = await import('@quadnix/octo-event-listeners/logging');
-          listeners.push({ type: imported.LoggingEventListener });
-        }
+        const imported = await import('@quadnix/octo-event-listeners/logging');
+        listeners.push({
+          args: [
+            {
+              colorize: listenerDef.colorize ?? true,
+              destination: logDestination,
+              level: listenerDef.level ?? 'info',
+            },
+          ],
+          type: imported.LoggingEventListener,
+        });
       }
     }
 
