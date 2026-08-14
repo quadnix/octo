@@ -1,6 +1,8 @@
 {
   "dependencies": {
     "@aws-sdk/client-dynamodb": "~3.743.0",
+    "@aws-sdk/client-ec2": "~3.743.0",
+    "@aws-sdk/client-ecs": "~3.743.0",
     "@aws-sdk/client-resource-groups-tagging-api": "~3.743.0",
     "@aws-sdk/client-sts": "~3.743.0",
     "@aws-sdk/lib-dynamodb": "~3.743.0",

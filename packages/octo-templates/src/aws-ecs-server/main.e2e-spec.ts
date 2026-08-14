@@ -13,6 +13,8 @@ import {
 import { AwsMultiAzRegionId } from '@quadnix/octo-aws-cdk/modules/region/aws-multi-az-region/schema';
 import axios from 'axios';
 import axiosRetry from 'axios-retry';
+import { AwsEcsUtility } from '../utilities/aws/ecs/aws-ecs.utility.js';
+import { AwsLiveResourcesUtility } from '../utilities/aws/live-resources/aws-live-resources.utility.js';
 import { AwsTagsUtility } from '../utilities/aws/tags/aws-tags.utility.js';
 import { config } from './app.config.js';
 import { ModuleDefinitions } from './module-definitions.js';
@@ -68,9 +70,14 @@ describe('Main E2E', () => {
     }));
 
   const planDigest = async (overrides: { [moduleId: string]: (inputs: any) => any }): Promise<string[]> => {
-    const { resourceDiffs } = (
+    const { resourceDiffs, validateReport } = (
       await testModuleContainer.runModules(buildModules(overrides), { outputDir, terraformTarget: 'plan' }).next()
     ).value!;
+
+    // Hinted, because each case snapshots this and its diff digest, and the two are only told apart
+    // in the snapshot file by their name.
+    expect(validateReport).toMatchSnapshot('validate report');
+
     return testModuleContainer.digestDiffs(resourceDiffs);
   };
 
@@ -103,23 +110,26 @@ describe('Main E2E', () => {
   describe('input changes', () => {
     describe('SimpleAppModule', () => {
       it('should handle name change', async () => {
-        expect(await planDigest({ 'app-module': (i) => ({ ...i, name: 'changed-name' }) })).toMatchInlineSnapshot(`[]`);
+        expect(await planDigest({ 'app-module': (i) => ({ ...i, name: 'changed-name' }) })).toMatchSnapshot();
       });
     });
 
     describe('AwsIniAccountModule', () => {
       it('should handle accountId change', async () => {
+        // Resources bind to a provider by { accountId, regionId }, so the destination account needs a
+        // registered provider before it can be rendered, as a real edit would also have to do. An
+        // unused provider is never emitted, so this affects nothing else.
+        testModuleContainer.registerTerraformProvider('aws', 'changed-account-id', AWS_REGION_ID);
+
         expect(
           await planDigest({ 'account-module': (i) => ({ ...i, accountId: 'changed-account-id' }) }),
-        ).toMatchInlineSnapshot();
+        ).toMatchSnapshot();
       });
     });
 
     describe('AwsMultiAzRegionModule', () => {
       it('should handle name change', async () => {
-        expect(
-          await planDigest({ 'region-module': (i) => ({ ...i, name: 'changed-region-name' }) }),
-        ).toMatchInlineSnapshot();
+        expect(await planDigest({ 'region-module': (i) => ({ ...i, name: 'changed-region-name' }) })).toMatchSnapshot();
       });
 
       it('should handle regionIds change', async () => {
@@ -134,13 +144,21 @@ describe('Main E2E', () => {
               ],
             }),
           }),
-        ).toMatchInlineSnapshot();
+        ).toMatchSnapshot();
       });
 
       it('should handle vpcCidrBlock change', async () => {
+        // A VPC CIDR change is inherently coordinated: moving the VPC alone leaves the subnets outside
+        // it, which `AwsSimpleSubnetModule` refuses, and a VPC CIDR may not be wider than /16, so no
+        // other /16 contains the current `10.0.x.0/24` subnets. They move together.
         expect(
-          await planDigest({ 'region-module': (i) => ({ ...i, vpcCidrBlock: '10.0.1.0/16' }) }),
-        ).toMatchInlineSnapshot();
+          await planDigest({
+            'private-subnet-module': (i) => ({ ...i, subnetCidrBlock: '10.1.2.0/24' }),
+            'public-backup-subnet-module': (i) => ({ ...i, subnetCidrBlock: '10.1.1.0/24' }),
+            'public-subnet-module': (i) => ({ ...i, subnetCidrBlock: '10.1.0.0/24' }),
+            'region-module': (i) => ({ ...i, vpcCidrBlock: '10.1.0.0/16' }),
+          }),
+        ).toMatchSnapshot();
       });
     });
 
@@ -148,7 +166,7 @@ describe('Main E2E', () => {
       it('should handle serverKey change', async () => {
         expect(
           await planDigest({ 'backend-server-module': (i) => ({ ...i, serverKey: 'changed-backend' }) }),
-        ).toMatchInlineSnapshot();
+        ).toMatchSnapshot();
       });
     });
 
@@ -169,18 +187,13 @@ describe('Main E2E', () => {
               },
             }),
           }),
-        ).toMatchInlineSnapshot(`
-         [
-           "* @octo/ecs-task-definition=ecs-task-definition-backend-v1-qa-execution",
-           "* @octo/ecs-service=ecs-service-backend-v1-qa-execution",
-         ]
-        `);
+        ).toMatchSnapshot();
       });
 
       it('should handle deploymentTag change', async () => {
         expect(
           await planDigest({ 'backend-deployment-v1-module': (i) => ({ ...i, deploymentTag: 'v2' }) }),
-        ).toMatchInlineSnapshot();
+        ).toMatchSnapshot();
       });
     });
 
@@ -188,7 +201,7 @@ describe('Main E2E', () => {
       it('should handle environmentName change', async () => {
         expect(
           await planDigest({ 'qa-environment-module': (i) => ({ ...i, environmentName: 'changed-qa' }) }),
-        ).toMatchInlineSnapshot();
+        ).toMatchSnapshot();
       });
 
       it('should handle environmentVariables change', async () => {
@@ -196,12 +209,7 @@ describe('Main E2E', () => {
           await planDigest({
             'qa-environment-module': (i) => ({ ...i, environmentVariables: { EXTRA_VAR: 'value', NODE_ENV: 'qa' } }),
           }),
-        ).toMatchInlineSnapshot(`
-         [
-           "* @octo/ecs-task-definition=ecs-task-definition-backend-v1-qa-execution",
-           "* @octo/ecs-service=ecs-service-backend-v1-qa-execution",
-         ]
-        `);
+        ).toMatchSnapshot();
       });
     });
 
@@ -209,19 +217,19 @@ describe('Main E2E', () => {
       it('should handle subnetAvailabilityZone change on public-subnet-module', async () => {
         expect(
           await planDigest({ 'public-subnet-module': (i) => ({ ...i, subnetAvailabilityZone: 'us-east-1b' }) }),
-        ).toMatchInlineSnapshot();
+        ).toMatchSnapshot();
       });
 
       it('should handle subnetCidrBlock change on public-subnet-module', async () => {
         expect(
           await planDigest({ 'public-subnet-module': (i) => ({ ...i, subnetCidrBlock: '10.0.3.0/24' }) }),
-        ).toMatchInlineSnapshot();
+        ).toMatchSnapshot();
       });
 
       it('should handle subnetName change on public-subnet-module', async () => {
         expect(
           await planDigest({ 'public-subnet-module': (i) => ({ ...i, subnetName: 'changed-public-subnet' }) }),
-        ).toMatchInlineSnapshot();
+        ).toMatchSnapshot();
       });
 
       it('should handle subnetOptions change on public-subnet-module', async () => {
@@ -236,11 +244,7 @@ describe('Main E2E', () => {
               },
             }),
           }),
-        ).toMatchInlineSnapshot(`
-         [
-           "* @octo/network-acl=nacl-app-region-east-public-subnet",
-         ]
-        `);
+        ).toMatchSnapshot();
       });
     });
 
@@ -285,44 +289,16 @@ describe('Main E2E', () => {
               ],
             }),
           }),
-        ).toMatchInlineSnapshot(`
-         [
-           "* @octo/ecs-task-definition=ecs-task-definition-backend-v1-qa-execution",
-           "* @octo/ecs-service=ecs-service-backend-v1-qa-execution",
-         ]
-        `);
+        ).toMatchSnapshot();
       });
 
       it('should handle desiredCount change', async () => {
-        expect(await planDigest({ 'backend-v1-qa-execution-module': (i) => ({ ...i, desiredCount: 2 }) }))
-          .toMatchInlineSnapshot(`
-         [
-           "+ @octo/iam-role=iam-role-ServerRole-backend",
-           "* @octo/iam-role=iam-role-ServerRole-backend",
-           "+ @octo/vpc=vpc-app-region-east",
-           "+ @octo/internet-gateway=igw-app-region-east",
-           "+ @octo/ecs-cluster=ecs-cluster-app-region-east-qa",
-           "+ @octo/subnet=subnet-app-region-east-public-subnet",
-           "+ @octo/nat-gateway=nat-gateway-app-region-east-public-subnet",
-           "+ @octo/route-table=rt-app-region-east-public-subnet",
-           "+ @octo/network-acl=nacl-app-region-east-public-subnet",
-           "+ @octo/subnet=subnet-app-region-east-public-backup-subnet",
-           "+ @octo/route-table=rt-app-region-east-public-backup-subnet",
-           "+ @octo/network-acl=nacl-app-region-east-public-backup-subnet",
-           "+ @octo/subnet=subnet-app-region-east-private-subnet",
-           "+ @octo/route-table=rt-app-region-east-private-subnet",
-           "+ @octo/network-acl=nacl-app-region-east-private-subnet",
-           "+ @octo/security-group=sec-grp-app-region-east-qa-api-alb",
-           "+ @octo/alb=alb-app-region-east-qa-api-alb",
-           "+ @octo/security-group=sec-grp-SecurityGroup-backend",
-           "+ @octo/security-group=sec-grp-SecurityGroup-backend-v1-qa-execution",
-           "+ @octo/ecs-task-definition=ecs-task-definition-backend-v1-qa-execution",
-           "+ @octo/ecs-service=ecs-service-backend-v1-qa-execution",
-           "+ @octo/alb-target-group=alb-target-group-backend-v1-qa-execution",
-           "+ @octo/alb-listener=alb-listener-qa-api-alb",
-           "* @octo/alb-listener=alb-listener-qa-api-alb",
-         ]
-        `);
+        // Against an applied baseline this is the one resource that renders `desired_count`. A
+        // snapshot showing the entire stack as an add means it was captured with an empty resource
+        // state, i.e. on a run where the apply test above never completed - re-record it.
+        expect(
+          await planDigest({ 'backend-v1-qa-execution-module': (i) => ({ ...i, desiredCount: 2 }) }),
+        ).toMatchSnapshot();
       });
 
       it('should handle executionId change', async () => {
@@ -330,7 +306,7 @@ describe('Main E2E', () => {
           await planDigest({
             'backend-v1-qa-execution-module': (i) => ({ ...i, executionId: 'changed-execution-id' }),
           }),
-        ).toMatchInlineSnapshot();
+        ).toMatchSnapshot();
       });
 
       it('should handle securityGroupRules change', async () => {
@@ -356,24 +332,15 @@ describe('Main E2E', () => {
               ],
             }),
           }),
-        ).toMatchInlineSnapshot();
+        ).toMatchSnapshot();
       });
     });
 
     describe('AwsEcsAlbServiceModule', () => {
       it('should handle albName change', async () => {
-        expect(await planDigest({ 'qa-api-alb-module': (i) => ({ ...i, albName: 'changed-qa-api-alb' }) }))
-          .toMatchInlineSnapshot(`
-         [
-           "- @octo/security-group=sec-grp-app-region-east-qa-api-alb",
-           "- @octo/alb=alb-app-region-east-qa-api-alb",
-           "- @octo/alb-listener=alb-listener-qa-api-alb",
-           "+ @octo/security-group=sec-grp-app-region-east-changed-qa-api-alb",
-           "+ @octo/alb=alb-app-region-east-changed-qa-api-alb",
-           "+ @octo/alb-listener=alb-listener-changed-qa-api-alb",
-           "* @octo/alb-listener=alb-listener-changed-qa-api-alb",
-         ]
-        `);
+        expect(
+          await planDigest({ 'qa-api-alb-module': (i) => ({ ...i, albName: 'changed-qa-api-alb' }) }),
+        ).toMatchSnapshot();
       });
 
       it('should handle listeners Port change', async () => {
@@ -396,11 +363,7 @@ describe('Main E2E', () => {
               ],
             }),
           }),
-        ).toMatchInlineSnapshot(`
-         [
-           "* @octo/alb-listener=alb-listener-qa-api-alb",
-         ]
-        `);
+        ).toMatchSnapshot();
       });
 
       it('should handle listeners rules change', async () => {
@@ -435,11 +398,7 @@ describe('Main E2E', () => {
               ],
             }),
           }),
-        ).toMatchInlineSnapshot(`
-         [
-           "* @octo/alb-listener=alb-listener-qa-api-alb",
-         ]
-        `);
+        ).toMatchSnapshot();
       });
 
       it('should handle targets healthCheck change', async () => {
@@ -467,7 +426,7 @@ describe('Main E2E', () => {
               ],
             }),
           }),
-        ).toMatchInlineSnapshot();
+        ).toMatchSnapshot();
       });
     });
   });
@@ -488,7 +447,21 @@ describe('Main E2E', () => {
       .next();
 
     const awsResourcesUtility = new AwsTagsUtility(AWS_REGION_ID);
-    const leftoverArns = await awsResourcesUtility.getResourceArnsByTags(E2E_TAGS);
-    expect(leftoverArns).toEqual([]);
+
+    const taggedArns = await awsResourcesUtility.getResourceArnsByTags(E2E_TAGS);
+
+    // Destroying an `aws_ecs_task_definition` only retires the revision to INACTIVE, so reclaim the
+    // retired revisions. Cleanup only: the delete is asynchronous and the revisions stay visible to
+    // the tagging API well after this returns.
+    const taskDefinitionArns = taggedArns.filter((arn) => arn.includes(':task-definition/'));
+    if (taskDefinitionArns.length > 0) {
+      const failures = await new AwsEcsUtility(AWS_REGION_ID).deleteTaskDefinitions(taskDefinitionArns);
+      expect(failures).toEqual([]);
+    }
+
+    // Assert on what is still live: the tagging API keeps returning destroyed ECS clusters, services
+    // and task definitions, and deleted NAT gateways.
+    const liveArns = await new AwsLiveResourcesUtility(AWS_REGION_ID).filterLiveArns(taggedArns);
+    expect(liveArns).toEqual([]);
   });
 });

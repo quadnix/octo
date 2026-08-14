@@ -4,3 +4,5 @@
 # Generated terragrunt module folders
 src/*/.octo/
 !src/*/.octo/.gitkeep
+src/*/.octo-drift/
+src/*/.octo-incremental/
