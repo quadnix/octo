@@ -2,16 +2,26 @@ import { resolve } from 'path';
 import { jest } from '@jest/globals';
 import { Container, TerraformUtility, TestContainer } from '@quadnix/octo';
 import type { ArgumentsCamelCase } from 'yargs';
+import type { ValidateReport } from './validate-report.renderer.js';
 
-type ValidateResult = {
-  errors: { message: string; moduleId?: string }[];
-  pass: boolean;
-  warnings: { message: string; moduleId?: string }[];
+type TerraformPlanResult = {
+  errors: Map<string, string>;
+  plans: Parameters<TerraformUtility['findPlannedDestroys']>[0];
 };
+
+const emptyReport = (): ValidateReport => ({
+  attributedChanges: [],
+  confidence: 'exact',
+  drift: [],
+  failures: [],
+  intentChanges: [],
+  notes: [],
+  uncertain: [],
+});
 
 const mockedBootOcto =
   jest.fn<
-    () => Promise<{ app: unknown; octo: { validate: jest.Mock<(...args: unknown[]) => Promise<ValidateResult>> } }>
+    () => Promise<{ app: unknown; octo: { validate: jest.Mock<(...args: unknown[]) => Promise<ValidateReport>> } }>
   >();
 const mockedReportError = jest.fn<(error: unknown) => void>();
 
@@ -30,24 +40,18 @@ describe('validateCommand UT', () => {
   const resolvedDir = resolve(process.cwd(), terragruntDir);
   const argv = { _: [], $0: 'octo', terragruntDir } as unknown as ArgumentsCamelCase<{ terragruntDir: string }>;
 
-  let octoValidateMock: jest.Mock<(...args: unknown[]) => Promise<ValidateResult>>;
-  let terraformUtilityMock: {
-    listModuleFolders: jest.Mock<() => Promise<string[]>>;
-    plan: jest.Mock<() => Promise<Map<string, unknown>>>;
-  };
+  let octoValidateMock: jest.Mock<(...args: unknown[]) => Promise<ValidateReport>>;
+  let terraformUtilityMock: { plan: jest.Mock<() => Promise<TerraformPlanResult>> };
   let processExitSpy: jest.SpiedFunction<typeof process.exit>;
   let consoleErrorSpy: jest.SpiedFunction<typeof console.error>;
   let consoleLogSpy: jest.SpiedFunction<typeof console.log>;
 
   beforeEach(async () => {
-    octoValidateMock = jest
-      .fn<(...args: unknown[]) => Promise<ValidateResult>>()
-      .mockResolvedValue({ errors: [], pass: true, warnings: [] });
+    octoValidateMock = jest.fn<(...args: unknown[]) => Promise<ValidateReport>>().mockResolvedValue(emptyReport());
     mockedBootOcto.mockResolvedValue({ app: {}, octo: { validate: octoValidateMock } });
 
     terraformUtilityMock = {
-      listModuleFolders: jest.fn<() => Promise<string[]>>().mockResolvedValue([]),
-      plan: jest.fn<() => Promise<Map<string, unknown>>>().mockResolvedValue(new Map()),
+      plan: jest.fn<() => Promise<TerraformPlanResult>>().mockResolvedValue({ errors: new Map(), plans: new Map() }),
     };
     await TestContainer.create({
       mocks: [{ type: TerraformUtility, value: terraformUtilityMock as unknown as TerraformUtility }],
@@ -66,44 +70,47 @@ describe('validateCommand UT', () => {
     await TestContainer.reset();
   });
 
-  it('reads plans via TerraformUtility and passes them to octo.validate()', async () => {
-    const plans = new Map([['module-a', { resource_changes: [] }]]);
-    terraformUtilityMock.listModuleFolders.mockResolvedValue(['module-a']);
-    terraformUtilityMock.plan.mockResolvedValue(plans);
+  it('hands the whole plan result to octo.validate() and prints the rendered report', async () => {
+    // The `errors` half matters as much as the `plans` half: validate can only say why a folder could
+    // not be inspected if it is given terraform's message.
+    const planResult: TerraformPlanResult = {
+      errors: new Map(),
+      plans: new Map([['module-a', { resource_changes: [] }]]),
+    };
+    terraformUtilityMock.plan.mockResolvedValue(planResult);
 
     await validateCommand.handler(argv);
 
     expect(terraformUtilityMock.plan).toHaveBeenCalledWith(resolvedDir, { json: true });
-    expect(octoValidateMock).toHaveBeenCalledWith({}, { plans });
-    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Validation PASSED.'));
+    expect(octoValidateMock).toHaveBeenCalledWith({}, planResult);
+    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('INTENT CHANGES'));
+    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Validation complete.'));
     expect(processExitSpy).not.toHaveBeenCalled();
   });
 
-  it('warns for a module folder missing from the returned plans, but still validates', async () => {
-    terraformUtilityMock.listModuleFolders.mockResolvedValue(['module-a', 'module-b']);
-    terraformUtilityMock.plan.mockResolvedValue(new Map([['module-a', { resource_changes: [] }]]));
-
-    await validateCommand.handler(argv);
-
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      expect.stringContaining('WARN [module-b] Could not read terraform plan'),
-    );
-    expect(octoValidateMock).toHaveBeenCalled();
-    expect(processExitSpy).not.toHaveBeenCalled();
-  });
-
-  it('prints warnings/errors from the validate result and fails on !pass', async () => {
+  it('reports drift without failing — drift is a finding to act on, not a broken run', async () => {
     octoValidateMock.mockResolvedValue({
-      errors: [{ message: 'bad diff', moduleId: 'module-a' }],
-      pass: false,
-      warnings: [{ message: 'heads up' }],
+      ...emptyReport(),
+      drift: [{ address: 'aws_nat_gateway.nat-1', moduleId: 'module-a', tfActions: ['create'] }],
     });
 
     await validateCommand.handler(argv);
 
-    expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('WARN heads up'));
-    expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('ERROR [module-a] bad diff'));
-    expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Validation FAILED!'));
+    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('DRIFT'));
+    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Validation complete, with drift.'));
+    expect(processExitSpy).not.toHaveBeenCalled();
+  });
+
+  it('exits non-zero only when a folder could not be inspected', async () => {
+    octoValidateMock.mockResolvedValue({
+      ...emptyReport(),
+      failures: [{ message: 'Terraform failed to plan module "module-a":\nError: boom', moduleId: 'module-a' }],
+    });
+
+    await validateCommand.handler(argv);
+
+    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Error: boom'));
+    expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Validation could not complete!'));
     expect(processExitSpy).toHaveBeenCalledWith(1);
   });
 

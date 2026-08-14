@@ -3,6 +3,7 @@ import { Container, TerraformUtility } from '@quadnix/octo';
 import chalk from 'chalk';
 import type { ArgumentsCamelCase, Argv } from 'yargs';
 import { bootOcto, reportError } from '../../utilities/octo/octo.utility.js';
+import { renderValidateReport } from './validate-report.renderer.js';
 
 type ValidateCommandArguments = {
   terraformBinary?: string;
@@ -47,33 +48,22 @@ export const validateCommand = {
         args: [{ terraformBinary, terragruntBinary, timeoutInMs }, true],
       });
 
-      // A folder whose plan cannot be read is warned and omitted rather than aborting validation:
-      // octo rejects the validation itself if that folder held a module it tracks, and merely warns
-      // if it is a folder octo does not know.
-      const [plans, moduleIds] = await Promise.all([
-        terraformUtility.plan(resolvedDir, { json: true }),
-        terraformUtility.listModuleFolders(resolvedDir),
-      ]);
-      for (const moduleId of moduleIds) {
-        if (!plans.has(moduleId)) {
-          console.error(chalk.yellow(`WARN [${moduleId}] Could not read terraform plan`));
-        }
-      }
+      // A folder whose plan cannot be read is carried as an error rather than aborting the run. Octo
+      // reports the failure for a folder holding a module it tracks, and ignores one it does not know.
+      const planResult = await terraformUtility.plan(resolvedDir, { json: true });
 
-      const result = await octo.validate(app, { plans });
+      const report = await octo.validate(app, planResult);
+      console.log(renderValidateReport(report));
 
-      for (const warning of result.warnings) {
-        console.error(chalk.yellow(`WARN ${warning.moduleId ? `[${warning.moduleId}] ` : ''}${warning.message}`));
-      }
-      for (const error of result.errors) {
-        console.error(chalk.red(`ERROR ${error.moduleId ? `[${error.moduleId}] ` : ''}${error.message}`));
-      }
-
-      if (result.pass) {
-        console.log(chalk.green('Validation PASSED.'));
-      } else {
-        console.error(chalk.red('Validation FAILED!'));
+      // Only being unable to read a folder is unsuccessful. Drift and unexplained changes are
+      // findings to act on, not exit codes.
+      if (report.failures.length > 0) {
+        console.error(chalk.red('\nValidation could not complete!'));
         process.exit(1);
+      } else if (report.drift.length > 0) {
+        console.log(chalk.yellow('\nValidation complete, with drift.'));
+      } else {
+        console.log(chalk.green('\nValidation complete.'));
       }
     } catch (error) {
       reportError(error);
