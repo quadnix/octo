@@ -88,7 +88,6 @@ export class EventService {
     }
   }
 
-  // TODO: https://github.com/quadnix/octo/issues/6
   registerListeners(eventClass: Constructable<Event<unknown>>, target: any, descriptor: PropertyDescriptor): void {
     if (!this.listeners[eventClass.name]) {
       this.listeners[eventClass.name] = { eventClass, eventListeners: [] };

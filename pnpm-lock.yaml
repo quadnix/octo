@@ -183,12 +183,6 @@ importers:
       '@quadnix/octo':
         specifier: ~0.0.30
         version: link:../octo
-      ejs:
-        specifier: ~3.1.10
-        version: 3.1.10
-      jsondiffpatch:
-        specifier: ~0.7.3
-        version: 0.7.6
       loglayer:
         specifier: ~6.4.0
         version: 6.4.3
@@ -198,10 +192,6 @@ importers:
       pino-pretty:
         specifier: ~13.0.0
         version: 13.0.0
-    devDependencies:
-      '@types/ejs':
-        specifier: ~3.1.5
-        version: 3.1.5
 
   packages/octo-templates:
     dependencies:
@@ -1015,9 +1005,6 @@ packages:
   '@cspotcode/source-map-support@0.8.1':
     resolution: {integrity: sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==}
     engines: {node: '>=12'}
-
-  '@dmsnell/diff-match-patch@1.1.0':
-    resolution: {integrity: sha512-yejLPmM5pjsGvxS9gXablUSbInW7H976c/FJ4iQxWIm7/38xBySRemTPDe34lhg1gVLbJntX0+sH0jYfU+PN9A==}
 
   '@emnapi/core@1.10.0':
     resolution: {integrity: sha512-yq6OkJ4p82CAfPl0u9mQebQHKPJkY7WrIuk205cTYnYe+k2Z8YBh11FrbRG/H6ihirqcacOgl2BIO8oyMQLeXw==}
@@ -4215,11 +4202,6 @@ packages:
   jsonc-parser@3.2.0:
     resolution: {integrity: sha512-gfFQZrcTc8CnKXp6Y4/CBT3fTc0OVuDofpre4aEeEpSBPV5X5v4+Vmx+8snU7RLPrNHPKSgLxGo9YuQzz20o+w==}
 
-  jsondiffpatch@0.7.6:
-    resolution: {integrity: sha512-zE9+AXFq+MkTolDor2Cw1nJzLC0aleqPkYf52Kb4Kn4mJcka/gFHpGI2JBVEJCfWOvBl0OoxZS+wuLdislQcqg==}
-    engines: {node: ^18.0.0 || >=20.0.0}
-    hasBin: true
-
   jsonfile@6.2.1:
     resolution: {integrity: sha512-zwOTdL3rFQ/lRdBnntKVOX6k5cKJwEc1HdilT71BWEu7J41gXIB2MRp+vxduPSwZJPWBxEzv4yH1wYLJGUHX4Q==}
 
@@ -7303,8 +7285,6 @@ snapshots:
   '@cspotcode/source-map-support@0.8.1':
     dependencies:
       '@jridgewell/trace-mapping': 0.3.9
-
-  '@dmsnell/diff-match-patch@1.1.0': {}
 
   '@emnapi/core@1.10.0':
     dependencies:
@@ -11183,10 +11163,6 @@ snapshots:
       semver: 7.8.5
 
   jsonc-parser@3.2.0: {}
-
-  jsondiffpatch@0.7.6:
-    dependencies:
-      '@dmsnell/diff-match-patch': 1.1.0
 
   jsonfile@6.2.1:
     dependencies:

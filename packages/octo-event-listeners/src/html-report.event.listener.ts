@@ -1,129 +1,181 @@
+import { mkdir, readdir, writeFile } from 'node:fs/promises';
+import { join, resolve } from 'node:path';
 import {
-  AResource,
-  ActualResourceSerializedEvent,
-  type DiffMetadata,
+  CommitModeCompletedEvent,
   Factory,
+  ModeFailedEvent,
+  ModeFinishedEvent,
+  ModeStartedEvent,
+  ModelTransactionTransactionEvent,
   OnEvent,
-  ResourceActionCompletedTransactionEvent,
-  ResourceActionInitiatedTransactionEvent,
-  ResourceActionSummaryTransactionEvent,
-  ResourceDiffsTransactionEvent,
-  SerializationEvent,
-  TransactionEvent,
+  ValidateModeCompletedEvent,
 } from '@quadnix/octo';
 import { Logger } from './logger/logger.factory.js';
-import {
-  HtmlReporter,
-  type IResourceActionSummaryEvent,
-  type IResourceTransactionPlan,
-} from './reporters/html/html.reporter.js';
+import { renderReportHtml } from './reporters/html/html.reporter.js';
+import { renderIndexHtml } from './reporters/html/index.reporter.js';
+import { buildReport } from './reporters/report.builder.js';
+import type { RunObservation } from './reporters/report.model.js';
 
+export interface HtmlReportEventListenerOptions {
+  /**
+   * Where reports are written. Relative paths resolve against the process working directory.
+   * Defaults to `.octo/reports`.
+   */
+  reportDir?: string;
+}
+
+/**
+ * `20260814T105124`. Sortable, so file names order chronologically.
+ */
+function timestampFor(date: Date): string {
+  return date
+    .toISOString()
+    .replace(/[-:]/g, '')
+    .replace(/\.\d+Z$/, '');
+}
+
+/**
+ * Writes an HTML report when `validate` or `commit` finishes. `generate` and `run-action` write none.
+ *
+ * Per run, into `reportDir`:
+ * - `<timestamp>-<mode>.html` - the page.
+ * - `<timestamp>-<mode>.json` - the same report as data.
+ * - `index.html` - every report in the directory, newest first.
+ */
 export class HtmlReportEventListener {
-  private readonly resourceActionSummaryEvents: IResourceActionSummaryEvent[] = [];
-  private readonly resourceStatuses: Map<string, IResourceTransactionPlan['goodResources'][0]> = new Map();
-  private readonly resourceTransactionPlan: IResourceTransactionPlan = { dirtyResources: [], goodResources: [] };
+  private readonly logger: Logger;
+  /**
+   * Events seen so far in the current mode. Reset by every {@link ModeStartedEvent}.
+   */
+  private observation: RunObservation | undefined;
+  private readonly reportDir: string;
 
-  constructor(private readonly logger: Logger) {}
+  constructor({ reportDir }: HtmlReportEventListenerOptions = {}) {
+    // Takes the process logger as it is configured. Level and destination belong to
+    // `LoggingEventListener`, which owns logging; this listener only announces the file it wrote.
+    this.logger = Logger.shared();
+    this.reportDir = resolve(process.cwd(), reportDir ?? join('.octo', 'reports'));
+  }
 
-  @OnEvent(SerializationEvent)
-  async onSerialization(event: SerializationEvent<unknown>): Promise<void> {
-    if (event instanceof ActualResourceSerializedEvent) {
-      // Mark all in-progress resource statuses as failed.
-      for (const resource of this.resourceStatuses.values()) {
-        if (resource.status === 'in-progress') {
-          resource.status = 'failed';
-        }
-      }
-      // Generate resource transaction summary report.
-      await this.generateResourceTransactionSummaryReport();
+  @OnEvent(CommitModeCompletedEvent)
+  onCommitCompleted(event: CommitModeCompletedEvent): void {
+    if (this.observation) {
+      this.observation.commit = event.payload;
     }
   }
 
-  @OnEvent(TransactionEvent)
-  onTransaction(event: TransactionEvent<any>): void {
-    if (event instanceof ResourceActionCompletedTransactionEvent) {
-      // Update resource status to completed.
-      const resourceKey = this.createUniqueTransactionResourceActionKey(event.payload);
-      const resource = this.resourceStatuses.get(resourceKey);
-      if (resource) {
-        resource.status = 'completed';
-        if ((event.payload.node as AResource<any, any>).response) {
-          resource.responseData = JSON.stringify((event.payload.node as AResource<any, any>).response, null, 2);
-        }
-      }
-    } else if (event instanceof ResourceActionInitiatedTransactionEvent) {
-      // Update resource status to in-progress.
-      const resourceKey = this.createUniqueTransactionResourceActionKey(event.payload);
-      const resource = this.resourceStatuses.get(resourceKey);
-      if (resource) {
-        resource.status = 'in-progress';
-      }
-    } else if (event instanceof ResourceActionSummaryTransactionEvent) {
-      this.resourceActionSummaryEvents.push({ action: event.name, eventPayloads: [event.payload] });
-    } else if (event instanceof ResourceDiffsTransactionEvent) {
-      // Initialize transaction plan with good resources.
-      for (const diff of event.payload[0].flat().sort((a, b) => a.applyOrder - b.applyOrder)) {
-        const resourceTransactionPlanRow: IResourceTransactionPlan['goodResources'][0] = {
-          action: event.name,
-          diffAction: diff.action,
-          diffField: diff.field,
-          resourceContext: diff.node.getContext(),
-          status: 'not-run',
-        };
-        this.resourceTransactionPlan.goodResources.push(resourceTransactionPlanRow);
-        this.resourceStatuses.set(this.createUniqueTransactionResourceActionKey(diff), resourceTransactionPlanRow);
-      }
+  /**
+   * A failed mode still writes a report, with the error as its first failure.
+   */
+  @OnEvent(ModeFailedEvent)
+  async onModeFailed(event: ModeFailedEvent): Promise<void> {
+    if (!this.observation) {
+      return;
+    }
+    this.observation.durationInMs = event.payload.durationInMs;
+    this.observation.error = event.payload.error;
+    await this.writeReport();
+  }
 
-      // Initialize transaction plan with dirty resources.
-      for (const diff of event.payload[1].flat().sort((a, b) => a.applyOrder - b.applyOrder)) {
-        const resourceTransactionPlanRow: IResourceTransactionPlan['dirtyResources'][0] = {
-          action: event.name,
-          diffAction: diff.action,
-          diffField: diff.field,
-          resourceContext: diff.node.getContext(),
-          status: 'not-run',
-        };
-        this.resourceTransactionPlan.dirtyResources.push(resourceTransactionPlanRow);
-        this.resourceStatuses.set(this.createUniqueTransactionResourceActionKey(diff), resourceTransactionPlanRow);
-      }
+  @OnEvent(ModeFinishedEvent)
+  async onModeFinished(event: ModeFinishedEvent): Promise<void> {
+    if (!this.observation) {
+      return;
+    }
+    this.observation.durationInMs = event.payload.durationInMs;
+    await this.writeReport();
+  }
+
+  /**
+   * Supplies the intent layer: what the user changed.
+   */
+  @OnEvent(ModelTransactionTransactionEvent)
+  onModelTransaction(event: ModelTransactionTransactionEvent): void {
+    if (this.observation) {
+      this.observation.modelTransaction = event.payload;
     }
   }
 
-  private createUniqueTransactionResourceActionKey(diff: DiffMetadata): string {
-    return [diff.node.getContext(), diff.field, diff.action].join(':');
+  @OnEvent(ModeStartedEvent)
+  onModeStarted(event: ModeStartedEvent): void {
+    this.observation = {
+      appName: event.payload.appName,
+      mode: event.payload.mode,
+      modelTransaction: [],
+      startedAt: Date.now(),
+    };
   }
 
-  private async generateResourceTransactionSummaryReport(): Promise<void> {
-    try {
-      const outputPath = `resource-transaction-summary-${Date.now()}.html`;
-      await HtmlReporter.generateReport(this.resourceActionSummaryEvents, this.resourceTransactionPlan, {
-        outputPath,
-        title: 'Resource Transaction Summary',
-      });
-      this.logger.log
-        .withMetadata({ payload: { outputPath }, timestamp: Date.now() })
-        .info(`Resource Transaction Summary HTML report generated.`);
-    } catch (error) {
-      this.logger.log
-        .withMetadata({ payload: { error }, timestamp: Date.now() })
-        .error(`Failed to generate Resource Transaction Summary HTML report.`);
+  @OnEvent(ValidateModeCompletedEvent)
+  onValidateCompleted(event: ValidateModeCompletedEvent): void {
+    if (this.observation) {
+      this.observation.validate = event.payload.report;
+    }
+  }
+
+  /**
+   * Rebuilds `index.html` from the files on disk.
+   */
+  private async writeIndex(): Promise<void> {
+    const entries = await readdir(this.reportDir);
+    const runs: { basename: string; mode: string; timestamp: string }[] = [];
+
+    for (const entry of entries) {
+      const match = /^(.+)-(commit|validate)\.html$/.exec(entry);
+      if (match) {
+        runs.push({ basename: entry, mode: match[2], timestamp: match[1] });
+      }
     }
 
-    // Clear data for next transaction.
-    this.resourceActionSummaryEvents.splice(0, this.resourceActionSummaryEvents.length);
-    this.resourceTransactionPlan.dirtyResources.splice(0, this.resourceTransactionPlan.dirtyResources.length);
-    this.resourceTransactionPlan.goodResources.splice(0, this.resourceTransactionPlan.goodResources.length);
-    this.resourceStatuses.clear();
+    runs.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+
+    await writeFile(join(this.reportDir, 'index.html'), renderIndexHtml(runs), 'utf-8');
+  }
+
+  private async writeReport(): Promise<void> {
+    const observation = this.observation;
+    this.observation = undefined;
+
+    if (!observation || (observation.mode !== 'commit' && observation.mode !== 'validate')) {
+      return;
+    }
+
+    const report = buildReport(observation);
+    const basename = `${timestampFor(new Date(report.startedAt))}-${report.mode}`;
+    const htmlPath = join(this.reportDir, `${basename}.html`);
+    const jsonPath = join(this.reportDir, `${basename}.json`);
+
+    await mkdir(this.reportDir, { recursive: true });
+    await Promise.all([
+      writeFile(htmlPath, renderReportHtml(report), 'utf-8'),
+      writeFile(jsonPath, JSON.stringify(report, null, 2), 'utf-8'),
+    ]);
+    await this.writeIndex();
+
+    this.logger.log.withMetadata({ jsonPath }).info(`Report written to ${htmlPath}`);
   }
 }
 
 @Factory<HtmlReportEventListener>(HtmlReportEventListener)
 export class HtmlReportEventListenerFactory {
   private static instance: HtmlReportEventListener;
+  private static instanceKey: string | undefined;
 
-  static async create(): Promise<HtmlReportEventListener> {
-    if (!this.instance) {
-      this.instance = new HtmlReportEventListener(new Logger());
+  /**
+   * Called at boot with options, and again on every event dispatch with none, because `EventService`
+   * resolves listeners by class name. A no-argument call returns the configured instance; new
+   * options rebuild it.
+   */
+  static async create(options?: HtmlReportEventListenerOptions): Promise<HtmlReportEventListener> {
+    if (options === undefined) {
+      this.instance ??= new HtmlReportEventListener();
+      return this.instance;
+    }
+
+    const key = JSON.stringify(options);
+    if (!this.instance || this.instanceKey !== key) {
+      this.instance = new HtmlReportEventListener(options);
+      this.instanceKey = key;
     }
     return this.instance;
   }

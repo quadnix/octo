@@ -2,16 +2,89 @@ import { PinoTransport } from '@loglayer/transport-pino';
 import { LogLayer } from 'loglayer';
 import { type LevelWithSilentOrString, pino } from 'pino';
 
-export class Logger {
-  readonly log: LogLayer;
+/**
+ * Where log records are written.
+ *
+ * `stderr` exists for `octo run-action`: terraform's `data "external"` protocol requires that
+ * command's **stdout** to carry only the response JSON, which is why it used to run with no
+ * listeners at all. Writing to stderr keeps stdout clean while making the SDK path observable —
+ * terraform surfaces provisioner stderr in the apply log.
+ */
+export type LogDestination = 'stderr' | 'stdout';
 
-  constructor({ colorize = true, level = 'trace' }: { colorize?: boolean; level?: LevelWithSilentOrString } = {}) {
+export interface LoggerOptions {
+  colorize?: boolean;
+  destination?: LogDestination;
+  level?: LevelWithSilentOrString;
+}
+
+export class Logger {
+  private static sharedInstance: Logger | undefined;
+
+  log!: LogLayer;
+
+  private configuration = '';
+
+  constructor(options: LoggerOptions = {}) {
+    this.configure(options);
+  }
+
+  /**
+   * Drops the shared logger so the next {@link shared} call builds a new one. For tests, which boot
+   * repeatedly in one process.
+   */
+  static resetShared(): void {
+    this.sharedInstance = undefined;
+  }
+
+  /**
+   * The one logger for the process.
+   *
+   * Every listener must share it. `pino-pretty` runs in a worker thread, so two Logger instances are
+   * two workers writing to the same file descriptor with no ordering between them — which showed up
+   * as a report's "written to …" line printing before the "Started validate" line that preceded it
+   * by 5ms. One instance, one stream, correct order.
+   *
+   * Options {@link configure} it; a call without options takes whatever is already running.
+   */
+  static shared(options?: LoggerOptions): Logger {
+    if (!this.sharedInstance) {
+      this.sharedInstance = new Logger(options);
+    } else if (options) {
+      this.sharedInstance.configure(options);
+    }
+    return this.sharedInstance;
+  }
+
+  /**
+   * Re-points this logger, keeping its object identity so listeners holding a reference pick up the
+   * new settings.
+   *
+   * Reconfiguring rather than replacing is required: `EventService` resolves a listener on its first
+   * event, which is a no-argument factory call, and octo replays buffered registration events the
+   * moment `@OnEvent` runs. So the shared logger is always built with defaults before boot options
+   * exist. First-caller-wins would make `level` and `destination` unsettable.
+   */
+  configure({ colorize = true, destination = 'stdout', level = 'info' }: LoggerOptions = {}): void {
+    // A new pino means a new pino-pretty worker, so only rebuild on a real change.
+    const configuration = JSON.stringify({ colorize, destination, level });
+    if (configuration === this.configuration) {
+      return;
+    }
+    this.configuration = configuration;
+
     this.log = new LogLayer({
       transport: new PinoTransport({
         logger: pino({
           level,
-          timestamp: false,
-          transport: { options: { colorize }, target: 'pino-pretty' },
+          transport: {
+            options: {
+              colorize,
+              // pino-pretty writes to fd 1 by default; 2 is stderr.
+              destination: destination === 'stderr' ? 2 : 1,
+            },
+            target: 'pino-pretty',
+          },
         }),
       }),
     });
