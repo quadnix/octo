@@ -44,49 +44,10 @@ export type IAlbListenerRuleDiff = IAlbListenerAddRuleDiff | IAlbListenerDeleteR
 /**
  * @internal
  */
-export function isAddRuleDiff(ruleDiff: IAlbListenerRuleDiff): ruleDiff is IAlbListenerAddRuleDiff {
-  return ruleDiff.action === 'add';
-}
-
-/**
- * @internal
- */
-export function isDeleteRuleDiff(ruleDiff: IAlbListenerRuleDiff): ruleDiff is IAlbListenerDeleteRuleDiff {
-  return ruleDiff.action === 'delete';
-}
-
-/**
- * @internal
- */
-export function isUpdateRuleDiff(ruleDiff: IAlbListenerRuleDiff): ruleDiff is IAlbListenerUpdateRuleDiff {
-  return ruleDiff.action === 'update';
-}
-
-/**
- * @internal
- */
 export type IAlbListenerPropertiesDiff = {
   DefaultActions?: [];
   Rule?: IAlbListenerRuleDiff;
 };
-
-/**
- * @internal
- */
-export function isAlbListenerPropertiesDefaultActionsDiff(
-  propertiesDiff: IAlbListenerPropertiesDiff,
-): propertiesDiff is { DefaultActions: [] } {
-  return Object.keys(propertiesDiff).includes('DefaultActions');
-}
-
-/**
- * @internal
- */
-export function isAlbListenerPropertiesRuleDiff(
-  propertiesDiff: IAlbListenerPropertiesDiff,
-): propertiesDiff is { Rule: IAlbListenerRuleDiff } {
-  return Object.keys(propertiesDiff).includes('Rule');
-}
 
 /**
  * @internal
@@ -154,18 +115,17 @@ export class AlbListener extends ATerraformResource<AlbListenerSchema, AlbListen
   override async diff(previous: AlbListener): Promise<Diff[]> {
     const diffs: Diff[] = await super.diff(previous);
 
+    // Drops parent diffs, keeping octo's diff graph minimal: `validate` attributes the consequence by
+    // walking the same reference graph terraform cascades along. This suppresses a real change, not a
+    // no-op one - `load_balancer_arn` and `default_action…target_group.arn` embed the parent's
+    // terraform address, so the rendered HCL does move when either parent's resourceId does.
     for (let i = diffs.length - 1; i >= 0; i--) {
       if (diffs[i].field === 'parent' && hasNodeName(diffs[i].value as AResource<any, any>, 'alb')) {
-        // If the ALB parent has changed, there is no need to process this diff,
-        // since the ALB Arn is still the same.
         diffs.splice(i, 1);
       } else if (
         diffs[i].field === 'parent' &&
         hasNodeName(diffs[i].value as AResource<any, any>, 'alb-target-group')
       ) {
-        // If the ALB Target Group parent has changed, there is no need to process this diff,
-        // since we have already verified in constructor that this target group is not referenced in listener.
-        // The target group is managed separately in its own actions.
         diffs.splice(i, 1);
       }
     }
