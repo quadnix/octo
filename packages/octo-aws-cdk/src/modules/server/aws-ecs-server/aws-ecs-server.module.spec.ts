@@ -362,6 +362,7 @@ describe('AwsEcsServerModule UT', () => {
      [
        "* @octo/iam-role=iam-role-ServerRole-backend",
        "* @octo/s3-storage=bucket-test-bucket",
+       "* @octo/s3-storage=bucket-test-bucket",
      ]
     `);
 
@@ -405,6 +406,7 @@ describe('AwsEcsServerModule UT', () => {
        "* @octo/iam-role=iam-role-ServerRole-backend",
        "* @octo/iam-role=iam-role-ServerRole-backend",
        "- @octo/iam-role=iam-role-ServerRole-backend",
+       "* @octo/s3-storage=bucket-test-bucket",
        "* @octo/s3-storage=bucket-test-bucket",
      ]
     `);

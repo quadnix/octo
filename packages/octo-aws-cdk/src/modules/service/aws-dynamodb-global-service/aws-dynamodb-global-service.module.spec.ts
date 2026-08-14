@@ -332,7 +332,11 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
         .next()
     ).value!;
     expect(deleteResult.hclDiff).toMatchSnapshot();
-    expect(testModuleContainer.digestDiffs(deleteResult.resourceDiffs)).toMatchInlineSnapshot(`[]`);
+    expect(testModuleContainer.digestDiffs(deleteResult.resourceDiffs)).toMatchInlineSnapshot(`
+     [
+       "* @octo/dynamodb-global=dynamodb-global-test-table",
+     ]
+    `);
 
     const isResourceStateEqual = await testModuleContainer.isResourceStateEqual();
     expect(isResourceStateEqual).toBe(true);

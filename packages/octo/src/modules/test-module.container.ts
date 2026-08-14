@@ -246,6 +246,12 @@ export class TestModuleContainer {
    * Reduces a transaction's diffs (resource or model) to a stable, snapshot-friendly digest:
    * `+ <context>` (create), `- <context>` (delete), `^ <context>` (replace), `* <context>` (update).
    * Folds in the former standalone `DiffAssert` — everything a test needs lives on this container.
+   *
+   * Classifies each diff exactly as {@link validate} aggregates it, so a digest and the validate
+   * report of the same transaction never disagree about what happened to a resource. Only an
+   * add/delete of a `resourceId` creates or destroys a resource; an add/delete on any other field
+   * changes a resource that stays — re-pointing a `parent`, most commonly — and is therefore an
+   * update. Digesting per diff rather than per resource, a resource may still appear more than once.
    */
   digestDiffs(diffs: DiffMetadata[][]): string[] {
     const changes: string[] = [];
@@ -254,9 +260,12 @@ export class TestModuleContainer {
         changes.push(`+ ${d.node.getContext()}`);
       } else if (d.action === DiffAction.DELETE && d.field === 'resourceId') {
         changes.push(`- ${d.node.getContext()}`);
-      } else if (d.action === DiffAction.REPLACE && d.field === 'resourceId') {
+      } else if (d.action === DiffAction.REPLACE) {
         changes.push(`^ ${d.node.getContext()}`);
-      } else if (d.action === DiffAction.UPDATE) {
+      } else if (d.action === DiffAction.VALIDATE) {
+        // Not a change: validation runs as its own transaction, one diff per surviving resource.
+        continue;
+      } else {
         changes.push(`* ${d.node.getContext()}`);
       }
     }

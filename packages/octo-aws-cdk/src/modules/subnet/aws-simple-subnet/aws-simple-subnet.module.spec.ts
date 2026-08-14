@@ -612,6 +612,7 @@ describe('AwsSimpleSubnetModule UT', () => {
      [
        "* @octo/network-acl=nacl-region-private-subnet",
        "* @octo/network-acl=nacl-region-public-subnet",
+       "* @octo/route-table=rt-region-private-subnet",
      ]
     `);
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
