@@ -6,7 +6,10 @@
  * different dates — `2026-08-15 02:34` in the index, `8/14/2026, 10:34 PM` on the page it links to.
  */
 export function formatTimestamp(epochMs: number): string {
-  return `${new Date(epochMs).toISOString().replace('T', ' ').replace(/\.\d+Z$/, '')} UTC`;
+  return `${new Date(epochMs)
+    .toISOString()
+    .replace('T', ' ')
+    .replace(/\.\d+Z$/, '')} UTC`;
 }
 
 /**

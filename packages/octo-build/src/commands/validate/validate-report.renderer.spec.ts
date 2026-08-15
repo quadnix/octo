@@ -38,7 +38,11 @@ describe('renderValidateReport()', () => {
           resourceContext: '@octo/alb-target-group=alb-target-group-backend-v1-qa-execution',
           resourceId: 'alb-target-group-backend-v1-qa-execution',
           terraformChanges: [
-            { address: 'aws_lb_target_group.alb-target-group-backend-v1-qa-execution', changedFields: [], tfActions: ['delete'] },
+            {
+              address: 'aws_lb_target_group.alb-target-group-backend-v1-qa-execution',
+              changedFields: [],
+              tfActions: ['delete'],
+            },
           ],
         },
         {
@@ -47,7 +51,11 @@ describe('renderValidateReport()', () => {
           resourceContext: '@octo/alb-target-group=alb-target-group-changed-execution-id',
           resourceId: 'alb-target-group-changed-execution-id',
           terraformChanges: [
-            { address: 'aws_lb_target_group.alb-target-group-changed-execution-id', changedFields: [], tfActions: ['create'] },
+            {
+              address: 'aws_lb_target_group.alb-target-group-changed-execution-id',
+              changedFields: [],
+              tfActions: ['create'],
+            },
           ],
         },
       ],
@@ -67,7 +75,11 @@ describe('renderValidateReport()', () => {
           resourceContext: '@octo/alb-target-group=alb-target-group-backend-v1-qa-execution',
           resourceId: 'alb-target-group-backend-v1-qa-execution',
           terraformChanges: [
-            { address: 'aws_lb_target_group.alb-target-group-backend-v1-qa-execution', changedFields: [], tfActions: ['update'] },
+            {
+              address: 'aws_lb_target_group.alb-target-group-backend-v1-qa-execution',
+              changedFields: [],
+              tfActions: ['update'],
+            },
           ],
         },
         {

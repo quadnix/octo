@@ -102,9 +102,7 @@ function wrapExplanation(explanation: string, indent: string): string[] {
  * direction. Values arrive already rendered and truncated — sensitive ones as `(sensitive)`.
  */
 function renderFieldLines(changedFields: ValidateFieldChange[], indent: string): string[] {
-  return changedFields.map(
-    (field) => `${indent}    ${field.field}: ${field.from ?? '-'} → ${field.to ?? '-'}`,
-  );
+  return changedFields.map((field) => `${indent}    ${field.field}: ${field.from ?? '-'} → ${field.to ?? '-'}`);
 }
 
 function renderChangeLines(changes: RenderedInfrastructureChange[], indent: string): string[] {

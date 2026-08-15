@@ -73,13 +73,10 @@ describe(`Incremental E2E [stage=${STAGE} phase=${PHASE} nat=${NAT ? 'on' : 'off
 
     const container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
     testModuleContainer = new TestModuleContainer(container);
-    await testModuleContainer.initialize(
-      new LocalStateProvider(stateDir),
-      [
+    await testModuleContainer.initialize(new LocalStateProvider(stateDir), [
       { options: { args: [{ level: 'info' }] }, type: LoggingEventListener },
       { options: { args: [{ reportDir: join(workDir, 'reports') }] }, type: HtmlReportEventListener },
-    ],
-    );
+    ]);
 
     testModuleContainer.registerTerraformConfig({
       minTerraformVersion: '1.6.0',

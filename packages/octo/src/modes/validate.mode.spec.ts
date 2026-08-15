@@ -544,7 +544,6 @@ describe('validate()', () => {
         { field: 'secret', from: '(sensitive)', to: '(sensitive)' },
       ]);
     });
-
   });
 
   describe('folders octo cannot report on', () => {

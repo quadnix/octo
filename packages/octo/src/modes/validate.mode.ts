@@ -160,7 +160,7 @@ function renderPlanValue(value: unknown): string {
     const names = value
       .map((element) =>
         typeof element === 'object' && element !== null
-          ? (element as Record<string, unknown>).name ?? (element as Record<string, unknown>).index_name
+          ? ((element as Record<string, unknown>).name ?? (element as Record<string, unknown>).index_name)
           : element,
       )
       .filter((name): name is string => typeof name === 'string' && name.length > 0);
@@ -209,7 +209,9 @@ function isMarked(marks: Record<string, unknown> | boolean | null | undefined, k
  * costs nothing but the comparison. Without it an added index and a removed index render as the
  * same sentence: "1 update".
  */
-function describeFieldChanges(change: NonNullable<NonNullable<TerraformPlan['resource_changes']>[number]['change']>): ValidateFieldChange[] {
+function describeFieldChanges(
+  change: NonNullable<NonNullable<TerraformPlan['resource_changes']>[number]['change']>,
+): ValidateFieldChange[] {
   const actions = new Set(change.actions ?? []);
   // A plain create or delete needs no field list: the address and the action are the whole story.
   const isUpdate = actions.has('update');

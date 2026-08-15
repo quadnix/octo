@@ -71,13 +71,13 @@ describe('Diff probe', () => {
   it.each(PROBES.map((p) => [p.name, p.overrides] as const))('%s', async (name, overrides) => {
     await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
     const octo = new Octo();
-    await octo.initialize(
-      new LocalStateProvider(stateDir),
-      [
+    await octo.initialize(new LocalStateProvider(stateDir), [
       { options: { args: [{ level: 'info' }] }, type: LoggingEventListener },
-      { options: { args: [{ reportDir: join(__dirname, '.octo-incremental', 'probe-reports') }] }, type: HtmlReportEventListener },
-    ],
-    );
+      {
+        options: { args: [{ reportDir: join(__dirname, '.octo-incremental', 'probe-reports') }] },
+        type: HtmlReportEventListener,
+      },
+    ]);
 
     octo.registerTerraformConfig({
       minTerraformVersion: '1.6.0',

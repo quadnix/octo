@@ -92,7 +92,9 @@ describe('renderReportHtml()', () => {
     it('says so, rather than printing a replace card above counters that all read zero', () => {
       const html = renderReportHtml(
         report({
-          stories: [story({ kind: 'recreate', terraformPlannedNothing: true, title: 'replaced backend-server-module' })],
+          stories: [
+            story({ kind: 'recreate', terraformPlannedNothing: true, title: 'replaced backend-server-module' }),
+          ],
         }),
       );
 
