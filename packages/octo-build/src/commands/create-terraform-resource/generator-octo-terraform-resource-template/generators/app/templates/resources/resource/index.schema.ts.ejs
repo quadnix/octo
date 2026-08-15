@@ -14,18 +14,30 @@ export class <%= resourceNamePascal %>Schema extends BaseResourceSchema {
   @Validate({
     destruct: (value: <%= resourceNamePascal %>Schema['response']): string[] => {
       const subjects: string[] = [];
-      // Fix me: Add response properties for validation.
-      // E.g.,
-      // if (value.Arn) {
-      //   subjects.push(value.Arn);
-      // }
+      // Fix me: Add a check per response key below.
+      if (value.SomeId) {
+        subjects.push(value.SomeId);
+      }
       return subjects;
     },
     options: { minLength: 1 },
   })
+  /**
+   * One key per Terraform output exposed in `toHCL()`. Each is emitted as an
+   * `output "${resourceId}-${key}"` and is how other resources and modules consume this resource,
+   * via `terraform.getRef(this, 'SomeId')`.
+   *
+   * The value passed to `Schema<...>()` is that key's **default**, and it is not decoration: it
+   * becomes the key's terragrunt `mock_outputs` entry, which is what a consumer plans against
+   * before this resource has been applied. Make each one a syntactically valid example of the real
+   * thing - a plausible ARN, a plausible id - because a consumer's `plan` runs the provider's own
+   * parsing over it. Without a default the mock falls back to the literal `mock-<outputName>`, and
+   * any consumer whose attribute must parse as an ARN or an id fails to plan.
+   */
   override response = Schema<{
-    // Fix me: Add a response key per Terraform output you expose in toHCL().
-    // Each key declared here is emitted as an `output "${resourceId}-${key}"` and is how other
-    // resources/modules consume this resource (via terraform.getRef(this, 'Key')).
-  }>();
+    // Fix me: Rename, and add one entry per output.
+    SomeId?: string;
+  }>({
+    SomeId: 'some-0123456789abcdef0',
+  });
 }

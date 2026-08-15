@@ -1,4 +1,11 @@
-import { ATerraformResource, Resource, type TerraformModuleScope } from '@quadnix/octo';
+import {
+  ATerraformResource,
+  Diff,
+  DiffAction,
+  DiffUtility,
+  Resource,
+  type TerraformModuleScope,
+} from '@quadnix/octo';
 import { <%= resourceNamePascal %>Schema } from './index.schema.js';
 
 /**
@@ -17,8 +24,37 @@ export class <%= resourceNamePascal %> extends ATerraformResource<<%= resourceNa
     super(resourceId, properties, parents);
   }
 
+  /**
+   * Declares what a property change does to the real resource.
+   *
+   * The default emits a granular in-place `UPDATE`, which is wrong for any attribute the provider
+   * marks force-new: Terraform would recreate the resource while Octo reported an update, and
+   * `octo validate` would flag the recreate as unexplained because there is no reason string to
+   * show. Returning `REPLACE` states the recreate up front, and the reason is what validate prints.
+   *
+   * Fix me: list the force-new attributes in the reason. If some properties are updatable in place
+   * and others are not, compare them separately and emit `REPLACE` only for the force-new ones.
+   */
+  override async diffProperties(previous: <%= resourceNamePascal %>): Promise<Diff[]> {
+    if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties)) {
+      return [
+        new Diff(
+          this,
+          DiffAction.REPLACE,
+          'resourceId',
+          this.getContext(),
+          'Fix me: <attribute> is force-new on <terraform_resource_type>; a change recreates the resource',
+        ),
+      ];
+    }
+
+    return [];
+  }
+
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {
-    const octoResource = terraform.addOctoTerraformResource(this, {
+    // The `as` cast is load-bearing: without it `this` stays polymorphic, the scope's response type
+    // resolves against `this` rather than this schema, and `output()` below does not typecheck.
+    const octoResource = terraform.addOctoTerraformResource(this as <%= resourceNamePascal %>, {
       // Fix me: bind to the provider this resource deploys into (accountId + regionId of a registered provider).
       provider: { accountId: 'Fix me', regionId: 'Fix me' },
     });
@@ -33,9 +69,12 @@ export class <%= resourceNamePascal %> extends ATerraformResource<<%= resourceNa
       },
     );
 
-    // Fix me: expose every response key as an output.
-    // Declare each key on the schema's `response`, then emit it here, e.g.:
-    // octoResource.output({ SomeId: terraform.raw(`${tfResource.address}.id`) });
+    // One entry per key declared on the schema's `response`. The two must agree: a key declared and
+    // not emitted here makes `octo commit` throw "missing terraform outputs" after a real apply,
+    // which is the most expensive place to find out.
+    octoResource.output({
+      SomeId: terraform.raw(`${tfResource.address}.id`),
+    });
 
     if (Object.keys(this.tags).length > 0) {
       tfResource.attribute('tags', this.tags);
