@@ -1,4 +1,9 @@
-import { <%= modelTypePascal %>Schema, Schema, Validate } from '@quadnix/octo';
+<%# Sorted here rather than written in a fixed order: the model type is the only variable member,
+    and where it falls among the others depends on its name - `AccountSchema` sorts before `Schema`,
+    `ServiceSchema` after it. A fixed order fails the generated app's own import/order and
+    sort-imports rules for half the model types. -%>
+<% const modelSchemaImports = ['Schema', 'Validate', `${modelTypePascal}Schema`].sort().join(', '); -%>
+import { <%= modelSchemaImports %> } from '@quadnix/octo';
 
 export class <%= moduleNamePascal %>Schema extends <%= modelTypePascal %>Schema {
   // Fix me: Add schema properties specific to your module
