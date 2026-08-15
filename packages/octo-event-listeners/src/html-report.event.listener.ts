@@ -43,6 +43,10 @@ function timestampFor(date: Date): string {
  * - `index.html` - every report in the directory, newest first.
  */
 export class HtmlReportEventListener {
+  /**
+   * The most recent model transaction, kept across mode boundaries. See {@link onModelTransaction}.
+   */
+  private lastModelTransaction: RunObservation['modelTransaction'] = [];
   private readonly logger: Logger;
   /**
    * Events seen so far in the current mode. Reset by every {@link ModeStartedEvent}.
@@ -88,9 +92,15 @@ export class HtmlReportEventListener {
 
   /**
    * Supplies the intent layer: what the user changed.
+   *
+   * Also kept outside the current observation, because the transaction is not always built inside a
+   * mode. A single-process driver (`runModules`) builds it once and hands the same result to
+   * generate/validate/commit, so the event fires *before* the first {@link ModeStartedEvent} — which
+   * used to reset it to `[]` and drop the intent layer from every report that path produced.
    */
   @OnEvent(ModelTransactionTransactionEvent)
   onModelTransaction(event: ModelTransactionTransactionEvent): void {
+    this.lastModelTransaction = event.payload;
     if (this.observation) {
       this.observation.modelTransaction = event.payload;
     }
@@ -101,7 +111,9 @@ export class HtmlReportEventListener {
     this.observation = {
       appName: event.payload.appName,
       mode: event.payload.mode,
-      modelTransaction: [],
+      // Carried over: the transaction describes the intent this run is acting on, whether it was
+      // published inside this mode or before it.
+      modelTransaction: this.lastModelTransaction,
       startedAt: Date.now(),
     };
   }
