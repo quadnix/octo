@@ -220,10 +220,13 @@ export class YamlDefinitionUtility {
         });
       } else if (listenerDef.type === 'LoggingEventListener') {
         const imported = await import('@quadnix/octo-event-listeners/logging');
+        // Default to whether the destination is a terminal, so a redirected log carries no escape
+        // codes. An explicit `colorize:` in the definition still wins.
+        const destinationStream = logDestination === 'stderr' ? process.stderr : process.stdout;
         listeners.push({
           args: [
             {
-              colorize: listenerDef.colorize ?? true,
+              colorize: listenerDef.colorize ?? Boolean(destinationStream.isTTY),
               destination: logDestination,
               level: listenerDef.level ?? 'info',
             },

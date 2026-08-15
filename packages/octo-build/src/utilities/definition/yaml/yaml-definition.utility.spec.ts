@@ -88,6 +88,30 @@ describe('YamlDefinitionUtility UT', () => {
     });
   });
 
+  describe('resolveListeners()', () => {
+    let originalStdoutIsTerminal: boolean | undefined;
+
+    beforeEach(() => {
+      originalStdoutIsTerminal = process.stdout.isTTY;
+    });
+
+    afterEach(() => {
+      process.stdout.isTTY = originalStdoutIsTerminal as boolean;
+    });
+
+    it('should default colorize to whether the destination is a terminal', async () => {
+      const definition = new YamlDefinitionUtility(fixture('env-kinds-definition.yml'));
+
+      process.stdout.isTTY = false;
+      const whenRedirected = await definition.resolveListeners();
+      expect((whenRedirected[0].args![0] as { colorize: boolean }).colorize).toBe(false);
+
+      process.stdout.isTTY = true;
+      const whenATerminal = await definition.resolveListeners();
+      expect((whenATerminal[0].args![0] as { colorize: boolean }).colorize).toBe(true);
+    });
+  });
+
   describe('resolveTerraformOptions()', () => {
     it('should parse the terraform section, defaulting and env-resolving providers', () => {
       const definition = new YamlDefinitionUtility(fixture('terraform-definition.yml'));

@@ -29,5 +29,7 @@ modules:
     moduleInputs: {}
 
 settings:
+  listeners:
+    - type: 'LoggingEventListener'
   stateProvider:
     type: 'TestStateProvider'
