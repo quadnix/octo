@@ -16,6 +16,11 @@ export interface RunObservation {
   mode: ModeStartedEvent['payload']['mode'];
   modelTransaction: DiffMetadata[][];
   startedAt: number;
+  /**
+   * Time spent in terraform since the last report, which the mode's own duration does not cover.
+   * See {@link OctoReport.terraformInMs}.
+   */
+  terraformInMs?: number;
   validate?: ValidateModeCompletedEvent['payload']['report'];
 }
 
@@ -131,6 +136,15 @@ export interface OctoReport {
   outcome: 'changes' | 'clean' | 'drift' | 'failed';
   startedAt: number;
   stories: ReportStory[];
+  /**
+   * Time spent in terraform since the last report — the plan a validate reads, the apply and the
+   * output reads a commit follows.
+   *
+   * Reported apart from `durationInMs` because terraform runs *outside* the mode: both the CLI and
+   * `runModules` plan first and hand the result to `octo.validate()`, so the mode measures only the
+   * correlating. A validate that sat through 253 s of planning reported "finished in 2ms".
+   */
+  terraformInMs: number;
   totals: Record<ChangeKind, number>;
   /**
    * Changes planned against a possibly-mocked value, so not judged as drift.

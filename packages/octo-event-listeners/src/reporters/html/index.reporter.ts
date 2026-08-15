@@ -1,4 +1,6 @@
+import { CHANGE_SYMBOLS, type ChangeKind, type OctoReport } from '../report.model.js';
 import { REPORT_STYLES } from './report.styles.js';
+import { readableTimestamp } from './timestamp.js';
 
 function escapeHtml(value: unknown): string {
   return String(value ?? '')
@@ -10,23 +12,58 @@ function escapeHtml(value: unknown): string {
 }
 
 /**
- * `20260814T105124` back to `2026-08-14 10:51:24`.
+ * One row of the index.
+ *
+ * Everything past `basename`/`mode`/`timestamp` is read from the run's JSON, so it is optional: a
+ * report written by an older version, or one caught half-written, still gets a row and a link.
  */
-function readableTimestamp(timestamp: string): string {
-  const match = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})$/.exec(timestamp);
-  return match ? `${match[1]}-${match[2]}-${match[3]} ${match[4]}:${match[5]}:${match[6]}` : timestamp;
+export interface IndexRun {
+  basename: string;
+  driftCount?: number;
+  headline?: string;
+  mode: string;
+  outcome?: OctoReport['outcome'];
+  timestamp: string;
+  totals?: Record<ChangeKind, number>;
+}
+
+const COUNTED: ChangeKind[] = ['delete', 'recreate', 'create', 'update'];
+
+/**
+ * The same mini-counters the report pages carry, so a row reads like the page it links to.
+ */
+function renderCounts(run: IndexRun): string {
+  if (!run.totals) {
+    return '';
+  }
+
+  const parts = COUNTED.filter((kind) => (run.totals![kind] ?? 0) > 0).map(
+    (kind) => `<span class="${kind}">${CHANGE_SYMBOLS[kind]}${run.totals![kind]}</span>`,
+  );
+
+  if (run.driftCount) {
+    parts.push(`<span class="delete">⚠${run.driftCount}</span>`);
+  }
+
+  return parts.length > 0 ? `<span class="mini">${parts.join('')}</span>` : '<span class="dim">—</span>';
 }
 
 /**
  * Lists every report in the directory, newest first.
+ *
+ * Rows carry the outcome, the counts and the headline, because the question the index exists to
+ * answer is "which of these 27 runs was the drifted one" — and a column of dates cannot answer it.
  */
-export function renderIndexHtml(runs: { basename: string; mode: string; timestamp: string }[]): string {
+export function renderIndexHtml(runs: IndexRun[]): string {
   const rows = runs
     .map(
       (run) =>
         '<tr>' +
         `<td><code>${escapeHtml(readableTimestamp(run.timestamp))}</code></td>` +
         `<td>${escapeHtml(run.mode)}</td>` +
+        `<td>${run.outcome ? `<span class="badge ${escapeHtml(run.outcome)}">${escapeHtml(run.outcome)}</span>` : ''}</td>` +
+        `<td>${renderCounts(run)}</td>` +
+        `<td class="index-headline">${escapeHtml(run.headline ?? '')}</td>` +
         `<td><a href="./${escapeHtml(run.basename)}">open</a></td>` +
         `<td><a href="./${escapeHtml(run.basename.replace(/\.html$/, '.json'))}">json</a></td>` +
         '</tr>',
@@ -46,8 +83,9 @@ export function renderIndexHtml(runs: { basename: string; mode: string; timestam
   <div class="strip"><div class="strip-top"><span class="strip-app">Octo reports</span>
   <span class="strip-meta">${runs.length} run(s)</span></div></div>
   <div class="card scroll-x"><table>
-    <thead><tr><th>Run</th><th>Mode</th><th>Report</th><th>Payload</th></tr></thead>
-    <tbody>${rows || '<tr><td colspan="4" class="empty">No reports yet.</td></tr>'}</tbody>
+    <thead><tr><th>Run</th><th>Mode</th><th>Outcome</th><th>Changes</th><th>Headline</th>
+    <th>Report</th><th>Payload</th></tr></thead>
+    <tbody>${rows || '<tr><td colspan="7" class="empty">No reports yet.</td></tr>'}</tbody>
   </table></div>
 </div>
 </body>

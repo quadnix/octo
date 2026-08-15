@@ -2,11 +2,13 @@ import {
   CHANGE_SYMBOLS,
   type ChangeKind,
   type OctoReport,
+  type ReportAddress,
   type ReportResource,
   type ReportStory,
   type ReportUnexplained,
 } from '../report.model.js';
 import { REPORT_STYLES } from './report.styles.js';
+import { formatTimestamp } from './timestamp.js';
 
 function escapeHtml(value: unknown): string {
   return String(value ?? '')
@@ -26,8 +28,35 @@ const CHANGE_LABELS: Record<ChangeKind, string> = {
   update: 'update',
 };
 
+/**
+ * For sentences about what octo intends but terraform has not planned, which are always about
+ * something that has not happened yet.
+ */
+const CHANGE_VERBS_FUTURE: Record<ChangeKind, string> = {
+  create: 'wants to add',
+  delete: 'wants to remove',
+  other: 'wants to change',
+  recreate: 'wants to replace',
+  update: 'wants to change',
+};
+
 function symbol(kind: ChangeKind): string {
   return `<span class="sym ${kind}">${CHANGE_SYMBOLS[kind]}</span>`;
+}
+
+/**
+ * How long the run took, terraform named separately.
+ *
+ * The mode's own duration excludes terraform, which runs before the mode opens — so a validate that
+ * sat through four minutes of planning reported "2ms". Naming both keeps the small number honest
+ * instead of quietly wrong.
+ */
+function renderDuration(report: OctoReport): string {
+  const readable = (ms: number): string => (ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(1)}s`);
+
+  return report.terraformInMs > 0
+    ? `${readable(report.durationInMs)} octo · ${readable(report.terraformInMs)} terraform`
+    : readable(report.durationInMs);
 }
 
 /**
@@ -53,6 +82,37 @@ function renderCounters(report: OctoReport): string {
   return `<div class="counters">${counters}${drift}</div>`;
 }
 
+/**
+ * The arguments terraform plans to change under one address.
+ *
+ * This is the only thing that distinguishes one update from another: without it, adding an index and
+ * removing that same index both render as "1 update", and the two pages come out byte-identical.
+ * Values are already rendered and truncated upstream — sensitive ones arrive as `(sensitive)`.
+ */
+function renderChangedFields(row: ReportAddress): string {
+  if (row.changedFields.length === 0) {
+    return '';
+  }
+
+  return (
+    '<div class="fields">' +
+    row.changedFields
+      .map(
+        (field) =>
+          '<div class="field">' +
+          `<code class="field-name">${escapeHtml(field.field)}</code>` +
+          // A create has no `from` and a delete no `to`; the missing side is written as an em dash
+          // rather than dropped, so the arrow always reads in the same direction.
+          `<span class="field-was">${field.from === undefined ? '—' : escapeHtml(field.from)}</span>` +
+          '<span class="field-arrow">→</span>' +
+          `<span class="field-now">${field.to === undefined ? '—' : escapeHtml(field.to)}</span>` +
+          '</div>',
+      )
+      .join('') +
+    '</div>'
+  );
+}
+
 function renderTerraformRows(resource: ReportResource): string {
   if (resource.terraform.length === 0) {
     return '<div class="res-none">no infrastructure change</div>';
@@ -65,7 +125,8 @@ function renderTerraformRows(resource: ReportResource): string {
       .map(
         (row) =>
           `<div class="tf-row">${symbol(row.kind)} <code class="tf-address">${escapeHtml(row.address)}</code></div>` +
-          (row.explanation ? `<div class="tf-why">${escapeHtml(row.explanation)}</div>` : ''),
+          (row.explanation ? `<div class="tf-why">${escapeHtml(row.explanation)}</div>` : '') +
+          renderChangedFields(row),
       )
       .join('') +
     '</div>'
@@ -104,7 +165,9 @@ function renderStory(story: ReportStory): string {
     ...story.resources.flatMap((resource) => [
       resource.resourceId,
       resource.resourceContext,
-      ...resource.terraform.map((row) => row.address),
+      // Argument names go into the filter too: "which card touches `billing_mode`" is the question
+      // a reader arrives with once the changed arguments are on the page at all.
+      ...resource.terraform.flatMap((row) => [row.address, ...row.changedFields.map((field) => field.field)]),
     ]),
   ]
     .join(' ')
@@ -127,9 +190,22 @@ function renderStory(story: ReportStory): string {
     symbol(story.kind) +
     `<span class="story-title">${escapeHtml(story.title)}</span>` +
     (story.nodeContext ? `<code class="story-context">${escapeHtml(story.nodeContext)}</code>` : '') +
+    // No intent change explained these, so they were grouped by module. Saying so distinguishes
+    // "you edited this" from "these were left over and had to go somewhere".
+    (story.isDerived
+      ? '<span class="story-derived" title="No intent change explained these resources, so they are ' +
+        'grouped by the module that rendered them.">grouped by module</span>'
+      : '') +
     renderMiniTotals(story) +
     (story.moduleId ? `<span class="story-mod">${escapeHtml(story.moduleId)}</span>` : '') +
     '</summary>' +
+    // Octo and terraform disagree. Rendering only the two halves — an "8 replaced" title above
+    // every counter at zero — reads as both "this rebuilds the stack" and "nothing will happen".
+    (story.terraformPlannedNothing
+      ? `<div class="disagree">Octo ${CHANGE_VERBS_FUTURE[story.kind]} this, but terraform's plan touches ` +
+        'none of its addresses. Usually the change is invisible to a plan taken against current state — ' +
+        'a provider or account move — which is what an <em>approximate</em> report warns about.</div>'
+      : '') +
     (story.reason ? `<div class="why"><b>why:</b> ${escapeHtml(story.reason)}</div>` : '') +
     `<div class="story-body">${story.resources.map(renderResource).join('')}</div>` +
     '</details>' +
@@ -196,6 +272,32 @@ function renderFailures(report: OctoReport): string {
           `<span class="mono">${escapeHtml(failure.message)}</span></div>`,
       )
       .join('') +
+    '</div>'
+  );
+}
+
+/**
+ * Modules that had a terraform folder at the last commit and render nothing now.
+ *
+ * Logged since the rewrite, but never on the page — which left the most consequential outcome a
+ * commit can have, a whole module gone, visible only in the log.
+ */
+function renderEmptiedModules(report: OctoReport): string {
+  const emptiedModuleIds = report.commit?.emptiedModuleIds ?? [];
+  if (emptiedModuleIds.length === 0) {
+    return '';
+  }
+
+  return (
+    '<h2>Modules that no longer render anything</h2>' +
+    '<div class="card">' +
+    [...emptiedModuleIds]
+      .sort((a, b) => a.localeCompare(b))
+      .map((moduleId) => `<div class="zone-row"><code>${escapeHtml(moduleId)}</code></div>`)
+      .join('') +
+    '<div class="guidance"><b>These modules had a terraform folder at the last commit and produce no ' +
+    'resources now.</b><ul><li>their folders were emptied, so nothing of theirs remains to apply</li>' +
+    '</ul></div>' +
     '</div>'
   );
 }
@@ -294,7 +396,9 @@ const REPORT_SCRIPT = `
  * resources and terraform addresses that follow from it nested underneath.
  */
 export function renderReportHtml(report: OctoReport): string {
-  const finished = new Date(report.finishedAt).toLocaleString();
+  // UTC, matching the filename and the index. `toLocaleString()` filed the same run under two
+  // different dates: `2026-08-15 02:34` in the index, `8/14/2026, 10:34 PM` on the page it links to.
+  const finished = formatTimestamp(report.finishedAt);
   const title = `${report.app} — octo ${report.mode}`;
 
   const confidenceBadge =
@@ -337,7 +441,7 @@ export function renderReportHtml(report: OctoReport): string {
       <span class="strip-app">${escapeHtml(report.app)}</span>
       <span class="badge ${report.outcome}">${escapeHtml(report.mode)}</span>
       ${confidenceBadge}
-      <span class="strip-meta">${escapeHtml(finished)} · ${report.durationInMs}ms</span>
+      <span class="strip-meta">${escapeHtml(finished)} · ${escapeHtml(renderDuration(report))}</span>
     </div>
     <div class="strip-body">
       <p class="headline">${escapeHtml(report.headline)}</p>
@@ -365,6 +469,7 @@ export function renderReportHtml(report: OctoReport): string {
 
   ${renderDrift(report)}
   ${renderUncertain(report)}
+  ${renderEmptiedModules(report)}
   ${renderCommit(report)}
   ${renderNotes(report)}
 

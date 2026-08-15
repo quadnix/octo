@@ -62,6 +62,10 @@ export class LoggingEventListener {
    * Start times of in-flight resource actions, used to report their duration on completion.
    */
   private readonly resourceActionStartedAt: Map<string, number> = new Map();
+  /**
+   * Terraform time since the last mode finished, which that mode's own duration does not cover.
+   */
+  private terraformInMs = 0;
 
   constructor(private readonly logger: Logger) {}
 
@@ -99,9 +103,19 @@ export class LoggingEventListener {
     if (event instanceof ModeStartedEvent) {
       this.logger.log.withMetadata({ appName, mode }).info(`Started "${mode}"${appName ? ` on "${appName}"` : ''}.`);
     } else if (event instanceof ModeFinishedEvent) {
+      // Terraform is named separately because it runs *outside* the mode: the plan is taken first
+      // and handed to `octo.validate()`, so the mode measures only the correlating. Reporting the
+      // bare number logged `Finished "validate" in 2ms.` after four minutes of planning.
+      const { durationInMs } = event.payload;
+      const terraformInMs = this.terraformInMs;
+      this.terraformInMs = 0;
+
       this.logger.log
-        .withMetadata({ appName, durationInMs: event.payload.durationInMs, mode })
-        .info(`Finished "${mode}" in ${event.payload.durationInMs}ms.`);
+        .withMetadata({ appName, durationInMs, mode, terraformInMs })
+        .info(
+          `Finished "${mode}" in ${durationInMs}ms` +
+            (terraformInMs > 0 ? `, after ${terraformInMs}ms in terraform.` : '.'),
+        );
     } else if (event instanceof ModeFailedEvent) {
       this.logger.log
         .withMetadata({ appName, durationInMs: event.payload.durationInMs, mode })
@@ -217,6 +231,7 @@ export class LoggingEventListener {
         .info(`Running terraform "${event.payload.command}".`);
     } else if (event instanceof TerraformCommandFinishedEvent) {
       const { command, durationInMs, exitCode } = event.payload;
+      this.terraformInMs += durationInMs;
       const metadata = { command, dir: event.payload.dir, durationInMs, exitCode };
       if (exitCode === 0) {
         this.logger.log.withMetadata(metadata).info(`Terraform "${command}" finished in ${durationInMs}ms.`);

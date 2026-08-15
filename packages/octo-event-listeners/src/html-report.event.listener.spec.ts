@@ -10,6 +10,7 @@ import {
   ModeFinishedEvent,
   ModeStartedEvent,
   ModelTransactionTransactionEvent,
+  TerraformCommandFinishedEvent,
   ValidateModeCompletedEvent,
 } from '@quadnix/octo';
 import { HtmlReportEventListener, type HtmlReportEventListenerFactory } from './html-report.event.listener.js';
@@ -65,7 +66,7 @@ describe('HtmlReportEventListener', () => {
               octoAction: DiffAction.ADD,
               resourceContext: '@octo/s3-website=bucket-site',
               resourceId: 'bucket-site',
-              terraformChanges: [{ address: 'aws_s3_bucket.site', tfActions: ['create'] }],
+              terraformChanges: [{ address: 'aws_s3_bucket.site', changedFields: [], tfActions: ['create'] }],
             },
           ],
           notes: [],
@@ -118,6 +119,37 @@ describe('HtmlReportEventListener', () => {
 
     expect(html).not.toMatch(/https?:\/\//);
     expect(html).toContain('added service=my-site');
+  });
+
+  it('counts terraform time that ran before the mode started', async () => {
+    // Both the CLI and runModules plan first and pass the result into `octo.validate()`, so every
+    // terraform command lands before ModeStartedEvent — where the observation does not exist yet.
+    eventService.emit(
+      new TerraformCommandFinishedEvent('plan', { command: 'plan', dir: '/tmp/a', durationInMs: 36_100, exitCode: 0 }),
+    );
+    eventService.emit(
+      new TerraformCommandFinishedEvent('plan', { command: 'plan', dir: '/tmp/b', durationInMs: 43_400, exitCode: 0 }),
+    );
+    await emitValidateRun();
+
+    const jsonName = (await readdir(reportDir)).find((entry) => entry.endsWith('.json'))!;
+    const report = JSON.parse(await readFile(join(reportDir, jsonName), 'utf-8'));
+
+    expect(report.durationInMs).toBe(1200);
+    expect(report.terraformInMs).toBe(79_500);
+  });
+
+  it('does not charge one run for the terraform time of the run before it', async () => {
+    eventService.emit(
+      new TerraformCommandFinishedEvent('plan', { command: 'plan', dir: '/tmp/a', durationInMs: 36_100, exitCode: 0 }),
+    );
+    await emitValidateRun();
+    await emitValidateRun();
+
+    const jsonNames = (await readdir(reportDir)).filter((entry) => entry.endsWith('.json')).sort();
+    const second = JSON.parse(await readFile(join(reportDir, jsonNames[jsonNames.length - 1]), 'utf-8'));
+
+    expect(second.terraformInMs).toBe(0);
   });
 
   it('still writes a report when the mode failed', async () => {

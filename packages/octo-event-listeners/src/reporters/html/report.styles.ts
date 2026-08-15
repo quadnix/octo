@@ -248,6 +248,36 @@ details[open] .chev { transform: rotate(90deg); }
 }
 .tf-why::before { content: "↳ "; }
 
+.fields { margin: 2px 0 6px 49px; }
+.field {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12px;
+  gap: 6px;
+  padding: 1px 0;
+}
+.field-name { color: var(--text-dim); min-width: 140px; }
+.field-was { color: var(--delete); word-break: break-all; }
+.field-now { color: var(--create); word-break: break-all; }
+.field-arrow { color: var(--text-dim); }
+
+.disagree {
+  background: var(--update-bg);
+  border-top: 1px solid var(--border);
+  color: var(--update);
+  font-size: 12.5px;
+  padding: 9px 15px;
+}
+
+.story-derived {
+  background: var(--surface-2);
+  border-radius: 5px;
+  color: var(--text-dim);
+  font-size: 11px;
+  padding: 2px 6px;
+}
+
 .sdk {
   background: var(--recreate-bg);
   border-radius: 6px;
@@ -279,5 +309,9 @@ tr:last-child td { border-bottom: none; }
 
 .scroll-x { overflow-x: auto; }
 .empty { color: var(--text-dim); font-style: italic; padding: 11px 15px; }
+.dim { color: var(--text-dim); }
+
+/* The index's widest column. Capped so the run, mode and counts stay on screen without scrolling. */
+.index-headline { color: var(--text-dim); max-width: 460px; }
 .footer { color: var(--text-dim); font-size: 12px; margin-top: 32px; text-align: center; }
 `;

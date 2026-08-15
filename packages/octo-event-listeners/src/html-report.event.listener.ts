@@ -1,4 +1,4 @@
-import { mkdir, readdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import {
   CommitModeCompletedEvent,
@@ -8,13 +8,14 @@ import {
   ModeStartedEvent,
   ModelTransactionTransactionEvent,
   OnEvent,
+  TerraformCommandFinishedEvent,
   ValidateModeCompletedEvent,
 } from '@quadnix/octo';
 import { Logger } from './logger/logger.factory.js';
 import { renderReportHtml } from './reporters/html/html.reporter.js';
-import { renderIndexHtml } from './reporters/html/index.reporter.js';
+import { type IndexRun, renderIndexHtml } from './reporters/html/index.reporter.js';
 import { buildReport } from './reporters/report.builder.js';
-import type { RunObservation } from './reporters/report.model.js';
+import type { OctoReport, RunObservation } from './reporters/report.model.js';
 
 export interface HtmlReportEventListenerOptions {
   /**
@@ -53,6 +54,10 @@ export class HtmlReportEventListener {
    */
   private observation: RunObservation | undefined;
   private readonly reportDir: string;
+  /**
+   * Terraform time seen since the last report was written. See {@link onTerraformCommandFinished}.
+   */
+  private terraformInMs = 0;
 
   constructor({ reportDir }: HtmlReportEventListenerOptions = {}) {
     // Takes the process logger as it is configured. Level and destination belong to
@@ -118,6 +123,19 @@ export class HtmlReportEventListener {
     };
   }
 
+  /**
+   * Adds up what terraform cost, which the mode's own duration leaves out.
+   *
+   * Counted outside the observation for the same reason the model transaction is: terraform runs
+   * *between* modes. Both the CLI and `runModules` plan first and pass the result into
+   * `octo.validate()`, so every one of those commands lands before `ModeStartedEvent`. Reset once
+   * the report that reports it has been written.
+   */
+  @OnEvent(TerraformCommandFinishedEvent)
+  onTerraformCommandFinished(event: TerraformCommandFinishedEvent): void {
+    this.terraformInMs += event.payload.durationInMs;
+  }
+
   @OnEvent(ValidateModeCompletedEvent)
   onValidateCompleted(event: ValidateModeCompletedEvent): void {
     if (this.observation) {
@@ -127,19 +145,42 @@ export class HtmlReportEventListener {
 
   /**
    * Rebuilds `index.html` from the files on disk.
+   *
+   * Each row is filled in from the run's own JSON, so the index can answer "which of these was the
+   * drifted one" without opening all of them. A report whose JSON is missing or unreadable — an
+   * older format, or one caught mid-write — still gets its row and its links.
    */
   private async writeIndex(): Promise<void> {
     const entries = await readdir(this.reportDir);
-    const runs: { basename: string; mode: string; timestamp: string }[] = [];
+    const runFiles: { basename: string; mode: string; timestamp: string }[] = [];
 
     for (const entry of entries) {
       const match = /^(.+)-(commit|validate)\.html$/.exec(entry);
       if (match) {
-        runs.push({ basename: entry, mode: match[2], timestamp: match[1] });
+        runFiles.push({ basename: entry, mode: match[2], timestamp: match[1] });
       }
     }
 
-    runs.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+    runFiles.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+
+    const runs: IndexRun[] = await Promise.all(
+      runFiles.map(async (run) => {
+        try {
+          const payload = JSON.parse(
+            await readFile(join(this.reportDir, run.basename.replace(/\.html$/, '.json')), 'utf-8'),
+          ) as OctoReport;
+          return {
+            ...run,
+            driftCount: payload.drift?.length ?? 0,
+            headline: payload.headline,
+            outcome: payload.outcome,
+            totals: payload.totals,
+          };
+        } catch {
+          return run;
+        }
+      }),
+    );
 
     await writeFile(join(this.reportDir, 'index.html'), renderIndexHtml(runs), 'utf-8');
   }
@@ -151,6 +192,9 @@ export class HtmlReportEventListener {
     if (!observation || (observation.mode !== 'commit' && observation.mode !== 'validate')) {
       return;
     }
+
+    observation.terraformInMs = this.terraformInMs;
+    this.terraformInMs = 0;
 
     const report = buildReport(observation);
     const basename = `${timestampFor(new Date(report.startedAt))}-${report.mode}`;

@@ -400,6 +400,7 @@ export function buildReport(observation: RunObservation): OctoReport {
     outcome: failures.length > 0 ? 'failed' : drift.length > 0 ? 'drift' : stories.length > 0 ? 'changes' : 'clean',
     startedAt: observation.startedAt,
     stories,
+    terraformInMs: observation.terraformInMs ?? 0,
     totals,
     uncertain,
   };
@@ -420,6 +421,7 @@ export function buildReport(observation: RunObservation): OctoReport {
     outcome: report.outcome,
     startedAt: report.startedAt,
     stories: report.stories,
+    terraformInMs: report.terraformInMs,
     totals: report.totals,
     uncertain: report.uncertain,
   };
