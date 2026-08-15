@@ -1,4 +1,9 @@
-import type { CommitModeCompletedEvent, DiffMetadata, ModeStartedEvent, ValidateModeCompletedEvent } from '@quadnix/octo';
+import type {
+  CommitModeCompletedEvent,
+  DiffMetadata,
+  ModeStartedEvent,
+  ValidateModeCompletedEvent,
+} from '@quadnix/octo';
 import { buildReport } from './report.builder.js';
 import type { OctoReport, RunObservation } from './report.model.js';
 

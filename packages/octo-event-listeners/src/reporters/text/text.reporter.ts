@@ -125,9 +125,7 @@ function section(lines: string[], heading: string, rows: string[]): void {
  */
 export function renderReportText(report: OctoReport): string {
   const lines: string[] = [
-    `${report.app} — octo ${report.mode} — ${report.outcome}${
-      report.confidence ? ` (${report.confidence})` : ''
-    }`,
+    `${report.app} — octo ${report.mode} — ${report.outcome}${report.confidence ? ` (${report.confidence})` : ''}`,
     `${formatTimestamp(report.finishedAt)} · ${duration(report)}`,
     '',
     report.headline,

@@ -100,9 +100,7 @@ describe('renderReportText()', () => {
   });
 
   it('says when octo and terraform disagree', () => {
-    const text = renderReportText(
-      report({ stories: [story({ kind: 'recreate', terraformPlannedNothing: true })] }),
-    );
+    const text = renderReportText(report({ stories: [story({ kind: 'recreate', terraformPlannedNothing: true })] }));
 
     expect(text).toContain("terraform's plan touches none of its addresses");
   });
