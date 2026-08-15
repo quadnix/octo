@@ -7,6 +7,58 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const fixture = (name: string): string => join(__dirname, '..', '..', '..', '..', 'test', 'resources', name);
 
 describe('YamlDefinitionUtility UT', () => {
+  describe('resolveEnvironmentValue()', () => {
+    const environmentKeys = ['OCTO_TEST_BOOLEAN_TRUE', 'OCTO_TEST_BOOLEAN_FALSE', 'OCTO_TEST_NUMBER'];
+
+    afterEach(() => {
+      for (const key of environmentKeys) {
+        delete process.env[key];
+      }
+    });
+
+    it('should resolve a boolean from its yaml default', () => {
+      const definition = new YamlDefinitionUtility(fixture('env-kinds-definition.yml'));
+
+      expect(definition.resolveEnvironmentValue('${env.OCTO_TEST_BOOLEAN_TRUE}')).toBe(true);
+      expect(definition.resolveEnvironmentValue('${env.OCTO_TEST_BOOLEAN_FALSE}')).toBe(false);
+    });
+
+    it('should resolve a shell-supplied "false" to false, not to true', () => {
+      const definition = new YamlDefinitionUtility(fixture('env-kinds-definition.yml'));
+
+      process.env.OCTO_TEST_BOOLEAN_TRUE = 'false';
+      process.env.OCTO_TEST_BOOLEAN_FALSE = 'TRUE';
+
+      expect(definition.resolveEnvironmentValue('${env.OCTO_TEST_BOOLEAN_TRUE}')).toBe(false);
+      expect(definition.resolveEnvironmentValue('${env.OCTO_TEST_BOOLEAN_FALSE}')).toBe(true);
+    });
+
+    it('should reject a value that is not a boolean', () => {
+      const definition = new YamlDefinitionUtility(fixture('env-kinds-definition.yml'));
+
+      process.env.OCTO_TEST_BOOLEAN_TRUE = 'yes';
+
+      expect(() => definition.resolveEnvironmentValue('${env.OCTO_TEST_BOOLEAN_TRUE}')).toThrow(
+        'Value "yes" for key "OCTO_TEST_BOOLEAN_TRUE" is not a boolean!',
+      );
+    });
+
+    it('should resolve numbers and strings', () => {
+      const definition = new YamlDefinitionUtility(fixture('env-kinds-definition.yml'));
+
+      expect(definition.resolveEnvironmentValue('${env.OCTO_TEST_NUMBER}')).toBe(42);
+      expect(definition.resolveEnvironmentValue('${env.OCTO_TEST_STRING}')).toBe('hello');
+    });
+
+    it('should report a missing key when the definition declares no "env" block', () => {
+      const definition = new YamlDefinitionUtility(fixture('terraform-minimal-definition.yml'));
+
+      expect(() => definition.resolveEnvironmentValue('${env.DOES_NOT_EXIST}')).toThrow(
+        'Key "DOES_NOT_EXIST" not found under "env"!',
+      );
+    });
+  });
+
   describe('resolveImports()', () => {
     const projectRoot = join(__dirname, '..', '..', '..', '..');
 

@@ -86,7 +86,9 @@ export class YamlDefinitionUtility {
       return value as T;
     }
 
-    const environmentKey = this.definition.env.find((e) => e.key === pattern[1]);
+    // `env` is optional in the schema, so a definition can reference `${env.X}` without declaring
+    // one. Treat that as an empty block and let the "not found" error below report it.
+    const environmentKey = (this.definition.env ?? []).find((e) => e.key === pattern[1]);
     if (!environmentKey) {
       throw new Error(`Key "${pattern[1]}" not found under "env"!`);
     }
@@ -96,7 +98,19 @@ export class YamlDefinitionUtility {
     const { kind } = environmentKey;
     switch (kind) {
       case 'boolean': {
-        return Boolean(resolvedValue) as T;
+        // A shell always supplies a string, and `Boolean("false")` is `true`. Parse the string form
+        // rather than coercing it, and reject anything that is not plainly a boolean.
+        if (typeof resolvedValue === 'boolean') {
+          return resolvedValue as T;
+        }
+        const normalizedValue = String(resolvedValue).trim().toLowerCase();
+        if (normalizedValue === 'true') {
+          return true as T;
+        } else if (normalizedValue === 'false') {
+          return false as T;
+        } else {
+          throw new Error(`Value "${resolvedValue}" for key "${pattern[1]}" is not a boolean!`);
+        }
       }
       case 'number': {
         return Number(resolvedValue) as T;

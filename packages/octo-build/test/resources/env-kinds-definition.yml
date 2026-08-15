@@ -1,0 +1,33 @@
+version: 1
+
+env:
+  - key: OCTO_TEST_BOOLEAN_TRUE
+    kind: boolean
+    value: true
+  - key: OCTO_TEST_BOOLEAN_FALSE
+    kind: boolean
+    value: false
+  - key: OCTO_TEST_NUMBER
+    kind: number
+    value: 42
+  - key: OCTO_TEST_STRING
+    kind: string
+    value: 'hello'
+
+terraform:
+  requiredVersion: '1.6.0'
+  requiredProviders: {}
+  providers: []
+
+imports:
+  - className: 'SomeModule'
+    importPath: './some-module.js'
+
+modules:
+  - moduleClass: 'SomeModule'
+    moduleId: 'app'
+    moduleInputs: {}
+
+settings:
+  stateProvider:
+    type: 'TestStateProvider'
