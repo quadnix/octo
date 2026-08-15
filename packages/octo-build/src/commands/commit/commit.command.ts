@@ -65,8 +65,8 @@ export const commitCommand = {
         console.error(chalk.yellow(`WARN ${warning.moduleId ? `[${warning.moduleId}] ` : ''}${warning.message}`));
       }
 
-      console.log(chalk.green('==== Commit complete ===='));
-      console.log(chalk.green('Octo state updated from the applied Terraform outputs.'));
+      // No verdict printed here - the listeners own stdout and render the commit report there.
+      // The warnings above stay, on stderr: a different fd, so they cannot interleave with pino.
     } catch (error) {
       reportError(error);
       process.exit(1);

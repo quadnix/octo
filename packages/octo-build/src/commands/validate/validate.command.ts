@@ -58,13 +58,13 @@ export const validateCommand = {
 
       // Only being unable to read a folder is unsuccessful. Drift and unexplained changes are
       // findings to act on, not exit codes.
+      //
+      // The verdict itself is not printed here - the listeners render the report, drift included,
+      // on stdout, and a `console.log` alongside pino lands out of order. What is left is the exit
+      // code, which is the CLI's own job, and the failure line on stderr.
       if (report.failures.length > 0) {
         console.error(chalk.red('\nValidation could not complete!'));
         process.exit(1);
-      } else if (report.drift.length > 0) {
-        console.log(chalk.yellow('\nValidation complete, with drift.'));
-      } else {
-        console.log(chalk.green('\nValidation complete.'));
       }
     } catch (error) {
       reportError(error);

@@ -71,7 +71,9 @@ describe('commitCommand UT', () => {
 
     expect(terraformUtilityMock.output).toHaveBeenCalledWith(resolvedDir, { json: true });
     expect(octoCommitMock).toHaveBeenCalledWith({}, { outputs });
-    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Commit complete'));
+    // The listeners own stdout and render the commit report there; a `console.log` alongside pino
+    // lands out of order, so the handler writes nothing to it.
+    expect(consoleLogSpy).not.toHaveBeenCalled();
     expect(processExitSpy).not.toHaveBeenCalled();
   });
 

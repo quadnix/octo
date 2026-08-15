@@ -88,17 +88,17 @@ describe('validateCommand UT', () => {
 
     expect(terraformUtilityMock.plan).toHaveBeenCalledWith(resolvedDir, { json: true });
     expect(octoValidateMock).toHaveBeenCalledWith({}, planResult);
-    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Validation complete.'));
+    expect(consoleLogSpy).not.toHaveBeenCalled();
     expect(processExitSpy).not.toHaveBeenCalled();
   });
 
   // The report itself is rendered by the registered listeners, from the same OctoReport the HTML
-  // page uses. A definition that registers none prints only the verdict, which is the contract.
+  // page uses — including the verdict. The handler writes nothing to stdout at all, so that pino
+  // is its only writer and the output cannot come out interleaved.
   it('leaves rendering the report to the listeners', async () => {
     await validateCommand.handler(argv);
 
-    expect(consoleLogSpy).not.toHaveBeenCalledWith(expect.stringContaining('INTENT CHANGES'));
-    expect(consoleLogSpy).not.toHaveBeenCalledWith(expect.stringContaining('INFRASTRUCTURE CHANGES'));
+    expect(consoleLogSpy).not.toHaveBeenCalled();
   });
 
   it('reports drift without failing — drift is a finding to act on, not a broken run', async () => {
@@ -109,7 +109,6 @@ describe('validateCommand UT', () => {
 
     await validateCommand.handler(argv);
 
-    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Validation complete, with drift.'));
     expect(processExitSpy).not.toHaveBeenCalled();
   });
 

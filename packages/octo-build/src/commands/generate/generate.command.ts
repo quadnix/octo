@@ -1,5 +1,4 @@
 import { resolve } from 'path';
-import chalk from 'chalk';
 import type { ArgumentsCamelCase, Argv } from 'yargs';
 import { bootOcto, reportError } from '../../utilities/octo/octo.utility.js';
 
@@ -29,9 +28,10 @@ export const generateCommand = {
       const resolvedOutputDir = resolve(process.cwd(), outputDir);
       await octo.generate(app, { outputDir: resolvedOutputDir });
 
-      // What was written is reported by the listeners, from `TerraformFoldersWrittenEvent` - it
-      // carries the folder count and the emptied ones too. Only the verdict is this command's.
-      console.log(chalk.green('==== Generate complete ===='));
+      // Nothing is printed here. The listeners report what was written and that the mode finished,
+      // and they are the only writer on stdout - a `console.log` alongside them lands out of order,
+      // because pino's stream and this one flush independently. Failures still reach stderr via
+      // `reportError`, so a silent run is a successful one.
     } catch (error) {
       reportError(error);
       process.exit(1);

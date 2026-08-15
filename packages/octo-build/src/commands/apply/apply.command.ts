@@ -108,10 +108,18 @@ export const applyCommand = {
       if (!autoApprove && (await isBlockedByDestroys(terraformUtility, resolvedDir))) {
         process.exit(1);
       } else {
-        const result = await terraformUtility.apply(resolvedDir);
-        if (result.stdout) {
-          console.log(result.stdout);
-        }
+        // Streamed, not printed at the end: an ECS apply runs for tens of minutes, and terragrunt's
+        // own progress is the only sign it is alive. `apply` boots no octo and so has no listeners,
+        // which makes this the only writer here - nothing to interleave with.
+        await terraformUtility.apply(resolvedDir, {
+          onOutput: (chunk, stream): void => {
+            if (stream === 'stdout') {
+              process.stdout.write(chunk);
+            } else {
+              process.stderr.write(chunk);
+            }
+          },
+        });
 
         console.log(chalk.green('==== Apply complete ===='));
       }

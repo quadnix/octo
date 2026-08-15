@@ -4,6 +4,7 @@ import { Container, TerraformUtility, TestContainer } from '@quadnix/octo';
 import type { ArgumentsCamelCase } from 'yargs';
 
 type TerraformRawResult = { args: string[]; exitCode: number; stderr: string; stdout: string };
+type OnOutput = (chunk: string, stream: 'stderr' | 'stdout') => void;
 
 type TerraformPlanResult = {
   errors: Map<string, string>;
@@ -27,7 +28,7 @@ describe('applyCommand UT', () => {
   const argv = { _: [], $0: 'octo', terragruntDir } as unknown as ArgumentsCamelCase<{ terragruntDir: string }>;
 
   let terraformUtilityMock: {
-    apply: jest.Mock<() => Promise<TerraformRawResult>>;
+    apply: jest.Mock<(dir: string, options?: { onOutput?: OnOutput }) => Promise<TerraformRawResult>>;
     findPlannedDestroys: TerraformUtility['findPlannedDestroys'];
     plan: jest.Mock<() => Promise<TerraformPlanResult>>;
   };
@@ -38,7 +39,7 @@ describe('applyCommand UT', () => {
   beforeEach(async () => {
     terraformUtilityMock = {
       apply: jest
-        .fn<() => Promise<TerraformRawResult>>()
+        .fn<(dir: string, options?: { onOutput?: OnOutput }) => Promise<TerraformRawResult>>()
         .mockResolvedValue({ args: [], exitCode: 0, stderr: '', stdout: 'Apply complete! Resources: 1 added.' }),
       // Real, not stubbed: what the gate prints is derived from the plan fixtures below, so stubbing
       // this would leave the test asserting on its own fixture. Its logic is covered in octo's
@@ -69,9 +70,28 @@ describe('applyCommand UT', () => {
   it('applies the terragrunt directory via TerraformUtility', async () => {
     await applyCommand.handler(argv);
 
-    expect(terraformUtilityMock.apply).toHaveBeenCalledWith(resolvedDir);
+    expect(terraformUtilityMock.apply).toHaveBeenCalledWith(resolvedDir, { onOutput: expect.any(Function) });
     expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Apply complete'));
     expect(processExitSpy).not.toHaveBeenCalled();
+  });
+
+  // An apply runs for tens of minutes and `apply` boots no octo, so it has no listeners: this
+  // pass-through is the only sign the run is alive, and the only writer, so there is nothing for it
+  // to interleave with.
+  it('streams terragrunt output through as it arrives, on the matching stream', async () => {
+    const stdoutWriteSpy = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    const stderrWriteSpy = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+    await applyCommand.handler(argv);
+
+    const { onOutput } = terraformUtilityMock.apply.mock.calls[0][1] as {
+      onOutput: (chunk: string, stream: 'stderr' | 'stdout') => void;
+    };
+    onOutput('creating...', 'stdout');
+    onOutput('a warning', 'stderr');
+
+    expect(stdoutWriteSpy).toHaveBeenCalledWith('creating...');
+    expect(stderrWriteSpy).toHaveBeenCalledWith('a warning');
   });
 
   describe('the destroy gate', () => {
@@ -111,7 +131,7 @@ describe('applyCommand UT', () => {
       await applyCommand.handler({ ...argv, autoApprove: true } as typeof argv);
 
       expect(terraformUtilityMock.plan).not.toHaveBeenCalled();
-      expect(terraformUtilityMock.apply).toHaveBeenCalledWith(resolvedDir);
+      expect(terraformUtilityMock.apply).toHaveBeenCalledWith(resolvedDir, { onOutput: expect.any(Function) });
       expect(processExitSpy).not.toHaveBeenCalled();
     });
 

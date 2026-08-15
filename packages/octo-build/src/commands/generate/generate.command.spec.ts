@@ -57,12 +57,10 @@ describe('generateCommand UT', () => {
   // The listener reports what was written, from `TerraformFoldersWrittenEvent` — it carries the
   // folder count and the emptied ones. The command owns only the verdict, so that a wording change
   // never needs an edit in both packages.
-  it('should print the verdict and leave the folder report to the listeners', async () => {
+  it('should write nothing to stdout, leaving it entirely to the listeners', async () => {
     await generateCommand.handler(argv);
 
-    expect(consoleLogSpy).toHaveBeenCalledTimes(1);
-    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Generate complete'));
-    expect(consoleLogSpy).not.toHaveBeenCalledWith(expect.stringContaining(resolvedOutputDir));
+    expect(consoleLogSpy).not.toHaveBeenCalled();
   });
 
   it('should report the error and exit non-zero when generation fails', async () => {
