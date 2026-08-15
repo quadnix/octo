@@ -45,6 +45,10 @@
     "build": "rimraf dist && tsc -p tsconfig.build.json",
     "format": "prettier --write \"src/**/*.ts\"",
     "lint": "eslint .",
+    "octo:apply": "OCTO_DEFINITION_FILE_PATH=octo.yaml octo apply --terragruntDir .octo-tf",
+    "octo:commit": "OCTO_DEFINITION_FILE_PATH=octo.yaml octo commit --terragruntDir .octo-tf",
+    "octo:generate": "OCTO_DEFINITION_FILE_PATH=octo.yaml octo generate -o .octo-tf",
+    "octo:validate": "OCTO_DEFINITION_FILE_PATH=octo.yaml octo validate --terragruntDir .octo-tf",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --testRegex=\"\\.spec.ts$\"",
     "test:e2e": "NODE_OPTIONS=--experimental-vm-modules jest --testRegex=\"\\.e2e-spec.ts$\""
   },
