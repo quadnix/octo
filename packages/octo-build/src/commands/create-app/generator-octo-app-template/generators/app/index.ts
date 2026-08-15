@@ -24,8 +24,14 @@ export default class extends Generator {
     this.log('📦 Next steps:');
     this.log(`   cd ${targetPath}`);
     this.log('   npm install');
+    this.log('   Set the "env" values in octo.yaml.');
     this.log('   npm run build');
-    this.log('   npm start');
+    this.log('   export OCTO_DEFINITION_FILE_PATH=octo.yaml');
+    this.log('   node_modules/.bin/octo generate -o .octo-tf');
+    this.log('   node_modules/.bin/octo validate --terragruntDir .octo-tf   # optional');
+    this.log('   node_modules/.bin/octo apply --terragruntDir .octo-tf');
+    this.log('   node_modules/.bin/octo commit --terragruntDir .octo-tf');
+    this.log('   See README.md for the full flow.');
   }
 
   async initializing(): Promise<void> {

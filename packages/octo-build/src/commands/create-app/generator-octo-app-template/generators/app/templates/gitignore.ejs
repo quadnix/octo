@@ -10,6 +10,14 @@ dist/
 build/
 *.tsbuildinfo
 
+# Octo generated Terraform / Terragrunt artifacts.
+# `.octo/` itself is NOT ignored - model and resource state belong in the repo - but its reports do not.
+.octo-tf/
+.octo-outputs/
+.terragrunt-cache/
+*.tfstate*
+.octo/reports/
+
 # Environment variables
 .env
 .env.local

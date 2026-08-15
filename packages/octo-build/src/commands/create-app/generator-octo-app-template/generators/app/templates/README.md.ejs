@@ -30,15 +30,21 @@ so Terragrunt passes it through to the `octo run-action` calls it makes mid-appl
 # 1. Generate the Terragrunt module folders into ./.octo-tf (folders are overwritten in place; state and unrelated folders survive).
 OCTO_DEFINITION_FILE_PATH=octo.yaml node_modules/.bin/octo generate -o .octo-tf
 
-# 2. (optional) Produce a plan.json per module folder, then validate it against Octo's resource diff.
-#    cd .octo-tf && terragrunt run-all plan -out plan.out && terragrunt run-all show -json plan.out > plan.json
+# 2. (optional) Plan every module folder and validate the plans against Octo's resource diff.
+#    `validate` runs the plan itself; there is nothing to run beforehand.
 OCTO_DEFINITION_FILE_PATH=octo.yaml node_modules/.bin/octo validate --terragruntDir .octo-tf
 
-# 3. Apply with Terragrunt (export so run-action inherits it), then record the applied outputs into Octo.
+# 3. Apply (export so the run-action calls Terragrunt makes mid-apply inherit it),
+#    then record the applied outputs into Octo.
 export OCTO_DEFINITION_FILE_PATH=octo.yaml
-cd .octo-tf && terragrunt run-all apply && cd ..
-OCTO_DEFINITION_FILE_PATH=octo.yaml node_modules/.bin/octo commit --terragruntDir .octo-tf
+node_modules/.bin/octo apply --terragruntDir .octo-tf
+node_modules/.bin/octo commit --terragruntDir .octo-tf
 ```
+
+`octo apply` plans first and refuses to proceed if the apply would destroy anything, printing what
+would be destroyed. Run `octo validate` to see why each one is being destroyed, then re-run with
+`--auto-approve` to go ahead. `--auto-approve` is therefore required for every destroy, including the
+teardown flow below.
 
 > `octo run-action` is invoked automatically by Terraform mid-apply for resources whose lifecycle runs
 > outside Terraform; you do not call it directly. It reads `OCTO_DEFINITION_FILE_PATH` like every other command.
@@ -92,4 +98,10 @@ modules:
 ```
 
 ### Step 2
-Then, re-build (if necessary) and re-run the generate → apply → commit flow from "Running the Definition file".
+Then, re-build (if necessary) and re-run the generate → apply → commit flow from "Running the Definition file",
+passing `--auto-approve` to the apply step - a teardown destroys resources, and `octo apply` refuses to
+destroy anything without it.
+
+```bash
+node_modules/.bin/octo apply --terragruntDir .octo-tf --auto-approve
+```
