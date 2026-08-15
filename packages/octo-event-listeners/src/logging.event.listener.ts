@@ -46,6 +46,8 @@ import {
   ValidateModeCompletedEvent,
 } from '@quadnix/octo';
 import { type LogDestination, Logger, type LoggerOptions } from './logger/logger.factory.js';
+import { RunObserver } from './reporters/run.observer.js';
+import { renderReportText } from './reporters/text/text.reporter.js';
 
 /**
  * Logs octo's event stream. Levels:
@@ -53,11 +55,15 @@ import { type LogDestination, Logger, type LoggerOptions } from './logger/logger
  * - `error` - a mode failed.
  * - `warn`  - drift, commit warnings, a non-zero terraform exit.
  * - `info`  - mode boundaries, folders written, terraform commands, mode results, report paths,
- *             SDK resource actions.
+ *             SDK resource actions, and the run's report in full.
  * - `debug` - diffs, transactions, serialization, hooks, author `log()` calls.
  * - `trace` - class registration.
  */
 export class LoggingEventListener {
+  /**
+   * Collects the run so the mode can be closed with the whole report, not just a count.
+   */
+  private readonly observer = new RunObserver();
   /**
    * Start times of in-flight resource actions, used to report their duration on completion.
    */
@@ -101,6 +107,7 @@ export class LoggingEventListener {
     const { appName, mode } = event.payload;
 
     if (event instanceof ModeStartedEvent) {
+      this.observer.modeStarted(event.payload);
       this.logger.log.withMetadata({ appName, mode }).info(`Started "${mode}"${appName ? ` on "${appName}"` : ''}.`);
     } else if (event instanceof ModeFinishedEvent) {
       // Terraform is named separately because it runs *outside* the mode: the plan is taken first
@@ -110,6 +117,7 @@ export class LoggingEventListener {
       const terraformInMs = this.terraformInMs;
       this.terraformInMs = 0;
 
+      this.reportRun(event.payload.durationInMs);
       this.logger.log
         .withMetadata({ appName, durationInMs, mode, terraformInMs })
         .info(
@@ -117,6 +125,7 @@ export class LoggingEventListener {
             (terraformInMs > 0 ? `, after ${terraformInMs}ms in terraform.` : '.'),
         );
     } else if (event instanceof ModeFailedEvent) {
+      this.reportRun(event.payload.durationInMs, event.payload.error);
       this.logger.log
         .withMetadata({ appName, durationInMs: event.payload.durationInMs, mode })
         .error(`Failed "${mode}" after ${event.payload.durationInMs}ms: ${event.payload.error}`);
@@ -130,6 +139,7 @@ export class LoggingEventListener {
   onModeResult(event: ModeResultEvent<unknown>): void {
     if (event instanceof ValidateModeCompletedEvent) {
       const { report } = event.payload;
+      this.observer.validateCompleted(report);
       const terraformChangeCount = report.intentChanges.reduce(
         (total, change) => total + change.terraformChanges.length,
         report.attributedChanges.length,
@@ -163,6 +173,7 @@ export class LoggingEventListener {
       }
     } else if (event instanceof CommitModeCompletedEvent) {
       const { emptiedModuleIds, responses, warnings } = event.payload;
+      this.observer.commitCompleted(event.payload);
       const moved = responses.filter((response) => response.previousValue !== response.value);
 
       this.logger.log
@@ -232,6 +243,7 @@ export class LoggingEventListener {
     } else if (event instanceof TerraformCommandFinishedEvent) {
       const { command, durationInMs, exitCode } = event.payload;
       this.terraformInMs += durationInMs;
+      this.observer.terraformCommandFinished(durationInMs);
       const metadata = { command, dir: event.payload.dir, durationInMs, exitCode };
       if (exitCode === 0) {
         this.logger.log.withMetadata(metadata).info(`Terraform "${command}" finished in ${durationInMs}ms.`);
@@ -248,6 +260,7 @@ export class LoggingEventListener {
     } else if (event instanceof ModelDiffsTransactionEvent) {
       this.logger.log.debug('Model diffs executed.');
     } else if (event instanceof ModelTransactionTransactionEvent) {
+      this.observer.modelTransaction(event.payload);
       this.logger.log.debug('Model transactions executed.');
     } else if (event instanceof ResourceActionInitiatedTransactionEvent) {
       // `info`, not `debug`: this is real infrastructure work running in this process.
@@ -281,6 +294,24 @@ export class LoggingEventListener {
       this.logger.log.debug('Resource diffs executed.');
     } else if (event instanceof ResourceTransactionTransactionEvent) {
       this.logger.log.debug('Resource transactions executed.');
+    }
+  }
+
+  /**
+   * The whole report for the mode that just ended, as plain text.
+   *
+   * Rendered from the same {@link OctoReport} the HTML page is built from, so the terminal and the
+   * page cannot disagree; the page is only the more concise and pleasant of the two. It goes through
+   * the logger rather than straight to stdout, which is what makes it obey the configured level and
+   * destination — `run-action` routes the logger to stderr because terraform's `data "external"`
+   * protocol needs that command's stdout to carry only its response JSON.
+   *
+   * `generate` and `run-action` produce no report, and nothing is printed for them.
+   */
+  private reportRun(durationInMs: number, error?: string): void {
+    const report = this.observer.finish({ durationInMs, error });
+    if (report) {
+      this.logger.log.info(`\n${renderReportText(report)}\n`);
     }
   }
 

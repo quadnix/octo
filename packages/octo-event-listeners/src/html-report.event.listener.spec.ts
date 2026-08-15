@@ -1,6 +1,7 @@
 import { mkdtemp, readFile, readdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { jest } from '@jest/globals';
 import {
   CommitModeCompletedEvent,
   Container,
@@ -150,6 +151,15 @@ describe('HtmlReportEventListener', () => {
     const second = JSON.parse(await readFile(join(reportDir, jsonNames[jsonNames.length - 1]), 'utf-8'));
 
     expect(second.terraformInMs).toBe(0);
+  });
+
+  it('writes files only, leaving the terminal to the logging listener', async () => {
+    const write = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+
+    await emitValidateRun();
+
+    expect(write).not.toHaveBeenCalled();
+    write.mockRestore();
   });
 
   it('still writes a report when the mode failed', async () => {

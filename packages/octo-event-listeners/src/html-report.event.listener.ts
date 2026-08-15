@@ -14,8 +14,8 @@ import {
 import { Logger } from './logger/logger.factory.js';
 import { renderReportHtml } from './reporters/html/html.reporter.js';
 import { type IndexRun, renderIndexHtml } from './reporters/html/index.reporter.js';
-import { buildReport } from './reporters/report.builder.js';
-import type { OctoReport, RunObservation } from './reporters/report.model.js';
+import type { OctoReport } from './reporters/report.model.js';
+import { RunObserver } from './reporters/run.observer.js';
 
 export interface HtmlReportEventListenerOptions {
   /**
@@ -36,28 +36,21 @@ function timestampFor(date: Date): string {
 }
 
 /**
- * Writes an HTML report when `validate` or `commit` finishes. `generate` and `run-action` write none.
+ * Writes a report when `validate` or `commit` finishes. `generate` and `run-action` write none.
  *
  * Per run, into `reportDir`:
  * - `<timestamp>-<mode>.html` - the page.
  * - `<timestamp>-<mode>.json` - the same report as data.
  * - `index.html` - every report in the directory, newest first.
+ *
+ * Writes files only. The terminal belongs to `LoggingEventListener`, which owns the process logger
+ * and therefore its level and destination; both build their report from the same events, so they
+ * cannot disagree about what happened.
  */
 export class HtmlReportEventListener {
-  /**
-   * The most recent model transaction, kept across mode boundaries. See {@link onModelTransaction}.
-   */
-  private lastModelTransaction: RunObservation['modelTransaction'] = [];
   private readonly logger: Logger;
-  /**
-   * Events seen so far in the current mode. Reset by every {@link ModeStartedEvent}.
-   */
-  private observation: RunObservation | undefined;
+  private readonly observer = new RunObserver();
   private readonly reportDir: string;
-  /**
-   * Terraform time seen since the last report was written. See {@link onTerraformCommandFinished}.
-   */
-  private terraformInMs = 0;
 
   constructor({ reportDir }: HtmlReportEventListenerOptions = {}) {
     // Takes the process logger as it is configured. Level and destination belong to
@@ -68,9 +61,7 @@ export class HtmlReportEventListener {
 
   @OnEvent(CommitModeCompletedEvent)
   onCommitCompleted(event: CommitModeCompletedEvent): void {
-    if (this.observation) {
-      this.observation.commit = event.payload;
-    }
+    this.observer.commitCompleted(event.payload);
   }
 
   /**
@@ -78,69 +69,34 @@ export class HtmlReportEventListener {
    */
   @OnEvent(ModeFailedEvent)
   async onModeFailed(event: ModeFailedEvent): Promise<void> {
-    if (!this.observation) {
-      return;
-    }
-    this.observation.durationInMs = event.payload.durationInMs;
-    this.observation.error = event.payload.error;
-    await this.writeReport();
+    await this.writeReport(
+      this.observer.finish({ durationInMs: event.payload.durationInMs, error: event.payload.error }),
+    );
   }
 
   @OnEvent(ModeFinishedEvent)
   async onModeFinished(event: ModeFinishedEvent): Promise<void> {
-    if (!this.observation) {
-      return;
-    }
-    this.observation.durationInMs = event.payload.durationInMs;
-    await this.writeReport();
+    await this.writeReport(this.observer.finish({ durationInMs: event.payload.durationInMs }));
   }
 
-  /**
-   * Supplies the intent layer: what the user changed.
-   *
-   * Also kept outside the current observation, because the transaction is not always built inside a
-   * mode. A single-process driver (`runModules`) builds it once and hands the same result to
-   * generate/validate/commit, so the event fires *before* the first {@link ModeStartedEvent} — which
-   * used to reset it to `[]` and drop the intent layer from every report that path produced.
-   */
   @OnEvent(ModelTransactionTransactionEvent)
   onModelTransaction(event: ModelTransactionTransactionEvent): void {
-    this.lastModelTransaction = event.payload;
-    if (this.observation) {
-      this.observation.modelTransaction = event.payload;
-    }
+    this.observer.modelTransaction(event.payload);
   }
 
   @OnEvent(ModeStartedEvent)
   onModeStarted(event: ModeStartedEvent): void {
-    this.observation = {
-      appName: event.payload.appName,
-      mode: event.payload.mode,
-      // Carried over: the transaction describes the intent this run is acting on, whether it was
-      // published inside this mode or before it.
-      modelTransaction: this.lastModelTransaction,
-      startedAt: Date.now(),
-    };
+    this.observer.modeStarted(event.payload);
   }
 
-  /**
-   * Adds up what terraform cost, which the mode's own duration leaves out.
-   *
-   * Counted outside the observation for the same reason the model transaction is: terraform runs
-   * *between* modes. Both the CLI and `runModules` plan first and pass the result into
-   * `octo.validate()`, so every one of those commands lands before `ModeStartedEvent`. Reset once
-   * the report that reports it has been written.
-   */
   @OnEvent(TerraformCommandFinishedEvent)
   onTerraformCommandFinished(event: TerraformCommandFinishedEvent): void {
-    this.terraformInMs += event.payload.durationInMs;
+    this.observer.terraformCommandFinished(event.payload.durationInMs);
   }
 
   @OnEvent(ValidateModeCompletedEvent)
   onValidateCompleted(event: ValidateModeCompletedEvent): void {
-    if (this.observation) {
-      this.observation.validate = event.payload.report;
-    }
+    this.observer.validateCompleted(event.payload.report);
   }
 
   /**
@@ -185,18 +141,11 @@ export class HtmlReportEventListener {
     await writeFile(join(this.reportDir, 'index.html'), renderIndexHtml(runs), 'utf-8');
   }
 
-  private async writeReport(): Promise<void> {
-    const observation = this.observation;
-    this.observation = undefined;
-
-    if (!observation || (observation.mode !== 'commit' && observation.mode !== 'validate')) {
+  private async writeReport(report: OctoReport | undefined): Promise<void> {
+    if (!report) {
       return;
     }
 
-    observation.terraformInMs = this.terraformInMs;
-    this.terraformInMs = 0;
-
-    const report = buildReport(observation);
     const basename = `${timestampFor(new Date(report.startedAt))}-${report.mode}`;
     const htmlPath = join(this.reportDir, `${basename}.html`);
     const jsonPath = join(this.reportDir, `${basename}.json`);

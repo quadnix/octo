@@ -1,4 +1,6 @@
 import {
+  CHANGE_LABELS,
+  CHANGE_ORDER,
   CHANGE_SYMBOLS,
   type ChangeKind,
   type OctoReport,
@@ -7,8 +9,8 @@ import {
   type ReportStory,
   type ReportUnexplained,
 } from '../report.model.js';
+import { formatTimestamp } from '../timestamp.js';
 import { REPORT_STYLES } from './report.styles.js';
-import { formatTimestamp } from './timestamp.js';
 
 function escapeHtml(value: unknown): string {
   return String(value ?? '')
@@ -18,15 +20,6 @@ function escapeHtml(value: unknown): string {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
-
-const CHANGE_ORDER: ChangeKind[] = ['delete', 'recreate', 'create', 'update', 'other'];
-const CHANGE_LABELS: Record<ChangeKind, string> = {
-  create: 'create',
-  delete: 'destroy',
-  other: 'other',
-  recreate: 'replace',
-  update: 'update',
-};
 
 /**
  * For sentences about what octo intends but terraform has not planned, which are always about

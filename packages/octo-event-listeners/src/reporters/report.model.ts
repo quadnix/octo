@@ -37,6 +37,22 @@ export const CHANGE_SYMBOLS: Record<ChangeKind, string> = {
   update: '~',
 };
 
+/**
+ * Reading order for counters and totals: the irreversible ones first.
+ */
+export const CHANGE_ORDER: ChangeKind[] = ['delete', 'recreate', 'create', 'update', 'other'];
+
+/**
+ * What terraform calls each kind. Shared so the page and the terminal never label one differently.
+ */
+export const CHANGE_LABELS: Record<ChangeKind, string> = {
+  create: 'create',
+  delete: 'destroy',
+  other: 'other',
+  recreate: 'replace',
+  update: 'update',
+};
+
 export const CHANGE_VERBS: Record<ChangeKind, string> = {
   create: 'added',
   delete: 'removed',

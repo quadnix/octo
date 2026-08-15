@@ -1,6 +1,6 @@
 import { CHANGE_SYMBOLS, type ChangeKind, type OctoReport } from '../report.model.js';
+import { readableTimestamp } from '../timestamp.js';
 import { REPORT_STYLES } from './report.styles.js';
-import { readableTimestamp } from './timestamp.js';
 
 function escapeHtml(value: unknown): string {
   return String(value ?? '')
