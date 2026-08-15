@@ -10,6 +10,8 @@ import { fileURLToPath } from 'url';
 import { DisassociateRouteTableCommand, EC2Client } from '@aws-sdk/client-ec2';
 import { jest } from '@jest/globals';
 import { TestContainer, TestModuleContainer, TestStateProvider } from '@quadnix/octo';
+import { HtmlReportEventListener } from '@quadnix/octo-event-listeners/html-report';
+import { LoggingEventListener } from '@quadnix/octo-event-listeners/logging';
 import { AwsLiveResourcesUtility } from '../utilities/aws/live-resources/aws-live-resources.utility.js';
 import { AwsTagsUtility } from '../utilities/aws/tags/aws-tags.utility.js';
 import { config } from './app.config.js';
@@ -54,7 +56,10 @@ describe('Drift E2E', () => {
   beforeEach(async () => {
     const container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
     testModuleContainer = new TestModuleContainer(container);
-    await testModuleContainer.initialize(stateProvider);
+    await testModuleContainer.initialize(stateProvider, [
+      { options: { args: [{ level: 'info' }] }, type: LoggingEventListener },
+      { options: { args: [{ reportDir: join(__dirname, '.octo-drift', 'reports') }] }, type: HtmlReportEventListener },
+    ]);
 
     testModuleContainer.registerTerraformConfig({
       minTerraformVersion: '1.6.0',

@@ -3,6 +3,8 @@ import { fileURLToPath } from 'url';
 import { jest } from '@jest/globals';
 import { TestContainer, TestModuleContainer, TestStateProvider } from '@quadnix/octo';
 import { type AwsDynamoDBServiceModule } from '@quadnix/octo-aws-cdk/modules/service/aws-dynamodb-service';
+import { HtmlReportEventListener } from '@quadnix/octo-event-listeners/html-report';
+import { LoggingEventListener } from '@quadnix/octo-event-listeners/logging';
 import { AwsTagsUtility } from '../utilities/aws/tags/aws-tags.utility.js';
 import { AccountRepository } from './account.repository.js';
 import { config } from './app.config.js';
@@ -33,7 +35,10 @@ describe('Main E2E', () => {
   beforeEach(async () => {
     const container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
     testModuleContainer = new TestModuleContainer(container);
-    await testModuleContainer.initialize(stateProvider);
+    await testModuleContainer.initialize(stateProvider, [
+      { options: { args: [{ level: 'info' }] }, type: LoggingEventListener },
+      { options: { args: [{ reportDir: join(__dirname, '.octo', 'reports') }] }, type: HtmlReportEventListener },
+    ]);
 
     testModuleContainer.registerTerraformConfig({
       minTerraformVersion: '1.6.0',

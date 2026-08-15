@@ -4,6 +4,8 @@ import { jest } from '@jest/globals';
 import { type App, TestContainer, TestModuleContainer, TestStateProvider, stub } from '@quadnix/octo';
 import { AwsLocalstackAccountModule } from '@quadnix/octo-aws-cdk/modules/account/aws-localstack-account';
 import { type AwsS3StaticWebsiteServiceModule } from '@quadnix/octo-aws-cdk/modules/service/aws-s3-static-website-service';
+import { HtmlReportEventListener } from '@quadnix/octo-event-listeners/html-report';
+import { LoggingEventListener } from '@quadnix/octo-event-listeners/logging';
 import axios from 'axios';
 import { DockerComposeEnvironment, type StartedDockerComposeEnvironment, Wait } from 'testcontainers';
 import { ModuleDefinitions } from './module-definitions.js';
@@ -37,7 +39,10 @@ describe('Main IT', () => {
   beforeEach(async () => {
     const container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
     testModuleContainer = new TestModuleContainer(container);
-    await testModuleContainer.initialize(stateProvider);
+    await testModuleContainer.initialize(stateProvider, [
+      { options: { args: [{ level: 'info' }] }, type: LoggingEventListener },
+      { options: { args: [{ reportDir: join(__dirname, '.octo', 'reports') }] }, type: HtmlReportEventListener },
+    ]);
 
     testModuleContainer.registerTerraformConfig({
       minTerraformVersion: '1.6.0',

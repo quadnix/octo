@@ -10,6 +10,8 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { jest } from '@jest/globals';
 import { LocalStateProvider, Octo, TestContainer } from '@quadnix/octo';
+import { HtmlReportEventListener } from '@quadnix/octo-event-listeners/html-report';
+import { LoggingEventListener } from '@quadnix/octo-event-listeners/logging';
 import { config } from './app.config.js';
 import { ModuleDefinitions } from './module-definitions.js';
 
@@ -69,7 +71,13 @@ describe('Diff probe', () => {
   it.each(PROBES.map((p) => [p.name, p.overrides] as const))('%s', async (name, overrides) => {
     await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
     const octo = new Octo();
-    await octo.initialize(new LocalStateProvider(stateDir));
+    await octo.initialize(
+      new LocalStateProvider(stateDir),
+      [
+      { options: { args: [{ level: 'info' }] }, type: LoggingEventListener },
+      { options: { args: [{ reportDir: join(__dirname, '.octo-incremental', 'probe-reports') }] }, type: HtmlReportEventListener },
+    ],
+    );
 
     octo.registerTerraformConfig({
       minTerraformVersion: '1.6.0',
