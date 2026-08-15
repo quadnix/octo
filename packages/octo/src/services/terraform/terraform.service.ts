@@ -1029,9 +1029,17 @@ export class TerraformService {
       throw new Error(`No provider registered for ${target}!`);
     }
 
+    // A resource names its provider by account and region only, never by provider type, so that pair
+    // has to identify one provider. Deliberate: outside aws the account id is expected to be what tells
+    // them apart, which keeps the pair unique in practice, and threading a provider type through
+    // every resource binding costs more than the ambiguity is worth. Hence a hint rather than a fix.
     const providerTypes = new Set(matches.map(([, p]) => p.providerType));
     if (regionId !== undefined && providerTypes.size > 1) {
-      throw new Error(`Multiple providers registered for ${target}! Cannot derive a unique provider.`);
+      throw new Error(
+        `Multiple providers registered for ${target}! Cannot derive a unique provider. ` +
+          `Give each provider type its own accountId, since a resource selects its provider by ` +
+          `account and region alone. Registered here: ${[...providerTypes].sort().join(', ')}.`,
+      );
     }
 
     const [key, provider] = matches[0];
