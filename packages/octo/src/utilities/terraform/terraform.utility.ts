@@ -49,8 +49,16 @@ export class TerraformUtility {
     };
   }
 
-  async apply(terragruntDir: string): Promise<TerraformRawResult> {
-    return this.runAll(terragruntDir, 'apply', ['-input=false', '-auto-approve', ...this.consumeArgs()]);
+  /**
+   * @param onOutput Called with each chunk terragrunt writes, as it writes it. An apply can run for
+   * tens of minutes, and the buffered result only arrives at the end - without this the caller has
+   * nothing to show for the whole run. The chunks are also still accumulated into the result.
+   */
+  async apply(
+    terragruntDir: string,
+    { onOutput }: { onOutput?: (chunk: string, stream: 'stderr' | 'stdout') => void } = {},
+  ): Promise<TerraformRawResult> {
+    return this.runAll(terragruntDir, 'apply', ['-input=false', '-auto-approve', ...this.consumeArgs()], { onOutput });
   }
 
   async destroy(terragruntDir: string): Promise<TerraformRawResult> {
@@ -167,22 +175,32 @@ export class TerraformUtility {
   async validate(terragruntDir: string): Promise<TerraformRawResult> {
     return this.runAll(terragruntDir, 'validate', this.consumeArgs());
   }
+  /**
+   * @param onOutput Receives each chunk as the child writes it. `execFile` keeps accumulating into
+   * its own buffers regardless, so the resolved result is unchanged whether or not this is passed.
+   */
   protected execFileAsync(
     file: string,
     args: string[],
     options: ExecFileOptionsWithStringEncoding,
+    onOutput?: (chunk: string, stream: 'stderr' | 'stdout') => void,
   ): Promise<{
     stderr: string;
     stdout: string;
   }> {
     return new Promise((resolve, reject) => {
-      execFile(file, args, options, (error, stdout, stderr) => {
+      const child = execFile(file, args, options, (error, stdout, stderr) => {
         if (error) {
           reject(Object.assign(error, { stderr: stderr ?? '', stdout: stdout ?? '' }));
         } else {
           resolve({ stderr: stderr ?? '', stdout: stdout ?? '' });
         }
       });
+
+      if (onOutput) {
+        child.stdout?.on('data', (chunk) => onOutput(String(chunk), 'stdout'));
+        child.stderr?.on('data', (chunk) => onOutput(String(chunk), 'stderr'));
+      }
     });
   }
 
@@ -315,7 +333,12 @@ export class TerraformUtility {
   /**
    * Runs `terragrunt run --all -- <command>` across every module folder under `terragruntDir`.
    */
-  private async runAll(terragruntDir: string, command: string, commandArgs: string[]): Promise<TerraformRawResult> {
+  private async runAll(
+    terragruntDir: string,
+    command: string,
+    commandArgs: string[],
+    { onOutput }: { onOutput?: (chunk: string, stream: 'stderr' | 'stdout') => void } = {},
+  ): Promise<TerraformRawResult> {
     const binary = this.options.terragruntBinary;
     const args = [
       '--non-interactive',
@@ -334,11 +357,16 @@ export class TerraformUtility {
     eventService.emit(new TerraformCommandStartedEvent(command, { command, dir: terragruntDir }));
 
     try {
-      const { stderr, stdout } = await this.execFileAsync(binary, args, {
-        env: this.buildEnv(),
-        maxBuffer: MAX_BUFFER,
-        timeout: this.options.timeoutInMs,
-      });
+      const { stderr, stdout } = await this.execFileAsync(
+        binary,
+        args,
+        {
+          env: this.buildEnv(),
+          maxBuffer: MAX_BUFFER,
+          timeout: this.options.timeoutInMs,
+        },
+        onOutput,
+      );
 
       eventService.emit(
         new TerraformCommandFinishedEvent(command, {

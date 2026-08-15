@@ -6,6 +6,8 @@ import { jest } from '@jest/globals';
 import { TerraformCommandError } from '../../errors/index.js';
 import { TerraformUtility } from './terraform.utility.js';
 
+type OnOutput = (chunk: string, stream: 'stderr' | 'stdout') => void;
+
 class TestableTerraformUtility extends TerraformUtility {
   readonly execFileAsyncMock = jest
     .fn<
@@ -13,6 +15,7 @@ class TestableTerraformUtility extends TerraformUtility {
         file: string,
         args: string[],
         options: ExecFileOptionsWithStringEncoding,
+        onOutput?: OnOutput,
       ) => ReturnType<TerraformUtility['execFileAsync']>
     >()
     .mockResolvedValue({ stderr: '', stdout: '' });
@@ -21,8 +24,19 @@ class TestableTerraformUtility extends TerraformUtility {
     file: string,
     args: string[],
     options: ExecFileOptionsWithStringEncoding,
+    onOutput?: OnOutput,
   ): ReturnType<TerraformUtility['execFileAsync']> {
-    return this.execFileAsyncMock(file, args, options);
+    return this.execFileAsyncMock(file, args, options, onOutput);
+  }
+}
+
+/**
+ * Runs the real {@link TerraformUtility.execFileAsync}, so the streaming below is exercised against
+ * an actual child process rather than a stub of one.
+ */
+class StreamingTerraformUtility extends TerraformUtility {
+  runReal(file: string, args: string[], onOutput: OnOutput): ReturnType<TerraformUtility['execFileAsync']> {
+    return this.execFileAsync(file, args, { encoding: 'utf8' }, onOutput);
   }
 }
 
@@ -48,6 +62,43 @@ describe('TerraformUtility UT', () => {
     await mkdir(moduleDir);
     await writeFile(join(moduleDir, 'terragrunt.hcl'), '');
   }
+
+  // An apply can run for tens of minutes and the buffered result only arrives at the end, so
+  // without this the user watches a silent terminal for the whole run.
+  describe('apply() streaming', () => {
+    it('should pass the output callback down to the child process', async () => {
+      const onOutput = jest.fn<OnOutput>();
+
+      await terraform.apply(terragruntDir, { onOutput });
+
+      expect(terraform.execFileAsyncMock.mock.calls[0][3]).toBe(onOutput);
+    });
+
+    it('should pass no callback when the caller wants none', async () => {
+      await terraform.apply(terragruntDir);
+
+      expect(terraform.execFileAsyncMock.mock.calls[0][3]).toBeUndefined();
+    });
+
+    it('should stream each chunk while still accumulating the full result', async () => {
+      const streaming = new StreamingTerraformUtility({});
+      const chunks: [string, string][] = [];
+
+      const result = await streaming.runReal(
+        process.execPath,
+        ['-e', 'process.stdout.write("out-chunk"); process.stderr.write("err-chunk");'],
+        (chunk, stream) => chunks.push([stream, chunk]),
+      );
+
+      expect(chunks).toEqual([
+        ['stdout', 'out-chunk'],
+        ['stderr', 'err-chunk'],
+      ]);
+      // Streaming must not consume the output the buffered result is built from.
+      expect(result.stdout).toBe('out-chunk');
+      expect(result.stderr).toBe('err-chunk');
+    });
+  });
 
   describe('setArgsOnce()', () => {
     it('applies setArgsOnce() to only the immediately next command', async () => {
