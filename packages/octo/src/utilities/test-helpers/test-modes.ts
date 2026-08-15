@@ -178,10 +178,16 @@ export class RefusingTfResource extends ATerraformResource<BaseResourceSchema, R
  */
 export class TestModes {
   readonly igwActionHandledDiffs: Diff[] = [];
+
+  /**
+   * The response the igw resource action returns. Mutable, and deliberately looser than
+   * `BaseResourceSchema['response']`, so a spec can hand back what a real SDK action can return at
+   * runtime but the schema type forbids - a number, a boolean, a null.
+   */
+  igwResponse: Record<string, unknown> = { igwId: 'igw-0real' };
   readonly outputs = new Map<string, Record<string, { value: unknown }>>();
 
   readonly plans = new Map<string, TerraformPlan>();
-  private readonly igwResponse: BaseResourceSchema['response'] = { igwId: 'igw-0real' };
 
   private readonly terraformConfigs: Parameters<Octo['registerTerraformConfig']>[] = [];
   private readonly terraformProviders: Parameters<Octo['registerTerraformProvider']>[] = [];
@@ -225,7 +231,7 @@ export class TestModes {
       filter: (): boolean => true,
       handle: async (diff: Diff): Promise<BaseResourceSchema['response']> => {
         instance.igwActionHandledDiffs.push(diff);
-        return diff.action === 'delete' ? {} : instance.igwResponse;
+        return diff.action === 'delete' ? {} : (instance.igwResponse as BaseResourceSchema['response']);
       },
     };
     transactionService.registerResourceActions(ExternalIgwResource, [igwResourceAction]);

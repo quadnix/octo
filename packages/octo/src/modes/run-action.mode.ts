@@ -16,6 +16,38 @@ interface RunActionResult {
 }
 
 /**
+ * Flattens a resource response to the strings terraform's `data "external"` protocol accepts - it
+ * takes a JSON object of strings and nothing else, so an action returning `{ Port: 80 }` fails the
+ * apply. This is the same contract {@link commit} enforces on the way back in, applied here so the
+ * CLI and the commit path cannot disagree.
+ *
+ * A `null`/`undefined` value is rejected rather than emitted as `"null"`: no resource legitimately
+ * emits one, so it signals a broken action, and the string would otherwise land in octo state at
+ * the next commit.
+ */
+function toFlatStringResponse(resourceId: string, response: Record<string, unknown>): Record<string, string> {
+  const flatResponse: Record<string, string> = {};
+  const nullKeys: string[] = [];
+
+  for (const [key, value] of Object.entries(response)) {
+    if (value === null || value === undefined) {
+      nullKeys.push(key);
+    } else {
+      flatResponse[key] = String(value);
+    }
+  }
+
+  if (nullKeys.length > 0) {
+    throw new TransactionError(
+      `Resource "${resourceId}" returned null response values: ${nullKeys.join(', ')}! ` +
+        'Every response key must carry a value.',
+    );
+  }
+
+  return flatResponse;
+}
+
+/**
  * Runs a single resource action, invoked by terraform mid-apply for an external resource.
  *
  * Octo-internal: not a step of the user's generate → validate → apply → commit cycle — terraform
@@ -62,7 +94,7 @@ export async function runAction(
 
   if (allDiffs.length === 0) {
     // Noop: still report the current response so terraform captures consistent outputs.
-    return { action: 'noop', resourceId, response: targetResource?.response ?? {} };
+    return { action: 'noop', resourceId, response: toFlatStringResponse(resourceId, targetResource?.response ?? {}) };
   }
 
   // Inject explicit inputs into the parent resources the actions will read. An input is keyed
@@ -104,5 +136,5 @@ export async function runAction(
 
   const targetContext = (allDiffs[0].node as UnknownResource).getContext();
   const resource = resourceDataRepository.getNewResourceByContext(targetContext);
-  return { action, resourceId, response: resource?.response ?? {} };
+  return { action, resourceId, response: toFlatStringResponse(resourceId, resource?.response ?? {}) };
 }

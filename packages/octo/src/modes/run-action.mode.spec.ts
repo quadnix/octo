@@ -112,6 +112,34 @@ describe('runAction()', () => {
     expect(testModes.igwActionHandledDiffs.length).toBeGreaterThan(0);
   });
 
+  // Terraform's `data "external"` protocol takes a JSON object of strings and nothing else, so a
+  // response carrying anything else fails the apply rather than this command.
+  describe('the flat-string response contract', () => {
+    it('should coerce non-string response values to strings', async () => {
+      testModes.igwResponse = { count: 3, enabled: true, igwId: 'igw-0real', port: 80 };
+      const { app } = await testModes.createResourceGraph();
+
+      const result = await runAction(app, {
+        inputs: { 'vpc-1.VpcId': 'vpc-0real' },
+        resourceId: 'igw-1',
+      });
+
+      expect(result.response).toEqual({ count: '3', enabled: 'true', igwId: 'igw-0real', port: '80' });
+    });
+
+    // The noop path is not covered here: its response comes from committed octo state, which
+    // `commit` has already flattened to strings, so no fixture can put a non-string into it.
+
+    it('should reject a null response value rather than emitting "null"', async () => {
+      testModes.igwResponse = { igwId: 'igw-0real', vpcId: null };
+      const { app } = await testModes.createResourceGraph();
+
+      await expect(runAction(app, { inputs: { 'vpc-1.VpcId': 'vpc-0real' }, resourceId: 'igw-1' })).rejects.toThrow(
+        'Resource "igw-1" returned null response values: vpcId!',
+      );
+    });
+  });
+
   it('should throw when targeting a changed terraform resource', async () => {
     const { app } = await testModes.createResourceGraph();
 
