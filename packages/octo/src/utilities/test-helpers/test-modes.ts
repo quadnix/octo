@@ -180,18 +180,24 @@ export class TestModes {
   readonly igwActionHandledDiffs: Diff[] = [];
 
   /**
+   * Replaces what the igw resource action does. Set it to throw, and a spec can exercise how a
+   * caller behaves when a resource action fails - the delete that commit drives, in particular.
+   */
+  igwActionHandler?: (diff: Diff) => Promise<BaseResourceSchema['response']>;
+
+  /**
    * The response the igw resource action returns. Mutable, and deliberately looser than
    * `BaseResourceSchema['response']`, so a spec can hand back what a real SDK action can return at
    * runtime but the schema type forbids - a number, a boolean, a null.
    */
   igwResponse: Record<string, unknown> = { igwId: 'igw-0real' };
-
   readonly outputs = new Map<string, Record<string, { value: unknown }>>();
+
   readonly plans = new Map<string, TerraformPlan>();
 
   private readonly terraformConfigs: Parameters<Octo['registerTerraformConfig']>[] = [];
-
   private readonly terraformProviders: Parameters<Octo['registerTerraformProvider']>[] = [];
+
   private constructor(
     private readonly octo: Octo,
     readonly outputDir: string,
@@ -231,6 +237,9 @@ export class TestModes {
       filter: (diff: Diff): boolean => instance.igwActionFilter(diff),
       handle: async (diff: Diff): Promise<BaseResourceSchema['response']> => {
         instance.igwActionHandledDiffs.push(diff);
+        if (instance.igwActionHandler) {
+          return instance.igwActionHandler(diff);
+        }
         return diff.action === 'delete' ? {} : (instance.igwResponse as BaseResourceSchema['response']);
       },
     };

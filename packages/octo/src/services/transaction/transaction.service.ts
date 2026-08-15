@@ -79,6 +79,51 @@ export class TransactionService {
     private readonly terraformService: TerraformService,
   ) {}
 
+  /**
+   * Runs the delete action of every **external** resource in `resourceDiffs` that is being deleted.
+   *
+   * Terraform cannot do this. Octo deletes a resource by removing its block from the configuration,
+   * and terraform will not run a `when = destroy` provisioner for a resource that is no longer in
+   * the configuration - it drops the `null_resource` from state and moves on. So the callback that
+   * would have told an external resource to delete itself never fires, and the real thing it created
+   * outlives both state files with nothing tracking it.
+   *
+   * Octo knows the resource was deleted, which is why this can be driven from its own diff instead.
+   * {@link commit} calls it before recording anything, so a failed delete leaves octo state untouched
+   * and the deletion is retried on the next run rather than being forgotten.
+   *
+   * Terraform-managed resources are excluded: terraform destroys those itself, and a resource action
+   * on one is rejected everywhere else in octo.
+   *
+   * @returns The diffs whose actions ran, in the order they ran.
+   */
+  async applyExternalResourceDeletes(resourceDiffs: DiffMetadata[][]): Promise<DiffMetadata[][]> {
+    const deleteDiffs = resourceDiffs
+      .flat()
+      .filter(
+        (d) =>
+          d.action === DiffAction.DELETE &&
+          d.field === 'resourceId' &&
+          !(d.node instanceof ATerraformResource) &&
+          !d.applied,
+      );
+    if (deleteDiffs.length === 0) {
+      return [];
+    }
+
+    // Ordered among themselves: `applyOrder` is assigned across the whole resource diff set, and
+    // this is a subset of it, so the levels it carries can start anywhere. Re-basing them from zero
+    // keeps applyResources' level walk terminating.
+    const orders = [...new Set(deleteDiffs.map((d) => d.applyOrder))].sort((a, b) => a - b);
+    for (const diff of deleteDiffs) {
+      diff.applyOrder = orders.indexOf(diff.applyOrder);
+    }
+
+    // Stateless, like run-action: the actual resource graph is not touched here. `commit` syncs
+    // actual to new immediately afterwards, which is what records the deletion.
+    return this.applyResources(deleteDiffs, { skipActualResourceUpdate: true });
+  }
+
   async *beginTransaction(
     diffs: Diff[],
     {

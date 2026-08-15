@@ -1,4 +1,6 @@
-import { TestModes } from '../utilities/test-helpers/test-modes.js';
+import type { UnknownResource } from '../app.type.js';
+import { TestModes, TfVpcResource } from '../utilities/test-helpers/test-modes.js';
+import { commitResources } from '../utilities/test-helpers/test-resources.js';
 import { applyModelTransaction } from './apply-transaction.js';
 import { commit } from './commit.mode.js';
 
@@ -149,5 +151,55 @@ describe('commit()', () => {
     });
 
     expect(warnings).toEqual([]);
+  });
+
+  // Terraform cannot delete an external resource: octo deletes by removing the resource block from
+  // the configuration, and terraform will not run a `when = destroy` provisioner for a resource
+  // that is no longer in the configuration. Commit is what tells the resource to go, so that the
+  // real thing does not outlive both state files.
+  describe('deleting an external resource', () => {
+    // The committed graph, re-created without the external igw, so a fresh boot computes its delete.
+    async function recreateDesiredGraphWithoutIgw(): Promise<void> {
+      testModes.resourceDataRepository.addNewResource(new TfVpcResource('vpc-1', { CidrBlock: '10.0.0.0/16' }));
+    }
+
+    it('should run the delete action of an external resource removed from intent', async () => {
+      const { app } = await testModes.createResourceGraph({ save: true });
+      await commitResources({ skipAddActualResource: true });
+      await recreateDesiredGraphWithoutIgw();
+
+      testModes.writeTfState('region-module', { 'vpc-1-VpcId': 'vpc-0real' });
+      testModes.writeTfState('sg-module', {});
+
+      const transaction = await applyModelTransaction(app);
+      await commit({ outputs: testModes.outputs, transaction });
+
+      const deletedDiffs = testModes.igwActionHandledDiffs.filter((d) => d.action === 'delete');
+      expect(deletedDiffs).toHaveLength(1);
+      expect((deletedDiffs[0].node as UnknownResource).resourceId).toBe('igw-1');
+    });
+
+    // A delete that throws must not be recorded as done: octo state still carries the resource, so
+    // the next run diffs it again and retries rather than forgetting it.
+    it('should abort the commit and leave the resource in state when the delete fails', async () => {
+      const { app } = await testModes.createResourceGraph({ save: true });
+      await commitResources({ skipAddActualResource: true });
+      await recreateDesiredGraphWithoutIgw();
+
+      testModes.writeTfState('region-module', { 'vpc-1-VpcId': 'vpc-0real' });
+      testModes.writeTfState('sg-module', {});
+      testModes.igwActionHandler = async (): Promise<never> => {
+        throw new Error('the SDK refused to delete it');
+      };
+
+      const transaction = await applyModelTransaction(app);
+      await expect(commit({ outputs: testModes.outputs, transaction })).rejects.toThrow(
+        'the SDK refused to delete it',
+      );
+
+      expect(
+        testModes.resourceDataRepository.getActualResourcesByProperties().find((r) => r.resourceId === 'igw-1'),
+      ).toBeDefined();
+    });
   });
 });

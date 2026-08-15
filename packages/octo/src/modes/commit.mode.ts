@@ -6,6 +6,7 @@ import { aggregateResourceActions } from '../functions/diff/aggregate-resource-a
 import type { DiffMetadata } from '../functions/diff/diff-metadata.js';
 import { ResourceDataRepository } from '../resources/resource-data.repository.js';
 import { TerraformService } from '../services/terraform/terraform.service.js';
+import { TransactionService } from '../services/transaction/transaction.service.js';
 import type { ModelTransactionResult } from './apply-transaction.js';
 
 export type TerraformOutputs = Record<string, { value: unknown }>;
@@ -51,9 +52,10 @@ export async function commit({
   warnings: { message: string; moduleId?: string }[];
 }> {
   const container = Container.getInstance();
-  const [resourceDataRepository, terraformService] = await Promise.all([
+  const [resourceDataRepository, terraformService, transactionService] = await Promise.all([
     container.get(ResourceDataRepository),
     container.get(TerraformService),
+    container.get(TransactionService),
   ]);
 
   const { modelTransaction } = transaction;
@@ -158,6 +160,17 @@ export async function commit({
     });
     resource.response[key] = value;
   }
+
+  // Tell every deleted external resource to delete itself, before anything is recorded.
+  //
+  // Terraform cannot: octo deletes a resource by removing its block from the configuration, and
+  // terraform will not run a `when = destroy` provisioner for a resource that is no longer in the
+  // configuration - it drops the `null_resource` from state and moves on, so the callback never
+  // fires. Without this the real thing outlives both state files with nothing tracking it.
+  //
+  // Placed before the sync deliberately. A delete that throws aborts the commit with octo state
+  // untouched, so the resource is still recorded as present and the deletion is retried next run.
+  await transactionService.applyExternalResourceDeletes(transaction.resourceDiffs);
 
   // Terraform has applied the full desired state: actual ← new.
   resourceDataRepository.syncActualToNew();
