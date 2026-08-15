@@ -8,10 +8,10 @@ import { buildCommand } from './commands/build/index.js';
 import { commitCommand } from './commands/commit/index.js';
 import { createAnchorCommand } from './commands/create-anchor/index.js';
 import { createAppCommand } from './commands/create-app/index.js';
+import { createExternalResourceCommand } from './commands/create-external-resource/index.js';
 import { createModelCommand } from './commands/create-model/index.js';
 import { createModuleCommand } from './commands/create-module/index.js';
 import { createOverlayCommand } from './commands/create-overlay/index.js';
-import { createResourceCommand } from './commands/create-resource/index.js';
 import { createTerraformResourceCommand } from './commands/create-terraform-resource/index.js';
 import { generateCommand } from './commands/generate/index.js';
 import { runActionCommand } from './commands/run-action/index.js';
@@ -30,10 +30,10 @@ const parser = yargs(process.argv.slice(2))
 
 parser.command(createAnchorCommand);
 parser.command(createAppCommand);
+parser.command(createExternalResourceCommand);
 parser.command(createModelCommand);
 parser.command(createModuleCommand);
 parser.command(createOverlayCommand);
-parser.command(createResourceCommand);
 parser.command(createTerraformResourceCommand);
 parser.command(applyCommand);
 parser.command(buildCommand);

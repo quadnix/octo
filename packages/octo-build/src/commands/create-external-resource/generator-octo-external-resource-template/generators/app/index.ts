@@ -20,7 +20,7 @@ export default class extends Generator {
   end(): void {
     const targetPath = resolve(join(this.projectRootDir, 'src', 'resources', this.resourceName));
 
-    this.log('✅ Your resource has been generated successfully!');
+    this.log('✅ Your external resource has been generated successfully!');
     this.log(`📁 Resource created at: ${targetPath}`);
     this.log('📦 Next steps:');
     this.log(`   Address all "Fix me" in generated files`);

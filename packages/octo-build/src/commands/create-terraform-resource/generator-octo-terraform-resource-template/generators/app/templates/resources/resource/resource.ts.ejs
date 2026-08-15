@@ -6,7 +6,7 @@ import { <%= resourceNamePascal %>Schema } from './index.schema.js';
  * via `toHCL()`, which Octo invokes automatically while generating Terraform files.
  *
  * Terraform resources cannot have resource actions — registering one throws. For a resource whose
- * lifecycle runs outside Terraform (SDK calls, scripts), use `create-resource` instead.
+ * lifecycle runs outside Terraform (SDK calls, scripts), use `create-external-resource` instead.
  */
 @Resource<<%= resourceNamePascal %>>('<%= packageName %>', '<%= resourceName %>', <%= resourceNamePascal %>Schema)
 export class <%= resourceNamePascal %> extends ATerraformResource<<%= resourceNamePascal %>Schema, <%= resourceNamePascal %>> {

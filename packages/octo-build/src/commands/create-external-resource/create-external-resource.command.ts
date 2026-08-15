@@ -7,7 +7,7 @@ import { StringUtility } from '../../utilities/string/string.utility.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-export const createResourceCommand = {
+export const createExternalResourceCommand = {
   builder: (yargs: Argv): Argv => {
     return yargs
       .option('name', {
@@ -28,8 +28,11 @@ export const createResourceCommand = {
         type: 'string',
       });
   },
-  command: 'create-resource',
-  describe: 'Create a new Octo resource.',
+  command: 'create-external-resource',
+  // Named for the lifecycle, not as the general case: a resource terraform manages is the common
+  // one, and that is `create-terraform-resource`. This generator emits the other kind - a resource
+  // whose add/delete run as SDK calls, which terraform drives by shelling back into `run-action`.
+  describe: 'Create a new Octo resource whose lifecycle runs outside Terraform.',
   handler: async (argv: ArgumentsCamelCase<{ name: string; package: string; path: string }>): Promise<void> => {
     const { name, package: packageName, path } = argv;
 
@@ -39,22 +42,22 @@ export const createResourceCommand = {
       process.exit(1);
     }
 
-    console.log(chalk.blue(`Creating resource "${name}" with package "${packageName}"...`));
+    console.log(chalk.blue(`Creating external resource "${name}" with package "${packageName}"...`));
 
     const env = createEnv();
-    env.register(resolve(__dirname, 'generator-octo-resource-template/generators/app/index.js'), {
-      namespace: 'generator-octo-resource-template:app',
+    env.register(resolve(__dirname, 'generator-octo-external-resource-template/generators/app/index.js'), {
+      namespace: 'generator-octo-external-resource-template:app',
     });
 
     try {
-      await env.run(['generator-octo-resource-template:app', name, packageName, path], {
+      await env.run(['generator-octo-external-resource-template:app', name, packageName, path], {
         skipCache: true,
         skipInstall: true,
       });
 
-      console.log(chalk.green(`Successfully created resource!`));
+      console.log(chalk.green(`Successfully created external resource!`));
     } catch (error) {
-      console.error(chalk.red(`Failed to create resource! ${error.message}`));
+      console.error(chalk.red(`Failed to create external resource! ${error.message}`));
       process.exit(1);
     }
   },
