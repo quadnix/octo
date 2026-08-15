@@ -9,7 +9,7 @@ CONFIDENCE: exact
   Intent is unchanged, so every folder was planned against real applied values. Anything
   terraform wants to change is a real difference between intent and the cloud.
 
-INTENT CHANGES (octo models)
+INTENT CHANGES (octo resources)
   none
 
 INFRASTRUCTURE CHANGES (terraform)
@@ -21,6 +21,26 @@ NOTES
   - [user-module] Terraform plan supplied for folder "user-module", which octo does not track."
 `;
 
+exports[`renderValidateReport() names the arguments terraform plans to change 1`] = `
+"CONFIDENCE: approximate
+  Intent changed. Each folder is planned on its own, against its dependencies' *last applied*
+  outputs, so a cross-folder consequence of this change is invisible until apply, and a
+  renamed producer's outputs are substituted from "mock_outputs". This report can both
+  understate what apply will do and overstate drift.
+
+INTENT CHANGES (octo resources)
+  ~ @octo/dynamodb=dynamodb-table
+
+INFRASTRUCTURE CHANGES (terraform)
+  dynamodb-service-module
+    ~ aws_dynamodb_table.dynamodb-table
+        global_secondary_index.#: 0 → 1
+        global_secondary_index.0.name: - → by-email
+        read_capacity: 5 → (known after apply)
+
+No drift detected."
+`;
+
 exports[`renderValidateReport() never presents an uncertain entry as drift 1`] = `
 "CONFIDENCE: approximate
   Intent changed. Each folder is planned on its own, against its dependencies' *last applied*
@@ -28,7 +48,7 @@ exports[`renderValidateReport() never presents an uncertain entry as drift 1`] =
   renamed producer's outputs are substituted from "mock_outputs". This report can both
   understate what apply will do and overstate drift.
 
-INTENT CHANGES (octo models)
+INTENT CHANGES (octo resources)
   none
 
 INFRASTRUCTURE CHANGES (terraform)
@@ -51,7 +71,7 @@ exports[`renderValidateReport() renders a terraform change attributed to an iden
   renamed producer's outputs are substituted from "mock_outputs". This report can both
   understate what apply will do and overstate drift.
 
-INTENT CHANGES (octo models)
+INTENT CHANGES (octo resources)
   - @octo/alb-target-group=alb-target-group-backend-v1-qa-execution
   + @octo/alb-target-group=alb-target-group-changed-execution-id
 
@@ -73,7 +93,7 @@ exports[`renderValidateReport() renders an intent change that costs no infrastru
   renamed producer's outputs are substituted from "mock_outputs". This report can both
   understate what apply will do and overstate drift.
 
-INTENT CHANGES (octo models)
+INTENT CHANGES (octo resources)
   ~ @octo/alb-target-group=alb-target-group-backend-v1-qa-execution
   ~ @octo/ecs-service=ecs-service-backend-v1-qa-execution      → no infrastructure change
 
@@ -89,7 +109,7 @@ exports[`renderValidateReport() renders drift with the advice to act on it 1`] =
   Intent is unchanged, so every folder was planned against real applied values. Anything
   terraform wants to change is a real difference between intent and the cloud.
 
-INTENT CHANGES (octo models)
+INTENT CHANGES (octo resources)
   none
 
 INFRASTRUCTURE CHANGES (terraform)

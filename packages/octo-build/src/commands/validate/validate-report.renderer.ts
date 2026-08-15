@@ -14,9 +14,16 @@ type ValidateOctoAction = ValidateReport['intentChanges'][number]['octoAction'];
  */
 interface RenderedInfrastructureChange {
   address: string;
+  /**
+   * Which arguments terraform plans to move. Without them an added index and a removed one print
+   * the same single line, and the two runs are indistinguishable.
+   */
+  changedFields?: ValidateFieldChange[];
   explanation?: string;
   tfActions: string[];
 }
+
+type ValidateFieldChange = ValidateReport['intentChanges'][number]['terraformChanges'][number]['changedFields'][number];
 
 const OCTO_ACTION_SYMBOLS: Record<ValidateOctoAction, string> = {
   [DiffAction.ADD]: '+',
@@ -89,6 +96,17 @@ function wrapExplanation(explanation: string, indent: string): string[] {
   return lines.map((line, index) => `${index === 0 ? prefix : continuation}${line}`);
 }
 
+/**
+ * `billing_mode: PROVISIONED → PAY_PER_REQUEST`, one per line under its address. A create has no
+ * `from` and a delete no `to`; the missing side prints as a dash so the arrow always reads the same
+ * direction. Values arrive already rendered and truncated — sensitive ones as `(sensitive)`.
+ */
+function renderFieldLines(changedFields: ValidateFieldChange[], indent: string): string[] {
+  return changedFields.map(
+    (field) => `${indent}    ${field.field}: ${field.from ?? '-'} → ${field.to ?? '-'}`,
+  );
+}
+
 function renderChangeLines(changes: RenderedInfrastructureChange[], indent: string): string[] {
   const lines: string[] = [];
 
@@ -96,6 +114,9 @@ function renderChangeLines(changes: RenderedInfrastructureChange[], indent: stri
     lines.push(`${indent}${terraformActionSymbol(change.tfActions)} ${change.address}`);
     if (change.explanation) {
       lines.push(...wrapExplanation(change.explanation, indent));
+    }
+    if (change.changedFields && change.changedFields.length > 0) {
+      lines.push(...renderFieldLines(change.changedFields, indent));
     }
   }
 
@@ -136,7 +157,9 @@ export function renderValidateReport(report: ValidateReport): string {
   );
   lines.push('');
 
-  lines.push('INTENT CHANGES (octo models)');
+  // Named for what the section lists. The rows are resource contexts (`@octo/dynamodb=…`), so
+  // calling them "octo models" made the reader look for a model name that is never printed.
+  lines.push('INTENT CHANGES (octo resources)');
 
   if (report.intentChanges.length === 0) {
     lines.push('  none');
@@ -155,6 +178,7 @@ export function renderValidateReport(report: ValidateReport): string {
     ...report.intentChanges.flatMap((intentChange) =>
       intentChange.terraformChanges.map((change) => ({
         address: change.address,
+        changedFields: change.changedFields,
         moduleId: intentChange.moduleId,
         tfActions: change.tfActions,
       })),

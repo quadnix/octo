@@ -38,7 +38,7 @@ describe('renderValidateReport()', () => {
           resourceContext: '@octo/alb-target-group=alb-target-group-backend-v1-qa-execution',
           resourceId: 'alb-target-group-backend-v1-qa-execution',
           terraformChanges: [
-            { address: 'aws_lb_target_group.alb-target-group-backend-v1-qa-execution', tfActions: ['delete'] },
+            { address: 'aws_lb_target_group.alb-target-group-backend-v1-qa-execution', changedFields: [], tfActions: ['delete'] },
           ],
         },
         {
@@ -47,7 +47,7 @@ describe('renderValidateReport()', () => {
           resourceContext: '@octo/alb-target-group=alb-target-group-changed-execution-id',
           resourceId: 'alb-target-group-changed-execution-id',
           terraformChanges: [
-            { address: 'aws_lb_target_group.alb-target-group-changed-execution-id', tfActions: ['create'] },
+            { address: 'aws_lb_target_group.alb-target-group-changed-execution-id', changedFields: [], tfActions: ['create'] },
           ],
         },
       ],
@@ -67,7 +67,7 @@ describe('renderValidateReport()', () => {
           resourceContext: '@octo/alb-target-group=alb-target-group-backend-v1-qa-execution',
           resourceId: 'alb-target-group-backend-v1-qa-execution',
           terraformChanges: [
-            { address: 'aws_lb_target_group.alb-target-group-backend-v1-qa-execution', tfActions: ['update'] },
+            { address: 'aws_lb_target_group.alb-target-group-backend-v1-qa-execution', changedFields: [], tfActions: ['update'] },
           ],
         },
         {
@@ -76,6 +76,36 @@ describe('renderValidateReport()', () => {
           resourceContext: '@octo/ecs-service=ecs-service-backend-v1-qa-execution',
           resourceId: 'ecs-service-backend-v1-qa-execution',
           terraformChanges: [],
+        },
+      ],
+    };
+
+    expect(renderValidateReport(report)).toMatchSnapshot();
+  });
+
+  it('names the arguments terraform plans to change', () => {
+    // Without the arguments, adding a global secondary index and removing that same index both
+    // render as one `~` line against the same address, so the two runs read identically.
+    const report: ValidateReport = {
+      ...emptyReport(),
+      confidence: 'approximate',
+      intentChanges: [
+        {
+          moduleId: 'dynamodb-service-module',
+          octoAction: DiffAction.UPDATE,
+          resourceContext: '@octo/dynamodb=dynamodb-table',
+          resourceId: 'dynamodb-table',
+          terraformChanges: [
+            {
+              address: 'aws_dynamodb_table.dynamodb-table',
+              changedFields: [
+                { field: 'global_secondary_index.#', from: '0', to: '1' },
+                { field: 'global_secondary_index.0.name', to: 'by-email' },
+                { field: 'read_capacity', from: '5', to: '(known after apply)' },
+              ],
+              tfActions: ['update'],
+            },
+          ],
         },
       ],
     };
