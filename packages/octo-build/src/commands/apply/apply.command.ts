@@ -65,14 +65,17 @@ async function isBlockedByDestroys(terraformUtility: TerraformUtility, resolvedD
  * command inherits this process's environment through terragrunt and terraform. Two things about it
  * are wrong by default, and both fail only after real infrastructure exists:
  *
- * - **`octo` is a bare binary name**, resolved through `PATH`. Running the CLI as
- *   `node_modules/.bin/octo` - what the generated README says - does not put `node_modules/.bin` on
- *   `PATH` for child processes, so the callback dies with `octo: command not found`. The project's
- *   bin directory is prepended here, and the directory this CLI is running from after it, so a
- *   globally installed or linked octo still wins over nothing at all.
- * - **`OCTO_DEFINITION_FILE_PATH` is usually relative** (`octo.yaml`), and terraform runs
- *   `local-exec` with a terragrunt cache directory as its cwd, where that resolves to nothing. It is
- *   made absolute here, against the cwd the user actually invoked from.
+ * - **`octo` is a bare binary name**, resolved through `PATH`. Invoking a binary by path -
+ *   `node_modules/.bin/octo apply` - does not put its directory on `PATH` for child processes, so
+ *   the callback dies with `octo: command not found`. The generated app runs the flow through
+ *   package scripts, and `npm run` does put that directory on `PATH`, but running the binary
+ *   directly is still supported and has to work the same. The project's bin directory is prepended
+ *   here, and the directory this CLI is running from after it, so a globally installed or linked
+ *   octo still wins over nothing at all.
+ * - **`OCTO_DEFINITION_FILE_PATH` is usually relative** (`octo.yaml` - the package scripts set
+ *   exactly that), and terraform runs `local-exec` with a terragrunt cache directory as its cwd,
+ *   where that resolves to nothing. It is made absolute here, against the cwd the user actually
+ *   invoked from.
  */
 function prepareCallbackEnvironment(): void {
   const definitionFilePath = process.env.OCTO_DEFINITION_FILE_PATH;
