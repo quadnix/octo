@@ -29,8 +29,9 @@ export const generateCommand = {
       const resolvedOutputDir = resolve(process.cwd(), outputDir);
       await octo.generate(app, { outputDir: resolvedOutputDir });
 
+      // What was written is reported by the listeners, from `TerraformFoldersWrittenEvent` - it
+      // carries the folder count and the emptied ones too. Only the verdict is this command's.
       console.log(chalk.green('==== Generate complete ===='));
-      console.log(chalk.green(`Wrote Terragrunt module folders to "${resolvedOutputDir}".`));
     } catch (error) {
       reportError(error);
       process.exit(1);
