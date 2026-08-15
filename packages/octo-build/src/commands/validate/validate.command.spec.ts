@@ -1,8 +1,13 @@
 import { resolve } from 'path';
 import { jest } from '@jest/globals';
-import { Container, TerraformUtility, TestContainer } from '@quadnix/octo';
+import { Container, type Octo, TerraformUtility, TestContainer } from '@quadnix/octo';
 import type { ArgumentsCamelCase } from 'yargs';
-import type { ValidateReport } from './validate-report.renderer.js';
+
+/**
+ * Derived from the method that produces it: octo does not export its modes, and the report has no
+ * meaning apart from being what `validate` returns.
+ */
+type ValidateReport = Awaited<ReturnType<Octo['validate']>>;
 
 type TerraformPlanResult = {
   errors: Map<string, string>;
@@ -70,7 +75,7 @@ describe('validateCommand UT', () => {
     await TestContainer.reset();
   });
 
-  it('hands the whole plan result to octo.validate() and prints the rendered report', async () => {
+  it('hands the whole plan result to octo.validate() and prints its verdict', async () => {
     // The `errors` half matters as much as the `plans` half: validate can only say why a folder could
     // not be inspected if it is given terraform's message.
     const planResult: TerraformPlanResult = {
@@ -83,9 +88,17 @@ describe('validateCommand UT', () => {
 
     expect(terraformUtilityMock.plan).toHaveBeenCalledWith(resolvedDir, { json: true });
     expect(octoValidateMock).toHaveBeenCalledWith({}, planResult);
-    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('INTENT CHANGES'));
     expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Validation complete.'));
     expect(processExitSpy).not.toHaveBeenCalled();
+  });
+
+  // The report itself is rendered by the registered listeners, from the same OctoReport the HTML
+  // page uses. A definition that registers none prints only the verdict, which is the contract.
+  it('leaves rendering the report to the listeners', async () => {
+    await validateCommand.handler(argv);
+
+    expect(consoleLogSpy).not.toHaveBeenCalledWith(expect.stringContaining('INTENT CHANGES'));
+    expect(consoleLogSpy).not.toHaveBeenCalledWith(expect.stringContaining('INFRASTRUCTURE CHANGES'));
   });
 
   it('reports drift without failing — drift is a finding to act on, not a broken run', async () => {
@@ -96,7 +109,6 @@ describe('validateCommand UT', () => {
 
     await validateCommand.handler(argv);
 
-    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('DRIFT'));
     expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Validation complete, with drift.'));
     expect(processExitSpy).not.toHaveBeenCalled();
   });
@@ -109,7 +121,6 @@ describe('validateCommand UT', () => {
 
     await validateCommand.handler(argv);
 
-    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Error: boom'));
     expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Validation could not complete!'));
     expect(processExitSpy).toHaveBeenCalledWith(1);
   });

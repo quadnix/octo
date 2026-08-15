@@ -3,7 +3,6 @@ import { Container, TerraformUtility } from '@quadnix/octo';
 import chalk from 'chalk';
 import type { ArgumentsCamelCase, Argv } from 'yargs';
 import { bootOcto, reportError } from '../../utilities/octo/octo.utility.js';
-import { renderValidateReport } from './validate-report.renderer.js';
 
 type ValidateCommandArguments = {
   terraformBinary?: string;
@@ -52,8 +51,10 @@ export const validateCommand = {
       // reports the failure for a folder holding a module it tracks, and ignores one it does not know.
       const planResult = await terraformUtility.plan(resolvedDir, { json: true });
 
+      // The report itself is rendered by whichever listeners the definition registers — none of
+      // them, and this command prints only its verdict. What survives here is the exit code, which
+      // is the CLI's own job and not a listener's.
       const report = await octo.validate(app, planResult);
-      console.log(renderValidateReport(report));
 
       // Only being unable to read a folder is unsuccessful. Drift and unexplained changes are
       // findings to act on, not exit codes.
