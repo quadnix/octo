@@ -1,0 +1,109 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/quadnix/octo/refs/heads/main/packages/octo-build/src/resources/octo-v1.schema.json
+
+version: 1
+
+env:
+  - key: AWS_ACCOUNT_ID
+    kind: string
+    value: "123456789123"
+
+terraform:
+  requiredVersion: "1.6.0"
+  requiredProviders:
+    aws:
+      source: hashicorp/aws
+  providers:
+    - providerType: aws
+      accountId: "${env.AWS_ACCOUNT_ID}"
+      regionId: us-east-1
+      spec:
+        profile: default
+
+settings:
+  listeners:
+    - type: HtmlReportEventListener
+    - type: LoggingEventListener
+
+  stateProvider:
+    type: LocalStateProvider
+    statePath: .octo
+
+imports:
+  - className: SimpleAppModule
+    importPath: "@quadnix/octo-aws-cdk/modules/app/simple-app"
+  - className: AwsIniAccountModule
+    importPath: "@quadnix/octo-aws-cdk/modules/account/aws-ini-account"
+  - className: AwsSingleAzRegionModule
+    importPath: "@quadnix/octo-aws-cdk/modules/region/aws-single-az-region"
+  - className: AwsDynamoDBServiceModule
+    importPath: "@quadnix/octo-aws-cdk/modules/service/aws-dynamodb-service"
+
+modules:
+  - moduleId: app-module
+    moduleClass: SimpleAppModule
+    moduleInputs:
+      name: aws-dynamodb-service
+
+  - moduleId: account-module
+    moduleClass: AwsIniAccountModule
+    moduleInputs:
+      accountId: "${env.AWS_ACCOUNT_ID}"
+      app: "${{app-module.model.app}}"
+      iniProfile: default
+
+  - moduleId: region-module
+    moduleClass: AwsSingleAzRegionModule
+    moduleInputs:
+      account: "${{account-module.model.account}}"
+      name: app-region-east
+      regionId: aws-us-east-1a
+      vpcCidrBlock: 10.0.0.0/16
+
+  - moduleId: dynamodb-service-module
+    moduleClass: AwsDynamoDBServiceModule
+    moduleInputs:
+      # Every attribute a key schema or an index refers to must be declared here. DynamoDB is
+      # schemaless otherwise - attributes that are neither keys nor indexed are not declared.
+      AttributeDefinitions:
+        - AttributeName: AccountId
+          AttributeType: S
+        - AttributeName: AccountType
+          AttributeType: S
+        - AttributeName: CreatedAt
+          AttributeType: N
+        - AttributeName: UserId
+          AttributeType: S
+      billingMode:
+        type: PROVISIONED
+        settings:
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+      # A global secondary index can be added or removed on a live table.
+      GlobalSecondaryIndexes:
+        - IndexName: AccountUserIndex
+          KeySchema:
+            - AttributeName: UserId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      KeySchema:
+        - AttributeName: AccountId
+          KeyType: HASH
+        - AttributeName: AccountType
+          KeyType: RANGE
+      # A local secondary index is fixed at table creation; changing one recreates the table.
+      LocalSecondaryIndexes:
+        - IndexName: AccountCreatedAtIndex
+          KeySchema:
+            - AttributeName: AccountId
+              KeyType: HASH
+            - AttributeName: CreatedAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      region: "${{region-module.model.region}}"
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      TableName: accounts
+      timeToLiveAttribute: ExpiresAt

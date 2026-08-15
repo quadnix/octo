@@ -11,7 +11,7 @@ export const createAppCommand = {
     return yargs
       .option('template', {
         alias: 't',
-        choices: ['aws-ecs-server', 'aws-s3-website'],
+        choices: ['aws-dynamodb-service', 'aws-ecs-server', 'aws-s3-website'],
         demandOption: true,
         description: 'Template to use for creation.',
         type: 'string',

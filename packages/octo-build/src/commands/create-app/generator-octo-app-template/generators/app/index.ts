@@ -146,7 +146,7 @@ export default class extends Generator {
     this.fs.copyTpl(this.templatePath('index.ts.ejs'), this.destinationPath('src/index.ts'));
 
     // Create src directory and main files
-    if (this.appTemplate === 'aws-ecs-server') {
+    if (this.appTemplate === 'aws-dynamodb-service' || this.appTemplate === 'aws-ecs-server') {
       const templatePath = `src/${this.appTemplate}`;
       this.fs.copyTpl(this.templatePath(`${templatePath}/octo.yaml.ejs`), this.destinationPath('octo.yaml'));
     } else if (this.appTemplate === 'aws-s3-website') {
