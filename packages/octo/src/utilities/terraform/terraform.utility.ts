@@ -120,14 +120,16 @@ export class TerraformUtility {
     }
 
     const composedArgs = this.consumeArgs();
-    const outputs = new Map<string, TerraformOutputs>();
-    for (const moduleId of await this.listModuleFolders(terragruntDir)) {
-      const moduleOutputs = await this.readOutputs(join(terragruntDir, moduleId), composedArgs);
-      if (moduleOutputs !== undefined) {
-        outputs.set(moduleId, moduleOutputs);
+    return this.emitAround('output', terragruntDir, async () => {
+      const outputs = new Map<string, TerraformOutputs>();
+      for (const moduleId of await this.listModuleFolders(terragruntDir)) {
+        const moduleOutputs = await this.readOutputs(join(terragruntDir, moduleId), composedArgs);
+        if (moduleOutputs !== undefined) {
+          outputs.set(moduleId, moduleOutputs);
+        }
       }
-    }
-    return outputs;
+      return outputs;
+    });
   }
 
   plan(terragruntDir: string, options: { json: true }): Promise<TerraformPlanResult>;
@@ -141,19 +143,21 @@ export class TerraformUtility {
     }
 
     const composedArgs = this.consumeArgs();
-    const errors = new Map<string, string>();
-    const plans = new Map<string, TerraformPlan>();
+    return this.emitAround('plan', terragruntDir, async () => {
+      const errors = new Map<string, string>();
+      const plans = new Map<string, TerraformPlan>();
 
-    for (const moduleId of await this.listModuleFolders(terragruntDir)) {
-      const result = await this.readPlan(join(terragruntDir, moduleId), composedArgs);
-      if ('plan' in result) {
-        plans.set(moduleId, result.plan);
-      } else {
-        errors.set(moduleId, result.error);
+      for (const moduleId of await this.listModuleFolders(terragruntDir)) {
+        const result = await this.readPlan(join(terragruntDir, moduleId), composedArgs);
+        if ('plan' in result) {
+          plans.set(moduleId, result.plan);
+        } else {
+          errors.set(moduleId, result.error);
+        }
       }
-    }
 
-    return { errors, plans };
+      return { errors, plans };
+    });
   }
 
   setArgsOnce(args: string[]): this {
@@ -207,6 +211,43 @@ export class TerraformUtility {
   private describePlanFailure(error: unknown): string {
     const e = error as { message?: string; stderr?: string };
     return e.stderr?.trim() || e.message?.trim() || String(error);
+  }
+
+  /**
+   * Publishes the same started/finished pair {@link runAll} does, around a body that drives
+   * terragrunt folder by folder instead.
+   *
+   * The JSON-mode `plan` and `output` take that per-folder path, and used to emit nothing at all —
+   * so the slowest step of `validate` (a full plan, ~40s on an eight-folder stack) was a total
+   * silence in the log, followed by a mode that reported finishing in 2ms.
+   */
+  private async emitAround<T>(command: string, terragruntDir: string, body: () => Promise<T>): Promise<T> {
+    const eventService = EventService.getInstance();
+    const startedAt = Date.now();
+    eventService.emit(new TerraformCommandStartedEvent(command, { command, dir: terragruntDir }));
+
+    try {
+      const result = await body();
+      eventService.emit(
+        new TerraformCommandFinishedEvent(command, {
+          command,
+          dir: terragruntDir,
+          durationInMs: Date.now() - startedAt,
+          exitCode: 0,
+        }),
+      );
+      return result;
+    } catch (error) {
+      eventService.emit(
+        new TerraformCommandFinishedEvent(command, {
+          command,
+          dir: terragruntDir,
+          durationInMs: Date.now() - startedAt,
+          exitCode: (error as { exitCode?: number })?.exitCode ?? -1,
+        }),
+      );
+      throw error;
+    }
   }
 
   /**
