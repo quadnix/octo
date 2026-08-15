@@ -76,7 +76,8 @@ function readIntentChanges(observation: RunObservation): IntentChange[] {
 function readResources(
   observation: RunObservation,
 ): Map<string, { addresses: string[]; moduleId: string; resource: ReportResource }> {
-  // Both modes describe resources identically; only validate has terraform's plan.
+  // Both modes describe resources identically; only validate has terraform's plan, which is where
+  // the addresses come from. Commit has no plan, so it carries the addresses it applied.
   const changed = observation.validate
     ? observation.validate.intentChanges.map((change) => ({
         action: change.octoAction,
@@ -133,6 +134,7 @@ function attachTerraformChanges(
       for (const change of intentChange.terraformChanges) {
         attach(intentChange.resourceContext, {
           address: change.address,
+          changedFields: change.changedFields ?? [],
           kind: classifyTerraformActions(change.tfActions),
         });
       }
@@ -142,29 +144,39 @@ function attachTerraformChanges(
     for (const attributed of observation.validate.attributedChanges) {
       const kind = classifyTerraformActions(attributed.tfActions);
       const causeContext = byResourceId.get(attributed.causeResourceId);
+      // Worded from the action terraform actually plans: an identity cascade updates a referrer as
+      // often as it recreates one, and claiming "recreated" next to a `~` contradicts the symbol.
+      const consequence = kind === 'recreate' ? 'recreated' : kind === 'delete' ? 'destroyed' : 'changed';
       const explanation =
         attributed.causeKind === 'identity-changed'
-          ? `"${attributed.causeResourceId}" changed identity, so this is recreated with it`
+          ? `references "${attributed.causeResourceId}", whose identity changed, so this is ${consequence} with it`
           : `"${attributed.causeResourceId}" no longer renders this address`;
 
       if (causeContext) {
-        attach(causeContext, { address: attributed.address, explanation, kind });
+        attach(causeContext, { address: attributed.address, changedFields: [], explanation, kind });
       } else {
         drift.push({ address: attributed.address, kind, moduleId: attributed.moduleId });
-        totals[kind]++;
       }
     }
 
+    // Drift and uncertain are deliberately kept out of `totals`. `totals` answers "what does my
+    // change do", and it is what the headline counts; a change nobody made must not be attributed
+    // to the user. Both get their own counters on the page.
     for (const change of observation.validate.uncertain) {
-      const kind = classifyTerraformActions(change.tfActions);
-      uncertain.push({ address: change.address, kind, moduleId: change.moduleId, reason: change.reason });
-      totals[kind]++;
+      uncertain.push({
+        address: change.address,
+        kind: classifyTerraformActions(change.tfActions),
+        moduleId: change.moduleId,
+        reason: change.reason,
+      });
     }
 
     for (const change of observation.validate.drift) {
-      const kind = classifyTerraformActions(change.tfActions);
-      drift.push({ address: change.address, kind, moduleId: change.moduleId });
-      totals[kind]++;
+      drift.push({
+        address: change.address,
+        kind: classifyTerraformActions(change.tfActions),
+        moduleId: change.moduleId,
+      });
     }
 
     return { drift, totals, uncertain };
@@ -172,7 +184,7 @@ function attachTerraformChanges(
 
   for (const entry of resources.values()) {
     for (const address of entry.addresses) {
-      attach(entry.resource.resourceContext, { address, kind: entry.resource.kind });
+      attach(entry.resource.resourceContext, { address, changedFields: [], kind: entry.resource.kind });
     }
   }
 
@@ -225,6 +237,10 @@ function buildStories(
     return totals;
   };
 
+  // Octo wants these changed; terraform's plan touches none of their addresses.
+  const plannedNothing = (rows: ReportResource[]): boolean =>
+    rows.length > 0 && rows.every((row) => row.terraform.length === 0);
+
   const claimed = new Set<string>();
   const stories: ReportStory[] = [];
 
@@ -252,6 +268,7 @@ function buildStories(
       nodeContext: intentChange.nodeContext,
       reason: intentChange.reason,
       resources: rows,
+      terraformPlannedNothing: plannedNothing(rows),
       title: `${CHANGE_VERBS[kind]} ${leafOfContext(intentChange.nodeContext)}`,
       totals: totalsOf(rows),
     });
@@ -281,6 +298,7 @@ function buildStories(
       kind,
       moduleId,
       resources: rows,
+      terraformPlannedNothing: plannedNothing(rows),
       title: kinds.size === 1 ? `${CHANGE_VERBS[kind]} ${moduleId}` : `changed ${moduleId}`,
       totals: totalsOf(rows),
     });
@@ -309,8 +327,21 @@ function buildHeadline(report: Omit<OctoReport, 'headline'>): string {
 
   const past = report.mode === 'commit';
   const { totals } = report;
+  const plural = (count: number, noun: string): string => `${count} ${noun}${count === 1 ? '' : 's'}`;
+
+  // Drift leads whenever it exists. It is the only finding nobody asked for, and it used to be
+  // headlined "Nothing to do" because drift produces no stories by definition — intent did not
+  // change, which is what makes it drift.
+  const drifted =
+    report.drift.length > 0
+      ? `${plural(report.drift.length, 'change')} to your infrastructure ` +
+        `${report.drift.length === 1 ? 'is' : 'are'} not explained by anything in your intent — start there.`
+      : '';
 
   if (report.stories.length === 0) {
+    if (drifted) {
+      return drifted;
+    }
     return past
       ? 'Nothing changed. Octo state already matched your infrastructure.'
       : 'Your intent and your infrastructure already agree. Nothing to do.';
@@ -322,15 +353,21 @@ function buildHeadline(report: Omit<OctoReport, 'headline'>): string {
       ? ` (+${report.stories.length - 1} other change${report.stories.length > 2 ? 's' : ''})`
       : '';
 
+  // Destroys first because they are irreversible, then creates, then updates — but never silently:
+  // an update-only change used to produce a bare "You changed X." with no number at all.
+  const destroyed = totals.delete + totals.recreate;
   const consequence =
-    totals.delete > 0 || totals.recreate > 0
+    destroyed > 0
       ? ` ${past ? 'That destroyed or replaced' : 'That destroys or replaces'} ` +
-        `${totals.delete + totals.recreate} thing(s) — check those before anything else.`
+        `${plural(destroyed, 'thing')} — check those before anything else.`
       : totals.create > 0
-        ? ` ${past ? 'That created' : 'That creates'} ${totals.create} new thing(s).`
-        : '';
+        ? ` ${past ? 'That created' : 'That creates'} ${plural(totals.create, 'new thing')}.`
+        : totals.update > 0
+          ? ` ${past ? 'That updated' : 'That updates'} ${plural(totals.update, 'thing')} in place.`
+          : ` ${past ? 'Terraform reported no infrastructure change' : 'Terraform plans no infrastructure change'}` +
+            ` for it — see each card for why.`;
 
-  return `You ${biggest.title}${others}.${consequence}`;
+  return `You ${biggest.title}${others}.${consequence}${drifted ? ` Separately, ${drifted}` : ''}`;
 }
 
 /**
@@ -367,5 +404,23 @@ export function buildReport(observation: RunObservation): OctoReport {
     uncertain,
   };
 
-  return { ...report, headline: buildHeadline(report) };
+  // Rebuilt in key order rather than spread-with-headline-appended: the report is written to disk as
+  // JSON, and appending left `headline` last in every file on disk.
+  return {
+    app: report.app,
+    commit: report.commit,
+    confidence: report.confidence,
+    drift: report.drift,
+    durationInMs: report.durationInMs,
+    failures: report.failures,
+    finishedAt: report.finishedAt,
+    headline: buildHeadline(report),
+    mode: report.mode,
+    notes: report.notes,
+    outcome: report.outcome,
+    startedAt: report.startedAt,
+    stories: report.stories,
+    totals: report.totals,
+    uncertain: report.uncertain,
+  };
 }

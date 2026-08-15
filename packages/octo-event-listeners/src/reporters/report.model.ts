@@ -45,6 +45,10 @@ export const CHANGE_VERBS: Record<ChangeKind, string> = {
  */
 export interface ReportAddress {
   address: string;
+  /**
+   * Which arguments moved. Empty on a plain create or delete, where the action says it all.
+   */
+  changedFields: { field: string; from?: string; to?: string }[];
   explanation?: string;
   kind: ChangeKind;
 }
@@ -74,6 +78,16 @@ export interface ReportStory {
   nodeContext?: string;
   reason?: string;
   resources: ReportResource[];
+  /**
+   * True when octo wants to change these resources but terraform's plan plans nothing on any of
+   * their addresses. The two disagree, and saying so is the honest reading — rendering the card
+   * title from octo and "no infrastructure change" from terraform, with every counter at zero,
+   * reads as both "this rebuilds 8 modules" and "nothing will happen".
+   *
+   * Usually means the change is invisible to a plan taken against the current state (a provider or
+   * account move), which is exactly what `confidence: approximate` warns about.
+   */
+  terraformPlannedNothing: boolean;
   title: string;
   /**
    * Terraform changes under this story.

@@ -87,8 +87,8 @@ describe('buildReport()', () => {
                 resourceContext: '@octo/s3-website=bucket-site',
                 resourceId: 'bucket-site',
                 terraformChanges: [
-                  { address: 'aws_s3_bucket.site', tfActions: ['create'] },
-                  { address: 'aws_s3_bucket_policy.site', tfActions: ['create'] },
+                  { address: 'aws_s3_bucket.site', changedFields: [], tfActions: ['create'] },
+                  { address: 'aws_s3_bucket_policy.site', changedFields: [], tfActions: ['create'] },
                 ],
               },
             ],
@@ -159,7 +159,9 @@ describe('buildReport()', () => {
                 reason: 'cluster is force-new on aws_ecs_service; moving the service recreates it',
                 resourceContext: '@octo/ecs-service=api',
                 resourceId: 'api',
-                terraformChanges: [{ address: 'aws_ecs_service.api', tfActions: ['create', 'delete'] }],
+                terraformChanges: [
+                  { address: 'aws_ecs_service.api', changedFields: [], tfActions: ['create', 'delete'] },
+                ],
               },
             ],
           }),
@@ -181,7 +183,7 @@ describe('buildReport()', () => {
 
       expect(cascade).toBeDefined();
       expect(cascade!.kind).toBe('recreate');
-      expect(cascade!.explanation).toBe('"api" changed identity, so this is recreated with it');
+      expect(cascade!.explanation).toBe('references "api", whose identity changed, so this is recreated with it');
     });
 
     it('does not file an explained cascade as drift', () => {
@@ -193,7 +195,7 @@ describe('buildReport()', () => {
     });
 
     it('warns about destruction in the headline', () => {
-      expect(subject().headline).toContain('destroys or replaces 2 thing(s)');
+      expect(subject().headline).toContain('destroys or replaces 2 things');
     });
   });
 
@@ -223,12 +225,109 @@ describe('buildReport()', () => {
       expect(report.drift[0].address).toBe('aws_s3_bucket.orphan');
     });
 
+    it('says so in the headline, rather than reporting an all-clear', () => {
+      // Drift produces no stories by definition — intent did not change, which is what makes it
+      // drift — and the headline used to read "Nothing to do." off exactly that.
+      expect(subject().headline).toBe(
+        '1 change to your infrastructure is not explained by anything in your intent — start there.',
+      );
+    });
+
+    it('does not count drift or uncertain changes as something the user did', () => {
+      expect(subject().totals).toEqual({ create: 0, delete: 0, other: 0, recreate: 0, update: 0 });
+    });
+
     it('keeps uncertain changes out of drift, with their reason', () => {
       const report = subject();
 
       expect(report.uncertain).toHaveLength(1);
       expect(report.uncertain[0].reason).toBe('planned against a mocked output');
       expect(report.drift.map((entry) => entry.address)).not.toContain('aws_ecs_service.api');
+    });
+  });
+
+  describe('when the change only updates things', () => {
+    it('counts the updates in the headline instead of trailing off', () => {
+      const report = buildReport(
+        observation({
+          validate: emptyValidateReport({
+            intentChanges: [
+              {
+                moduleId: 'dynamodb-service-module',
+                octoAction: DiffAction.UPDATE,
+                resourceContext: '@octo/dynamodb=accounts',
+                resourceId: 'accounts',
+                terraformChanges: [
+                  {
+                    address: 'aws_dynamodb_table.accounts',
+                    changedFields: [{ field: 'global_secondary_index', from: '2 item(s)', to: '1 item(s)' }],
+                    tfActions: ['update'],
+                  },
+                ],
+              },
+            ],
+          }),
+        }),
+      );
+
+      expect(report.headline).toContain('That updates 1 thing in place.');
+    });
+
+    it('carries the changed arguments onto the address, so two opposite edits differ', () => {
+      const report = buildReport(
+        observation({
+          validate: emptyValidateReport({
+            intentChanges: [
+              {
+                moduleId: 'dynamodb-service-module',
+                octoAction: DiffAction.UPDATE,
+                resourceContext: '@octo/dynamodb=accounts',
+                resourceId: 'accounts',
+                terraformChanges: [
+                  {
+                    address: 'aws_dynamodb_table.accounts',
+                    changedFields: [{ field: 'global_secondary_index', from: '1 item(s)', to: '2 item(s)' }],
+                    tfActions: ['update'],
+                  },
+                ],
+              },
+            ],
+          }),
+        }),
+      );
+
+      expect(report.stories[0].resources[0].terraform[0].changedFields).toEqual([
+        { field: 'global_secondary_index', from: '1 item(s)', to: '2 item(s)' },
+      ]);
+    });
+  });
+
+  describe('when octo wants a change terraform plans nothing for', () => {
+    const subject = (): ReturnType<typeof buildReport> =>
+      buildReport(
+        observation({
+          validate: emptyValidateReport({
+            confidence: 'approximate',
+            intentChanges: [
+              {
+                moduleId: 'backend-server-module',
+                octoAction: DiffAction.REPLACE,
+                reason: 'name is force-new on aws_iam_role; a change recreates the role',
+                resourceContext: '@octo/iam-role=ServerRole',
+                resourceId: 'ServerRole',
+                terraformChanges: [],
+              },
+            ],
+          }),
+        }),
+      );
+
+    it('marks the card, rather than printing a rebuild above four zero counters', () => {
+      expect(subject().stories[0].terraformPlannedNothing).toBe(true);
+    });
+
+    it('says so in the headline instead of trailing off after the title', () => {
+      expect(subject().headline).toContain('Terraform plans no infrastructure change for it');
     });
   });
 
@@ -260,7 +359,9 @@ describe('buildReport()', () => {
     /**
      * A module removed from intent: no model diff remains, only the resource's own deletion.
      */
-    const deletedBucket = (terraformChanges: { address: string; tfActions: string[] }[]): RunObservation =>
+    const deletedBucket = (
+      terraformChanges: { address: string; changedFields: []; tfActions: string[] }[],
+    ): RunObservation =>
       observation({
         validate: emptyValidateReport({
           intentChanges: [
@@ -276,12 +377,16 @@ describe('buildReport()', () => {
       });
 
     it('groups the orphans into a derived card named after their module', () => {
-      const report = buildReport(deletedBucket([{ address: 'aws_s3_bucket.site', tfActions: ['delete'] }]));
+      const report = buildReport(
+        deletedBucket([{ address: 'aws_s3_bucket.site', changedFields: [], tfActions: ['delete'] }]),
+      );
 
       expect(report.stories).toHaveLength(1);
       expect(report.stories[0].isDerived).toBe(true);
       expect(report.stories[0].title).toBe('removed s3-website-service-module');
-      expect(report.stories[0].resources[0].terraform).toEqual([{ address: 'aws_s3_bucket.site', kind: 'delete' }]);
+      expect(report.stories[0].resources[0].terraform).toEqual([
+        { address: 'aws_s3_bucket.site', changedFields: [], kind: 'delete' },
+      ]);
     });
 
     it('shows no terraform change when the plan mentioned none, rather than inventing one', () => {
@@ -328,8 +433,10 @@ describe('buildReport()', () => {
 
       expect(report.mode).toBe('commit');
       expect(report.stories[0].title).toBe('added service=my-site');
-      expect(report.stories[0].resources[0].terraform).toEqual([{ address: 'aws_s3_bucket.site', kind: 'create' }]);
-      expect(report.headline).toContain('That created 1 new thing(s).');
+      expect(report.stories[0].resources[0].terraform).toEqual([
+        { address: 'aws_s3_bucket.site', changedFields: [], kind: 'create' },
+      ]);
+      expect(report.headline).toContain('That created 1 new thing.');
       expect(report.commit?.responses).toHaveLength(1);
     });
   });
