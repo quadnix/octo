@@ -1,0 +1,19 @@
+version: 1
+
+terraform:
+  requiredVersion: '1.6.0'
+  requiredProviders: {}
+  providers: []
+
+imports:
+  - className: 'Octo'
+    importPath: '@quadnix/octo'
+
+modules:
+  - moduleClass: 'Octo'
+    moduleId: 'app'
+    moduleInputs: {}
+
+settings:
+  stateProvider:
+    type: 'TestStateProvider'

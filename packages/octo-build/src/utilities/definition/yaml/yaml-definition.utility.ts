@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'fs';
+import { createRequire } from 'module';
 import { dirname, join, resolve } from 'path';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 import { type Constructable, LocalEncryptionStateProvider, LocalStateProvider, TestStateProvider } from '@quadnix/octo';
 import type { HtmlReportEventListener } from '@quadnix/octo-event-listeners/html-report';
 import type { LoggingEventListener } from '@quadnix/octo-event-listeners/logging';
@@ -129,10 +130,9 @@ export class YamlDefinitionUtility {
 
     for (const hookDef of this.definition.hooks) {
       const { importPath, method } = hookDef;
-      const resolvedImport =
-        importPath.startsWith('.') || importPath.startsWith('/') ? resolve(process.cwd(), importPath) : importPath;
 
       try {
+        const resolvedImport = this.resolveImportPath(importPath);
         const imported = await import(resolvedImport);
         if (!imported[method]) {
           throw new Error(`Unable to find export "${method}" in path "${resolvedImport}"!`);
@@ -146,7 +146,7 @@ export class YamlDefinitionUtility {
           hooks.preResourceActionHooks!.push(...(importedHooks.preResourceActionHooks || []));
         }
       } catch (error) {
-        throw new Error(`Failed to import path "${resolvedImport}": ${error?.message || String(error)}`);
+        throw new Error(`Failed to import path "${importPath}": ${error?.message || String(error)}`);
       }
     }
 
@@ -162,10 +162,9 @@ export class YamlDefinitionUtility {
 
     for (const importDef of this.definition.imports) {
       const { className, importPath } = importDef;
-      const resolvedImport =
-        importPath.startsWith('.') || importPath.startsWith('/') ? resolve(process.cwd(), importPath) : importPath;
 
       try {
+        const resolvedImport = this.resolveImportPath(importPath);
         const imported = await import(resolvedImport);
         if (!imported[className]) {
           throw new Error(`Unable to find export "${className}" in path "${resolvedImport}"!`);
@@ -173,7 +172,7 @@ export class YamlDefinitionUtility {
           imports.push({ className: imported[className] });
         }
       } catch (error) {
-        throw new Error(`Failed to import path "${resolvedImport}": ${error?.message || String(error)}`);
+        throw new Error(`Failed to import path "${importPath}": ${error?.message || String(error)}`);
       }
     }
 
@@ -307,6 +306,23 @@ export class YamlDefinitionUtility {
       requiredProviders: terraform.requiredProviders,
       requiredVersion: this.resolveEnvironmentValue<string>(terraform.requiredVersion),
     };
+  }
+
+  /**
+   * Resolves a definition-file import specifier to something `import()` can load.
+   *
+   * A relative or absolute path resolves against the current working directory. A bare specifier
+   * resolves against the **user's project root**, not octo-build's own install directory - node
+   * would otherwise resolve it from wherever octo-build happens to live. A flat `node_modules`
+   * hides that; a linked store does not, and there the user's own dependencies are invisible.
+   */
+  private resolveImportPath(importPath: string): string {
+    if (importPath.startsWith('.') || importPath.startsWith('/')) {
+      return resolve(process.cwd(), importPath);
+    }
+
+    const requireFromProject = createRequire(join(process.cwd(), 'package.json'));
+    return pathToFileURL(requireFromProject.resolve(importPath)).href;
   }
 
   private validateDefinition(): void {

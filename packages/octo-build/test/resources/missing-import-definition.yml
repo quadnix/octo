@@ -1,0 +1,19 @@
+version: 1
+
+terraform:
+  requiredVersion: '1.6.0'
+  requiredProviders: {}
+  providers: []
+
+imports:
+  - className: 'Nothing'
+    importPath: '@quadnix/does-not-exist'
+
+modules:
+  - moduleClass: 'Nothing'
+    moduleId: 'app'
+    moduleInputs: {}
+
+settings:
+  stateProvider:
+    type: 'TestStateProvider'

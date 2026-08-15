@@ -1,11 +1,41 @@
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
+import { jest } from '@jest/globals';
 import { YamlDefinitionUtility } from './yaml-definition.utility.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const fixture = (name: string): string => join(__dirname, '..', '..', '..', '..', 'test', 'resources', name);
 
 describe('YamlDefinitionUtility UT', () => {
+  describe('resolveImports()', () => {
+    const projectRoot = join(__dirname, '..', '..', '..', '..');
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('should resolve a bare specifier from the project root', async () => {
+      jest.spyOn(process, 'cwd').mockReturnValue(projectRoot);
+      const definition = new YamlDefinitionUtility(fixture('bare-import-definition.yml'));
+
+      const imports = await definition.resolveImports();
+
+      expect(imports).toHaveLength(1);
+      expect(imports[0].className.name).toBe('Octo');
+    });
+
+    // That a bare specifier is anchored to the project root rather than to octo-build's own install
+    // directory cannot be asserted here: jest's module registry resolves `createRequire()` through
+    // its own resolver from `rootDir`, ignoring the filename it is handed. Only a real node process
+    // exercises the anchoring.
+
+    it('should report the specifier as written when it cannot be found', async () => {
+      const definition = new YamlDefinitionUtility(fixture('missing-import-definition.yml'));
+
+      await expect(definition.resolveImports()).rejects.toThrow('Failed to import path "@quadnix/does-not-exist"');
+    });
+  });
+
   describe('resolveTerraformOptions()', () => {
     it('should parse the terraform section, defaulting and env-resolving providers', () => {
       const definition = new YamlDefinitionUtility(fixture('terraform-definition.yml'));
