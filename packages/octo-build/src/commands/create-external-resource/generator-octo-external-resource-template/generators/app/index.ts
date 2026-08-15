@@ -92,14 +92,8 @@ export default class extends Generator {
     );
 
     this.fs.copyTpl(
-      this.templatePath('resources/resource/actions/update-tags.resource.action.ts.ejs'),
-      this.destinationPath('actions', `update-${this.resourceName}-tags.resource.action.ts`),
-      templateData,
-    );
-
-    this.fs.copyTpl(
-      this.templatePath('resources/resource/actions/validate.resource.action.ts.ejs'),
-      this.destinationPath('actions', `validate-${this.resourceName}.resource.action.ts`),
+      this.templatePath('resources/resource/actions/update.resource.action.ts.ejs'),
+      this.destinationPath('actions', `update-${this.resourceName}.resource.action.ts`),
       templateData,
     );
   }

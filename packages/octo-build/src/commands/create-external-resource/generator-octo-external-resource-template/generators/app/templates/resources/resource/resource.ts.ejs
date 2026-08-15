@@ -7,6 +7,15 @@ import { <%= resourceNamePascal %>Schema } from './index.schema.js';
  * `null_resource` + `data "external"` at generate time and calls back into the action at apply time.
  *
  * For a resource whose lifecycle is managed by Terraform itself, use `create-terraform-resource`.
+ *
+ * Two things an external resource does not get, so that you do not go looking for them:
+ *
+ * - **Tags do not reach it.** The generated `null_resource` triggers on the properties hash and on
+ *   each parent input; `tags` is not among them. A tags-only change therefore re-triggers nothing,
+ *   Terraform does not re-run the provisioner, and no action is invoked. Apply tags inside the
+ *   add/update actions if the underlying API supports them.
+ * - **There is no per-resource validate action.** `octo validate` compares Terraform's plan against
+ *   Octo's own diff; it does not run resource actions.
  */
 @Resource<<%= resourceNamePascal %>>('<%= packageName %>', '<%= resourceName %>', <%= resourceNamePascal %>Schema)
 export class <%= resourceNamePascal %> extends AResource<<%= resourceNamePascal %>Schema, <%= resourceNamePascal %>> {

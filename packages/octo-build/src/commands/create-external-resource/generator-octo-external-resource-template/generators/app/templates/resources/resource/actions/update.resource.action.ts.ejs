@@ -1,0 +1,59 @@
+import { ANodeAction, Action, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
+import type { <%= resourceNamePascal %>Schema } from '../index.schema.js';
+import { <%= resourceNamePascal %> } from '../<%= resourceName %>.resource.js';
+
+/**
+ * Handles a change to the resource's properties.
+ *
+ * This is the case an external resource hits most often, and it is not optional: the default
+ * `diffProperties()` emits an `UPDATE` on `properties`, and a diff that no registered action matches
+ * aborts the whole transaction with "No matching action given for diff!". Deleting this file means a
+ * generated resource works until the first property change and then refuses to apply at all.
+ *
+ * You own the partial-update semantics. `diff.value` carries the changed properties; the resource's
+ * `properties` already hold the new values. If the underlying API cannot change an attribute in
+ * place, do not silently skip it - either recreate it here, or override `diffProperties()` on the
+ * resource to return `DiffAction.REPLACE` with a reason, which routes the change through the add and
+ * delete actions instead.
+ */
+@Action(<%= resourceNamePascal %>)
+export class Update<%= resourceNamePascal %>ResourceAction extends ANodeAction implements IResourceAction<<%= resourceNamePascal %>> {
+  constructor() {
+    super();
+  }
+
+  filter(diff: Diff): boolean {
+    return (
+      diff.action === DiffAction.UPDATE &&
+      diff.node instanceof <%= resourceNamePascal %> &&
+      hasNodeName(diff.node, '<%= resourceName %>') &&
+      diff.field === 'properties'
+    );
+  }
+
+  async handle(diff: Diff<<%= resourceNamePascal %>>): Promise<<%= resourceNamePascal %>Schema['response']> {
+    // Get properties.
+    const <%= resourceNameCamel %> = diff.node;
+    const properties = <%= resourceNameCamel %>.properties;
+    const response = <%= resourceNameCamel %>.response;
+
+    // Fix me: Implement the update resource logic.
+    // This is where you would apply the changed properties to the actual resource.
+
+    // Fix me: Return every declared response key, re-reading any the update changed. Returning the
+    // response unchanged is what an unimplemented update looks like, and it reports success.
+    return response;
+  }
+}
+
+@Factory<Update<%= resourceNamePascal %>ResourceAction>(Update<%= resourceNamePascal %>ResourceAction)
+export class Update<%= resourceNamePascal %>ResourceActionFactory {
+  private static instance: Update<%= resourceNamePascal %>ResourceAction;
+
+  static async create(): Promise<Update<%= resourceNamePascal %>ResourceAction> {
+    if (!this.instance) {
+      this.instance = new Update<%= resourceNamePascal %>ResourceAction();
+    }
+    return this.instance;
+  }
+}
