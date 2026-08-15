@@ -9,10 +9,35 @@ import { TerraformService } from '../services/terraform/terraform.service.js';
 import type { ModelTransactionResult } from './apply-transaction.js';
 
 /**
+ * One argument terraform plans to change on a resource, with the values on either side.
+ *
+ * Values are rendered, truncated strings rather than the raw payload: a report is read, not
+ * replayed, and the raw payload of a real resource is both enormous and a place secrets live.
+ */
+export interface ValidateFieldChange {
+  field: string;
+  /**
+   * The current value. Absent on a create. `(sensitive)` when terraform marked it so.
+   */
+  from?: string;
+  /**
+   * The planned value. `(known after apply)` when terraform cannot say yet.
+   */
+  to?: string;
+}
+
+/**
  * One terraform address and the actions terraform plans on it (`create`, `update`, `delete`, …).
  */
 export interface ValidateTerraformChange {
   address: string;
+  /**
+   * Which arguments moved, for the changes where that is the whole question: an in-place `update`,
+   * and a `create`+`delete` where the point is *which* argument forced the replacement.
+   *
+   * Left empty on a plain create or delete, where the address and the action already say everything.
+   */
+  changedFields: ValidateFieldChange[];
   tfActions: string[];
 }
 
@@ -90,7 +115,135 @@ export interface ValidateReport {
  * (run via terragrunt by the caller, so it is backend-agnostic). Only `resource_changes` is read.
  */
 export interface TerraformPlan {
-  resource_changes?: { address: string; change?: { actions?: string[] }; mode?: string }[];
+  resource_changes?: {
+    address: string;
+    change?: {
+      actions?: string[];
+      after?: Record<string, unknown> | null;
+      after_sensitive?: Record<string, unknown> | boolean | null;
+      after_unknown?: Record<string, unknown> | boolean | null;
+      before?: Record<string, unknown> | null;
+      before_sensitive?: Record<string, unknown> | boolean | null;
+    };
+    mode?: string;
+  }[];
+}
+
+/**
+ * One address's plan entry, reduced to what the report needs.
+ */
+interface PlanChange {
+  changedFields: ValidateFieldChange[];
+  tfActions: string[];
+}
+
+const MAX_RENDERED_VALUE_LENGTH = 80;
+const MAX_REPORTED_FIELDS = 12;
+
+/**
+ * Renders one terraform value as a short, readable string.
+ */
+function renderPlanValue(value: unknown): string {
+  if (value === null || value === undefined) {
+    return '(none)';
+  }
+
+  const truncate = (rendered: string): string =>
+    rendered.length > MAX_RENDERED_VALUE_LENGTH ? `${rendered.slice(0, MAX_RENDERED_VALUE_LENGTH)}…` : rendered;
+
+  if (Array.isArray(value)) {
+    if (value.length === 0) {
+      return 'none';
+    }
+    // Terraform's list-typed blocks (indexes, rules, listeners) are the ones worth naming: "2 items
+    // -> 1 item" does not answer *which* index went away, which is the whole question.
+    const names = value
+      .map((element) =>
+        typeof element === 'object' && element !== null
+          ? (element as Record<string, unknown>).name ?? (element as Record<string, unknown>).index_name
+          : element,
+      )
+      .filter((name): name is string => typeof name === 'string' && name.length > 0);
+
+    return names.length === value.length ? truncate(names.join(', ')) : `${value.length} item(s)`;
+  }
+
+  return truncate(typeof value === 'string' ? value : JSON.stringify(value));
+}
+
+/**
+ * True when any leaf of a terraform sensitive/unknown mark is `true`.
+ *
+ * These maps mirror the *shape* of the value they describe, so a list of five blocks with nothing
+ * sensitive in it is `[{}, {}, {}, {}, {}]` — structure, not a signal. Only a literal `true`
+ * anywhere in that structure marks something, which is why "non-empty object" is the wrong test: it
+ * reported every list-typed argument on a DynamoDB table as sensitive.
+ */
+function hasMark(mark: unknown): boolean {
+  if (mark === true) {
+    return true;
+  }
+  if (typeof mark !== 'object' || mark === null) {
+    return false;
+  }
+  return Object.values(mark as Record<string, unknown>).some(hasMark);
+}
+
+/**
+ * True when terraform's sensitive/unknown map marks `key`.
+ */
+function isMarked(marks: Record<string, unknown> | boolean | null | undefined, key: string): boolean {
+  if (marks === true) {
+    return true;
+  }
+  if (!marks || typeof marks !== 'object') {
+    return false;
+  }
+  return hasMark((marks as Record<string, unknown>)[key]);
+}
+
+/**
+ * The arguments that differ between `before` and `after`.
+ *
+ * Terraform already hands us both sides — `readPlan` parses the whole `show -json` payload — so this
+ * costs nothing but the comparison. Without it an added index and a removed index render as the
+ * same sentence: "1 update".
+ */
+function describeFieldChanges(change: NonNullable<NonNullable<TerraformPlan['resource_changes']>[number]['change']>): ValidateFieldChange[] {
+  const actions = new Set(change.actions ?? []);
+  // A plain create or delete needs no field list: the address and the action are the whole story.
+  const isUpdate = actions.has('update');
+  const isReplace = actions.has('create') && actions.has('delete');
+  if (!isUpdate && !isReplace) {
+    return [];
+  }
+
+  const before = (change.before ?? {}) as Record<string, unknown>;
+  const after = (change.after ?? {}) as Record<string, unknown>;
+  const fields: ValidateFieldChange[] = [];
+
+  for (const key of [...new Set([...Object.keys(before), ...Object.keys(after)])].sort()) {
+    const unknownAfter = isMarked(change.after_unknown, key);
+    if (!unknownAfter && JSON.stringify(before[key]) === JSON.stringify(after[key])) {
+      continue;
+    }
+
+    fields.push({
+      field: key,
+      from: isMarked(change.before_sensitive, key) ? '(sensitive)' : renderPlanValue(before[key]),
+      to: unknownAfter
+        ? '(known after apply)'
+        : isMarked(change.after_sensitive, key)
+          ? '(sensitive)'
+          : renderPlanValue(after[key]),
+    });
+
+    if (fields.length === MAX_REPORTED_FIELDS) {
+      break;
+    }
+  }
+
+  return fields;
 }
 
 /**
@@ -145,14 +298,17 @@ export async function validate({
   // Aggregate octo diffs to one action per resource.
   const octoActions = aggregateResourceActions(allDiffs);
 
-  const parsePlanChanges = (plan: TerraformPlan): Map<string, string[]> => {
-    const changes = new Map<string, string[]>();
+  const parsePlanChanges = (plan: TerraformPlan): Map<string, PlanChange> => {
+    const changes = new Map<string, PlanChange>();
 
     for (const resourceChange of plan.resource_changes ?? []) {
       if (resourceChange.mode === 'data') {
         continue;
       }
-      changes.set(resourceChange.address, resourceChange.change?.actions ?? []);
+      changes.set(resourceChange.address, {
+        changedFields: resourceChange.change ? describeFieldChanges(resourceChange.change) : [],
+        tfActions: resourceChange.change?.actions ?? [],
+      });
     }
 
     return changes;
@@ -160,7 +316,8 @@ export async function validate({
 
   const sweptModuleIds = new Set(terraformService.getModuleIds());
   const trackedModuleIds = new Set([...sweptModuleIds, ...previousFolders.map((folder) => folder.moduleId)]);
-  const planChangesByModule = new Map<string, Map<string, string[]>>();
+  const planChangesByModule = new Map<string, Map<string, PlanChange>>();
+  const NO_PLAN_CHANGE: PlanChange = { changedFields: [], tfActions: [] };
 
   // Every module the sweep filled must have a plan. `getModuleIds()` only lists modules that
   // contributed a resource, so a missing plan means terraform ran on a real folder and failed.
@@ -341,7 +498,8 @@ export async function validate({
 
     const addressActions = mapping.terraformAddresses.map((address) => {
       claim(mapping.moduleId, address);
-      return { address, tfActions: planChanges.get(address) ?? [] };
+      const planChange = planChanges.get(address) ?? NO_PLAN_CHANGE;
+      return { address, changedFields: planChange.changedFields, tfActions: planChange.tfActions };
     });
 
     // A resource can render a variable number of addresses — one rule resource per security group
@@ -357,7 +515,7 @@ export async function validate({
 
       claim(mapping.moduleId, address);
 
-      const tfActions = planChanges.get(address) ?? [];
+      const { tfActions } = planChanges.get(address) ?? NO_PLAN_CHANGE;
       if (!isNoop(tfActions)) {
         report.attributedChanges.push({
           address,
@@ -442,11 +600,11 @@ export async function validate({
     const terraformChanges: ValidateTerraformChange[] = [];
 
     for (const address of persisted.terraformAddresses) {
-      const tfActions = planChanges.get(address) ?? [];
+      const { changedFields, tfActions } = planChanges.get(address) ?? NO_PLAN_CHANGE;
       claim(persisted.moduleId, address);
 
       if (!isNoop(tfActions)) {
-        terraformChanges.push({ address, tfActions });
+        terraformChanges.push({ address, changedFields, tfActions });
       }
     }
 
@@ -463,7 +621,7 @@ export async function validate({
 
   // Reverse: whatever terraform plans that no octo resource has claimed.
   for (const [moduleId, planChanges] of planChangesByModule.entries()) {
-    for (const [address, tfActions] of planChanges.entries()) {
+    for (const [address, { tfActions }] of planChanges.entries()) {
       if (claimedAddresses.get(moduleId)?.has(address) || isNoop(tfActions)) {
         continue;
       }

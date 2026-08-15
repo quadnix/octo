@@ -229,7 +229,7 @@ describe('validate()', () => {
       expect(report.failures).toEqual([]);
       expect(report.drift).toEqual([]);
       expect(report.intentChanges.find((c) => c.resourceId === 'vpc-1')!.terraformChanges).toEqual([
-        { address: 'aws_vpc.vpc-1', tfActions: ['update'] },
+        { address: 'aws_vpc.vpc-1', changedFields: [], tfActions: ['update'] },
       ]);
       // Intent moved, so cross-folder consequences of it cannot be seen in a per-folder plan.
       expect(report.confidence).toBe('approximate');
@@ -255,7 +255,7 @@ describe('validate()', () => {
       expect(report.intentChanges.find((c) => c.resourceId === 'vpc-1')).toEqual(
         expect.objectContaining({
           octoAction: 'replace',
-          terraformChanges: [{ address: 'aws_vpc.vpc-1', tfActions: ['update'] }],
+          terraformChanges: [{ address: 'aws_vpc.vpc-1', changedFields: [], tfActions: ['update'] }],
         }),
       );
     });
@@ -420,11 +420,11 @@ describe('validate()', () => {
       expect(report.intentChanges.filter((c) => c.octoAction === 'delete')).toEqual([
         expect.objectContaining({
           resourceId: 'igw-1',
-          terraformChanges: [{ address: 'null_resource.igw-1', tfActions: ['delete'] }],
+          terraformChanges: [{ address: 'null_resource.igw-1', changedFields: [], tfActions: ['delete'] }],
         }),
         expect.objectContaining({
           resourceId: 'sg-1',
-          terraformChanges: [{ address: 'aws_security_group.sg-1', tfActions: ['delete'] }],
+          terraformChanges: [{ address: 'aws_security_group.sg-1', changedFields: [], tfActions: ['delete'] }],
         }),
       ]);
     });
@@ -490,6 +490,61 @@ describe('validate()', () => {
         { address: 'null_resource.igw-10', moduleId: 'region-module', tfActions: ['delete'] },
       ]);
     });
+  });
+
+  describe('which arguments moved', () => {
+    it('names the members of a list block, so an added index differs from a removed one', async () => {
+      const { app } = await testModes.createResourceGraph({ save: true });
+      await commitResources({ skipAddActualResource: true });
+      await recreateGraph({ changeVpc: true });
+
+      testModes.writePlan('region-module', [
+        {
+          actions: ['update'],
+          address: 'aws_vpc.vpc-1',
+          after: { global_secondary_index: [{ name: 'ByUser' }, { name: 'ByEmail' }] },
+          // Structure, not a signal: a mark mirrors the value's shape, so empty objects mark nothing.
+          afterSensitive: [{}, {}],
+          afterUnknown: [{}, {}],
+          before: { global_secondary_index: [{ name: 'ByUser' }] },
+          beforeSensitive: [{}],
+        },
+        { actions: ['no-op'], address: 'null_resource.igw-1' },
+      ]);
+      testModes.writePlan('sg-module', [{ actions: ['no-op'], address: 'aws_security_group.sg-1' }]);
+
+      const report = await runValidate(app, { persistedMappings: persistedGraph(), plans: testModes.plans });
+
+      expect(report.intentChanges.find((c) => c.resourceId === 'vpc-1')!.terraformChanges[0].changedFields).toEqual([
+        { field: 'global_secondary_index', from: 'ByUser', to: 'ByUser, ByEmail' },
+      ]);
+    });
+
+    it('redacts a value terraform actually marked sensitive', async () => {
+      const { app } = await testModes.createResourceGraph({ save: true });
+      await commitResources({ skipAddActualResource: true });
+      await recreateGraph({ changeVpc: true });
+
+      testModes.writePlan('region-module', [
+        {
+          actions: ['update'],
+          address: 'aws_vpc.vpc-1',
+          after: { secret: 'new' },
+          afterSensitive: { secret: true },
+          before: { secret: 'old' },
+          beforeSensitive: { secret: true },
+        },
+        { actions: ['no-op'], address: 'null_resource.igw-1' },
+      ]);
+      testModes.writePlan('sg-module', [{ actions: ['no-op'], address: 'aws_security_group.sg-1' }]);
+
+      const report = await runValidate(app, { persistedMappings: persistedGraph(), plans: testModes.plans });
+
+      expect(report.intentChanges.find((c) => c.resourceId === 'vpc-1')!.terraformChanges[0].changedFields).toEqual([
+        { field: 'secret', from: '(sensitive)', to: '(sensitive)' },
+      ]);
+    });
+
   });
 
   describe('folders octo cannot report on', () => {

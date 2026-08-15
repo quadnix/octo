@@ -411,11 +411,29 @@ export class TestModes {
     return this.octo.validate(...args);
   }
 
-  writePlan(moduleId: string, resourceChanges: { actions: string[]; address: string }[]): void {
+  writePlan(
+    moduleId: string,
+    resourceChanges: {
+      actions: string[];
+      address: string;
+      after?: Record<string, unknown>;
+      afterSensitive?: unknown;
+      afterUnknown?: unknown;
+      before?: Record<string, unknown>;
+      beforeSensitive?: unknown;
+    }[],
+  ): void {
     this.plans.set(moduleId, {
       resource_changes: resourceChanges.map((c) => ({
         address: c.address,
-        change: { actions: c.actions },
+        change: {
+          actions: c.actions,
+          after: c.after,
+          after_sensitive: c.afterSensitive as never,
+          after_unknown: c.afterUnknown as never,
+          before: c.before,
+          before_sensitive: c.beforeSensitive as never,
+        },
         mode: 'managed',
       })),
     });
