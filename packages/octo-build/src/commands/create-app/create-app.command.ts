@@ -1,4 +1,4 @@
-import { dirname, resolve } from 'path';
+import { dirname, join, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import chalk from 'chalk';
 import type { ArgumentsCamelCase, Argv } from 'yargs';
@@ -36,7 +36,11 @@ export const createAppCommand = {
 
     console.log(chalk.blue(`Creating app with template "${template}"...`));
 
-    const env = createEnv();
+    // The environment's cwd is both what yeoman watches for a package.json change and where it runs
+    // the package manager install. It defaults to `process.cwd()` - the directory the user invoked
+    // from - so with the app written to a subdirectory the watch never fired, and the install was
+    // skipped with "No change to package.json was detected". It also anchors the paths yeoman logs.
+    const env = createEnv({ cwd: resolve(join(path, name)) });
     env.register(resolve(__dirname, 'generator-octo-app-template/generators/app/index.js'), {
       namespace: 'generator-octo-app-template:app',
     });

@@ -8,8 +8,28 @@ export default class extends Generator {
   private readonly appPath: string;
   private readonly appTemplate: string;
 
+  private installCommand: string | undefined;
+
   constructor(args: string[], opts: BaseOptions) {
-    super(args, opts);
+    super(args, opts, {
+      // The install runs after every file is written, so a failure here is a fully generated app
+      // whose dependencies did not install - not a failed generation. Left to yeoman the rejection
+      // would surface as "Failed to create app!", which is wrong, and the half-finished directory
+      // then blocks a retry. Report it and let the run finish; `end()` tells the user what to run.
+      customInstallTask: async (packageManagerName: string | undefined, defaultInstall: () => Promise<boolean>) => {
+        // Undefined when yeoman cannot detect a package manager, which it then resolves to npm
+        // inside `defaultInstall` - too late for the name to reach this callback.
+        this.installCommand = `${packageManagerName ?? 'npm'} install`;
+
+        try {
+          await defaultInstall();
+          this.installCommand = undefined;
+        } catch (error) {
+          this.log(`⚠️  Could not install dependencies: ${error.message}`);
+          this.log(`   The app is complete - run "${this.installCommand}" in it once the cause is fixed.`);
+        }
+      },
+    });
 
     this.appName = args[0];
     this.appPath = args[1];
@@ -23,7 +43,10 @@ export default class extends Generator {
     this.log(`📁 App created at: ${targetPath}`);
     this.log('📦 Next steps:');
     this.log(`   cd ${targetPath}`);
-    this.log('   npm install');
+    // Only when the install did not happen - it runs as part of this command otherwise.
+    if (this.installCommand) {
+      this.log(`   ${this.installCommand}`);
+    }
     this.log('   Set the "env" values in octo.yaml.');
     this.log('   npm run build');
     this.log('   export OCTO_DEFINITION_FILE_PATH=octo.yaml');
