@@ -140,6 +140,16 @@ describe('runAction()', () => {
     });
   });
 
+  it('should throw, not silently do nothing, when no action matches the diff', async () => {
+    const { app } = await testModes.createResourceGraph({ save: true });
+    await commitResources({ skipAddActualResource: true });
+    // An author who handles only add/delete, leaving a property change unhandled.
+    testModes.igwActionFilter = (diff): boolean => diff.field === 'resourceId';
+    await recreateDesiredGraph({ igwType: 'changed-type' });
+
+    await expect(runAction(app, { resourceId: 'igw-1' })).rejects.toThrow('No matching action given for diff!');
+  });
+
   it('should throw when targeting a changed terraform resource', async () => {
     const { app } = await testModes.createResourceGraph();
 

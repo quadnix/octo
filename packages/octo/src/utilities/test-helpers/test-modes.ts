@@ -185,13 +185,13 @@ export class TestModes {
    * runtime but the schema type forbids - a number, a boolean, a null.
    */
   igwResponse: Record<string, unknown> = { igwId: 'igw-0real' };
-  readonly outputs = new Map<string, Record<string, { value: unknown }>>();
 
+  readonly outputs = new Map<string, Record<string, { value: unknown }>>();
   readonly plans = new Map<string, TerraformPlan>();
 
   private readonly terraformConfigs: Parameters<Octo['registerTerraformConfig']>[] = [];
-  private readonly terraformProviders: Parameters<Octo['registerTerraformProvider']>[] = [];
 
+  private readonly terraformProviders: Parameters<Octo['registerTerraformProvider']>[] = [];
   private constructor(
     private readonly octo: Octo,
     readonly outputDir: string,
@@ -228,7 +228,7 @@ export class TestModes {
     // Registered after the instance exists so the action can read/append its mutable state. No
     // transaction runs during initialize(), so registering here is in time for the mode under test.
     const igwResourceAction: IResourceAction<ExternalIgwResource> = {
-      filter: (): boolean => true,
+      filter: (diff: Diff): boolean => instance.igwActionFilter(diff),
       handle: async (diff: Diff): Promise<BaseResourceSchema['response']> => {
         instance.igwActionHandledDiffs.push(diff);
         return diff.action === 'delete' ? {} : (instance.igwResponse as BaseResourceSchema['response']);
@@ -364,6 +364,12 @@ export class TestModes {
     const { userData } = await this.stateManagementService.getModelState('models.json');
     return userData.terraformFolders ?? [];
   }
+
+  /**
+   * What the igw resource action matches. Mutable so a spec can narrow it and exercise a diff that
+   * no registered action handles.
+   */
+  igwActionFilter: (diff: Diff) => boolean = () => true;
 
   registerTerraformConfig(...args: Parameters<Octo['registerTerraformConfig']>): void {
     this.terraformConfigs.push(args);
