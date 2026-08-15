@@ -207,7 +207,7 @@ function buildStories(
     }
   }
 
-  // Labelled only when every resource under it agrees.
+  // Label only when every resource under it agrees.
   const moduleOf = (rows: ReportResource[]): string | undefined => {
     const moduleIds = new Set(
       rows.map((row) => resources.get(row.resourceContext)?.moduleId).filter((id): id is string => id !== undefined),
@@ -360,8 +360,7 @@ export function buildReport(observation: RunObservation): OctoReport {
     finishedAt,
     mode,
     notes: observation.validate?.notes ?? [],
-    outcome:
-      failures.length > 0 ? 'failed' : drift.length > 0 ? 'drift' : stories.length > 0 ? 'changes' : 'clean',
+    outcome: failures.length > 0 ? 'failed' : drift.length > 0 ? 'drift' : stories.length > 0 ? 'changes' : 'clean',
     startedAt: observation.startedAt,
     stories,
     totals,

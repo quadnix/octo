@@ -64,7 +64,7 @@ function renderTerraformRows(resource: ReportResource): string {
       .sort((a, b) => a.address.localeCompare(b.address))
       .map(
         (row) =>
-          `<div class="tf-row">${symbol(row.kind)} <code class="tf-addr">${escapeHtml(row.address)}</code></div>` +
+          `<div class="tf-row">${symbol(row.kind)} <code class="tf-address">${escapeHtml(row.address)}</code></div>` +
           (row.explanation ? `<div class="tf-why">${escapeHtml(row.explanation)}</div>` : ''),
       )
       .join('') +
@@ -126,7 +126,7 @@ function renderStory(story: ReportStory): string {
     '<span class="chev">▶</span>' +
     symbol(story.kind) +
     `<span class="story-title">${escapeHtml(story.title)}</span>` +
-    (story.nodeContext ? `<code class="story-ctx">${escapeHtml(story.nodeContext)}</code>` : '') +
+    (story.nodeContext ? `<code class="story-context">${escapeHtml(story.nodeContext)}</code>` : '') +
     renderMiniTotals(story) +
     (story.moduleId ? `<span class="story-mod">${escapeHtml(story.moduleId)}</span>` : '') +
     '</summary>' +

@@ -199,7 +199,7 @@ export class LoggingEventListener {
   }
 
   /**
-   * Terragrunt folder writes, and terraform commands with their durations.
+   * Terragrunt folder writes, and terraform commands with their duration.
    */
   @OnEvent(TerraformEvent)
   onTerraform(event: TerraformEvent<unknown>): void {

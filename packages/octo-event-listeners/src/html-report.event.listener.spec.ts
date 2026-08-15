@@ -33,10 +33,9 @@ describe('HtmlReportEventListener', () => {
     reportDir = await mkdtemp(join(tmpdir(), 'octo-report-'));
 
     const container = Container.getInstance();
-    await container.get<HtmlReportEventListener, typeof HtmlReportEventListenerFactory>(
-      HtmlReportEventListener,
-      { args: [{ reportDir }] },
-    );
+    await container.get<HtmlReportEventListener, typeof HtmlReportEventListenerFactory>(HtmlReportEventListener, {
+      args: [{ reportDir }],
+    });
 
     eventService = (await container.get('EventService')) as TestEventService;
   });
@@ -148,7 +147,7 @@ describe('HtmlReportEventListener', () => {
     expect(await readdir(reportDir)).toEqual([]);
   });
 
-  it('does not leak one mode’s events into the next report', async () => {
+  it("does not leak one mode's events into the next report", async () => {
     await emitValidateRun();
 
     eventService.emit(new ModeStartedEvent('commit', { appName: 'test-app', mode: 'commit' }));

@@ -1284,9 +1284,12 @@ describe('AwsEcsExecutionModule UT', () => {
 
     await setup(testModuleContainer);
     await testModuleContainer
-      .runModules<AwsEcsExecutionModule>({ inputs, moduleId: 'execution', type: AwsEcsExecutionModule }, {
-        terraformTarget: 'skip',
-      })
+      .runModules<AwsEcsExecutionModule>(
+        { inputs, moduleId: 'execution', type: AwsEcsExecutionModule },
+        {
+          terraformTarget: 'skip',
+        },
+      )
       .next();
 
     // Renaming an environment recreates its cluster, which hands this execution's service a cluster
@@ -1295,9 +1298,12 @@ describe('AwsEcsExecutionModule UT', () => {
     await setup(testModuleContainer, { clusterName: 'region-changed-qa' });
     const { hclRender, resourceDiffs } = (
       await testModuleContainer
-        .runModules<AwsEcsExecutionModule>({ inputs, moduleId: 'execution', type: AwsEcsExecutionModule }, {
-          terraformTarget: 'skip',
-        })
+        .runModules<AwsEcsExecutionModule>(
+          { inputs, moduleId: 'execution', type: AwsEcsExecutionModule },
+          {
+            terraformTarget: 'skip',
+          },
+        )
         .next()
     ).value!;
 

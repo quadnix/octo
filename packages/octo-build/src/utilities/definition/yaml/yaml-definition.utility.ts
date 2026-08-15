@@ -185,9 +185,7 @@ export class YamlDefinitionUtility {
    * terraform's `data "external"` protocol requires that command's stdout to carry only the response
    * JSON — the reason it previously ran with no listeners at all.
    */
-  async resolveListeners(
-    { logDestination = 'stdout' }: { logDestination?: 'stderr' | 'stdout' } = {},
-  ): Promise<
+  async resolveListeners({ logDestination = 'stdout' }: { logDestination?: 'stderr' | 'stdout' } = {}): Promise<
     {
       args?: unknown[];
       metadata?: Record<string, string>;

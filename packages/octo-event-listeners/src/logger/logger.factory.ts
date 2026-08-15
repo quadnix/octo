@@ -63,7 +63,7 @@ export class Logger {
    * Reconfiguring rather than replacing is required: `EventService` resolves a listener on its first
    * event, which is a no-argument factory call, and octo replays buffered registration events the
    * moment `@OnEvent` runs. So the shared logger is always built with defaults before boot options
-   * exist. First-caller-wins would make `level` and `destination` unsettable.
+   * exist. First-caller-wins would make `level` and `destination` un-settable.
    */
   configure({ colorize = true, destination = 'stdout', level = 'info' }: LoggerOptions = {}): void {
     // A new pino means a new pino-pretty worker, so only rebuild on a real change.

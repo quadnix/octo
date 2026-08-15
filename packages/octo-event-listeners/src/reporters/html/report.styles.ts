@@ -1,3 +1,5 @@
+/* eslint-disable spellcheck/spell-checker */
+
 /**
  * The report's entire stylesheet, inlined.
  *
@@ -187,7 +189,7 @@ details > summary::-webkit-details-marker { display: none; }
 }
 .story-head:hover { background: var(--surface-2); }
 .story-title { font-weight: 600; }
-.story-ctx { color: var(--text-dim); }
+.story-context { color: var(--text-dim); }
 .story-mod { color: var(--text-dim); font-size: 12px; margin-left: auto; }
 .chev { color: var(--text-dim); font-size: 11px; }
 details[open] .chev { transform: rotate(90deg); }
@@ -238,7 +240,7 @@ details[open] .chev { transform: rotate(90deg); }
 
 .tf { margin-top: 6px; }
 .tf-row { padding: 2px 0 2px 18px; }
-.tf-addr { word-break: break-all; }
+.tf-address { word-break: break-all; }
 .tf-why {
   color: var(--text-dim);
   font-size: 12px;
