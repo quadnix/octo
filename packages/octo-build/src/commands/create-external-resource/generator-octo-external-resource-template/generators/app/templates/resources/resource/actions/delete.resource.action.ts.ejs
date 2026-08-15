@@ -1,6 +1,24 @@
 import { ANodeAction, Action, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import { <%= resourceNamePascal %> } from '../<%= resourceName %>.resource.js';
 
+/**
+ * Deletes the resource.
+ *
+ * Unlike add and update, this does **not** run mid-apply. Terraform cannot run it: octo deletes a
+ * resource by removing its block from the configuration, and terraform will not run a
+ * `when = destroy` provisioner for a resource that is no longer in the configuration. So `octo
+ * commit` runs this instead, from the project directory, after terraform has destroyed the
+ * `null_resource`.
+ *
+ * Two consequences worth designing around:
+ *
+ * - **The working directory is not the one add and update saw.** Those run inside a terragrunt
+ *   cache directory; this runs wherever `octo commit` was invoked. Anything positional - a relative
+ *   file path, a relative config lookup - resolves somewhere else. Build absolute paths from a
+ *   module input rather than assuming a cwd.
+ * - **Throwing here aborts the commit**, on purpose: octo state then still records the resource, so
+ *   the next run diffs it again and retries. Failing loudly is better than a silent leak.
+ */
 @Action(<%= resourceNamePascal %>)
 export class Delete<%= resourceNamePascal %>ResourceAction extends ANodeAction implements IResourceAction<<%= resourceNamePascal %>> {
   constructor() {
