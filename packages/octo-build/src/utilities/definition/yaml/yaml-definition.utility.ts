@@ -59,8 +59,16 @@ interface IYamlDefinition {
 export class YamlDefinitionUtility {
   private readonly definition: IYamlDefinition;
 
+  /**
+   * The directory holding the definition file. Everything the definition names by relative path is
+   * resolved against this, not against `process.cwd()`: `octo run-action` is invoked by terraform
+   * from inside a terragrunt cache directory, so the cwd there is neither the project nor stable.
+   */
+  private readonly definitionDir: string;
+
   constructor(definitionFilePath: string) {
     definitionFilePath = resolve(process.cwd(), definitionFilePath);
+    this.definitionDir = dirname(definitionFilePath);
 
     if (!existsSync(definitionFilePath)) {
       throw new Error('Cannot find definition file: ' + definitionFilePath);
@@ -273,13 +281,19 @@ export class YamlDefinitionUtility {
     | { type: LocalStateProvider }
     | { type: TestStateProvider } {
     const stateProvider = this.definition.settings.stateProvider;
+    // Anchored to the definition file for the same reason imports are: `run-action` runs with
+    // terragrunt's cache directory as its cwd, and a state path resolved from there would point at
+    // an empty directory - the action would read no prior state and write its result nowhere useful.
     if (stateProvider.type === 'LocalEncryptionStateProvider') {
       return {
-        type: new LocalEncryptionStateProvider(stateProvider.statePath, stateProvider.encryptionKey),
+        type: new LocalEncryptionStateProvider(
+          resolve(this.definitionDir, stateProvider.statePath),
+          stateProvider.encryptionKey,
+        ),
       };
     } else if (stateProvider.type === 'LocalStateProvider') {
       return {
-        type: new LocalStateProvider(stateProvider.statePath),
+        type: new LocalStateProvider(resolve(this.definitionDir, stateProvider.statePath)),
       };
     } else if (stateProvider.type === 'TestStateProvider') {
       return {
@@ -328,17 +342,22 @@ export class YamlDefinitionUtility {
   /**
    * Resolves a definition-file import specifier to something `import()` can load.
    *
-   * A relative or absolute path resolves against the current working directory. A bare specifier
-   * resolves against the **user's project root**, not octo-build's own install directory - node
-   * would otherwise resolve it from wherever octo-build happens to live. A flat `node_modules`
-   * hides that; a linked store does not, and there the user's own dependencies are invisible.
+   * A relative path resolves against the **definition file's own directory**. It cannot resolve
+   * against the current working directory: terraform invokes `octo run-action` from inside a
+   * terragrunt cache directory, so a definition saying `./dist/index.js` - which is what every
+   * generated app says - would be looked for under the cache and never found.
+   *
+   * A bare specifier resolves against the **user's project root**, not octo-build's own install
+   * directory - node would otherwise resolve it from wherever octo-build happens to live. A flat
+   * `node_modules` hides that; a linked store does not, and there the user's own dependencies are
+   * invisible.
    */
   private resolveImportPath(importPath: string): string {
     if (importPath.startsWith('.') || importPath.startsWith('/')) {
-      return resolve(process.cwd(), importPath);
+      return resolve(this.definitionDir, importPath);
     }
 
-    const requireFromProject = createRequire(join(process.cwd(), 'package.json'));
+    const requireFromProject = createRequire(join(this.definitionDir, 'package.json'));
     return pathToFileURL(requireFromProject.resolve(importPath)).href;
   }
 

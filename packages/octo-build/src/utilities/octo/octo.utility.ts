@@ -89,7 +89,13 @@ export function reportError(error: any): void {
   console.error(chalk.red(error.stack));
   for (const errorProperty of Object.getOwnPropertyNames(error) || []) {
     if (errorProperty !== 'message' && errorProperty !== 'stack') {
-      console.error(chalk.red(`${errorProperty}: ${error[errorProperty]}`));
+      // Serialized rather than interpolated: the properties worth attaching to an octo error are
+      // objects - the diff that matched no action, most of all - and `${}` renders those as
+      // "[object Object]", which hides the only thing that would identify the node and field.
+      const value = error[errorProperty];
+      const renderedValue =
+        value !== null && typeof value === 'object' ? JSON.stringify(value, undefined, 2) : String(value);
+      console.error(chalk.red(`${errorProperty}: ${renderedValue}`));
     }
   }
 

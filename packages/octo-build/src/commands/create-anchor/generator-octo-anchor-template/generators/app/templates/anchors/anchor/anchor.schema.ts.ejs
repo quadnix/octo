@@ -1,5 +1,13 @@
 <% if (isModelAnchor) { -%>
-import { BaseAnchorSchema, type <%= modelTypePascal %>, Schema, Validate } from '@quadnix/octo';
+<%# Sorted here rather than written in a fixed order: the model type is the only variable member,
+    and where it falls among the others depends on its name - `Region` sorts before `Schema`,
+    `Service` after it. A fixed order fails the generated app's own import/order and sort-imports
+    rules for half the model types. -%>
+<% const anchorSchemaImports = ['BaseAnchorSchema', 'Schema', 'Validate', modelTypePascal]
+     .sort()
+     .map((member) => (member === modelTypePascal ? `type ${member}` : member))
+     .join(', '); -%>
+import { <%= anchorSchemaImports %> } from '@quadnix/octo';
 <% } else { -%>
 import { type AOverlay, BaseAnchorSchema, type BaseOverlaySchema, Schema, Validate } from '@quadnix/octo';
 <% } -%>

@@ -3,18 +3,22 @@ import type { <%= resourceNamePascal %>Schema } from '../index.schema.js';
 import { <%= resourceNamePascal %> } from '../<%= resourceName %>.resource.js';
 
 /**
- * Handles a change to the resource's properties.
+ * Handles the two `UPDATE` diffs an external resource receives.
  *
- * This is the case an external resource hits most often, and it is not optional: the default
- * `diffProperties()` emits an `UPDATE` on `properties`, and a diff that no registered action matches
- * aborts the whole transaction with "No matching action given for diff!". Deleting this file means a
- * generated resource works until the first property change and then refuses to apply at all.
+ * Neither is optional: a diff that no registered action matches aborts the whole transaction with
+ * "No matching action given for diff!". Deleting this file means a generated resource works until
+ * its first change and then refuses to apply at all.
  *
- * You own the partial-update semantics. `diff.value` carries the changed properties; the resource's
- * `properties` already hold the new values. If the underlying API cannot change an attribute in
- * place, do not silently skip it - either recreate it here, or override `diffProperties()` on the
- * resource to return `DiffAction.REPLACE` with a reason, which routes the change through the add and
- * delete actions instead.
+ * - **`properties`** - the default `diffProperties()` emits this whenever a property changes. You
+ *   own the partial-update semantics. `diff.value` carries the changed properties; the resource's
+ *   `properties` already hold the new values. If the underlying API cannot change an attribute in
+ *   place, do not silently skip it - either recreate it here, or override `diffProperties()` on the
+ *   resource to return `DiffAction.REPLACE` with a reason, which routes the change through the add
+ *   and delete actions instead.
+ * - **`parent`** - emitted when a parent is replaced, with `diff.value` naming the new parent. The
+ *   parent's outputs are this resource's inputs, so they have just changed underneath it: re-read
+ *   them from `this.parents` and re-apply. Skipping this case is how an external resource ends up
+ *   pointing at a parent that no longer exists.
  */
 @Action(<%= resourceNamePascal %>)
 export class Update<%= resourceNamePascal %>ResourceAction extends ANodeAction implements IResourceAction<<%= resourceNamePascal %>> {
@@ -27,7 +31,7 @@ export class Update<%= resourceNamePascal %>ResourceAction extends ANodeAction i
       diff.action === DiffAction.UPDATE &&
       diff.node instanceof <%= resourceNamePascal %> &&
       hasNodeName(diff.node, '<%= resourceName %>') &&
-      diff.field === 'properties'
+      (diff.field === 'properties' || diff.field === 'parent')
     );
   }
 

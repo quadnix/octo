@@ -38,8 +38,9 @@ export default class extends Generator {
   async initializing(): Promise<void> {
     const targetPath = resolve(join(this.projectRootDir, 'src', 'anchors', this.anchorFamily));
 
-    // Check if anchors already exists.
-    let targetPathContents: Dirent[] | undefined;
+    // Check if anchors already exists. A missing directory is the normal case - it is every first
+    // anchor in a family - so it reads as "nothing to collide with", not as an error.
+    let targetPathContents: Dirent[] = [];
     try {
       targetPathContents = await readdir(targetPath, { withFileTypes: true });
     } catch (error) {
@@ -47,7 +48,7 @@ export default class extends Generator {
         throw error;
       }
     }
-    for (const file of targetPathContents!) {
+    for (const file of targetPathContents) {
       if (
         (file.isFile() && file.name === `${this.anchorName}.anchor.ts`) ||
         file.name === `${this.anchorName}.anchor.schema.ts`
