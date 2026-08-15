@@ -20,6 +20,21 @@ describe('StringUtility UT', () => {
     });
   });
 
+  describe('isValidPackageName()', () => {
+    it('should accept the shapes the decorators accept', () => {
+      expect(StringUtility.isValidPackageName('@octo')).toBe(true);
+      expect(StringUtility.isValidPackageName('my-package')).toBe(true);
+      expect(StringUtility.isValidPackageName('@my-package')).toBe(true);
+    });
+
+    it('should reject what the decorators would reject at registration', () => {
+      expect(StringUtility.isValidPackageName('@my/pkg')).toBe(false);
+      expect(StringUtility.isValidPackageName('$$')).toBe(false);
+      expect(StringUtility.isValidPackageName('')).toBe(false);
+      expect(StringUtility.isValidPackageName('my package')).toBe(false);
+    });
+  });
+
   describe('toCamelCase()', () => {
     it('should convert kebab-case to a valid camelCase identifier', () => {
       expect(StringUtility.toCamelCase('vpc')).toBe('vpc');

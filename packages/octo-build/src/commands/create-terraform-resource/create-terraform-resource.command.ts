@@ -39,6 +39,13 @@ export const createTerraformResourceCommand = {
       process.exit(1);
     }
 
+    // Rejected here rather than at registration: the decorator runs this same check, but only once
+    // the generated resource is loaded, long after the files are on disk.
+    if (!StringUtility.isValidPackageName(packageName)) {
+      console.error(chalk.red(`Invalid package name "${packageName}"! Expected e.g. @octo or my-package.`));
+      process.exit(1);
+    }
+
     console.log(chalk.blue(`Creating terraform resource "${name}" with package "${packageName}"...`));
 
     const env = createEnv();
