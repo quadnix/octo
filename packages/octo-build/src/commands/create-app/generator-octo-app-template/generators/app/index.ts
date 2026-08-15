@@ -141,6 +141,10 @@ export default class extends Generator {
     // Create .octo directory
     this.fs.copyTpl(this.templatePath(`gitkeep.ejs`), this.destinationPath('.octo/.gitkeep'));
 
+    // Create src/index.ts. Without at least one TypeScript file, `npm run build` - the step the
+    // README and the next-steps banner both send users to - fails with "No inputs were found".
+    this.fs.copyTpl(this.templatePath('index.ts.ejs'), this.destinationPath('src/index.ts'));
+
     // Create src directory and main files
     if (this.appTemplate === 'aws-ecs-server') {
       const templatePath = `src/${this.appTemplate}`;
