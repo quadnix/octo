@@ -309,7 +309,7 @@ export class YamlDefinitionUtility {
       accountId: string;
       providerType: string;
       regionId: string;
-      setRegionAttribute: boolean;
+      setRegionAttribute: boolean | undefined;
       spec: Record<string, unknown>;
     }[];
     requiredProviders: Record<string, { minVersion?: string; source: string }>;
@@ -327,7 +327,8 @@ export class YamlDefinitionUtility {
         accountId: this.resolveEnvironmentValue<string>(p.accountId),
         providerType: p.providerType,
         regionId: this.resolveEnvironmentValue<string>(p.regionId),
-        setRegionAttribute: p.setRegionAttribute ?? true,
+        // Passed through as-is: undefined lets octo apply its per-provider-type default.
+        setRegionAttribute: p.setRegionAttribute,
         spec,
       };
     });

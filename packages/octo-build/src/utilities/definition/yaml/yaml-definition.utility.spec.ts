@@ -126,7 +126,10 @@ describe('YamlDefinitionUtility UT', () => {
           accountId: '111111111111',
           providerType: 'aws',
           regionId: 'us-east-1',
-          setRegionAttribute: true, // defaulted
+          // Left undefined rather than defaulted here: octo decides per provider type, so that the
+          // utility providers - which accept no arguments at all - do not get a `region` written
+          // onto their block. An explicit value in the definition still wins, as below.
+          setRegionAttribute: undefined,
           spec: { profile: 'default' }, // env-resolved from ${env.AWS_PROFILE}
         },
         {

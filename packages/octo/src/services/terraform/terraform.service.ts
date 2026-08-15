@@ -354,6 +354,22 @@ class TerraformModule {
   constructor(readonly moduleId: string) {}
 }
 
+/**
+ * Terraform providers that take no `region` argument - the hashicorp utility providers, which take
+ * no provider arguments at all. Writing one onto their block fails the plan. Regional providers
+ * (`aws`, `google`, and the rest) are not listed: they keep the `region` they have always been
+ * given, and anything unlisted that does not want one can pass `setRegionAttribute: false`.
+ */
+const REGIONLESS_PROVIDER_TYPES = new Set([
+  'archive',
+  'external',
+  'local',
+  'null',
+  'random',
+  'template',
+  'time',
+]);
+
 export class TerraformService {
   private minTerraformVersion: string = '1.6.0';
   private readonly modules: Map<string, TerraformModule> = new Map();
@@ -401,15 +417,18 @@ export class TerraformService {
    *   - Plain objects become blocks (`key { }`).
    *   - Wrap with `mapAttr()` when the provider schema expects a map attribute (`key = { }`).
    * @param options - optional provider configurations.
-   *   - options.setRegionAttribute - Set to false for providers that do not accept a `region`
-   *   argument on the provider block (e.g. azure).
+   *   - options.setRegionAttribute - Whether to write `region = <regionId>` onto the provider block.
+   *   Defaults to true, except for the utility providers in {@link REGIONLESS_PROVIDER_TYPES}, which
+   *   accept no arguments at all and fail the plan outright with
+   *   `An argument named "region" is not expected here`. Set it explicitly to override either way -
+   *   a regional provider this list does not know about still needs `false` passed by hand.
    */
   addTerraformProvider(
     providerType: string,
     accountId: string,
     regionId: string,
     spec: Record<string, unknown> = {},
-    { setRegionAttribute = true }: { setRegionAttribute?: boolean } = {},
+    { setRegionAttribute }: { setRegionAttribute?: boolean } = {},
   ): void {
     if (!(providerType in this.requiredProviders)) {
       throw new Error(
@@ -425,7 +444,7 @@ export class TerraformService {
     if (!this.providers.has(key)) {
       const block = new TerraformBlock(`provider "${providerType}"`);
       block.attribute('alias', alias);
-      if (setRegionAttribute) {
+      if (setRegionAttribute ?? !REGIONLESS_PROVIDER_TYPES.has(providerType)) {
         block.attribute('region', regionId);
       }
       addTerraformResourceSpec(block, spec);
