@@ -2,6 +2,7 @@ import { readdir, stat } from 'fs/promises';
 import type { Stats } from 'node:fs';
 import { join, resolve } from 'path';
 import Generator, { type BaseOptions } from 'yeoman-generator';
+import { ProjectIndexUtility } from '../../../../../utilities/project-index/project-index.utility.js';
 import { StringUtility } from '../../../../../utilities/string/string.utility.js';
 
 export default class extends Generator {
@@ -24,6 +25,12 @@ export default class extends Generator {
 
     this.log('✅ Your module has been generated successfully!');
     this.log(`📁 Module created at: ${targetPath}`);
+    ProjectIndexUtility.addExport(
+      this.projectRootDir,
+      `${StringUtility.toPascalCase(this.moduleName)}Module`,
+      `./modules/${this.modelType}/${this.moduleName}/index.js`,
+    );
+
     this.log('📦 Next steps:');
     this.log(`   Update index.schema.ts`);
     this.log(`   Implement the logic in ${this.moduleName}.module.ts`);

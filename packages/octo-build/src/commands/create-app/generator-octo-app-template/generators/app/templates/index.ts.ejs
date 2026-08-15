@@ -1,10 +1,11 @@
 /**
  * Custom Octo constructs for this app.
  *
- * Scaffold one with the CLI - `octo create-module`, `octo create-model`, `octo create-overlay`,
- * `octo create-anchor`, `octo create-terraform-resource` - then export it from here.
+ * The `create-*` commands maintain this file. Modules are exported because the definition file
+ * names them; everything else is imported for the registration side effect its decorator performs,
+ * which is what makes a construct known to Octo at boot.
  *
- * To use one, `npm run build` and reference the built file from `octo.yaml`:
+ * To use a module, `npm run build` and reference the built file from `octo.yaml`:
  *
  * ```yaml
  * imports:

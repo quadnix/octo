@@ -2,6 +2,7 @@ import { readdir } from 'fs/promises';
 import type { Dirent } from 'node:fs';
 import { join, resolve } from 'path';
 import Generator, { type BaseOptions } from 'yeoman-generator';
+import { ProjectIndexUtility } from '../../../../../utilities/project-index/project-index.utility.js';
 import { StringUtility } from '../../../../../utilities/string/string.utility.js';
 
 export default class extends Generator {
@@ -31,6 +32,8 @@ export default class extends Generator {
 
     this.log('✅ Your anchor has been generated successfully!');
     this.log(`📁 Anchor created at: ${targetPath}`);
+    ProjectIndexUtility.addImport(this.projectRootDir, `./anchors/${this.anchorFamily}/${this.anchorName}.anchor.js`);
+
     this.log('📦 Next steps:');
     this.log(`   Address all "Fix me" in generated files`);
   }
