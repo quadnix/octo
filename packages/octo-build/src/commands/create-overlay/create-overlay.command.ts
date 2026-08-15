@@ -14,7 +14,8 @@ export const createOverlayCommand = {
         alias: 'n',
         demandOption: true,
         description:
-          'Name of the module where the overlay is created. Should be in kebab-case (e.g., my-awesome-region).',
+          'Name of the MODULE this overlay belongs to - the overlay is written inside it. ' +
+          'Should be in kebab-case (e.g., my-awesome-region). The overlay\'s own name is --overlay.',
         type: 'string',
       })
       .option('type', {
@@ -31,7 +32,7 @@ export const createOverlayCommand = {
       })
       .option('overlay', {
         demandOption: true,
-        description: 'Overlay name for the module.',
+        description: "The overlay's own name, in kebab-case (e.g., my-awesome-overlay).",
         type: 'string',
       })
       .option('path', {
