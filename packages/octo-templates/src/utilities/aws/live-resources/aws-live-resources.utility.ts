@@ -56,6 +56,9 @@ export class AwsLiveResourcesUtility {
   private readonly ec2Client: EC2Client;
   private readonly ecsClient: ECSClient;
 
+  /**
+   * @param endpoint Address of an AWS-compatible service, e.g. a localstack container. Defaults to AWS.
+   */
   constructor(region: string, endpoint?: string) {
     this.ec2Client = new EC2Client({ endpoint, region });
     this.ecsClient = new ECSClient({ endpoint, region });
@@ -79,6 +82,10 @@ export class AwsLiveResourcesUtility {
     return arns.filter((arn) => !dead.has(arn));
   }
 
+  /**
+   * Returns the ARNs of the clusters AWS no longer reports as ACTIVE, including those it has forgotten
+   * entirely.
+   */
   private async deadEcsClusterArns(arns: string[]): Promise<string[]> {
     const clusterArns = arns.filter((arn) => arn.includes(':cluster/'));
     const dead: string[] = [];
@@ -104,6 +111,10 @@ export class AwsLiveResourcesUtility {
     return dead;
   }
 
+  /**
+   * Returns the ARNs of the services AWS no longer reports as ACTIVE, including those it has forgotten
+   * entirely.
+   */
   private async deadEcsServiceArns(arns: string[]): Promise<string[]> {
     // A service ARN is `.../service/<cluster>/<service>`, and DescribeServices is per-cluster.
     const serviceArnsByCluster = new Map<string, string[]>();
@@ -135,6 +146,9 @@ export class AwsLiveResourcesUtility {
     return dead;
   }
 
+  /**
+   * Returns the ARNs of the task definition revisions that are no longer ACTIVE.
+   */
   private async deadEcsTaskDefinitionArns(arns: string[]): Promise<string[]> {
     const dead: string[] = [];
 

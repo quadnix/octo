@@ -11,6 +11,9 @@ const DELETE_BATCH_SIZE = 10;
 export class AwsEcsUtility {
   private readonly client: ECSClient;
 
+  /**
+   * @param endpoint Address of an AWS-compatible service, e.g. a localstack container. Defaults to AWS.
+   */
   constructor(region: string, endpoint?: string) {
     this.client = new ECSClient({ endpoint, region });
   }

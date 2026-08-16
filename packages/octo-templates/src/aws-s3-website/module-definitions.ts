@@ -23,13 +23,25 @@ type ModuleDefinition<T extends AModule<unknown, any>> = {
   moduleInputs: ModuleSchemaInputs<T>;
 };
 
+/**
+ * The modules this template loads, and the inputs it loads them with.
+ *
+ * A test mutates the set - `update()` to change an input, `remove()` to drop a module - and runs the
+ * lifecycle again, which is how the template exercises a change to live infrastructure.
+ */
 export class ModuleDefinitions {
   private readonly moduleDefinitions: ModuleDefinition<AModule<unknown, any>>[] = [];
 
+  /**
+   * Starts from the template's own set of modules.
+   */
   constructor() {
     this.init();
   }
 
+  /**
+   * Appends a module definition to the end of the set.
+   */
   add<T extends AModule<unknown, any>>(
     module: Constructable<T>,
     moduleId: string,
@@ -38,14 +50,23 @@ export class ModuleDefinitions {
     this.moduleDefinitions.push({ module, moduleId, moduleInputs });
   }
 
+  /**
+   * Returns the definition of the given module id, or `undefined` when the set holds none.
+   */
   get<T extends AModule<unknown, any>>(moduleId: string): ModuleDefinition<T> | undefined {
     return this.moduleDefinitions.find((m) => m.moduleId === moduleId) as ModuleDefinition<T>;
   }
 
+  /**
+   * Returns every definition, in the order the template loads them.
+   */
   getAll(): ModuleDefinitions['moduleDefinitions'] {
     return this.moduleDefinitions;
   }
 
+  /**
+   * Drops the definition of the given module id. An id the set does not hold is not an error.
+   */
   remove(moduleId: string): void {
     const index = this.moduleDefinitions.findIndex((m) => m.moduleId === moduleId);
     if (index > -1) {
@@ -53,6 +74,10 @@ export class ModuleDefinitions {
     }
   }
 
+  /**
+   * Replaces the definition of the given module id in place, keeping its load order, and appends it
+   * when the set holds none.
+   */
   update<T extends AModule<unknown, any>>(
     module: Constructable<T>,
     moduleId: string,
@@ -70,6 +95,10 @@ export class ModuleDefinitions {
     }
   }
 
+  /**
+   * Declares this template's infrastructure: an app, the AWS account hosting it, and an S3 bucket
+   * serving the website in `src/aws-s3-website/website` as a static site.
+   */
   private init(): void {
     this.add(SimpleAppModule, 'app-module', { name: 'aws-s3-website' });
 
@@ -87,10 +116,17 @@ export class ModuleDefinitions {
   }
 }
 
+/**
+ * Serves {@link ModuleDefinitions} through the container, so a test and the lifecycle it runs read
+ * and mutate one set.
+ */
 @Factory<ModuleDefinitions>(ModuleDefinitions)
 export class ModuleDefinitionsFactory {
   private static instance: ModuleDefinitions;
 
+  /**
+   * Returns the shared set, building it on the first call.
+   */
   static async create(): Promise<ModuleDefinitions> {
     if (!this.instance) {
       this.instance = new ModuleDefinitions();

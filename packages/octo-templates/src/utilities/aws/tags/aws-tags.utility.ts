@@ -6,6 +6,9 @@ import { GetResourcesCommand, ResourceGroupsTaggingAPIClient } from '@aws-sdk/cl
 export class AwsTagsUtility {
   private readonly client: ResourceGroupsTaggingAPIClient;
 
+  /**
+   * @param endpoint Address of an AWS-compatible service, e.g. a localstack container. Defaults to AWS.
+   */
   constructor(region: string, endpoint?: string) {
     this.client = new ResourceGroupsTaggingAPIClient({ endpoint, region });
   }
