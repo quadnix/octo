@@ -1,0 +1,179 @@
+---
+title: State
+---
+
+Terraform records what exists in the cloud. That is enough to plan a change, and not enough to
+explain one: a plan that recreates a bucket cannot say that the request behind it was "checkout
+keeps receipts", because nothing in Terraform's state ever knew.
+
+Octo keeps its own record, in three files under `.octo/`. They hold the model graph, the resource
+graph, and the mapping between the two, and they are what turns a plan line into a sentence about
+your infrastructure. They are also what makes the difference between "you asked for this" and
+"nobody asked for this".
+
+Commit them. This is not a cache.
+
+## The three files
+
+```text
+.octo/
+├── models.json              your intent, as it was last applied
+├── resources-actual.json    what Octo believes exists in the cloud
+├── resources-old.json       the previous resource graph
+└── reports/                 output of each run, not state
+```
+
+**`models.json`** is the model graph: every model, anchor, overlay, and dependency edge. Here is the
+shop's receipts service in it:
+
+```json
+"service=shop-receipts-s3-storage,app=shop": {
+"className": "@octo/AwsS3StorageService",
+"model": {
+"bucketName": "shop-receipts",
+"directories": [
+{
+"directoryAnchorName": "AwsS3StorageServiceDirectoryAnchor-fb611de45b88",
+"remoteDirectoryPath": "uploads"
+}
+],
+"serviceId": "shop-receipts-s3-storage"
+},
+"moduleId": "receipts-module"
+}
+```
+
+The overlay that grants checkout access is in the same file, holding the two anchors it joins.
+
+**`resources-actual.json`** is what Octo believes exists. The bucket, after an apply and a commit:
+
+```json
+"@octo/s3-storage=bucket-shop-receipts": {
+"className": "@octo/S3Storage",
+"resource": {
+"parents": [{"context": "@octo/iam-role=iam-role-ServerRole-checkout"}],
+"properties": {
+"awsAccountId": "123456789012",
+"awsRegionId": "eu-west-1",
+"Bucket": "shop-receipts",
+"permissions": [
+{
+"allowRead": true,
+"allowWrite": true,
+"principalResourceId": "iam-role-ServerRole-checkout",
+"remoteDirectoryPath": "uploads"
+}
+]
+},
+"resourceId": "bucket-shop-receipts",
+"response": {"Arn": "arn:aws:s3:::shop-receipts"},
+"tags": {}
+},
+"moduleId": "receipts-module"
+}
+```
+
+The `response` is the part that only a real apply can produce. Before the first commit it is empty;
+afterwards it holds the ARN, and that is what any other resource reads when it needs to point at
+this bucket.
+
+Alongside the resources, the same file carries the mapping that makes reports possible:
+
+```json
+{
+  "moduleId": "receipts-module",
+  "resourceContext": "@octo/s3-storage=bucket-shop-receipts",
+  "resourceId": "bucket-shop-receipts",
+  "terraformAddresses": [
+    "aws_s3_bucket.bucket-shop-receipts",
+    "aws_s3_bucket_policy.bucket-shop-receipts-policy"
+  ]
+}
+```
+
+That is the whole trick behind a validate report. Terraform says
+`aws_s3_bucket_policy.bucket-shop-receipts-policy` changed; this record says that address belongs to
+the receipts bucket, which belongs to the receipts service, which is in your intent. A Terraform
+address that appears in a plan and in nobody's list is drift.
+
+**`resources-old.json`** is the previous resource graph, kept so a re-run can tell a settled state
+from one where a change was started and not finished.
+
+## Two states, two jobs
+
+|                 | Records                                                         | Written by                        | Lives in                                           |
+|-----------------|-----------------------------------------------------------------|-----------------------------------|----------------------------------------------------|
+| Octo state      | Intent, resources, and the mapping between intent and Terraform | `octo generate` and `octo commit` | `.octo/`                                           |
+| Terraform state | Cloud objects and their attributes                              | `terraform apply`                 | `.octo-tf/<moduleId>/terraform.tfstate` by default |
+
+They answer different questions and neither replaces the other. Terraform state is what lets
+Terraform know a bucket exists. Octo state is what lets a report say the bucket is checkout's
+receipts storage.
+
+Both need to survive, and by default only one of them is in your repository. [Project
+Structure](/docs/getting-started/project-structure#octo-tf) covers moving Terraform's state
+somewhere durable, which is the first thing to fix before more than one person runs this.
+
+## When state is written
+
+| Step       | Model state | Resource state |
+|------------|-------------|----------------|
+| `generate` | written     |                |
+| `validate` |             |                |
+| `apply`    |             |                |
+| `commit`   | written     | written        |
+
+`generate` saves the model graph because the run has established what your intent is. Resource state
+waits for `commit`, because until an apply has happened there is nothing to record.
+
+Commit is all or nothing. If an expected Terraform output is missing, it throws before touching any
+file rather than writing half a record, so a failed commit can be re-run once you have fixed what
+made the apply incomplete.
+
+## Where it is kept
+
+A state provider is the interface between Octo and wherever state lives, and it is deliberately
+small:
+
+```typescript
+export interface IStateProvider {
+  getState (stateFileName: string): Promise<Buffer>;
+
+  saveState (stateFileName: string, data: Buffer): Promise<void>;
+}
+```
+
+Three ship with Octo, chosen in the definition file:
+
+```yaml
+settings:
+  stateProvider:
+    type: LocalStateProvider
+    statePath: .octo
+```
+
+`LocalStateProvider` writes plain JSON to a directory, which is what the shop uses.
+`LocalEncryptionStateProvider` writes the same files encrypted, with an `.enc` suffix, so that a
+small team can commit them to a repository and share state without running anything.
+`TestStateProvider` keeps everything in memory, for tests.
+
+Anything else, S3 or a database or whatever your team already trusts, is those two methods. [State
+Providers](/docs/techniques/state-providers) covers writing one.
+
+:::warning[Nothing locks it]
+Octo does not lock its state. Two people running `octo commit` against the same state at the same
+time is a lost update, and there is no error to tell you it happened. Run the lifecycle from one
+place, which in practice means a pipeline.
+:::
+
+## Losing it
+
+Deleting `.octo/` does nothing to your cloud account and everything to Octo's understanding of it.
+The next `octo generate` finds no prior state, treats the run as a first run, and proposes creating
+your entire infrastructure again.
+
+Terraform will not actually recreate what already exists, because Terraform's own state is separate
+and still knows. What you get instead is a report that is wrong about everything, and a commit that
+records a fresh set of `response` values as though they were new. Recovering means restoring the
+files, which is the argument for keeping them in version control rather than for having a recovery
+procedure.

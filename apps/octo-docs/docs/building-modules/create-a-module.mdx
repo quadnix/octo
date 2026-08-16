@@ -1,0 +1,211 @@
+---
+title: Create a Module
+---
+
+A module is what somebody types into a definition file, so it is the only piece of your library most
+people will ever see. Everything else, the model, the resource, the anchor, is an implementation
+detail you can change later. The inputs a module accepts are not.
+
+This page builds `ShopQueueServiceModule`, which gives the shop a queue for order events. It takes a
+region, a queue name, and how long a message survives, and it produces one SQS queue.
+
+```bash
+octo create-module -n shop-queue-service -t service --package @shop
+```
+
+`-t service` is the [model type](/docs/fundamentals/models) this module builds. A queue is something
+managed outside your own infrastructure, so it is a service. The command writes the module, the
+model, and a model action, all under `src/modules/service/shop-queue-service/`.
+
+## The schema
+
+Start here, because this is the contract.
+
+```typescript title="src/modules/service/shop-queue-service/index.schema.ts"
+import { type Region, RegionSchema, Schema, Validate } from '@quadnix/octo';
+import { AwsRegionAnchorSchema } from '@quadnix/octo-aws-cdk/anchors/aws-region/schema';
+
+export class ShopQueueServiceModuleSchema {
+  @Validate({ options: { minLength: 1 } })
+  queueName = Schema<string>();
+
+  @Validate({ options: { minLength: 1 } })
+  messageRetentionSeconds? = Schema<number>(345600);
+
+  @Validate([
+    {
+      options: {
+        isModel: { anchors: [{ schema: AwsRegionAnchorSchema }], NODE_NAME: 'region' },
+      },
+    },
+    {
+      destruct: (value: ShopQueueServiceModuleSchema['region']): [RegionSchema] => [value.synth()],
+      options: { isSchema: { schema: RegionSchema } },
+    },
+  ])
+  region = Schema<Region>();
+}
+```
+
+Three inputs, and three different jobs being done.
+
+`queueName` is a plain required string. `Schema<string>()` with no argument makes it required, and
+the `minLength` rule rejects an empty one.
+
+`messageRetentionSeconds` is optional, and the argument to `Schema<number>(345600)` is its default.
+Octo fills defaults in before your module runs, so inside `onInit` this is always a number.
+
+`region` is the interesting one. The first rule says: whatever arrives here must be a node named
+`region`, and it must publish an anchor satisfying `AwsRegionAnchorSchema`. The second says its
+serialized form must satisfy `RegionSchema`. Together they mean a caller cannot hand this module an
+account, a string, or a region from a library that does not publish AWS details, and the failure
+happens while the graph is being assembled.
+
+Note what is imported: `AwsRegionAnchorSchema`, and nothing else from `@quadnix/octo-aws-cdk`. The
+module depends on a shape, not on a class. Any region module publishing that anchor satisfies it.
+
+[Validation](/docs/techniques/validation) has the full set of rules.
+
+## The module
+
+```typescript title="src/modules/service/shop-queue-service/shop-queue-service.module.ts"
+
+@Module<ShopQueueServiceModule>('@shop', ShopQueueServiceModuleSchema)
+export class ShopQueueServiceModule extends AModule<ShopQueueServiceModuleSchema, ShopQueueService> {
+  async onInit (inputs: ShopQueueServiceModuleSchema): Promise<ShopQueueService> {
+    const { app, awsAccountId, awsRegionId } = await this.registerMetadata(inputs);
+
+    const queueService = new ShopQueueService(inputs.queueName);
+    app.addService(queueService);
+
+    queueService.addAnchor(
+      new ShopQueueAnchor(
+        'ShopQueueAnchor',
+        { awsAccountId, awsRegionId, queueName: inputs.queueName },
+        queueService,
+      ),
+    );
+
+    return queueService;
+  }
+
+  override async registerMetadata (
+    inputs: ShopQueueServiceModuleSchema,
+  ): Promise<{ app: App; awsAccountId: string; awsRegionId: string }> {
+    const region = inputs.region;
+    const account = region.getParents()['account'][0].to as Account;
+    const app = account.getParents()['app'][0].to as App;
+
+    const [matchingAnchor] = await region.getAnchorsMatchingSchema(AwsRegionAnchorSchema, [], {
+      searchBoundaryMembers: false,
+    });
+
+    return {
+      app,
+      awsAccountId: account.accountId,
+      awsRegionId: matchingAnchor.getSchemaInstance().properties.awsRegionId,
+    };
+  }
+}
+```
+
+The decorator takes a package name and the schema class. The package name namespaces everything your
+library registers, so `@shop`'s `ShopQueue` and somebody else's `ShopQueue` can coexist.
+
+`onInit` creates the model, attaches it to the graph with `app.addService()`, publishes an
+[anchor](/docs/building-modules/create-an-anchor), and returns. Return every node the module
+created, including overlays, because those are what later modules resolve against. Nothing here
+creates infrastructure; that is the [action's](/docs/fundamentals/actions) job.
+
+`registerMetadata` derives facts that both `onInit` and the module's actions need. Whatever it
+returns arrives in every action of this module as `actionInputs.metadata`, which is how the action
+below gets an AWS region ID without repeating the anchor lookup. It runs before `onInit`, and its
+inputs are already validated.
+
+The walk from the region up to the account and the app is worth noticing. The module was given one
+node, and the graph gave it the rest.
+
+## Failing early
+
+The module is the right place to reject a request it cannot satisfy:
+
+```typescript
+if (matchingAnchors.length !== 1) {
+  throw new ModuleError('Cannot find remote directory in S3Storage service!', this.constructor.name);
+}
+```
+
+That is from our own S3 server module, and it fires when somebody asks a server for access to a
+directory the bucket was never told to create. Throwing here costs nothing: no Terraform has been
+written, and the message names what was wrong. The alternative is a failed apply with half a stack
+standing.
+
+## Using it
+
+Build, then name it in the definition file:
+
+```bash
+npm run build
+```
+
+```yaml title="octo.yaml"
+imports:
+  - className: ShopQueueServiceModule
+    importPath: "./dist/index.js"
+
+modules:
+  - moduleId: orders-queue-module
+    moduleClass: ShopQueueServiceModule
+    moduleInputs:
+      region: "${{region-module.model.region}}"
+      queueName: shop-orders
+      messageRetentionSeconds: 86400
+```
+
+```bash
+npm run octo:generate
+```
+
+```text
+INFO: Wrote 2 terragrunt folder(s) to ".octo-tf".
+    written: [
+      "orders-queue-module",
+      "region-module"
+    ]
+```
+
+```hcl title=".octo-tf/orders-queue-module/main.tf"
+resource "aws_sqs_queue" "queue-shop-orders" {
+  provider = aws._123456789012-eu-west-1
+  message_retention_seconds = 86400
+  name = "shop-orders"
+}
+```
+
+The module now behaves exactly like one from a library. It appears in reports under its own module
+ID, it gets its own Terragrunt folder, and anything that needs the queue can be handed
+`${{orders-queue-module.model.service}}`.
+
+```text
+WHAT WILL CHANGE
+  + added service=shop-orders-queue  [service=shop-orders-queue,app=shop | orders-queue-module | +1]
+      + queue-shop-orders
+          + aws_sqs_queue.queue-shop-orders
+```
+
+## Loading it twice
+
+Nothing about a module instance is global, so a second queue is a second entry:
+
+```yaml
+  - moduleId: refunds-queue-module
+    moduleClass: ShopQueueServiceModule
+    moduleInputs:
+      region: "${{region-module.model.region}}"
+      queueName: shop-refunds
+```
+
+Two folders, two queues, one class. This works as long as everything the module names is derived
+from its inputs. A resource ID hardcoded to `queue-orders` rather than built from `queueName` would
+make the second instance collide with the first, and that is the most common way a module fails when
+somebody else loads it twice.

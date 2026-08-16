@@ -20,13 +20,13 @@ using the `project.json` file, or the `nx` property in the `package.json` file.
 * Enforce module boundaries.
 
 ## Setup
-* Below dev dependencies were installed to [package.json](/contributions/package.json) to support NX.
+* Below dev dependencies were installed to [package.json](https://github.com/quadnix/octo/blob/main/package.json) to support NX.
   * **@nx/devkit** base package.
   * **@nx/eslint-plugin** provides default eslint configuration rules for nx projects.
   * **@nx/js** provides generators and executors for building, testing, linting, and serving
   JavaScript and TypeScript projects within a Nx workspace.
   * **nx**: base package.
-* Added `workspaces` in `package.json` to instruct nx where to look for projects.
+* Projects are declared in `pnpm-workspace.yaml` (`packages: ['packages/*']`); NX reads the workspace from there.
 
 ## Configuration
 Only a few notable options are explained in this document.

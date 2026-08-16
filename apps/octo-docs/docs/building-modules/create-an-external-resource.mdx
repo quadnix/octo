@@ -1,0 +1,163 @@
+---
+title: Create an External Resource
+---
+
+Some of what your infrastructure consists of has no Terraform provider. The shop registers each new
+queue in an internal service catalog, over HTTP, against a system somebody wrote years ago. There is
+no resource type for that, and there never will be.
+
+An **external resource** is Octo's answer. It is a resource whose create, update, and delete are
+code you write, and Octo still puts it in the Terraform graph so that ordering, dependencies, and
+reports all keep working. Terraform calls back into Octo mid-apply to run it.
+
+This is an escape hatch. Every resource in `@quadnix/octo-aws-cdk` is a [Terraform
+resource](/docs/building-modules/create-a-terraform-resource), and yours should be too unless the
+provider genuinely cannot express what you need.
+
+```bash
+octo create-external-resource -n shop-catalog-entry --package @shop
+```
+
+## The resource
+
+```typescript title="src/resources/shop-catalog-entry/shop-catalog-entry.resource.ts"
+
+@Resource<ShopCatalogEntry>('@shop', 'shop-catalog-entry', ShopCatalogEntrySchema)
+export class ShopCatalogEntry extends AResource<ShopCatalogEntrySchema, ShopCatalogEntry> {
+  declare properties: ShopCatalogEntrySchema['properties'];
+  declare response: ShopCatalogEntrySchema['response'];
+
+  constructor (
+    resourceId: string,
+    properties: ShopCatalogEntrySchema['properties'],
+    parents: [MatchingResource<ShopQueueSchema>],
+  ) {
+    super(resourceId, properties, parents);
+  }
+}
+```
+
+The only structural difference from a Terraform resource is the base class: `AResource` instead of
+`ATerraformResource`, and no `toHCL()`. The lifecycle lives in actions instead.
+
+The parent matters more here than usual. The catalog entry is a child of the queue, so the queue is
+created first, and the queue's outputs are handed to the action as inputs.
+
+## The actions
+
+Three of them, one per lifecycle step, in `actions/`.
+
+```typescript title="actions/add-shop-catalog-entry.resource.action.ts"
+
+@Action(ShopCatalogEntry)
+export class AddShopCatalogEntryResourceAction extends ANodeAction implements IResourceAction<ShopCatalogEntry> {
+  constructor () {
+    super();
+  }
+
+  filter (diff: Diff): boolean {
+    return (
+      diff.action === DiffAction.ADD &&
+      diff.node instanceof ShopCatalogEntry &&
+      hasNodeName(diff.node, 'shop-catalog-entry') &&
+      diff.field === 'resourceId'
+    );
+  }
+
+  async handle (diff: Diff<ShopCatalogEntry>): Promise<ShopCatalogEntrySchema['response']> {
+    const { catalogUrl, name } = diff.node.properties;
+
+    const created = await fetch(`${catalogUrl}/entries`, {
+      body: JSON.stringify({ name }),
+      headers: { 'content-type': 'application/json' },
+      method: 'POST',
+    }).then((r) => r.json());
+
+    return { entryId: created.id };
+  }
+}
+```
+
+What `handle()` returns becomes the resource's response, and Octo records it at commit. An action
+with nothing to report, such as a delete, returns nothing.
+
+An action gets 90 seconds by default. Set `actionTimeoutInMs` on the class if the thing you are
+calling is slower than that.
+
+Keep the explicit `constructor() { super(); }`. `ANodeAction`'s constructor is protected, and
+without a public one the `@Factory` registration below does not typecheck.
+
+## What Octo generates
+
+An external resource still appears in the Terraform folder, wrapped:
+
+```hcl title=".octo-tf/orders-queue-module/main.tf"
+data "external" "catalog-entry-shop-orders" {
+  program = ["cat", "${path.module}/.octo-outputs/catalog-entry-shop-orders.json"]
+  depends_on = [null_resource.catalog-entry-shop-orders]
+}
+
+resource "null_resource" "catalog-entry-shop-orders" {
+  triggers = {
+    octo_properties_hash = "8b33c9058ec4675b"
+    input_queue_shop_orders_Arn = "${aws_sqs_queue.queue-shop-orders.arn}"
+    input_queue_shop_orders_Url = "${aws_sqs_queue.queue-shop-orders.url}"
+  }
+  provisioner "local-exec" {
+    command = "mkdir -p ${path.module}/.octo-outputs && octo run-action --resourceId=catalog-entry-shop-orders --input queue-shop-orders.Arn=${aws_sqs_queue.queue-shop-orders.arn} --input queue-shop-orders.Url=${aws_sqs_queue.queue-shop-orders.url} > ${path.module}/.octo-outputs/catalog-entry-shop-orders.json"
+  }
+  provisioner "local-exec" {
+    when = destroy
+    command = "octo run-action --resourceId=catalog-entry-shop-orders --input queue-shop-orders.Arn=${self.triggers.input_queue_shop_orders_Arn} --input queue-shop-orders.Url=${self.triggers.input_queue_shop_orders_Url}"
+  }
+
+  depends_on = [aws_sqs_queue.queue-shop-orders]
+}
+```
+
+Read the `triggers` block, because it is what decides when your action runs again. There is a hash
+of the resource's properties, and one entry per output of each parent. Change a property, or change
+the queue's ARN, and Terraform re-runs the provisioner. Change nothing, and it does not.
+
+The `data "external"` block reads the JSON the action wrote and makes it available to other
+resources, which is how an external resource's response participates in the graph like anything
+else. Note that it is one output for the whole resource rather than one per response key:
+
+```hcl title=".octo-tf/orders-queue-module/outputs.tf"
+output "catalog-entry-shop-orders" {
+  value = data.external.catalog-entry-shop-orders.result
+}
+```
+
+Octo also adds `hashicorp/null` and `hashicorp/external` to the folder's required providers, without
+you declaring them.
+
+## Two things it does not get
+
+**Tags do not reach it.** The triggers are the properties hash and the parent inputs; `tags` is not
+among them. A tags-only change re-triggers nothing, Terraform does not re-run the provisioner, and
+no action is invoked. If the underlying system supports tags, apply them inside the add and update
+actions.
+
+**There is no validate action.** `octo validate` compares Terraform's plan against Octo's diff, and
+does not run resource actions. What you see in a report for an external resource is that the
+`null_resource` will be triggered, not what your action will do.
+
+## Deletes run at commit
+
+The delete action does not run during the apply. By the time Terraform would run it, the resource's
+configuration is already gone from the folder, so there is nothing to invoke. `octo commit` runs it
+instead.
+
+Which means: if you skip the commit after removing an external resource, the cloud-side thing it
+represents is still there. That is the strongest reason commit is not an optional step.
+
+## When it is worth it
+
+Use one when a provider cannot express the thing at all: an internal system, a vendor with no
+provider, a step that is genuinely a script.
+
+Do not use one to avoid learning a provider's resource type, and do not use one for something with a
+perfectly good provider that you find awkward. Everything Terraform manages gets you plan output,
+state reconciliation, and drift detection for free, and an external resource has none of that. It
+has your code, and your code runs in the middle of an apply where debugging is expensive.

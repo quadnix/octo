@@ -4,52 +4,135 @@ title: Installation
 
 import { Link } from '@site/src/components/links';
 
-## Requirements
-Octo is based on TypeScript, allowing you to use it as either a Node.js project or a TypeScript project.
-Before you get started, here are a few things you need to ensure are installed and configured properly.
+This page gets the tools onto your machine and an Octo project onto disk, ready to deploy.
 
-| Program     | Description                                                                                                                                                                                                                                                                                                              | Version              |
-|-------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------|
-| **Node.js** | Previous versions may also work, although we do not test them frequently.<br /> To install node, there are several help articles available online, but we really love using [nvm](https://github.com/nvm-sh/nvm).                                                                                                        | >= 22.x (Supported)  |
-| **aws-cli** | Assuming you want to build the infrastructure on AWS, you will need to set up aws credentials. You can either set up aws-cli using  [aws official docs](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html), or use our <Link display="aws setup guide" id="blog" path="/aws-local-setup" />. | >= 2.x (Recommended) |
+Octo's own job stops at writing Terraform. It reads what infrastructure you want, works out which
+cloud resources that implies, and writes them out as one Terragrunt module folder per module.
+Creating anything from those folders is Terraform's job, and running the folders in dependency order
+is Terragrunt's. That is why the list below is mostly tools your team already has, plus Node.js to
+run Octo itself.
 
-## Disclaimers
-:::tip[TypeScript vs Node.js]
-The docs only provides syntax for TypeScript, but Octo projects can be written in pure Node.js.
-If you decide to use Node.js, it is up to you to translate all instructions accordingly.
+## Prerequisites
+
+| Tool                  | Version       | Why                                                                                                                                                                               |
+|-----------------------|---------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Node.js               | 20 or newer   | Octo is a TypeScript toolchain, and the generated project declares `"engines": { "node": ">=20.0.0" }`.                                                                           |
+| Terraform or OpenTofu | 1.6 or newer  | Creates the infrastructure. The floor comes from `terraform.requiredVersion` in your definition file, which the scaffolder sets to `1.6.0`.                                       |
+| Terragrunt            | 0.78 or newer | Octo writes one Terragrunt module folder per module and drives them with `terragrunt run --all`, which arrived in 0.78.                                                           |
+| AWS credentials       |               | Only if you deploy to AWS. A named profile in `~/.aws/credentials` is enough. The <Link display="AWS local setup guide" id="blog" path="/aws-local-setup" /> starts from nothing. |
+
+```bash
+node --version                 # v20.x or newer
+terraform --version            # v1.6.0 or newer, or: tofu --version
+terragrunt --version
+aws sts get-caller-identity    # prints the account you are about to deploy into
+```
+
+These pages were written against Node 22.18, Terraform 1.15.6, and Terragrunt 1.0.8.
+
+## Creating a project
+
+There is nothing to install globally. The `octo` command lives inside `@quadnix/octo-build`, and the
+scaffolder pulls it in as a project dependency:
+
+```bash
+npx @quadnix/octo-build create-app -t aws-s3-website -n hello-website
+cd hello-website
+```
+
+That writes a directory called `hello-website`, runs `npm install`, and prints the four commands you
+will be running from now on. The `-t` flag picks which starting definition you get:
+`aws-s3-website`, `aws-ecs-server`, or `aws-dynamodb-service`. It changes only `octo.yaml` and, for
+the website template, a folder of files to upload. Everything else in the project is the same
+whichever one you pick.
+
+Take `aws-s3-website`. [Static Website](/docs/getting-started/static-website) deploys it, once you
+have put your own account number and a bucket name into it. The shop, the application the rest of
+the docs use, is built in a project of its own.
+
+Here is what you get:
+
+```text
+hello-website/
+├── octo.yaml           the definition file: what infrastructure you want
+├── package.json        four octo:* scripts, one per lifecycle step
+├── src/index.ts        where your own modules go, empty to start
+├── .octo/              Octo's state, and it belongs in version control
+├── tsconfig.json
+└── website/            only from the aws-s3-website template
+```
+
+Two of those are worth knowing about before you touch anything.
+
+`octo.yaml` is the definition file. It names the modules your infrastructure is made of and the
+inputs each one takes, and it is the only file most people edit. [The Definition
+File](/docs/using-octo/the-definition-file) covers it section by section.
+
+`.octo/` is where Octo records what it built. It is not a cache, and deleting it makes the next run
+believe your infrastructure does not exist, so the scaffolded `.gitignore` keeps it in version
+control on purpose. The generated Terraform, which lands in `.octo-tf/` on the first run, is kept
+too: it is the code that gets applied, so a change to it is something a reviewer should see next to
+the change in intent that caused it. What Terraform writes while applying, meaning state files and
+provider caches, is ignored.
+
+:::info
+You are free to update `gitignore` to your liking, i.e. ignore the generated Terraform code,
+or version control the Terraform state files as well.
 :::
 
-:::tip[CJS vs ESM]
-Octo exclusively supports ESM modules, requiring ``"type": "module"`` in package.json.
-In <Link display="this blog post" id="blog" path="/octo-in-cjs" />, we explore using Octo with CJS modules.
-Please translate all instructions accordingly.
+## Running the CLI
 
-Note that we don't test Octo with CJS modules regularly, so if you encounter issues, please let us know.
-:::
+The generated `package.json` wraps the four lifecycle steps as scripts:
 
-## Naming Conventions
-Before we dive into creating new infrastructure, let's set some important expectations.
+```bash
+npm run octo:generate    # write the Terraform
+npm run octo:validate    # plan it, and report the plan against your intent
+npm run octo:apply       # create the infrastructure
+npm run octo:commit      # record what was created
+```
 
-Naming things is one of the trickiest parts of any project, especially in infrastructure.
-Names are frequently reused and directly impact actual cloud resources.
-Once established, changing these names can become incredibly difficult,
-often requiring you to re-create large portions of your infrastructure.
+Each script sets `OCTO_DEFINITION_FILE_PATH=octo.yaml` and points at `.octo-tf`, so the four steps
+cannot drift apart. Use the scripts rather than the binary. During an apply, Terraform can call back
+into `octo run-action` for resources whose lifecycle it does not manage, and `npm run` is what puts
+`node_modules/.bin` on `PATH` for that callback to find.
 
-Fortunately, Octo handles much of the resource naming for you, but it still requires some initial inputs.
-Please be cautious with these inputs,
-as any changes to them later on could introduce breaking changes to your existing infrastructure.
+Running the binary directly works too, as long as you supply both yourself:
 
-* Repositories/Projects written in Octo are called Apps.
-* A single App is a monorepo, and contains all the infrastructure for this app. E.g. if you app requires
-multiple servers, like a backend-service, and a payment-service,
-definitions of each will be inside this same repository.
-* Having a mental model of your final infrastructure usually helps in naming. E.g.
-  * Number of regions or shards, and their names.
-  * Types of environments - qa, staging, prod, etc.
-  * A separate account for environment, vs a single account.
+```bash
+OCTO_DEFINITION_FILE_PATH=octo.yaml node_modules/.bin/octo generate -o .octo-tf
+```
 
-Much of these nuances will get more apparent as you experiment with Octo. So let's get started!
+## Using OpenTofu
 
-## Summary
-In this article, we explored pre-requisites and set up instructions for Octo on your local machine.
-Next, we will create a "hello world" project to see a live example.
+Octo does not invoke the Terraform binary; Terragrunt does. Point Terragrunt at `tofu` through its
+own configuration, or per command:
+
+```bash
+npm run octo:validate -- --terraformBinary tofu
+npm run octo:apply -- --terraformBinary tofu
+```
+
+The flag sets `TG_TF_PATH` for that invocation only.
+
+## Adding Octo to a project you already have
+
+If you would rather not scaffold, install the packages directly:
+
+```bash
+npm install @quadnix/octo @quadnix/octo-aws-cdk @quadnix/octo-build @quadnix/octo-event-listeners
+```
+
+| Package                         | Needed when                                                                               |
+|---------------------------------|-------------------------------------------------------------------------------------------|
+| `@quadnix/octo`                 | Always. The framework itself.                                                             |
+| `@quadnix/octo-build`           | Always. Provides the `octo` command.                                                      |
+| `@quadnix/octo-aws-cdk`         | You are deploying to AWS using our modules.                                               |
+| `@quadnix/octo-event-listeners` | You want the console output and the HTML report. The definition file names them by class. |
+
+Your `package.json` must declare `"type": "module"`, because Octo is ESM only. Calling it from a
+CommonJS codebase works, and is covered in
+<Link display="this blog post" id="blog" path="/octo-in-cjs" />, but that path is not regularly
+tested.
+
+Then write an `octo.yaml`, and create a directory for state to live in. [The Definition
+File](/docs/using-octo/the-definition-file) covers what goes in it.

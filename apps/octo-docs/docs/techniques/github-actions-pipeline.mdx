@@ -1,0 +1,336 @@
+---
+title: GitHub Actions Pipeline
+---
+
+Splitting the lifecycle into four commands only pays off somewhere the split is visible. On a laptop
+you run all four in a row and the gate between them is you looking at a terminal. In CI, the gate
+can be a pull request: one job generates and validates and posts the report, a human reads it, and a
+merge job applies.
+
+This page builds that. The Octo-specific parts are all that is here; your own build, test, and
+release steps belong around them.
+
+:::caution[Treat these as a starting point]
+The workflows below are assembled from the pieces this page explains rather than lifted from a
+running pipeline. Run them against a throwaway account first, and check two things before your first
+apply from CI. That the apply job reaches Terraform state reflecting reality, which is the failure
+that creates duplicate infrastructure and stays silent until the bill. And that only one apply can
+run at a time, which you verify by starting two runs and watching the second queue.
+:::
+
+## What CI has to get right
+
+Four things, and getting any of them wrong is how state gets corrupted.
+
+**One writer at a time.** Octo does not lock its state. Two concurrent applies interleave writes to
+`.octo/` and there is no error to tell you.
+
+**Octo state has to survive the job.** `.octo/` is Octo's memory of your infrastructure. Commit it
+back, or write it to durable storage with a [state provider](/docs/techniques/state-providers).
+
+**Terraform state has to survive too.** The generated folders are in the repository, so a fresh
+runner has them, but the `terraform.tfstate` files inside them are not and it does not.
+
+**Regenerate before applying.** Generate is deterministic and takes milliseconds. Doing it again in
+the apply job guarantees the folders match the definition file that was merged.
+
+## Pull request
+
+Read-only, with credentials that cannot change anything.
+
+```yaml title=".github/workflows/octo-plan.yml"
+name: Octo Plan
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  plan:
+    name: Generate & Validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write        # for OIDC role assumption
+      pull-requests: write   # to comment the report
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
+          terraform_wrapper: false      # the wrapper intercepts stdout
+
+      - uses: gruntwork-io/terragrunt-action@v2
+        with:
+          tg_version: 1.0.8
+          tg_dir: .
+          tg_command: --version
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: eu-west-1
+          role-to-assume: ${{ secrets.AWS_PLAN_ROLE_ARN }}   # read-only
+
+      - run: npm ci
+      - run: npm run build                                   # if you have modules of your own
+
+      - name: Generate
+        env:
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+        run: npm run octo:generate
+
+      - name: Validate
+        env:
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+        run: npm run octo:validate
+```
+
+Three things about that setup are worth knowing.
+
+`terraform_wrapper: false` matters, because the wrapper intercepts stdout and Octo reads Terraform's
+JSON output.
+
+Credentials are needed even to plan. `octo validate` runs a real `terraform plan` against a real
+provider, so give the job a read-only role.
+
+The plan is only as good as the Terraform state it can reach. A fresh runner has the generated
+folders from the repository and no `terraform.tfstate` in any of them, so every plan reads as
+"create everything" and the report is noise. Restore state the way the apply job below does, or
+accept that the pull-request report shows intent rather than a real plan.
+
+### Posting the report
+
+The [HTML report listener](/docs/using-octo/reading-a-validate-report#the-html-report) writes each
+run as JSON alongside the page, and that is what to read:
+
+```yaml
+      - name: Comment the report
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const dir = '.octo/reports';
+            const latest = fs.readdirSync(dir)
+              .filter((f) => f.endsWith('-validate.json'))
+              .sort()
+              .pop();
+            const report = JSON.parse(fs.readFileSync(`${dir}/${latest}`, 'utf8'));
+            const t = report.totals;
+            const body = [
+              `### Octo plan, \`${report.confidence}\` confidence`,
+              '',
+              report.headline,
+              '',
+              `\`- ${t.delete} destroy\`  \`± ${t.recreate} replace\`  \`+ ${t.create} create\`  \`~ ${t.update} update\``,
+              report.drift.length > 0
+                ? `\n⚠️ **${report.drift.length} drift**, infrastructure changed outside Octo.`
+                : '',
+            ].join('\n');
+            await github.rest.issues.createComment({
+              body,
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+```
+
+### Gating on destroys
+
+`octo validate` exits non-zero only when it could not read a plan. Drift and destructive changes are
+findings, not build failures, because deciding what to do about them is your policy rather than
+Octo's. To gate, read the same JSON:
+
+```yaml
+      - name: Fail on destructive changes
+        if: "!contains(github.event.pull_request.labels.*.name, 'approved-destroy')"
+        run: |
+          node -e '
+            const fs = require("fs");
+            const dir = ".octo/reports";
+            const latest = fs.readdirSync(dir).filter(f => f.endsWith("-validate.json")).sort().pop();
+            const report = JSON.parse(fs.readFileSync(`${dir}/${latest}`, "utf8"));
+            if (report.totals.delete > 0 || report.totals.recreate > 0) {
+              console.error("Destructive change requires the approved-destroy label");
+              process.exit(1);
+            }
+          '
+```
+
+## Merge
+
+```yaml title=".github/workflows/octo-apply.yml"
+name: Octo Apply
+
+on:
+  push:
+    branches: [ main ]
+
+# Serialize. Octo has no locking, and two concurrent applies corrupt state.
+concurrency:
+  group: octo-apply
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    name: Apply & Commit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write        # to push the state commit
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+
+      # ... the same node, terraform, terragrunt, and credentials setup as above,
+      # with a role that can create things.
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: Restore terraform state
+        run: aws s3 sync s3://shop-octo-tfstate/.octo-tf .octo-tf
+
+      - name: Generate
+        env:
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+        run: npm run octo:generate
+
+      - name: Apply
+        env:
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+        run: npm run octo:apply
+
+      - name: Commit
+        env:
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+        run: npm run octo:commit
+
+      - name: Persist terraform state
+        if: always()
+        run: aws s3 sync .octo-tf s3://shop-octo-tfstate/.octo-tf
+
+      - name: Persist octo state
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          if [ -n "$(git status --porcelain .octo)" ]; then
+            git add .octo
+            git commit --no-verify -m "chore(infra): octo state"
+            git push origin HEAD:main
+          else
+            echo "No state changes to commit."
+          fi
+```
+
+Note that `--auto-approve` is absent. `octo apply` refuses when the plan would destroy anything,
+which in CI is what you want: the job fails, prints what would go, and a human decides. Allowing a
+destroy is a deliberate addition, gated on something:
+
+```yaml
+      - name: Apply, destroys allowed
+        if: contains(github.event.head_commit.message, '[octo-destroy]')
+        run: npm run octo:apply -- --auto-approve
+```
+
+## Terraform state on a fresh runner
+
+:::warning[Read this before the first apply from CI]
+The generated `terragrunt.hcl` configures a local backend at
+`.octo-tf/<moduleId>/terraform.tfstate`, and that file is gitignored, so a fresh runner has the
+Terraform but not the state. Without it, Terraform believes nothing exists and the apply creates
+duplicates of everything.
+
+The `aws s3 sync` steps above are the crude fix, and they are not safe under concurrency, which is
+why the `concurrency` group is mandatory rather than nice to have.
+:::
+
+The better fix is to rewrite the `remote_state` block to a real backend, between generate and apply:
+
+```javascript title="scripts/rewrite-backend.mjs"
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+const dir = process.argv[2];              // e.g. .octo-tf
+const bucket = process.env.TFSTATE_BUCKET;
+const table = process.env.TFSTATE_LOCK_TABLE;
+
+for (const moduleId of readdirSync(dir, { withFileTypes: true })
+  .filter((e) => e.isDirectory())
+  .map((e) => e.name)) {
+  const file = join(dir, moduleId, 'terragrunt.hcl');
+  const contents = readFileSync(file, 'utf8');
+
+  // Octo writes remote_state as the first block. Replace it and keep everything after,
+  // because the dependency and inputs blocks are what wire the folders together.
+  const rest = contents.replace(/^remote_state\s*\{[\s\S]*?\n\}\n?/, '');
+
+  writeFileSync(
+    file,
+    `remote_state {
+  backend = "s3"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite_terragrunt"
+  }
+  config = {
+    bucket         = "${bucket}"
+    key            = "${moduleId}/terraform.tfstate"
+    region         = "eu-west-1"
+    dynamodb_table = "${table}"
+    encrypt        = true
+  }
+}
+
+${rest}`,
+  );
+}
+```
+
+```bash
+npm run octo:generate
+node scripts/rewrite-backend.mjs .octo-tf
+npm run octo:apply
+```
+
+There is no definition-file setting for the backend today, so this rewrite is the workaround. It
+depends on Octo emitting `remote_state` as the first block, which it does, but it is your script:
+diff a generated folder before and after the first time you run it, and test it on a throwaway
+stack.
+
+## One writer
+
+There is no locking, so pick one of these and mean it.
+
+A **concurrency group**, as above. Simple, and enough for most teams.
+
+A **merge queue**. GitHub serializes merges, so only one apply is ever in flight.
+
+A **state provider with conditional writes**, which turns a race into a failed job rather than
+corruption. [State Providers](/docs/techniques/state-providers) covers writing one.
+
+None of them help if somebody runs an apply from a laptop while CI is running.
+
+## Several environments
+
+Separate definition files, separate state paths, separate output directories:
+
+```yaml
+      - name: Apply staging
+        env:
+          OCTO_DEFINITION_FILE_PATH: octo.staging.yaml
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_STAGING_ACCOUNT_ID }}
+        run: |
+          node_modules/.bin/octo generate -o .octo-tf-staging
+          node_modules/.bin/octo apply --terragruntDir .octo-tf-staging
+          node_modules/.bin/octo commit --terragruntDir .octo-tf-staging
+```
+
+Give each one its own `concurrency` group, so staging and production do not block each other.

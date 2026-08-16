@@ -1,0 +1,76 @@
+---
+title: Tagging Resources
+---
+
+Most companies have a tagging policy: an owner, a cost centre, an environment, on everything. The
+usual way to satisfy it is for every module to accept a `tags` variable and every caller to pass the
+same map, which means the policy is enforced by convention across every file that creates anything,
+and a new module is compliant only if its author remembered.
+
+Octo applies tags from outside the modules. You register them once, with a scope, and every resource
+a run produces picks them up. Module authors write nothing.
+
+:::caution[Not available from the definition file yet]
+`registerTags` is a method on the `Octo` class, and there is no `tags` section in `octo.yaml`. So
+tagging works when you drive Octo from TypeScript, and in tests, but not from the CLI.
+
+The obvious workaround, putting the AWS provider's `default_tags` into `terraform.providers[].spec`,
+does not work either: a nested object in `spec` is rendered as an HCL block, and `default_tags`
+expects `tags` as a map attribute. Terraform rejects the result with `Blocks of type "tags" are not
+expected here`.
+:::
+
+## The three scopes
+
+```typescript
+octo.registerTags([
+  // Every resource in the run.
+  { scope: {}, tags: { ManagedBy: 'octo', Owner: 'platform-team' } },
+
+  // Every resource the region module produced.
+  { scope: { moduleId: 'region-module' }, tags: { Tier: 'network' } },
+
+  // One resource.
+  {
+    scope: { moduleId: 'region-module', resourceContext: '@octo/vpc=vpc-eu-west-1' },
+    tags: { Critical: 'true' },
+  },
+]);
+```
+
+Narrowest wins on a key collision, so global loses to module, and module loses to resource.
+
+Each scope has a moment before which it cannot be registered, because each needs something to exist:
+
+| Scope               | Register after                                                 |
+|---------------------|----------------------------------------------------------------|
+| Global, `scope: {}` | `initialize()`                                                 |
+| Module              | `compose()`, or it throws `Module not found!`                  |
+| Resource            | the resource has been produced, which in practice means a test |
+
+## Where the tags end up
+
+After the model actions have declared their resources, and before anything is rendered, Octo
+resolves the tags for each resource and writes them onto it. A resource's `toHCL()` then emits them:
+
+```typescript
+if (Object.keys(this.tags).length > 0) {
+  vpcTFResource.attribute('tags', this.tags);
+}
+```
+
+Every resource in `@quadnix/octo-aws-cdk` does this, so a tag you register reaches the whole stack.
+If you write your own [Terraform resource](/docs/building-modules/create-a-terraform-resource),
+copying those two lines is what opts it in.
+
+Tags are part of the diff, so adding one to a live stack shows up in the next report as an update on
+each resource that gains it, rather than as an invisible change.
+
+## What to tag with
+
+Two things are worth registering globally on any real project, and neither is about cost reporting.
+
+An owner, so that whoever finds an unexpected resource in the console knows who to ask. And a marker
+saying the resource is managed by Octo, so that a resource created by hand is distinguishable from
+one this project is responsible for. The second one pays for itself the first time somebody asks
+whether a bucket is safe to delete.

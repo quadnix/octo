@@ -2,124 +2,161 @@
 title: Modules
 ---
 
-## Introduction
-In Octo, modules act as a packaging unit for models, overlays, resources, anchors, and actions.
-When packaged, modules becomes a single unit capable of generating and managing a section of infrastructure
-in a very precise and opinionated manner.
+Every company answers the same questions in its own repository. What is a region made of. What does
+a server need before it can run. What it takes to stand up a static site. The answers are good, they
+took real work, and they do not travel: copying a folder of Terraform from another team means taking
+on their account layout and their naming rules along with their code, because a module's contract
+with its caller is a list of strings and nothing checks them against your world.
 
-:::tip
-Modules are shareable, which is an incredibly powerful feature.
-These are "infrastructure plugins" that you can simply import to implement a piece of infrastructure,
-or swap one with another compatible module.
-:::
+A **module** is Octo's unit of reuse, and it is a class rather than a directory. It declares the
+inputs it accepts as a schema, builds models when it runs, and finds what other modules built by
+matching on shape. Two modules from two libraries can be composed without either author having
+planned for it.
 
-Having the ability to define and share modules comes with several benefits,
-* **Reduces Duplication**: Defining modules for yourself or the community allows you to
-reuse them across several projects.
-* **Standardization & Compliance**: Modules can be defined to fulfill certain standards,
-such as HIPAA, PCI, ISO, GDPR, etc. Reusing the same modules can then result in same standards across all projects.
-* **Security**: Modules can be defined to enforce security policies, such as encryption, access control, etc.
+The shop is four of them: an app module, an account module, a region module, and a storage module,
+with a server module added later.
 
-## Modules are opinionated
-One of the key distinctions between Octo and other IaC tools or CDKs is in how infrastructure is expressed.
-Traditional tools expose developers directly to raw infrastructure resources,
-leaving it entirely up to them to decide how to assemble those resources and with what parameters.
+## What one looks like
 
-Modules, in contrast, are pre-packaged collections of infrastructure resources,
-defined in a precise and opinionated way.<br/>
-The degree of flexibility a module offers depends entirely on its implementor —
-some may allow extensive customization, while others enforce stricter defaults.
-
-:::info
-Instead of viewing this as a limitation, consider how would you share a pre-built AWS infrastructure setup.
-To make it reusable, you inevitably need to make assumptions and design choices on the user's behalf.
-Those assumptions then define the boundaries or limitations of what can be customized.
-
-Octo addresses this by keeping modules small and isolated,
-reducing the impact of those limitations and making them easier to compose or swap.
-:::
-
-:::tip
-If a pre-build module does not meet your needs, you can always create a custom module.
-It's easier than you think!
-
-Octo's own pre-build modules are open for contribution and suggestions.
-We are also open to enhance or add modules to fit community needs.
-:::
-
-## Importing other modules
-Often modules require access to other module's models, overlays, resources, and/or anchors.
-But modules can't directly import other modules, otherwise it would create a vicious dependency trap.
-
-Instead, modules expresses their dependencies on other modules using "indirect inputs" and anchors,
-and relies on users running the modules to pass correct values.
-
-Here's an example of a module's schema input.
-This module is defining an environment to set up an AWS ECS cluster within a region.
-Since it needs access to a region in AWS, it imposes an indirect dependency on the users to pass
-a Region model which exposes a matching anchor `AwsRegionAnchorSchema`.
 ```typescript
-export class AwsEcsEnvironmentModuleSchema {
+
+@Module<AwsS3StorageServiceModule>('@octo', AwsS3StorageServiceModuleSchema)
+export class AwsS3StorageServiceModule extends AModule<
+  AwsS3StorageServiceModuleSchema,
+  AwsS3StorageService
+> {
+  async onInit (inputs: AwsS3StorageServiceModuleSchema): Promise<AwsS3StorageService> {
+    const { app, awsAccountId, awsRegionId } = await this.registerMetadata(inputs);
+
+    const s3StorageService = new AwsS3StorageService(inputs.bucketName);
+    app.addService(s3StorageService);
+
+    s3StorageService.addAnchor(new AwsS3StorageServiceAnchor('AwsS3StorageServiceAnchor',
+      { awsAccountId, awsRegionId, bucketName: inputs.bucketName }, s3StorageService));
+
+    for (const remoteDirectoryPath of inputs.remoteDirectoryPaths || []) {
+      s3StorageService.addDirectory(remoteDirectoryPath);
+    }
+
+    return s3StorageService;
+  }
+}
+```
+
+That is the whole module that produced the receipts bucket. It creates a model, attaches an anchor
+so other modules can find it, registers the directories it was asked for, and returns.
+
+Three methods matter, and only the first is required.
+
+**`onInit(inputs)`** builds the module's infrastructure and returns the nodes it created. Return all
+of them, overlays included, because those are what later modules resolve against.
+
+**`registerMetadata(inputs)`** derives values that both `onInit` and the module's actions need,
+usually facts pulled out of another module's anchors. Whatever it returns arrives in every action of
+this module as `actionInputs.metadata`. The storage module uses it to resolve which AWS account and
+region the bucket belongs in, working up from the region it was handed:
+
+```typescript
+override
+async
+registerMetadata(inputs)
+{
+  const region = inputs.region;
+  const account = region.getParents()['account'][0].to as Account;
+  const app = account.getParents()['app'][0].to as App;
+
+  const [matchingAnchor] = await region.getAnchorsMatchingSchema(AwsRegionAnchorSchema, [], {
+    searchBoundaryMembers: false,
+  });
+
+  return {
+    app,
+    awsAccountId: account.accountId,
+    awsRegionId: matchingAnchor.getSchemaInstance().properties.awsRegionId
+  };
+}
+```
+
+**`registerHooks()`** attaches callbacks to lifecycle points for the duration of this module. Most
+modules do not need it. [Hooks](/docs/techniques/hooks) covers it.
+
+## The schema is the contract
+
+A module's inputs are a class, and the decorator takes it:
+
+```typescript
+export class AwsS3StorageServiceModuleSchema {
+  @Validate({ options: { minLength: 1 } })
+  bucketName = Schema<string>();
+
   @Validate([
-    {
-      options: {
-        isModel: { anchors: [{ schema: AwsRegionAnchorSchema }], NODE_NAME: 'region' },
-      },
-    },
-    {
-      destruct: (value: AwsEcsEnvironmentModuleSchema['region']): [RegionSchema] => [value.synth()],
-      options: {
-        isSchema: { schema: RegionSchema },
-      },
-    },
+    { options: { isModel: { anchors: [{ schema: AwsRegionAnchorSchema }], NODE_NAME: 'region' } } },
+    { destruct: (value) => [value.synth()], options: { isSchema: { schema: RegionSchema } } },
   ])
   region = Schema<Region>();
+
+  @Validate({ destruct: (value) => value!, options: { minLength: 1 } })
+  remoteDirectoryPaths? = Schema<string[]>([]);
 }
 ```
-And this is how users might pass a Region model from a different module,
+
+Read the middle one as: whatever arrives here must be a region, and it must publish AWS region
+details. Not a string that looks like a region ID. The node itself, with a shape the module can use.
+
+Inputs are resolved and validated before `onInit` runs, so a mistake in `octo.yaml` fails there,
+with a message about the input, rather than three layers down in an action. Optional inputs are
+filled in with their defaults at the same time, which is why `remoteDirectoryPaths` is an array
+inside `onInit` even when the definition file omitted it.
+
+[Validation](/docs/techniques/validation) covers the rules available.
+
+## Loading and ordering
+
+```yaml
+modules:
+  - moduleId: receipts-module
+    moduleClass: AwsS3StorageServiceModule
+    moduleInputs:
+      region: "${{region-module.model.region}}"
+      bucketName: "${env.RECEIPTS_BUCKET_NAME}"
+      remoteDirectoryPaths:
+        - uploads
+```
+
+The `moduleId` is yours to pick, and it does two things: it scopes everything this instance
+produces, and it names the Terragrunt folder that instance generates. Load the same class twice
+under two IDs and you get two independent instances, which is how the shop would get several subnets
+out of one subnet module.
+
+Modules run in the order the definition file lists them, and the order matters for one reason: a
+module can only resolve what an earlier module already registered. The region module has to run
+before the storage module, because the storage module is handed the region.
+
+The dependency graph, not this list, decides what happens in what order during an apply. Module
+order decides who can see whom.
+
+## Failing early
+
+A module that cannot satisfy what it was asked for should say so in `onInit`:
+
 ```typescript
-{
-  region: stub<Region>('${{region-module.model.region}}'),
+if (matchingAnchors.length !== 1) {
+  throw new ModuleError('Cannot find remote directory in S3Storage service!', this.constructor.name);
 }
 ```
-Here the user is passing a relevant Region model from the `region-module` module that satisfies the above constraints.
 
-:::tip
-So far, we haven't explained any of the code snippets, which might make them feel a bit overwhelming at first glance.
-That's okay — the goal here is to introduce the core idea of importing other modules.
+Nothing exists yet at that point. No Terraform has been written, nothing has been created, and the
+message names the thing that was wrong. The alternative is discovering it partway through an apply,
+with half a stack standing.
 
-As you progress through the documentation, we'll gradually break down these snippets step by step,
-so they'll start to feel familiar and intuitive.
-:::
+## One module, one folder
 
-## Module Hierarchy
-Modules don't just package any number of Octo components. They are precise, and often focused on a single model.
-And since models are hierarchical in nature, modules must be applied in a set pattern that conforms to the hierarchy.
+Everything an instance produces lands in one Terragrunt folder named after its `moduleId`. When a
+resource in one folder needs a value from another, Octo writes the `variable` block, the Terragrunt
+`dependency` block, and the wiring between them.
 
-E.g. an AppModule must execute before an AccountModule, which must execute before a RegionModule, and so on.
-This is also necessary when importing other modules, as you cannot import a module which hasn't executed yet!
-
-In Octo, modules are ordered for execution using the `orderModules()` method.
-```typescript
-octo.orderModules([AppModule, AccountModule, RegionModule, ...]);
-```
-
-Combining module hierarchy with input-based imports, you can even visualize modules as a graph.
-```mermaid
-graph BT;
-  module1(Module 1)
-  module2(Module 2)
-  module3(Module 3)
-  module4(Module 4)
-  module5(Module 5)
-
-  module2 -- imports --> module1;
-  module3 -- imports --> module1;
-  module4 -- imports --> module3;
-  module5 -- imports --> module3;
-```
-
-## Summary
-In this section we have discussed Modules.
-Modules unify models and resources into cohesive infrastructure units.
-It supports hierarchical imports, allowing modules to inter-depend on each other, and boost modularity and reusability.
+That boundary is also where a swap stops. Replacing the shop's single-availability-zone region
+module with one that spreads across three changes what `region-module/` contains, and nothing else
+in the definition file moves, as long as the new module publishes the same region anchor. [Composing
+Modules](/docs/using-octo/composing-modules) covers what that looks like in practice, and [Create a
+Module](/docs/building-modules/create-a-module) covers writing one.

@@ -8,8 +8,8 @@ const sidebars: SidebarsConfig = {
       type: 'doc',
     },
     {
-      id: 'philosophy',
-      label: 'Philosophy',
+      id: 'why-octo',
+      label: 'Why Octo',
       type: 'doc',
     },
     {
@@ -20,8 +20,18 @@ const sidebars: SidebarsConfig = {
           type: 'doc',
         },
         {
-          id: 'getting-started/hello-world',
-          label: 'Hello World!',
+          id: 'getting-started/static-website',
+          label: 'Static Website',
+          type: 'doc',
+        },
+        {
+          id: 'getting-started/shop-stack',
+          label: 'Shop Stack',
+          type: 'doc',
+        },
+        {
+          id: 'getting-started/the-lifecycle',
+          label: 'The Lifecycle',
           type: 'doc',
         },
         {
@@ -32,13 +42,18 @@ const sidebars: SidebarsConfig = {
       ],
       label: 'Getting Started',
       link: {
-        description: 'Installation & Setup.',
+        description: 'Install Octo, deploy something real, and learn the run cycle.',
         type: 'generated-index',
       },
       type: 'category',
     },
     {
       items: [
+        {
+          id: 'fundamentals/how-octo-works',
+          label: 'How Octo Works',
+          type: 'doc',
+        },
         {
           id: 'fundamentals/models',
           label: 'Models',
@@ -75,19 +90,19 @@ const sidebars: SidebarsConfig = {
           type: 'doc',
         },
         {
-          id: 'fundamentals/templates',
-          label: 'Templates',
+          id: 'fundamentals/state',
+          label: 'State',
           type: 'doc',
         },
         {
-          id: 'fundamentals/hello-world-explained',
-          label: 'Hello World! (Explained)',
+          id: 'fundamentals/shop-stack-explained',
+          label: 'Shop Stack Explained',
           type: 'doc',
         },
       ],
       label: 'Fundamentals',
       link: {
-        description: 'Basic concepts.',
+        description: 'The ideas the rest of Octo is built from.',
         type: 'generated-index',
       },
       type: 'category',
@@ -95,49 +110,94 @@ const sidebars: SidebarsConfig = {
     {
       items: [
         {
-          id: 'devops/create-cdk',
-          label: 'Create a CDK',
+          id: 'using-octo/the-definition-file',
+          label: 'The Definition File',
           type: 'doc',
         },
         {
-          id: 'devops/create-sdk-client-factory',
-          label: 'Create a SDK Client Factory',
+          id: 'using-octo/composing-modules',
+          label: 'Composing Modules',
           type: 'doc',
         },
         {
-          id: 'devops/create-resource',
-          label: 'Create a Resource',
+          id: 'using-octo/reading-a-validate-report',
+          label: 'Reading a Validate Report',
           type: 'doc',
         },
         {
-          id: 'devops/create-model',
-          label: 'Create a Model',
+          id: 'using-octo/tagging-resources',
+          label: 'Tagging Resources',
           type: 'doc',
         },
         {
-          id: 'devops/create-overlay',
-          label: 'Create an Overlay',
+          id: 'using-octo/destroying-infrastructure',
+          label: 'Destroying Infrastructure',
           type: 'doc',
         },
         {
-          id: 'devops/create-anchor',
-          label: 'Create an Anchor',
+          id: 'using-octo/troubleshooting',
+          label: 'Troubleshooting',
+          type: 'doc',
+        },
+      ],
+      label: 'Using Octo',
+      link: {
+        description: 'Day-to-day operation of an Octo app.',
+        type: 'generated-index',
+      },
+      type: 'category',
+    },
+    {
+      items: [
+        {
+          id: 'building-modules/anatomy-of-a-module',
+          label: 'Anatomy of a Module',
           type: 'doc',
         },
         {
-          id: 'devops/create-module',
+          id: 'building-modules/create-a-module',
           label: 'Create a Module',
           type: 'doc',
         },
         {
-          id: 'devops/create-module-test',
-          label: 'Create a Module Test',
+          id: 'building-modules/create-a-model',
+          label: 'Create a Model',
+          type: 'doc',
+        },
+        {
+          id: 'building-modules/create-a-terraform-resource',
+          label: 'Create a Terraform Resource',
+          type: 'doc',
+        },
+        {
+          id: 'building-modules/create-an-external-resource',
+          label: 'Create an External Resource',
+          type: 'doc',
+        },
+        {
+          id: 'building-modules/create-an-anchor',
+          label: 'Create an Anchor',
+          type: 'doc',
+        },
+        {
+          id: 'building-modules/create-an-overlay',
+          label: 'Create an Overlay',
+          type: 'doc',
+        },
+        {
+          id: 'building-modules/testing-a-module',
+          label: 'Testing a Module',
+          type: 'doc',
+        },
+        {
+          id: 'building-modules/publishing-a-library',
+          label: 'Publishing a Library',
           type: 'doc',
         },
       ],
-      label: 'DevOps',
+      label: 'Building Modules',
       link: {
-        description: 'CDK concepts and code examples.',
+        description: 'Write the building blocks your team composes from.',
         type: 'generated-index',
       },
       type: 'category',
@@ -155,6 +215,11 @@ const sidebars: SidebarsConfig = {
           type: 'doc',
         },
         {
+          id: 'techniques/events-and-listeners',
+          label: 'Events and Listeners',
+          type: 'doc',
+        },
+        {
           id: 'techniques/hooks',
           label: 'Hooks',
           type: 'doc',
@@ -165,14 +230,39 @@ const sidebars: SidebarsConfig = {
           type: 'doc',
         },
         {
-          id: 'techniques/pipeline-gha',
-          label: 'Pipeline - GitHub Actions',
+          id: 'techniques/github-actions-pipeline',
+          label: 'GitHub Actions Pipeline',
           type: 'doc',
         },
       ],
       label: 'Techniques',
       link: {
-        description: 'Techniques and run books.',
+        description: 'Extension points, and the seams you hook into.',
+        type: 'generated-index',
+      },
+      type: 'category',
+    },
+    {
+      items: [
+        {
+          id: 'reference/cli',
+          label: 'CLI',
+          type: 'doc',
+        },
+        {
+          id: 'reference/aws-module-catalog',
+          label: 'AWS Module Catalog',
+          type: 'doc',
+        },
+        {
+          id: 'reference/templates',
+          label: 'Templates',
+          type: 'doc',
+        },
+      ],
+      label: 'Reference',
+      link: {
+        description: 'Every command, the AWS module catalog, and the templates to start from.',
         type: 'generated-index',
       },
       type: 'category',

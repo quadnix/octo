@@ -65,6 +65,9 @@ note-taking space — add what you learn.
 
 Octo's docs grow with its feature set.
 
+- Read `@docs/DOCUMENTATION-STANDARDS.md` before writing or editing anything under
+  `@apps/octo-docs/docs`. Same rule as the coding standards: fold every correction back into it, and
+  ask before removing a rule.
 - `packages` use JSDoc for behavior, parameters, and examples.
 - `apps/octo-docs` holds the high-level feature docs; `@apps/octo-docs/package.json` runs
   `plugin:pre-script`, `plugin:build`, and `plugin:post-script` to generate API docs from JSDoc.

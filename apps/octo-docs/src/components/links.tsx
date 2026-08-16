@@ -7,11 +7,11 @@ const linkMapping: { [key: string]: { displayName: string; href: string } } = {
   },
   model: {
     displayName: 'Models',
-    href: '/docs/fundamentals/model',
+    href: '/docs/fundamentals/models',
   },
   resource: {
     displayName: 'Resources',
-    href: '/docs/fundamentals/resource',
+    href: '/docs/fundamentals/resources',
   },
 };
 

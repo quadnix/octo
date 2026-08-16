@@ -1,0 +1,182 @@
+---
+title: Composing Modules
+---
+
+A Terraform module's contract with its caller is a list of variables, and almost all of them are
+strings. Pass a subnet ID where a VPC ID was expected and nothing objects; both are text, and the
+mistake surfaces when the provider rejects it, partway through an apply. So the safe way to use
+somebody else's module is to read its source, which is not much better than not using it.
+
+Octo modules are wired by handing over nodes. The shop's storage module is not given a region ID, it
+is given the region, and its schema states what it will accept. This page is what that looks like in
+practice: connecting modules, running one twice, replacing one, and what happens when a connection
+is wrong.
+
+## Handing over a node
+
+```yaml
+  - moduleId: region-module
+    moduleClass: AwsSingleAzRegionModule
+    moduleInputs:
+      account: "${{account-module.model.account}}"
+      name: eu-west-1
+      regionId: aws-eu-west-1a
+      vpcCidrBlock: 10.0.0.0/16
+
+  - moduleId: receipts-module
+    moduleClass: AwsS3StorageServiceModule
+    moduleInputs:
+      region: "${{region-module.model.region}}"
+      bucketName: "${env.RECEIPTS_BUCKET_NAME}"
+```
+
+`${{region-module.model.region}}` resolves to the region node itself. What the storage module does
+with it is worth following, because it is the whole pattern in six lines:
+
+```typescript
+const region = inputs.region;
+const account = region.getParents()['account'][0].to as Account;
+const app = account.getParents()['app'][0].to as App;
+
+const [matchingAnchor] = await region.getAnchorsMatchingSchema(AwsRegionAnchorSchema, [], {
+  searchBoundaryMembers: false,
+});
+const awsRegionId = matchingAnchor.getSchemaInstance().properties.awsRegionId;
+```
+
+It walks up to the account and the app, then asks the region for its AWS details. None of that would
+be possible if it had been handed the string `eu-west-1`.
+
+The general rule when writing a definition file: pass the node. `${{region-module.model.region}}`
+gives a module something it can query; `${{region-module.model.region.regionId}}` gives it a string
+it can only trust.
+
+## The same module, twice
+
+A `moduleId` is per instance, so loading a class again gives an independent one. This is how the
+shop gets a public and a private subnet out of one subnet module:
+
+```yaml
+  - moduleId: public-subnet-module
+    moduleClass: AwsSimpleSubnetModule
+    moduleInputs:
+      region: "${{region-module.model.region}}"
+      subnetAvailabilityZone: eu-west-1a
+      subnetCidrBlock: 10.0.0.0/24
+      subnetName: public-subnet
+      subnetOptions:
+        createNatGateway: true
+        disableSubnetIntraNetwork: false
+        subnetType: public
+
+  - moduleId: private-subnet-module
+    moduleClass: AwsSimpleSubnetModule
+    moduleInputs:
+      region: "${{region-module.model.region}}"
+      subnetAvailabilityZone: eu-west-1a
+      subnetCidrBlock: 10.0.2.0/24
+      subnetName: private-subnet
+      subnetOptions:
+        createNatGateway: false
+        disableSubnetIntraNetwork: true
+        subnetType: private
+      subnetSiblings:
+        - attachToNatGateway: true
+          subnet: "${{public-subnet-module.model.subnet}}"
+```
+
+Two folders, `public-subnet-module/` and `private-subnet-module/`, and the second is handed the
+first. `attachToNatGateway: true` is the private subnet asking to route through the public one's NAT
+gateway, and the module works out what that costs in route tables.
+
+## Order
+
+Modules run in the order they are listed, and a module can only see what an earlier one registered.
+Move the receipts module above the region module and the run stops before anything is written:
+
+```text
+Definition file is valid and all modules were successfully imported.
+Error: Property "region" in schema could not be resolved!
+    at getSchemaInstance (.../octo/dist/functions/schema/schema.js:25:19)
+    at ModuleContainer.apply (.../octo/dist/modules/module.container.js:58:46)
+    at async Octo.compose (.../octo/dist/main.js:106:16)
+schemaClassName: AwsS3StorageServiceModuleSchema
+```
+
+The first line is the schema check passing, so the file itself is fine. The failure is one step
+later, while the modules are being run.
+
+Read "could not be resolved" as: the reference points at something that does not exist yet. It is
+almost always an ordering mistake, or a typo in a `moduleId`.
+
+This ordering has nothing to do with the order things are created in AWS. That comes from the
+[dependency](/docs/fundamentals/dependencies) edges between nodes, which is why the shop's checkout
+folder applies before the receipts folder even though the receipts module is listed first.
+
+## Replacing a module
+
+The shop uses `AwsSingleAzRegionModule`. Our AWS library also has `AwsMultiAzRegionModule`, which
+takes a list of availability zones instead of one:
+
+```yaml
+imports:
+  - className: AwsMultiAzRegionModule
+    importPath: "@quadnix/octo-aws-cdk/modules/region/aws-multi-az-region"
+
+modules:
+  - moduleId: region-module
+    moduleClass: AwsMultiAzRegionModule
+    moduleInputs:
+      account: "${{account-module.model.account}}"
+      name: eu-west-1
+      regionIds:
+        - aws-eu-west-1a
+        - aws-eu-west-1b
+      vpcCidrBlock: 10.0.0.0/16
+```
+
+Nothing downstream changes. The receipts module is still handed
+`${{region-module.model.region}}`, and the checkout server module still resolves the same way,
+because neither was ever given an ID. They were handed a region, and both region modules publish
+the same `AwsRegionAnchor`.
+
+What actually differs after the swap is worth being precise about. The generated `region-module/`
+folder is the same VPC and internet gateway, because both modules define a region as one VPC. The
+change is in what the region advertises: its anchor now lists two availability zones instead of one,
+and that is what a subnet module reads when it decides where it can place itself.
+
+The honest limit is that on live infrastructure this is still a migration. Octo will tell you
+exactly what gets created, replaced, and destroyed, and it does not sequence that transition for
+you.
+
+## Mixing libraries
+
+Nothing in the composition above depends on the modules coming from the same package. A module
+declares what it needs as an anchor schema, and any module publishing that shape satisfies it. So a
+region module you wrote in-house works with our storage module, provided it publishes an
+`AwsRegionAnchor`.
+
+That is also the constraint. Composition works when the two sides agree on an anchor schema, and
+there is no automatic bridge when they do not. If your region publishes `AcmeRegionAnchor` and a
+module wants `AwsRegionAnchor`, you either publish both anchors from your region, or register a
+[schema translation](/docs/techniques/schema) between them.
+
+## When a connection is wrong
+
+Point the storage module at an account instead of a region, and:
+
+```text
+Error: Property "region" in schema could not be validated!
+    at getSchemaInstance (.../octo/dist/functions/schema/schema.js:22:19)
+    at ModuleContainer.apply (.../octo/dist/modules/module.container.js:58:46)
+    at async Octo.compose (.../octo/dist/main.js:106:16)
+schemaClassName: AwsS3StorageServiceModuleSchema
+```
+
+The two failures read almost the same and mean different things. "Could not be resolved" is a
+reference to something that does not exist. "Could not be validated" is a real node of the wrong
+shape.
+
+Both happen while the graph is being assembled, before a line of Terraform is written and long
+before anything is created. That is the trade the whole design is making: more errors, all of them
+early.

@@ -1,0 +1,271 @@
+---
+title: The Definition File
+---
+
+Everything Octo does starts from one file. It says which modules make up your infrastructure, what
+each one is given, where state lives, and which Terraform providers the generated folders declare.
+For most teams it is the only file anybody edits, which makes it worth knowing section by section.
+
+This is the shop's, from the [Shop Stack](/docs/getting-started/shop-stack), with a checkout
+server added.
+
+```yaml title="octo.yaml"
+version: 1
+
+env:
+  - key: AWS_ACCOUNT_ID
+    kind: string
+    value: "123456789012"
+  - key: RECEIPTS_BUCKET_NAME
+    kind: string
+    value: shop-receipts
+
+terraform:
+  requiredVersion: "1.6.0"
+  requiredProviders:
+    aws:
+      source: hashicorp/aws
+  providers:
+    - providerType: aws
+      accountId: "${env.AWS_ACCOUNT_ID}"
+      regionId: eu-west-1
+      spec:
+        profile: default
+
+settings:
+  listeners:
+    - type: HtmlReportEventListener
+    - type: LoggingEventListener
+  stateProvider:
+    type: LocalStateProvider
+    statePath: .octo
+
+imports:
+  - className: SimpleAppModule
+    importPath: "@quadnix/octo-aws-cdk/modules/app/simple-app"
+  # ...
+
+modules:
+  - moduleId: app-module
+    moduleClass: SimpleAppModule
+    moduleInputs:
+      name: shop
+  # ...
+```
+
+`version`, `imports`, `modules`, `settings`, and `terraform` are required. `env` and `hooks` are
+optional. The file is validated against a JSON schema before anything else happens, so a typo in a
+key name is caught with a message about that key.
+
+The name `octo.yaml` is a convention. Octo reads whatever `OCTO_DEFINITION_FILE_PATH` points at, and
+the scaffolded npm scripts set it. Everything the file names by relative path, imports and the state
+directory included, resolves against the file's own directory rather than your shell's working
+directory.
+
+:::tip[Editor autocompletion]
+Put this at the top and your editor will complete keys and flag mistakes as you type:
+
+```yaml
+# yaml-language-server: $schema=https://raw.githubusercontent.com/quadnix/octo/refs/heads/main/packages/octo-build/src/resources/octo-v1.schema.json
+```
+
+:::
+
+## modules
+
+The intent. Each entry loads one instance of one module class.
+
+```yaml
+modules:
+  - moduleId: receipts-module
+    moduleClass: AwsS3StorageServiceModule
+    moduleInputs:
+      region: "${{region-module.model.region}}"
+      bucketName: "${env.RECEIPTS_BUCKET_NAME}"
+      remoteDirectoryPaths:
+        - uploads
+```
+
+|                |                                                                                                |
+|----------------|------------------------------------------------------------------------------------------------|
+| `moduleId`     | Yours to choose. It scopes everything this instance produces, and names its Terragrunt folder. |
+| `moduleClass`  | A class name that appears in `imports`.                                                        |
+| `moduleInputs` | Whatever that module's schema declares. Validated before the module runs.                      |
+
+Modules run top to bottom, and a module can only reference what an earlier one produced. Loading the
+same class twice under two IDs gives two independent instances.
+
+Changing a `moduleId` renames the folder and, as far as Octo is concerned, removes one module and
+adds another. Pick them once.
+
+## imports
+
+Where each module class comes from.
+
+```yaml
+imports:
+  - className: AwsS3StorageServiceModule
+    importPath: "@quadnix/octo-aws-cdk/modules/service/aws-s3-storage-service"
+  - className: ShopRegionModule
+    importPath: "./dist/index.js"
+```
+
+A bare specifier is resolved from your project's `node_modules`. A relative path is resolved against
+the definition file, which is why your own modules are imported from `./dist/index.js` after `npm
+run build` rather than from `./src`.
+
+Importing a class you never load is harmless. Loading one you never imported fails at boot, with a
+message naming the class.
+
+## terraform
+
+The provider setup that would otherwise sit at the top of every `.tf` file. Octo renders it into
+every generated folder.
+
+```yaml
+terraform:
+  requiredVersion: "1.6.0"
+  requiredProviders:
+    aws:
+      source: hashicorp/aws
+      minVersion: "5.0.0"
+  providers:
+    - providerType: aws
+      accountId: "${env.AWS_ACCOUNT_ID}"
+      regionId: eu-west-1
+      spec:
+        profile: default
+```
+
+`requiredVersion` and `requiredProviders` become the `terraform` block. `providers` is one entry per
+deployment target, and a target is an account and a region together. Resources bind to a provider by
+that pair alone, which is why the generated alias reads `_123456789012-eu-west-1`, and why a shop
+that spans two regions needs two entries.
+
+`spec` is passed through to the provider block as written, so anything the provider accepts goes
+there: `profile`, `assume_role`, `endpoints`. If your module produces resources in a region with no
+matching provider entry, generate fails rather than guessing.
+
+Every provider block gets `region = <regionId>` written onto it, except for the HashiCorp utility
+providers such as `null`, `external`, `random`, and `local`, which take no arguments at all and fail
+the plan with `An argument named "region" is not expected here`. Octo knows those by name. For a
+provider it does not know that behaves the same way, `setRegionAttribute: false` on the entry turns
+the line off.
+
+## settings
+
+```yaml
+settings:
+  listeners:
+    - type: HtmlReportEventListener
+      reportDir: .octo/reports
+    - type: LoggingEventListener
+      level: info
+      colorize: true
+  stateProvider:
+    type: LocalStateProvider
+    statePath: .octo
+```
+
+`stateProvider` is required, and picks where Octo's own state is kept. `LocalStateProvider` writes
+plain JSON to `statePath`. `LocalEncryptionStateProvider` writes the same files encrypted, and takes
+an `encryptionKey` alongside the path:
+
+```yaml
+  stateProvider:
+    type: LocalEncryptionStateProvider
+    statePath: .octo
+    encryptionKey: "${env.OCTO_STATE_KEY}"
+```
+
+`TestStateProvider` keeps state in memory and takes no path, which makes it useful only in tests.
+See [State](/docs/fundamentals/state).
+
+`listeners` decides what a run prints. `LoggingEventListener` is the console output every command
+produces; its `level` is one of `trace`, `debug`, `info`, `warn`, `error`, `fatal`, `silent`, and
+`colorize` defaults to whether the output is a terminal. `HtmlReportEventListener` writes the same
+report as a browsable page under `reportDir`, which defaults to `.octo/reports`. Without any
+listeners a run is silent. [Events and Listeners](/docs/techniques/events-and-listeners) covers
+writing your own.
+
+## env
+
+Values you want to declare in one place and override from the shell.
+
+```yaml
+env:
+  - key: AWS_ACCOUNT_ID
+    kind: string
+    value: "123456789012"
+  - key: ENABLE_NAT_GATEWAY
+    kind: boolean
+    value: false
+```
+
+Reference one as `${env.KEY}`, anywhere in `moduleInputs`, in a provider's `accountId`, `regionId`,
+or `spec`, or in `terraform.requiredVersion`.
+
+An environment variable of the same name wins over the declared value, which is what makes the same
+file work in CI:
+
+```bash
+AWS_ACCOUNT_ID=999999999999 npm run octo:generate
+```
+
+`kind` is how the string a shell gives you becomes the right type. It matters most for `boolean`: a
+naive conversion makes `"false"` true, so Octo parses the string and rejects anything that is not
+plainly a boolean.
+
+Referencing a key you did not declare is an error naming the key, so a typo does not become an empty
+string.
+
+## hooks
+
+Optional callbacks around lifecycle points, for an audit trail or an approval gate.
+
+```yaml
+hooks:
+  - importPath: "./dist/index.js"
+    method: registerAuditHooks
+```
+
+The named export is called, and returns the hooks to register. [Hooks](/docs/techniques/hooks)
+covers the shapes available.
+
+## References between modules
+
+`${{...}}` is how one module receives what another produced, and it is what makes this a graph
+rather than a list.
+
+| Form                                    | Resolves to                                                       |
+|-----------------------------------------|-------------------------------------------------------------------|
+| `${{<moduleId>.model.<key>}}`           | A model the module produced. `${{region-module.model.region}}`.   |
+| `${{<moduleId>.overlay.<overlayId>}}`   | An overlay the module produced, by its overlay ID.                |
+| `${{<moduleId>.resource.<resourceId>}}` | A resource the module produced, by its resource ID.               |
+| `${{<moduleId>.input.<key>}}`           | An input that module was given, so two modules can share a value. |
+| `${{<moduleId>.metadata.<key>}}`        | Something the module's `registerMetadata()` worked out.           |
+
+The `<key>` is what the module registered its output under, and it is normally the model's node
+name: `model.app`, `model.account`, `model.region`, `model.subnet`, `model.service`. A dotted path
+digs into the value, so `${{region-module.model.region.regionId}}` is the string rather than the
+node.
+
+Hand over the node wherever you can. `${{region-module.model.region}}` gives the storage module a
+region it can query for anchors; `${{region-module.model.region.regionId}}` gives it a string it can
+only trust.
+
+References resolve when the module that needs them runs, so the module being referenced has to be
+listed earlier. A reference that cannot be resolved is an error naming the reference.
+
+## Several definition files
+
+There is no environment flag. A deployment that must not share state with another is a separate file
+with a separate `statePath`:
+
+```bash
+OCTO_DEFINITION_FILE_PATH=octo.prod.yaml octo generate -o .octo-tf-prod
+```
+
+Keep the output directories separate too. Octo leaves folders it does not recognize alone, so
+nothing is overwritten, but `terragrunt run --all` does not know that: point two definitions at one
+directory and an apply of either one applies both.

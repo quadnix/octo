@@ -1,0 +1,138 @@
+---
+title: Create a Model
+---
+
+Octo's [models](/docs/fundamentals/models) carry almost nothing. A `Region` holds a region ID and
+that is all; a `Service` holds a service ID and cannot even be used on its own, because calling
+`synth()` on a bare `Service` throws. That is deliberate. The base models fix the vocabulary, and
+what each word means in your company is yours to decide.
+
+Your model is a subclass. This page writes `ShopQueueService`, the node that appears in the shop's
+intent when the order queue exists.
+
+```bash
+octo create-model -n shop-queue-service -t service --package @shop
+```
+
+The `-n` is the name of the module the model belongs to, and `-t` is the base model it extends. The
+files land under that module, in `models/service/`.
+
+## The serialized shape
+
+A model is written to `.octo/models.json` and read back on the next run, and the schema is what
+crosses that boundary.
+
+```typescript title="models/service/shop-queue-service.schema.ts"
+import { Schema, ServiceSchema, Validate } from '@quadnix/octo';
+
+export class ShopQueueServiceSchema extends ServiceSchema {
+  @Validate({ options: { minLength: 1 } })
+  queueName = Schema<string>();
+}
+```
+
+Extend the base model's schema, and add only what your model holds beyond it. `ServiceSchema`
+already carries `serviceId`, so the queue adds one field.
+
+Keep this small. Every field here is state you are promising to be able to read back, and a field
+you add today is a field that has to keep deserializing for as long as anybody has state containing
+it.
+
+## The model
+
+```typescript title="models/service/shop-queue-service.model.ts"
+import { Model, Service } from '@quadnix/octo';
+import { ShopQueueServiceSchema } from './shop-queue-service.schema.js';
+
+@Model<ShopQueueService>('@shop', 'service', ShopQueueServiceSchema)
+export class ShopQueueService extends Service {
+  readonly queueName: string;
+
+  constructor (queueName: string) {
+    super(`${queueName}-queue`);
+
+    this.queueName = queueName;
+  }
+
+  static override async unSynth (service: ShopQueueServiceSchema): Promise<ShopQueueService> {
+    return new ShopQueueService(service.queueName);
+  }
+
+  override synth (): ShopQueueServiceSchema {
+    return {
+      queueName: this.queueName,
+      serviceId: this.serviceId,
+    };
+  }
+}
+```
+
+The decorator takes three things: your package name, the node name, and the schema. The node name is
+`'service'`, the same as the base model, and it has to be. That string is what everything else
+matches on, so an `AwsS3StorageService` and a `ShopQueueService` are both `service` to a module that
+wants one. Change it and you have invented a thirteenth model type that nothing knows how to handle.
+
+`synth()` and `unSynth()` are the two halves of serialization, and the rule is that
+`unSynth(synth(x))` has to give you back something equivalent to `x`. The constructor derives the
+service ID from the queue name, so `shop-orders` becomes `service=shop-orders-queue,app=shop`, and
+that is the context the reports print.
+
+Nothing here knows what SQS is. The model says a queue exists and what it is called; what that means
+in AWS is the [action's](/docs/fundamentals/actions) business.
+
+## Deriving the ID
+
+The one decision on this page with lasting consequences. A model's context is derived from its ID
+and its position in the graph, and Octo uses that context as identity everywhere.
+
+```typescript
+super(`${queueName}-queue`);
+```
+
+Derive it from an input, so that two instances of the module do not collide. Derive it from an input
+that does not move, because changing it means Octo sees one model gone and another arrived, and for
+a queue that means the messages in it. A name is a good source; a timestamp, a hash of the whole
+configuration, or anything looked up from the cloud is not.
+
+## Behaviour on the model
+
+A model can do more than hold fields. Adding a method that maintains an invariant is often better
+than making the module do it, because the model is the thing that gets deserialized and the module
+is not. Our S3 storage model does this for directories:
+
+```typescript
+addDirectory(remoteDirectoryPath
+:
+string
+):
+void {
+  if (this.directories.find((d) => d.remoteDirectoryPath === remoteDirectoryPath)
+)
+{
+  throw new ModelError('Remote directory already added in S3 bucket!', this);
+}
+
+const remoteDirectoryPathHash = CommonUtility.hash(remoteDirectoryPath).substring(0, 12);
+const directoryAnchorName = `AwsS3StorageServiceDirectoryAnchor-${remoteDirectoryPathHash}`;
+this.addAnchor(new AwsS3StorageServiceDirectoryAnchor(directoryAnchorName,
+  { bucketName: this.bucketName, remoteDirectoryPath }, this));
+
+this.directories.push({ directoryAnchorName, remoteDirectoryPath });
+}
+```
+
+One call, and the model stays consistent: the list and the anchor cannot disagree, and adding the
+same directory twice is an error rather than a silent duplicate.
+
+## Where it attaches
+
+A model has to be attached to the graph, and where it can attach is fixed by the base model you
+extended. A service hangs off the app; a region off an account; a subnet off a region.
+
+```typescript
+app.addService(queueService);
+```
+
+Get this from the parent, not by constructing edges by hand. `addService` creates the
+[dependency](/docs/fundamentals/dependencies) in both directions with the right ordering rules
+already on it.

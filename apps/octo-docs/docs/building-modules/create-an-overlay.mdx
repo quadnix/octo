@@ -1,0 +1,190 @@
+---
+title: Create an Overlay
+---
+
+The shop wants checkout to publish onto the order queue. That fact is about two models, and it sits
+comfortably on neither: put it on the server and servers know about queues, put it on the queue and
+queues know about IAM roles. An [overlay](/docs/fundamentals/overlays) is the node for facts like
+that.
+
+The clearest way to learn one is to read a working one, so this page walks through
+`AwsEcsServerS3AccessOverlay` from `@quadnix/octo-aws-cdk`. It is the overlay behind the grant in
+[Shop Stack](/docs/getting-started/shop-stack), which gave checkout read and write access to the
+receipts bucket. A queue access overlay has exactly this shape.
+
+```bash
+octo create-overlay -n shop-queue-service --overlay shop-queue-access -t service --package @shop
+```
+
+`-n` is the module the overlay lives inside; `--overlay` is the overlay's own name. Overlays belong
+to a module because a module is what builds them.
+
+## The schema
+
+```typescript
+export class AwsEcsServerS3AccessOverlaySchema extends BaseOverlaySchema {
+  @Validate({
+    destruct: (value: AwsEcsServerS3AccessOverlaySchema['properties']): string[] => [
+      String(value.allowRead),
+      String(value.allowWrite),
+      value.bucketName,
+      value.iamRoleName,
+      value.iamRolePolicyId,
+      value.remoteDirectoryPath,
+    ],
+    options: { minLength: 1 },
+  })
+  override properties = Schema<{
+    allowRead: boolean;
+    allowWrite: boolean;
+    bucketName: string;
+    iamRoleName: string;
+    iamRolePolicyId: string;
+    remoteDirectoryPath: string;
+  }>();
+}
+```
+
+The properties are the relationship and nothing else. No model, no resource, no class from either
+side: an overlay is serialized and read back like any other node, so what it holds has to be plain
+data.
+
+## The class
+
+```typescript
+
+@Overlay('@octo', 'aws-ecs-server-s3-access-overlay', AwsEcsServerS3AccessOverlaySchema)
+export class AwsEcsServerS3AccessOverlay extends AOverlay<
+  AwsEcsServerS3AccessOverlaySchema,
+  AwsEcsServerS3AccessOverlay
+> {
+  declare anchors: [AwsIamRoleAnchor, MatchingAnchor<AwsS3StorageServiceDirectoryAnchorSchema>];
+  declare properties: AwsEcsServerS3AccessOverlaySchema['properties'];
+
+  override async diffAnchors (): Promise<Diff[]> {
+    return [];
+  }
+}
+```
+
+The `anchors` declaration is the interesting line. This overlay joins exactly two, in a fixed order,
+and declaring them as a tuple is how the action can index into them safely.
+
+One is a class, `AwsIamRoleAnchor`, because the server module owns both the overlay and that anchor.
+The other is a `MatchingAnchor<...Schema>`, because it came from somewhere else and was found by
+matching a shape. That is the difference in a nutshell: use the class when you built it, and the
+schema when somebody else did.
+
+## Building it
+
+In the module, once both anchors are in hand:
+
+```typescript
+const overlayIdSuffix = CommonUtility.hash(
+  iamRoleAnchor.anchorId,
+  directory.remoteDirectoryPath,
+  directory.access,
+).substring(0, 12);
+const overlayId = `aws-ecs-server-s3-access-overlay-${overlayIdSuffix}`;
+
+const serverS3AccessOverlay = new AwsEcsServerS3AccessOverlay(
+  overlayId,
+  {
+    allowRead,
+    allowWrite,
+    bucketName: s3DirectoryAnchor.getSchemaInstance().properties.bucketName,
+    iamRoleName: iamRoleAnchor.properties.iamRoleName,
+    iamRolePolicyId: overlayId,
+    remoteDirectoryPath: directory.remoteDirectoryPath,
+  },
+  [iamRoleAnchor, s3DirectoryAnchor],
+);
+```
+
+Then return it from `onInit` along with everything else the module built.
+
+The overlay ID has to be the same on every run for the same relationship, or Octo sees the old one
+deleted and a new one created. Hashing the inputs that define the relationship is how that is done
+here, and it has a consequence worth choosing on purpose: `access` is part of the hash, so narrowing
+`READ_WRITE` to `READ` produces a different overlay, and therefore a different IAM policy. The old
+policy goes and a new one arrives, rather than a policy quietly changing meaning under a name that
+stayed the same.
+
+Adding the anchors also creates the [dependency](/docs/fundamentals/dependencies) edges, so the
+overlay depends on both parent models and disappears when either does. An overlay cannot hold an
+anchor of its own; Octo throws on a node pointing at itself.
+
+## The action
+
+An overlay is diffed like any other node, and its action says what the relationship costs:
+
+```typescript
+
+@Action(AwsEcsServerS3AccessOverlay)
+export class AddAwsEcsServerS3AccessOverlayAction implements IModelAction<AwsEcsServerModule> {
+  filter (diff: Diff): boolean {
+    return (
+      diff.action === DiffAction.ADD &&
+      diff.node instanceof AwsEcsServerS3AccessOverlay &&
+      hasNodeName(diff.node, 'aws-ecs-server-s3-access-overlay') &&
+      diff.field === 'overlayId'
+    );
+  }
+
+  async handle (diff, actionInputs, actionOutputs): Promise<ActionOutputs> {
+    const properties = diff.node.properties;
+
+    const iamRole = actionInputs.resources[`iam-role-${properties.iamRoleName}`] as IamRole;
+    iamRole.addS3BucketPolicy(properties.iamRolePolicyId, properties.bucketName,
+      properties.remoteDirectoryPath,
+      { allowRead: properties.allowRead, allowWrite: properties.allowWrite });
+
+    const s3DirectoryAnchor = diff.node.anchors[1];
+    const s3StorageService = s3DirectoryAnchor.getActual().getParent();
+    const [matchingS3StorageResource] = await s3StorageService.getResourcesMatchingSchema(
+      S3StorageSchema, [], [], { searchBoundaryMembers: false },
+    );
+    if (!matchingS3StorageResource) {
+      throw new OverlayActionExceptionTransactionError(
+        `Bucket "${properties.bucketName}" not found!`, diff, this.constructor.name,
+      );
+    }
+
+    (matchingS3StorageResource.getActual() as S3Storage).addPermission(
+      new MatchingResource(iamRole), properties.remoteDirectoryPath,
+      { allowRead: properties.allowRead, allowWrite: properties.allowWrite },
+    );
+
+    actionOutputs[iamRole.resourceId] = iamRole;
+    actionOutputs[matchingS3StorageResource.getActual().resourceId] = matchingS3StorageResource.getActual();
+    return actionOutputs;
+  }
+}
+```
+
+Note the two ways it reaches a resource. The IAM role came from the same module, so it is in
+`actionInputs.resources` under the ID the server's own action gave it. The bucket came from a
+different module, so it is found by walking from the anchor to its parent model and asking for a
+resource matching `S3StorageSchema`. That second path is how one module changes another module's
+resource without importing its classes.
+
+Both resources go into `actionOutputs`. That is what puts the bucket policy in the receipts folder
+and the IAM policy in the checkout folder, from one request.
+
+## Modifying rather than creating
+
+An overlay action often does what this one does: reach existing resources and change them, rather
+than declare new ones. That is normal, and it is why an overlay's action is usually the shortest
+file in a module and the one that carries the most meaning.
+
+Note also the failure: `OverlayActionExceptionTransactionError` when the bucket cannot be found.
+Throwing carries the diff into the error, so the message names the node and field, rather than
+producing a policy that points at nothing.
+
+## When not to write one
+
+Only for facts that genuinely span two models. A property of one model with extra configuration is a
+property, and an overlay with one anchor is a node with no reason to exist.
+
+The test worth applying: would putting this on either model teach that model something it should not
+know? If yes, it is an overlay. If no, it is a field.

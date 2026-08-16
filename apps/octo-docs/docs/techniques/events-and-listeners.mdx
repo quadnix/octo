@@ -1,0 +1,118 @@
+---
+title: Events and Listeners
+---
+
+Every infrastructure tool eventually gets a request it was not designed for. Post the plan to Slack.
+Write an audit record of who deployed what. Fail the build if anything is being destroyed on a
+Friday. The usual answer is a wrapper script that parses the tool's output, which breaks the next
+time the output changes.
+
+Octo narrates its whole run as **events**. Everything you have read in a terminal is a listener
+subscribed to that stream, and the stream is public. Nothing in the framework has to change for you
+to build on it.
+
+## Listening
+
+```typescript
+import { Factory, OnEvent, TerraformFoldersWrittenEvent } from '@quadnix/octo';
+
+export class ShopAuditListener {
+  @OnEvent(TerraformFoldersWrittenEvent)
+  onFoldersWritten (event: TerraformFoldersWrittenEvent): void {
+    console.error(`wrote ${event.payload.written.length} folders to ${event.payload.outputDir}`);
+  }
+}
+
+@Factory<ShopAuditListener>(ShopAuditListener)
+export class ShopAuditListenerFactory {
+  private static instance: ShopAuditListener;
+
+  static async create (): Promise<ShopAuditListener> {
+    this.instance ??= new ShopAuditListener();
+    return this.instance;
+  }
+}
+```
+
+A handler receives every event that is an instance of the type you named, which means subscribing to
+a base class catches all of its subclasses. `@OnEvent(TransactionEvent)` catches every transaction
+event there is, and `@OnEvent(Event)` catches everything Octo emits.
+
+Handlers can be synchronous or async. The listener class is resolved through Octo's container, so it
+needs a `@Factory` alongside it.
+
+## The stream
+
+Forty-five event classes, in eight families. You rarely want a specific one; you want a family.
+
+| Family               | Emitted when                                                                                                                       |
+|----------------------|------------------------------------------------------------------------------------------------------------------------------------|
+| `ModeEvent`          | A lifecycle step starts, finishes, or fails. `ModeStartedEvent`, `ModeFinishedEvent`, `ModeFailedEvent`.                           |
+| `ModeResultEvent`    | A mode has a verdict. `ValidateModeCompletedEvent` carries the whole report; `CommitModeCompletedEvent` carries what was recorded. |
+| `TransactionEvent`   | The graph is being diffed and actions are running. Model diffs, resource diffs, each action.                                       |
+| `RegistrationEvent`  | A model, resource, anchor, overlay, or action registered itself at boot.                                                           |
+| `SerializationEvent` | State was written or read.                                                                                                         |
+| `TerraformEvent`     | A Terraform command started or finished, and the folders were written.                                                             |
+| `HookEvent`          | A hook callback ran.                                                                                                               |
+| `ModuleEvent`        | A module's `onInit()` ran, carrying the module's name.                                                                             |
+
+Two are worth knowing by name. `ValidateModeCompletedEvent` carries the full validate report, which
+is what you want for posting a summary onto a pull request. `ModeFinishedEvent` carries the mode and
+its duration, and is emitted with `emitAndWait`, so a listener that writes a file finishes before
+the process moves on.
+
+## Registering a listener
+
+From the definition file, for the two Octo ships:
+
+```yaml
+settings:
+  listeners:
+    - type: HtmlReportEventListener
+      reportDir: .octo/reports
+    - type: LoggingEventListener
+      level: info
+```
+
+`LoggingEventListener` is the terminal output. `HtmlReportEventListener` writes each run as a
+browsable page plus the same report as JSON, and maintains an index of runs.
+
+A listener of your own is registered at boot, which means driving Octo from TypeScript:
+
+```typescript
+await octo.initialize(stateProvider, [{ type: ShopAuditListener }]);
+```
+
+There is no way to name your own listener class from `octo.yaml` today; the definition file's
+`listeners` block accepts the two built-in types only.
+
+## Emitting your own
+
+```typescript
+const event = new Event<{ value: string }>('deploy approved', { value: approver });
+EventService.getInstance().emit(event);
+```
+
+Useful from inside a module or an action when something happens that your own listeners should react
+to, and it costs nothing when nobody is listening.
+
+## What to build on it
+
+The three that come up most, and what each needs.
+
+**A pull request comment.** Listen for `ValidateModeCompletedEvent`, take `event.payload.report`,
+and post it. The JSON the HTML listener writes alongside each page is the same data if you would
+rather parse a file than write a listener.
+
+**An audit trail.** Listen for `ModeFinishedEvent` and `ModeFailedEvent`. Between them you get the
+app, the mode, the duration, and the error, on every run.
+
+**A gate.** A listener cannot stop a run; it observes. To refuse a change, use a
+[hook](/docs/techniques/hooks), which sits in the call path and can throw.
+
+## Writing to the right stream
+
+If you print, print to stderr. Octo's logging listener owns stdout, and it flushes independently of
+`console.log`, so anything written to stdout alongside it lands out of order. Some commands rely on
+stdout carrying only their own output: `octo run-action` is read by Terraform as JSON, and Octo
+routes its own listeners to stderr for that reason.

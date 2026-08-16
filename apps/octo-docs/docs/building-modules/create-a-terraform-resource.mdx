@@ -1,0 +1,230 @@
+---
+title: Create a Terraform Resource
+---
+
+Modules, models, and anchors are all descriptions of intent, and intent is forgiving: a name that
+reads oddly still works. A resource is not forgiving. It has to match what a provider actually does,
+including which arguments cannot be changed in place, which values only exist after an apply, and
+what another resource can safely reference before this one has ever been created.
+
+This page writes `ShopQueue`, the SQS queue behind the shop's order queue service. It is a Terraform
+resource, meaning Terraform owns its lifecycle and Octo only writes the configuration and reads the
+outcome. That is what almost every resource should be; the [external
+kind](/docs/building-modules/create-an-external-resource) is an escape hatch.
+
+```bash
+octo create-terraform-resource -n shop-queue --package @shop
+```
+
+## The schema
+
+```typescript title="src/resources/shop-queue/index.schema.ts"
+export class ShopQueueSchema extends BaseResourceSchema {
+  @Validate({
+    destruct: (value: ShopQueueSchema['properties']): string[] => [
+      value.awsAccountId,
+      value.awsRegionId,
+      value.queueName,
+    ],
+    options: { minLength: 1 },
+  })
+  override properties = Schema<{
+    awsAccountId: string;
+    awsRegionId: string;
+    messageRetentionSeconds: number;
+    queueName: string;
+  }>();
+
+  @Validate({
+    destruct: (value: ShopQueueSchema['response']): string[] => {
+      const subjects: string[] = [];
+      if (value.Arn) {
+        subjects.push(value.Arn);
+      }
+      if (value.Url) {
+        subjects.push(value.Url);
+      }
+      return subjects;
+    },
+    options: { minLength: 1 },
+  })
+  override response = Schema<{
+    Arn?: string;
+    Url?: string;
+  }>({
+    Arn: 'arn:aws:sqs:eu-west-1:000000000000:mock-queue',
+    Url: 'https://sqs.eu-west-1.amazonaws.com/000000000000/mock-queue',
+  });
+}
+```
+
+`properties` is the desired configuration. It carries the account and region because that is how a
+resource binds to a provider, and that pair is on nearly every resource for the same reason.
+
+`response` is what exists only after an apply, and every key here has to be emitted as a Terraform
+output by `toHCL()` below. A key declared and not emitted makes `octo commit` throw `missing
+terraform outputs` after a real apply, which is the most expensive place to find out.
+
+:::info[The response defaults are not decoration]
+The values passed to `Schema<...>()` become the Terragrunt `mock_outputs` a consumer plans against
+before this resource exists. Somebody else's `terraform plan` runs the provider's own parsing over
+them, so make each one a syntactically valid example of the real thing: a plausible ARN, a plausible
+URL. Without a default the mock falls back to the literal `mock-<outputName>`, and any consumer
+whose argument must parse as an ARN fails to plan.
+:::
+
+## The resource
+
+```typescript title="src/resources/shop-queue/shop-queue.resource.ts"
+
+@Resource<ShopQueue>('@shop', 'shop-queue', ShopQueueSchema)
+export class ShopQueue extends ATerraformResource<ShopQueueSchema, ShopQueue> {
+  declare properties: ShopQueueSchema['properties'];
+  declare response: ShopQueueSchema['response'];
+
+  constructor (resourceId: string, properties: ShopQueueSchema['properties']) {
+    super(resourceId, properties, []);
+  }
+
+  override async toHCL (terraform: TerraformModuleScope): Promise<void> {
+    const octoResource = terraform.addOctoTerraformResource(this as ShopQueue, {
+      provider: { accountId: this.properties.awsAccountId, regionId: this.properties.awsRegionId },
+    });
+
+    const queue = octoResource.addTerraformResource('aws_sqs_queue', this.resourceId, {
+      message_retention_seconds: this.properties.messageRetentionSeconds,
+      name: this.properties.queueName,
+    });
+
+    octoResource.output({
+      Arn: terraform.raw(`${queue.address}.arn`),
+      Url: terraform.raw(`${queue.address}.url`),
+    });
+
+    if (Object.keys(this.tags).length > 0) {
+      queue.attribute('tags', this.tags);
+    }
+  }
+}
+```
+
+Which produces exactly this:
+
+```hcl title=".octo-tf/orders-queue-module/main.tf"
+resource "aws_sqs_queue" "queue-shop-orders" {
+  provider = aws._123456789012-eu-west-1
+  message_retention_seconds = 86400
+  name = "shop-orders"
+}
+```
+
+```hcl title=".octo-tf/orders-queue-module/outputs.tf"
+output "queue-shop-orders-Arn" {
+  value = aws_sqs_queue.queue-shop-orders.arn
+}
+
+output "queue-shop-orders-Url" {
+  value = aws_sqs_queue.queue-shop-orders.url
+}
+```
+
+The `as ShopQueue` cast on the first line is doing real work. Without it `this` stays polymorphic,
+the scope's response type resolves against `this` rather than against the schema, and `output()`
+stops typechecking.
+
+`addOctoTerraformResource` can be called once, and `addTerraformResource` as many times as the
+resource needs; several calls chain with `depends_on` in call order, which is how one Octo resource
+becomes a role plus two policy attachments. The last two lines are how a resource opts in to
+[tagging](/docs/using-octo/tagging-resources), and every resource in `@quadnix/octo-aws-cdk` has
+them.
+
+## Saying what a change costs
+
+The default assumption is that a property change is an in-place update, and that assumption is wrong
+for anything a provider marks force-new. Terraform would recreate the queue while Octo reported an
+update, and `octo validate` would show the recreate with nothing to explain it.
+
+```typescript
+override
+async
+diffProperties(previous
+:
+ShopQueue
+):
+Promise < Diff[] > {
+  if (previous.properties.queueName !== this.properties.queueName
+)
+{
+  return [
+    new Diff(this, DiffAction.REPLACE, 'resourceId', this.getContext(),
+      'name is force-new on aws_sqs_queue; a change recreates the queue and loses its messages'),
+  ];
+}
+
+if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties)) {
+  return [new Diff(this, DiffAction.UPDATE, 'properties', this.properties)];
+}
+
+return [];
+}
+```
+
+Two comparisons, because two of these properties behave differently. Renaming the queue destroys it;
+changing the retention does not. Saying which is which is the whole job of this method, and the
+reason string is what a reviewer reads:
+
+```text
+      ± vpc-eu-west-1
+          why: cidr_block is force-new on aws_vpc; a change recreates the VPC
+```
+
+Go through the provider documentation for your resource type and list its force-new arguments. This
+is tedious and it is the single most valuable thing in the class.
+
+## Referencing another resource
+
+Never write a Terraform address by hand. Ask for a reference:
+
+```typescript
+const roleArn = terraform.getRef(this.parents[0], 'Arn');
+```
+
+`getRef` resolves late, when Octo knows which folder each resource landed in. Same folder, and it
+renders as a native expression. Different folder, and it renders as `var.iam_role_..._Arn`, and Octo
+writes the `variable` block, the `output` block on the other side, the Terragrunt `dependency`, and
+the `inputs` wiring. That is the mechanism behind the two folders in [Shop
+Stack](/docs/getting-started/shop-stack), and it is why you cannot write the address yourself: at
+the point you would write it, the answer is not known.
+
+## The rest of the scope
+
+|                                                      |                                                                         |
+|------------------------------------------------------|-------------------------------------------------------------------------|
+| `terraform.raw(expr)`                                | An HCL expression to emit unquoted, such as `${address}.arn`.           |
+| `terraform.jsonencode(obj)`                          | Wraps a value in `jsonencode(...)`. Policy documents.                   |
+| `terraform.mapAttr(obj)`                             | A map attribute, `key = { }`, as opposed to a block.                    |
+| `terraform.getProviderAliasRef(accountId, regionId)` | The provider expression, when a resource has to target a different one. |
+| `terraform.addTerraformData(type, name, spec)`       | A `data` block, for looking something up.                               |
+| `resource.block(type)`                               | A nested block inside a resource.                                       |
+| `resource.attribute(key, value)`                     | One argument.                                                           |
+
+The distinction that catches people is `mapAttr` against a plain object. A plain JS object in a spec
+becomes a block, with no `=`; `mapAttr` produces a map attribute, with one. Which of the two a
+provider wants is per argument, and the provider documentation is the only authority. Getting it
+wrong produces `Blocks of type "x" are not expected here` at plan time.
+
+## Checking it
+
+The generated folders are ordinary Terraform, so the fastest loop while writing a resource does not
+involve Octo at all:
+
+```bash
+npm run build && npm run octo:generate
+cd .octo-tf/orders-queue-module
+terraform init -backend=false
+terraform validate
+```
+
+That catches an argument name typo, a block that should have been a map, and a missing required
+argument, in seconds and without credentials. [Testing a
+Module](/docs/building-modules/testing-a-module) covers pinning the output down so it stays right.

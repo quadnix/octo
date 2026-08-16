@@ -1,0 +1,145 @@
+---
+title: Publishing a Library
+---
+
+The shop's queue module works, and the payments team wants one. Right now the only way they can have
+it is to copy the directory, which is the problem Octo exists to solve, transplanted one level up.
+
+Publishing turns it into something they install. It also turns your anchors into an API, and that is
+the part worth thinking about before the first release rather than after it.
+
+## The package
+
+An Octo library is an ordinary npm package with one requirement and one strong convention.
+
+```json title="package.json"
+{
+  "name": "@shop/octo-shop",
+  "type": "module",
+  "files": [
+    "dist",
+    "package.json"
+  ],
+  "dependencies": {
+    "@quadnix/octo": "~0.0.30"
+  },
+  "exports": {
+    "./modules/service/shop-queue-service": "./dist/modules/service/shop-queue-service/index.js",
+    "./modules/service/shop-queue-service/schema": "./dist/modules/service/shop-queue-service/index.schema.js",
+    "./anchors/shop-queue/schema": "./dist/anchors/shop/shop-queue.anchor.schema.js",
+    "./resources/shop-queue/schema": "./dist/resources/shop-queue/index.schema.js"
+  }
+}
+```
+
+`"type": "module"` is the requirement. Octo is ESM only.
+
+The convention is the shape of the `exports` map: one entry per module, per anchor schema, and per
+resource schema, rather than one barrel export. `@quadnix/octo-aws-cdk` publishes seventy-seven of
+them for nineteen modules, and the reason is that a consumer's definition file names one module by
+path:
+
+```yaml
+imports:
+  - className: ShopQueueServiceModule
+    importPath: "@shop/octo-shop/modules/service/shop-queue-service"
+```
+
+A single entry point would make every consumer load every module in your library at boot, and every
+decorator in it run.
+
+## What to export, and what not to
+
+| Export               | Because                                               |
+|----------------------|-------------------------------------------------------|
+| Module classes       | The definition file names them.                       |
+| Module input schemas | Consumers driving Octo from TypeScript need the type. |
+| Anchor schemas       | This is how other modules find your models.           |
+| Resource schemas     | This is how other modules find your resources.        |
+
+| Keep internal    | Because                                                     |
+|------------------|-------------------------------------------------------------|
+| Model classes    | A consumer importing one is coupled to your implementation. |
+| Resource classes | Same, and it invites somebody to construct one directly.    |
+| Actions          | Registered by their decorators. Nobody calls them.          |
+| Anchor classes   | Consumers match on the schema; only you construct them.     |
+
+The split is the same idea as anchors themselves. A schema is a shape you promise to keep; a class
+is how you happen to implement it this month.
+
+Mark internals with `@internal` in their JSDoc so they stay out of generated API documentation.
+
+## Naming
+
+The string in every decorator is your package name inside Octo:
+
+```typescript
+@Module<ShopQueueServiceModule>('@shop', ShopQueueServiceModuleSchema)
+@Model<ShopQueueService>('@shop', 'service', ShopQueueServiceSchema)
+@Resource<ShopQueue>('@shop', 'shop-queue', ShopQueueSchema)
+@Anchor('@shop')
+```
+
+Use one for the whole library, and pick it once. It appears in every resource context your library
+produces, so `@octo/s3-storage=bucket-shop-receipts` would become
+`@shop/shop-queue=queue-shop-orders` for yours. Those strings are in your users' state files, and
+changing the package name later invalidates every one of them.
+
+The npm package name and the Octo package name are independent, and there is no need for them to
+match.
+
+## Depending on Octo
+
+List `@quadnix/octo` as a normal dependency, pinned to a minor range, which is what
+`@quadnix/octo-aws-cdk` does. Octo is pre-1.0 and its container is a single global instance, so a
+consumer resolving two different copies of the framework gets constructs registered in one and
+looked up in the other, with symptoms that look nothing like a version conflict.
+
+If you build on top of another Octo library, for example your modules take a region from
+`@quadnix/octo-aws-cdk`, depend on it only for the anchor schema. Importing
+`@quadnix/octo-aws-cdk/anchors/aws-region/schema` costs your consumers nothing beyond a type.
+
+## Breaking changes
+
+Three things in your library are public whether you meant them to be, and each breaks consumers
+differently.
+
+**A module's input schema.** Removing an input, or making an optional one required, breaks every
+definition file that loads it. Adding an optional input is safe.
+
+**An anchor schema.** Removing a property or changing its type breaks every module that matched on
+it, and the failure is a lookup returning nothing rather than a compile error, which is worse.
+Adding a property is safe. When you have to change one, [schema
+translation](/docs/techniques/schema) is what keeps existing consumers working during the migration.
+
+**A resource ID.** This one does not look like an API and is the most expensive. Resource IDs derive
+from module inputs, and Octo uses them as identity, so changing how one is built means every
+existing user's next run destroys and recreates that infrastructure. Treat the derivation as frozen
+from the first release.
+
+## Documenting it
+
+Octo's own API documentation is generated from JSDoc, and the same works for a published library.
+The comments that pay for themselves are on the module class and the input schema, because those are
+what a consumer reads before deciding to use your module:
+
+```typescript
+/**
+ * `ShopQueueServiceModule` provides an SQS-backed implementation of the `Service` model.
+ *
+ * @example
+ * ```ts
+ * octo.loadModule(ShopQueueServiceModule, 'orders-queue-module', {
+ *   queueName: 'shop-orders',
+ *   region: myRegion,
+ * });
+ * ```
+
+*
+* @see {@link ShopQueueServiceModuleSchema} for the input schema.
+  */
+
+```
+
+One example that actually runs is worth more than a paragraph describing the inputs, which the
+schema already does.

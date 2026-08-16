@@ -2,120 +2,128 @@
 title: State Providers
 ---
 
-## Introduction
-In Octo, State Providers are special classes equipped to handle Octo states - such as persisting them,
-fetching them back to be passed to Octo program for `diffs`, and managing locks.
+Octo's [state](/docs/fundamentals/state) is three JSON files, and where they live decides who can
+run your infrastructure. On a laptop, one person can. In a repository, whoever has the repository
+can, as long as nobody runs two deploys at once. Neither is where a team ends up.
 
-Octo comes pre-bundled with many state providers, each with their own qualities.
-Or, you can create your own custom ones.
+A **state provider** is the seam. It is two methods, and implementing them puts state wherever your
+team already keeps things that matter.
 
-Some state providers are designed to work locally, and some manages the state remotely.
-It really depends on how you plan on using Octo in the long term.
+```typescript
+export interface IStateProvider {
+  getState (stateFileName: string): Promise<Buffer>;
 
-## State Management
-*Why state needs to be managed?*
-
-Octo does not have databases. Instead, it has states - files to keep track of infrastructure models and resources.
-After each run, Octo saves a full report of what it did, and what the state of your cloud infrastructure is.
-These files are referenced back on every subsequent runs for Octo to identify the infrastructure diff.
-
-```mermaid
-stateDiagram-v2
-  direction LR
-  
-  noState : No State Files
-  stateA: State A
-  stateB: State B
-  
-  [*] --> noState: Initial State
-  noState --> stateA: First Run
-  stateA --> stateB: Second Run
-  stateB --> [*]
+  saveState (stateFileName: string, data: Buffer): Promise<void>;
+}
 ```
 
-In a typical flow, you start with no states.
-The first time Octo runs, it will add new infrastructure resources and produce `State A`.
-When you run Octo the second time, it will take `State A`, generate new diffs, perform those actions,
-and will generate `State B`.
+Octo asks for a named blob and hands one back. It does not care what a file is, whether the store is
+transactional, or how it is encrypted.
 
-Naturally, Octo needs the state files to be persisted, and that is the job of a State Provider.
+## The three that ship
 
-## Types of State Providers
-States can be persisted in-memory, in local filesystems, remotely, in storage buckets like AWS S3, and so on.
-It does not matter to Octo how the state is persisted, as long as it gets the state before every run.
+```yaml title="octo.yaml"
+settings:
+  stateProvider:
+    type: LocalStateProvider
+    statePath: .octo
+```
 
-Without prior states, Octo will behave as if it is running for the first time, and it will try to
-add the same resources again and again in infrastructure, which is not good!
+`LocalStateProvider` writes plain JSON into a directory. Readable, diffable, and the right choice
+while you are learning.
 
-Octo comes pre-bundled with several state providers,
-- [TestStateProvider](/api/octo/class/TestStateProvider): A TestStateProvider stores the state in memory.
-It is typically used to write tests, and once the tests are done, the state is discarded.
-- [LocalStateProvider](/api/octo/class/LocalStateProvider): A LocalStateProvider stores the state in local filesystem.
-It is a very handy provider when experimenting with Octo locally.
-- [LocalEncryptionStateProvider](/api/octo/class/LocalEncryptionStateProvider): A LocalEncryptionStateProvider is
-very similar to the LocalStateProvider, with the only difference that it encrypts the state so that files can
-be committed to a version control system like GitHub.
+`LocalEncryptionStateProvider` writes the same files encrypted, with an `.enc` suffix, and takes an
+`encryptionKey`. The point is that the result is safe to commit, which gives a small team shared
+state with nothing to run:
 
-:::info
-We are in process of releasing a remote state provider - `OctoRemoteStateProvider` which will have the ability
-to save the state in Cloud. This feature will require you to create a new account in Octo UI.
+```yaml
+settings:
+  stateProvider:
+    type: LocalEncryptionStateProvider
+    encryptionKey: "${env.OCTO_STATE_ENCRYPTION_KEY}"
+    statePath: .octo
+```
+
+Keep the key out of the file. Declare it under `env` and let the shell supply it.
+
+`TestStateProvider` keeps everything in memory, and is what the test harness uses.
+
+## Writing one
+
+An S3 provider, which is what most teams want:
+
+```typescript
+import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { TransactionError, type IStateProvider } from '@quadnix/octo';
+
+export class S3StateProvider implements IStateProvider {
+  constructor (
+    private readonly client: S3Client,
+    private readonly bucket: string,
+    private readonly prefix: string,
+  ) {}
+
+  async getState (stateFileName: string): Promise<Buffer> {
+    try {
+      const response = await this.client.send(
+        new GetObjectCommand({ Bucket: this.bucket, Key: `${this.prefix}/${stateFileName}` }),
+      );
+      return Buffer.from(await response.Body!.transformToByteArray());
+    } catch (error) {
+      if (error.name === 'NoSuchKey') {
+        throw new TransactionError('No state found!');
+      }
+      throw error;
+    }
+  }
+
+  async saveState (stateFileName: string, data: Buffer): Promise<void> {
+    await this.client.send(
+      new PutObjectCommand({ Body: data, Bucket: this.bucket, Key: `${this.prefix}/${stateFileName}` }),
+    );
+  }
+}
+```
+
+One detail is not optional. When the state file does not exist, `getState` has to throw a
+`TransactionError` whose message is exactly `No state found!`. That is how Octo recognises a first
+run. Any other error, and a first run looks like a failure; no error at all, and Octo tries to parse
+nothing as a graph.
+
+Everything else is yours. The `prefix` above is what lets one bucket hold state for several
+definition files, which is the shape most teams want: one bucket, one prefix per app or per
+environment.
+
+Turn on versioning on that bucket. It is the cheapest recovery you will ever configure, and Octo's
+state is small.
+
+## Registering it
+
+```typescript
+const octo = new Octo();
+await octo.initialize(new S3StateProvider(new S3Client({}), 'shop-octo-state', 'staging'));
+```
+
+:::caution[Not available from the definition file]
+`settings.stateProvider` accepts the three built-in types and nothing else. A provider of your own
+means driving Octo from TypeScript rather than through the CLI.
+
+Until that changes, the practical middle ground for a team is `LocalStateProvider` with the state
+directory on shared storage, or `LocalEncryptionStateProvider` with the files committed to the
+repository.
 :::
 
-## Parallel Runs and Octo State
-As already discussed, Octo requires the previous state to build the new state.
+## What a provider does not do
 
-When multiple developers are making changes to infrastructure using Octo, e.g. merging of multiple pull requests,
-managing states gets very complicated.
-If multiple changes try to run at the same time, both might fetch the same state and interfere with one another.
-Instead of applying on top of each other, they will overwrite each other, and will most definitely corrupt the state.
+**It does not lock.** Octo asks for a blob and writes a blob. Two runs committing at the same time
+is a lost update with no error to tell you. If your store supports conditional writes, using them
+inside `saveState` is worth doing; otherwise, run the lifecycle from one place, which in practice
+means a pipeline.
 
-```mermaid
-stateDiagram-v2
-  direction LR
-  
-  stateA: State A
-  stateB: State B
-  stateC: State C
-  stateCorrupted: Corrupted State
-  
-  [*] --> stateA: Initial State
-  stateA --> stateB: Parallel Run 1
-  stateA --> stateC: Parallel Run 2
-  stateB --> stateCorrupted
-  stateC --> stateCorrupted
-  stateCorrupted --> [*]: Final state is corrupted.
-```
+**It does not hold Terraform's state.** That is separate, it lives in the generated folders, and it
+is configured through the `remote_state` block rather than here. [Project
+Structure](/docs/getting-started/project-structure#octo-tf) covers moving it somewhere durable,
+which you need to do as well.
 
-## State Locks
-To support multiple changes, state providers supports Locks.
-A lock allows only one Octo execution to take place at a time - the other executions wait for their turn.
-This keeps the flow of executions linear, and allows each change to be persisted in the state before another
-change can take place.
-
-```mermaid
-stateDiagram-v2
-  direction LR
-  
-  stateA: State A
-  stateB: State B
-  stateC: State C
-  
-  [*] --> stateA: Initial State
-  stateA --> stateB: Acquired Lock Before C
-  stateB --> stateC: Acquired Lock After B
-  stateC --> [*]: Final state is correct.
-```
-
-As you can imagine, just placing a lock is not enough.
-All Octo executions also needs to be able to detect a lock is in place, and have a mechanism to wait to acquire locks.
-This implies managing locks in a central location.
-
-When working with local state providers like `TestStateProvider`, `LocalStateProvider`,
-or `LocalEncryptionStateProvider`, it is not possible to place a lock in a central location.
-Thus, local state providers are only meant to work in environments where only one execution takes place at a time,
-e.g. in your local machine.
-
-To support real world scenarios, like infrastructure changes in multiple pull requests,
-you need to use a remote state provider, such as `OctoRemoteStateProvider`.
-These remote state providers can store the lock in cloud and can reliably implement wait mechanisms to enqueue
-subsequent Octo executions.
+**It does not version anything.** Octo writes each file whole, every time, and keeps no history. If
+you want to be able to go back, that is your store's job.

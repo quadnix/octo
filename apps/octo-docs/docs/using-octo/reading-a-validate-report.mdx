@@ -1,0 +1,243 @@
+---
+title: Reading a Validate Report
+---
+
+A Terraform plan answers one question well: which addresses will change. The two questions a
+reviewer actually has are different. Did the thing I asked for happen, and did anything else. A plan
+cannot answer the first, because it does not know what was asked; and it cannot answer the second,
+because every line in it looks the same whether somebody requested it or not.
+
+`octo validate` runs the plan and then reports it against your intent. This page is how to read what
+comes back.
+
+```bash
+npm run octo:validate
+```
+
+It creates nothing, and needs no permission to change anything. Run it as often as you like.
+
+## The shape of a report
+
+Every report has the same skeleton, and sections that have nothing to say are left out entirely.
+
+```text
+shop — octo validate — changes (approximate)      <- app, mode, outcome, confidence
+2026-08-19 01:38:21 UTC · 3ms octo · 9.7s terraform
+
+You added region=eu-west-1 (+1 other change).      <- the headline
+That creates 3 new things.
+- 0 destroy   ± 0 replace   + 3 create   ~ 0 update   <- the counters
+
+[a paragraph, when confidence is approximate]
+
+FAILURES — octo could not read these, so everything else is incomplete
+WHAT WILL CHANGE
+DRIFT — nothing in your intent explains this
+UNCERTAIN — planned against a placeholder, so not judged as drift
+NOTES
+```
+
+The outcome on the first line is one of `clean`, `changes`, `drift`, or `failed`, in increasing
+order of how much you should care. The counters use one symbol per kind, and they are ordered by how
+hard each is to undo:
+
+|     |                                                             |
+|-----|-------------------------------------------------------------|
+| `-` | destroy                                                     |
+| `±` | replace, meaning destroy and create                         |
+| `+` | create                                                      |
+| `~` | update in place                                             |
+| `?` | something Terraform reported that maps to none of the above |
+| `⚠` | drift                                                       |
+
+Drift and uncertain changes are deliberately kept out of the counters. Those count what your change
+does, and a change nobody made must not be attributed to you.
+
+## What will change
+
+This is the report the shop produced when checkout was given access to the receipts bucket:
+
+```text
+WHAT WILL CHANGE
+  + added server=checkout  [server=checkout,app=shop | checkout-server-module | +4]
+      + iam-role-ServerRole-checkout
+          + aws_iam_policy.iam-role-ServerRole-checkout_aws-ecs-server-s3-access-overlay-2bb8580c0e3c
+          + aws_iam_role_policy_attachment.iam-role-ServerRole-checkout_AmazonECSTaskExecutionRolePolicy
+          + aws_iam_role_policy_attachment.iam-role-ServerRole-checkout_aws-ecs-server-s3-access-overlay-2bb8580c0e3c_attach
+          + aws_iam_role.iam-role-ServerRole-checkout
+  + added service=shop-receipts-s3-storage  [service=shop-receipts-s3-storage,app=shop | receipts-module | +1]
+      + bucket-shop-receipts
+          + aws_s3_bucket_policy.bucket-shop-receipts-policy
+```
+
+Three levels, and each is one of Octo's three vocabularies.
+
+The **card heading** is a piece of your intent, with its full context, the module that owns it, and
+a tally of the Terraform changes underneath. Cards are ordered by how destructive they are, so
+anything being destroyed is at the top.
+
+The **middle line** is an Octo resource. `bucket-shop-receipts` is the record Octo keeps of that
+bucket, and `~` or `+` next to it says what is happening to the resource as a whole.
+
+The **indented lines** are Terraform addresses, which is what you would have read in a plan. Their
+symbols come from Terraform.
+
+So the second card reads: the receipts service, owned by `receipts-module`, has one Terraform change
+underneath it, and it is a bucket policy being created. That policy exists because checkout asked
+for access, which is on the card above.
+
+:::note[What the card verb means]
+A card headed `added` means that piece of intent is present in your definition file, not that it is
+new. Octo composes your intent from scratch on every run instead of diffing it against the last one,
+so anything still in your definition reads as added, and `removed` is reserved for a module you took
+out.
+
+What happens to your infrastructure is on the lines underneath. Read the symbols, not the verb.
+:::
+
+## When something is replaced
+
+Change the shop's `vpcCidrBlock` from `10.0.0.0/16` to `10.1.0.0/16` and the report changes shape:
+
+```text
+You added region=eu-west-1. That destroys or replaces 1 thing — check those before anything else.
+- 0 destroy   ± 1 replace   + 0 create   ~ 1 update
+
+WHAT WILL CHANGE
+  + added region=eu-west-1  [region=eu-west-1,account=123456789012,app=shop | region-module | ±1 ~1]
+      ± vpc-eu-west-1
+          why: cidr_block is force-new on aws_vpc; a change recreates the VPC
+          ± aws_vpc.vpc-eu-west-1
+              cidr_block: 10.0.0.0/16 → 10.1.0.0/16
+              id: vpc-01aab0789f6cac9e6 → (known after apply)
+              default_route_table_id: rtb-02b3d87f77dcd3cad → (known after apply)
+              ... 9 more attributes
+      ~ igw-eu-west-1
+          ~ aws_internet_gateway.igw-eu-west-1
+              vpc_id: vpc-01aab0789f6cac9e6 → (known after apply)
+```
+
+Three things in there a plan does not give you.
+
+The `why:` line is a sentence the resource's author wrote into the class, and it is why a report can
+explain a recreate rather than only display one. Somebody knew that `cidr_block` forces a new VPC on
+this provider, wrote it down once, and every reader of every future report gets it.
+
+The field lines say which argument moved. On a replace, that is the whole question: `cidr_block` is
+the one that caused it, and everything else is a consequence.
+
+And the internet gateway is in the report because the VPC's ID is about to change under it. Nothing
+in the definition file mentions the gateway; Octo attributes the change to the VPC whose identity
+moved, and shows it under the same card.
+
+Field values are rendered and truncated rather than dumped, and anything Terraform marked sensitive
+prints as `(sensitive)`. A report is meant to be read, not replayed.
+
+## Confidence
+
+The first line ends in `(exact)` or `(approximate)`, and it decides how much of the rest to trust.
+
+**Exact** means your intent did not change on this run. Every folder plans against real state,
+nothing is a placeholder, and anything Terraform wants to do is therefore something the world did
+without you. Drift detection is reliable here.
+
+**Approximate** means your intent did change, and the report says so:
+
+```text
+Your intent changed, so each folder was planned on its own against its dependencies' last
+applied outputs. A cross-folder consequence of this change is invisible until apply. This
+report can both understate what apply will do and overstate drift.
+```
+
+The reason is in the shop's own generated Terragrunt. When the receipts folder is planned before
+checkout's role exists, it plans against a placeholder:
+
+```hcl
+mock_outputs = {
+  "iam-role-ServerRole-checkout-Arn" = "arn:aws:iam::000000000000:role/mock-role"
+}
+```
+
+The bucket policy in that plan names a role that does not exist yet. The plan is still worth
+reading, but it is not the last word.
+
+The practical habit that follows: apply, commit, then run validate again. The second one is exact,
+and it is the one that tells you whether anything is out of place.
+
+## Drift
+
+Drift is a Terraform change that nothing in your intent explains. This is the shop's, after somebody
+widened the receipts bucket policy by hand in the console:
+
+```text
+shop — octo validate — drift (exact)
+
+1 change to your infrastructure is not explained by anything in your intent — start there.
+- 0 destroy   ± 0 replace   + 0 create   ~ 0 update   ⚠ 1 drift
+
+WHAT WILL CHANGE
+  nothing
+
+DRIFT — nothing in your intent explains this
+  ~ aws_s3_bucket_policy.bucket-shop-receipts-policy  [receipts-module]
+  Your infrastructure no longer matches your intent, and nothing you changed explains it.
+    → run apply to bring it back in line with your intent, or
+    → change intent to accept reality, then generate + apply
+```
+
+Nothing changed in `octo.yaml`, so there is nothing under "what will change", and Terraform still
+wants to update that policy. The only explanation is that the policy in AWS is not the one Octo
+generated.
+
+The mechanism is the mapping Octo records at commit: every Terraform address it produces is listed
+against the resource that produces it. An address Terraform wants to change that appears in none of
+those lists came from somewhere else.
+
+Both suggested fixes are real choices. Applying reverts the console change. Changing intent means
+finding the module input that would produce what is now there, which is the right answer when the
+console change was correct and the definition file is what is out of date.
+
+Drift on an approximate report is worth less, for the reason above. Fix your intent first, get to
+exact, then look again.
+
+## Uncertain
+
+```text
+UNCERTAIN — planned against a placeholder, so not judged as drift
+```
+
+A change planned against a `mock_outputs` value, where the difference may be the placeholder rather
+than reality. These are reported separately and never counted as drift, because accusing somebody of
+an unexplained change on the strength of a mock is worse than saying nothing. They usually disappear
+on the next exact run.
+
+## Failures
+
+```text
+FAILURES — octo could not read these, so everything else is incomplete
+```
+
+A folder Terraform could not plan. This is the only outcome that exits non-zero, printing
+`Validation could not complete!` on stderr, and the reason is simple: validate cannot report on
+something it could not read, so the whole report is incomplete rather than only that folder.
+
+Everything else, drift included, exits zero. A report is a report, not a gate. What you build on top
+of it is your pipeline's decision.
+
+Notes are the opposite end: observations that judge nothing, such as a folder in the output
+directory that Octo does not track.
+
+## The HTML report
+
+If your definition file registers `HtmlReportEventListener`, each run also writes a browsable page:
+
+```text
+.octo/reports/
+├── 20260819T015404-commit.html
+├── 20260819T015404-commit.json
+└── index.html
+```
+
+`index.html` lists the runs, newest first. The JSON alongside each page is the same report as data,
+which is what to parse if you want to post a summary onto a pull request. These are output, not
+state, and the scaffolded `.gitignore` excludes them.

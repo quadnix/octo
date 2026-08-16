@@ -175,14 +175,15 @@ Now for the exciting part - let's deploy your complete ECS infrastructure!
 This is where Octo really shows its power in orchestrating complex multiservice architectures.
 Open the terminal again and run the `octo` command.
 ```bash
-# First create a lock.
-node_modules/.bin/octo state lock -d octo.yaml
+# 1. Generate the terragrunt module folders from your intent.
+npm run octo:generate
 
-# Then copy the lock output, a random unique string, and run the app with the lock ID.
-OCTO_APP_LOCK_ID=<lock_id> node_modules/.bin/octo run -d octo.yaml
+# 2. (optional) Plan them, and read what Octo is about to do.
+npm run octo:validate
 
-# Lastly, unlock the app.
-node_modules/.bin/octo state unlock <lock_id> -d octo.yaml
+# 3. Apply, then record the result back into Octo's state.
+npm run octo:apply
+npm run octo:commit
 ```
 
 Sit back and watch the magic happen! Octo will create:
@@ -306,14 +307,11 @@ modules:
 
 Then re-run the deploy steps.
 ```bash
-# First create a lock.
-node_modules/.bin/octo state lock -d octo.yaml
+npm run octo:generate
 
-# Then copy the lock output, a random unique string, and run the app with the lock ID.
-OCTO_APP_LOCK_ID=<lock_id> node_modules/.bin/octo run -d octo.yaml
-
-# Lastly, unlock the app.
-node_modules/.bin/octo state unlock <lock_id> -d octo.yaml
+# `octo apply` refuses to destroy anything without --auto-approve.
+npm run octo:apply -- --auto-approve
+npm run octo:commit
 ```
 
 Finally, delete your project directory.

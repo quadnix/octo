@@ -2,153 +2,186 @@
 title: Resources
 ---
 
-## Introduction
-In Octo, a resource represents a true underlying infrastructure component.
-It is the decay of Models into individual infrastructure components.
+A Terraform plan tells you that `aws_s3_bucket_policy.bucket-shop-receipts-policy` will be created.
+It cannot tell you which request that policy answers, because by the time Terraform sees it, the
+request is gone: somebody translated "checkout needs the receipts" into HCL months ago and the
+translation is all that survived.
 
-:::note
-The base generic `octo` library does not expose any resources. It only defines the base models and their relationships.
-Resources come from an implementation of the `octo` library for a specific cloud provider,
-such as `octo-aws-cdk` for AWS. A few of octo-aws-cdk's exposed resources are shown below.
-:::
+A **resource** is Octo's record of one piece of cloud infrastructure, and it exists so that the
+translation does not get thrown away. Where a [model](/docs/fundamentals/models) says what you want,
+a resource says what exists, and Octo keeps the link between the two. That link is why the validate
+report for the shop can print the bucket policy underneath the server that asked for it.
 
-Like models, resources are designed to be simple and hierarchical.
-They inherit context from models and capture the lower-level details of an infrastructure component.
-
-## Resources in octo-aws-cdk
-Below is a partial internal representation of how some of the resources in `octo-aws-cdk` are interconnected.
-
-This is just an example though. The real implementation exists in the library, with many more resources,
-and many more relationships, which is not feasible to show here.
-The intention here is to show how resources look like, and how they might be connected to each other.
+Here is the shop with both halves shown. On the left is what somebody wrote; on the right is what
+Octo derived, and what actually costs money.
 
 ```mermaid
-graph TD;
-    codebuild((Code <br/> Build))
-    ecr((ECR))
-    ecs_cluster((ECS <br/> Cluster))
-    ecs_service((ECS <br/> Service))
-    ecs_td((ECS TD))
-    efs((EFS))
-    iam((IAM))
-    ig((Internet <br/> Gateway))
-    nacl((NACL))
-    rt((Route <br/> Table))
-    s3((S3))
-    sg((Security <br/> Group))
-    subnet((Subnet))
-    vpc((VPC))
-
-    vpc --> ig;
-    vpc --> subnet;
-    vpc --> rt;
-    vpc --> nacl;
-    vpc --> sg;
-    ecr --> ecs_td;
-    efs --> ecs_td;
-    iam --> ecs_td;
-    ecs_cluster --> ecs_service;
-    ecs_td --> ecs_service;
-    subnet --> ecs_service;
-    sg --> ecs_service;
-```
-
-Each model nodes previously discussed, can output one or more of such resources.
-The precise relationship between a model and its resources is what makes up the model's definition and its actions.
-
-## Model-Resource Relationship
-Infrastructure-as-Code (IaC) tools exist to provision and manage infrastructure resources.
-Traditional IaC tools expose developers directly to low-level resources,
-for example, defining a VPC, an Internet Gateway, and subnets individually.
-
-Octo instead, as you already know, uses Models for encapsulation, which abstracts these raw resources.
-For instance, instead of setting up individual networking resources, you think of a Region model.
-
-A Model defines a logical grouping of infrastructure and governs its lifecycle.
-It uses `Actions` to create, update, replace, and delete these resources.
-The diagram below illustrates how models produce resources through actions.
-```mermaid
-graph LR;
-    model1((Model 1))
-    model2((Model 2))
-    resource1((Resource 1))
-    resource2((Resource 2))
-    resource3((Resource 3))
-
-    subgraph models [ ]
-        model1
-        model2
+graph LR
+;
+    subgraph intent["models, written by you"]
+        direction TB;
+        region["region<br/>eu-west-1"];
+        service["service<br/>receipts storage"];
+        server["server<br/>checkout"];
     end
 
-    subgraph resources [ ]
-        resource1
-        resource2
-        resource3
+    subgraph derived["resources, derived by Octo"]
+        direction TB;
+        vpc["Vpc<br/>vpc-eu-west-1"];
+        igw["InternetGateway<br/>igw-eu-west-1"];
+        bucket["S3Storage<br/>bucket-shop-receipts"];
+        role["IamRole<br/>iam-role-ServerRole-checkout"];
     end
 
-    model1 -- add action --> resource1
-    model1 -- add action --> resource2
-
-    model2 -- update action --> resource2
-    model2 -- add action --> resource3
+    region ==> vpc;
+    region ==> igw;
+    service ==> bucket;
+    server ==> role;
 ```
 
-Once you understand a model's definition and its respective actions,
-it becomes easier to think in terms of models, rather than individual resources.
+Three models on the left produced four resources on the right, and the double arrows are the record
+Octo keeps. Ask what the receipts service is made of and the answer is one bucket; ask what
+`bucket-shop-receipts` is for and the answer is the receipts service. Neither question can be asked
+of a Terraform state file.
 
-:::info[So how does models know which resources to manipulate?]
-The definition of resources and the relationship between a model and a resource is set by whoever writes the models.
+## What a resource holds
 
-`octo-aws-cdk`, for example, is an implementation of the `octo` library for AWS.
-In this CDK implementation, we defined individual resources and chose which models manipulates what resources.
-If you choose to use our AWS implementation, you will receive resources configured based on our standards.
+```typescript
+new S3Storage('bucket-shop-receipts', {
+  awsAccountId: '123456789012',
+  awsRegionId: 'eu-west-1',
+  Bucket: 'shop-receipts',
+  permissions: [],
+});
+```
 
-You can also choose to write your own implementation, choose different resources,
-and set completely different relationships all together.
+|              |                                                                                                                     |
+|--------------|---------------------------------------------------------------------------------------------------------------------|
+| `resourceId` | Its identity, unique across the infrastructure. Derived from the model that caused it.                              |
+| `properties` | The configuration you want. What goes into Terraform.                                                               |
+| `response`   | What the provider gave back: ARNs, generated IDs, endpoints. Empty until `commit`.                                  |
+| `tags`       | Set in bulk by the project rather than by each module. See [Tagging Resources](/docs/using-octo/tagging-resources). |
+| `parents`    | The resources this one is built on. A parent is created first and destroyed last.                                   |
 
-**TL;DR;** Resources are subjective, defined by the implementor.
-:::
+`response` is the half that only exists after infrastructure does. Before the first apply,
+`bucket-shop-receipts` has no ARN, because there is no bucket. After `octo commit`, its response
+holds `arn:aws:s3:::shop-receipts`, and that is what another resource reads when it needs to point
+at this one.
 
-## Shared Resources
-In Octo, since models are graphs, they naturally form branches or boundaries,
-ensuring that operations in one boundary do not affect the other.
-More often than not, the boundary is a Region.<br />
+You never construct a resource yourself. A model [action](/docs/fundamentals/actions) declares it,
+and Octo compares the declared graph against the one it recorded last time.
 
-When these models are translated into resources, from an infrastructure perspective,
-some resources may be shared between boundaries.
+## Two kinds
 
-For example in AWS, an ECR resource node (a repository for storing Docker images) doesn't need to be created for every Region.
-Instead, the same ECR resource node will be shared across all Regions,
-and images will be replicated internally by AWS.<br />
-This is an implementation detail, determined by the implementor on which resources to share.
-End users most likely don't need to worry about this, however, it is a good concept to understand.
+Almost every resource is a Terraform resource. It extends `ATerraformResource` and implements
+`toHCL()`, which contributes blocks to the folder its module owns:
 
-:::info[TL;DR;]
-A shared resource is a logical way of re-thinking the same resource in different boundaries.
-:::
+```typescript
+override
+async
+toHCL(terraform
+:
+TerraformModuleScope
+):
+Promise < void > {
+  const bucket = terraform.addOctoTerraformResource(this as S3Storage, {
+    provider: { accountId: this.properties.awsAccountId, regionId: this.properties.awsRegionId },
+  });
+
+  const tf = bucket.addTerraformResource('aws_s3_bucket', this.resourceId, {
+    bucket: this.properties.Bucket,
+  });
+
+  bucket.output({ Arn: terraform.raw(`${tf.address}.arn`) });
+}
+```
+
+Terraform owns its lifecycle entirely. Octo writes the configuration, reads the plan, and records
+the outputs, and never calls AWS about it.
+
+The other kind is an **external resource**, for the cases a provider genuinely cannot express. It
+extends `AResource` instead, and its create, update, and delete are code you write, driven by
+[resource actions](/docs/fundamentals/actions). Octo still puts it in the Terraform graph, wrapped
+in a `null_resource` that shells back into `octo run-action` mid-apply, so ordering still works.
+Every resource in `@quadnix/octo-aws-cdk` is a Terraform resource; the escape hatch is deliberately
+not the default. [Create an External Resource](/docs/building-modules/create-an-external-resource)
+is the page for it.
+
+One resource cannot be both. Registering a resource action for a Terraform resource throws.
+
+## The resource graph
+
+Resources form their own graph, parallel to the models. Its edges are ordering: a child is created
+after its parent and destroyed before it.
 
 ```mermaid
-graph BT;
-    aws_ecr[ECR <br/> in AWS]
-    ecr_resource_1((Resource <br/> ECR))
-    server_1((Server))
-    server_2((Server))
-
-    ecr_resource_1 --> aws_ecr
-    server_2 -. Shared Resource .-> ecr_resource_1
-
-    subgraph region1 [Octo Region 1]
-        server_1 --> ecr_resource_1
-    end
-
-    subgraph region 2 [Octo Region 2]
-        server_2
-    end
+graph TD
+;
+    role["IamRole<br/>iam-role-ServerRole-checkout"];
+    bucket["S3Storage<br/>bucket-shop-receipts"];
+    role --> bucket;
 ```
 
-## Summary
-We covered Resources and Shared-Resources -
-which is the final encapsulation layer before the actual infrastructure is created.
-We discussed how each resource node can be connected to other resource nodes,
-and how they are associated with Models.
-We also revisited how models create resources, and resources create infrastructure using Actions.
+That single edge is the shop's whole story in resource terms. The receipts bucket is a child of
+checkout's IAM role, because the bucket policy names the role's ARN. Octo turned that edge into a
+Terragrunt `dependency` block between the two folders, which is what made the roles apply before the
+bucket policy did.
+
+Nothing in that graph mentions the shop, or checkout, or receipts. The link back to intent is held
+separately, and that is what the report reconstructs.
+
+## The diff
+
+On every run, Octo compares the resource graph your intent implies against the one it recorded at
+the last commit. That comparison is the diff, and a resource controls its own half of it:
+
+```typescript
+override
+async
+diffProperties(previous
+:
+Vpc
+):
+Promise < Diff[] > {
+  if (!
+DiffUtility.isObjectDeepEquals(previous.properties, this.properties, ['awsAvailabilityZones'])
+)
+{
+  return [new Diff(this, DiffAction.REPLACE, 'resourceId', this.getContext(),
+    'cidr_block is force-new on aws_vpc; a change recreates the VPC')];
+}
+return [];
+}
+```
+
+A diff carries an action, and `REPLACE` is the one worth knowing about. It is not `UPDATE`. It says
+the change cannot be made in place, and the infrastructure has to be destroyed and created again.
+Declaring it here, with a reason, is what lets a report say why a VPC is being recreated instead of
+leaving a reviewer to work it out from a plan.
+
+| Action     | Means                                                                   |
+|------------|-------------------------------------------------------------------------|
+| `ADD`      | The resource did not exist.                                             |
+| `UPDATE`   | A property changed, and can be changed in place.                        |
+| `REPLACE`  | A property changed that cannot be changed in place. Destroy and create. |
+| `DELETE`   | The resource is gone from intent.                                       |
+| `VALIDATE` | Nothing changed, but the resource still wants checking.                 |
+
+## Identity
+
+A resource's identity is its `resourceId`, and its context is `<package>/<name>=<resourceId>`:
+
+```text
+@octo/s3-storage=bucket-shop-receipts
+@octo/iam-role=iam-role-ServerRole-checkout
+@octo/vpc=vpc-eu-west-1
+```
+
+Those strings are what `.octo/resources-actual.json` is keyed by, so a line in a report is greppable
+in state.
+
+They are also derived from the model that caused them, which has a consequence worth planning
+around: change the bucket name in `octo.yaml` and the resource ID changes with it, so Octo sees one
+resource gone and a different one arrived. Renaming is not a rename. It is a destroy and a create,
+and for a bucket that means the objects inside it. Octo will tell you before it happens, in the
+destroy list `octo apply` refuses to proceed past.

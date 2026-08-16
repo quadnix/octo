@@ -1,0 +1,276 @@
+---
+title: Shop Stack Explained
+---
+
+Every idea in Octo ends up as text on disk. The model graph is a JSON file. The overlay that grants
+checkout access to the receipts bucket is an object in that file holding two anchors. The ordering
+rule that made the teardown work is four fields on a dependency edge. Until you have seen them in
+that form, an unexpected run is hard to argue with, because there is nothing to point at.
+
+This page opens the shop's artifacts and finds each idea inside them: the state files, the generated
+Terraform, and the report. The stack, once more: an app called `shop`, an AWS account, a region in
+`eu-west-1`, a receipts bucket with an `uploads` directory, and a checkout server allowed to read
+and write it. It was built in [Shop Stack](/docs/getting-started/shop-stack).
+
+## What you wrote
+
+Five module entries, and a `${{...}}` reference wherever one module needed something another built.
+
+```yaml
+modules:
+  - moduleId: app-module          # SimpleAppModule
+  - moduleId: account-module      # AwsIniAccountModule       <- app
+  - moduleId: region-module       # AwsSingleAzRegionModule   <- account
+  - moduleId: receipts-module     # AwsS3StorageServiceModule <- region
+  - moduleId: checkout-server-module  # AwsEcsServerModule    <- account, receipts service
+```
+
+Each `moduleId` is a scope. `receipts-module` names the module instance, the Terragrunt folder it
+generates, and the owner recorded against everything it produced. You will see it again in every
+artifact below.
+
+## The models it built
+
+Each module's `onInit()` ran in that order and attached models to the graph. `.octo/models.json`
+holds the result, keyed by context:
+
+```json title=".octo/models.json"
+"models": {
+"app=shop": {...},
+"server=checkout,app=shop": {...},
+"service=shop-receipts-s3-storage,app=shop": {...},
+"account=123456789012,app=shop": {...},
+"region=eu-west-1,account=123456789012,app=shop": {...}
+}
+```
+
+Five models, and their contexts are the shape of the graph read as paths. The region's context
+carries the account and the app because a region lives under an account. The server's carries only
+the app, because checkout is a service in the shop's architecture and not a thing in a region.
+Wherever it eventually runs is an execution, and this stack has none yet.
+
+Notice the service's ID: `shop-receipts-s3-storage`, not `shop-receipts`. The storage module's model
+appends its own suffix, so a bucket and a queue with the same name cannot collide.
+
+## The anchors they published
+
+Nothing in that YAML tells the server module which AWS region the receipts bucket sits in. It found
+out by matching on anchors, and `models.json` has the ones each model published:
+
+```json title=".octo/models.json"
+{
+  "anchorId": "AwsS3StorageServiceDirectoryAnchor-fb611de45b88",
+  "parent": {
+    "context": "service=shop-receipts-s3-storage,app=shop",
+    "type": "model"
+  },
+  "properties": {
+    "bucketName": "shop-receipts",
+    "remoteDirectoryPath": "uploads"
+  },
+  "className": "@octo/AwsS3StorageServiceDirectoryAnchor",
+  "location": {
+    "context": "service=shop-receipts-s3-storage,app=shop",
+    "type": "model"
+  }
+}
+```
+
+That anchor exists because you wrote `remoteDirectoryPaths: [uploads]`. Its suffix is a hash of
+`uploads`, which is what makes the ID stable and lets one bucket carry several directories.
+
+When you added checkout with `remoteDirectoryPath: uploads`, its module searched the receipts
+service for a directory anchor with that path, found this one, and would have thrown a `ModuleError`
+during compose if it had not. Ask for a directory the bucket does not have and the run stops before
+anything is written.
+
+## The overlay that appeared
+
+The grant itself is not on the server and not on the bucket. It is its own node:
+
+```json title=".octo/models.json"
+{
+  "className": "@octo/AwsEcsServerS3AccessOverlay",
+  "overlay": {
+    "anchors": [
+      {
+        "anchorId": "AwsIamRoleAnchor",
+        "parent": {
+          "context": "server=checkout,app=shop",
+          "type": "model"
+        },
+        "properties": {
+          "iamRoleName": "ServerRole-checkout"
+        }
+      },
+      {
+        "anchorId": "AwsS3StorageServiceDirectoryAnchor-fb611de45b88",
+        "parent": {
+          "context": "service=shop-receipts-s3-storage,app=shop",
+          "type": "model"
+        },
+        "properties": {
+          "bucketName": "shop-receipts",
+          "remoteDirectoryPath": "uploads"
+        }
+      }
+    ],
+    "overlayId": "aws-ecs-server-s3-access-overlay-2bb8580c0e3c",
+    "properties": {
+      "allowRead": true,
+      "allowWrite": true,
+      "bucketName": "shop-receipts",
+      "iamRoleName": "ServerRole-checkout",
+      "iamRolePolicyId": "aws-ecs-server-s3-access-overlay-2bb8580c0e3c",
+      "remoteDirectoryPath": "uploads"
+    }
+  }
+}
+```
+
+Two anchors, from two models, and the properties of the relationship between them. `allowRead` and
+`allowWrite` are both true because you asked for `READ_WRITE`; that translation happened in the
+server module, which is the only place in the system that has an opinion about what those words
+mean.
+
+## The resources the actions declared
+
+Each model diff went to the actions registered for its class, and they declared resources.
+`.octo/resources-actual.json` records what came out, with the module that owns each:
+
+| Resource                       | From                       | Owned by                 |
+|--------------------------------|----------------------------|--------------------------|
+| `vpc-eu-west-1`                | the region model           | `region-module`          |
+| `igw-eu-west-1`                | the region model           | `region-module`          |
+| `bucket-shop-receipts`         | the receipts service model | `receipts-module`        |
+| `iam-role-ServerRole-checkout` | the checkout server model  | `checkout-server-module` |
+
+Four resources, five models. The app and the account produced none: an app is the root everything
+hangs off, and an account decides which credentials and which provider block, neither of which is a
+thing in AWS.
+
+The overlay produced none of its own either. Its action reached two resources that already existed
+in the run and changed both: it added a policy to checkout's IAM role, and a permission to the
+receipts bucket.
+
+```json
+"properties": {
+"Bucket": "shop-receipts",
+"permissions": [
+{
+"allowRead": true,
+"allowWrite": true,
+"principalResourceId": "iam-role-ServerRole-checkout",
+"remoteDirectoryPath": "uploads"
+}
+]
+}
+```
+
+That is why one line of intent changed two folders.
+
+## The dependency it created
+
+Adding that permission also made the bucket a child of the role, with ordering rules attached:
+
+```json
+{
+  "from": "@octo/iam-role=iam-role-ServerRole-checkout",
+  "to": "@octo/s3-storage=bucket-shop-receipts",
+  "relationship": {
+    "onField": "resourceId",
+    "toField": "resourceId",
+    "type": "parent"
+  },
+  "behaviors": [
+    {
+      "onField": "resourceId",
+      "onAction": "delete",
+      "toField": "resourceId",
+      "forAction": "delete"
+    },
+    {
+      "onField": "resourceId",
+      "onAction": "delete",
+      "toField": "update-permissions",
+      "forAction": "update"
+    }
+  ]
+}
+```
+
+The second behavior is the one that matters. Before the role can be deleted, the bucket's
+permissions have to be updated, which is to say the statement naming that role has to go first.
+Nobody wrote that into `octo.yaml`, and it is what made the teardown at the end of the Shop Stack
+succeed rather than fail partway.
+
+## The Terraform it wrote
+
+One folder per module that produced resources, so three:
+
+```text
+.octo-tf/
+├── checkout-server-module/
+├── receipts-module/
+└── region-module/
+```
+
+The bucket policy in `receipts-module` needs checkout's role ARN, and the role is in another folder.
+Octo resolved that reference late, saw it crossed a folder boundary, and wrote three things: a
+`variable` block in `receipts-module/variables.tf`, an `output` block in
+`checkout-server-module/outputs.tf`, and the Terragrunt wiring between them:
+
+```hcl title=".octo-tf/receipts-module/terragrunt.hcl"
+dependency "checkout-server-module" {
+  config_path = "../checkout-server-module"
+
+  mock_outputs = {
+    "iam-role-ServerRole-checkout-Arn" = "arn:aws:iam::000000000000:role/mock-role"
+  }
+  mock_outputs_allowed_terraform_commands = ["init", "plan", "show", "validate"]
+  mock_outputs_merge_strategy_with_state = "shallow"
+}
+
+inputs = {
+  iam_role_ServerRole_checkout_Arn = dependency.checkout-server-module.outputs["iam-role-ServerRole-checkout-Arn"]
+}
+```
+
+The mock output is why `octo validate` can plan the receipts folder before the role exists. It is
+also why an early plan is labelled approximate: the ARN in that plan is a placeholder.
+
+## The report, read backwards
+
+Now the three levels of the validate report are the three artifacts above, stacked:
+
+```text
+  + added server=checkout  [server=checkout,app=shop | checkout-server-module | +4]
+      + iam-role-ServerRole-checkout
+          + aws_iam_policy.iam-role-ServerRole-checkout_aws-ecs-server-s3-access-overlay-2bb8580c0e3c
+          + aws_iam_role_policy_attachment.iam-role-ServerRole-checkout_AmazonECSTaskExecutionRolePolicy
+          + aws_iam_role_policy_attachment.iam-role-ServerRole-checkout_aws-ecs-server-s3-access-overlay-2bb8580c0e3c_attach
+          + aws_iam_role.iam-role-ServerRole-checkout
+```
+
+The heading is a model context, from `models.json`, with the module that owns it. The middle line is
+a resource ID, from `resources-actual.json`. The indented lines are Terraform addresses, and the
+link between them is the mapping Octo records at commit:
+
+```json
+{
+  "moduleId": "checkout-server-module",
+  "resourceContext": "@octo/iam-role=iam-role-ServerRole-checkout",
+  "resourceId": "iam-role-ServerRole-checkout",
+  "terraformAddresses": [
+    "aws_iam_role.iam-role-ServerRole-checkout",
+    "aws_iam_role_policy_attachment.iam-role-ServerRole-checkout_AmazonECSTaskExecutionRolePolicy",
+    "aws_iam_policy.iam-role-ServerRole-checkout_aws-ecs-server-s3-access-overlay-2bb8580c0e3c",
+    "aws_iam_role_policy_attachment.iam-role-ServerRole-checkout_aws-ecs-server-s3-access-overlay-2bb8580c0e3c_attach"
+  ]
+}
+```
+
+Which is also the answer to the question that started all of this. A Terraform address in a plan
+that appears in none of those lists is a change nobody asked for, and it goes in the drift section.
+[Reading a Validate Report](/docs/using-octo/reading-a-validate-report) is where that gets used
+properly.

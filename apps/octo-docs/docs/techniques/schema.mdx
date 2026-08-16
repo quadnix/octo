@@ -2,75 +2,119 @@
 title: Schema
 ---
 
-## Introduction
-In Octo you can create Schema classes as simple POJO classes to define a set of properties.
-You will often create them for models, resources, overlays, anchors, and inputs to define their data properties.
+Two modules from two libraries have to agree about something without either author having met the
+other. TypeScript's own answer, a shared interface in a shared package, does not survive contact
+with that: somebody has to own the package, everybody has to depend on the same version of it, and
+the first library that needs a field the interface does not have is stuck.
 
-A schema class has several benefits over hardcoding the data types in the main classes itself,
-- It reduces boilerplate code in the main classes, thus keeping your main class lean and clean.
-- It reduces code duplication, as you can reuse the schema classes across different parts of your project.
-- It supports validation of each property.
-- It promotes type safety.
+A **schema** is Octo's answer. It is a class describing a shape, and things are matched against it
+structurally: anything whose serialized form satisfies the shape is a match, whoever built it. Every
+contract in Octo is one, from a module's inputs to what an anchor publishes.
 
-:::tip
-A schema class often uses the [`Schema()`](/api/octo/function/Schema) function to define and initialize a property value.
-:::
+## Declaring one
 
-## Usage
-Any class that defines properties can be considered a schema class.
 ```typescript
-import { Schema } from '@quadnix/octo';
+export class ShopQueueAnchorSchema extends BaseAnchorSchema {
+  parentInstance: Service;
 
-class MyInputSchema {
-  id = Schema<number>();
-  name? = Schema<string>('');
+  override properties = Schema<{
+    awsAccountId: string;
+    awsRegionId: string;
+    queueName: string;
+  }>();
 }
 ```
 
-In a schema class, you can define the type of each property using the `Schema()` method.
-This method also accepts an optional default value as the argument.
+`Schema<T>()` looks unusual because it does two jobs at once: it declares the property's type for
+TypeScript, and at runtime it leaves the property undefined so Octo can tell a missing value from a
+present one.
 
-## Referencing Other Schemas
-You can reference other schemas using the same `Schema()` method.
+An argument makes it a default, and therefore optional:
+
 ```typescript
-class MyOtherSchema {
-  myInputSchema? = Schema<MyInputSchema>({ id: 0, name: '' });
-}
+messageRetentionSeconds ? = Schema<number>(345600);
 ```
 
-## Schema Validation
-All schema class properties can be validated on spot using the [@Validate](/docs/techniques/validation) decorator.
-```typescript
-export class RegionSchema {
-  @Validate({ options: { maxLength: 32, minLength: 2, regex: /^[a-zA-Z][\w-]*[a-zA-Z0-9]$/ } })
-  regionId = Schema<string>();
-}
+Octo fills defaults in before your code runs, so inside a module `messageRetentionSeconds` is always
+a number even when the definition file omitted it. Mark the property optional with `?` as well, so
+the caller's type matches.
+
+## What matching means
+
+When a schema is used to check a value, Octo builds an instance of the schema class and copies each
+declared key across. There are two ways that fails, and the messages are different on purpose:
+
+```text
+Property "region" in schema could not be resolved!
 ```
 
-## Schema in Octo
-Schemas are deeply embedded in Octo, and you will use them throughout your project.
-You will create schema classes to define the data properties of models, overlays, resources, anchors, and module inputs.
+The key is missing and has no default. Nothing supplied a value.
 
-Schemas are also often the only constructs that you will share with the outside world for other users to consume
-and use in their validation assertions.
-Here is an example to demonstrate the need for Schema beyond the various benefits we listed above.
-
-In this module input, we would like to ensure that it accepts a valid instance of `MyRegion` class,
-which is a type of Region model. Since models are internal constructs in Octo, a model is almost never directly exposed.
-Other users wanting to access `MyRegion` object will use the exposed `MyRegionSchema` to ensure that the value
-passed to them is a valid instance of `MyRegion` class.
-```typescript
-class MyModuleInput {
-  @Validate({
-    destruct: (value: Region): [MyRegionSchema] => [value.synth()],
-    options: { isSchema: { schema: MyRegionSchema } },
-  })
-  region = Schema<Region>();
-}
+```text
+Property "region" in schema could not be validated!
 ```
 
-:::tip
-Schemas are first class citizens in Octo, and are not optional.
-They promote good practices like type safety, and validation,
-and allows passing internal Octo constructs without exposing their internal implementation details. 
-:::
+A value arrived and a [validation](/docs/techniques/validation) rule on that property rejected it.
+
+Only declared keys are looked at. A value carrying extra fields still matches, which is what lets a
+library add to a model without breaking anybody matching on an older shape.
+
+## The four searches
+
+Every "find what another module built" query works this way, and they differ only in what they look
+at:
+
+```typescript
+await model.getAnchorsMatchingSchema(ShopQueueAnchorSchema, [{ key: 'queueName', value: 'shop-orders' }]);
+await model.getModelsMatchingSchema(RegionSchema);
+await model.getOverlaysMatchingSchema(SomeOverlaySchema);
+await model.getResourcesMatchingSchema(S3StorageSchema);
+```
+
+Each takes filters on property values, and each takes `{ searchBoundaryMembers: false }` to search
+only the node you called it on rather than everything reachable from it. Anything that does not
+satisfy the schema is skipped rather than reported, so the result is a list of things that fit.
+
+`getResourcesMatchingSchema` is narrower than it looks: it only considers resources produced by the
+modules that own the models it searched, so it returns another module's resources rather than every
+resource in the run.
+
+## Translating between schemas
+
+Matching on shape means a shape change breaks consumers. Sometimes that is the right change anyway,
+and you need the old consumers to keep working while they migrate.
+
+```typescript
+octo.registerSchemaTranslation(
+  OldRegionAnchorSchema,
+  NewRegionAnchorSchema,
+  (newSynth) => ({
+    anchorId: newSynth.anchorId,
+    parent: newSynth.parent,
+    properties: {
+      awsRegionId: newSynth.properties.region,
+    },
+  }),
+);
+```
+
+Register the schema consumers ask for, the schema producers now publish, and a function from the new
+shape to the old one. After that, a lookup for `OldRegionAnchorSchema` finds anchors publishing
+`NewRegionAnchorSchema` and translates them on the way out.
+
+This is a migration tool, not an architecture. It is global to the run, one translation per source
+schema, and every translation is a place where two shapes have to be kept agreeing by hand. Register
+it when you break a schema, remove it when the consumers have caught up.
+
+## Where schemas show up
+
+| Schema              | Describes                            | Extends                 |
+|---------------------|--------------------------------------|-------------------------|
+| Module input schema | What a module accepts                | nothing                 |
+| Model schema        | A model's serialized form            | the base model's schema |
+| Anchor schema       | What a model publishes               | `BaseAnchorSchema`      |
+| Overlay schema      | What an overlay holds                | `BaseOverlaySchema`     |
+| Resource schema     | A resource's properties and response | `BaseResourceSchema`    |
+
+The rule for all of them is the same. A schema is the part you promise to keep; the class behind it
+is not.

@@ -2,171 +2,123 @@
 title: Hooks
 ---
 
-import Tabs from '@theme/Tabs';
-import TabItem from '@theme/TabItem';
+A [listener](/docs/techniques/events-and-listeners) can watch a run and report on it, and that is
+enough for logging, reports, and notifications. It is not enough for the requests that arrive later:
+refuse this change unless a ticket number is set, add a tag every resource must carry, record who
+approved the commit before state is written.
 
-## Hooks
-Modules support hooks - a sequence of callbacks triggered before or after specific events in Octo.
-You can register callbacks for these transaction events within the module to execute custom code.
+Those need to sit in the call path rather than beside it. A **hook** is a callback Octo runs around
+one of its steps, and because it is in the path it can change what is passed along, and it can
+throw.
 
-<Tabs>
-  <TabItem value="CommitHooks" label="Commit Hooks" default>
-    Pre/Post Commit Hooks allows you to take an action before or after the entire transaction is committed.
-  </TabItem>
-  <TabItem value="ModelHooks" label="Model Hooks" default>
-    Pre/Post Model Hooks allows you to take an action before or after a model action runs.
-  </TabItem>
-  <TabItem value="ResourceHooks" label="Resource Hooks" default>
-    Pre/Post Resource Hooks allows you to take an action before or after a resource action runs.
-  </TabItem>
-</Tabs>
+## The six points
 
-## Example
-Hooks can be registered inside [Modules](/docs/devops/create-module).
-```typescript title="simple-app.module.ts"
-@Module<SimpleAppModule>('@example', SimpleAppModuleSchema)
-export class SimpleAppModule extends AModule<SimpleAppModuleSchema, App> {
-  async onInit (inputs: SimpleAppModuleSchema): Promise<App> { ... }
+| Hook                      | Runs                                  |
+|---------------------------|---------------------------------------|
+| `preModelActionHooks`     | Before a model action's `handle()`    |
+| `postModelActionHooks`    | After it                              |
+| `preResourceActionHooks`  | Before a resource action's `handle()` |
+| `postResourceActionHooks` | After it                              |
+| `preCommitHooks`          | Before state is written at commit     |
+| `postCommitHooks`         | After it                              |
 
-  override registerHooks(): {
-    postModelActionHooks?: {
-      action: IModelAction<SimpleAppModule>;
-      handle: (
-        diff: Diff<App>,
-        actionInputs: EnhancedModuleSchema<SimpleAppModule>,
-        actionOutputs: ActionOutputs,
-      ) => Promise<ActionOutputs>;
-    }[];
-    preCommitHooks?: {
-      handle: (app: App, modelTransaction: DiffMetadata[][]) => Promise<void>;
-    }[];
-  } {
-    return {
-      postModelActionHooks: [
-        {
-          action: AddSimpleAppModelAction,
-          handle: async (
-            _diff: Diff<App>,
-            _actionInputs: EnhancedModuleSchema<SimpleAppModule>,
-            actionOutputs: ActionOutputs,
-          ): Promise<ActionOutputs> => {
-            console.log('I will trigger after AddSimpleAppModelAction runs!');
-            return actionOutputs;
-          },
+Model action hooks have the most reach, because their return value becomes the `actionOutputs` the
+next step sees. Commit hooks bracket the moment Octo's state
+changes. Resource action hooks observe, and only fire for [external
+resources](/docs/building-modules/create-an-external-resource), which are the only resources with
+actions.
+
+## Registering from the definition file
+
+```yaml title="octo.yaml"
+hooks:
+  - importPath: "./dist/index.js"
+    method: registerShopHooks
+```
+
+The named export is called at boot, and returns the hooks to register:
+
+```typescript title="src/hooks.ts"
+import {
+  AddShopQueueServiceModelAction
+} from './modules/service/shop-queue-service/models/service/actions/add-shop-queue-service.model.action.js';
+
+export function registerShopHooks () {
+  return {
+    postModelActionHooks: [
+      {
+        action: new AddShopQueueServiceModelAction(),
+        handle: async (diff, actionInputs, actionOutputs) => {
+          for (const resource of Object.values(actionOutputs)) {
+            resource.tags['CostCentre'] = '4815';
+          }
+          return actionOutputs;
         },
-      ],
-      preCommitHooks: [
-        {
-          handle: async (_app: App, _modelTransaction: DiffMetadata[][]): Promise<void> => {
-            console.log('I will trigger before Octo commits the transaction!');
-          },
+      },
+    ],
+    preCommitHooks: [
+      {
+        handle: async (app) => {
+          console.error(`committing ${app.name}`);
         },
-      ],
-    };
-  }
+      },
+    ],
+  };
 }
 ```
 
-:::info
-The `registerHooks()` method must return an object with one or more hooks names,
-with each hook name containing an array of objects containing the hook's signature.
-:::
+A model or resource action hook names the action it wraps; a commit hook does not, because there is
+only one commit.
 
-## Types of Hooks
-### preCommitHooks
-Callbacks will execute just before the transaction is about to commit.<br/>
-The signature includes a `handle()` callback method with below parameters.
+## Registering from a module
+
+A module can bring its own, for the duration of that module:
+
 ```typescript
+override
+registerHooks()
 {
-  handle: (
-    app: App,
-    modelTransaction: DiffMetadata[][],
-    resourceTransaction: DiffMetadata[][] = [],
-  ) => Promise<void>
+  return {
+    postModelActionHooks: [
+      { action: new AddShopQueueServiceModelAction(), handle: /* ... */ },
+    ],
+  };
 }
 ```
 
-### postCommitHooks
-Callbacks will execute after the transaction is committed.<br/>
-The signature includes a `handle()` callback method with below parameters.
+Use this when the behaviour belongs to the module rather than to the project: something your
+module's actions always need, not something one team's policy requires. Policy belongs in the
+definition file, where the team that owns the policy can see it.
+
+## What a model action hook receives
+
+The same three arguments the action gets, and it must return `actionOutputs`:
+
 ```typescript
-{
-  handle: (
-    app: App,
-    modelTransaction: DiffMetadata[][],
-    resourceTransaction: DiffMetadata[][] = [],
-  ) => Promise<void>
+handle: async (diff, actionInputs, actionOutputs) => {
+  // diff          the change being handled
+  // actionInputs  the module's inputs, metadata, and nodes
+  // actionOutputs the resources declared so far, yours to add to or change
+  return actionOutputs;
 }
 ```
 
-### preModelActionHooks
-Callbacks will execute just before the given model action is about to be executed.<br/>
-The signature includes an `action`, and a `handle()` callback method with below parameters.
-```typescript
-{
-  action: IModelAction<T extends UnknownModule>,
-  handle: (
-    diff: Diff<UnknownModel>,
-    actionInputs: EnhancedModuleSchema<T extends UnknownModule>,
-    actionOutputs: ActionOutputs,
-  ) => Promise<ActionOutputs>,
-}
-```
+Pre hooks run in registration order, then the action, then post hooks, and each one's return value
+is passed to the next. Forgetting to return `actionOutputs` from a hook drops every resource
+declared so far.
 
-### postModelActionHooks
-Callbacks will execute after the given model action has executed.<br/>
-The signature includes an `action`, and a `handle()` callback method with below parameters.
-```typescript
-{
-  action: IModelAction<T extends UnknownModule>,
-  handle: (
-    diff: Diff<UnknownModel>,
-    actionInputs: EnhancedModuleSchema<T extends UnknownModule>,
-    actionOutputs: ActionOutputs,
-  ) => Promise<ActionOutputs>,
-}
-```
+Throwing from a hook stops the run, which is how a gate is built. Nothing has been created at the
+point a model action hook runs, so a refusal there costs nothing.
 
-### preResourceActionHooks
-Callbacks will execute just before the given resource action is about to be executed.<br/>
-The signature includes an `action`, and a `handle()` callback method with below parameters.
-```typescript
-{
-  action: IResourceAction<T extends UnknownResource>,
-  handle: (diff: Diff) => Promise<void>;
-}
-```
+## Hooks against listeners
 
-### postResourceActionHooks
-Callbacks will execute after the given resource action has executed.<br/>
-The signature includes an `action`, and a `handle()` callback method with below parameters.
-```typescript
-{
-  action: IResourceAction<T extends UnknownResource>,
-  handle: (diff: Diff) => Promise<void>;
-}
-```
+They look similar and are for different jobs.
 
-## Order of Execution
-Hooks are bound to Modules, and since modules have a hierarchy, hook registration follows that hierarchy.
+Use a **listener** to observe. It cannot change anything, it cannot stop a run, and it cannot break
+anything by being wrong. Reporting, logging, notifications.
 
-```mermaid
-graph BT;
-  module1("Module 1")
-  module2("Module 2")
-  module1PostCommitHook{{"Post Commit Hook<br/>Module1"}}
-  module1AddActionHook{{"Add App Action Hook"}}
-  module2PostCommitHook{{"Post Commit Hook<br/>Module2"}}
+Use a **hook** to participate. It changes what the next step receives, and it can refuse.
+Enforcement, policy, injection.
 
-  module2 -- imports --> module1;
-  module1 -- has --> module1PostCommitHook;
-  module1 -- has --> module1AddActionHook;
-  module2 -- has --> module2PostCommitHook;
-```
-
-In above diagram, both module1 and module2 contains a post commit hook.
-Since module1 is registered first based on hierarchy,
-the post commit hooks of module1 will be executed before module2's post commit hooks.
-
-Similarly, if a module has multiple action hooks of same type on the same action,
-they will be executed as per the order you provide in the array.
+If what you are building only reads, make it a listener. A hook that only reads is a listener with
+the ability to break an apply by throwing unexpectedly.

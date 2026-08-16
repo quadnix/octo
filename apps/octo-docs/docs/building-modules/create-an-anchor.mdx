@@ -1,0 +1,148 @@
+---
+title: Create an Anchor
+---
+
+The shop's queue module works. The next thing somebody will ask for is a server that can publish to
+the queue, and that means another module has to find out the queue's name and which region it is in.
+
+If that module imports `ShopQueueService` and reads the field, the two are welded together: the
+queue module can never rename a field or move a class, and nobody can substitute their own queue. An
+[anchor](/docs/fundamentals/anchors) is what you publish instead, and this page writes the shop's.
+
+```bash
+octo create-anchor -n shop-queue --family shop -t service --package @shop
+```
+
+`--family` is the directory anchors are grouped under, so a library with many anchors keeps the
+related ones together. `-t` is the model type the anchor attaches to.
+
+## The schema
+
+This is the contract, so it deserves more thought than the class does.
+
+```typescript title="src/anchors/shop/shop-queue.anchor.schema.ts"
+import { BaseAnchorSchema, Schema, type Service, Validate } from '@quadnix/octo';
+
+export class ShopQueueAnchorSchema extends BaseAnchorSchema {
+  parentInstance: Service;
+
+  @Validate({
+    destruct: (value: ShopQueueAnchorSchema['properties']): string[] => [
+      value.awsAccountId,
+      value.awsRegionId,
+      value.queueName,
+    ],
+    options: { minLength: 1 },
+  })
+  override properties = Schema<{
+    awsAccountId: string;
+    awsRegionId: string;
+    queueName: string;
+  }>();
+}
+```
+
+`parentInstance` is the base model type this anchor can be attached to, and it is what gives a
+consumer a typed `getParent()`.
+
+`properties` is the whole contract. Everything in it is something a consumer may come to depend on,
+and nothing else about your model is visible to them.
+
+## The class
+
+There is not much to it, and there is not supposed to be:
+
+```typescript title="src/anchors/shop/shop-queue.anchor.ts"
+
+@Anchor('@shop')
+export class ShopQueueAnchor extends AAnchor<ShopQueueAnchorSchema, ShopQueueAnchorSchema['parentInstance']> {
+  declare properties: ShopQueueAnchorSchema['properties'];
+
+  constructor (
+    anchorId: string,
+    properties: ShopQueueAnchorSchema['properties'],
+    parent: ShopQueueAnchorSchema['parentInstance'],
+  ) {
+    super(anchorId, properties, parent);
+  }
+}
+```
+
+An anchor has no behaviour. It holds properties, and it knows which model declared it. Any logic you
+are tempted to put here belongs on the model.
+
+## Attaching it
+
+In the module, after the model exists:
+
+```typescript
+queueService.addAnchor(
+  new ShopQueueAnchor(
+    'ShopQueueAnchor',
+    { awsAccountId, awsRegionId, queueName: inputs.queueName },
+    queueService,
+  ),
+);
+```
+
+The first argument is the anchor's ID, unique within its parent. Naming it after the class is the
+convention, and it is right whenever a model carries one of them.
+
+When a model can carry several of the same kind, the ID has to tell them apart, and it has to be
+stable across runs. Our S3 storage model derives one per directory:
+
+```typescript
+const remoteDirectoryPathHash = CommonUtility.hash(remoteDirectoryPath).substring(0, 12);
+const directoryAnchorName = `AwsS3StorageServiceDirectoryAnchor-${remoteDirectoryPathHash}`;
+```
+
+A hash of the thing that makes it distinct. An index, or anything ordering-dependent, would change
+identity when somebody reorders their inputs.
+
+## What consumers do with it
+
+```typescript
+const [queueAnchor] = await queueService.getAnchorsMatchingSchema(ShopQueueAnchorSchema, [], {
+  searchBoundaryMembers: false,
+});
+const { awsRegionId, queueName } = queueAnchor.getSchemaInstance().properties;
+```
+
+That consumer imports `ShopQueueAnchorSchema` and nothing else from your library. Any anchor whose
+serialized form satisfies that schema comes back, so somebody who writes their own queue module and
+publishes the same anchor works with the same consumer.
+
+Filters narrow by property value, which is what a model carrying several anchors of one kind needs:
+
+```typescript
+const matching = await service.getAnchorsMatchingSchema(
+  AwsS3StorageServiceDirectoryAnchorSchema,
+  [{ key: 'remoteDirectoryPath', value: 'uploads' }],
+  { searchBoundaryMembers: false },
+);
+```
+
+## Designing one
+
+Three rules, in order of how much they cost to get wrong.
+
+**Publish facts, not objects.** A region ID, an ARN, a name. Never a model, a resource, or anything
+whose type comes from your library, because that puts your classes back into the contract you were
+trying to avoid.
+
+**Publish the minimum.** Every property is a promise. The queue anchor carries three fields, and
+each one exists because a consumer cannot work without it.
+
+**Treat a change as breaking.** A consumer matches on shape, so removing a property or changing its
+type breaks every module that matched. Adding one is safe. When you do have to change the shape,
+[schema translation](/docs/techniques/schema) keeps the old consumers working while they catch up.
+
+## Anchors are also for overlays
+
+An [overlay](/docs/building-modules/create-an-overlay) is built from anchors rather than from
+models, which is the second reason to publish one. The overlay that lets a server publish to the
+shop's queue joins the server's IAM role anchor and this queue anchor, and it never sees either
+model.
+
+So the question "should this model publish an anchor" has a simpler form: will anything else in the
+graph ever need to point at it.

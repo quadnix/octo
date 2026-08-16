@@ -1,0 +1,181 @@
+---
+title: Troubleshooting
+---
+
+Octo fails early by design, so most of what goes wrong stops the run before any Terraform is
+written. The messages are precise about what happened and quiet about what to do next: `Property
+"region" in schema could not be resolved!` is exactly true and does not say that the fix is usually
+to move one entry higher up the file.
+
+Below is what each of the common ones means. They are grouped by the step that produced them,
+because the step narrows the cause further than the message does.
+
+## Before the definition file loads
+
+**`Environment variable "OCTO_DEFINITION_FILE_PATH" is not set!`**
+
+You called the binary directly. The generated npm scripts set it; running `node_modules/.bin/octo
+generate` yourself does not.
+
+```bash
+OCTO_DEFINITION_FILE_PATH=octo.yaml node_modules/.bin/octo generate -o .octo-tf
+```
+
+**`Definition file failed validation against schema!`**
+
+A key is misspelled, missing, or in the wrong place. The failures underneath say where:
+
+```text
+FAILURES
+========
+1.   [/terraform] must have required property 'requiredVersion'
+2.   [/terraform] must NOT have additional properties
+```
+
+Those two lines are one typo. `requiredVersionn` is both a missing required property and an
+unexpected extra one. Put the schema comment at the top of `octo.yaml` and your editor catches this
+before you run anything:
+
+```yaml
+# yaml-language-server: $schema=https://raw.githubusercontent.com/quadnix/octo/refs/heads/main/packages/octo-build/src/resources/octo-v1.schema.json
+```
+
+**`Key "RECEIPT_BUCKET_NAME" not found under "env"!`**
+
+A `${env.X}` reference with no matching entry in the `env` block. Usually a typo, and it is an error
+rather than an empty string on purpose.
+
+**`Invalid module definition for moduleId="region-module": "AwsMultiAzRegionModule" not found in
+"imports"!`**
+
+A `moduleClass` that no `imports` entry provides. Either add the import, or fix the class name; they
+have to match exactly.
+
+**`Failed to import path "./dist/index.js": ...`**
+
+For your own modules, this is almost always a build you did not run. `npm run build`, then try
+again. Relative paths resolve against the definition file, not your shell.
+
+## While modules compose
+
+**`Property "region" in schema could not be resolved!`**
+
+A `${{...}}` reference pointing at something that does not exist yet. Two causes, in order of
+likelihood: the module you referenced is listed after the one referencing it, or the `moduleId` is
+misspelled. Modules resolve in the order the definition file lists them.
+
+**`Property "region" in schema could not be validated!`**
+
+The reference resolved, and what came back is the wrong shape. Usually the wrong node, as in handing
+a storage module an account where it wants a region. The accompanying `schemaClassName` tells you
+which module's schema rejected it; read that class to see what it accepts.
+
+**A `ModuleError` from a module you are using**
+
+For example `Cannot find remote directory in S3Storage service!`. The module is telling you it
+cannot satisfy the request as written, and the message is written for you rather than for a stack
+trace. In that case, the directory you asked a server to access is not one the bucket was told to
+create.
+
+## While Terraform is generated
+
+**`No provider registered for account "123456789012" and region "us-east-1"!`**
+
+A module produced resources in an account and region combination with no matching entry under
+`terraform.providers`. Every account and region pair you deploy into needs one; a module that spans
+two regions needs two.
+
+**`No matching action given for diff!`**
+
+A node changed and nothing is registered to handle it. The error carries the diff itself, including
+the node and the field, which is normally enough. Two causes: a construct file is not imported into
+`src/index.ts`, so its `@Action` decorator never ran, or an action's `filter()` is narrower than the
+diffs its node can produce.
+
+**A module you loaded generated no folder**
+
+Not an error. A module that produces no cloud resources produces no folder, and the shop's app and
+account modules are both like this. Check the `written:` list in the generate output before
+concluding something is wrong.
+
+## While Terraform plans
+
+**`FAILURES — octo could not read these, so everything else is incomplete`**
+
+Terraform could not plan a folder Octo generated, and the whole message from Terraform is
+underneath. This is the only outcome that exits non-zero, because a report that could not read one
+folder cannot be trusted about any of them.
+
+The fix is whatever Terraform says: an unsupported argument, a credential problem, a provider
+version constraint. The generated folders are ordinary Terraform, so you can go into one and debug
+it directly:
+
+```bash
+cd .octo-tf/region-module
+terraform init -backend=false
+terraform validate
+```
+
+**Everything reads `(known after apply)` on the first plan**
+
+Expected. A folder planned before its dependency exists is planned against Terragrunt's
+`mock_outputs`, which is exactly what an approximate report means. Apply, commit, then validate
+again; the second report is exact.
+
+## While applying
+
+**`This apply would DESTROY: ...`**
+
+Working as intended. `octo apply` plans first and refuses when anything would be destroyed. Read the
+list, run `octo validate` for the reason behind each one, then re-run with `--auto-approve`.
+
+**`Cannot check this apply for destroys because the folders above would not plan.`**
+
+Same guard, different reason: a folder failed to plan, so Octo cannot say whether it would destroy
+anything, and will not assume. Fix the plan failure.
+
+**`octo: command not found`, from inside an apply**
+
+Terraform called back into `octo run-action` for an [external
+resource](/docs/building-modules/create-an-external-resource) and could not find the binary. Run the
+lifecycle through the npm scripts, which put `node_modules/.bin` on `PATH` for child processes.
+
+## While committing
+
+**`Cannot commit: missing terraform outputs (partial apply?)`**
+
+The apply did not finish, so some folders never produced their outputs. Octo state is unchanged, and
+the message says so. Fix whatever stopped the apply, run it again, then commit; a re-run is safe.
+
+**`Cannot commit: null terraform outputs (broken apply?)`**
+
+A declared output exists but carries no value, which normally means the resource behind it did not
+come up. Same handling: state is untouched, fix and re-run.
+
+**`Terraform outputs supplied for folder "X", which octo does not track`**
+
+A warning, not an error. There is a folder in the output directory that no module in your intent
+owns, and no committed state claims. Usually a leftover from a module you removed, in which case it
+is harmless and can be deleted. Occasionally it is a second definition file writing into the same
+directory, which is worth fixing.
+
+## Afterwards
+
+**Drift you did not cause**
+
+Check the confidence on the report first. Drift on an `approximate` report can be an artefact of
+planning against a placeholder. Get to a state where your intent and infrastructure agree, run
+validate again, and see whether it survives. [Reading a Validate
+Report](/docs/using-octo/reading-a-validate-report) covers what to do when it does.
+
+**Octo wants to create everything, and it all already exists**
+
+`.octo/` is missing or was not committed. Octo has no record, so it treats the run as a first run.
+Terraform will not actually recreate anything, because its own state is separate, but the report is
+meaningless until you restore the state files. See [State](/docs/fundamentals/state).
+
+**Two people ran it at once**
+
+Octo does not lock its state, and there is no error when a concurrent write is lost. If two runs
+overlapped, treat the state as suspect: restore from version control, or run generate, apply, and
+commit once from one place to re-establish it.

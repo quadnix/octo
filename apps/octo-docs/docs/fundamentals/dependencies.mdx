@@ -2,94 +2,139 @@
 title: Dependencies
 ---
 
-## Introduction
-A dependency is the edge between two nodes that describes their relationship. It can be one of three types,
-* **Parent**
-<br/> A node is the parent of another node, meaning it must exist before the child node is created.
-For example, an app is the parent of a region, so the app must exist before any region is created.
-* **Child**
-<br /> A node is the child of another node, meaning it will be deleted before the parent node is deleted.
-For example, an environment is a child of a region, so all environments must be deleted before deleting the region.
-* **Relationship**
-<br /> A node has a relationship with another node that is neither a parent nor a child relationship.
-For example, a server could have a relationship with an image.
-The distinction between the "relationship" type and the "parent-child" type is that in a "relationship",
-there is no obligation for either node to exist or be deleted before of the other node.
+Terraform works out the order to do things in by watching which resource reads which other
+resource's attribute. That covers most cases, and misses the ones that hurt. Deleting checkout's IAM
+role requires first removing the statement in the receipts bucket policy that names it, and there is
+no attribute reference pointing that way; the bucket policy references the role, not the reverse.
+Get the order wrong and the delete fails partway, with the role gone and a policy referring to
+nothing.
 
-:::tip
-* A parent-child dependency is bidirectional, i.e. if Node 1 is parent of Node 2,
-then Node 2 must be a child of Node 1.
-* A "Relationship" dependency is also bidirectional, i.e. if Node 1 has relationship with Node 2,
-then Node 2 also has a relationship with Node 1.
+A **dependency** is the edge between two nodes in Octo's graph, and it carries more than "these two
+are related". It carries ordering rules, stated as pairs of actions, so that a case like the one
+above is written down once by whoever built the resource rather than rediscovered during an apply.
+
+Every graph in Octo is made of them. Models, resources, and overlays all use the same edge.
+
+## Two kinds of edge
+
+A **parent and child** edge says one node cannot exist without the other. In the shop, the region is
+a child of the account, and the deployment is a child of the server. Octo derives three rules from
+that automatically: the parent is created before the child, the child is deleted before the parent,
+and the child's identity includes the parent's.
+
+```typescript
+account.addChild('accountId', region, 'regionId');
+```
+
+The two field names are what each side is identified by, and they are what the ordering rules are
+written against.
+
+A **relationship** edge says the two are connected without either owning the other. An
+[overlay](/docs/fundamentals/overlays) uses these: it joins two models that have no parent between
+them, and neither model's existence depends on the other.
+
+```typescript
+const { thisToThatDependency } = this.addRelationship(anchorParent);
+```
+
+## Behaviors
+
+A behavior is one ordering rule on one edge, and it reads as a sentence: when this field of the
+source node gets this action, that field of the target node must have had that action applied first.
+
+Here is the real pair from the S3 storage resource, which is what makes the shop's teardown work:
+
+```typescript
+// Before updating s3-storage, the principal resource must have been added.
+s3StorageToPrincipalResourceDep.addBehavior(
+  'update-permissions', DiffAction.UPDATE,
+  'resourceId', DiffAction.ADD,
+);
+
+// Before deleting the principal resource, s3-storage must have been updated.
+principalResourceToS3StorageDep.addBehavior(
+  'resourceId', DiffAction.DELETE,
+  'update-permissions', DiffAction.UPDATE,
+);
+```
+
+Two rules, in opposite directions, on the two edges between the bucket and the IAM role. The first
+orders the create: the role has to exist before the bucket policy can name it. The second orders the
+delete: the policy statement has to go before the role does. Neither is expressible as an attribute
+reference, and both are true regardless of which module the role came from.
+
+When you remove checkout from the shop's definition file, that second rule is why the destroy
+happens in an order that works.
+
+## Ordering an apply
+
+Octo sorts a run by walking these rules. It collects the diffs, then arranges them so that every
+behavior's precondition lands in an earlier step than the thing that depends on it. What comes out
+is a sequence of steps, each holding the changes that can be applied together.
+
+Within one Terragrunt folder, that ordering is turned into `depends_on` between the generated
+blocks. Across folders it becomes a Terragrunt `dependency` block, which is what you saw in the
+shop's receipts folder pointing at the checkout folder.
+
+If the rules cannot be satisfied, because two nodes each require the other to go first, Octo throws
+rather than picking one. A circular dependency is a bug in whoever wrote the modules, and it is much
+cheaper to find it during compose than halfway through an apply.
+
+## Boundaries
+
+Dependencies also decide what a module can see.
+
+When a module searches for something another module produced, it does not search the whole graph. It
+searches the **boundary** of the node it started from: everything reachable through parent, child,
+and relationship edges from there. Starting at the shop's region, the boundary reaches up to the
+account and the app, down to the environments and subnets, and across any relationship edge attached
+to them.
 
 ```mermaid
-flowchart LR;
-    node1((Node 1))
-    node1_1((Node 1))
-    node2((Node 2))
-    node2_1((Node 2))
-    node3((Node 3))
-    node3_1((Node 3))
-    node1DepToNode2[[Node 1 Dependency <br/> to Node 2]]
-    node2DepToNode1[[Node 2 Dependency <br/> to Node 1]]
-    node1DepToNode3[[Node 1 Dependency <br/> to Node 3]]
-    node3DepToNode1[[Node 3 Dependency <br/> to Node 1]]
-
-    subgraph overview [ ]
-        node1_1
-        node2_1
-        node3_1
-        node1_1 --> node2_1
-        node1_1 -. Relationship .- node3_1
-    end
-
-    subgraph detailed [ ]
-        subgraph node1SG [ ]
-            node1
-            node1DepToNode2
-            node1DepToNode3
-        end
-        subgraph node2SG [ ]
-            node2
-            node2DepToNode1
-        end
-        subgraph node3SG [ ]
-            node3
-            node3DepToNode1
-        end
-        node1DepToNode2 -->|is parent of| node2
-        node2DepToNode1 -->|is child of| node1
-        node1DepToNode3 -. has relationship with .-> node3
-        node3DepToNode1 -. has relationship with .-> node1
-    end
-
-    overview -. translates to .-> detailed
-```
-:::
-
-## Node
-A node in Octo can be - a Model, a Resource, or an Overlay.<br />
-In Octo code base, a node is represented as an extension of `ANode<I, T>`,
-which is the base abstract class that Models, Resources, and Overlays inherit from.
-
-## Dependency Class
-A dependency is not stored as a property in node; instead, it is its own class as a first class citizen.
-It encompasses two nodes on its either end.
-
-```js title="Dependency Schema"
-{
-  from: "a node",
-  to: "a node",
-  relationship: "parent | child | relationship",
-  behaviors: "an array of metadata with individual traits of this dependency."
-}
+graph TD
+;
+    app["app<br/>shop"];
+    account["account<br/>123456789012"];
+    region["region<br/>eu-west-1"];
+    env["environment<br/>staging"];
+    subnet["subnet<br/>private"];
+    other["region<br/>us-east-1"];
+    app --> account;
+    account --> region;
+    account --> other;
+    region --> env;
+    region --> subnet;
+    style other stroke-dasharray: 4 4;
 ```
 
-A dependency is also serialized and deserialized just like other nodes.
-Octo keeps track of all dependencies in a graph in the state files, and are diff-ed between runs.
+Starting from `eu-west-1`, the boundary is every solid node in that picture: up through the account
+to the app, and down through the environment and the subnet. The dashed region is in the same graph
+and outside the boundary, because the walk goes up and down from where it started, never sideways
+into a sibling's descendants. A module handed one region cannot accidentally match an anchor
+belonging to another.
 
-## Summary
-In this section we explored Dependencies.
-Just as in a typical graph we have vetices and edges,
-in Octo graphs, nodes are vertices and dependencies are edges.
-A dependency is a first class citizen of Octo, and has its own dedicated class.
+That is also why the server module can find the receipts bucket's directory anchor. Checkout was
+handed the receipts service directly, so there is an edge between them, and the search follows it.
+
+Searches take an option to turn this off:
+
+```typescript
+const [anchor] = await region.getAnchorsMatchingSchema(AwsRegionAnchorSchema, [], {
+  searchBoundaryMembers: false,
+});
+```
+
+With `searchBoundaryMembers: false`, only that one node is searched. Module authors use it when they
+already hold the exact node and want the anchor it declared, not one that happens to match somewhere
+else in the graph. It is the safer default when you have the node in hand.
+
+## Where dependencies come from
+
+You rarely construct one. `addChild()` and `addRelationship()` create the edges, and the models that
+ship with Octo already call them: `app.addAccount()`, `region.addSubnet()`,
+`server.addDeployment()`. Behaviors are added by resource authors, in the constructor of the
+resource that knows the rule.
+
+The one thing worth remembering as a user of modules is what these edges buy: the order of an apply
+is a property of the graph, not of the order you listed modules in `octo.yaml`. Module order
+controls which module can see which; dependency edges control what happens when.

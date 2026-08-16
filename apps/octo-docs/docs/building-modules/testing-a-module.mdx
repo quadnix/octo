@@ -1,0 +1,262 @@
+---
+title: Testing a Module
+---
+
+A module's output is Terraform, and Terraform is not something you can eyeball for correctness.
+Worse, the interesting failures are not in what a module produces on its own; they are in what it
+produces on the second run, after somebody changed an input, or in what a small change to a resource
+quietly does to every module that uses it.
+
+Octo ships a harness that runs your module through the real lifecycle and hands back everything
+worth asserting on: the generated HCL, which actions ran, and the resource diff. This page tests the
+shop's order queue module with it.
+
+## The harness
+
+```typescript title="shop-queue-service.module.spec.ts"
+describe('ShopQueueServiceModule UT', () => {
+  let testModuleContainer: TestModuleContainer;
+
+  beforeEach(async () => {
+    const container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
+
+    testModuleContainer = new TestModuleContainer(container);
+    await testModuleContainer.initialize();
+
+    testModuleContainer.registerTerraformConfig({
+      providers: { aws: { minVersion: '5.49', source: 'hashicorp/aws' } },
+    });
+    testModuleContainer.registerTerraformProvider('aws', '123', 'us-east-1');
+  });
+
+  afterEach(async () => {
+    await testModuleContainer.reset();
+    await TestContainer.reset();
+  });
+});
+```
+
+`TestContainer` isolates each test file, and `TestModuleContainer` runs the lifecycle against an
+in-memory state provider. The two `register` calls are the same Terraform configuration your
+definition file would carry, because a module that produces resources needs a provider to bind them
+to.
+
+Both resets matter. Without them, state leaks between tests and the second one diffs against the
+first.
+
+## The surrounding graph
+
+A module rarely runs alone. The queue module needs a region that publishes an AWS region anchor, and
+the harness can fabricate one:
+
+```typescript
+async function setup (testModuleContainer: TestModuleContainer): Promise<void> {
+  const {
+    region: [region],
+  } = await testModuleContainer.createTestModels('testModule', {
+    account: ['aws,123'],
+    app: ['test-app'],
+    region: ['region'],
+  });
+
+  region.addAnchor(
+    testModuleContainer.createTestAnchor<AwsRegionAnchorSchema>(
+      'AwsRegionAnchor',
+      {
+        awsRegionAZs: ['us-east-1a'],
+        awsRegionId: 'us-east-1',
+        regionId: 'aws-us-east-1a',
+        vpcCidrBlock: '10.0.0.0/16',
+      },
+      region,
+    ),
+  );
+}
+```
+
+`createTestModels` seeds models as though a module called `testModule` had produced them, each with
+a no-op action so they appear in a transaction without doing any work. `createTestAnchor` attaches
+an anchor without you declaring an anchor class for it.
+
+This is the payoff from matching on shape. The test never imports a real region module, and the
+queue module cannot tell the difference.
+
+## Running it
+
+```typescript
+it('should call correct actions', async () => {
+  await setup(testModuleContainer);
+
+  const runModulesGenerator = testModuleContainer.runModules<ShopQueueServiceModule>(
+    {
+      inputs: {
+        queueName: 'shop-orders',
+        region: stub('${{testModule.model.region}}'),
+      },
+      moduleId: 'orders-queue-module',
+      type: ShopQueueServiceModule,
+    },
+    { filterByModuleIds: ['orders-queue-module'], terraformTarget: 'skip' },
+  );
+
+  const { hclRender, modelTransaction, resourceDiffs } = (await runModulesGenerator.next()).value!;
+});
+```
+
+`stub()` is a type assertion and nothing more. It lets a test write the same `${{...}}` reference
+the definition file would, and have it typecheck as the node the schema wants.
+
+`filterByModuleIds` narrows the assertions to your module, so the fabricated surroundings do not
+show up in the output you are pinning down.
+
+## How far the lifecycle runs
+
+`terraformTarget` is the setting that decides what a test costs:
+
+|           | Runs                                            | Costs                                    |
+|-----------|-------------------------------------------------|------------------------------------------|
+| `'skip'`  | Composes and commits in memory                  | Nothing. This is a unit test.            |
+| `'plan'`  | Generates the folders and runs `terraform plan` | Credentials, and seconds.                |
+| `'apply'` | Generates, plans, applies, commits              | **Real infrastructure, and real money.** |
+
+Default to `'skip'`. It exercises everything Octo owns, which is most of what a module can get
+wrong, and it runs in milliseconds. Reach for `'plan'` when the question is whether the HCL is valid
+against a provider, and `'apply'` only in an end-to-end suite you run deliberately.
+
+## What to assert
+
+Three things, and between them they cover most of a module.
+
+**The generated HCL**, as a snapshot. This is the one that catches a change you did not intend. It
+is every file in the folder, concatenated, with a comment naming each:
+
+```typescript
+expect(hclRender).toMatchInlineSnapshot(`
+"# orders-queue-module/main.tf
+terraform {
+  required_version = ">= 1.6.0"
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = ">= 5.49"
+    }
+  }
+}
+
+provider "aws" {
+  alias = "_123-us-east-1"
+  region = "us-east-1"
+}
+
+resource "aws_sqs_queue" "queue-shop-orders" {
+  provider = aws._123-us-east-1
+  message_retention_seconds = 345600
+  name = "shop-orders"
+}
+
+# orders-queue-module/outputs.tf
+output "queue-shop-orders-Arn" {
+  value = aws_sqs_queue.queue-shop-orders.arn
+}
+
+output "queue-shop-orders-Url" {
+  value = aws_sqs_queue.queue-shop-orders.url
+}
+
+# orders-queue-module/terragrunt.hcl
+remote_state {
+  backend = "local"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite_terragrunt"
+  }
+  config = {
+    path = "\${get_terragrunt_dir()}/terraform.tfstate"
+  }
+}
+
+# orders-queue-module/variables.tf
+<empty>"
+`);
+```
+
+`message_retention_seconds = 345600` is worth noticing: the test never passed that input, so the
+schema's default is what landed in the Terraform. A snapshot is where you find out that a default
+is not what you thought.
+
+**Which actions ran**, which catches a `filter()` that is too narrow or too broad:
+
+```typescript
+expect(testModuleContainer.mapTransactionActions(modelTransaction)).toMatchInlineSnapshot(`
+[
+  [
+    "AddShopQueueServiceModelAction",
+  ],
+]
+`);
+```
+
+**The resource diff**, in its short form, which is the clearest statement of what the module does to
+infrastructure:
+
+```typescript
+expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
+[
+  "+ @shop/shop-queue=queue-shop-orders",
+]
+`);
+```
+
+One line per diff, not per resource, so a resource can appear twice. The symbol is `+` for a
+resource created, `-` for one destroyed, `^` for a replace, and `*` for anything else, which in
+practice means an update to a resource that stays. Those four characters are usually enough to tell
+whether a change did what you meant.
+
+## Testing a change
+
+A module that produces the right thing once can still produce nonsense on the second run, and this
+is where most real bugs are. Call `runModules` again in the same test, with different inputs; the
+second run diffs against the first.
+
+The pattern the modules in `@quadnix/octo-aws-cdk` use is a single `should CUD` test that creates,
+updates, and deletes:
+
+```typescript
+it('should CUD', async () => {
+  await setup(testModuleContainer);
+
+  const { resourceDiffs: resourceDiffsCreate } = (
+    await testModuleContainer
+      .runModules<ShopQueueServiceModule>({ /* inputs */ }, { terraformTarget: 'skip' })
+      .next()
+  ).value!;
+  expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(/* ... */);
+
+  // ... run again with a changed input, then with the module removed
+});
+```
+
+Assert on `digestDiffs` at each step. A rename that should have been a replace, a property change
+that should have been an in-place update, and a delete that leaves something behind all show up here
+and almost nowhere else.
+
+## Against real infrastructure
+
+Unit tests cannot tell you that AWS accepts what you generated. For that there is an end-to-end
+suite, and the ones in `@quadnix/octo-templates` are worth reading before writing your own: they run
+the real lifecycle against a real account, including a drift suite that changes infrastructure out
+from under Octo and checks the report, and an incremental suite that applies, changes one input, and
+applies again.
+
+The cheap middle ground, and the one to reach for first, is neither: generate, then run Terraform on
+the folder directly.
+
+```bash
+npm run build && npm run octo:generate
+cd .octo-tf/orders-queue-module
+terraform init -backend=false
+terraform validate
+```
+
+That catches a misspelled argument, a block that should have been a map attribute, and a missing
+required argument, in seconds and without credentials.

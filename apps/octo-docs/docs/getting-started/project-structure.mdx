@@ -2,126 +2,202 @@
 title: Project Structure
 ---
 
-## Introduction
-A solid project structure is crucial for a successful and intuitive infrastructure.
-While project structuring can vary based on personal preference and organization,
-we highly recommend following our recommended patterns.
+An infrastructure repository accumulates directories nobody can classify: some are source, some are
+generated, some are state, and the difference only becomes clear the day somebody deletes the wrong
+one. An Octo project has four directories that matter, and each one has a single answer to "is this
+mine, is it generated, and does it go in git".
 
-:::tip
-At first the project structure may look unfamiliar, and overwhelming.
-However, as you grasp the fundamentals in the next sections, all this should gradually make more sense.
-:::
+This is what the shop looks like after one full run.
 
-:::info
-Most files here are to set up TypeScript. If you are familiar with TypeScript projects,
-you might be able to recognize some of the boilerplate code.
-:::
+```text
+shop/
+├── octo.yaml              # your intent
+├── .octo/                 # Octo's state
+├── src/                   # your own modules. Empty to start.
+├── .octo-tf/              # the generated Terraform
+├── package.json
+├── tsconfig.json
+├── tsconfig.build.json
+├── eslint.config.js
+├── .prettierrc
+├── .gitignore
+└── README.md
+```
 
-## Octo App Structure
-An Octo app is an infrastructure implementation project in TypeScript.
-This is where you apply templates, or import modules to define your overall infrastructure.
+Everything below `package.json` is an ordinary TypeScript package, configured the way you would
+configure any other. The four above it are Octo's, and all four are committed:
 
-A typical Octo app, generated using the `create-app` command, will yield the following project structure.
+```mermaid
+graph LR
+;
+    you["you write"] --> yaml["octo.yaml"];
+    you --> src["src/"];
+    yaml --> gen["generate"];
+    src --> gen;
+    gen --> tf[".octo-tf/"];
+    gen --> st[".octo/"];
+    tf --> apply["apply"];
+    apply --> commit["commit"];
+    commit --> st;
+```
+
+Two of them you write, and two Octo writes. The difference that matters is which one you can throw
+away: `.octo-tf/` is derived from the other three and comes back identical on the next `generate`,
+while `.octo/` is the only record that any of your infrastructure exists.
+
+## octo.yaml
+
+Your whole intent: which modules run, with what inputs, against which Terraform providers, writing
+state where.
+
+```yaml title="octo.yaml"
+version: 1
+
+env:            # values the shell can override
+terraform:      # required version, required providers, provider blocks
+settings:       # state provider, event listeners
+imports:        # module classes to load, and where from
+modules:        # the intent itself: module instances and their inputs
+hooks:          # optional lifecycle callbacks
+```
+
+[The Definition File](/docs/using-octo/the-definition-file) covers each section.
+
+The filename is a convention. The CLI reads whatever `OCTO_DEFINITION_FILE_PATH` points at, and the
+generated scripts point it at `octo.yaml`. Keeping several, such as `octo.staging.yaml` and
+`octo.prod.yaml`, is the normal way to separate deployments that must not share state.
+
+## .octo/
+
+Octo's memory of what your infrastructure is.
+
+| File                    | What it holds                                                                                                                   |
+|-------------------------|---------------------------------------------------------------------------------------------------------------------------------|
+| `models.json`           | The model graph: models, anchors, overlays, and every dependency edge between them.                                             |
+| `resources-actual.json` | The resource graph Octo believes exists, with each resource's response and the mapping from Octo resource to Terraform address. |
+| `resources-old.json`    | The previous resource graph, kept so a re-run can tell a settled state from a pending one.                                      |
+| `reports/`              | HTML and JSON from each validate and commit. Generated output, not state, and gitignored.                                       |
+
+Where it lives comes from `settings.stateProvider.statePath`, resolved against the definition file
+rather than the working directory. Losing it does nothing to your cloud account, but Octo will
+believe it is starting from nothing and propose creating everything again.
+[State](/docs/fundamentals/state) covers what is in these files and how to keep them somewhere a
+team can share.
+
+## src/
+
+Empty in a new project, and it can stay that way. An app that composes only modules from
+`@quadnix/octo-aws-cdk` needs nothing here.
+
+When you write your own, the `create-*` CLI commands put them under `src/` and maintain `src/index.ts`:
+
+```typescript title="src/index.ts"
+export { ShopRegionModule } from './modules/region/shop-region/index.js';
+import './resources/shop-thing/index.js';
+```
+
+Modules are exported because the definition file names them by class. Everything else is imported
+for the side effect of its decorator running, which is what registers a construct with Octo at boot.
+Miss the import and the construct does not exist as far as Octo is concerned.
+
+Build before the definition file can reference it:
+
 ```bash
-npx @quadnix/octo-build create-app -t aws-s3-website -n test-app -p .
-```
-```
-test-app                      # Root directory.
-├── .gitignore                # Git ignore file.
-├── .octo                     # Octo state directory. This is where Octo will save the state of your infrastructure.
-│   ├── .gitkeep              # Git keep file as a placeholder to keep the directory non-empty.
-|   ├── local-state.lock      # State lock file (when using LocalStateProvider)
-│   ├── models.json           # Serialized output of Models.
-│   ├── resources-actual.json # Serialized output of actual Resources.
-│   └── resources-old.json    # Serialized output of old Resources.
-├── .prettierrc               # Prettier configuration file.
-├── eslint.config.js          # ESLint configuration file.
-├── octo.yaml                 # Yaml Module definitions file. Loads Octo modules.
-├── package-lock.json         # Package lock file.
-├── package.json              # Package configuration file.
-├── README.md                 # README file.
-├── src                       # Source directory. Define custom Octo constructs here.
-├── tsconfig.build.json       # TypeScript build configuration file.
-├── tsconfig.json             # TypeScript configuration file.
-└── website                   # Website directory containing HTML files (only for aws-s3-website template).
-    ├── error.html            # Error page HTML file.
-    └── index.html            # Index page HTML file.
+npm run build
 ```
 
-:::info
-Depending on how the specific template you are downloading is configured, the actual files may differ,
-but this structure gives you a basic idea of what to expect.
+```yaml title="octo.yaml"
+imports:
+  - className: ShopRegionModule
+    importPath: "./dist/index.js"
+```
+
+## .octo-tf/
+
+One folder per module that produced resources, named after its `moduleId`, and rewritten on every
+`octo generate`.
+
+It is generated, and it is still committed. The Terraform in it is the code that actually creates
+your infrastructure, so a reviewer looking at a pull request sees the four lines of YAML somebody
+changed and the resources those four lines turned into, side by side, without running anything. It
+is also the only place a change to a module version shows up: upgrade `@quadnix/octo-aws-cdk`,
+regenerate, and the diff is exactly what the new version does differently.
+
+Nothing in these folders should be edited by hand, because the next `generate` overwrites the files
+Octo owns. It overwrites only those, so Terraform's lock file, its state, and the provider cache all
+survive a regenerate, and those are the parts that stay out of git. A module you deleted from your
+intent leaves an emptied folder behind, and that emptied folder is what makes the next apply destroy
+its resources.
+
+:::note[One generated line is machine-specific]
+A module that uploads files from disk, such as `AwsS3StaticWebsiteServiceModule`, writes the
+absolute path of each file into `source` and `filemd5()` on the `aws_s3_object` it renders. That
+path is resolved against the working directory, so the same intent generates a different line on a
+different machine, and the folder shows a diff nobody made. Regenerating on the machine that
+applies, which the pipeline does anyway, keeps it consistent.
 :::
 
-## Octo CDK Structure
-An Octo CDK project is a TypeScript project to define custom Octo constructs.
-This is where you develop new templates, modules, models, and resources.
+:::warning[Terraform state lives in here, and it is local by default]
+The generated `terragrunt.hcl` configures a local backend at
+`.octo-tf/<moduleId>/terraform.tfstate`, and the scaffolded `.gitignore` excludes `*.tfstate*` along
+with `.terragrunt-cache/`. Out of the box, that state exists on one machine only.
 
-A typical Octo CDK, generated using the `create-cdk` command, will yield the following project structure.
+Fine for one person trying things out. For a team or for CI you need Terraform state that outlives
+the working directory: either keep `.octo-tf/` on durable shared storage, or rewrite the
+`remote_state` block to point at S3 or another backend, as a step between `octo generate` and `octo
+apply`. There is no definition-file setting for the backend today.
+:::
+
+## A project that has outgrown one file
+
+Once the shop has more than one deployment and modules of its own:
+
+```text
+shop/
+├── octo.yaml                  # staging, and the default
+├── octo.prod.yaml             # production, with its own statePath
+├── .octo/                     # state for octo.yaml
+├── .octo-prod/                # state for octo.prod.yaml
+├── src/
+│   ├── index.ts
+│   ├── anchors/               # what your models expose for other modules to match on
+│   ├── modules/
+│   │   └── <model-type>/<module-name>/
+│   ├── overlays/
+│   ├── resources/
+│   └── utilities/
+└── package.json
+```
+
+That `src/` layout mirrors `@quadnix/octo-aws-cdk`, which is worth reading as a worked example, and
+the `create-*` commands assume it. `octo create-module -n shop-region -t region --package @shop`
+writes to `src/modules/region/shop-region/`.
+
+## Environments
+
+There is no `--env` flag. A deployment that must not share state with another is a separate
+definition file with a separate `statePath`:
+
 ```bash
-npx @quadnix/octo-build create-cdk -n test-cdk -p . -o withExamples=false
-```
-```
-test-cdk                      # Root directory.
-├── .gitignore                # Git ignore file.
-├── .prettierrc               # Prettier configuration file.
-├── eslint.config.js          # ESLint configuration file.
-├── package-lock.json         # Package lock file.
-├── package.json              # Package configuration file.
-├── README.md                 # README file.
-├── src                       # Source directory. Reference `octo-aws-cdk` for a detailed structure.
-│   ├── anchors               # Anchor directory.
-│   │   └── .gitkeep
-│   ├── factories             # Factory directory.
-│   │   └── .gitkeep
-│   ├── modules               # Module directory.
-│   │   └── .gitkeep
-│   ├── resources             # Resource directory.
-│   │   └── .gitkeep
-│   └── utilities             # Utility directory.
-│       └── .gitkeep
-├── tsconfig.build.json       # TypeScript build configuration file.
-└── tsconfig.json             # TypeScript configuration file.
+OCTO_DEFINITION_FILE_PATH=octo.prod.yaml octo generate -o .octo-tf-prod
+OCTO_DEFINITION_FILE_PATH=octo.prod.yaml octo validate --terragruntDir .octo-tf-prod
 ```
 
-:::tip
-The CDK project structure is not so different from the app's structure by design.
-Both are set up to configure TypeScript with minor differences in EsLint rules, and other TypeScript settings.
+Octo also has an environment model, which is a different idea. `staging` and `qa` inside one region
+of the shop are environment models: they coexist in one graph, share one state file, and can refer
+to each other. Separate definition files are for deployments that must be isolated, which for most
+teams means production and everything else. Reach for the model first.
 
-Our recommendation is to start with a pre-built template, and enhance it to add custom components as required.
-:::
+## What goes in version control
 
-## Types of Library
-Octo is a large framework built with many smaller libraries.
-The source code of these libraries exist in [GitHub](https://github.com/quadnix/octo), which is a NX monorepo.
+| Path                                           | Commit | Why                                                                |
+|------------------------------------------------|--------|--------------------------------------------------------------------|
+| `octo.yaml`                                    | Yes    | It is the intent.                                                  |
+| `.octo/models.json`, `.octo/resources-*.json`  | Yes    | Octo's state. Without it the next run starts from nothing.         |
+| `.octo/reports/`                               | No     | Output of a run.                                                   |
+| `.octo-tf/**/*.tf`, `terragrunt.hcl`           | Yes    | The Terraform your change produced, reviewable next to the change. |
+| `.octo-tf/**/*.tfstate*`, `.terragrunt-cache/` | No     | Terraform's own working files, written during an apply.            |
+| `src/`, `package.json`, `tsconfig*.json`       | Yes    | Ordinary source.                                                   |
+| `dist/`                                        | No     | Build output.                                                      |
 
-### octo
-This is the base library. It defines the base model and resource nodes, transaction capabilities,
-and other essential constructs required for Octo to run.
-It is a really lightweight, zero dependency library. It is cloud-agnostic, and it exports classes
-required for nearly all Octo operations.
-
-### octo-aws-cdk
-This is an extension of the base octo library - specific for AWS resources.
-It defines several modules, models, overlays, anchors, and resources to encapsulate several of AWS resources.
-You already saw an example with S3 website module imported from this library,
-which encapsulates creating a S3 website with different parameters.
-
-This is but one of the many community modules available to you.
-Any one can write new modules, for any cloud provider.
-Create your own custom modules in your own CDK. Share, reuse, publish, or use locally.
-
-### octo-build
-This is Octo's CLI tool. It offers several commands ranging from generating boilerplate code,
-to running Octo's YAML definitions, and state manipulation.
-
-### octo-event-listeners
-This package is dedicated and scoped for logging and report generation only.
-It listens and subscribes to several of Octo's events to emit logs and output HTML reports post transaction.
-
-### octo-templates
-This package houses some of the curated templates offered by Octo to help you get started faster.
-Reference them as examples, or copy and customize them to set up the same infrastructure for yourself.
-
-These templates are pre-built, pre-tested collection of modules,
-serving some of the most common use cases we came across the community.
+The scaffolded `.gitignore` already says all of this.

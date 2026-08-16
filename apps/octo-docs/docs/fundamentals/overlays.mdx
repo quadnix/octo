@@ -2,59 +2,135 @@
 title: Overlays
 ---
 
-## Definition
-An overlay is a special kind of model to represent infrastructure components that span across multiple models.
-You should think of an overlay as an infrastructure functionality that exists as a crossover between one or more models.
+"Checkout can read and write the uploads directory of the receipts bucket" is a fact about two
+things. Put it on the server and every server now carries a list of buckets, which means the server
+model knows what S3 is. Put it on the storage service and every bucket carries a list of servers,
+which means the storage model knows what an IAM role is. Either way, one of the two models has been
+distorted by something that was never about it alone.
 
-:::info
-Just like resources, the base generic `octo` library does not define any base overlays.
-Overlays are defined in an implementation of the `octo` library for a specific cloud provider
-to achieve functionality that models cannot provide by themselves.
-:::
+An **overlay** is a node for facts like that one. It joins several models, holds the properties of
+the relationship itself, and has its own actions, its own diff, and its own place in state. The
+models it joins stay as they were.
 
-Take a Filesystem in AWS as an example.
-The filesystem model can aptly represent an EFS filesystem in a Region.
-But in order to be used by a server, it must be mounted to a Subnet.<br/>
-Where should the functionality of adding a filesystem mount be defined?
-Neither the Filesystem, nor the Subnet model can define this without adding a lot of unnecessary complexity to them.
+The shop already has one. When you gave checkout access to the receipts bucket in [Shop
+Stack](/docs/getting-started/shop-stack), the server module built an `AwsEcsServerS3AccessOverlay`,
+and it is the reason that one change touched resources in two different Terragrunt folders.
 
-Overlays exists to solve this problem.
-In this scenario, a new overlay can be created which takes both the Filesystem and Subnet models as inputs,
-and then encapsulates the logic of adding a filesystem mount to a server.
+## What it looks like
 
-:::tip
-An overlay can also be created on a single model.
-Typically, you would do this to add additional functionalities to a model other than its base functionality.
-:::
+```mermaid
+graph TD
+;
+    server["server<br/>checkout"];
+    service["service<br/>receipts storage"];
+    overlay["overlay<br/>s3 access<br/><i>READ_WRITE on /uploads</i>"];
+    server -. " AwsIamRoleAnchor " .-> overlay;
+    service -. " directory anchor for /uploads " .-> overlay;
+```
 
-:::info[TL;DR:]
-An overlay enriches models by adding additional capabilities.
-Think of overlays as additional functionalities that can be easily added or removed from models.
-This flexibility enables model implementations to remain clean and free of unnecessary clutter.
-:::
+```typescript
 
-## Overlay-Anchor Relationship
-Overlays don't really take models as inputs, for the reasons mentioned in [Anchors](/docs/fundamentals/anchors).
-Instead, overlays takes *Anchors* as inputs.
+@Overlay('@octo', 'aws-ecs-server-s3-access-overlay', AwsEcsServerS3AccessOverlaySchema)
+export class AwsEcsServerS3AccessOverlay extends AOverlay<
+  AwsEcsServerS3AccessOverlaySchema,
+  AwsEcsServerS3AccessOverlay
+> {
+  declare anchors: [AwsIamRoleAnchor, MatchingAnchor<AwsS3StorageServiceDirectoryAnchorSchema>];
+  declare properties: AwsEcsServerS3AccessOverlaySchema['properties'];
+}
+```
 
-In this diagram, we have an overlay between *Model 1* and *Model 2*,
-and another overlay just on *Model 2*,
-using anchors present in both models.
-<img
-alt="overlay-and-anchor-diagram"
-src={require('./assets/overlay-introduction.png').default}
-/>
+The properties are the relationship, and nothing else:
 
-:::info
-An overlay is not fundamentally different from a Model, but rather an extension of it.
-Like them, it also has its own actions, can be serialized and deserialized,
-and is managed by Octo using the same state files.
+```typescript
+{
+  allowRead: true,
+    allowWrite
+:
+  true,
+    bucketName
+:
+  'shop-receipts',
+    iamRoleName
+:
+  'ServerRole-checkout',
+    iamRolePolicyId
+:
+  'aws-ecs-server-s3-access-overlay-2bb8580c0e3c',
+    remoteDirectoryPath
+:
+  'uploads',
+}
+```
 
-Just like a model, and overlay is also considered an internal implementation.
-Overlays can also expose their own anchors as its representative.
-:::
+## It joins anchors, not models
 
-## Summary
-In this section we discussed Overlays, and its relationship to Models and Anchors.
-We discussed how these add-on classes aid in maintaining complex infrastructure functionalities,
-and helps keep models pure and simplified.
+An overlay takes [anchors](/docs/fundamentals/anchors), which is the part that makes it reusable.
+The access overlay holds checkout's IAM role anchor and the receipts bucket's directory anchor. It
+never sees `AwsEcsServer` or `AwsS3StorageService`, so a different server module publishing the same
+IAM role anchor works with it unchanged.
+
+Adding an anchor also creates the dependency edges: the overlay depends on each anchor's parent
+model, and each parent knows the overlay depends on it. That is what makes an overlay disappear when
+either end does. Delete the receipts service from the shop's definition file and the access overlay
+goes with it, and the policy statement naming it goes too.
+
+An overlay cannot hold an anchor of its own, which would be a node pointing at itself, and Octo
+throws if you try.
+
+## Its own actions
+
+An overlay is diffed like any other node, and the [action](/docs/fundamentals/actions) registered
+for it declares what the relationship costs in infrastructure. This is where both halves of the
+shop's permission are written:
+
+```typescript
+
+@Action(AwsEcsServerS3AccessOverlay)
+export class AddAwsEcsServerS3AccessOverlayAction implements IModelAction<AwsEcsServerModule> {
+  async handle (diff, actionInputs, actionOutputs): Promise<ActionOutputs> {
+    const properties = diff.node.properties;
+
+    const iamRole = actionInputs.resources[`iam-role-${properties.iamRoleName}`] as IamRole;
+    iamRole.addS3BucketPolicy(properties.iamRolePolicyId, properties.bucketName,
+      properties.remoteDirectoryPath,
+      { allowRead: properties.allowRead, allowWrite: properties.allowWrite });
+
+    // ... and the matching statement on the bucket resource
+  }
+}
+```
+
+One action, reaching two resources that belong to two different modules. Neither module had to know
+about the other, and the report attributes both changes to the request that caused them.
+
+## Identity
+
+An overlay's ID has to be the same on every run for the same relationship, or Octo will see the old
+one deleted and a new one created. The server module derives it from a hash of the inputs:
+
+```typescript
+const overlayIdSuffix = CommonUtility.hash(
+  iamRoleAnchor.anchorId,
+  directory.remoteDirectoryPath,
+  directory.access,
+).substring(0, 12);
+const overlayId = `aws-ecs-server-s3-access-overlay-${overlayIdSuffix}`;
+```
+
+Which explains something you may have noticed in the shop's generated Terraform: the IAM policy is
+called `aws-ecs-server-s3-access-overlay-2bb8580c0e3c`, and changing the access from `READ_WRITE` to
+`READ` gives it a different name, because the access level is part of the hash. That is a deliberate
+trade. A narrowed permission is a new policy and the old one goes, rather than a policy quietly
+changing meaning under a name that stayed the same.
+
+## When to reach for one
+
+Use an overlay when a fact is genuinely about more than one model and putting it on either one would
+teach that model something it should not know. Access grants, mounts, and peering are the shape.
+
+Do not use one for a fact that belongs to a single model with extra configuration. A bucket's
+versioning setting is a property of the bucket, not a relationship, and an overlay there is a node
+with one anchor and no reason to exist.
+
+[Create an Overlay](/docs/building-modules/create-an-overlay) walks through writing one.

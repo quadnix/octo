@@ -16,7 +16,7 @@ This file is the base TypeScript configuration file. All other apps and packages
 This file defines the sane defaults, and allows other parts of the project to override to suit their needs.
 
 ## Setup
-* Below dev dependencies were installed to [package.json](/contributions/package.json) to support TypeScript.
+* Below dev dependencies were installed to [package.json](https://github.com/quadnix/octo/blob/main/package.json) to support TypeScript.
   * **@types/node**: contains type definitions for Node.js.
   * **@typescript-eslint/eslint-plugin**: contains lint rules for TypeScript.
   * **@typescript-eslint/parser**: allows eslint to lint TypeScript files.

@@ -1,0 +1,116 @@
+---
+title: Templates
+---
+
+Starting from an empty definition file means knowing which modules exist, which inputs each one
+takes, and which order they have to run in. A template is a working stack that already answers all
+three, so the first thing you do is change something rather than assemble something.
+
+There are two sets, and they are for different moments.
+
+## Scaffold templates
+
+```bash
+npx @quadnix/octo-build create-app -t <template> -n <app-name>
+```
+
+Each one writes a complete project: a definition file with its modules wired together, a
+`package.json` with the four lifecycle scripts, and any supporting files the stack needs. Then it
+runs `npm install`. What you get after that is [the lifecycle](/docs/getting-started/the-lifecycle).
+
+The `-t` flag changes only `octo.yaml` and, for the website template, a folder of files to upload.
+The rest of the project is identical whichever you choose.
+
+### aws-s3-website
+
+The smallest one. No VPC, and it applies in seconds.
+
+```yaml title="octo.yaml"
+modules:
+  - moduleId: app-module
+    moduleClass: SimpleAppModule
+    moduleInputs:
+      name: aws-s3-website
+
+  - moduleId: account-module
+    moduleClass: AwsIniAccountModule
+    moduleInputs:
+      accountId: "${env.AWS_ACCOUNT_ID}"
+      app: "${{app-module.model.app}}"
+
+  - moduleId: s3-website-service-module
+    moduleClass: AwsS3StaticWebsiteServiceModule
+    moduleInputs:
+      account: "${{account-module.model.account}}"
+      awsRegionId: us-east-1
+      bucketName: "${env.AWS_S3_WEBSITE_BUCKET_NAME}"
+      directoryPath: website
+```
+
+Three modules, and one of them produces the whole website: a bucket, its website configuration, a
+public access block, a bucket policy, and one object per file in `website/`. [Static
+Website](/docs/getting-started/static-website) runs this one end to end, from scaffold to a URL you
+can open.
+
+### aws-ecs-server
+
+A container running on ECS behind an application load balancer, and the one worth reading even if
+you never deploy it, because it is composition at a realistic size. Eleven modules:
+
+```yaml title="octo.yaml (abridged)"
+modules:
+  - moduleId: app-module                     # SimpleAppModule
+  - moduleId: account-module                 # AwsIniAccountModule
+  - moduleId: region-module                  # AwsMultiAzRegionModule, two AZs
+  - moduleId: backend-server-module          # AwsEcsServerModule
+  - moduleId: backend-deployment-v1-module   # AwsEcsDeploymentModule, an echo-server image
+  - moduleId: qa-environment-module          # AwsEcsEnvironmentModule
+  - moduleId: public-subnet-module           # AwsSimpleSubnetModule, with a NAT gateway
+  - moduleId: public-backup-subnet-module    # AwsSimpleSubnetModule, in the second AZ
+  - moduleId: private-subnet-module          # AwsSimpleSubnetModule, NAT-attached
+  - moduleId: backend-v1-qa-execution-module # AwsEcsExecutionModule
+  - moduleId: qa-api-alb-module              # AwsEcsAlbServiceModule
+```
+
+Read it for the wiring rather than the resources. The private subnet is given the two public subnets
+as siblings, one of them marked `attachToNatGateway: true`. The execution is given a deployment, an
+environment, and a subnet, which is exactly what an execution is. The load balancer is given the two
+public subnets and the execution it should route to. Every one of those is a node handed to a
+module, not an ID copied between files.
+
+This template creates a NAT gateway, which costs money by the hour. Tear it down when you are done.
+
+### aws-dynamodb-service
+
+A DynamoDB table with a hash and range key, one global secondary index, one local secondary index,
+streams, and a TTL attribute. Four modules, and the interesting part is the comments in the
+generated definition file, which mark which of those can change on a live table and which recreate
+it.
+
+## The reference suites
+
+`@quadnix/octo-templates` in the Octo repository holds the same three stacks as end-to-end test
+suites. They are not something you install; they are where the templates are actually verified, and
+they run the real lifecycle against a real AWS account.
+
+They are worth reading for the things a definition file cannot show. `aws-ecs-server` has a drift
+suite that changes infrastructure out from under Octo and checks that validate reports it. It has an
+incremental suite that applies a stack, changes one input, and applies again, which is the case a
+template on its own never exercises. Each suite builds its modules through a `ModuleDefinitions`
+class that a test can mutate, so "remove this module and run again" is a line of code.
+
+If you are writing modules of your own, these are the closest thing to a worked example of testing
+them against something real. [Testing a Module](/docs/building-modules/testing-a-module) is the page
+for that.
+
+## Your own
+
+A template is a definition file plus whatever it needs, so a starting point of your own is a
+directory somebody copies. That is fine, and for most teams it is the right amount of machinery.
+
+The version that scales better is a module. A template says "here is a stack, change the names"; a
+module says "here is what a region means here, take it". If every project at your company begins by
+copying the same six modules and changing the same four inputs, those six modules are one module
+nobody has written yet. [Create a Module](/docs/building-modules/create-a-module) covers writing it,
+and [Publishing a Library](/docs/building-modules/publishing-a-library) covers handing it to other
+teams.

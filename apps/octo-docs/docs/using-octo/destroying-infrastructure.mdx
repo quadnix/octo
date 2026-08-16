@@ -1,0 +1,172 @@
+---
+title: Destroying Infrastructure
+---
+
+Removing infrastructure is the operation nobody rehearses. The command is easy enough, and the
+uncertainty is not about the command: it is whether the thing you are about to remove is still
+holding something up, and whether the list on screen is the whole list.
+
+In Octo you do not run a destroy command. You take the thing out of your intent and run the same
+four steps as always, and the removal is reported the same way every other change is reported, at
+the level you removed it.
+
+## Removing one piece
+
+The shop has a checkout server that can read and write the receipts bucket. To remove it, comment
+out its module:
+
+```yaml title="octo.yaml"
+#  - moduleId: checkout-server-module
+#    moduleClass: AwsEcsServerModule
+#    moduleInputs:
+#      account: "${{account-module.model.account}}"
+#      serverKey: checkout
+#      s3:
+#        - service: "${{receipts-module.model.service}}"
+#          directories:
+#            - access: READ_WRITE
+#              remoteDirectoryPath: uploads
+```
+
+Then generate:
+
+```bash
+npm run octo:generate
+```
+
+```text
+INFO: Wrote 0 terragrunt folder(s) to ".octo-tf", emptied 3 (deleted from intent).
+    emptied: [
+      "receipts-module",
+      "checkout-server-module",
+      "region-module"
+    ]
+```
+
+"Emptied" is the important word. Octo did not delete `.octo-tf/checkout-server-module/`; it rewrote
+it with the Terraform block and the providers, and no resources. Terragrunt still finds the folder,
+Terraform still has its state, and an empty configuration against a populated state is exactly what
+makes the next apply destroy those resources.
+
+Deleting the folder would do the opposite. Terraform would never look at that state again, and the
+role would sit in AWS with nothing tracking it. Octo never deletes a folder for this reason.
+
+## Reading what will go
+
+```bash
+npm run octo:validate
+```
+
+```text
+You removed checkout-server-module (+2 other changes). That destroys or replaces 8 things — check those before anything else.
+- 8 destroy   ± 0 replace   + 0 create   ~ 0 update
+
+WHAT WILL CHANGE
+  - removed checkout-server-module  [checkout-server-module | grouped by module | -4]
+      - iam-role-ServerRole-checkout
+          - aws_iam_policy.iam-role-ServerRole-checkout_aws-ecs-server-s3-access-overlay-2bb8580c0e3c
+          - aws_iam_role_policy_attachment.iam-role-ServerRole-checkout_AmazonECSTaskExecutionRolePolicy
+          - aws_iam_role_policy_attachment.iam-role-ServerRole-checkout_aws-ecs-server-s3-access-overlay-2bb8580c0e3c_attach
+          - aws_iam_role.iam-role-ServerRole-checkout
+  - removed region-module  [region-module | grouped by module | -2]
+      - vpc-eu-west-1
+          - aws_vpc.vpc-eu-west-1
+      - igw-eu-west-1
+          - aws_internet_gateway.igw-eu-west-1
+```
+
+Destroys sort to the top of the report, and the counters lead with them. A removal card is headed by
+the module rather than by a model context, because the models are gone from your intent, and the
+module ID is the only name left that means anything.
+
+Read the whole list before going further. The question worth asking is not whether these should go,
+but whether anything you did not remove is quietly in there too.
+
+## Applying it
+
+```bash
+npm run octo:apply
+```
+
+```text
+This apply would DESTROY:
+  [checkout-server-module] aws_iam_role.iam-role-ServerRole-checkout (delete)
+  [receipts-module] aws_s3_bucket.bucket-shop-receipts (delete)
+  [region-module] aws_vpc.vpc-eu-west-1 (delete)
+  ...
+
+Refusing to apply. Run "octo validate" to see why each of these is being destroyed, then re-run with --auto-approve to proceed.
+```
+
+Terragrunt is always given `-auto-approve`, so there is no prompt to answer during an apply. This
+check is what stands in for one: `octo apply` plans first, and refuses if anything would be
+destroyed.
+
+```bash
+npm run octo:apply -- --auto-approve
+```
+
+That flag is required for every destroy, including one you fully intended. It is not a `--force`; it
+is an acknowledgement that you have read the list above.
+
+## Committing the removal
+
+```bash
+npm run octo:commit
+```
+
+```text
+WHAT CHANGED
+  - removed checkout-server-module  [checkout-server-module | grouped by module | -4]
+      ...
+
+MODULES THAT NO LONGER RENDER ANYTHING
+  checkout-server-module
+  receipts-module
+  region-module
+```
+
+Committing after a destroy is not optional, and for one reason beyond keeping state accurate. A
+resource whose lifecycle runs outside Terraform is deleted by its own delete action, and `octo
+commit` is what runs it. Terraform cannot: by the time it would, that resource's configuration is
+already gone from the folder.
+
+The last section names the folders that are now empty. Once the destroy is committed they are inert,
+and you can delete them by hand whenever you like.
+
+## Deleting is not renaming
+
+The one case worth being careful about. Change the bucket name in the shop's definition file and the
+report says:
+
+```text
+WHAT WILL CHANGE
+  + added service=shop-receipts-v2-s3-storage  [... | receipts-module | +1]
+      + bucket-shop-receipts-v2
+          + aws_s3_bucket.bucket-shop-receipts-v2
+  - removed receipts-module  [receipts-module | grouped by module | -1]
+      - bucket-shop-receipts
+          - aws_s3_bucket.bucket-shop-receipts
+```
+
+A rename is a destroy and a create, because a resource's identity is derived from what you wrote.
+For a bucket that means the objects inside it. The report tells you before it happens, and the apply
+refuses without `--auto-approve`, but nothing will stop you if you insist.
+
+The same is true of a `moduleId`. Rename `receipts-module` and Octo sees one module gone and another
+arrived.
+
+## Taking everything down
+
+Comment out every module except the app and the account, which produce nothing in AWS themselves and
+are what the rest of the file hangs off:
+
+```bash
+npm run octo:generate
+npm run octo:apply -- --auto-approve
+npm run octo:commit
+```
+
+Afterwards, `.octo/` still exists and describes an app with nothing in it, and `.octo-tf/` is full
+of empty folders. That is the correct resting state, and re-adding a module from here works
+normally.

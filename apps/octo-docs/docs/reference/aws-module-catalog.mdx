@@ -1,0 +1,145 @@
+---
+title: AWS Module Catalog
+---
+
+`@quadnix/octo-aws-cdk` is our own implementation layer for AWS. It is a usable library, and it is a
+worked example of how to build one: every module in it is written with the same pieces described in
+[Anatomy of a Module](/docs/building-modules/anatomy-of-a-module), and nothing in it is privileged
+by the framework. A region module you write yourself sits alongside these on equal terms.
+
+That matters when reading this page. What follows is a set of answers one team gave to questions
+like "what is a region made of", not the answers. Where a module does not fit your account layout,
+the move is to write your own and keep the rest.
+
+Each entry lists what a caller passes and what appears in AWS. The generated API documentation has
+every input in full.
+
+## Apps and accounts
+
+An app produces no cloud resources. An account decides which credentials to use and which provider
+block is rendered, and produces none either.
+
+| Module                        | Inputs                                          | Creates |
+|-------------------------------|-------------------------------------------------|---------|
+| `SimpleAppModule`             | `name`                                          |         |
+| `AwsIniAccountModule`         | `accountId`, `app`, `iniProfile?`, `endpoints?` |         |
+| `AwsCredentialsAccountModule` | `accountId`, `app`, `credentials`, `endpoints?` |         |
+| `AwsLocalstackAccountModule`  | `app`, `endpoints?`                             |         |
+| `AwsMotoAccountModule`        | `app`, `endpoints?`                             |         |
+
+`AwsIniAccountModule` reads a named profile from `~/.aws/credentials`, which is what the templates
+use. `AwsCredentialsAccountModule` takes credentials directly, for CI. The Localstack and Moto
+modules point the provider at a local emulator, and exist for testing.
+
+```yaml
+imports:
+  - className: AwsIniAccountModule
+    importPath: "@quadnix/octo-aws-cdk/modules/account/aws-ini-account"
+```
+
+Every import path follows that shape: the package, then `modules/<model-type>/<module-name>`.
+
+## Regions and subnets
+
+| Module                    | Inputs                                                                                                                        | Creates                                                                         |
+|---------------------------|-------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------|
+| `AwsSingleAzRegionModule` | `account`, `name`, `regionId`, `vpcCidrBlock`                                                                                 | VPC, internet gateway                                                           |
+| `AwsMultiAzRegionModule`  | `account`, `name`, `regionIds`, `vpcCidrBlock`                                                                                | VPC, internet gateway                                                           |
+| `AwsSimpleSubnetModule`   | `region`, `subnetName`, `subnetCidrBlock`, `subnetAvailabilityZone`, `subnetOptions?`, `subnetSiblings?`, `localFilesystems?` | subnet, route table, network ACL, security group, NAT gateway, EFS mount target |
+
+Both region modules define a region as one VPC with an internet gateway. They differ in what the
+region publishes: a single-AZ region advertises one availability zone, a multi-AZ region advertises
+several, and that is what a subnet module reads when deciding where it can place itself. Their
+region IDs are Octo's own, `aws-eu-west-1a`, distinct from the AWS region.
+
+The subnet module is where the network shape actually lives. `subnetOptions` carries
+`createNatGateway`, `disableSubnetIntraNetwork`, and `subnetType`; `subnetSiblings` is how a private
+subnet asks to route through a public one's NAT gateway.
+
+:::info[A NAT gateway costs money by the hour]
+`createNatGateway: true` is the one input in this catalog with an ongoing bill attached, whether or
+not anything is running behind it.
+:::
+
+## Servers, deployments, and executions
+
+| Module                    | Inputs                                                                                                                                | Creates                                      |
+|---------------------------|---------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------|
+| `AwsEcsServerModule`      | `account`, `serverKey`, `s3?`, `securityGroupRules?`                                                                                  | IAM role                                     |
+| `AwsEcsDeploymentModule`  | `server`, `deploymentTag`, `deploymentContainerProperties`                                                                            |                                              |
+| `AwsEcsEnvironmentModule` | `region`, `environmentName`, `environmentVariables?`                                                                                  | ECS cluster                                  |
+| `AwsEcsExecutionModule`   | `deployments`, `environment`, `subnet`, `executionId`, `desiredCount`, `environmentVariables?`, `filesystems?`, `securityGroupRules?` | ECS service, task definition, security group |
+
+These four are one story told in four parts. A server is the logical microservice and gets an IAM
+role. A deployment is one version of its container. An environment is a stage inside a region, and
+becomes the ECS cluster. An execution is a deployment running in an environment in a subnet, and is
+what actually runs.
+
+`AwsEcsServerModule`'s `s3` input is the shop's receipts grant from [Shop
+Stack](/docs/getting-started/shop-stack): a list of storage services and, per service, the
+directories the server may access with `READ`, `WRITE`, or `READ_WRITE`. That produces an
+[overlay](/docs/fundamentals/overlays), a policy on the role, and a statement on the bucket.
+
+## Services
+
+| Module                            | Inputs                                                                                                                                                                         | Creates                                                                                    |
+|-----------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------|
+| `AwsS3StorageServiceModule`       | `region`, `bucketName`, `remoteDirectoryPaths?`                                                                                                                                | S3 bucket, bucket policy                                                                   |
+| `AwsS3StaticWebsiteServiceModule` | `account`, `awsRegionId`, `bucketName`, `directoryPath`, `filter?`, `transform?`, `subDirectoryOrFilePath?`                                                                    | S3 bucket configured as a website, public access block, bucket policy, one object per file |
+| `AwsDynamoDBServiceModule`        | `region`, `TableName`, `KeySchema`, `AttributeDefinitions`, `billingMode`, `GlobalSecondaryIndexes?`, `LocalSecondaryIndexes?`, `StreamSpecification?`, `timeToLiveAttribute?` | DynamoDB table                                                                             |
+| `AwsDynamoDBGlobalServiceModule`  | `dynamoDBService`, `replicas`                                                                                                                                                  | DynamoDB global table replicas                                                             |
+| `AwsEcsAlbServiceModule`          | `region`, `albName`, `listeners`, `subnets`, `targets?`                                                                                                                        | application load balancer, listener, target group, security group                          |
+
+Two things about the DynamoDB module are worth knowing before you use it, and its generated
+definition file says both: a global secondary index can be added to or removed from a live table,
+and a local secondary index cannot, so changing one recreates the table.
+
+## Filesystems and images
+
+| Module                   | Inputs                                | Creates        |
+|--------------------------|---------------------------------------|----------------|
+| `AwsEfsFilesystemModule` | `region`, `filesystemName`            | EFS filesystem |
+| `AwsEcrImageModule`      | `imageFamily`, `imageName`, `regions` | ECR repository |
+
+An EFS filesystem belongs to a region; mounting it into a subnet is the subnet module's
+`localFilesystems` input, which is what produces the mount target.
+
+## Anchors
+
+These are the shapes the modules above publish and consume, and they are what a module of your own
+needs to match to interoperate. Import a schema from `@quadnix/octo-aws-cdk/anchors/<name>/schema`,
+where `<name>` is the anchor's own name rather than the directory it sits in:
+`anchors/aws-iam-role/schema`, not `anchors/aws-iam/schema`.
+
+| Anchor                                      | On                | Publishes                                                                    |
+|---------------------------------------------|-------------------|------------------------------------------------------------------------------|
+| `AwsAccountAnchorSchema`                    | account           | `awsAccountId`                                                               |
+| `AwsRegionAnchorSchema`                     | region            | `awsRegionId`, `awsRegionAZs`, `regionId`, `vpcCidrBlock`                    |
+| `AwsSubnetAnchorSchema`                     | subnet            | `subnetName`, `CidrBlock`, `AvailabilityZone`, `awsAccountId`, `awsRegionId` |
+| `AwsSubnetLocalFilesystemMountAnchorSchema` | overlay           | `subnetName`, `filesystemName`, `awsAccountId`, `awsRegionId`                |
+| `AwsEcsServerAnchorSchema`                  | server            | `serverKey`, `deploymentType`                                                |
+| `AwsIamRoleAnchorSchema`                    | server            | `iamRoleName`                                                                |
+| `AwsSecurityGroupAnchorSchema`              | server, execution | `securityGroupName`, `rules`                                                 |
+| `AwsS3StorageServiceAnchorSchema`           | service           | `bucketName`, `awsAccountId`, `awsRegionId`                                  |
+| `AwsS3StorageServiceDirectoryAnchorSchema`  | service           | `bucketName`, `remoteDirectoryPath`                                          |
+| `AwsEcsClusterAnchorSchema`                 | environment       | `clusterName`, `environmentVariables`                                        |
+| `AwsEcsExecutionAnchorSchema`               | execution         | `desiredCount`, `environmentVariables`                                       |
+| `AwsEcsServiceAnchorSchema`                 | overlay           | `executionId`                                                                |
+| `AwsEcsTaskDefinitionAnchorSchema`          | deployment        | `cpu`, `memory`, `image`                                                     |
+| `AwsEcsAlbAnchorSchema`                     | service           | `albName`                                                                    |
+| `AwsDynamoDBAnchorSchema`                   | service           | `TableName`                                                                  |
+| `AwsDynamoDBGlobalAnchorSchema`             | service           | `TableName`                                                                  |
+| `AwsEfsAnchorSchema`                        | filesystem        | `filesystemName`                                                             |
+
+Two of them sit on an overlay rather than on a model, because what they describe is a relationship:
+a filesystem mounted into a subnet, and an execution's ECS service.
+
+The one you will meet first is `AwsRegionAnchorSchema`. Almost every module in this catalog takes a
+region, and what it actually requires is any node named `region` that publishes that shape, which is
+why [replacing the region module](/docs/using-octo/composing-modules#replacing-a-module) changes
+nothing downstream.
+
+## Version
+
+These pages were written against `@quadnix/octo-aws-cdk` 0.0.19. The library is pre-1.0, and both
+module inputs and anchor shapes can still change between minor versions.

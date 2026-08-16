@@ -2,225 +2,186 @@
 title: Introduction
 ---
 
-**Octo is a cloud-agnostic, general purpose, cloud infrastructure modeling and management tool.**<br /><br />
-This simply means Octo can help you design, implement, and maintain infrastructure for your application
-in the cloud of your choice (e.g. AWS or GCP), using concepts relevant to your application
-rather than directly manipulating cloud resources.
+Infrastructure is written today with tools like Terraform and the cloud vendors' own CDKs, and they
+are good at the job they set out to do: capture a cloud account exactly, one resource at a time.
+What comes out of that is an inventory of cloud primitives. Reading it tells you that eleven subnets
+and forty roles exist. It does not tell you that six of them are there for the checkout service, and
+anyone outside the infrastructure team is left to work that out on their own.
 
-So, let's get started! But before all that,
-**Hello, and welcome to Octo ❤️**<br />
+Octo is an infrastructure-as-code framework that turns the description around. You write intent: an
+application, the accounts and regions it runs in, its environments, the servers and services it
+needs, and how those relate to each other. Cloud resources are encapsulated behind those words, so
+what you maintain lines up with how you already talk about your services, and the infrastructure a
+service depends on stays attached to that service.
 
-## What is Octo?
-Octo project is a collection of libraries to help write cloud infrastructure as code.
-These libraries are TypeScript based.
+From that intent Octo derives the cloud resources required, writes the Terraform for them, and
+leaves the applying to the toolchain your team already runs. It replaces nothing in that toolchain.
+It adds the layer above, where infrastructure decisions are made and recorded.
 
-The base Octo library, called `octo`, is general-purpose, and it abstracts your infrastructure into logical components,
-such as Models, Resources, and Modules. It is cloud-agnostic, meaning, the definition of Octo components
-can work with any cloud provider.<br />
-Then, there are individual libraries for supported cloud providers which takes the abstracted Octo components and
-maps them to the underlying cloud resources.
-One such library is `octo-aws-cdk`, which provides support for infrastructure in AWS.
+## Philosophy
 
-:::info
-While Octo has the capability to support multiple Cloud Providers,
-today it only provides limited support for AWS.
-As our community grows, we expect to write CDKs for other providers as well, such as GCP and Azure.
-:::
+Every line in an infrastructure repository follows from a decision that was never written down. The
+address range is split into four because there are two regions and each one needs a public and a
+private half. The security group exists because the checkout service calls the cache. The container
+has a 2 GB memory limit because a load test showed it needed one. The code holds each consequence
+and none of the reasons, so the next person to touch a line reconstructs the reason before they can
+safely change it.
 
-## Why choose Octo?
-You might already be familiar with one or more of the already available,
-industry standard Infrastructure as Code (IaC) tools.
+Octo is built on the idea that a model made of infrastructure components, being applications,
+accounts, regions, environments, servers, and services, is more useful and lasts longer than one
+made of cloud components such as virtual networks, subnets, security groups, and task definitions.
+Teams already use the first model when they talk to each other. Octo makes it the thing you write
+down, and derives the second model from it.
 
-While these are amazing (really, they are!), they often get overly complicated, especially for new developers,
-or for development teams where infrastructure work is managed by a dedicated devops team.
-The knowledge gap on each low-level resource is unavoidable as your team and infrastructure grows.
+## Intent
 
-Octo is different from its peers and is built from the ground up.<br/>
-While other IaC tools interface with cloud resources directly,
-Octo introduces the concept of **Models** - a set of higher order encapsulation of cloud resources that are
-easy and more natural for developers to understand.
+A change to infrastructure usually starts as a sentence.
 
-With Octo, infrastructure becomes more accessible to developers - easier to conceptualize, logical updates,
-and more in-line with object-oriented programming.
+> Checkout needs somewhere to keep uploaded receipts, and only checkout should be able to read them.
 
-## Quick Demo
-:::note
-Some examples and code in this video are outdated, but the concepts are still relevant.
-The documentation in this website however, will always be up-to-date.
-:::
+Somebody translates that into a bucket, a role, a policy, and the wiring between them, and commits
+the translation. The sentence stays in the ticket. Two years later the policy is in the repository
+and nobody can say which service depends on it, and a plan creating nine resources is approved
+because one of them has the word receipts in its name.
 
-<iframe
-  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-  allowfullscreen={"true"}
-  frameborder="0"
-  height="315"
-  referrerpolicy="strict-origin-when-cross-origin"
-  src="https://www.youtube.com/embed/Wn_3cou6x4o?si=AanE6ebctsv1NIMI?cc_load_policy=1&cc_lang_pref=en"
-  title="Introduction - Octo Tutorials"
-  width="560"
-/>
+That sentence is intent, and in Octo it is what you write and keep. Octo records which resources
+came from which request, so the bucket, the role, and the policy are listed under the request that
+required them, and any one of them can be traced back to it. Intent also outlives what it produces.
+Providers rename things, a service moves from virtual machines to containers, a storage class
+changes, and checkout still needs somewhere to keep receipts.
 
-## Overview
-Octo is a tool for modeling cloud infrastructure.
-It encapsulates the underlying infrastructure into components such as Modules, Models, and Resources.
+## An example
 
-Here is how it works - Modules are IaC packages for a specific cloud provider to do a specific infrastructure task.
-You import or write new modules, which generates models,
-which in turn creates infrastructure resources.
-These resources then map to the real underlying infrastructure.
-Each layer is translated into the next using Actions.<br/>
-The final translation of resources to real infrastructure is done via Cloud APIs and SDKs.
-
-Templates are community driven pre-built and tested examples of a collection of modules showcasing different
-infrastructure use-cases. These help you get started with Octo quickly and easily.
+Here is a small piece of an Octo project. The left column is written by hand. The right column is
+what Octo derives from it.
 
 ```mermaid
-graph LR;
-  action1((Actions));
-  action2((Actions));
-  anchor((Anchors));
-  model((Models));
-  module((Modules));
-  overlay((Overlays));
-  resource((Resources));
-  template((Templates));
+graph LR
+;
+    subgraph written["Intent, written by your team"]
+        direction TB;
+        app["app<br/>shop"];
+        region["region<br/>eu-west-1"];
+        subnet["subnet<br/>private"];
+        environment["environment<br/>staging"];
+        server["server<br/>checkout"];
+        execution["execution<br/>checkout in staging"];
+        service["service<br/>receipts storage"];
+        app --> region;
+        region --> subnet;
+        region --> environment;
+        app --> server;
+        server --> execution;
+        environment --> execution;
+        server -. " read and write /uploads " .-> service;
+    end
 
-  template --> module;
-  module --> model;
-  module --> overlay;
-  module --> anchor;
-  model --> action1;
-  overlay --> action1;
-  anchor --> action1;
-  action1 --> resource;
-  resource --> action2;
-  action2 --> cloudApi[[Native Cloud API calls]];
-  cloudApi --> infrastructure[[Real Infrastructure]];
+    subgraph derived["Cloud resources, derived by Octo"]
+        direction TB;
+        regionR["VPC<br/>internet gateway"];
+        subnetR["subnet<br/>route table<br/>network ACL<br/>security group"];
+        environmentR["ECS cluster"];
+        serverR["IAM role"];
+        executionR["task definition<br/>ECS service<br/>security group"];
+        serviceR["S3 bucket"];
+        policyR["bucket policy<br/>on checkout's IAM role"];
+    end
+
+    region ==> regionR;
+    subnet ==> subnetR;
+    environment ==> environmentR;
+    server ==> serverR;
+    execution ==> executionR;
+    service ==> serviceR;
+    server -.-> policyR;
 ```
 
-This setup cleanly divides responsibilities between devops and developers.
-Devops defines the building blocks that represents the infrastructure.
-They define models, resources, and the translation actions.<br/>
-Developers write templates and modules, and shape the infrastructure to self-serve their needs
-using a common understanding of these components.
+Two things in that picture matter. The word AWS appears nowhere on the left: no VPC, no ECS
+cluster, no bucket. And the dotted line, one line of intent saying checkout reads and writes a
+directory, is the only reason the bucket policy on the right exists. Nobody wrote a policy document.
+They stated a relationship, and the module that owns servers worked out what that requires.
 
-## Pseudo Example
-Here's a pseudo Octo code (not a real code) of a **"Backend server running in QA environment"** in AWS infrastructure.
-It demonstrates how you can think of your infrastructure from your application's perspective,
-rather than individual resources of cloud.
+## The context gap
 
-```typescript
-const app = new App('my-app');
+Every box on the right of that diagram is somebody's decision. Which address range the VPC gets, why
+the network ACL denies what it denies, whether staging shares an ECS cluster with production, which
+role a policy may be attached to. In most companies one group holds all of it, along with the
+history of which choices were made for an audit and which are safe to revisit.
 
-const region = new AwsRegion(AwsRegionId.AWS_US_EAST_1A);
-app.addRegion(region);
+Without the left column, everyone else works in the right column anyway. Adding receipts storage to
+checkout means finding another service that already has a bucket, copying it, changing the names,
+guessing which role the policy belongs on, and then reading a plan that mentions a bucket, a policy
+document, and a role attachment, none of which are labelled checkout. The developer cannot check
+their own work, and the reviewer is checking a translation rather than a request.
 
-const environment = new AwsEnvironment('QA');
-region.addEnvironment(environment);
+Intent gives both sides one file. The developer writes and reviews on the left, in terms they can
+judge without opening a cloud console. The platform team owns the right, which is where their
+knowledge of accounts, networks, and audits belongs. Neither side has to hold both columns at once.
 
-const server = new AwsServer('Backend');
-app.addServer(server);
+## Building blocks
 
-const deployment = new AwsDeployment('v1');
-server.addDeployment(deployment);
+The two columns of that diagram have names. What you write on the left are **models**: the app, the
+region, the server, the service, and the relationships between them. What Octo derives on the right
+are **resources**: the VPC, the ECS cluster, the S3 bucket. Each arrow crossing between the two is a
+**module**, and a module is a self-contained answer to one question. What a region is made of. What
+a server is. What it takes to serve a static website. The module that owns regions in this picture
+decided that a region is a VPC and an internet gateway, and that subnets are declared separately. A
+different module could decide that a region spreads across three availability zones with a NAT
+gateway in each.
 
-new AwsExecution(deployment, environment);
-```
+Every company answers those questions today inside its own repository, where the answer is mixed in
+with everything around it. A team that has settled what a region means has it spread over a folder
+of Terraform: the VPC carries their naming convention, the address ranges are the ones their network
+already uses, and the outputs are named for the modules that read them downstream. Another team
+cannot take that folder without taking those decisions with it.
 
-* `App`, `Environment`, `Execution`, etc. are all Models.
-* Developers declare their infrastructure represented by the Model graph (below).
-* Models are transformed into Resources, which logically represent the AWS infrastructure (below).
-* Resources are transformed to AWS infrastructure using native AWS APIs.
+A module keeps one answer in one place, with the inputs it needs and the outputs it publishes
+declared, which is what makes it usable by a project that did not write it. Octo ships a library of
+modules for AWS to start from, and a team writes their own when the published answer is not the one
+they want.
 
-```mermaid
-graph TD;
-  subgraph Resources
-    vpc((<b>VPC</b>)) --> subnet((<b>Subnet</b> <br/> us-east-1a))
-    subnet --> ecs((<b>ECS Cluster</b> <br/> QA))
-    ecs --> service((<b>ECS Service</b>))
-    taskDefinition((<b>Task Definition</b> <br/> Backend)) --> service
-  end
+Each module declares what it needs and what it provides, so a combination gets checked before
+anything is created. Handing the server module a region that publishes no subnets fails with a
+message naming the input that was wrong, rather than halfway through an apply with a half-built
+stack. Because modules are separable, swapping the region module changes the right column of the
+diagram and leaves the left column exactly as it was.
 
-  subgraph Models
-    app((<b>App</b>)) --> region((<b>Region</b> <br/> us-east-1a));
-    app --> server((<b>Server</b> <br/> Backend));
-    region --> environment((<b>Environment</b> <br/> QA));
-    server --> deployment((<b>Deployment</b> <br/> v1));
-    environment --> execution((<b>Execution</b> <br/> v1_qa));
-    deployment --> execution;
-  end
-```
+## Beyond one cloud
 
-## Benefits
-**Power of Models**<br/>
-Octo excels as a general-purpose cloud infrastructure modeling tool,
-making modeling its greatest strength. By facilitating devops in creating clear and intuitive CDKs,
-developers can logically write and test infrastructure changes.
+Terraform code names its provider on every line: the resource types, the argument names, and the
+module inputs are all specific to one cloud. That is what makes moving or mixing providers a rewrite
+rather than a decision.
 
-**Abstraction for Developers**<br/>
-Developers are shielded from intricate low-level infrastructure details,
-interacting solely with higher constructs.
+In the diagram, the provider only appears on the right. Intent names a region, a server, and a
+storage service, and the modules underneath decide that those mean a VPC, an ECS task, and an S3
+bucket. A different set of modules can decide otherwise.
 
-**Modules**<br/>
-Octo introduces the concept of Modules - shareable and reusable infrastructure abstractions of
-cloud resources to do one unit of work.
+So what you change when you move provider is which modules your project includes. The models stay as
+they are, with the same names, the same relationships, and the same history, because nothing in them
+said AWS in the first place. The servers can run on one provider and the storage on another for the
+same reason: they are separate modules, and each one answers for its own half.
 
-E.g. a module to set up networking VPC and subnets and expose this
-encapsulation as a Region model. When you import this module, you automatically get the same setup
-without having to write any code for it.
+That has two costs. Somebody has to have written the modules for the provider you are moving to,
+and the library we publish today covers AWS. And infrastructure that already exists still has to be
+migrated: Octo tells you what will be created, replaced, and destroyed, and does not sequence that
+move for you.
 
-**Templates**<br/>
-With help of community driven, pre-tested templates, it is possible to write the entire infrastructure
-as one big reusable collection of modules.
-You can customize and bootstrap your infrastructure setup in a matter of minutes.
+## The graph
 
-Many templates already exists to support common use cases, ranging from static websites hosted in S3,
-to complex Backend setup with load balancers, ECS containers, and Databases.
+Octo is built on a graph, and the pictures on this page are that graph rather than illustrations
+drawn to explain it. Every model is a node, every relationship between two models is an edge, and
+the resources derived from a model hang off it. Working out what a change does is a comparison of
+two graphs: the one your project describes now, against the one Octo stored the last time you ran
+it. Everything downstream, the Terraform it writes and the report it prints, comes out of that
+comparison.
 
-**TypeScript Advantage**<br/>
-Being written in TypeScript, Octo inherits the benefits of TS,
-including testing frameworks and the familiarity of one of the most widely used languages.
+The graph is useful after the deploy as well. Architecture diagrams are usually drawn by hand and
+go out of date; this one is generated from the infrastructure that exists. A question like which
+services can write to the receipts bucket is answered by following an edge. A change reads as one
+line, checkout gained read and write access to receipts, with the bucket policy underneath it,
+rather than as nine resource diffs in a plan.
 
-**Graph Representation**<br/>
-Octo depicts infrastructure as a Graph,
-enabling visualization of infrastructure as a well-defined set of nodes and edges.
-
-Looking your entire infrastructure at a glance has never been simpler!
-Dive deep into each model, or uncover how individual resources depend on each other.
-
-Truly - a picture is worth a thousand words.
-
-**Detailed Understanding of Changes**<br/>
-Any alterations to the infrastructure graph are differentially analyzed
-at both Model and Resource levels, offering developers both simplified and detailed insights into the proposed changes.
-
-**Non Blocking Pipelines**<br/>
-Being a graph, Octo understands the hierarchy and dependencies of resources.
-Failure in one node won't block changes to other non-dependent nodes.
-
-Octo also comes pre-bundled with necessary command line options to build a Continuous Delivery (CD) pipeline.
-Create your own or pay for a more intuitive Pipeline in Octo UI.
-Either way, you get a pipeline to apply Octo changes incrementally
-to your infrastructure without heavy user intervention - just create a PR and watch your changes apply in minutes.
-
-**In-Built Testing**<br/>
-Octo provides a testing framework that can help your write meaningful, intuitive, test cases
-for your infrastructure.
-Don't retest providers and cloud resources. Make tests more meaningful with what your application needs.
-
-**Recovery from Failures**<br/>
-Octo saves the state of resources after every run and keeps track of
-infrastructure changes. Execution is stopped at failures, and upon re-run, it will pick up from the same point.
-
-**Beautiful HTML Reports**<br/>
-After each run, Octo generates a beautiful HTML report that
-shows the changes made to the infrastructure.
-
-**End-to-End Solution**<br/>
-Octo doesn't just provide solution to a slice of infrastructure problems,
-but is rather a more complete framework and a one-stop shop for all your infrastructure needs.
-Create complex infrastructure, set up pipeline, set up CICD, generate reports, apply security, view logs,
-and many more features coming soon.
-
-**& more**<br/>
-Including manual capturing of infrastructure changes done outside Octo, Events, and so much more.
+That last one matters more as more of the code is written by AI. Writing Terraform is not the part
+AI finds hard; the cost lands on the person who has to review what comes back, which can be two
+hundred changed resources for a request that was one sentence. Reviewed as intent, the same change
+is the sentence and its consequences, with the resource diffs underneath for whoever wants them.
