@@ -1,57 +1,84 @@
 # Plan: Write or Validate an octo-aws-cdk Module Test
 
-Goal: Write a new module test or validate an existing one against the given blueprint.
+Goal: write a new module test, or validate an existing one against this blueprint.
 
 ## Background
 
-octo-aws-cdk is a wrapper around Terraform that translates developer intent into HCL.
-A module captures one unit of intent. It is written against a single model with optional overlays and anchors.
-Model actions on that model define the HCL blocks the module produces.
+octo-aws-cdk translates developer intent into HCL; Terraform makes every infrastructure change.
+A module captures one unit of intent. It is written against a single model with optional overlays and
+anchors. Model actions on that model produce octo resources, and each resource's `toHCL()` produces the
+Terraform blocks.
 
-A module test loads the module with different inputs and asserts two things: the resource diffs produced by
-each commit, and the HCL rendered by `OctoTerraform` after each commit.
+A module spec therefore asserts two things after every run: **which octo resources changed**, and
+**what HCL that rendered**. It runs entirely in memory — no Terraform binary, no cloud.
 
 ## Reference implementation
 
 `packages/octo-aws-cdk/src/modules/subnet/aws-simple-subnet/aws-simple-subnet.module.spec.ts`
+
+Read it before writing. Everything below is drawn from it.
+
+## The API
+
+One call drives the whole lifecycle:
+
+```ts
+testModuleContainer.runModules<M>(modules, { filterByModuleIds, outputDir, terraformTarget })
+```
+
+It is an **async generator** that yields once. Always `.next()` it, and read `.value!`:
+
+| Yielded field         | What it is                                                              |
+|-----------------------|--------------------------------------------------------------------------|
+| `hclDiff`             | Rendered HCL diffed against the previous run in this test. Snapshot this. |
+| `hclRender`           | The full rendered HCL. Snapshot this in the smoke test only.              |
+| `modelTransaction`    | Model actions that ran. Feed to `mapTransactionActions()`.                |
+| `resourceDiffs`       | Resource-level changes. Feed to `digestDiffs()`.                          |
+| `resourceTransaction` | Resource actions that ran. Always `TerraformNoopResourceAction` for terraform-backed resources — assert only when the module has an external resource. |
+| `responses`           | Resource responses by context.                                            |
+| `validateReport`      | Only populated when `terraformTarget` is not `'skip'`.                    |
+| `warnings`            | Non-fatal problems raised during the run.                                 |
+
+`terraformTarget` decides what the test costs, and **every unit test passes `'skip'`**:
+
+- `'skip'` — composes and commits in memory. No terraform, no cloud. This is a unit test.
+- `'plan'` — generates module folders and runs `terraform plan`. Not for `*.module.spec.ts`.
+- `'apply'` — generates, plans, applies, commits. **Creates real infrastructure.** `octo-templates`
+  e2e specs only.
 
 ## Test structure
 
 ```
 // imports
 
-async function setup(testModuleContainer: TestModuleContainer, octoTerraform?: OctoTerraform): Promise<{ ... }> { ... }
+async function setup(testModuleContainer: TestModuleContainer): Promise<void> { ... }
 
 describe('<Module> UT', () => {
-  // 1. Smoke
-  // 2. Lifecycle (should CUD)
-  // 3. Tags (should CUD tags)
-  // 4. describe('input changes') { one it() per input }
-  // 5. it('should handle moduleId change')
-  // 6. describe('validation') { one it() per rule }
+  // 1. Smoke        — it('should call correct actions')
+  // 2. Lifecycle    — it('should CUD')
+  // 3. Relationships— it('should associate and disassociate ...')   [only if the module has them]
+  // 4. Tags         — it('should CUD tags')
+  // 5. describe('input changes') { one it() per input }
+  // 6. it('should handle moduleId change')
+  // 7. describe('validation') { one it() per rule }
 });
 ```
 
 ## Boilerplate: beforeEach / afterEach
 
 ```ts
-let hcl: HclAssert;
-let octoTerraform: OctoTerraform;
 let testModuleContainer: TestModuleContainer;
 
 beforeEach(async () => {
-  const container = await TestContainer.create(
-    { mocks: [{ metadata: { package: '@octo' }, type: OctoTerraform, value: new OctoTerraform() }] },
-    { factoryTimeoutInMs: 500 },
-  );
-  testModuleContainer = new TestModuleContainer();
+  const container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
+
+  testModuleContainer = new TestModuleContainer(container);
   await testModuleContainer.initialize();
 
-  octoTerraform = await container.get(OctoTerraform, { metadata: { package: '@octo' } });
-  octoTerraform.addTerraformConfig();
-  octoTerraform.addTerraformProvider('<accountId>', '<region>');
-
-  hcl = new HclAssert(octoTerraform);
+  testModuleContainer.registerTerraformConfig({
+    providers: { aws: { minVersion: '5.49', source: 'hashicorp/aws' } },
+  });
+  testModuleContainer.registerTerraformProvider('aws', '123', 'us-east-1');
 });
 
 afterEach(async () => {
@@ -60,219 +87,359 @@ afterEach(async () => {
 });
 ```
 
-## Assertions: digest pattern
+`TestModuleContainer`'s constructor takes the container. Both `registerTerraformConfig` and
+`registerTerraformProvider` are required before any run that renders terraform — which is all of them.
 
-Every `commit()` must be followed by exactly one `DiffAssert.digest()` call on the resource diffs,
-and one `hcl.digest()` call (to drain and reset the factory).
+## Boilerplate: setup()
 
-Write the calls without snapshot values, run once with `--updateSnapshot`, then review and lock:
+`setup()` builds everything the module expects to already exist, and is called **before every
+`runModules()`**, including the second and third steps of a multi-step test. Three helpers:
 
 ```ts
-expect(new DiffAssert(result.resourceDiffs).digest()).toMatchInlineSnapshot();
-expect(hcl.digest()).toMatchSnapshot();
+async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
+  // 1. Models the module's inputs reference.
+  const { region: [region] } = await testModuleContainer.createTestModels('testModule', {
+    account: ['aws,123'],
+    app: ['test-app'],
+    region: ['region'],
+  });
+
+  // 2. Anchors the module reads off those models.
+  region.addAnchor(
+    testModuleContainer.createTestAnchor<AwsRegionAnchorSchema>(
+      'AwsRegionAnchor',
+      { awsRegionAZs: ['us-east-1a'], awsRegionId: 'us-east-1', regionId: 'aws-us-east-1a', vpcCidrBlock: '10.0.0.0/16' },
+      region,
+    ),
+  );
+
+  // 3. Resources produced by other modules, that this module's resources will getRef() against.
+  await testModuleContainer.createTestResources<[VpcSchema]>(
+    'testModule',
+    [
+      {
+        properties: { awsAccountId: '123', awsRegionId: 'us-east-1', CidrBlock: '10.0.0.0/16', InstanceTenancy: 'default' },
+        resourceContext: '@octo/vpc=vpc-region',
+        response: { VpcId: 'VpcId' },
+        terraform: true,
+      },
+    ],
+    { save: true },
+  );
+}
 ```
 
-### DiffAssert.digest() format
+- `terraform: true` on a seeded resource is what lets a resource under test resolve `getRef()` against
+  it. Omit it and the reference cannot be wired.
+- Module inputs reference these models through `stub('${{testModule.model.region}}')`.
 
-Each line is a resource context prefixed by the action that happened to it:
+## Assertions
+
+### `digestDiffs(resourceDiffs)` — what changed
+
+Each line is a resource context prefixed by what happened to it:
 
 ```
 [
-  "+ @octo/ecs-cluster=ecs-cluster-region-qa",   // resource added
-  "- @octo/vpc=vpc-region",                       // resource deleted
-  "~ @octo/ecs-cluster=ecs-cluster-region-qa",   // resource updated (e.g. tag change)
+  "+ @octo/subnet=subnet-region-private-subnet",     // added
+  "- @octo/route-table=rt-region-private-subnet",     // deleted
+  "^ @octo/vpc=vpc-region",                           // REPLACE (force-new argument changed)
+  "* @octo/network-acl=nacl-region-private-subnet",   // updated in place
 ]
 ```
 
-An empty array `[]` means no resource diffs — this is the expected snapshot for no-op commits.
+`VALIDATE` diffs are filtered out. `[]` means no resource change — the expected snapshot for a no-op.
 
-### HclAssert.digest() format
+Always `toMatchInlineSnapshot()`; these are short and belong in the file where they are read.
 
-A previous HCL render is compared against the current one using `jest-diff` and the diff is returned.
-The snapshot is the diff itself.
+### `hclDiff` / `hclRender` — what rendered
 
-## Section 1 — Smoke / contract (`'should call correct actions'`)
+- Smoke test: `expect(hclRender).toMatchInlineSnapshot()` — the full canonical render, inline.
+- Every other step: `expect(x.hclDiff).toMatchSnapshot()` — the change against the previous run,
+  external. `hclDiff` is only meaningful relative to the preceding `runModules()` in the same test, so
+  never skip a step's assertion and expect the next one to still read correctly.
 
-Canonical snapshot of what the module produces. Asserts model actions, resource actions, resource diffs,
-and HCL shape — all in one commit.
+### `isResourceStateEqual()` — state converged
+
+```ts
+expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
+```
+
+Assert it after **every** `runModules()`, including the ones whose diffs you do not snapshot. It is what
+catches a resource left behind after a delete.
+
+### Writing snapshots
+
+Write the assertion calls empty, run once with `--updateSnapshot`, then read every generated snapshot
+before committing it. An unreviewed snapshot is not a test.
+
+---
+
+## Section 1 — Smoke (`'should call correct actions'`)
+
+The canonical record of what the module produces: model actions, resource diffs, and the full HCL, in
+one run.
 
 ```ts
 it('should call correct actions', async () => {
-  const { app } = await setup(testModuleContainer);
-  await testModuleContainer.runModule<Module>({ inputs: { ... }, moduleId: 'module', type: Module });
-  const result = await testModuleContainer.commit(app, {
-    enableResourceCapture: true,
-    filterByModuleIds: ['module'],
-  });
+  await setup(testModuleContainer);
+  const runModulesGenerator = testModuleContainer.runModules<AwsSimpleSubnetModule>(
+    {
+      inputs: {
+        region: stub('${{testModule.model.region}}'),
+        subnetAvailabilityZone: 'us-east-1a',
+        subnetCidrBlock: '10.0.1.0/24',
+        subnetName: 'private-subnet',
+      },
+      moduleId: 'subnet',
+      type: AwsSimpleSubnetModule,
+    },
+    { filterByModuleIds: ['subnet'], terraformTarget: 'skip' },
+  );
 
-  expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot();
-  expect(testModuleContainer.mapTransactionActions(result.resourceTransaction)).toMatchInlineSnapshot();
-  expect(new DiffAssert(result.resourceDiffs).digest()).toMatchInlineSnapshot();
-  expect(octoTerraform.render()).toMatchInlineSnapshot();
+  const { hclRender, modelTransaction, resourceDiffs } = (await runModulesGenerator.next()).value!;
+  expect(hclRender).toMatchInlineSnapshot();
+  expect(testModuleContainer.mapTransactionActions(modelTransaction)).toMatchInlineSnapshot();
+  expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot();
+  expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 });
 ```
 
-`filterByModuleIds` isolates this module when other modules are present in the same test.
+`filterByModuleIds` isolates this module when the run loads more than one.
+
+This is the one place the whole HCL is pinned, so read it carefully when it is generated: provider
+aliases, block types, argument names, and `var.*` wiring to other modules are all visible here and
+nowhere else.
 
 ---
 
 ## Section 2 — Lifecycle (`'should CUD'`)
 
-Create, then delete operation. Assert diffs and HCL after each step. End with `isResourceStateEqual`.
+Create, then update through each mutable input, then delete. Each step calls `setup()` again, then
+`runModules()`.
 
-- Delete step: call `setup()` again with the same inputs but do **not** call `runModule` — the absent module
-  signals deletion.
-- `isResourceStateEqual` confirms state fully converged, and no resources are left behind.
-- If the module has non-tag mutable properties, insert an update step between creation and delete.
+- **Delete** is signalled by `hidden: true` on the module — it stays registered but does not run, so
+  its resources fall out of the desired state.
+- The first step usually needs no diff assertion; assert `isResourceStateEqual()` and move on.
+- End on a delete, and assert the resource state converged.
 
 ```ts
 it('should CUD', async () => {
-  const { app: appCreate } = await setup(testModuleContainer);
-  await testModuleContainer.runModule<Module>({ inputs: { ... }, moduleId: 'module', type: Module });
-  const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-  expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot();
-  expect(hcl.digest()).toMatchSnapshot();
+  await setup(testModuleContainer);
+  await testModuleContainer
+    .runModules<AwsSimpleSubnetModule>(
+      { inputs: { /* ... */ }, moduleId: 'subnet', type: AwsSimpleSubnetModule },
+      { terraformTarget: 'skip' },
+    )
+    .next();
+  expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
-  const { app: appDelete } = await setup(testModuleContainer);
-  const resultDelete = await testModuleContainer.commit(appDelete, { enableResourceCapture: true });
-  expect(new DiffAssert(resultDelete.resourceDiffs).digest()).toMatchInlineSnapshot();
-  expect(hcl.digest()).toMatchSnapshot();
+  await setup(testModuleContainer);
+  const addSubnetOptions = (
+    await testModuleContainer
+      .runModules<AwsSimpleSubnetModule>(
+        { inputs: { /* ...changed... */ }, moduleId: 'subnet', type: AwsSimpleSubnetModule },
+        { terraformTarget: 'skip' },
+      )
+      .next()
+  ).value!;
+  expect(addSubnetOptions.hclDiff).toMatchSnapshot();
+  expect(testModuleContainer.digestDiffs(addSubnetOptions.resourceDiffs)).toMatchInlineSnapshot();
+  expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
-  const isResourceStateEqual = await testModuleContainer.isResourceStateEqual();
-  expect(isResourceStateEqual).toBe(true);
+  await setup(testModuleContainer);
+  const deleteResult = (
+    await testModuleContainer
+      .runModules<AwsSimpleSubnetModule>(
+        { hidden: true, inputs: { /* same as previous step */ }, moduleId: 'subnet', type: AwsSimpleSubnetModule },
+        { terraformTarget: 'skip' },
+      )
+      .next()
+  ).value!;
+  expect(deleteResult.hclDiff).toMatchSnapshot();
+  expect(testModuleContainer.digestDiffs(deleteResult.resourceDiffs)).toMatchInlineSnapshot();
+  expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 });
 ```
 
-## Section 3 — Tags (`'should CUD tags'`)
+Name each step's result after what it does (`addSubnetOptions`, `addLocalFilesystem`, `deleteResult`),
+not `result1`/`result2`.
 
-Three steps: create with tags, update tags, delete tags (run module with no tags registered).
+## Section 3 — Relationships
+
+Only when the module's resources associate with siblings (a subnet with another subnet, a NAT gateway
+between two). One `it()` per relationship, covering both directions:
+`'should associate and disassociate <X> with <Y>'`. Load both modules in one `runModules()` call by
+passing an array, then re-run with the association removed.
+
+## Section 4 — Tags (`'should CUD tags'`)
+
+Three steps: create with tags, change the tag set, remove the tag set. `registerTags` replaces the full
+set each time, and is called **before** `setup()`.
 
 ```ts
 it('should CUD tags', async () => {
-  testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
-  // ...setup + runModule...
-  const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-  expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot();
-  expect(hcl.digest()).toMatchSnapshot();
+  testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
+  await setup(testModuleContainer);
+  await testModuleContainer.runModules<M>({ /* ... */ }, { terraformTarget: 'skip' }).next();
+  expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
-  testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
-  // ...setup + runModule...
-  const resultUpdateTags = await testModuleContainer.commit(appUpdateTags, { enableResourceCapture: true });
-  expect(new DiffAssert(resultUpdateTags.resourceDiffs).digest()).toMatchInlineSnapshot();
-  expect(hcl.digest()).toMatchSnapshot();
+  testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
+  await setup(testModuleContainer);
+  const updateTags = (await testModuleContainer.runModules<M>({ /* ... */ }, { terraformTarget: 'skip' }).next()).value!;
+  expect(updateTags.hclDiff).toMatchSnapshot();
+  expect(testModuleContainer.digestDiffs(updateTags.resourceDiffs)).toMatchInlineSnapshot();
+  expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
-  // delete: setup + runModule with no tags registered
-  const resultDeleteTags = await testModuleContainer.commit(appDeleteTags, { enableResourceCapture: true });
-  expect(new DiffAssert(resultDeleteTags.resourceDiffs).digest()).toMatchInlineSnapshot();
-  expect(hcl.digest()).toMatchSnapshot();
+  // Third step: no registerTags call — the previously registered set is gone.
+  await setup(testModuleContainer);
+  const deleteTags = (await testModuleContainer.runModules<M>({ /* ... */ }, { terraformTarget: 'skip' }).next()).value!;
+  expect(deleteTags.hclDiff).toMatchSnapshot();
+  expect(testModuleContainer.digestDiffs(deleteTags.resourceDiffs)).toMatchInlineSnapshot();
+  expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 });
 ```
 
-- `registerTags` replaces the full tag set each step.
+Every taggable resource the module produces must appear in the update and delete digests. A resource
+missing from that list is untagged infrastructure — a real bug, not a snapshot to accept.
 
-## Section 4 — Input changes (`describe('input changes')`)
+## Section 5 — Input changes (`describe('input changes')`)
 
-**Exclusion:** Do not write tests for model reference inputs (e.g. `region`, `account`). These represent
-external models, and their behavior is the responsibility of their own modules and tests.
+**Exclusion:** do not write tests for model reference inputs (e.g. `region`, `account`). Those are other
+modules' responsibility.
 
-One `it()` per remaining module input. Classify each input:
+One `it()` per remaining input. Create with the original value, assert state converged, then re-run with
+the changed value. Classify the expected result:
 
-| Class           | Behavior                               | Expected DiffAssert snapshot                 |
-|-----------------|----------------------------------------|----------------------------------------------|
-| **Immutable**   | Cannot change after create; must throw | `rejects.toThrowErrorMatchingInlineSnapshot` |
-| **Replaceable** | Change triggers delete-old + add-new   | Lines with both `+` and `-`                  |
-| **Updatable**   | Change triggers update diff            | Lines with `~`                               |
-| **No-op**       | Change has no effect on resources      | `[]`                                         |
+| Class           | Behaviour                                        | Expected digest                              |
+|-----------------|--------------------------------------------------|----------------------------------------------|
+| **Immutable**   | Cannot change; the module or resource throws     | `rejects.toThrowErrorMatchingInlineSnapshot` |
+| **Replaceable** | Force-new argument; resource is recreated        | `^` lines                                    |
+| **Updatable**   | Provider changes it in place                     | `*` lines                                    |
+| **No-op**       | No effect on resources                           | `[]`                                         |
 
-Each test: create with the original input, commit, then commit again with the changed input.
-For immutable inputs the error is thrown from `commit`, not `runModule`.
+The replaceable case is the one worth a comment, because it encodes provider behaviour:
 
 ```ts
-it('should handle <inputName> change', async () => {
-  // ...create...
-  await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-  hcl.digest(); // To record the baseline HCL.
-
-  // ...setup + runModule with changed input...
-  const resultUpdate = await testModuleContainer.commit(appUpdate, { enableResourceCapture: true });
-  expect(new DiffAssert(resultUpdate.resourceDiffs).digest()).toMatchInlineSnapshot();
-  expect(hcl.digest()).toMatchSnapshot();
-});
+await setup(testModuleContainer);
+// availability_zone is force-new on aws_subnet → octo emits a REPLACE on the subnet.
+const { resourceDiffs } = (
+  await testModuleContainer
+    .runModules<AwsSimpleSubnetModule>(
+      { inputs: { /* ...changed... */ }, moduleId: 'subnet', type: AwsSimpleSubnetModule },
+      { terraformTarget: 'skip' },
+    )
+    .next()
+).value!;
+expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot();
 ```
 
-## Section 5 — ModuleId change (`'should handle moduleId change'`)
+If a `^` appears where you expected `*` (or the reverse), do not update the snapshot — check the
+resource's `diffProperties()` against the provider's ForceNew list first. That mismatch is exactly the
+bug `octo-aws-cdk-validate-resource.md` §3d hunts.
 
-Resources are keyed by model identity, not moduleId — changing it must always be a no-op.
-Both DiffAssert and HCL digests must produce no-op snapshots.
+## Section 6 — ModuleId change (`'should handle moduleId change'`)
+
+Resources are keyed by model identity, not by moduleId, so changing it must be a no-op. Create under
+`moduleId: '<name>-1'`, then re-run under `'<name>-2'`.
 
 ```ts
-it('should handle moduleId change', async () => {
-  // ...create with moduleId: 'module-1'...
-  await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-  hcl.digest(); // To record the baseline HCL.
-
-  // ...setup + runModule with moduleId: 'module-2'...
-  const resultUpdate = await testModuleContainer.commit(appUpdate, { enableResourceCapture: true });
-  expect(new DiffAssert(resultUpdate.resourceDiffs).digest()).toMatchInlineSnapshot();
-  expect(hcl.digest()).toMatchSnapshot();
-});
+expect(updateModuleId.hclDiff).toMatchSnapshot();
+expect(testModuleContainer.digestDiffs(updateModuleId.resourceDiffs)).toMatchInlineSnapshot(`[]`);
+expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 ```
 
-## Section 6 — Validation (`describe('validation')`)
+The digest must be exactly `[]`. Anything else means module identity leaked into a resource id.
 
-One `it()` per validation rule the module enforces. Errors must be thrown from `runModule`, not `commit`.
+## Section 7 — Validation (`describe('validation')`)
+
+One `it()` per rule the module enforces. The rejection comes from `.next()`, since that is what drives
+the generator:
 
 ```ts
 describe('validation', () => {
-  it('should validate <rule description>', async () => {
+  it('should validate invalid subnet availability zone', async () => {
     await setup(testModuleContainer);
-    await expect(async () => {
-      await testModuleContainer.runModule<Module>({ inputs: { ...<violating>... }, ... });
-      // if the rule spans two modules, add a second runModule call here
-    }).rejects.toThrowErrorMatchingInlineSnapshot(`"<error message>"`);
+    await expect(
+      testModuleContainer
+        .runModules<AwsSimpleSubnetModule>(
+          { inputs: { /* ...violating... */ }, moduleId: 'subnet', type: AwsSimpleSubnetModule },
+          { terraformTarget: 'skip' },
+        )
+        .next(),
+    ).rejects.toThrowErrorMatchingInlineSnapshot(`"Invalid subnet availability zone!"`);
   });
 });
 ```
 
-## Validation: How to discover what HCL a module produces
+This section is also where a rendering rule that is not a whole-module concern is pinned, by asserting
+on `hclRender` directly rather than by snapshot:
+
+```ts
+const { hclRender: hcl } = (await testModuleContainer.runModules<M>(/* ... */).next()).value!;
+expect(hcl).toContain('from_port = 0');
+expect(hcl).not.toContain('from_port = -1');
+```
+
+---
+
+## How to discover what HCL a module produces
 
 ### Step 1 — Find the model actions
 
-The module directory contains `model/` and `overlay/` sub-folders. Each holds one or more action files
-(e.g. `add-<model>.model.action.ts`, `update-<model>.model.action.ts`). Open every action file and look
-at its `actionOutputs` property — it lists the resource class(es) the action creates or touches.
+The module directory has `model/` and `overlay/` sub-folders holding action files
+(`add-<model>.model.action.ts`, `update-<model>.model.action.ts`). Open each and read `actionOutputs` —
+it lists the resource classes the action creates or touches.
 
 ### Step 2 — Trace each resource
 
-For every resource class listed in `actionOutputs`, open its source file and read the `constructor` to
-understand how the resource id is formed and what properties it stores. This tells you the block
-address (`resource.<type>.<name>`) and what data flows in.
+For every class in `actionOutputs`, open its source and read the constructor: how the resource id is
+formed, what properties it stores, and what its `declare parents` tuple is.
 
 ### Step 3 — Read `toHCL()`
 
-Each resource class has a `toHCL()` method. Read it to know how many top-level properties and nested blocks
-each resource emits. This lets you verify that the autopopulated `hcl.digest()` snapshots shows correctly.
+Each resource class has a `toHCL()`. It tells you the exact TF blocks the resource emits, which
+arguments are conditional, which parents are wired by `getRef` versus `explicitParents`, and what goes
+into `output()`. That is enough to check a generated `hclRender` snapshot line by line instead of
+accepting it.
+
+---
 
 ## Constraints
 
-When fixing or rewriting an existing test file, treat the following as read-only unless the change is the
-direct subject of the fix:
+When fixing or rewriting an existing test file, treat the following as read-only unless the change is
+the direct subject of the fix:
 
 - **Variable names** — preserve exactly as written (e.g. `resultUpdateFilesystemName`, not `resultUpdate`).
 - **Input values** — preserve original input values.
 
-Only change what the fix actually requires.
+Only change what the fix actually requires. Snapshot churn from an unnecessary rename is noise in the
+one place a reviewer most needs signal.
+
+## Running
+
+`octo-aws-cdk` imports `octo` from `dist`. Rebuild it whenever `packages/octo` changed:
+
+```bash
+npx nx run @quadnix/octo:build
+npx nx run @quadnix/octo-aws-cdk:test
+```
 
 ## Checklist
 
-- [ ] `HclAssert` is constructed with only the factory: `new HclAssert(octoTerraform)`.
-- [ ] Every `commit()` result has a matching `expect(new DiffAssert(...).digest()).toMatchInlineSnapshot()`.
-- [ ] Every `commit()` has exactly one `expect(hcl.digest()).toMatchSnapshot()`.
-- [ ] All inline snapshots are populated (run once with `--updateSnapshot`, then review and lock).
-- [ ] Section 2 includes an update step if the module has non-tag mutable properties.
-- [ ] Section 4 has one test per input, correctly classified.
-- [ ] Section 6 has one test per validation rule in the module's schema or actions.
-- [ ] No variable names or input values were changed beyond what the fix requires.
-- [ ] If module resources call `getRef()`, pre-existing resources are registered via
-  `octoTerraform.addOctoTerraformResource()` + `.output({...})` in `setup()`, and `setup()` accepts
-  `octoTerraform` as a second parameter.
+- [ ] `beforeEach` constructs `new TestModuleContainer(container)` and calls both
+      `registerTerraformConfig()` and `registerTerraformProvider()`.
+- [ ] Every `runModules()` passes `terraformTarget: 'skip'`.
+- [ ] `setup()` is called before every `runModules()`, not just the first.
+- [ ] Seeded resources that get referenced carry `terraform: true`.
+- [ ] Every `runModules()` is followed by `expect(await testModuleContainer.isResourceStateEqual()).toBe(true)`.
+- [ ] Every step after the first asserts `hclDiff`; the smoke test asserts `hclRender` inline.
+- [ ] Every `resourceDiffs` assertion goes through `digestDiffs()` with an inline snapshot.
+- [ ] Section 2 ends with a `hidden: true` delete step.
+- [ ] Section 4's update and delete digests list every taggable resource the module produces.
+- [ ] Section 5 has one test per non-reference input, correctly classified — and a `^` was verified
+      against the provider's ForceNew list, not merely accepted.
+- [ ] Section 6's digest is exactly `[]`.
+- [ ] Section 7 has one test per validation rule the module enforces.
+- [ ] All inline snapshots populated via `--updateSnapshot`, then read before committing.
+- [ ] No variable names or input values changed beyond what the fix required.
