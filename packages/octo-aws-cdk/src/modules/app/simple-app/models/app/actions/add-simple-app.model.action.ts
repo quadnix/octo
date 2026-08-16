@@ -16,6 +16,9 @@ import type { SimpleAppModule } from '../../../simple-app.module.js';
  */
 @Action(App)
 export class AddSimpleAppModelAction implements IModelAction<SimpleAppModule> {
+  /**
+   * @internal
+   */
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -25,6 +28,9 @@ export class AddSimpleAppModelAction implements IModelAction<SimpleAppModule> {
     );
   }
 
+  /**
+   * @internal
+   */
   async handle(
     _diff: Diff,
     _actionInputs: EnhancedModuleSchema<SimpleAppModule>,
@@ -41,6 +47,9 @@ export class AddSimpleAppModelAction implements IModelAction<SimpleAppModule> {
 export class AddSimpleAppModelActionFactory {
   private static instance: AddSimpleAppModelAction;
 
+  /**
+   * @internal
+   */
   static async create(): Promise<AddSimpleAppModelAction> {
     if (!this.instance) {
       this.instance = new AddSimpleAppModelAction();

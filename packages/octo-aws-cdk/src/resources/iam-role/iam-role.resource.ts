@@ -37,6 +37,9 @@ export class IamRole extends ATerraformResource<IamRoleSchema, IamRole> {
   declare properties: IamRoleSchema['properties'];
   declare response: IamRoleSchema['response'];
 
+  /**
+   * @internal
+   */
   constructor(resourceId: string, properties: IamRoleSchema['properties']) {
     super(resourceId, properties, []);
 
@@ -48,6 +51,9 @@ export class IamRole extends ATerraformResource<IamRoleSchema, IamRole> {
     }
   }
 
+  /**
+   * @internal
+   */
   addAssumeRolePolicy(policyId: string, awsService: IIamRoleAssumeRolePolicy): void {
     const index = this.properties.policies.findIndex((p) => p.policyId === policyId);
     if (index === -1) {
@@ -59,6 +65,9 @@ export class IamRole extends ATerraformResource<IamRoleSchema, IamRole> {
     }
   }
 
+  /**
+   * @internal
+   */
   addAwsPolicy(policyId: string, policy: string): void {
     const index = this.properties.policies.findIndex((p) => p.policyId === policyId);
     if (index === -1) {
@@ -70,6 +79,9 @@ export class IamRole extends ATerraformResource<IamRoleSchema, IamRole> {
     }
   }
 
+  /**
+   * @internal
+   */
   addS3BucketPolicy(
     policyId: string,
     bucketName: string,
@@ -99,6 +111,9 @@ export class IamRole extends ATerraformResource<IamRoleSchema, IamRole> {
     }
   }
 
+  /**
+   * @internal
+   */
   deletePolicy(policyId: string): void {
     const index = this.properties.policies.findIndex((p) => p.policyId === policyId);
     if (index > -1) {
@@ -106,6 +121,9 @@ export class IamRole extends ATerraformResource<IamRoleSchema, IamRole> {
     }
   }
 
+  /**
+   * @internal
+   */
   override async diffProperties(previous: IamRole): Promise<Diff[]> {
     if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties, ['policies'])) {
       return [
@@ -152,6 +170,9 @@ export class IamRole extends ATerraformResource<IamRoleSchema, IamRole> {
     return diffs;
   }
 
+  /**
+   * @internal
+   */
   override diffUnpack(diff: Diff<IamRole>): Diff[] {
     if (diff.action === DiffAction.ADD && diff.field === 'resourceId') {
       const diffs: Diff[] = [diff];
@@ -196,6 +217,9 @@ export class IamRole extends ATerraformResource<IamRoleSchema, IamRole> {
     }
   }
 
+  /**
+   * @internal
+   */
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {
     const assumeRolePolicies = this.properties.policies.filter((p) => p.policyType === 'assume-role-policy');
     const policyStatement = assumeRolePolicies

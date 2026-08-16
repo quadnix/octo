@@ -8,6 +8,9 @@ import type { AwsEcsAlbAnchorSchema } from './aws-ecs-alb.anchor.schema.js';
 export class AwsEcsAlbAnchor extends AAnchor<AwsEcsAlbAnchorSchema, AwsEcsAlbAnchorSchema['parentInstance']> {
   declare properties: AwsEcsAlbAnchorSchema['properties'];
 
+  /**
+   * @internal
+   */
   constructor(
     anchorId: string,
     properties: AwsEcsAlbAnchorSchema['properties'],

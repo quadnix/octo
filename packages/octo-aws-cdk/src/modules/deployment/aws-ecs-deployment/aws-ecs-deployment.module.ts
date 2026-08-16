@@ -33,10 +33,13 @@ import { AwsEcsDeployment } from './models/deployment/index.js';
  *
  * @see {@link AwsEcsDeploymentModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
- * @see {@link Deployment} to learn more about the `Deployment` model.
+ * @see [Deployment](/api/octo/class/Deployment) to learn more about the `Deployment` model.
  */
 @Module<AwsEcsDeploymentModule>('@octo', AwsEcsDeploymentModuleSchema)
 export class AwsEcsDeploymentModule extends AModule<AwsEcsDeploymentModuleSchema, Deployment> {
+  /**
+   * Creates the deployment, and attaches it to the server it deploys.
+   */
   async onInit(inputs: AwsEcsDeploymentModuleSchema): Promise<AwsEcsDeployment> {
     const server = inputs.server;
 

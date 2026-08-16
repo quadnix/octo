@@ -11,6 +11,9 @@ export class AwsEcsTaskDefinitionAnchor extends AAnchor<
 > {
   declare properties: AwsEcsTaskDefinitionAnchorSchema['properties'];
 
+  /**
+   * @internal
+   */
   constructor(
     anchorId: string,
     properties: AwsEcsTaskDefinitionAnchorSchema['properties'],

@@ -21,6 +21,9 @@ import { AwsDynamoDBGlobalService } from '../aws-dynamodb-global-service.model.j
  */
 @Action(AwsDynamoDBGlobalService)
 export class AddAwsDynamoDBGlobalServiceModelAction implements IModelAction<AwsDynamoDBGlobalServiceModule> {
+  /**
+   * @internal
+   */
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -30,6 +33,9 @@ export class AddAwsDynamoDBGlobalServiceModelAction implements IModelAction<AwsD
     );
   }
 
+  /**
+   * @internal
+   */
   async handle(
     diff: Diff<AwsDynamoDBGlobalService>,
     actionInputs: EnhancedModuleSchema<AwsDynamoDBGlobalServiceModule>,
@@ -82,6 +88,9 @@ export class AddAwsDynamoDBGlobalServiceModelAction implements IModelAction<AwsD
 export class AddAwsDynamoDBGlobalServiceModelActionFactory {
   private static instance: AddAwsDynamoDBGlobalServiceModelAction;
 
+  /**
+   * @internal
+   */
   static async create(): Promise<AddAwsDynamoDBGlobalServiceModelAction> {
     if (!this.instance) {
       this.instance = new AddAwsDynamoDBGlobalServiceModelAction();

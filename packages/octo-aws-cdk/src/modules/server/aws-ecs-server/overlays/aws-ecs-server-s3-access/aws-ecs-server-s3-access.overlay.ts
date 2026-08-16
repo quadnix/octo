@@ -14,6 +14,9 @@ export class AwsEcsServerS3AccessOverlay extends AOverlay<
   declare anchors: [AwsIamRoleAnchor, MatchingAnchor<AwsS3StorageServiceDirectoryAnchorSchema>];
   declare properties: AwsEcsServerS3AccessOverlaySchema['properties'];
 
+  /**
+   * @internal
+   */
   constructor(
     overlayId: string,
     properties: AwsEcsServerS3AccessOverlaySchema['properties'],
@@ -22,6 +25,9 @@ export class AwsEcsServerS3AccessOverlay extends AOverlay<
     super(overlayId, properties, anchors);
   }
 
+  /**
+   * @internal
+   */
   override async diffAnchors(): Promise<Diff[]> {
     return [];
   }

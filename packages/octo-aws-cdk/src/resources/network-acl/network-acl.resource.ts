@@ -21,6 +21,9 @@ export class NetworkAcl extends ATerraformResource<NetworkAclSchema, NetworkAcl>
   declare properties: NetworkAclSchema['properties'];
   declare response: NetworkAclSchema['response'];
 
+  /**
+   * @internal
+   */
   constructor(
     resourceId: string,
     properties: NetworkAclSchema['properties'],
@@ -30,6 +33,9 @@ export class NetworkAcl extends ATerraformResource<NetworkAclSchema, NetworkAcl>
     super(resourceId, properties, parents);
   }
 
+  /**
+   * @internal
+   */
   override async diffProperties(previous: NetworkAcl): Promise<Diff[]> {
     if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties, ['entries'])) {
       return [
@@ -46,6 +52,9 @@ export class NetworkAcl extends ATerraformResource<NetworkAclSchema, NetworkAcl>
     return super.diffProperties(previous);
   }
 
+  /**
+   * @internal
+   */
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {
     const ingressEntries = this.properties.entries
       .filter((e) => !e.Egress)
@@ -94,6 +103,9 @@ export class NetworkAcl extends ATerraformResource<NetworkAclSchema, NetworkAcl>
     }
   }
 
+  /**
+   * @internal
+   */
   updateNaclEntries(entries: NetworkAclSchema['properties']['entries']): void {
     this.properties.entries.push(...entries);
     NetworkAclUtility.assignRuleNumber(this.properties.entries);

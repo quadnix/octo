@@ -31,10 +31,13 @@ import { AwsEcsEnvironment } from './models/environment/index.js';
  *
  * @see {@link AwsEcsEnvironmentModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
- * @see {@link Environment} to learn more about the `Environment` model.
+ * @see [Environment](/api/octo/class/Environment) to learn more about the `Environment` model.
  */
 @Module<AwsEcsEnvironmentModule>('@octo', AwsEcsEnvironmentModuleSchema)
 export class AwsEcsEnvironmentModule extends AModule<AwsEcsEnvironmentModuleSchema, Environment> {
+  /**
+   * Creates the environment and its environment variables, and anchors the ECS cluster it maps to.
+   */
   async onInit(inputs: AwsEcsEnvironmentModuleSchema): Promise<AwsEcsEnvironment> {
     const region = inputs.region;
     const { clusterName } = await this.registerMetadata(inputs);
@@ -61,6 +64,9 @@ export class AwsEcsEnvironmentModule extends AModule<AwsEcsEnvironmentModuleSche
     return environment;
   }
 
+  /**
+   * Resolves the account, region, and the name of the ECS cluster this environment's executions run on.
+   */
   override async registerMetadata(inputs: AwsEcsEnvironmentModuleSchema): Promise<{
     awsAccountId: string;
     awsRegionId: string;

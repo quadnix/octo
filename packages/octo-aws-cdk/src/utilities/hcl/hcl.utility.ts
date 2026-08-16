@@ -6,6 +6,9 @@ export type HclShape = Record<string, HclBlock>;
  * @internal
  */
 export class HclUtility {
+  /**
+   * @internal
+   */
   static parse(rendered: string): HclShape {
     const shape: HclShape = {};
 
@@ -18,6 +21,9 @@ export class HclUtility {
     return shape;
   }
 
+  /**
+   * @internal
+   */
   private static addressToKeyword(address: string): string {
     const [type, ...rest] = address.split('.');
 
@@ -36,6 +42,9 @@ export class HclUtility {
     throw new Error(`Unsupported block type in address: "${address}".`);
   }
 
+  /**
+   * @internal
+   */
   private static extractAddresses(rendered: string): string[] {
     const addresses: string[] = [];
 
@@ -55,6 +64,9 @@ export class HclUtility {
     return addresses;
   }
 
+  /**
+   * @internal
+   */
   private static extractBlock(startKeyword: string, rendered: string): string {
     const escaped = startKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const pattern = new RegExp(`^${escaped} \\{`, 'm');
@@ -74,6 +86,9 @@ export class HclUtility {
     throw new Error(`Un-closed block "${startKeyword}" in rendered HCL.`);
   }
 
+  /**
+   * @internal
+   */
   private static normalizeValue(hclValue: string): string {
     if (hclValue.startsWith('"') && hclValue.endsWith('"')) {
       return hclValue.slice(1, -1);
@@ -81,6 +96,9 @@ export class HclUtility {
     return hclValue;
   }
 
+  /**
+   * @internal
+   */
   private static parseBlockLines(lines: string[]): HclBlock {
     const result: HclBlock = {};
     let i = 0;

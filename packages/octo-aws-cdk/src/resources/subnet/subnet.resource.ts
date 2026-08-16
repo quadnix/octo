@@ -19,10 +19,16 @@ export class Subnet extends ATerraformResource<SubnetSchema, Subnet> {
   declare properties: SubnetSchema['properties'];
   declare response: SubnetSchema['response'];
 
+  /**
+   * @internal
+   */
   constructor(resourceId: string, properties: SubnetSchema['properties'], parents: [MatchingResource<VpcSchema>]) {
     super(resourceId, properties, parents);
   }
 
+  /**
+   * @internal
+   */
   override async diffProperties(previous: Subnet): Promise<Diff[]> {
     if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties)) {
       return [
@@ -39,6 +45,9 @@ export class Subnet extends ATerraformResource<SubnetSchema, Subnet> {
     return [];
   }
 
+  /**
+   * @internal
+   */
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {
     const subnetOctoResource = terraform.addOctoTerraformResource(this as Subnet, {
       provider: { accountId: this.properties.awsAccountId, regionId: this.properties.awsRegionId },

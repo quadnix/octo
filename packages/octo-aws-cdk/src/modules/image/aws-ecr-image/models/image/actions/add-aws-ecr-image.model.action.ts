@@ -17,6 +17,9 @@ import { AwsEcrImage } from '../aws-ecr-image.model.js';
  */
 @Action(AwsEcrImage)
 export class AddAwsEcrImageModelAction implements IModelAction<AwsEcrImageModule> {
+  /**
+   * @internal
+   */
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -26,6 +29,9 @@ export class AddAwsEcrImageModelAction implements IModelAction<AwsEcrImageModule
     );
   }
 
+  /**
+   * @internal
+   */
   async handle(
     diff: Diff<AwsEcrImage>,
     actionInputs: EnhancedModuleSchema<AwsEcrImageModule>,
@@ -58,6 +64,9 @@ export class AddAwsEcrImageModelAction implements IModelAction<AwsEcrImageModule
 export class AddAwsEcrImageModelActionFactory {
   private static instance: AddAwsEcrImageModelAction;
 
+  /**
+   * @internal
+   */
   static async create(): Promise<AddAwsEcrImageModelAction> {
     if (!this.instance) {
       this.instance = new AddAwsEcrImageModelAction();

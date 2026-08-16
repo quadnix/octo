@@ -8,6 +8,9 @@ import type { AwsAccountAnchorSchema } from './aws-account.anchor.schema.js';
 export class AwsAccountAnchor extends AAnchor<AwsAccountAnchorSchema, AwsAccountAnchorSchema['parentInstance']> {
   declare properties: AwsAccountAnchorSchema['properties'];
 
+  /**
+   * @internal
+   */
   constructor(
     anchorId: string,
     properties: AwsAccountAnchorSchema['properties'],

@@ -4,6 +4,9 @@ import { bigint2ip, ip2bigint } from 'fast-cidr-tools';
  * @internal
  */
 export class CidrUtility {
+  /**
+   * @internal
+   */
   static getCidrRange(startIp: string, endIp: string): string[] {
     // IpV4 fits in 32 bits, well within Number's safe-integer range, so the bit-width math below
     // can stay in `number` while delegating the IP<->int conversion to fast-cidr-tools.
@@ -21,6 +24,9 @@ export class CidrUtility {
     return cidrBlocks;
   }
 
+  /**
+   * @internal
+   */
   static isPrivateIpV4CidrRange(cidrRange: string): boolean {
     const [firstIp, size = '32'] = cidrRange.split('/');
 

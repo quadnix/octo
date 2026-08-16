@@ -19,6 +19,9 @@ export class AlbTargetGroup extends ATerraformResource<AlbTargetGroupSchema, Alb
   declare properties: AlbTargetGroupSchema['properties'];
   declare response: AlbTargetGroupSchema['response'];
 
+  /**
+   * @internal
+   */
   constructor(
     resourceId: string,
     properties: AlbTargetGroupSchema['properties'],
@@ -27,6 +30,9 @@ export class AlbTargetGroup extends ATerraformResource<AlbTargetGroupSchema, Alb
     super(resourceId, properties, parents);
   }
 
+  /**
+   * @internal
+   */
   override async diffProperties(previous: AlbTargetGroup): Promise<Diff[]> {
     if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties, ['healthCheck'])) {
       return [
@@ -47,6 +53,9 @@ export class AlbTargetGroup extends ATerraformResource<AlbTargetGroupSchema, Alb
     return [];
   }
 
+  /**
+   * @internal
+   */
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {
     const spec: Record<string, unknown> = {
       ip_address_type: this.properties.IpAddressType,

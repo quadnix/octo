@@ -16,6 +16,9 @@ import { AwsLocalstackAccount } from '../aws-localstack-account.model.js';
  */
 @Action(AwsLocalstackAccount)
 export class AddAwsLocalstackAccountModelAction implements IModelAction<AwsLocalstackAccountModule> {
+  /**
+   * @internal
+   */
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -25,6 +28,9 @@ export class AddAwsLocalstackAccountModelAction implements IModelAction<AwsLocal
     );
   }
 
+  /**
+   * @internal
+   */
   async handle(
     _diff: Diff,
     _actionInputs: EnhancedModuleSchema<AwsLocalstackAccountModule>,
@@ -41,6 +47,9 @@ export class AddAwsLocalstackAccountModelAction implements IModelAction<AwsLocal
 export class AddAwsLocalstackAccountModelActionFactory {
   private static instance: AddAwsLocalstackAccountModelAction;
 
+  /**
+   * @internal
+   */
   static async create(): Promise<AddAwsLocalstackAccountModelAction> {
     if (!this.instance) {
       this.instance = new AddAwsLocalstackAccountModelAction();

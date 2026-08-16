@@ -8,6 +8,9 @@ import type { AwsSubnetAnchorSchema } from './aws-subnet.anchor.schema.js';
 export class AwsSubnetAnchor extends AAnchor<AwsSubnetAnchorSchema, AwsSubnetAnchorSchema['parentInstance']> {
   declare properties: AwsSubnetAnchorSchema['properties'];
 
+  /**
+   * @internal
+   */
   constructor(
     anchorId: string,
     properties: AwsSubnetAnchorSchema['properties'],

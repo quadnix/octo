@@ -31,8 +31,8 @@ export class EcsServiceLoadBalancerSchema {
 /**
  * The `EcsServiceSchema` class is the schema for the `EcsService` resource,
  * which represents the AWS Elastic Container Service (ECS) Service resource.
- * This resource can create a ecs service in AWS using the AWS JavaScript SDK V3 API.
- * See [official sdk docs](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/client/ecs/).
+ * Terraform provisions it as
+ * [`aws_ecs_service`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecs_service).
  *
  * @group Resources/EcsService
  *

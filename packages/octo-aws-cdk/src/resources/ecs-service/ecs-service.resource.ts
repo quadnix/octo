@@ -32,6 +32,9 @@ export class EcsService extends ATerraformResource<EcsServiceSchema, EcsService>
   declare properties: EcsServiceSchema['properties'];
   declare response: EcsServiceSchema['response'];
 
+  /**
+   * @internal
+   */
   constructor(
     resourceId: string,
     properties: EcsServiceSchema['properties'],
@@ -59,6 +62,9 @@ export class EcsService extends ATerraformResource<EcsServiceSchema, EcsService>
     );
   }
 
+  /**
+   * @internal
+   */
   addAlbTargetGroup(albTargetGroup: MatchingResource<AlbTargetGroupSchema>, containerName: string): void {
     const { Name: targetGroupName, Port: containerPort } = albTargetGroup.getSchemaInstance().properties;
     const existingAlbTargetGroupParentDependencies = this.getParents('alb-target-group')['alb-target-group'];
@@ -100,6 +106,9 @@ export class EcsService extends ATerraformResource<EcsServiceSchema, EcsService>
     this.updateServiceAlbTargetGroups([albTargetGroup.getActual()]);
   }
 
+  /**
+   * @internal
+   */
   override async diff(previous: EcsService): Promise<Diff[]> {
     const diffs: Diff[] = await super.diff(previous);
 
@@ -165,6 +174,9 @@ export class EcsService extends ATerraformResource<EcsServiceSchema, EcsService>
     return diffs;
   }
 
+  /**
+   * @internal
+   */
   override async diffProperties(previous: EcsService): Promise<Diff[]> {
     if (
       !DiffUtility.isObjectDeepEquals(previous.properties, this.properties, [
@@ -187,6 +199,9 @@ export class EcsService extends ATerraformResource<EcsServiceSchema, EcsService>
     return super.diffProperties(previous);
   }
 
+  /**
+   * @internal
+   */
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {
     const clusterParent = this.parents[0] as MatchingResource<EcsClusterSchema>;
     const taskDefParent = this.parents[1] as MatchingResource<EcsTaskDefinitionSchema>;
@@ -238,6 +253,9 @@ export class EcsService extends ATerraformResource<EcsServiceSchema, EcsService>
     }
   }
 
+  /**
+   * @internal
+   */
   private updateServiceAlbTargetGroups(
     albTargetGroupParents: ReturnType<MatchingResource<AlbTargetGroupSchema>['getActual']>[],
   ): void {
@@ -252,6 +270,9 @@ export class EcsService extends ATerraformResource<EcsServiceSchema, EcsService>
     }
   }
 
+  /**
+   * @internal
+   */
   private updateServiceSecurityGroups(
     securityGroupParents: ReturnType<MatchingResource<SecurityGroupSchema>['getActual']>[],
   ): void {
@@ -271,6 +292,9 @@ export class EcsService extends ATerraformResource<EcsServiceSchema, EcsService>
     }
   }
 
+  /**
+   * @internal
+   */
   private updateServiceTaskDefinition(
     taskDefinitionParent: ReturnType<MatchingResource<EcsTaskDefinitionSchema>['getActual']>,
   ): void {

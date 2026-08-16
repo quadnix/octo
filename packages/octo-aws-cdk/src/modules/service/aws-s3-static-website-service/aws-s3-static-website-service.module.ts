@@ -17,10 +17,11 @@ import { AwsS3StaticWebsiteService } from './models/service/index.js';
  * } from '@quadnix/octo-aws-cdk/modules/service/aws-s3-static-website-service';
  *
  * octo.loadModule(AwsS3StaticWebsiteServiceModule, 'my-website-module', {
+ *   account: myAccount,
+ *   awsRegionId: 'us-east-1',
  *   bucketName: 'my-static-website',
  *   directoryPath: join(__dirname, 'website'),
  *   filter: (filePath) => !filePath.includes('.DS_Store'),
- *   region: 'us-east-1',
  *   subDirectoryOrFilePath: 'public',
  *   transform: (filePath) => `public/${filePath}`,
  * });
@@ -32,13 +33,16 @@ import { AwsS3StaticWebsiteService } from './models/service/index.js';
  *
  * @see {@link AwsS3StaticWebsiteServiceModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
- * @see {@link Service} to learn more about the `Service` model.
+ * @see [Service](/api/octo/class/Service) to learn more about the `Service` model.
  */
 @Module<AwsS3StaticWebsiteServiceModule>('@octo', AwsS3StaticWebsiteServiceModuleSchema)
 export class AwsS3StaticWebsiteServiceModule extends AModule<
   AwsS3StaticWebsiteServiceModuleSchema,
   AwsS3StaticWebsiteService
 > {
+  /**
+   * Creates the bucket service, and registers the local directory whose files it serves.
+   */
   async onInit(inputs: AwsS3StaticWebsiteServiceModuleSchema): Promise<AwsS3StaticWebsiteService> {
     const { app } = await this.registerMetadata(inputs);
 
@@ -57,6 +61,9 @@ export class AwsS3StaticWebsiteServiceModule extends AModule<
     return s3StaticWebsiteService;
   }
 
+  /**
+   * Resolves the app, account, and region this bucket is created in.
+   */
   override async registerMetadata(
     inputs: AwsS3StaticWebsiteServiceModuleSchema,
   ): Promise<{ app: App; awsAccountId: string; awsRegionId: string }> {

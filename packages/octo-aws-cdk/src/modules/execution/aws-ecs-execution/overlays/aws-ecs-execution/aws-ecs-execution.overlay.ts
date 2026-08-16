@@ -20,6 +20,9 @@ export class AwsEcsExecutionOverlay extends AOverlay<AwsEcsExecutionOverlaySchem
   ];
   declare properties: AwsEcsExecutionOverlaySchema['properties'];
 
+  /**
+   * @internal
+   */
   constructor(
     overlayId: string,
     properties: AwsEcsExecutionOverlaySchema['properties'],
@@ -34,6 +37,9 @@ export class AwsEcsExecutionOverlay extends AOverlay<AwsEcsExecutionOverlaySchem
     super(overlayId, properties, anchors);
   }
 
+  /**
+   * @internal
+   */
   override async diffAnchors(): Promise<Diff[]> {
     return [];
   }

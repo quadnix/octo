@@ -23,6 +23,9 @@ import { AwsSimpleSubnetLocalFilesystemMountOverlay } from '../aws-simple-subnet
  */
 @Action(AwsSimpleSubnetLocalFilesystemMountOverlay)
 export class AddAwsSimpleSubnetLocalFilesystemMountOverlayAction implements IModelAction<AwsSimpleSubnetModule> {
+  /**
+   * @internal
+   */
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -32,6 +35,9 @@ export class AddAwsSimpleSubnetLocalFilesystemMountOverlayAction implements IMod
     );
   }
 
+  /**
+   * @internal
+   */
   async handle(
     diff: Diff<AwsSimpleSubnetLocalFilesystemMountOverlay>,
     actionInputs: EnhancedModuleSchema<AwsSimpleSubnetModule>,
@@ -99,6 +105,9 @@ export class AddAwsSimpleSubnetLocalFilesystemMountOverlayAction implements IMod
 export class AddAwsSimpleSubnetLocalFilesystemMountOverlayActionFactory {
   private static instance: AddAwsSimpleSubnetLocalFilesystemMountOverlayAction;
 
+  /**
+   * @internal
+   */
   static async create(): Promise<AddAwsSimpleSubnetLocalFilesystemMountOverlayAction> {
     if (!this.instance) {
       this.instance = new AddAwsSimpleSubnetLocalFilesystemMountOverlayAction();

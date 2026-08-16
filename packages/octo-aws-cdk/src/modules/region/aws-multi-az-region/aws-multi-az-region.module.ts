@@ -18,8 +18,9 @@ import { AwsMultiAzRegion } from './models/region/index.js';
  *
  * octo.loadModule(AwsMultiAzRegionModule, 'my-region-module', {
  *   account: myAccount,
+ *   name: 'my-region',
  *   regionIds: [AwsMultiAzRegionId.AWS_US_EAST_1A, AwsMultiAzRegionId.AWS_US_EAST_1B],
- *   vpcCidrBlock: '10.0.0.0/16'
+ *   vpcCidrBlock: '10.0.0.0/16',
  * });
  * ```
  *
@@ -30,10 +31,13 @@ import { AwsMultiAzRegion } from './models/region/index.js';
  *
  * @see {@link AwsMultiAzRegionModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
- * @see {@link Region} to learn more about the `Region` model.
+ * @see [Region](/api/octo/class/Region) to learn more about the `Region` model.
  */
 @Module<AwsMultiAzRegionModule>('@octo', AwsMultiAzRegionModuleSchema)
 export class AwsMultiAzRegionModule extends AModule<AwsMultiAzRegionModuleSchema, AwsMultiAzRegion> {
+  /**
+   * Validates the VPC CIDR against the account's other regions, then creates the region across the given availability zones.
+   */
   async onInit(inputs: AwsMultiAzRegionModuleSchema): Promise<AwsMultiAzRegion> {
     const account = inputs.account;
     if (account.accountType !== AccountType.AWS) {

@@ -15,7 +15,7 @@ import { AwsMotoAccount } from './models/account/index.js';
  *
  * octo.loadModule(AwsMotoAccountModule, 'my-account-module', {
  *   app: myApp,
- *   endpoint: 'http://localhost:5000'
+ *   endpoints: { s3: 'http://localhost:5000', sts: 'http://localhost:5000' },
  * });
  * ```
  *
@@ -23,10 +23,13 @@ import { AwsMotoAccount } from './models/account/index.js';
  *
  * @see {@link AwsMotoAccountModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
- * @see {@link Account} to learn more about the `Account` model.
+ * @see [Account](/api/octo/class/Account) to learn more about the `Account` model.
  */
 @Module<AwsMotoAccountModule>('@octo', AwsMotoAccountModuleSchema)
 export class AwsMotoAccountModule extends AModule<AwsMotoAccountModuleSchema, AwsMotoAccount> {
+  /**
+   * Creates the Moto account under a fixed account ID, and anchors it for other modules to find.
+   */
   async onInit(inputs: AwsMotoAccountModuleSchema): Promise<AwsMotoAccount> {
     const app = inputs.app;
 

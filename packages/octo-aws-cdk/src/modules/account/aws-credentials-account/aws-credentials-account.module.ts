@@ -22,7 +22,7 @@ import { AwsCredentialsAccount } from './models/account/index.js';
  *     accessKeyId: 'EXAMPLE_KEY',
  *     secretAccessKey: 'EXAMPLE_SECRET'
  *   },
- *   endpoint: 'https://s3.amazonaws.com' // Optional
+ *   endpoints: { s3: 'https://s3.amazonaws.com' }, // Optional
  * });
  * ```
  *
@@ -30,10 +30,13 @@ import { AwsCredentialsAccount } from './models/account/index.js';
  *
  * @see {@link AwsCredentialsAccountModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
- * @see {@link Account} to learn more about the `Account` model.
+ * @see [Account](/api/octo/class/Account) to learn more about the `Account` model.
  */
 @Module<AwsCredentialsAccountModule>('@octo', AwsCredentialsAccountModuleSchema)
 export class AwsCredentialsAccountModule extends AModule<AwsCredentialsAccountModuleSchema, AwsCredentialsAccount> {
+  /**
+   * Creates the account from the supplied credentials, and anchors it for other modules to find.
+   */
   async onInit(inputs: AwsCredentialsAccountModuleSchema): Promise<AwsCredentialsAccount> {
     const app = inputs.app;
 

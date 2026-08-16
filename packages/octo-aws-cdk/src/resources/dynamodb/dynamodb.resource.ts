@@ -33,6 +33,9 @@ export class DynamoDB extends ATerraformResource<DynamoDBSchema, DynamoDB> {
   declare properties: DynamoDBSchema['properties'];
   declare response: DynamoDBSchema['response'];
 
+  /**
+   * @internal
+   */
   constructor(resourceId: string, properties: DynamoDBSchema['properties']) {
     super(resourceId, properties, []);
 
@@ -173,6 +176,9 @@ export class DynamoDB extends ATerraformResource<DynamoDBSchema, DynamoDB> {
     }
   }
 
+  /**
+   * @internal
+   */
   override async diff(previous: DynamoDB): Promise<Diff[]> {
     const diffs = await super.diff(previous);
 
@@ -221,6 +227,9 @@ export class DynamoDB extends ATerraformResource<DynamoDBSchema, DynamoDB> {
     return diffs;
   }
 
+  /**
+   * @internal
+   */
   override async diffProperties(previous: DynamoDB): Promise<Diff[]> {
     if (
       !DiffUtility.isObjectDeepEquals(previous.properties, this.properties, [
@@ -255,6 +264,9 @@ export class DynamoDB extends ATerraformResource<DynamoDBSchema, DynamoDB> {
     return super.diffProperties(previous);
   }
 
+  /**
+   * @internal
+   */
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {
     const hashKeyAttr = this.properties.KeySchema.find((s) => s.KeyType === 'HASH')!;
     const rangeKeyAttr = this.properties.KeySchema.find((s) => s.KeyType === 'RANGE');

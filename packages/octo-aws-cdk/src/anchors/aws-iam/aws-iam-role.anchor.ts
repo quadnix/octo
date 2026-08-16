@@ -8,6 +8,9 @@ import type { AwsIamRoleAnchorSchema } from './aws-iam-role.anchor.schema.js';
 export class AwsIamRoleAnchor extends AAnchor<AwsIamRoleAnchorSchema, AwsIamRoleAnchorSchema['parentInstance']> {
   declare properties: AwsIamRoleAnchorSchema['properties'];
 
+  /**
+   * @internal
+   */
   constructor(
     anchorId: string,
     properties: AwsIamRoleAnchorSchema['properties'],

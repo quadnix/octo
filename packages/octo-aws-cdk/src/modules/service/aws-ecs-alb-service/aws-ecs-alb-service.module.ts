@@ -62,10 +62,13 @@ import { AwsEcsAlbServiceOverlay } from './overlays/aws-ecs-alb-service/index.js
  *
  * @see {@link AwsEcsAlbServiceModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
- * @see {@link Service} to learn more about the `Service` model.
+ * @see [Service](/api/octo/class/Service) to learn more about the `Service` model.
  */
 @Module<AwsEcsAlbServiceModule>('@octo', AwsEcsAlbServiceModuleSchema)
 export class AwsEcsAlbServiceModule extends AModule<AwsEcsAlbServiceModuleSchema, AwsEcsAlbService> {
+  /**
+   * Validates the subnets are public, creates the load balancer, and overlays it onto the executions it routes to.
+   */
   async onInit(inputs: AwsEcsAlbServiceModuleSchema): Promise<[AwsEcsAlbService, AwsEcsAlbServiceOverlay]> {
     const region = inputs.region;
     const { app, subnets } = await this.registerMetadata(inputs);
@@ -119,6 +122,9 @@ export class AwsEcsAlbServiceModule extends AModule<AwsEcsAlbServiceModuleSchema
     return [service, ecsAlbServiceOverlay];
   }
 
+  /**
+   * Resolves the app, account, region, availability zones, and the subnet models this load balancer sits in.
+   */
   override async registerMetadata(inputs: AwsEcsAlbServiceModuleSchema): Promise<{
     app: App;
     awsAccountId: string;

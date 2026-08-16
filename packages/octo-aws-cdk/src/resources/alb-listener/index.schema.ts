@@ -359,8 +359,9 @@ export class AlbListenerRuleSourceIpConditionSchema {
 /**
  * The `AlbListenerSchema` class is the schema for the `AlbListener` resource,
  * which represents the AWS Application Load Balancer Listener resource.
- * This resource can create a alb listener in AWS using the AWS JavaScript SDK V3 API.
- * See [official sdk docs](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/client/elastic-load-balancing-v2/).
+ * Terraform provisions it as
+ * [`aws_lb_listener`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lb_listener) and
+ * [`aws_lb_listener_rule`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lb_listener_rule).
  *
  * @group Resources/AlbListener
  *
@@ -387,8 +388,6 @@ export class AlbListenerSchema extends BaseResourceSchema {
    * A rule must contain conditions as per {@link IAlbListenerRuleTypes},
    * a set of actions to perform if the conditions are met as per {@link IAlbListenerActionTypes},
    * and a priority which determines the order in which the rules are evaluated.
-   *
-   * @group Properties
    */
   @Validate<unknown>([
     {

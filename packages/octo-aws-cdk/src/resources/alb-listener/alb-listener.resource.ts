@@ -58,6 +58,9 @@ export class AlbListener extends ATerraformResource<AlbListenerSchema, AlbListen
   declare properties: AlbListenerSchema['properties'];
   declare response: AlbListenerSchema['response'];
 
+  /**
+   * @internal
+   */
   constructor(
     resourceId: string,
     properties: AlbListenerSchema['properties'],
@@ -112,6 +115,9 @@ export class AlbListener extends ATerraformResource<AlbListenerSchema, AlbListen
     this.updateListenerAlbTargetGroups(albTargetGroupMatchingParents);
   }
 
+  /**
+   * @internal
+   */
   override async diff(previous: AlbListener): Promise<Diff[]> {
     const diffs: Diff[] = await super.diff(previous);
 
@@ -133,6 +139,9 @@ export class AlbListener extends ATerraformResource<AlbListenerSchema, AlbListen
     return diffs;
   }
 
+  /**
+   * @internal
+   */
   override async diffProperties(previous: AlbListener): Promise<Diff[]> {
     const diffs: Diff[] = [];
 
@@ -204,6 +213,9 @@ export class AlbListener extends ATerraformResource<AlbListenerSchema, AlbListen
     return diffs;
   }
 
+  /**
+   * @internal
+   */
   override diffUnpack(diff: Diff): Diff[] {
     if (diff.action === DiffAction.ADD && diff.field === 'resourceId') {
       const diffs: Diff[] = [diff];
@@ -225,6 +237,9 @@ export class AlbListener extends ATerraformResource<AlbListenerSchema, AlbListen
     }
   }
 
+  /**
+   * @internal
+   */
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {
     const targetGroupParents = (this.parents as MatchingResource<AlbTargetGroupSchema>[]).filter((p) =>
       hasNodeName(p.getActual(), 'alb-target-group'),
@@ -329,6 +344,9 @@ export class AlbListener extends ATerraformResource<AlbListenerSchema, AlbListen
     }
   }
 
+  /**
+   * @internal
+   */
   private updateListenerAlbTargetGroups(albTargetGroupMatchingParents: MatchingResource<AlbTargetGroupSchema>[]): void {
     for (const albTargetGroupParent of albTargetGroupMatchingParents) {
       const listenerToAlbTargetGroupDep = this.getDependency(

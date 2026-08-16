@@ -19,6 +19,9 @@ export class SecurityGroup extends ATerraformResource<SecurityGroupSchema, Secur
   declare properties: SecurityGroupSchema['properties'];
   declare response: SecurityGroupSchema['response'];
 
+  /**
+   * @internal
+   */
   constructor(
     resourceId: string,
     properties: SecurityGroupSchema['properties'],
@@ -27,6 +30,9 @@ export class SecurityGroup extends ATerraformResource<SecurityGroupSchema, Secur
     super(resourceId, properties, parents);
   }
 
+  /**
+   * @internal
+   */
   override async diffProperties(previous: SecurityGroup): Promise<Diff[]> {
     if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties, ['rules'])) {
       return [
@@ -43,6 +49,9 @@ export class SecurityGroup extends ATerraformResource<SecurityGroupSchema, Secur
     return super.diffProperties(previous);
   }
 
+  /**
+   * @internal
+   */
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {
     const sgOctoResource = terraform.addOctoTerraformResource(this as SecurityGroup, {
       provider: { accountId: this.properties.awsAccountId, regionId: this.properties.awsRegionId },

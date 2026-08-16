@@ -3,8 +3,8 @@ import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 /**
  * The `EfsMountTargetSchema` class is the schema for the `EfsMountTarget` resource,
  * which represents the AWS Elastic File System (EFS) Mount Target resource.
- * This resource can create a efs mount target in AWS using the AWS JavaScript SDK V3 API.
- * See [official sdk docs](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/client/efs/).
+ * Terraform provisions it as
+ * [`aws_efs_mount_target`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/efs_mount_target).
  *
  * @group Resources/EfsMountTarget
  *

@@ -11,6 +11,9 @@ export class AwsS3StorageServiceDirectoryAnchor extends AAnchor<
 > {
   declare properties: AwsS3StorageServiceDirectoryAnchorSchema['properties'];
 
+  /**
+   * @internal
+   */
   constructor(
     anchorId: string,
     properties: AwsS3StorageServiceDirectoryAnchorSchema['properties'],

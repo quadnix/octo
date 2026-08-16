@@ -27,6 +27,9 @@ import { AwsSimpleSubnet } from '../aws-simple-subnet.model.js';
  */
 @Action(AwsSimpleSubnet)
 export class AddAwsSimpleSubnetModelAction implements IModelAction<AwsSimpleSubnetModule> {
+  /**
+   * @internal
+   */
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -36,6 +39,9 @@ export class AddAwsSimpleSubnetModelAction implements IModelAction<AwsSimpleSubn
     );
   }
 
+  /**
+   * @internal
+   */
   async handle(
     diff: Diff<AwsSimpleSubnet>,
     actionInputs: EnhancedModuleSchema<AwsSimpleSubnetModule>,
@@ -219,6 +225,9 @@ export class AddAwsSimpleSubnetModelAction implements IModelAction<AwsSimpleSubn
 export class AddAwsSimpleSubnetModelActionFactory {
   private static instance: AddAwsSimpleSubnetModelAction;
 
+  /**
+   * @internal
+   */
   static async create(): Promise<AddAwsSimpleSubnetModelAction> {
     if (!this.instance) {
       this.instance = new AddAwsSimpleSubnetModelAction();

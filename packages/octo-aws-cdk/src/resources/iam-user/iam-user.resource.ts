@@ -24,10 +24,16 @@ export class IamUser extends ATerraformResource<IamUserSchema, IamUser> {
   declare properties: IamUserSchema['properties'];
   declare response: IamUserSchema['response'];
 
+  /**
+   * @internal
+   */
   constructor(resourceId: string, properties: IamUserSchema['properties']) {
     super(resourceId, properties, []);
   }
 
+  /**
+   * @internal
+   */
   addS3BucketPolicy(
     policyId: string,
     bucketName: string,
@@ -57,6 +63,9 @@ export class IamUser extends ATerraformResource<IamUserSchema, IamUser> {
     }
   }
 
+  /**
+   * @internal
+   */
   deletePolicy(policyId: string): void {
     const index = this.properties.policies.findIndex((p) => p.policyId === policyId);
     if (index > -1) {
@@ -64,6 +73,9 @@ export class IamUser extends ATerraformResource<IamUserSchema, IamUser> {
     }
   }
 
+  /**
+   * @internal
+   */
   override async diffProperties(previous: IamUser): Promise<Diff[]> {
     if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties, ['policies'])) {
       return [
@@ -106,6 +118,9 @@ export class IamUser extends ATerraformResource<IamUserSchema, IamUser> {
     return diffs;
   }
 
+  /**
+   * @internal
+   */
   override diffUnpack(diff: Diff<IamUser>): Diff[] {
     if (diff.action === DiffAction.ADD && diff.field === 'resourceId') {
       const diffs: Diff[] = [diff];
@@ -142,6 +157,9 @@ export class IamUser extends ATerraformResource<IamUserSchema, IamUser> {
     }
   }
 
+  /**
+   * @internal
+   */
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {
     const iamUserOctoResource = terraform.addOctoTerraformResource(this as IamUser, {
       provider: { accountId: this.properties.awsAccountId },

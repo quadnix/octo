@@ -17,6 +17,9 @@ import { AwsEfsFilesystem } from '../aws-efs-filesystem.model.js';
  */
 @Action(AwsEfsFilesystem)
 export class AddAwsEfsFilesystemModelAction implements IModelAction<AwsEfsFilesystemModule> {
+  /**
+   * @internal
+   */
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -26,6 +29,9 @@ export class AddAwsEfsFilesystemModelAction implements IModelAction<AwsEfsFilesy
     );
   }
 
+  /**
+   * @internal
+   */
   async handle(
     diff: Diff<AwsEfsFilesystem>,
     actionInputs: EnhancedModuleSchema<AwsEfsFilesystemModule>,
@@ -56,6 +62,9 @@ export class AddAwsEfsFilesystemModelAction implements IModelAction<AwsEfsFilesy
 export class AddAwsEfsFilesystemModelActionFactory {
   private static instance: AddAwsEfsFilesystemModelAction;
 
+  /**
+   * @internal
+   */
   static async create(): Promise<AddAwsEfsFilesystemModelAction> {
     if (!this.instance) {
       this.instance = new AddAwsEfsFilesystemModelAction();

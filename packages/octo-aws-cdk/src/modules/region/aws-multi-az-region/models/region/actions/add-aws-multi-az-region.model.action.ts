@@ -19,6 +19,9 @@ import { AwsMultiAzRegion } from '../aws-multi-az-region.model.js';
  */
 @Action(AwsMultiAzRegion)
 export class AddAwsMultiAzRegionModelAction implements IModelAction<AwsMultiAzRegionModule> {
+  /**
+   * @internal
+   */
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -28,6 +31,9 @@ export class AddAwsMultiAzRegionModelAction implements IModelAction<AwsMultiAzRe
     );
   }
 
+  /**
+   * @internal
+   */
   async handle(
     diff: Diff<AwsMultiAzRegion>,
     actionInputs: EnhancedModuleSchema<AwsMultiAzRegionModule>,
@@ -70,6 +76,9 @@ export class AddAwsMultiAzRegionModelAction implements IModelAction<AwsMultiAzRe
 export class AddAwsMultiAzRegionModelActionFactory {
   private static instance: AddAwsMultiAzRegionModelAction;
 
+  /**
+   * @internal
+   */
   static async create(): Promise<AddAwsMultiAzRegionModelAction> {
     if (!this.instance) {
       this.instance = new AddAwsMultiAzRegionModelAction();

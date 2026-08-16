@@ -16,6 +16,7 @@ import { AwsDynamoDBService } from './models/service/index.js';
  *
  * octo.loadModule(AwsDynamoDBServiceModule, 'my-table-module', {
  *   AttributeDefinitions: [{ AttributeName: 'AccountId', AttributeType: 'S' }],
+ *   billingMode: { settings: {}, type: 'PAY_PER_REQUEST' },
  *   KeySchema: [{ AttributeName: 'AccountId', KeyType: 'HASH' }],
  *   region: myRegion,
  *   TableName: 'my-table',
@@ -28,10 +29,13 @@ import { AwsDynamoDBService } from './models/service/index.js';
  *
  * @see {@link AwsDynamoDBServiceModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
- * @see {@link Service} to learn more about the `Service` model.
+ * @see [Service](/api/octo/class/Service) to learn more about the `Service` model.
  */
 @Module<AwsDynamoDBServiceModule>('@octo', AwsDynamoDBServiceModuleSchema)
 export class AwsDynamoDBServiceModule extends AModule<AwsDynamoDBServiceModuleSchema, AwsDynamoDBService> {
+  /**
+   * Creates the DynamoDB table service, and anchors its table name for other modules to find.
+   */
   async onInit(inputs: AwsDynamoDBServiceModuleSchema): Promise<AwsDynamoDBService> {
     const { app } = await this.registerMetadata(inputs);
 
@@ -46,6 +50,9 @@ export class AwsDynamoDBServiceModule extends AModule<AwsDynamoDBServiceModuleSc
     return service;
   }
 
+  /**
+   * Resolves the app, account, and region this table is created in.
+   */
   override async registerMetadata(
     inputs: AwsDynamoDBServiceModuleSchema,
   ): Promise<{ app: App; awsAccountId: string; awsRegionId: string }> {

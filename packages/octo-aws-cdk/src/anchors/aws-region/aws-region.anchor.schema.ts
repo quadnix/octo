@@ -6,6 +6,9 @@ import { BaseAnchorSchema, type Region, Schema, Validate } from '@quadnix/octo';
  * @group Anchors/AwsRegion
  *
  * @hideconstructor
+ *
+ * @see [AModel](/api/octo/class/AModel)'s `getAnchorsMatchingSchema()` to consume this anchor from
+ * your own module.
  */
 export class AwsRegionAnchorSchema extends BaseAnchorSchema {
   /**

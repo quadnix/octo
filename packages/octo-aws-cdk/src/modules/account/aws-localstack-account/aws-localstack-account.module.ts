@@ -16,8 +16,7 @@ import { AwsLocalstackAccount } from './models/account/index.js';
  *
  * octo.loadModule(AwsLocalstackAccountModule, 'my-account-module', {
  *   app: myApp,
- *   endpoint: 'http://localhost:4566',
- *   endpointS3: 'http://s3.localhost.localstack.cloud:4566'
+ *   endpoints: { s3: 'http://localhost:4566', sts: 'http://localhost:4566' },
  * });
  * ```
  *
@@ -25,10 +24,13 @@ import { AwsLocalstackAccount } from './models/account/index.js';
  *
  * @see {@link AwsLocalstackAccountModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
- * @see {@link Account} to learn more about the `Account` model.
+ * @see [Account](/api/octo/class/Account) to learn more about the `Account` model.
  */
 @Module<AwsLocalstackAccountModule>('@octo', AwsLocalstackAccountModuleSchema)
 export class AwsLocalstackAccountModule extends AModule<AwsLocalstackAccountModuleSchema, AwsLocalstackAccount> {
+  /**
+   * Creates the LocalStack account under a fixed account ID, and anchors it for other modules to find.
+   */
   async onInit(inputs: AwsLocalstackAccountModuleSchema): Promise<AwsLocalstackAccount> {
     const app = inputs.app;
 

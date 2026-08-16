@@ -16,6 +16,9 @@ import { AwsIniAccount } from '../aws-ini-account.model.js';
  */
 @Action(AwsIniAccount)
 export class AddAwsIniAccountModelAction implements IModelAction<AwsIniAccountModule> {
+  /**
+   * @internal
+   */
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -25,6 +28,9 @@ export class AddAwsIniAccountModelAction implements IModelAction<AwsIniAccountMo
     );
   }
 
+  /**
+   * @internal
+   */
   async handle(
     _diff: Diff,
     _actionInputs: EnhancedModuleSchema<AwsIniAccountModule>,
@@ -41,6 +47,9 @@ export class AddAwsIniAccountModelAction implements IModelAction<AwsIniAccountMo
 export class AddAwsIniAccountModelActionFactory {
   private static instance: AddAwsIniAccountModelAction;
 
+  /**
+   * @internal
+   */
   static async create(): Promise<AddAwsIniAccountModelAction> {
     if (!this.instance) {
       this.instance = new AddAwsIniAccountModelAction();

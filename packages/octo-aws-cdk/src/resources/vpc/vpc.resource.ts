@@ -9,10 +9,16 @@ export class Vpc extends ATerraformResource<VpcSchema, Vpc> {
   declare properties: VpcSchema['properties'];
   declare response: VpcSchema['response'];
 
+  /**
+   * @internal
+   */
   constructor(resourceId: string, properties: VpcSchema['properties']) {
     super(resourceId, properties, []);
   }
 
+  /**
+   * @internal
+   */
   override async diffProperties(previous: Vpc): Promise<Diff[]> {
     if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties, ['awsAvailabilityZones'])) {
       return [
@@ -29,6 +35,9 @@ export class Vpc extends ATerraformResource<VpcSchema, Vpc> {
     return [];
   }
 
+  /**
+   * @internal
+   */
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {
     const vpcOctoResource = terraform.addOctoTerraformResource(this as Vpc, {
       provider: { accountId: this.properties.awsAccountId, regionId: this.properties.awsRegionId },

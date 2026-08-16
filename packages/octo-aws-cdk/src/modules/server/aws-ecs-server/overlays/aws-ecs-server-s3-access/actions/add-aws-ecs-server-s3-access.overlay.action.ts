@@ -22,6 +22,9 @@ import { AwsEcsServerS3AccessOverlay } from '../aws-ecs-server-s3-access.overlay
  */
 @Action(AwsEcsServerS3AccessOverlay)
 export class AddAwsEcsServerS3AccessOverlayAction implements IModelAction<AwsEcsServerModule> {
+  /**
+   * @internal
+   */
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -31,6 +34,9 @@ export class AddAwsEcsServerS3AccessOverlayAction implements IModelAction<AwsEcs
     );
   }
 
+  /**
+   * @internal
+   */
   async handle(
     diff: Diff<AwsEcsServerS3AccessOverlay>,
     actionInputs: EnhancedModuleSchema<AwsEcsServerModule>,
@@ -82,6 +88,9 @@ export class AddAwsEcsServerS3AccessOverlayAction implements IModelAction<AwsEcs
 export class AddAwsEcsServerS3AccessOverlayActionFactory {
   private static instance: AddAwsEcsServerS3AccessOverlayAction;
 
+  /**
+   * @internal
+   */
   static async create(): Promise<AddAwsEcsServerS3AccessOverlayAction> {
     if (!this.instance) {
       this.instance = new AddAwsEcsServerS3AccessOverlayAction();

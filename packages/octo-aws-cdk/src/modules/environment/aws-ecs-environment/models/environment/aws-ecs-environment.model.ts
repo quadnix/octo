@@ -6,6 +6,9 @@ import { AwsEcsEnvironmentSchema } from './aws-ecs-environment.schema.js';
  */
 @Model<AwsEcsEnvironment>('@octo', 'environment', AwsEcsEnvironmentSchema)
 export class AwsEcsEnvironment extends Environment {
+  /**
+   * @internal
+   */
   static override async unSynth(environment: AwsEcsEnvironmentSchema): Promise<AwsEcsEnvironment> {
     const newEnvironment = new AwsEcsEnvironment(environment.environmentName);
 

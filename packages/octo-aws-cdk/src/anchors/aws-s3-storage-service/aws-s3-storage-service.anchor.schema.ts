@@ -6,6 +6,9 @@ import { BaseAnchorSchema, Schema, type Service, Validate } from '@quadnix/octo'
  * @group Anchors/AwsS3StorageService
  *
  * @hideconstructor
+ *
+ * @see [AModel](/api/octo/class/AModel)'s `getAnchorsMatchingSchema()` to consume this anchor from
+ * your own module.
  */
 export class AwsS3StorageServiceAnchorSchema extends BaseAnchorSchema {
   /**

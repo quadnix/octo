@@ -48,10 +48,13 @@ import { AwsSimpleSubnetLocalFilesystemMountOverlay } from './overlays/aws-simpl
  *
  * @see {@link AwsSimpleSubnetModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
- * @see {@link Subnet} to learn more about the `Subnet` model.
+ * @see [Subnet](/api/octo/class/Subnet) to learn more about the `Subnet` model.
  */
 @Module<AwsSimpleSubnetModule>('@octo', AwsSimpleSubnetModuleSchema)
 export class AwsSimpleSubnetModule extends AModule<AwsSimpleSubnetModuleSchema, AwsSimpleSubnet> {
+  /**
+   * Validates the availability zone and CIDR against the region, creates the subnet, wires its sibling rules, and overlays any filesystem mounts.
+   */
   async onInit(
     inputs: AwsSimpleSubnetModuleSchema,
   ): Promise<(AwsSimpleSubnet | AwsSimpleSubnetLocalFilesystemMountOverlay)[]> {
@@ -146,6 +149,9 @@ export class AwsSimpleSubnetModule extends AModule<AwsSimpleSubnetModuleSchema, 
     return models;
   }
 
+  /**
+   * Resolves the account, region, the region's availability zones, and its VPC CIDR block.
+   */
   override async registerMetadata(inputs: AwsSimpleSubnetModuleSchema): Promise<{
     awsAccountId: string;
     awsAvailabilityZones: string[];

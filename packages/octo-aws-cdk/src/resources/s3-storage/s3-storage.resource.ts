@@ -31,6 +31,9 @@ export class S3Storage extends ATerraformResource<S3StorageSchema, S3Storage> {
   declare properties: S3StorageSchema['properties'];
   declare response: S3StorageSchema['response'];
 
+  /**
+   * @internal
+   */
   constructor(
     resourceId: string,
     properties: S3StorageSchema['properties'],
@@ -41,6 +44,9 @@ export class S3Storage extends ATerraformResource<S3StorageSchema, S3Storage> {
     this.updatePrincipalResourceDependencyBehaviors((parents || []).map((p) => p.getActual()));
   }
 
+  /**
+   * @internal
+   */
   addPermission(
     principal: MatchingResource<PrincipalResourceSchema>,
     remoteDirectoryPath: string,
@@ -68,6 +74,9 @@ export class S3Storage extends ATerraformResource<S3StorageSchema, S3Storage> {
     }
   }
 
+  /**
+   * @internal
+   */
   override async diffProperties(previous: S3Storage): Promise<Diff[]> {
     if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties, ['permissions'])) {
       return [
@@ -148,6 +157,9 @@ export class S3Storage extends ATerraformResource<S3StorageSchema, S3Storage> {
     return diffs;
   }
 
+  /**
+   * @internal
+   */
   override diffUnpack(diff: Diff): Diff[] {
     if (diff.action === DiffAction.ADD && diff.field === 'resourceId') {
       const diffs: Diff[] = [diff];
@@ -190,6 +202,9 @@ export class S3Storage extends ATerraformResource<S3StorageSchema, S3Storage> {
     }
   }
 
+  /**
+   * @internal
+   */
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {
     const s3StorageOctoResource = terraform.addOctoTerraformResource(this as S3Storage, {
       provider: { accountId: this.properties.awsAccountId, regionId: this.properties.awsRegionId },
@@ -250,6 +265,9 @@ export class S3Storage extends ATerraformResource<S3StorageSchema, S3Storage> {
     }
   }
 
+  /**
+   * @internal
+   */
   private updatePrincipalResourceDependencyBehaviors(
     principalResourceParents: AResource<PrincipalResourceSchema, any>[],
   ): void {

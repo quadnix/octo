@@ -88,6 +88,9 @@ export class AwsEcsTaskDefinitionAnchorPropertiesSchema {
  * @group Anchors/AwsEcs
  *
  * @hideconstructor
+ *
+ * @see [AModel](/api/octo/class/AModel)'s `getAnchorsMatchingSchema()` to consume this anchor from
+ * your own module.
  */
 export class AwsEcsTaskDefinitionAnchorSchema extends BaseAnchorSchema {
   /**

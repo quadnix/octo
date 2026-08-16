@@ -3,8 +3,9 @@ import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 /**
  * The `NatGatewaySchema` class is the schema for the `NatGateway` resource,
  * which represents the AWS VPC NAT Gateway resource.
- * This resource can create a nat gateway in AWS using the AWS JavaScript SDK V3 API.
- * See [official sdk docs](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/client/ec2/).
+ * Terraform provisions it as
+ * [`aws_nat_gateway`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/nat_gateway) and
+ * [`aws_eip`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eip).
  *
  * @group Resources/NatGateway
  *

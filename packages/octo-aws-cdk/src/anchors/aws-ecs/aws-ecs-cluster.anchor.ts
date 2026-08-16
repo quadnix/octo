@@ -11,6 +11,9 @@ export class AwsEcsClusterAnchor extends AAnchor<
 > {
   declare properties: AwsEcsClusterAnchorSchema['properties'];
 
+  /**
+   * @internal
+   */
   constructor(
     anchorId: string,
     properties: AwsEcsClusterAnchorSchema['properties'],

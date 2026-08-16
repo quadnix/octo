@@ -18,8 +18,9 @@ import { AwsSingleAzRegion } from './models/region/index.js';
  *
  * octo.loadModule(AwsSingleAzRegionModule, 'my-region-module', {
  *   account: myAccount,
+ *   name: 'my-region',
  *   regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
- *   vpcCidrBlock: '10.0.0.0/16'
+ *   vpcCidrBlock: '10.0.0.0/16',
  * });
  * ```
  *
@@ -30,10 +31,13 @@ import { AwsSingleAzRegion } from './models/region/index.js';
  *
  * @see {@link AwsSingleAzRegionModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
- * @see {@link Region} to learn more about the `Region` model.
+ * @see [Region](/api/octo/class/Region) to learn more about the `Region` model.
  */
 @Module<AwsSingleAzRegionModule>('@octo', AwsSingleAzRegionModuleSchema)
 export class AwsSingleAzRegionModule extends AModule<AwsSingleAzRegionModuleSchema, AwsSingleAzRegion> {
+  /**
+   * Validates the VPC CIDR against the account's other regions, then creates the region in a single availability zone.
+   */
   async onInit(inputs: AwsSingleAzRegionModuleSchema): Promise<AwsSingleAzRegion> {
     const account = inputs.account;
     if (account.accountType !== AccountType.AWS) {

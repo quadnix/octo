@@ -6,6 +6,9 @@ import type { NetworkAclSchema } from '../../resources/network-acl/index.schema.
 export class NetworkAclUtility {
   private static readonly MAX_HCL_PORT = 65535;
 
+  /**
+   * @internal
+   */
   static assignRuleNumber(
     entries: NetworkAclSchema['properties']['entries'],
   ): NetworkAclSchema['properties']['entries'] {
@@ -21,6 +24,9 @@ export class NetworkAclUtility {
     return entries;
   }
 
+  /**
+   * @internal
+   */
   static isNAclEntryEqual(
     ce: Omit<NetworkAclSchema['properties']['entries'][0], 'RuleNumber'>,
     pe: Omit<NetworkAclSchema['properties']['entries'][0], 'RuleNumber'>,
@@ -35,6 +41,9 @@ export class NetworkAclUtility {
     );
   }
 
+  /**
+   * @internal
+   */
   static toHclPort(value: number): number {
     const port = value === -1 ? 0 : value;
     if (!Number.isInteger(port) || port < 0 || port > NetworkAclUtility.MAX_HCL_PORT) {

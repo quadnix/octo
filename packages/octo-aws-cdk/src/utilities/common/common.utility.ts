@@ -4,6 +4,9 @@ import { createHash } from 'crypto';
  * @internal
  */
 export class CommonUtility {
+  /**
+   * @internal
+   */
   static hash(...args: string[]): string {
     let hash = createHash('sha1');
     for (const arg of args) {
@@ -12,6 +15,9 @@ export class CommonUtility {
     return hash.digest('hex');
   }
 
+  /**
+   * @internal
+   */
   static randomToken(size: number): string {
     const possible = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let text = '';

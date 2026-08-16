@@ -47,10 +47,13 @@ import { AwsEcsServerS3AccessOverlay } from './overlays/aws-ecs-server-s3-access
  *
  * @see {@link AwsEcsServerModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
- * @see {@link Server} to learn more about the `Server` model.
+ * @see [Server](/api/octo/class/Server) to learn more about the `Server` model.
  */
 @Module<AwsEcsServerModule>('@octo', AwsEcsServerModuleSchema)
 export class AwsEcsServerModule extends AModule<AwsEcsServerModuleSchema, AwsEcsServer> {
+  /**
+   * Creates the server, its IAM role anchors, and the S3 access overlays for any storage it was granted.
+   */
   async onInit(inputs: AwsEcsServerModuleSchema): Promise<(AwsEcsServer | AwsEcsServerS3AccessOverlay)[]> {
     const models: (AwsEcsServer | AwsEcsServerS3AccessOverlay)[] = [];
     const { account, app, iamRoleName } = await this.registerMetadata(inputs);
@@ -155,6 +158,9 @@ export class AwsEcsServerModule extends AModule<AwsEcsServerModuleSchema, AwsEcs
     return models;
   }
 
+  /**
+   * Resolves the account, the app, and the name of this server's IAM role.
+   */
   override async registerMetadata(
     inputs: AwsEcsServerModuleSchema,
   ): Promise<{ account: Account; app: App; iamRoleName: string }> {

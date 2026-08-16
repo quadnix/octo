@@ -17,6 +17,9 @@ import { AwsEcsEnvironment } from '../aws-ecs-environment.model.js';
  */
 @Action(AwsEcsEnvironment)
 export class AddAwsEcsEnvironmentModelAction implements IModelAction<AwsEcsEnvironmentModule> {
+  /**
+   * @internal
+   */
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -26,6 +29,9 @@ export class AddAwsEcsEnvironmentModelAction implements IModelAction<AwsEcsEnvir
     );
   }
 
+  /**
+   * @internal
+   */
   async handle(
     _diff: Diff,
     actionInputs: EnhancedModuleSchema<AwsEcsEnvironmentModule>,
@@ -52,6 +58,9 @@ export class AddAwsEcsEnvironmentModelAction implements IModelAction<AwsEcsEnvir
 export class AddAwsEcsEnvironmentModelActionFactory {
   private static instance: AddAwsEcsEnvironmentModelAction;
 
+  /**
+   * @internal
+   */
   static async create(): Promise<AddAwsEcsEnvironmentModelAction> {
     if (!this.instance) {
       this.instance = new AddAwsEcsEnvironmentModelAction();

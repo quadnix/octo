@@ -11,6 +11,9 @@ export class AwsEcsServiceAnchor extends AAnchor<
 > {
   declare properties: AwsEcsServiceAnchorSchema['properties'];
 
+  /**
+   * @internal
+   */
   constructor(
     anchorId: string,
     properties: AwsEcsServiceAnchorSchema['properties'],

@@ -3,8 +3,8 @@ import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 /**
  * The `S3WebsiteSchema` class is the schema for the `S3Website` resource,
  * which represents the AWS Simple Storage Service (S3) Website resource.
- * This resource can create a s3 website in AWS using the AWS JavaScript SDK V3 API.
- * See [official sdk docs](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/client/s3/).
+ * Terraform provisions it as
+ * [`aws_s3_object`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_object).
  *
  * @group Resources/S3Website
  *

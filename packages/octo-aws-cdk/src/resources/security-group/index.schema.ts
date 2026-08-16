@@ -44,8 +44,9 @@ export class SecurityGroupRuleSchema {
 /**
  * The `SecurityGroupSchema` class is the schema for the `SecurityGroup` resource,
  * which represents the AWS VPC Security Group resource.
- * This resource can create a security group in AWS using the AWS JavaScript SDK V3 API.
- * See [official sdk docs](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/client/ec2/).
+ * Terraform provisions it as
+ * [`aws_security_group`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group) and
+ * [`aws_vpc_security_group_egress_rule`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_egress_rule).
  *
  * @group Resources/SecurityGroup
  *

@@ -6,6 +6,9 @@ import { BaseAnchorSchema, Schema, type Subnet, Validate } from '@quadnix/octo';
  * @group Anchors/AwsSubnet
  *
  * @hideconstructor
+ *
+ * @see [AModel](/api/octo/class/AModel)'s `getAnchorsMatchingSchema()` to consume this anchor from
+ * your own module.
  */
 export class AwsSubnetAnchorSchema extends BaseAnchorSchema {
   /**

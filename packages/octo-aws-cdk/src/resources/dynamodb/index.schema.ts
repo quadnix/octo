@@ -1,10 +1,22 @@
 import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 
+/**
+ * The billing modes a DynamoDB table can use, and the settings each one takes.
+ *
+ * @group Resources/DynamoDB
+ */
 export type IDynamoDBBillingTypes = {
   PAY_PER_REQUEST: DynamoDBBillingPayPerRequestSchema;
   PROVISIONED: DynamoDBBillingProvisionedSchema;
 };
 
+/**
+ * On-demand billing: capacity scales with traffic, and you pay per request.
+ *
+ * @group Resources/DynamoDB
+ *
+ * @hideconstructor
+ */
 export class DynamoDBBillingPayPerRequestSchema {
   @Validate({
     destruct: (value: DynamoDBBillingPayPerRequestSchema['OnDemandThroughput']): number[] => {
@@ -29,6 +41,13 @@ export class DynamoDBBillingPayPerRequestSchema {
   } | null>(null);
 }
 
+/**
+ * Provisioned billing: you reserve read and write capacity, and pay for it whether or not it is used.
+ *
+ * @group Resources/DynamoDB
+ *
+ * @hideconstructor
+ */
 export class DynamoDBBillingProvisionedSchema {
   @Validate({
     destruct: (value: DynamoDBBillingProvisionedSchema['ProvisionedThroughput']): number[] => {
@@ -42,6 +61,13 @@ export class DynamoDBBillingProvisionedSchema {
   }>();
 }
 
+/**
+ * One attribute of a key: the partition key (`HASH`), or the sort key (`RANGE`).
+ *
+ * @group Resources/DynamoDB
+ *
+ * @hideconstructor
+ */
 export class DynamoDBKeySchema {
   @Validate({ options: { minLength: 3 } })
   AttributeName = Schema<string>();
@@ -50,6 +76,13 @@ export class DynamoDBKeySchema {
   KeyType = Schema<'HASH' | 'RANGE'>();
 }
 
+/**
+ * A secondary index, letting the table be queried by a key other than its own.
+ *
+ * @group Resources/DynamoDB
+ *
+ * @hideconstructor
+ */
 export class DynamoDBSecondaryIndexSchema {
   @Validate({ options: { maxLength: 255, minLength: 3, regex: /^[\w.-]+$/ } })
   IndexName = Schema<string>();
@@ -87,8 +120,8 @@ export class DynamoDBSecondaryIndexSchema {
 /**
  * The `DynamoDBSchema` class is the schema for the `DynamoDB` resource,
  * which represents an AWS DynamoDB table.
- * This resource can create and manage a DynamoDB table using the AWS JavaScript SDK V3 API.
- * See [official sdk docs](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/client/dynamodb/).
+ * Terraform provisions it as
+ * [`aws_dynamodb_table`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/dynamodb_table).
  *
  * @group Resources/DynamoDB
  *

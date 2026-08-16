@@ -8,16 +8,25 @@ import { AwsCredentialsAccountSchema } from './aws-credentials-account.schema.js
 export class AwsCredentialsAccount extends Account {
   readonly credentials: AwsCredentialsAccountSchema['credentials'];
 
+  /**
+   * @internal
+   */
   constructor(accountId: string, credentials: AwsCredentialsAccountSchema['credentials']) {
     super(AccountType.AWS, accountId);
 
     this.credentials = credentials;
   }
 
+  /**
+   * @internal
+   */
   static override async unSynth(account: AwsCredentialsAccountSchema): Promise<AwsCredentialsAccount> {
     return new AwsCredentialsAccount(account.accountId, account.credentials);
   }
 
+  /**
+   * @internal
+   */
   override synth(): AwsCredentialsAccountSchema {
     return {
       accountId: this.accountId,

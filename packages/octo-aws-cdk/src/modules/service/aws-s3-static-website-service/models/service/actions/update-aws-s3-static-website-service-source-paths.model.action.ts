@@ -19,6 +19,9 @@ import { AwsS3StaticWebsiteService, type IManifest } from '../aws-s3-static-webs
 export class UpdateAwsS3StaticWebsiteServiceSourcePathsModelAction
   implements IModelAction<AwsS3StaticWebsiteServiceModule>
 {
+  /**
+   * @internal
+   */
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.UPDATE &&
@@ -28,6 +31,9 @@ export class UpdateAwsS3StaticWebsiteServiceSourcePathsModelAction
     );
   }
 
+  /**
+   * @internal
+   */
   async handle(
     diff: Diff<AwsS3StaticWebsiteService, IManifest>,
     actionInputs: EnhancedModuleSchema<AwsS3StaticWebsiteServiceModule>,
@@ -51,6 +57,9 @@ export class UpdateAwsS3StaticWebsiteServiceSourcePathsModelAction
 export class UpdateAwsS3StaticWebsiteServiceSourcePathsModelActionFactory {
   private static instance: UpdateAwsS3StaticWebsiteServiceSourcePathsModelAction;
 
+  /**
+   * @internal
+   */
   static async create(): Promise<UpdateAwsS3StaticWebsiteServiceSourcePathsModelAction> {
     if (!this.instance) {
       this.instance = new UpdateAwsS3StaticWebsiteServiceSourcePathsModelAction();

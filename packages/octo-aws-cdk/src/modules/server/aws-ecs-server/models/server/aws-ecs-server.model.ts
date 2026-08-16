@@ -6,6 +6,9 @@ import { AwsEcsServerSchema } from './aws-ecs-server.schema.js';
  */
 @Model<AwsEcsServer>('@octo', 'server', AwsEcsServerSchema)
 export class AwsEcsServer extends Server {
+  /**
+   * @internal
+   */
   static override async unSynth(server: AwsEcsServerSchema): Promise<AwsEcsServer> {
     return new AwsEcsServer(server.serverKey);
   }

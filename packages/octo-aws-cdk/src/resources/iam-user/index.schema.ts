@@ -43,8 +43,8 @@ export interface IIamUserS3BucketPolicy {
 /**
  * The `IamUserSchema` class is the schema for the `IamUser` resource,
  * which represents the AWS Identity and Access Management (IAM) User resource.
- * This resource can create a iam user in AWS using the AWS JavaScript SDK V3 API.
- * See [official sdk docs](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/client/iam/).
+ * Terraform provisions it as
+ * [`aws_iam_user`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_user).
  *
  * @group Resources/IamUser
  *

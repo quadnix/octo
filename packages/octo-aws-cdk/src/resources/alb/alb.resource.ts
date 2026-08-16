@@ -27,6 +27,9 @@ export class Alb extends ATerraformResource<AlbSchema, Alb> {
   declare properties: AlbSchema['properties'];
   declare response: AlbSchema['response'];
 
+  /**
+   * @internal
+   */
   constructor(
     resourceId: string,
     properties: AlbSchema['properties'],
@@ -39,6 +42,9 @@ export class Alb extends ATerraformResource<AlbSchema, Alb> {
     super(resourceId, properties, parents);
   }
 
+  /**
+   * @internal
+   */
   override async diff(previous: Alb): Promise<Diff[]> {
     const diffs = await super.diff(previous);
 
@@ -66,6 +72,9 @@ export class Alb extends ATerraformResource<AlbSchema, Alb> {
     return diffs;
   }
 
+  /**
+   * @internal
+   */
   override async diffProperties(previous: Alb): Promise<Diff[]> {
     if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties)) {
       return [
@@ -82,6 +91,9 @@ export class Alb extends ATerraformResource<AlbSchema, Alb> {
     return [];
   }
 
+  /**
+   * @internal
+   */
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {
     const subnetParents = (this.parents as MatchingResource<SubnetSchema>[]).slice(2);
     const subnetIds = subnetParents.map((p) => terraform.getRef(p, 'SubnetId'));

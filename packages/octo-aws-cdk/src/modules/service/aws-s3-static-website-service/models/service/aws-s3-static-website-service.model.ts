@@ -23,16 +23,25 @@ export class AwsS3StaticWebsiteService extends Service {
     subDirectoryOrFilePath: string;
   }[] = [];
 
+  /**
+   * @internal
+   */
   constructor(bucketName: AwsS3StaticWebsiteServiceSchema['bucketName']) {
     super(`${bucketName}-s3-static-website`);
 
     this.bucketName = bucketName;
   }
 
+  /**
+   * @internal
+   */
   static override async unSynth(service: AwsS3StaticWebsiteServiceSchema): Promise<AwsS3StaticWebsiteService> {
     return new AwsS3StaticWebsiteService(service.bucketName);
   }
 
+  /**
+   * @internal
+   */
   async addSource(
     directoryPath: string,
     subDirectoryOrFilePath?: string,
@@ -90,6 +99,9 @@ export class AwsS3StaticWebsiteService extends Service {
     }
   }
 
+  /**
+   * @internal
+   */
   override async diffProperties(): Promise<Diff[]> {
     // Generate new manifest.
     const newManifestData: IManifest = await this.generateSourceManifest();
@@ -111,6 +123,9 @@ export class AwsS3StaticWebsiteService extends Service {
     }
   }
 
+  /**
+   * @internal
+   */
   override synth(): AwsS3StaticWebsiteServiceSchema {
     return {
       bucketName: this.bucketName,
@@ -118,6 +133,9 @@ export class AwsS3StaticWebsiteService extends Service {
     };
   }
 
+  /**
+   * @internal
+   */
   private async generateSourceManifest(): Promise<IManifest> {
     const manifest: IManifest = {};
     const sourcePaths = [...this.sourcePaths];

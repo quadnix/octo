@@ -5,6 +5,11 @@ const IGNORED_DIRECTORIES = new Set(['.terraform', '.terragrunt-cache']);
 
 const RESOURCE_BLOCK_REGEX = /resource\s+"([^"]+)"\s+"([^"]+)"/g;
 
+/**
+ * Reads generated Terraform files off disk, so a test can assert on the HCL a module produced.
+ *
+ * @internal
+ */
 export class TerragruntUtility {
   /**
    * Walks `workingDir` and returns every Terraform resource address (`<type>.<name>`) declared

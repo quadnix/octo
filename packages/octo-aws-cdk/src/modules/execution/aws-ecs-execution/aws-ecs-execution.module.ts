@@ -75,10 +75,13 @@ import { AwsEcsExecutionServerSecurityGroupOverlay } from './overlays/aws-ecs-ex
  *
  * @see {@link AwsEcsExecutionModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
- * @see {@link Execution} to learn more about the `Execution` model.
+ * @see [Execution](/api/octo/class/Execution) to learn more about the `Execution` model.
  */
 @Module<AwsEcsExecutionModule>('@octo', AwsEcsExecutionModuleSchema)
 export class AwsEcsExecutionModule extends AModule<AwsEcsExecutionModuleSchema, Execution> {
+  /**
+   * Creates the execution, resolves the anchors of its server, deployment, subnet, and any sidecars, and opens the security-group rules between them.
+   */
   async onInit(
     inputs: AwsEcsExecutionModuleSchema,
   ): Promise<(AwsEcsExecution | AwsEcsExecutionOverlay | AwsEcsExecutionServerSecurityGroupOverlay)[]> {
@@ -305,6 +308,9 @@ export class AwsEcsExecutionModule extends AModule<AwsEcsExecutionModuleSchema, 
     return models;
   }
 
+  /**
+   * Resolves the account, region, and the region model this execution is placed in.
+   */
   override async registerMetadata(
     inputs: AwsEcsExecutionModuleSchema,
   ): Promise<{ awsAccountId: string; awsRegionId: string; region: Region }> {

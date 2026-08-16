@@ -25,6 +25,9 @@ import { AwsEcsAlbServiceOverlay } from '../aws-ecs-alb-service.overlay.js';
  */
 @Action(AwsEcsAlbServiceOverlay)
 export class AddAwsEcsAlbServiceOverlayAction implements IModelAction<AwsEcsAlbServiceModule> {
+  /**
+   * @internal
+   */
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -34,6 +37,9 @@ export class AddAwsEcsAlbServiceOverlayAction implements IModelAction<AwsEcsAlbS
     );
   }
 
+  /**
+   * @internal
+   */
   async handle(
     diff: Diff<AwsEcsAlbServiceOverlay>,
     actionInputs: EnhancedModuleSchema<AwsEcsAlbServiceModule>,
@@ -134,6 +140,9 @@ export class AddAwsEcsAlbServiceOverlayAction implements IModelAction<AwsEcsAlbS
 export class AddAwsEcsAlbServiceOverlayActionFactory {
   private static instance: AddAwsEcsAlbServiceOverlayAction;
 
+  /**
+   * @internal
+   */
   static async create(): Promise<AddAwsEcsAlbServiceOverlayAction> {
     if (!this.instance) {
       this.instance = new AddAwsEcsAlbServiceOverlayAction();

@@ -2,7 +2,17 @@ import { Region, RegionSchema, Schema, type Service, ServiceSchema, Validate } f
 import { AwsDynamoDBAnchorSchema } from '../../../anchors/aws-dynamodb/aws-dynamodb.anchor.schema.js';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 
+/**
+ * `DynamoDBGlobalReplicaSchema` is one replica of a global DynamoDB table.
+ *
+ * @group Modules/Service/AwsDynamoDBGlobalService
+ *
+ * @hideconstructor
+ */
 class DynamoDBGlobalReplicaSchema {
+  /**
+   * The region this replica lives in. It must be a region other than the table's own.
+   */
   @Validate([
     {
       options: {
@@ -16,6 +26,9 @@ class DynamoDBGlobalReplicaSchema {
   ])
   region = Schema<Region>();
 
+  /**
+   * Tags to apply to this replica.
+   */
   @Validate({
     destruct: (value: DynamoDBGlobalReplicaSchema['tags']): string[] =>
       value ? [...Object.keys(value), ...Object.values(value)] : [],
@@ -24,7 +37,20 @@ class DynamoDBGlobalReplicaSchema {
   tags? = Schema<{ [key: string]: string }>({});
 }
 
+/**
+ * `AwsDynamoDBGlobalServiceModuleSchema` is the input schema for the `AwsDynamoDBGlobalServiceModule` module.
+ * This schema defines the table being replicated, and the regions it is replicated into.
+ *
+ * @group Modules/Service/AwsDynamoDBGlobalService
+ *
+ * @hideconstructor
+ *
+ * @see {@link AwsDynamoDBGlobalServiceModule} to learn more about the module.
+ */
 export class AwsDynamoDBGlobalServiceModuleSchema {
+  /**
+   * The DynamoDB service to replicate, as produced by the `AwsDynamoDBServiceModule` module.
+   */
   @Validate([
     {
       options: {
@@ -38,6 +64,9 @@ export class AwsDynamoDBGlobalServiceModuleSchema {
   ])
   dynamoDBService = Schema<Service>();
 
+  /**
+   * The regions to replicate the table into. At least one is required.
+   */
   @Validate<unknown>([
     {
       // At least 1 replica is required.

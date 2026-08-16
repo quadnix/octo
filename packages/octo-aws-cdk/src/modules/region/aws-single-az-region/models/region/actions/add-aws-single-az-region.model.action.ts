@@ -19,6 +19,9 @@ import { AwsSingleAzRegion } from '../aws-single-az-region.model.js';
  */
 @Action(AwsSingleAzRegion)
 export class AddAwsSingleAzRegionModelAction implements IModelAction<AwsSingleAzRegionModule> {
+  /**
+   * @internal
+   */
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -28,6 +31,9 @@ export class AddAwsSingleAzRegionModelAction implements IModelAction<AwsSingleAz
     );
   }
 
+  /**
+   * @internal
+   */
   async handle(
     diff: Diff<AwsSingleAzRegion>,
     actionInputs: EnhancedModuleSchema<AwsSingleAzRegionModule>,
@@ -70,6 +76,9 @@ export class AddAwsSingleAzRegionModelAction implements IModelAction<AwsSingleAz
 export class AddAwsSingleAzRegionModelActionFactory {
   private static instance: AddAwsSingleAzRegionModelAction;
 
+  /**
+   * @internal
+   */
   static async create(): Promise<AddAwsSingleAzRegionModelAction> {
     if (!this.instance) {
       this.instance = new AddAwsSingleAzRegionModelAction();

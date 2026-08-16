@@ -6,6 +6,9 @@ import { BaseAnchorSchema, type Filesystem, Schema, Validate } from '@quadnix/oc
  * @group Anchors/AwsEfs
  *
  * @hideconstructor
+ *
+ * @see [AModel](/api/octo/class/AModel)'s `getAnchorsMatchingSchema()` to consume this anchor from
+ * your own module.
  */
 export class AwsEfsAnchorSchema extends BaseAnchorSchema {
   /**

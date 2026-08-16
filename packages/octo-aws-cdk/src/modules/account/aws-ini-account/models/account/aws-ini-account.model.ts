@@ -8,16 +8,25 @@ import { AwsIniAccountSchema } from './aws-ini-account.schema.js';
 export class AwsIniAccount extends Account {
   readonly iniProfile: string;
 
+  /**
+   * @internal
+   */
   constructor(accountId: string, iniProfile: string) {
     super(AccountType.AWS, accountId);
 
     this.iniProfile = iniProfile;
   }
 
+  /**
+   * @internal
+   */
   static override async unSynth(account: AwsIniAccountSchema): Promise<AwsIniAccount> {
     return new AwsIniAccount(account.accountId, account.iniProfile);
   }
 
+  /**
+   * @internal
+   */
   override synth(): AwsIniAccountSchema {
     return {
       accountId: this.accountId,

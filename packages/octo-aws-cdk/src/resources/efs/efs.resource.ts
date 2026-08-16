@@ -9,10 +9,16 @@ export class Efs extends ATerraformResource<EfsSchema, Efs> {
   declare properties: EfsSchema['properties'];
   declare response: EfsSchema['response'];
 
+  /**
+   * @internal
+   */
   constructor(resourceId: string, properties: EfsSchema['properties'], parents: []) {
     super(resourceId, properties, parents);
   }
 
+  /**
+   * @internal
+   */
   override async diffProperties(previous: Efs): Promise<Diff[]> {
     if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties)) {
       return [
@@ -29,6 +35,9 @@ export class Efs extends ATerraformResource<EfsSchema, Efs> {
     return [];
   }
 
+  /**
+   * @internal
+   */
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {
     const efsOctoResource = terraform.addOctoTerraformResource(this as Efs, {
       provider: { accountId: this.properties.awsAccountId, regionId: this.properties.awsRegionId },

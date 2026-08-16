@@ -6,6 +6,9 @@ import { AwsEcrImageSchema } from './aws-ecr-image.schema.js';
  */
 @Model<AwsEcrImage>('@octo', 'image', AwsEcrImageSchema)
 export class AwsEcrImage extends Image {
+  /**
+   * @internal
+   */
   static override async unSynth(image: AwsEcrImageSchema): Promise<AwsEcrImage> {
     return new AwsEcrImage(image.imageFamily, image.imageName);
   }

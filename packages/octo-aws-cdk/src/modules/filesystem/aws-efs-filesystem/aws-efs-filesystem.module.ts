@@ -28,10 +28,13 @@ import { AwsEfsFilesystem } from './models/filesystem/index.js';
  *
  * @see {@link AwsEfsFilesystemModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
- * @see {@link Filesystem} to learn more about the `Filesystem` model.
+ * @see [Filesystem](/api/octo/class/Filesystem) to learn more about the `Filesystem` model.
  */
 @Module<AwsEfsFilesystemModule>('@octo', AwsEfsFilesystemModuleSchema)
 export class AwsEfsFilesystemModule extends AModule<AwsEfsFilesystemModuleSchema, Filesystem> {
+  /**
+   * Creates the filesystem in its region, and anchors it so a subnet module can mount it.
+   */
   async onInit(inputs: AwsEfsFilesystemModuleSchema): Promise<AwsEfsFilesystem> {
     const region = inputs.region;
 
@@ -45,6 +48,9 @@ export class AwsEfsFilesystemModule extends AModule<AwsEfsFilesystemModuleSchema
     return filesystem;
   }
 
+  /**
+   * Resolves the account and region this filesystem is created in.
+   */
   override async registerMetadata(
     inputs: AwsEfsFilesystemModuleSchema,
   ): Promise<{ awsAccountId: string; awsRegionId: string }> {

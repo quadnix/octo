@@ -8,6 +8,9 @@ import type { AwsRegionAnchorSchema } from './aws-region.anchor.schema.js';
 export class AwsRegionAnchor extends AAnchor<AwsRegionAnchorSchema, AwsRegionAnchorSchema['parentInstance']> {
   declare properties: AwsRegionAnchorSchema['properties'];
 
+  /**
+   * @internal
+   */
   constructor(
     anchorId: string,
     properties: AwsRegionAnchorSchema['properties'],

@@ -19,19 +19,22 @@ import { AwsDynamoDBGlobalService } from './models/service/index.js';
  * });
  * ```
  *
- * @group Modules/Service/AwsDynamoDBService
+ * @group Modules/Service/AwsDynamoDBGlobalService
  *
  * @reference Resources {@link DynamoDBGlobalSchema}
  *
  * @see {@link AwsDynamoDBGlobalServiceModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
- * @see {@link Service} to learn more about the `Service` model.
+ * @see [Service](/api/octo/class/Service) to learn more about the `Service` model.
  */
 @Module<AwsDynamoDBGlobalServiceModule>('@octo', AwsDynamoDBGlobalServiceModuleSchema)
 export class AwsDynamoDBGlobalServiceModule extends AModule<
   AwsDynamoDBGlobalServiceModuleSchema,
   AwsDynamoDBGlobalService
 > {
+  /**
+   * Creates the global table service over an existing DynamoDB table, and anchors it for its replicas.
+   */
   async onInit(inputs: AwsDynamoDBGlobalServiceModuleSchema): Promise<AwsDynamoDBGlobalService> {
     const { app, tableName } = await this.registerMetadata(inputs);
 
@@ -50,6 +53,9 @@ export class AwsDynamoDBGlobalServiceModule extends AModule<
     return service;
   }
 
+  /**
+   * Resolves the app, and the name of the table being replicated.
+   */
   override async registerMetadata(
     inputs: AwsDynamoDBGlobalServiceModuleSchema,
   ): Promise<{ app: App; tableName: string }> {

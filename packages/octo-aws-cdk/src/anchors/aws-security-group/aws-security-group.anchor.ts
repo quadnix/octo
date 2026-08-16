@@ -11,6 +11,9 @@ export class AwsSecurityGroupAnchor extends AAnchor<
 > {
   declare properties: AwsSecurityGroupAnchorSchema['properties'];
 
+  /**
+   * @internal
+   */
   constructor(
     anchorId: string,
     properties: AwsSecurityGroupAnchorSchema['properties'],

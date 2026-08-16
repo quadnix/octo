@@ -25,6 +25,9 @@ export class EcsTaskDefinition extends ATerraformResource<EcsTaskDefinitionSchem
   declare properties: EcsTaskDefinitionSchema['properties'];
   declare response: EcsTaskDefinitionSchema['response'];
 
+  /**
+   * @internal
+   */
   constructor(
     resourceId: string,
     properties: EcsTaskDefinitionSchema['properties'],
@@ -39,6 +42,9 @@ export class EcsTaskDefinition extends ATerraformResource<EcsTaskDefinitionSchem
     this.updateTaskDefinitionEfs(parents.slice(1).map((p) => p.getActual()));
   }
 
+  /**
+   * @internal
+   */
   override async diff(previous: EcsTaskDefinition): Promise<Diff[]> {
     const diffs = await super.diff(previous);
 
@@ -65,6 +71,9 @@ export class EcsTaskDefinition extends ATerraformResource<EcsTaskDefinitionSchem
     return diffs;
   }
 
+  /**
+   * @internal
+   */
   override async diffProperties(previous: EcsTaskDefinition): Promise<Diff[]> {
     if (
       !DiffUtility.isObjectDeepEquals(previous.properties, this.properties, [
@@ -89,6 +98,9 @@ export class EcsTaskDefinition extends ATerraformResource<EcsTaskDefinitionSchem
     return super.diffProperties(previous);
   }
 
+  /**
+   * @internal
+   */
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {
     const iamRoleParent = this.parents[0] as MatchingResource<IamRoleSchema>;
     const efsParents = (this.parents as MatchingResource<EfsSchema>[]).slice(1);
@@ -146,6 +158,9 @@ export class EcsTaskDefinition extends ATerraformResource<EcsTaskDefinitionSchem
     }
   }
 
+  /**
+   * @internal
+   */
   private updateTaskDefinitionEfs(efsParents: ReturnType<MatchingResource<EfsSchema>['getActual']>[]): void {
     for (const efsParent of efsParents) {
       const tdToEfsDep = this.getDependency(efsParent, DependencyRelationship.CHILD)!;

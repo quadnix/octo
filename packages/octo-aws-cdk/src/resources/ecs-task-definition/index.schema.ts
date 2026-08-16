@@ -91,8 +91,8 @@ export class EcsTaskDefinitionImageSchema {
 /**
  * The `EcsTaskDefinitionSchema` class is the schema for the `EcsTaskDefinition` resource,
  * which represents the AWS Elastic Container Service (ECS) Task Definition resource.
- * This resource can create a ecs task definition in AWS using the AWS JavaScript SDK V3 API.
- * See [official sdk docs](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/client/ecs/).
+ * Terraform provisions it as
+ * [`aws_ecs_task_definition`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecs_task_definition).
  *
  * @group Resources/EcsTaskDefinition
  *

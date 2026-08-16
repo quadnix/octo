@@ -3,8 +3,8 @@ import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 /**
  * The `AlbSchema` class is the schema for the `Alb` resource,
  * which represents the AWS Application Load Balancer resource.
- * This resource can create an Application Load Balancer in AWS using the AWS JavaScript SDK V3 API.
- * See [official sdk docs](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/client/elastic-load-balancing-v2/).
+ * Terraform provisions it as
+ * [`aws_lb`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lb).
  *
  * @group Resources/Alb
  *

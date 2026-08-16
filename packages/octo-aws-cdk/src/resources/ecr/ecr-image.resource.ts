@@ -9,10 +9,16 @@ export class EcrImage extends ATerraformResource<EcrImageSchema, EcrImage> {
   declare properties: EcrImageSchema['properties'];
   declare response: EcrImageSchema['response'];
 
+  /**
+   * @internal
+   */
   constructor(resourceId: string, properties: EcrImageSchema['properties']) {
     super(resourceId, properties, []);
   }
 
+  /**
+   * @internal
+   */
   override async diffProperties(previous: EcrImage): Promise<Diff[]> {
     if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties)) {
       return [
@@ -29,6 +35,9 @@ export class EcrImage extends ATerraformResource<EcrImageSchema, EcrImage> {
     return [];
   }
 
+  /**
+   * @internal
+   */
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {
     const ecrImageOctoResource = terraform.addOctoTerraformResource(this as EcrImage, {
       provider: { accountId: this.properties.awsAccountId, regionId: this.properties.awsRegionId },

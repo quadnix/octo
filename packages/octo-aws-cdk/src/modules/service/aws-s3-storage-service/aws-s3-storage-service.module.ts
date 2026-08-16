@@ -28,10 +28,13 @@ import { AwsS3StorageService } from './models/service/index.js';
  *
  * @see {@link AwsS3StorageServiceModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
- * @see {@link Service} to learn more about the `Service` model.
+ * @see [Service](/api/octo/class/Service) to learn more about the `Service` model.
  */
 @Module<AwsS3StorageServiceModule>('@octo', AwsS3StorageServiceModuleSchema)
 export class AwsS3StorageServiceModule extends AModule<AwsS3StorageServiceModuleSchema, AwsS3StorageService> {
+  /**
+   * Creates the bucket service, and registers each directory in it along with who may read or write it.
+   */
   async onInit(inputs: AwsS3StorageServiceModuleSchema): Promise<AwsS3StorageService> {
     const { app, awsAccountId, awsRegionId } = await this.registerMetadata(inputs);
 
@@ -55,6 +58,9 @@ export class AwsS3StorageServiceModule extends AModule<AwsS3StorageServiceModule
     return s3StorageService;
   }
 
+  /**
+   * Resolves the app, account, and region this bucket is created in.
+   */
   override async registerMetadata(
     inputs: AwsS3StorageServiceModuleSchema,
   ): Promise<{ app: App; awsAccountId: string; awsRegionId: string }> {

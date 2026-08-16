@@ -22,6 +22,9 @@ import { AwsSimpleSubnet } from '../aws-simple-subnet.model.js';
  */
 @Action(AwsSimpleSubnet)
 export class UpdateAwsSimpleSubnetAssociationModelAction implements IModelAction<AwsSimpleSubnetModule> {
+  /**
+   * @internal
+   */
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -31,6 +34,9 @@ export class UpdateAwsSimpleSubnetAssociationModelAction implements IModelAction
     );
   }
 
+  /**
+   * @internal
+   */
   async handle(
     diff: Diff<AwsSimpleSubnet, AwsSimpleSubnet>,
     actionInputs: EnhancedModuleSchema<AwsSimpleSubnetModule>,
@@ -142,6 +148,9 @@ export class UpdateAwsSimpleSubnetAssociationModelAction implements IModelAction
 export class UpdateAwsSimpleSubnetAssociationModelActionFactory {
   private static instance: UpdateAwsSimpleSubnetAssociationModelAction;
 
+  /**
+   * @internal
+   */
   static async create(): Promise<UpdateAwsSimpleSubnetAssociationModelAction> {
     if (!this.instance) {
       this.instance = new UpdateAwsSimpleSubnetAssociationModelAction();

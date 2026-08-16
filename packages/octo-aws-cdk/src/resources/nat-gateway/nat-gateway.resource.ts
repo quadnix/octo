@@ -25,6 +25,9 @@ export class NatGateway extends ATerraformResource<NatGatewaySchema, NatGateway>
   declare properties: NatGatewaySchema['properties'];
   declare response: NatGatewaySchema['response'];
 
+  /**
+   * @internal
+   */
   constructor(
     resourceId: string,
     properties: NatGatewaySchema['properties'],
@@ -33,6 +36,9 @@ export class NatGateway extends ATerraformResource<NatGatewaySchema, NatGateway>
     super(resourceId, properties, parents);
   }
 
+  /**
+   * @internal
+   */
   override async diffProperties(previous: NatGateway): Promise<Diff[]> {
     if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties)) {
       return [
@@ -49,6 +55,9 @@ export class NatGateway extends ATerraformResource<NatGatewaySchema, NatGateway>
     return [];
   }
 
+  /**
+   * @internal
+   */
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {
     const natGatewayOctoResource = terraform.addOctoTerraformResource(this as NatGateway, {
       explicitParents: [this.parents[0], this.parents[1]],

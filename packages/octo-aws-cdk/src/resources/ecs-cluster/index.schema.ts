@@ -3,8 +3,8 @@ import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 /**
  * The `EcsClusterSchema` class is the schema for the `EcsCluster` resource,
  * which represents the AWS Elastic Container Service (ECS) Cluster resource.
- * This resource can create a ecs cluster in AWS using the AWS JavaScript SDK V3 API.
- * See [official sdk docs](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/client/ecs/).
+ * Terraform provisions it as
+ * [`aws_ecs_cluster`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecs_cluster).
  *
  * @group Resources/EcsCluster
  *

@@ -9,16 +9,25 @@ export class AwsDynamoDBGlobalService extends Service {
   @Validate({ options: { maxLength: 255, minLength: 3, regex: /^[\w.-]+$/ } })
   readonly tableName: string;
 
+  /**
+   * @internal
+   */
   constructor(tableName: AwsDynamoDBGlobalServiceSchema['tableName']) {
     super(`${tableName}-global-dynamodb`);
 
     this.tableName = tableName;
   }
 
+  /**
+   * @internal
+   */
   static override async unSynth(service: AwsDynamoDBGlobalServiceSchema): Promise<AwsDynamoDBGlobalService> {
     return new AwsDynamoDBGlobalService(service.tableName);
   }
 
+  /**
+   * @internal
+   */
   override synth(): AwsDynamoDBGlobalServiceSchema {
     return {
       serviceId: this.serviceId,

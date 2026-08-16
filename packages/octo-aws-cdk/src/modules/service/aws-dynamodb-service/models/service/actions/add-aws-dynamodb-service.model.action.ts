@@ -17,6 +17,9 @@ import { AwsDynamoDBService } from '../aws-dynamodb-service.model.js';
  */
 @Action(AwsDynamoDBService)
 export class AddAwsDynamoDBServiceModelAction implements IModelAction<AwsDynamoDBServiceModule> {
+  /**
+   * @internal
+   */
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -26,6 +29,9 @@ export class AddAwsDynamoDBServiceModelAction implements IModelAction<AwsDynamoD
     );
   }
 
+  /**
+   * @internal
+   */
   async handle(
     diff: Diff<AwsDynamoDBService>,
     actionInputs: EnhancedModuleSchema<AwsDynamoDBServiceModule>,
@@ -63,6 +69,9 @@ export class AddAwsDynamoDBServiceModelAction implements IModelAction<AwsDynamoD
 export class AddAwsDynamoDBServiceModelActionFactory {
   private static instance: AddAwsDynamoDBServiceModelAction;
 
+  /**
+   * @internal
+   */
   static async create(): Promise<AddAwsDynamoDBServiceModelAction> {
     if (!this.instance) {
       this.instance = new AddAwsDynamoDBServiceModelAction();

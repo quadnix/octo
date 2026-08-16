@@ -6,6 +6,9 @@ import { AwsEcsDeploymentSchema } from './aws-ecs-deployment.schema.js';
  */
 @Model<AwsEcsDeployment>('@octo', 'deployment', AwsEcsDeploymentSchema)
 export class AwsEcsDeployment extends Deployment {
+  /**
+   * @internal
+   */
   static override async unSynth(deployment: AwsEcsDeploymentSchema): Promise<AwsEcsDeployment> {
     return new AwsEcsDeployment(deployment.deploymentTag);
   }

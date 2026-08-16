@@ -3,8 +3,8 @@ import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 /**
  * The `SubnetSchema` class is the schema for the `Subnet` resource,
  * which represents the AWS VPC Subnet resource.
- * This resource can create a subnet in AWS using the AWS JavaScript SDK V3 API.
- * See [official sdk docs](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/client/ec2/).
+ * Terraform provisions it as
+ * [`aws_subnet`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/subnet).
  *
  * @group Resources/Subnet
  *

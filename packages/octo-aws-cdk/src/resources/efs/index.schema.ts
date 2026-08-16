@@ -3,8 +3,9 @@ import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 /**
  * The `EfsSchema` class is the schema for the `Efs` resource,
  * which represents the AWS Elastic File System (EFS) resource.
- * This resource can create an efs in AWS using the AWS JavaScript SDK V3 API.
- * See [official sdk docs](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/client/efs/).
+ * Terraform provisions it as
+ * [`aws_efs_file_system`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/efs_file_system) and
+ * [`aws_efs_backup_policy`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/efs_backup_policy).
  *
  * @group Resources/Efs
  *

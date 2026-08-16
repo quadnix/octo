@@ -19,6 +19,9 @@ import { AwsEcsExecutionServerSecurityGroupOverlay } from '../aws-ecs-execution-
  */
 @Action(AwsEcsExecutionServerSecurityGroupOverlay)
 export class AddAwsEcsExecutionServerSecurityGroupOverlayAction implements IModelAction<AwsEcsExecutionModule> {
+  /**
+   * @internal
+   */
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -28,6 +31,9 @@ export class AddAwsEcsExecutionServerSecurityGroupOverlayAction implements IMode
     );
   }
 
+  /**
+   * @internal
+   */
   async handle(
     diff: Diff<AwsEcsExecutionServerSecurityGroupOverlay>,
     actionInputs: EnhancedModuleSchema<AwsEcsExecutionModule>,
@@ -76,6 +82,9 @@ export class AddAwsEcsExecutionServerSecurityGroupOverlayAction implements IMode
 export class AddAwsEcsExecutionServerSecurityGroupOverlayActionFactory {
   private static instance: AddAwsEcsExecutionServerSecurityGroupOverlayAction;
 
+  /**
+   * @internal
+   */
   static async create(): Promise<AddAwsEcsExecutionServerSecurityGroupOverlayAction> {
     if (!this.instance) {
       this.instance = new AddAwsEcsExecutionServerSecurityGroupOverlayAction();

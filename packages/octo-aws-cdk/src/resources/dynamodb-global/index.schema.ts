@@ -1,5 +1,12 @@
 import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 
+/**
+ * One replica of a global table, and the account and region it lives in.
+ *
+ * @group Resources/DynamoDBGlobal
+ *
+ * @hideconstructor
+ */
 export class DynamoDBGlobalReplicaSchema {
   @Validate({ options: { minLength: 1 } })
   awsAccountId = Schema<string>();
@@ -18,10 +25,10 @@ export class DynamoDBGlobalReplicaSchema {
 /**
  * The `DynamoDBGlobalSchema` class is the schema for the `DynamoDBGlobal` resource,
  * which represents an AWS DynamoDB global table.
- * This resource can manage a set of DynamoDB tables replicated globally using the AWS JavaScript SDK V3 API.
- * See [official sdk docs](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/client/dynamodb/).
+ * Terraform provisions it as
+ * [`aws_dynamodb_table_replica`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/dynamodb_table_replica).
  *
- * @group Resources/DynamoDB
+ * @group Resources/DynamoDBGlobal
  *
  * @hideconstructor
  *

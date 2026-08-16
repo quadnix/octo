@@ -28,10 +28,16 @@ export class S3Website extends ATerraformResource<S3WebsiteSchema, S3Website> {
 
   private sourcePathDigests: S3WebsiteSchema['sourcePathDigests'] = {};
 
+  /**
+   * @internal
+   */
   constructor(resourceId: string, properties: S3WebsiteSchema['properties']) {
     super(resourceId, properties, []);
   }
 
+  /**
+   * @internal
+   */
   static override async unSynth<S extends BaseResourceSchema, T>(
     deserializationClass: any,
     resource: S,
@@ -43,6 +49,9 @@ export class S3Website extends ATerraformResource<S3WebsiteSchema, S3Website> {
     return s3Website as T;
   }
 
+  /**
+   * @internal
+   */
   override async diffProperties(previous: S3Website): Promise<Diff[]> {
     if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties)) {
       return [
@@ -73,6 +82,9 @@ export class S3Website extends ATerraformResource<S3WebsiteSchema, S3Website> {
     return diffs;
   }
 
+  /**
+   * @internal
+   */
   override diffUnpack(diff: Diff): Diff[] {
     if (diff.action === DiffAction.ADD && diff.field === 'resourceId') {
       const diffs: Diff[] = [diff];
@@ -94,6 +106,9 @@ export class S3Website extends ATerraformResource<S3WebsiteSchema, S3Website> {
     }
   }
 
+  /**
+   * @internal
+   */
   override synth(): S3WebsiteSchema {
     return {
       ...super.synth(),
@@ -101,6 +116,9 @@ export class S3Website extends ATerraformResource<S3WebsiteSchema, S3Website> {
     };
   }
 
+  /**
+   * @internal
+   */
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {
     const s3WebsiteOctoResource = terraform.addOctoTerraformResource(this as S3Website, {
       provider: { accountId: this.properties.awsAccountId, regionId: this.properties.awsRegionId },
@@ -177,6 +195,9 @@ export class S3Website extends ATerraformResource<S3WebsiteSchema, S3Website> {
     }
   }
 
+  /**
+   * @internal
+   */
   updateManifest(manifestDiff: IManifest): void {
     for (const key of Object.keys(manifestDiff)) {
       this.manifest[key] = { ...manifestDiff[key] };

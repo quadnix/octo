@@ -16,6 +16,9 @@ import { AwsCredentialsAccount } from '../aws-credentials-account.model.js';
  */
 @Action(AwsCredentialsAccount)
 export class AddAwsCredentialsAccountModelAction implements IModelAction<AwsCredentialsAccountModule> {
+  /**
+   * @internal
+   */
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -25,6 +28,9 @@ export class AddAwsCredentialsAccountModelAction implements IModelAction<AwsCred
     );
   }
 
+  /**
+   * @internal
+   */
   async handle(
     _diff: Diff,
     _actionInputs: EnhancedModuleSchema<AwsCredentialsAccountModule>,
@@ -41,6 +47,9 @@ export class AddAwsCredentialsAccountModelAction implements IModelAction<AwsCred
 export class AddAwsCredentialsAccountModelActionFactory {
   private static instance: AddAwsCredentialsAccountModelAction;
 
+  /**
+   * @internal
+   */
   static async create(): Promise<AddAwsCredentialsAccountModelAction> {
     if (!this.instance) {
       this.instance = new AddAwsCredentialsAccountModelAction();

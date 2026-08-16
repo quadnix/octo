@@ -8,6 +8,9 @@ import type { AwsDynamoDBAnchorSchema } from './aws-dynamodb.anchor.schema.js';
 export class AwsDynamoDBAnchor extends AAnchor<AwsDynamoDBAnchorSchema, AwsDynamoDBAnchorSchema['parentInstance']> {
   declare properties: AwsDynamoDBAnchorSchema['properties'];
 
+  /**
+   * @internal
+   */
   constructor(
     anchorId: string,
     properties: AwsDynamoDBAnchorSchema['properties'],

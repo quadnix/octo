@@ -16,6 +16,9 @@ import { AwsEcsExecution } from '../aws-ecs-execution.model.js';
  */
 @Action(AwsEcsExecution)
 export class AddAwsEcsExecutionModelAction implements IModelAction<AwsEcsExecutionModule> {
+  /**
+   * @internal
+   */
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -25,6 +28,9 @@ export class AddAwsEcsExecutionModelAction implements IModelAction<AwsEcsExecuti
     );
   }
 
+  /**
+   * @internal
+   */
   async handle(
     _diff: Diff,
     _actionInputs: EnhancedModuleSchema<AwsEcsExecutionModule>,
@@ -41,6 +47,9 @@ export class AddAwsEcsExecutionModelAction implements IModelAction<AwsEcsExecuti
 export class AddAwsEcsExecutionModelActionFactory {
   private static instance: AddAwsEcsExecutionModelAction;
 
+  /**
+   * @internal
+   */
   static async create(): Promise<AddAwsEcsExecutionModelAction> {
     if (!this.instance) {
       this.instance = new AddAwsEcsExecutionModelAction();

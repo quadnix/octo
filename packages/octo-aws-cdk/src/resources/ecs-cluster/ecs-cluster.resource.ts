@@ -9,10 +9,16 @@ export class EcsCluster extends ATerraformResource<EcsClusterSchema, EcsCluster>
   declare properties: EcsClusterSchema['properties'];
   declare response: EcsClusterSchema['response'];
 
+  /**
+   * @internal
+   */
   constructor(resourceId: string, properties: EcsClusterSchema['properties']) {
     super(resourceId, properties, []);
   }
 
+  /**
+   * @internal
+   */
   override async diffProperties(previous: EcsCluster): Promise<Diff[]> {
     if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties)) {
       return [
@@ -29,6 +35,9 @@ export class EcsCluster extends ATerraformResource<EcsClusterSchema, EcsCluster>
     return [];
   }
 
+  /**
+   * @internal
+   */
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {
     const ecsClusterOctoResource = terraform.addOctoTerraformResource(this as EcsCluster, {
       provider: { accountId: this.properties.awsAccountId, regionId: this.properties.awsRegionId },

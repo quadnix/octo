@@ -13,6 +13,9 @@ export class AwsSimpleSubnetLocalFilesystemMountOverlay extends AOverlay<
 > {
   declare properties: AwsSimpleSubnetLocalFilesystemMountOverlaySchema['properties'];
 
+  /**
+   * @internal
+   */
   constructor(
     overlayId: string,
     properties: AwsSimpleSubnetLocalFilesystemMountOverlaySchema['properties'],
@@ -21,6 +24,9 @@ export class AwsSimpleSubnetLocalFilesystemMountOverlay extends AOverlay<
     super(overlayId, properties, anchors);
   }
 
+  /**
+   * @internal
+   */
   override async diffAnchors(): Promise<Diff[]> {
     return [];
   }

@@ -8,6 +8,9 @@ import type { AwsEcsServerAnchorSchema } from './aws-ecs-server.anchor.schema.js
 export class AwsEcsServerAnchor extends AAnchor<AwsEcsServerAnchorSchema, AwsEcsServerAnchorSchema['parentInstance']> {
   declare properties: AwsEcsServerAnchorSchema['properties'];
 
+  /**
+   * @internal
+   */
   constructor(
     anchorId: string,
     properties: AwsEcsServerAnchorSchema['properties'],

@@ -17,6 +17,9 @@ import { AwsS3StaticWebsiteService } from '../aws-s3-static-website-service.mode
  */
 @Action(AwsS3StaticWebsiteService)
 export class AddAwsS3StaticWebsiteServiceModelAction implements IModelAction<AwsS3StaticWebsiteServiceModule> {
+  /**
+   * @internal
+   */
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -26,6 +29,9 @@ export class AddAwsS3StaticWebsiteServiceModelAction implements IModelAction<Aws
     );
   }
 
+  /**
+   * @internal
+   */
   async handle(
     diff: Diff<AwsS3StaticWebsiteService>,
     actionInputs: EnhancedModuleSchema<AwsS3StaticWebsiteServiceModule>,
@@ -57,6 +63,9 @@ export class AddAwsS3StaticWebsiteServiceModelAction implements IModelAction<Aws
 export class AddAwsS3StaticWebsiteServiceModelActionFactory {
   private static instance: AddAwsS3StaticWebsiteServiceModelAction;
 
+  /**
+   * @internal
+   */
   static async create(): Promise<AddAwsS3StaticWebsiteServiceModelAction> {
     if (!this.instance) {
       this.instance = new AddAwsS3StaticWebsiteServiceModelAction();

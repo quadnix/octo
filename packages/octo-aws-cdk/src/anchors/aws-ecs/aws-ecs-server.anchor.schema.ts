@@ -7,6 +7,9 @@ import { BaseAnchorSchema, Schema, type Server, Validate } from '@quadnix/octo';
  * @group Anchors/AwsEcs
  *
  * @hideconstructor
+ *
+ * @see [AModel](/api/octo/class/AModel)'s `getAnchorsMatchingSchema()` to consume this anchor from
+ * your own module.
  */
 export class AwsEcsServerAnchorSchema extends BaseAnchorSchema {
   /**

@@ -9,10 +9,16 @@ export class AwsEcsExecution extends Execution {
   readonly customExecutionId: string;
   readonly deployments: { main: Deployment; sidecars: Deployment[] };
 
+  /**
+   * @internal
+   */
   override get executionId(): string {
     return this.customExecutionId;
   }
 
+  /**
+   * @internal
+   */
   constructor(
     executionId: string,
     deployments: { main: Deployment; sidecars: Deployment[] },
@@ -39,6 +45,9 @@ export class AwsEcsExecution extends Execution {
     this.customExecutionId = executionId;
   }
 
+  /**
+   * @internal
+   */
   static override async unSynth(
     execution: AwsEcsExecutionSchema,
     deReferenceContext: (context: string) => Promise<AModel<any, any>>,
@@ -65,6 +74,9 @@ export class AwsEcsExecution extends Execution {
     return newExecution;
   }
 
+  /**
+   * @internal
+   */
   override setContext(): string | undefined {
     const parents = this.getParents();
     const deployment = parents['deployment']?.find(
@@ -83,6 +95,9 @@ export class AwsEcsExecution extends Execution {
     ].join(',');
   }
 
+  /**
+   * @internal
+   */
   override synth(): AwsEcsExecutionSchema {
     const parents = this.getParents();
     const deployment = parents['deployment'].find(

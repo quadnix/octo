@@ -3,8 +3,8 @@ import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 /**
  * The `EcrImageSchema` class is the schema for the `EcrImage` resource,
  * which represents the AWS Elastic Container Registry (ECR) Image resource.
- * This resource can create and manage container images in ECR using the AWS JavaScript SDK V3 API.
- * See [official sdk docs](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/client/ecr/).
+ * Terraform provisions it as
+ * [`aws_ecr_repository`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecr_repository).
  *
  * @group Resources/Ecr
  *

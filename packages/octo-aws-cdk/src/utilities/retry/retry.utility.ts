@@ -16,6 +16,9 @@ export class RetryUtility {
   private static DEFAULT_RETRY_DELAY_IN_MS = 10000;
   private static DEFAULT_THROW_ON_ERROR = true;
 
+  /**
+   * @internal
+   */
   static async retryPromise(
     operation: () => Promise<boolean>,
     {
@@ -49,6 +52,9 @@ export class RetryUtility {
     throw new Error('Exhausted all retries for the operation!');
   }
 
+  /**
+   * @internal
+   */
   static setDefaults(options: Partial<IRetryOptions>): void {
     if (options.backOffFactor !== undefined) {
       this.DEFAULT_BACK_OFF_FACTOR = options.backOffFactor;

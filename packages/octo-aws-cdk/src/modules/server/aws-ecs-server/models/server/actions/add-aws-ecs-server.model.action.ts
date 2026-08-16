@@ -17,6 +17,9 @@ import { AwsEcsServer } from '../aws-ecs-server.model.js';
  */
 @Action(AwsEcsServer)
 export class AddAwsEcsServerModelAction implements IModelAction<AwsEcsServerModule> {
+  /**
+   * @internal
+   */
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -26,6 +29,9 @@ export class AddAwsEcsServerModelAction implements IModelAction<AwsEcsServerModu
     );
   }
 
+  /**
+   * @internal
+   */
   async handle(
     _diff: Diff,
     actionInputs: EnhancedModuleSchema<AwsEcsServerModule>,
@@ -64,6 +70,9 @@ export class AddAwsEcsServerModelAction implements IModelAction<AwsEcsServerModu
 export class AddAwsEcsServerModelActionFactory {
   private static instance: AddAwsEcsServerModelAction;
 
+  /**
+   * @internal
+   */
   static async create(): Promise<AddAwsEcsServerModelAction> {
     if (!this.instance) {
       this.instance = new AddAwsEcsServerModelAction();

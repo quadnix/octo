@@ -27,10 +27,13 @@ import { AwsEcrImage } from './models/image/index.js';
  *
  * @see {@link AwsEcrImageModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
- * @see {@link Image} to learn more about the `Image` model.
+ * @see [Image](/api/octo/class/Image) to learn more about the `Image` model.
  */
 @Module<AwsEcrImageModule>('@octo', AwsEcrImageModuleSchema)
 export class AwsEcrImageModule extends AModule<AwsEcrImageModuleSchema, AwsEcrImage> {
+  /**
+   * Creates the image, and registers one ECR repository per account and region it is used in.
+   */
   async onInit(inputs: AwsEcrImageModuleSchema): Promise<AwsEcrImage> {
     const { app } = await this.registerMetadata(inputs);
 
@@ -41,6 +44,9 @@ export class AwsEcrImageModule extends AModule<AwsEcrImageModuleSchema, AwsEcrIm
     return image;
   }
 
+  /**
+   * Resolves the app, and the distinct account/region pairs an ECR repository is needed in.
+   */
   override async registerMetadata(
     inputs: AwsEcrImageModuleSchema,
   ): Promise<{ app: App; uniqueImageRepositories: { awsAccountId: string; awsRegionId: string }[] }> {

@@ -2,6 +2,9 @@
  * @internal
  */
 export class TaskDefinitionUtility {
+  /**
+   * @internal
+   */
   static getIncrementsOf1024(till: number, startFrom = 1, multipleOf = 1): number[] {
     const increments: number[] = [];
     for (let i = startFrom; i <= till; i++) {
@@ -10,6 +13,9 @@ export class TaskDefinitionUtility {
     return increments;
   }
 
+  /**
+   * @internal
+   */
   static isCpuAndMemoryValid(cpu: number, memory: number): boolean {
     if (![256, 512, 1024, 2048, 4096, 8192, 16384].includes(cpu)) {
       return false;

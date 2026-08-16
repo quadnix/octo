@@ -3,8 +3,9 @@ import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 /**
  * The `RouteTableSchema` class is the schema for the `RouteTable` resource,
  * which represents the AWS VPC Route Table resource.
- * This resource can create a route table in AWS using the AWS JavaScript SDK V3 API.
- * See [official sdk docs](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/client/ec2/).
+ * Terraform provisions it as
+ * [`aws_route_table`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/route_table) and
+ * [`aws_route_table_association`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/route_table_association).
  *
  * @group Resources/RouteTable
  *

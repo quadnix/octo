@@ -25,10 +25,13 @@ import { AwsIniAccount } from './models/account/index.js';
  *
  * @see {@link AwsIniAccountModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
- * @see {@link Account} to learn more about the `Account` model.
+ * @see [Account](/api/octo/class/Account) to learn more about the `Account` model.
  */
 @Module<AwsIniAccountModule>('@octo', AwsIniAccountModuleSchema)
 export class AwsIniAccountModule extends AModule<AwsIniAccountModuleSchema, AwsIniAccount> {
+  /**
+   * Creates the account from the named AWS CLI profile, and anchors it for other modules to find.
+   */
   async onInit(inputs: AwsIniAccountModuleSchema): Promise<AwsIniAccount> {
     const app = inputs.app;
 

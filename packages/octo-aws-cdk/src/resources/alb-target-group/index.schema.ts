@@ -64,8 +64,8 @@ export class AlbTargetGroupHealthCheckSchema {
 /**
  * The `AlbTargetGroupSchema` class is the schema for the `AlbTargetGroup` resource,
  * which represents the AWS Application Load Balancer Target Group resource.
- * This resource can create a alb target group in AWS using the AWS JavaScript SDK V3 API.
- * See [official sdk docs](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/client/elastic-load-balancing-v2/).
+ * Terraform provisions it as
+ * [`aws_lb_target_group`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lb_target_group).
  *
  * @group Resources/AlbTargetGroup
  *

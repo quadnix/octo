@@ -17,6 +17,9 @@ import { AwsS3StorageService } from '../aws-s3-storage-service.model.js';
  */
 @Action(AwsS3StorageService)
 export class AddAwsS3StorageServiceModelAction implements IModelAction<AwsS3StorageServiceModule> {
+  /**
+   * @internal
+   */
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -26,6 +29,9 @@ export class AddAwsS3StorageServiceModelAction implements IModelAction<AwsS3Stor
     );
   }
 
+  /**
+   * @internal
+   */
   async handle(
     diff: Diff<AwsS3StorageService>,
     actionInputs: EnhancedModuleSchema<AwsS3StorageServiceModule>,
@@ -56,6 +62,9 @@ export class AddAwsS3StorageServiceModelAction implements IModelAction<AwsS3Stor
 export class AddAwsS3StorageServiceModelActionFactory {
   private static instance: AddAwsS3StorageServiceModelAction;
 
+  /**
+   * @internal
+   */
   static async create(): Promise<AddAwsS3StorageServiceModelAction> {
     if (!this.instance) {
       this.instance = new AddAwsS3StorageServiceModelAction();

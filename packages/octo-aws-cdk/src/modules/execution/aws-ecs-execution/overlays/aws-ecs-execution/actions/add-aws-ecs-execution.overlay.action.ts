@@ -27,6 +27,9 @@ import { AwsEcsExecutionOverlay } from '../aws-ecs-execution.overlay.js';
  */
 @Action(AwsEcsExecutionOverlay)
 export class AddAwsEcsExecutionOverlayAction implements IModelAction<AwsEcsExecutionModule> {
+  /**
+   * @internal
+   */
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -36,6 +39,9 @@ export class AddAwsEcsExecutionOverlayAction implements IModelAction<AwsEcsExecu
     );
   }
 
+  /**
+   * @internal
+   */
   async handle(
     diff: Diff<AwsEcsExecutionOverlay>,
     actionInputs: EnhancedModuleSchema<AwsEcsExecutionModule>,
@@ -203,6 +209,9 @@ export class AddAwsEcsExecutionOverlayAction implements IModelAction<AwsEcsExecu
 export class AddAwsEcsExecutionOverlayActionFactory {
   private static instance: AddAwsEcsExecutionOverlayAction;
 
+  /**
+   * @internal
+   */
   static async create(): Promise<AddAwsEcsExecutionOverlayAction> {
     if (!this.instance) {
       this.instance = new AddAwsEcsExecutionOverlayAction();

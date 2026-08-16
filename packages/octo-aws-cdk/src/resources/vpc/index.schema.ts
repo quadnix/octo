@@ -3,8 +3,8 @@ import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 /**
  * The `VpcSchema` class is the schema for the `Vpc` resource,
  * which represents the AWS Virtual Private Cloud (VPC) resource.
- * This resource can create a vpc in AWS using the AWS JavaScript SDK V3 API.
- * See [official sdk docs](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/client/ec2/).
+ * Terraform provisions it as
+ * [`aws_vpc`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc).
  *
  * @group Resources/Vpc
  *

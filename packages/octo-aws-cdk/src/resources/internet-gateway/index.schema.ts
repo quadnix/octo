@@ -3,8 +3,8 @@ import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 /**
  * The `InternetGatewaySchema` class is the schema for the `InternetGateway` resource,
  * which represents the AWS VPC Internet Gateway resource.
- * This resource can create a internet gateway in AWS using the AWS JavaScript SDK V3 API.
- * See [official sdk docs](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/client/ec2/).
+ * Terraform provisions it as
+ * [`aws_internet_gateway`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/internet_gateway).
  *
  * @group Resources/InternetGateway
  *

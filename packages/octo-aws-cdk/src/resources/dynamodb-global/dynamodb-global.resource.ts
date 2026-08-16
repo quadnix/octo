@@ -29,6 +29,9 @@ export class DynamoDBGlobal extends ATerraformResource<DynamoDBGlobalSchema, Dyn
   declare properties: DynamoDBGlobalSchema['properties'];
   declare response: DynamoDBGlobalSchema['response'];
 
+  /**
+   * @internal
+   */
   constructor(
     resourceId: string,
     properties: DynamoDBGlobalSchema['properties'],
@@ -39,6 +42,9 @@ export class DynamoDBGlobal extends ATerraformResource<DynamoDBGlobalSchema, Dyn
     this.updateDynamoDBGlobalDynamoDB(parents[0].getActual());
   }
 
+  /**
+   * @internal
+   */
   override async diff(previous: DynamoDBGlobal): Promise<Diff[]> {
     const diffs = await super.diff(previous);
 
@@ -96,6 +102,9 @@ export class DynamoDBGlobal extends ATerraformResource<DynamoDBGlobalSchema, Dyn
     return diffs;
   }
 
+  /**
+   * @internal
+   */
   override async diffInverse(
     diff: Diff<DynamoDBGlobal>,
     deReferenceResource: (resourceId: string) => Promise<never>,
@@ -109,6 +118,9 @@ export class DynamoDBGlobal extends ATerraformResource<DynamoDBGlobalSchema, Dyn
     }
   }
 
+  /**
+   * @internal
+   */
   override diffUnpack(diff: Diff): Diff[] {
     if (diff.action === DiffAction.ADD && diff.field === 'resourceId') {
       const replicaDiffs: ReplicaDiff[] = [];
@@ -156,6 +168,9 @@ export class DynamoDBGlobal extends ATerraformResource<DynamoDBGlobalSchema, Dyn
     }
   }
 
+  /**
+   * @internal
+   */
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {
     const dynamoDBParent = this.parents[0] as MatchingResource<DynamoDBSchema>;
     const dynamoDBGlobalOctoResource = terraform.addOctoTerraformResource(this as DynamoDBGlobal);
@@ -184,6 +199,9 @@ export class DynamoDBGlobal extends ATerraformResource<DynamoDBGlobalSchema, Dyn
     dynamoDBGlobalOctoResource.output(outputs);
   }
 
+  /**
+   * @internal
+   */
   private updateDynamoDBGlobalDynamoDB(
     dynamoDBParent: ReturnType<MatchingResource<DynamoDBSchema>['getActual']>,
   ): void {

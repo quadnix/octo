@@ -30,6 +30,9 @@ export class RouteTable extends ATerraformResource<RouteTableSchema, RouteTable>
   declare properties: RouteTableSchema['properties'];
   declare response: RouteTableSchema['response'];
 
+  /**
+   * @internal
+   */
   constructor(
     resourceId: string,
     properties: RouteTableSchema['properties'],
@@ -52,6 +55,9 @@ export class RouteTable extends ATerraformResource<RouteTableSchema, RouteTable>
     }
   }
 
+  /**
+   * @internal
+   */
   addRouteToNatGateway(natGateway: MatchingResource<NatGatewaySchema>): void {
     const existingNatGatewayParentDependencies = this.getParents('nat-gateway')['nat-gateway'];
     if (existingNatGatewayParentDependencies?.length > 0) {
@@ -69,6 +75,9 @@ export class RouteTable extends ATerraformResource<RouteTableSchema, RouteTable>
     parentToChildDependency.addBehavior('resourceId', DiffAction.DELETE, 'parent', DiffAction.UPDATE);
   }
 
+  /**
+   * @internal
+   */
   override async diffProperties(previous: RouteTable): Promise<Diff[]> {
     if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties, ['associateWithInternetGateway'])) {
       return [
@@ -85,6 +94,9 @@ export class RouteTable extends ATerraformResource<RouteTableSchema, RouteTable>
     return super.diffProperties(previous);
   }
 
+  /**
+   * @internal
+   */
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {
     const routes: Record<string, unknown>[] = [];
 
@@ -140,6 +152,9 @@ export class RouteTable extends ATerraformResource<RouteTableSchema, RouteTable>
     }
   }
 
+  /**
+   * @internal
+   */
   private updateNatGatewayResourceDependencyBehaviors(
     natGatewayParent: ReturnType<MatchingResource<NatGatewaySchema>['getActual']>,
   ): void {

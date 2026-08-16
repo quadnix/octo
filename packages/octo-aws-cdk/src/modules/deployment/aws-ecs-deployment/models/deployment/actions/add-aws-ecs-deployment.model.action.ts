@@ -16,6 +16,9 @@ import { AwsEcsDeployment } from '../aws-ecs-deployment.model.js';
  */
 @Action(AwsEcsDeployment)
 export class AddAwsEcsDeploymentModelAction implements IModelAction<AwsEcsDeploymentModule> {
+  /**
+   * @internal
+   */
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -25,6 +28,9 @@ export class AddAwsEcsDeploymentModelAction implements IModelAction<AwsEcsDeploy
     );
   }
 
+  /**
+   * @internal
+   */
   async handle(
     _diff: Diff,
     _actionInputs: EnhancedModuleSchema<AwsEcsDeploymentModule>,
@@ -41,6 +47,9 @@ export class AddAwsEcsDeploymentModelAction implements IModelAction<AwsEcsDeploy
 export class AddAwsEcsDeploymentModelActionFactory {
   private static instance: AddAwsEcsDeploymentModelAction;
 
+  /**
+   * @internal
+   */
   static async create(): Promise<AddAwsEcsDeploymentModelAction> {
     if (!this.instance) {
       this.instance = new AddAwsEcsDeploymentModelAction();

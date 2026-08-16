@@ -23,6 +23,9 @@ import { AwsEcsAlbService } from '../aws-ecs-alb-service.model.js';
  */
 @Action(AwsEcsAlbService)
 export class AddAwsEcsAlbServiceModelAction implements IModelAction<AwsEcsAlbServiceModule> {
+  /**
+   * @internal
+   */
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -32,6 +35,9 @@ export class AddAwsEcsAlbServiceModelAction implements IModelAction<AwsEcsAlbSer
     );
   }
 
+  /**
+   * @internal
+   */
   async handle(
     diff: Diff,
     actionInputs: EnhancedModuleSchema<AwsEcsAlbServiceModule>,
@@ -139,6 +145,9 @@ export class AddAwsEcsAlbServiceModelAction implements IModelAction<AwsEcsAlbSer
 export class AddAwsEcsAlbServiceModelActionFactory {
   private static instance: AddAwsEcsAlbServiceModelAction;
 
+  /**
+   * @internal
+   */
   static async create(): Promise<AddAwsEcsAlbServiceModelAction> {
     if (!this.instance) {
       this.instance = new AddAwsEcsAlbServiceModelAction();

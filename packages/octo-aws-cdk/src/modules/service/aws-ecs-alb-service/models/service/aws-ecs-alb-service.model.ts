@@ -9,6 +9,9 @@ export class AwsEcsAlbService extends Service {
   @Validate({ options: { maxLength: 32, minLength: 2, regex: /^(?!internal)[a-zA-Z0-9][\w-]*[a-zA-Z0-9]$/ } })
   readonly albName: string;
 
+  /**
+   * @internal
+   */
   constructor(albName: AwsEcsAlbServiceSchema['albName'], subnets: Subnet[]) {
     super(`${albName}-alb`);
 
@@ -19,6 +22,9 @@ export class AwsEcsAlbService extends Service {
     }
   }
 
+  /**
+   * @internal
+   */
   static override async unSynth(
     service: AwsEcsAlbServiceSchema,
     deReferenceContext: (context: string) => Promise<AModel<any, any>>,
@@ -27,6 +33,9 @@ export class AwsEcsAlbService extends Service {
     return new AwsEcsAlbService(service.albName, subnets);
   }
 
+  /**
+   * @internal
+   */
   override setContext(): string | undefined {
     const parents = this.getParents();
     const app = parents['app']?.[0]?.to;
@@ -39,6 +48,9 @@ export class AwsEcsAlbService extends Service {
     );
   }
 
+  /**
+   * @internal
+   */
   override synth(): AwsEcsAlbServiceSchema {
     const parents = this.getParents();
     const subnets = parents['subnet'].map((d) => d.to as Subnet);

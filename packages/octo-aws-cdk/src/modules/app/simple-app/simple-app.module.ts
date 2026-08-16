@@ -17,10 +17,13 @@ import { SimpleAppModuleSchema } from './index.schema.js';
  *
  * @see {@link SimpleAppModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
- * @see {@link App} to learn more about the `App` model.
+ * @see [App](/api/octo/class/App) to learn more about the `App` model.
  */
 @Module<SimpleAppModule>('@octo', SimpleAppModuleSchema)
 export class SimpleAppModule extends AModule<SimpleAppModuleSchema, App> {
+  /**
+   * Creates the root app, which every other module hangs off.
+   */
   async onInit(inputs: SimpleAppModuleSchema): Promise<App> {
     return new App(inputs.name);
   }

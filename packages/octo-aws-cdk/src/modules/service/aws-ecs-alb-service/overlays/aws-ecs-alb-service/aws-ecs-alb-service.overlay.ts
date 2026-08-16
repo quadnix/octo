@@ -10,6 +10,9 @@ import { AwsEcsAlbServiceOverlaySchema } from './aws-ecs-alb-service.schema.js';
 export class AwsEcsAlbServiceOverlay extends AOverlay<AwsEcsAlbServiceOverlaySchema, AwsEcsAlbServiceOverlay> {
   declare properties: AwsEcsAlbServiceOverlaySchema['properties'];
 
+  /**
+   * @internal
+   */
   constructor(
     overlayId: string,
     properties: AwsEcsAlbServiceOverlaySchema['properties'],
@@ -18,6 +21,9 @@ export class AwsEcsAlbServiceOverlay extends AOverlay<AwsEcsAlbServiceOverlaySch
     super(overlayId, properties, anchors);
   }
 
+  /**
+   * @internal
+   */
   override async diffAnchors(): Promise<Diff[]> {
     return [];
   }

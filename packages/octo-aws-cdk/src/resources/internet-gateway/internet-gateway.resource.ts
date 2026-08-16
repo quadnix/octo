@@ -19,6 +19,9 @@ export class InternetGateway extends ATerraformResource<InternetGatewaySchema, I
   declare properties: InternetGatewaySchema['properties'];
   declare response: InternetGatewaySchema['response'];
 
+  /**
+   * @internal
+   */
   constructor(
     resourceId: string,
     properties: InternetGatewaySchema['properties'],
@@ -27,6 +30,9 @@ export class InternetGateway extends ATerraformResource<InternetGatewaySchema, I
     super(resourceId, properties, parents);
   }
 
+  /**
+   * @internal
+   */
   override async diffProperties(previous: InternetGateway): Promise<Diff[]> {
     if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties)) {
       return [
@@ -43,6 +49,9 @@ export class InternetGateway extends ATerraformResource<InternetGatewaySchema, I
     return [];
   }
 
+  /**
+   * @internal
+   */
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {
     const igwOctoResource = terraform.addOctoTerraformResource(this as InternetGateway, {
       provider: { accountId: this.properties.awsAccountId, regionId: this.properties.awsRegionId },

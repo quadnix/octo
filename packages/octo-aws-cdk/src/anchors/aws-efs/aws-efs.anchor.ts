@@ -8,6 +8,9 @@ import type { AwsEfsAnchorSchema } from './aws-efs.anchor.schema.js';
 export class AwsEfsAnchor extends AAnchor<AwsEfsAnchorSchema, AwsEfsAnchorSchema['parentInstance']> {
   declare properties: AwsEfsAnchorSchema['properties'];
 
+  /**
+   * @internal
+   */
   constructor(
     anchorId: string,
     properties: AwsEfsAnchorSchema['properties'],

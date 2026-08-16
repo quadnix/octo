@@ -58,8 +58,9 @@ export class PrincipalResourceSchema extends BaseResourceSchema {
 /**
  * The `S3StorageSchema` class is the schema for the `S3Storage` resource,
  * which represents the AWS Simple Storage Service (S3) Bucket resource.
- * This resource can create an S3 bucket in AWS using the AWS JavaScript SDK V3 API.
- * See [official sdk docs](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/client/s3/).
+ * Terraform provisions it as
+ * [`aws_s3_bucket`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket) and
+ * [`aws_s3_bucket_policy`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_policy).
  *
  * @group Resources/S3Storage
  *

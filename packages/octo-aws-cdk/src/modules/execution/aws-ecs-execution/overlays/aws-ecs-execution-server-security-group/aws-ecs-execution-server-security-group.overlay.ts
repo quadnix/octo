@@ -14,6 +14,9 @@ export class AwsEcsExecutionServerSecurityGroupOverlay extends AOverlay<
   declare anchors: (MatchingAnchor<AwsSecurityGroupAnchorSchema> | AwsSecurityGroupAnchor)[];
   declare properties: AwsEcsExecutionServerSecurityGroupOverlaySchema['properties'];
 
+  /**
+   * @internal
+   */
   constructor(
     overlayId: string,
     properties: AwsEcsExecutionServerSecurityGroupOverlaySchema['properties'],
@@ -22,6 +25,9 @@ export class AwsEcsExecutionServerSecurityGroupOverlay extends AOverlay<
     super(overlayId, properties, anchors);
   }
 
+  /**
+   * @internal
+   */
   override async diffAnchors(): Promise<Diff[]> {
     return [];
   }

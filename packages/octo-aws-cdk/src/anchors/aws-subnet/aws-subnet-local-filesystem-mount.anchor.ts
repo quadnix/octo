@@ -11,6 +11,9 @@ export class AwsSubnetLocalFilesystemMountAnchor extends AAnchor<
 > {
   declare properties: AwsSubnetLocalFilesystemMountAnchorSchema['properties'];
 
+  /**
+   * @internal
+   */
   constructor(
     anchorId: string,
     properties: AwsSubnetLocalFilesystemMountAnchorSchema['properties'],

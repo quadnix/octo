@@ -11,6 +11,9 @@ export class AwsEcsExecutionAnchor extends AAnchor<
 > {
   declare properties: AwsEcsExecutionAnchorSchema['properties'];
 
+  /**
+   * @internal
+   */
   constructor(
     anchorId: string,
     properties: AwsEcsExecutionAnchorSchema['properties'],

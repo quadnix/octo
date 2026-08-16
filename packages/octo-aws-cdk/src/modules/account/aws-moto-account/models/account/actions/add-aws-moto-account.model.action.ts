@@ -16,6 +16,9 @@ import { AwsMotoAccount } from '../aws-moto-account.model.js';
  */
 @Action(AwsMotoAccount)
 export class AddAwsMotoAccountModelAction implements IModelAction<AwsMotoAccountModule> {
+  /**
+   * @internal
+   */
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -25,6 +28,9 @@ export class AddAwsMotoAccountModelAction implements IModelAction<AwsMotoAccount
     );
   }
 
+  /**
+   * @internal
+   */
   async handle(
     _diff: Diff,
     _actionInputs: EnhancedModuleSchema<AwsMotoAccountModule>,
@@ -41,6 +47,9 @@ export class AddAwsMotoAccountModelAction implements IModelAction<AwsMotoAccount
 export class AddAwsMotoAccountModelActionFactory {
   private static instance: AddAwsMotoAccountModelAction;
 
+  /**
+   * @internal
+   */
   static async create(): Promise<AddAwsMotoAccountModelAction> {
     if (!this.instance) {
       this.instance = new AddAwsMotoAccountModelAction();

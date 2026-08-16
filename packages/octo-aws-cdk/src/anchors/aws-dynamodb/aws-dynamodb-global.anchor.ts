@@ -11,6 +11,9 @@ export class AwsDynamoDBGlobalAnchor extends AAnchor<
 > {
   declare properties: AwsDynamoDBGlobalAnchorSchema['properties'];
 
+  /**
+   * @internal
+   */
   constructor(
     anchorId: string,
     properties: AwsDynamoDBGlobalAnchorSchema['properties'],

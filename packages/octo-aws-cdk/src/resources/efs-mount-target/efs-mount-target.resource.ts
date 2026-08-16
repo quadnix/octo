@@ -21,6 +21,9 @@ export class EfsMountTarget extends ATerraformResource<EfsMountTargetSchema, Efs
   declare properties: EfsMountTargetSchema['properties'];
   declare response: EfsMountTargetSchema['response'];
 
+  /**
+   * @internal
+   */
   constructor(
     resourceId: string,
     properties: EfsMountTargetSchema['properties'],
@@ -29,6 +32,9 @@ export class EfsMountTarget extends ATerraformResource<EfsMountTargetSchema, Efs
     super(resourceId, properties, parents);
   }
 
+  /**
+   * @internal
+   */
   override async diffProperties(previous: EfsMountTarget): Promise<Diff[]> {
     if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties)) {
       return [
@@ -45,6 +51,9 @@ export class EfsMountTarget extends ATerraformResource<EfsMountTargetSchema, Efs
     return [];
   }
 
+  /**
+   * @internal
+   */
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {
     const efsMountTargetOctoResource = terraform.addOctoTerraformResource(this as EfsMountTarget, {
       provider: { accountId: this.properties.awsAccountId, regionId: this.properties.awsRegionId },
