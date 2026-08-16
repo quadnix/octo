@@ -1,6 +1,12 @@
 import type { IBuildConfiguration, IJob } from '../models/build-configuration.interface.js';
 
+/**
+ * Reads a `build.yml` into the configuration {@link Main} runs.
+ */
 export class BuildFileParser {
+  /**
+   * @throws If a job names a dependency that does not exist, or the jobs form a cycle.
+   */
   static parse(content: any): IBuildConfiguration {
     const jobs: { [key: string]: IJob } = {};
     for (const jobName of Object.keys(content?.jobs || {})) {

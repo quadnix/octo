@@ -5,12 +5,18 @@ import Generator, { type BaseOptions } from 'yeoman-generator';
 import { ProjectIndexUtility } from '../../../../../utilities/project-index/project-index.utility.js';
 import { StringUtility } from '../../../../../utilities/string/string.utility.js';
 
+/**
+ * @internal
+ */
 export default class extends Generator {
   private readonly modelType: string;
   private readonly moduleName: string;
   private readonly packageName: string;
   private readonly projectRootDir: string;
 
+  /**
+   * @internal
+   */
   constructor(args: string[], opts: BaseOptions) {
     super(args, opts);
 
@@ -20,6 +26,9 @@ export default class extends Generator {
     this.projectRootDir = args[3];
   }
 
+  /**
+   * @internal
+   */
   end(): void {
     const targetPath = resolve(join(this.projectRootDir, 'src', 'modules', this.modelType, this.moduleName));
 
@@ -36,6 +45,9 @@ export default class extends Generator {
     this.log(`   Implement the logic in ${this.moduleName}.module.ts`);
   }
 
+  /**
+   * @internal
+   */
   async initializing(): Promise<void> {
     const targetPath = resolve(join(this.projectRootDir, 'src', 'modules', this.modelType, this.moduleName));
 
@@ -59,6 +71,9 @@ export default class extends Generator {
     this.destinationRoot(targetPath);
   }
 
+  /**
+   * @internal
+   */
   async writing(): Promise<void> {
     // Create the module file
     this.fs.copyTpl(this.templatePath('module.ts.ejs'), this.destinationPath(`${this.moduleName}.module.ts`), {

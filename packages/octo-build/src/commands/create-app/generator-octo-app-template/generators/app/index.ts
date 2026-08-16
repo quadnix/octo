@@ -3,6 +3,9 @@ import type { Stats } from 'node:fs';
 import { join, resolve } from 'path';
 import Generator, { type BaseOptions } from 'yeoman-generator';
 
+/**
+ * @internal
+ */
 export default class extends Generator {
   private readonly appName: string;
   private readonly appPath: string;
@@ -10,6 +13,9 @@ export default class extends Generator {
 
   private installCommand: string | undefined;
 
+  /**
+   * @internal
+   */
   constructor(args: string[], opts: BaseOptions) {
     super(args, opts, {
       // The install runs after every file is written, so a failure here is a fully generated app
@@ -36,6 +42,9 @@ export default class extends Generator {
     this.appTemplate = args[2];
   }
 
+  /**
+   * @internal
+   */
   end(): void {
     const targetPath = resolve(join(this.appPath, this.appName));
 
@@ -59,6 +68,9 @@ export default class extends Generator {
     this.log('   See README.md for the full flow.');
   }
 
+  /**
+   * @internal
+   */
   async initializing(): Promise<void> {
     const targetPath = resolve(join(this.appPath, this.appName));
 
@@ -84,6 +96,9 @@ export default class extends Generator {
     this.destinationRoot(targetPath);
   }
 
+  /**
+   * @internal
+   */
   async writing(): Promise<void> {
     // Create eslint.config.js (ESLint v9 flat config)
     this.fs.copyTpl(this.templatePath('eslint.config.js.ejs'), this.destinationPath('eslint.config.js'));

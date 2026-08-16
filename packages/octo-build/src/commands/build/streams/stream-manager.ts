@@ -3,6 +3,9 @@ import { createWriteStream } from 'fs';
 import { join, resolve } from 'path';
 import chalk, { type ChalkInstance } from 'chalk';
 
+/**
+ * Fans each job's output to the terminal, and to a per-job log file when one was asked for.
+ */
 export class StreamManager {
   private colors = {
     BLUE: chalk.blue,
@@ -12,6 +15,9 @@ export class StreamManager {
     YELLOW: chalk.yellow,
   };
 
+  /**
+   * Attaches to a running job's output.
+   */
   registerStream(jobName: string, stream: ChildProcessWithoutNullStreams, options: { logsPathPrefix?: string }): void {
     const colorKeys = Object.keys(this.colors);
     const randomColor: ChalkInstance = this.colors[colorKeys[(colorKeys.length * Math.random()) << 0]];

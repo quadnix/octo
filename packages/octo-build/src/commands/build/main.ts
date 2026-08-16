@@ -7,12 +7,28 @@ import type { IBuildConfiguration } from './models/build-configuration.interface
 import type { IRunArguments } from './models/run-arguments.interface.js';
 import { StreamManager } from './streams/stream-manager.js';
 
+/**
+ * @internal
+ */
+/**
+ * Runs the jobs of a `build.yml`, respecting their dependencies and the concurrency limit.
+ */
 export class Main {
+  /**
+   * @param args The parsed CLI arguments.
+   * @param configuration The parsed build file.
+   */
   constructor(
     private readonly args: IRunArguments,
     private readonly configuration: IBuildConfiguration,
   ) {}
 
+  /**
+   * Spawns one command.
+   *
+   * @returns The child process, and a promise that settles when it exits - rejecting on a non-zero
+   * exit code.
+   */
   runCommand(
     command: string,
     options: { env: { [key: string]: string }; sourcePath: string },
@@ -44,6 +60,9 @@ export class Main {
     return [runner, promiseToFinishCommand];
   }
 
+  /**
+   * Starts every job, each waiting on the jobs it depends on, and no more than `concurrency` at once.
+   */
   scheduleJobs(): Promise<void>[] {
     const streamManager = new StreamManager();
     const timestamp = Date.now();
@@ -127,6 +146,9 @@ export class Main {
     return Object.values(jobPromises);
   }
 
+  /**
+   * Runs the whole build, rejecting on the first job that fails or when the timeout elapses.
+   */
   start(): Promise<void> {
     return new Promise(async (resolve, reject) => {
       const timeout =

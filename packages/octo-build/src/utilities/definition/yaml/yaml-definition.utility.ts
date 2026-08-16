@@ -56,6 +56,9 @@ interface IYamlDefinition {
   version: number;
 }
 
+/**
+ * Reads `octo.yml` and turns each section into the values {@link Octo} is booted with.
+ */
 export class YamlDefinitionUtility {
   private readonly definition: IYamlDefinition;
 
@@ -66,6 +69,10 @@ export class YamlDefinitionUtility {
    */
   private readonly definitionDir: string;
 
+  /**
+   * @param definitionFilePath Path to the definition file.
+   * @throws If the file is unreadable, or fails schema validation.
+   */
   constructor(definitionFilePath: string) {
     definitionFilePath = resolve(process.cwd(), definitionFilePath);
     this.definitionDir = dirname(definitionFilePath);
@@ -84,6 +91,9 @@ export class YamlDefinitionUtility {
     this.validateDefinition();
   }
 
+  /**
+   * Substitutes `${env.KEY}` references in a value with what the definition's `env` block declares.
+   */
   resolveEnvironmentValue<T>(value: unknown): T {
     if (typeof value !== 'string') {
       return value as T;
@@ -129,6 +139,9 @@ export class YamlDefinitionUtility {
     }
   }
 
+  /**
+   * Imports the hook callbacks the definition names, in the shape {@link Octo.registerHooks} takes.
+   */
   async resolveHooks(): Promise<{
     postCommitHooks?: { handle: any }[];
     postModelActionHooks?: { action: any; handle: any }[];
@@ -175,6 +188,9 @@ export class YamlDefinitionUtility {
     return hooks;
   }
 
+  /**
+   * Imports every module class the definition's `imports` block names.
+   */
   async resolveImports(): Promise<{ className: Constructable<any> }[]> {
     const imports: Awaited<ReturnType<YamlDefinitionUtility['resolveImports']>> = [];
 
@@ -204,7 +220,7 @@ export class YamlDefinitionUtility {
   /**
    * @param logDestination Where the logging listener writes. `run-action` passes `stderr`, because
    * terraform's `data "external"` protocol requires that command's stdout to carry only the response
-   * JSON — the reason it previously ran with no listeners at all.
+   * JSON.
    */
   async resolveListeners({ logDestination = 'stdout' }: { logDestination?: 'stderr' | 'stdout' } = {}): Promise<
     {
@@ -247,6 +263,9 @@ export class YamlDefinitionUtility {
     return listeners;
   }
 
+  /**
+   * Pairs each `modules` entry with its imported class, and resolves its inputs.
+   */
   resolveModules(
     imports: Awaited<ReturnType<YamlDefinitionUtility['resolveImports']>>,
   ): { moduleClass: Constructable<any>; moduleId: string; moduleInputs: Record<string, unknown> }[] {
@@ -276,6 +295,9 @@ export class YamlDefinitionUtility {
     return modules;
   }
 
+  /**
+   * Builds the {@link IStateProvider} the definition asks for.
+   */
   resolveStateProvider():
     | { type: LocalEncryptionStateProvider }
     | { type: LocalStateProvider }
@@ -304,6 +326,9 @@ export class YamlDefinitionUtility {
     }
   }
 
+  /**
+   * The terraform version, required providers, and provider blocks the definition declares.
+   */
   resolveTerraformOptions(): {
     providers: {
       accountId: string;
@@ -362,6 +387,9 @@ export class YamlDefinitionUtility {
     return pathToFileURL(requireFromProject.resolve(importPath)).href;
   }
 
+  /**
+   * Checks the definition against `octo-v1.schema.json`.
+   */
   private validateDefinition(): void {
     if (!this.definition?.version || typeof this.definition?.version !== 'number') {
       throw new Error(`Definition version "${this.definition?.version}" must be a number!`);

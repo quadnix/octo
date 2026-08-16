@@ -5,11 +5,17 @@ import Generator, { type BaseOptions } from 'yeoman-generator';
 import { ProjectIndexUtility } from '../../../../../utilities/project-index/project-index.utility.js';
 import { StringUtility } from '../../../../../utilities/string/string.utility.js';
 
+/**
+ * @internal
+ */
 export default class extends Generator {
   private readonly packageName: string;
   private readonly projectRootDir: string;
   private readonly resourceName: string;
 
+  /**
+   * @internal
+   */
   constructor(args: string[], opts: BaseOptions) {
     super(args, opts);
 
@@ -18,6 +24,9 @@ export default class extends Generator {
     this.projectRootDir = args[2];
   }
 
+  /**
+   * @internal
+   */
   end(): void {
     const targetPath = resolve(join(this.projectRootDir, 'src', 'resources', this.resourceName));
 
@@ -29,6 +38,9 @@ export default class extends Generator {
     this.log(`   Address all "Fix me" in generated files`);
   }
 
+  /**
+   * @internal
+   */
   async initializing(): Promise<void> {
     const targetPath = resolve(join(this.projectRootDir, 'src', 'resources', this.resourceName));
 
@@ -52,6 +64,9 @@ export default class extends Generator {
     this.destinationRoot(targetPath);
   }
 
+  /**
+   * @internal
+   */
   async writing(): Promise<void> {
     const templateData = {
       packageName: this.packageName,

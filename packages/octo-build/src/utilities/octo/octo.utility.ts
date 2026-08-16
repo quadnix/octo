@@ -4,6 +4,11 @@ import { type App, Octo } from '@quadnix/octo';
 import chalk from 'chalk';
 import { YamlDefinitionUtility } from '../definition/yaml/yaml-definition.utility.js';
 
+/**
+ * The absolute path of the definition file, from `OCTO_DEFINITION_FILE_PATH`.
+ *
+ * @throws If the variable is unset, or names a file that does not exist.
+ */
 function resolveDefinitionFilePath(): string {
   const fromEnv = process.env.OCTO_DEFINITION_FILE_PATH;
   if (!fromEnv) {
@@ -24,9 +29,8 @@ function resolveDefinitionFilePath(): string {
  * @param quietStdout Keeps **stdout** free of everything but the command's own output. Set by
  * `run-action`, whose stdout is consumed by terraform's `data "external"` as JSON.
  *
- * It does not disable listeners — it routes them to stderr. Disabling them (what this flag used to
- * do) left the SDK resource-action path, the only place resource actions actually execute, with no
- * logging at all.
+ * It does not disable listeners — it routes them to stderr, so that the SDK resource-action path,
+ * the only place resource actions actually execute, stays observable.
  */
 export async function bootOcto({ quietStdout = false }: { quietStdout?: boolean } = {}): Promise<{
   app: App;
@@ -85,6 +89,10 @@ export async function bootOcto({ quietStdout = false }: { quietStdout?: boolean 
   return { app, octo };
 }
 
+/**
+ * Prints an octo error to stderr, including the properties it carries - the diff that matched no
+ * action, most of all - which a bare stack trace would hide.
+ */
 export function reportError(error: any): void {
   console.error(chalk.red(error.stack));
   for (const errorProperty of Object.getOwnPropertyNames(error) || []) {

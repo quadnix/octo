@@ -11,6 +11,9 @@ type CommitCommandArguments = {
   timeoutInMs?: number;
 };
 
+/**
+ * Step 4 of the octo lifecycle. See {@link Octo.commit}.
+ */
 export const commitCommand = {
   builder: (yargs: Argv): Argv => {
     return yargs
@@ -36,7 +39,7 @@ export const commitCommand = {
       });
   },
   command: 'commit',
-  describe: "Record the results of a Terraform apply back into Octo's state.",
+  describe: "Step 4: record the results of a Terraform apply back into Octo's state.",
   handler: async (argv: ArgumentsCamelCase<CommitCommandArguments>): Promise<void> => {
     const { terraformBinary, terragruntBinary, terragruntDir, timeoutInMs } = argv;
     const resolvedDir = resolve(process.cwd(), terragruntDir);

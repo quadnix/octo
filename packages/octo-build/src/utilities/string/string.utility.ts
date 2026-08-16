@@ -1,3 +1,6 @@
+/**
+ * Name checks and case conversions the `create-*` scaffolding commands run on user input.
+ */
 export class StringUtility {
   static AVAILABLE_MODEL_TYPES = [
     'account',
@@ -14,6 +17,9 @@ export class StringUtility {
     'subnet',
   ] as const;
 
+  /**
+   * Whether a name is kebab-case, the shape every generated file and folder uses.
+   */
   static isKebabCase(subject: string): boolean {
     return /^[a-z][a-z0-9-]*[a-z0-9]$/.test(subject);
   }
@@ -30,11 +36,17 @@ export class StringUtility {
     return /^[@A-Za-z][\w-]+[A-Za-z]$/.test(subject);
   }
 
+  /**
+   * `my-thing` to `myThing`, for generated variable names.
+   */
   static toCamelCase(subject: string): string {
     const pascal = StringUtility.toPascalCase(subject);
     return pascal.charAt(0).toLowerCase() + pascal.slice(1);
   }
 
+  /**
+   * `my-thing` to `MyThing`, for generated class names.
+   */
   static toPascalCase(subject: string): string {
     return subject
       .split('-')

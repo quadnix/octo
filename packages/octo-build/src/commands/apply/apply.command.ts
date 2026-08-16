@@ -90,6 +90,13 @@ function prepareCallbackEnvironment(): void {
   process.env.PATH = [...binDirectories.filter((d) => !pathEntries.includes(d)), ...pathEntries].join(delimiter);
 }
 
+/**
+ * Step 3 of the octo lifecycle, and the only one that changes live infrastructure.
+ *
+ * Unlike the other three, this is a terraform action rather than an octo mode - it neither boots
+ * octo nor reads octo state. It refuses to run when the plan would destroy anything, unless
+ * `--auto-approve` is passed.
+ */
 export const applyCommand = {
   builder: (yargs: Argv): Argv => {
     return yargs
@@ -121,10 +128,7 @@ export const applyCommand = {
       });
   },
   command: 'apply',
-  // Apply is a terraform action, not an octo mode — it does not boot octo or read octo state. It is
-  // additive to shelling `terragrunt run --all apply` directly, and completes the CLI's 1:1 coverage
-  // of TerraformUtility's methods (generate/validate/commit + apply).
-  describe: 'Apply the generated Terraform in the Terragrunt directory.',
+  describe: 'Step 3: apply the generated Terraform in the Terragrunt directory.',
   handler: async (argv: ArgumentsCamelCase<ApplyCommandArguments>): Promise<void> => {
     const { autoApprove, terraformBinary, terragruntBinary, terragruntDir, timeoutInMs } = argv;
     const resolvedDir = resolve(process.cwd(), terragruntDir);

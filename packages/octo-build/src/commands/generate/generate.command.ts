@@ -6,6 +6,9 @@ type GenerateCommandArguments = {
   outputDir: string;
 };
 
+/**
+ * Step 1 of the octo lifecycle. See {@link Octo.generate}.
+ */
 export const generateCommand = {
   builder: (yargs: Argv): Argv => {
     return yargs.option('outputDir', {
@@ -18,7 +21,7 @@ export const generateCommand = {
     });
   },
   command: 'generate',
-  describe: 'Generate Terragrunt module folders representing the full desired infrastructure.',
+  describe: 'Step 1: generate Terragrunt module folders representing the full desired infrastructure.',
   handler: async (argv: ArgumentsCamelCase<GenerateCommandArguments>): Promise<void> => {
     const { outputDir } = argv;
 

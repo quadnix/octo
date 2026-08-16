@@ -11,6 +11,9 @@ type ValidateCommandArguments = {
   timeoutInMs?: number;
 };
 
+/**
+ * Step 2 of the octo lifecycle. See {@link Octo.validate}.
+ */
 export const validateCommand = {
   builder: (yargs: Argv): Argv => {
     return yargs
@@ -36,7 +39,7 @@ export const validateCommand = {
       });
   },
   command: 'validate',
-  describe: "Validate the generated Terraform plans against Octo's resource diff.",
+  describe: "Step 2: validate the generated Terraform plans against Octo's resource diff.",
   handler: async (argv: ArgumentsCamelCase<ValidateCommandArguments>): Promise<void> => {
     const { terraformBinary, terragruntBinary, terragruntDir, timeoutInMs } = argv;
     const resolvedDir = resolve(process.cwd(), terragruntDir);
