@@ -50,7 +50,18 @@ import { RunObserver } from './reporters/run.observer.js';
 import { renderReportText } from './reporters/text/text.reporter.js';
 
 /**
- * Logs octo's event stream. Levels:
+ * Logs octo's event stream to the terminal. This is what turns a silent run into a readable one.
+ *
+ * Enable it in `octo.yml` under `settings.listeners`, where `level` and `colorize` are optional:
+ *
+ * ```yaml
+ * settings:
+ *   listeners:
+ *     - type: LoggingEventListener
+ *       level: info
+ * ```
+ *
+ * Levels, each including the ones above it:
  *
  * - `error` - a mode failed.
  * - `warn`  - drift, commit warnings, a non-zero terraform exit.
@@ -58,6 +69,8 @@ import { renderReportText } from './reporters/text/text.reporter.js';
  *             SDK resource actions, and the run's report in full.
  * - `debug` - diffs, transactions, serialization, hooks, author `log()` calls.
  * - `trace` - class registration.
+ *
+ * @group Event Listeners
  */
 export class LoggingEventListener {
   /**
@@ -73,8 +86,14 @@ export class LoggingEventListener {
    */
   private terraformInMs = 0;
 
+  /**
+   * @param logger The process logger, whose level and destination this listener owns.
+   */
   constructor(private readonly logger: Logger) {}
 
+  /**
+   * An author's own `log()` call from inside an action.
+   */
   @OnEvent(ActionEvent)
   onAction(event: ActionEvent): void {
     this.logger.log
@@ -82,6 +101,9 @@ export class LoggingEventListener {
       .debug(event.payload?.message || 'Action event.');
   }
 
+  /**
+   * A registered hook callback finished.
+   */
   @OnEvent(HookEvent)
   onHook(event: HookEvent): void {
     if (event instanceof PostCommitHookCallbackDoneEvent) {
@@ -186,11 +208,17 @@ export class LoggingEventListener {
     }
   }
 
+  /**
+   * A module was applied.
+   */
   @OnEvent(ModuleEvent)
   onModule(event: ModuleEvent): void {
     this.logger.log.withMetadata({ name: event.name }).debug('Module loaded.');
   }
 
+  /**
+   * A decorated class registered itself at boot.
+   */
   @OnEvent(RegistrationEvent)
   onRegistration(event: RegistrationEvent): void {
     if (event instanceof AnchorRegistrationEvent) {
@@ -208,6 +236,9 @@ export class LoggingEventListener {
     }
   }
 
+  /**
+   * State was read or written.
+   */
   @OnEvent(SerializationEvent)
   async onSerialization(event: SerializationEvent<unknown>): Promise<void> {
     if (event instanceof ModelDeserializedEvent) {
@@ -253,6 +284,9 @@ export class LoggingEventListener {
     }
   }
 
+  /**
+   * The diffs, the transaction built from them, and each resource action as it runs.
+   */
   @OnEvent(TransactionEvent)
   onTransaction(event: TransactionEvent<any>): void {
     if (event instanceof ModelActionTransactionEvent) {
@@ -315,11 +349,17 @@ export class LoggingEventListener {
     }
   }
 
+  /**
+   * Identifies an in-flight resource action, so its duration can be reported on completion.
+   */
   private resourceActionKey(actionName: string, diff: DiffMetadata): string {
     return [diff.node.getContext(), diff.field, diff.action, actionName].join(':');
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<LoggingEventListener>(LoggingEventListener)
 export class LoggingEventListenerFactory {
   private static instance: LoggingEventListener;

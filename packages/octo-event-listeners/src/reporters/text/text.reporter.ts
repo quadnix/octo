@@ -20,6 +20,9 @@ function duration(report: OctoReport): string {
     : readable(report.durationInMs);
 }
 
+/**
+ * @internal
+ */
 function counters(report: OctoReport): string {
   const parts = CHANGE_ORDER.filter((kind) => kind !== 'other' || report.totals[kind] > 0).map(
     (kind) => `${CHANGE_SYMBOLS[kind]} ${report.totals[kind]} ${CHANGE_LABELS[kind]}`,
@@ -63,6 +66,9 @@ function resourceLines(resource: ReportResource, indent: string): string[] {
   return lines;
 }
 
+/**
+ * @internal
+ */
 function storyLines(story: ReportStory): string[] {
   const miniTotals = CHANGE_ORDER.filter((kind) => story.totals[kind] > 0)
     .map((kind) => `${CHANGE_SYMBOLS[kind]}${story.totals[kind]}`)
@@ -92,6 +98,9 @@ function storyLines(story: ReportStory): string[] {
   return lines;
 }
 
+/**
+ * @internal
+ */
 function unexplainedLines(entries: ReportUnexplained[]): string[] {
   return [...entries]
     .sort((a, b) => a.address.localeCompare(b.address))

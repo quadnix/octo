@@ -34,6 +34,9 @@ export class RunObserver {
    */
   private terraformInMs = 0;
 
+  /**
+   * @internal
+   */
   commitCompleted(payload: CommitModeCompletedEvent['payload']): void {
     if (this.observation) {
       this.observation.commit = payload;
@@ -60,6 +63,9 @@ export class RunObserver {
     return buildReport(observation);
   }
 
+  /**
+   * @internal
+   */
   modelTransaction(payload: DiffMetadata[][]): void {
     this.lastModelTransaction = payload;
     if (this.observation) {
@@ -67,6 +73,9 @@ export class RunObserver {
     }
   }
 
+  /**
+   * @internal
+   */
   modeStarted(payload: ModeStartedEvent['payload']): void {
     this.observation = {
       appName: payload.appName,
@@ -78,10 +87,16 @@ export class RunObserver {
     };
   }
 
+  /**
+   * @internal
+   */
   terraformCommandFinished(durationInMs: number): void {
     this.terraformInMs += durationInMs;
   }
 
+  /**
+   * @internal
+   */
   validateCompleted(report: ValidateModeCompletedEvent['payload']['report']): void {
     if (this.observation) {
       this.observation.validate = report;

@@ -6,18 +6,40 @@ import { type LevelWithSilentOrString, pino } from 'pino';
  * Where log records are written.
  *
  * `stderr` exists for `octo run-action`: terraform's `data "external"` protocol requires that
- * command's **stdout** to carry only the response JSON, which is why it used to run with no
- * listeners at all. Writing to stderr keeps stdout clean while making the SDK path observable —
- * terraform surfaces provisioner stderr in the apply log.
+ * command's **stdout** to carry only the response JSON. Writing to stderr keeps stdout clean while
+ * still making the run observable — terraform surfaces provisioner stderr in the apply log.
  */
 export type LogDestination = 'stderr' | 'stdout';
 
+/**
+ * How {@link LoggingEventListener} writes.
+ *
+ * @group Event Listeners
+ */
 export interface LoggerOptions {
+  /**
+   * Whether to emit ANSI colors. Defaults to whether the destination is a terminal.
+   */
   colorize?: boolean;
+
+  /**
+   * Which stream to write to.
+   *
+   * @defaultValue `'stdout'`
+   */
   destination?: LogDestination;
+
+  /**
+   * The minimum level to emit. See {@link LoggingEventListener} for what each level carries.
+   *
+   * @defaultValue `'info'`
+   */
   level?: LevelWithSilentOrString;
 }
 
+/**
+ * @internal
+ */
 export class Logger {
   private static sharedInstance: Logger | undefined;
 
@@ -25,6 +47,9 @@ export class Logger {
 
   private configuration = '';
 
+  /**
+   * @internal
+   */
   constructor(options: LoggerOptions = {}) {
     this.configure(options);
   }

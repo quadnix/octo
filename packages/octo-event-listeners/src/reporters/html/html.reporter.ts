@@ -12,6 +12,9 @@ import {
 import { formatTimestamp } from '../timestamp.js';
 import { REPORT_STYLES } from './report.styles.js';
 
+/**
+ * @internal
+ */
 function escapeHtml(value: unknown): string {
   return String(value ?? '')
     .replace(/&/g, '&amp;')
@@ -33,6 +36,9 @@ const CHANGE_VERBS_FUTURE: Record<ChangeKind, string> = {
   update: 'wants to change',
 };
 
+/**
+ * @internal
+ */
 function symbol(kind: ChangeKind): string {
   return `<span class="sym ${kind}">${CHANGE_SYMBOLS[kind]}</span>`;
 }
@@ -106,6 +112,9 @@ function renderChangedFields(row: ReportAddress): string {
   );
 }
 
+/**
+ * @internal
+ */
 function renderTerraformRows(resource: ReportResource): string {
   if (resource.terraform.length === 0) {
     return '<div class="res-none">no infrastructure change</div>';
@@ -126,6 +135,9 @@ function renderTerraformRows(resource: ReportResource): string {
   );
 }
 
+/**
+ * @internal
+ */
 function renderResource(resource: ReportResource): string {
   return (
     '<div class="res">' +
@@ -139,6 +151,9 @@ function renderResource(resource: ReportResource): string {
   );
 }
 
+/**
+ * @internal
+ */
 function renderMiniTotals(story: ReportStory): string {
   const parts = CHANGE_ORDER.filter((kind) => story.totals[kind] > 0).map(
     (kind) => `<span class="${kind}">${CHANGE_SYMBOLS[kind]}${story.totals[kind]}</span>`,
@@ -206,6 +221,9 @@ function renderStory(story: ReportStory): string {
   );
 }
 
+/**
+ * @internal
+ */
 function renderZoneRows(entries: ReportUnexplained[]): string {
   return entries
     .sort((a, b) => a.address.localeCompare(b.address))
@@ -221,6 +239,9 @@ function renderZoneRows(entries: ReportUnexplained[]): string {
     .join('');
 }
 
+/**
+ * @internal
+ */
 function renderDrift(report: OctoReport): string {
   if (report.drift.length === 0) {
     return '';
@@ -241,6 +262,9 @@ function renderDrift(report: OctoReport): string {
   );
 }
 
+/**
+ * @internal
+ */
 function renderUncertain(report: OctoReport): string {
   if (report.uncertain.length === 0) {
     return '';
@@ -251,6 +275,9 @@ function renderUncertain(report: OctoReport): string {
   );
 }
 
+/**
+ * @internal
+ */
 function renderFailures(report: OctoReport): string {
   if (report.failures.length === 0) {
     return '';
@@ -327,6 +354,9 @@ function renderCommit(report: OctoReport): string {
   );
 }
 
+/**
+ * @internal
+ */
 function renderNotes(report: OctoReport): string {
   const notes = [...report.notes, ...(report.commit?.warnings ?? [])];
   if (notes.length === 0) {

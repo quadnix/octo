@@ -168,6 +168,9 @@ export interface OctoReport {
   uncertain: ReportUnexplained[];
 }
 
+/**
+ * @internal
+ */
 export function emptyTotals(): Record<ChangeKind, number> {
   return { create: 0, delete: 0, other: 0, recreate: 0, update: 0 };
 }

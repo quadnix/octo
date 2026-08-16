@@ -17,6 +17,11 @@ import { type IndexRun, renderIndexHtml } from './reporters/html/index.reporter.
 import type { OctoReport } from './reporters/report.model.js';
 import { RunObserver } from './reporters/run.observer.js';
 
+/**
+ * Options for {@link HtmlReportEventListener}.
+ *
+ * @group Event Listeners
+ */
 export interface HtmlReportEventListenerOptions {
   /**
    * Where reports are written. Relative paths resolve against the process working directory.
@@ -36,22 +41,37 @@ function timestampFor(date: Date): string {
 }
 
 /**
- * Writes a report when `validate` or `commit` finishes. `generate` and `run-action` write none.
+ * Writes a browsable HTML report of each run, so that what a `validate` or `commit` concluded can be
+ * read after the fact, or attached to a pull request.
  *
+ * Enable it in `octo.yml` under `settings.listeners`, where `reportDir` is optional:
+ *
+ * ```yaml
+ * settings:
+ *   listeners:
+ *     - type: HtmlReportEventListener
+ *       reportDir: .octo/reports
+ * ```
+ *
+ * A report is written when `validate` or `commit` finishes; `generate` and `run-action` write none.
  * Per run, into `reportDir`:
  * - `<timestamp>-<mode>.html` - the page.
  * - `<timestamp>-<mode>.json` - the same report as data.
  * - `index.html` - every report in the directory, newest first.
  *
- * Writes files only. The terminal belongs to `LoggingEventListener`, which owns the process logger
- * and therefore its level and destination; both build their report from the same events, so they
- * cannot disagree about what happened.
+ * It writes files only, and never to the terminal - that belongs to {@link LoggingEventListener}.
+ * Both build their report from the same events, so the two cannot disagree.
+ *
+ * @group Event Listeners
  */
 export class HtmlReportEventListener {
   private readonly logger: Logger;
   private readonly observer = new RunObserver();
   private readonly reportDir: string;
 
+  /**
+   * @param options See {@link HtmlReportEventListenerOptions}.
+   */
   constructor({ reportDir }: HtmlReportEventListenerOptions = {}) {
     // Takes the process logger as it is configured. Level and destination belong to
     // `LoggingEventListener`, which owns logging; this listener only announces the file it wrote.
@@ -59,6 +79,9 @@ export class HtmlReportEventListener {
     this.reportDir = resolve(process.cwd(), reportDir ?? join('.octo', 'reports'));
   }
 
+  /**
+   * Records what the commit wrote back into state.
+   */
   @OnEvent(CommitModeCompletedEvent)
   onCommitCompleted(event: CommitModeCompletedEvent): void {
     this.observer.commitCompleted(event.payload);
@@ -74,26 +97,41 @@ export class HtmlReportEventListener {
     );
   }
 
+  /**
+   * Writes the report for a mode that succeeded.
+   */
   @OnEvent(ModeFinishedEvent)
   async onModeFinished(event: ModeFinishedEvent): Promise<void> {
     await this.writeReport(this.observer.finish({ durationInMs: event.payload.durationInMs }));
   }
 
+  /**
+   * Records the model changes, which the report attributes resource changes to.
+   */
   @OnEvent(ModelTransactionTransactionEvent)
   onModelTransaction(event: ModelTransactionTransactionEvent): void {
     this.observer.modelTransaction(event.payload);
   }
 
+  /**
+   * Begins a new report.
+   */
   @OnEvent(ModeStartedEvent)
   onModeStarted(event: ModeStartedEvent): void {
     this.observer.modeStarted(event.payload);
   }
 
+  /**
+   * Accumulates time spent in terraform, which the mode's own duration does not cover.
+   */
   @OnEvent(TerraformCommandFinishedEvent)
   onTerraformCommandFinished(event: TerraformCommandFinishedEvent): void {
     this.observer.terraformCommandFinished(event.payload.durationInMs);
   }
 
+  /**
+   * Records what validate concluded.
+   */
   @OnEvent(ValidateModeCompletedEvent)
   onValidateCompleted(event: ValidateModeCompletedEvent): void {
     this.observer.validateCompleted(event.payload.report);
@@ -141,6 +179,9 @@ export class HtmlReportEventListener {
     await writeFile(join(this.reportDir, 'index.html'), renderIndexHtml(runs), 'utf-8');
   }
 
+  /**
+   * Writes the HTML and JSON for one run, then rebuilds the index.
+   */
   private async writeReport(report: OctoReport | undefined): Promise<void> {
     if (!report) {
       return;
@@ -161,6 +202,9 @@ export class HtmlReportEventListener {
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<HtmlReportEventListener>(HtmlReportEventListener)
 export class HtmlReportEventListenerFactory {
   private static instance: HtmlReportEventListener;

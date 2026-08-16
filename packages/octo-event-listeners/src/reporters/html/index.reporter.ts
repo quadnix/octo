@@ -2,6 +2,9 @@ import { CHANGE_SYMBOLS, type ChangeKind, type OctoReport } from '../report.mode
 import { readableTimestamp } from '../timestamp.js';
 import { REPORT_STYLES } from './report.styles.js';
 
+/**
+ * @internal
+ */
 function escapeHtml(value: unknown): string {
   return String(value ?? '')
     .replace(/&/g, '&amp;')
