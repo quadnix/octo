@@ -194,7 +194,6 @@ describe('<Subject> UT', () => {
 - One `describe` per method, named `'methodName()'`, in the order the methods appear on the class.
 - Every `it` starts with `should`.
 - Error cases before happy paths within a method.
-- Module specs follow their own sequence — see `docs/agent-plans/octo-aws-cdk-test-module.md`.
 
 ## Public API
 

@@ -32,10 +32,6 @@ same scripts. `@nx.json` holds NX options and the release strategy.
 `@docs/agent-plans` holds task recipes. Read the matching one before starting; it is also your
 note-taking space — add what you learn.
 
-- `octo-aws-cdk-validate-resource.md` — validate an octo-aws-cdk resource definition.
-- `octo-aws-cdk-fix-resource.md` — fix a GitHub bug issue for an octo-aws-cdk resource.
-- `octo-aws-cdk-test-module.md` — write or validate an octo-aws-cdk module test.
-
 ## Workflow
 
 1. **Initiate.** Small refactor: stay local. Large feature or hands-free run: create a worktree **with permission**.
