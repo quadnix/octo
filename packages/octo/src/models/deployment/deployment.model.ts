@@ -21,11 +21,17 @@ import { DeploymentSchema } from './deployment.schema.js';
 export class Deployment extends AModel<DeploymentSchema, Deployment> {
   readonly deploymentTag: string;
 
+  /**
+   * @param deploymentTag The tag identifying the server's code at this point in time.
+   */
   constructor(deploymentTag: string) {
     super();
     this.deploymentTag = deploymentTag;
   }
 
+  /**
+   * @internal
+   */
   static override async unSynth(
     deployment: DeploymentSchema,
     deReferenceContext: (context: string) => Promise<UnknownModel>,
@@ -35,6 +41,9 @@ export class Deployment extends AModel<DeploymentSchema, Deployment> {
     return new Deployment(deployment.deploymentTag);
   }
 
+  /**
+   * @internal
+   */
   override setContext(): string | undefined {
     const parents = this.getParents();
     const parent = parents['server']?.[0]?.to;
@@ -46,6 +55,9 @@ export class Deployment extends AModel<DeploymentSchema, Deployment> {
     );
   }
 
+  /**
+   * @internal
+   */
   override synth(): DeploymentSchema {
     return {
       deploymentTag: this.deploymentTag,

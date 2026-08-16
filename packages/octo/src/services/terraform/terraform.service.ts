@@ -68,6 +68,17 @@ interface OctoTerraformResourceMapping {
   terraformAddresses: string[];
 }
 
+/**
+ * One octo resource's slice of the terraform module being generated.
+ *
+ * Obtained from {@link TerraformModuleScope.addOctoTerraformResource}. Everything you emit through it
+ * is attributed to that octo resource, which is how Octo later maps a terraform plan entry, and a
+ * terraform output, back to the resource it belongs to.
+ *
+ * @group Resources
+ *
+ * @see {@link ATerraformResource} for where this is used.
+ */
 export interface OctoTerraformResourceScope<
   TResponse extends BaseResourceSchema['response'] = BaseResourceSchema['response'],
 > {
@@ -96,6 +107,18 @@ interface TerraformModuleFiles {
   variablesTf: string;
 }
 
+/**
+ * The terraform module folder a resource writes itself into.
+ *
+ * Octo hands one to {@link ATerraformResource.toHCL}, scoped to the folder that resource belongs to.
+ * It is a small HCL builder: register the octo resource, emit blocks on the scope it returns, and
+ * reference other resources through {@link TerraformModuleScope.getRef} rather than by writing
+ * addresses by hand - only `getRef` knows whether the producer lands in this folder or another one.
+ *
+ * @group Resources
+ *
+ * @see {@link ATerraformResource} for where this is used.
+ */
 export interface TerraformModuleScope {
   /**
    * Wraps an octo resource whose lifecycle runs outside Terraform (e.g. a script or SDK call).
@@ -155,6 +178,9 @@ export interface TerraformModuleScope {
    */
   mapAttr(value: Record<string, unknown>): HclExpression;
 
+  /**
+   * The ID of the octo module this folder was generated for.
+   */
   readonly moduleId: string;
 
   /**
@@ -284,6 +310,9 @@ class OctoTerraformResource<TResponse extends BaseResourceSchema['response'] = B
   readonly outputs: Map<string, { name: string; sensitive: boolean; value: HclExpression }> = new Map();
   readonly terraformResources: TerraformResource[] = [];
 
+  /**
+   * @internal
+   */
   constructor(
     readonly resourceId: string,
     readonly resourceContext: string,
@@ -321,6 +350,9 @@ class OctoTerraformResource<TResponse extends BaseResourceSchema['response'] = B
     return terraformResource;
   }
 
+  /**
+   * @internal
+   */
   collectRefs(into: RefHclNode[]): void {
     this.terraformResources.forEach((r) => r.collectRefs(into));
     this.outputs.forEach((o) => o.value.collectRefs(into));
@@ -351,6 +383,9 @@ class TerraformModule {
   readonly resources: OctoTerraformResource[] = [];
   readonly variables: TerraformVariable[] = [];
 
+  /**
+   * @internal
+   */
   constructor(readonly moduleId: string) {}
 }
 
@@ -370,6 +405,12 @@ const REGIONLESS_PROVIDER_TYPES = new Set([
   'time',
 ]);
 
+/**
+ * Collects what every resource emitted through {@link TerraformModuleScope}, wires the references
+ * between module folders, and renders the terragrunt files {@link Octo.generate} writes.
+ *
+ * @internal
+ */
 export class TerraformService {
   private minTerraformVersion: string = '1.6.0';
   private readonly modules: Map<string, TerraformModule> = new Map();
@@ -382,10 +423,16 @@ export class TerraformService {
   private readonly resourceRegistry: Map<string, OctoTerraformResource> = new Map();
   private readonly sanitizedResourceIds: Map<string, string> = new Map(); // Sanitized id -> original id.
 
+  /**
+   * @internal
+   */
   private get step(): string {
     return ' '.repeat(this.indentLength);
   }
 
+  /**
+   * @internal
+   */
   constructor(
     private readonly runOctoResourceActionCommandPrefix: string = 'octo run-action',
     private readonly indentLength: number = 2,
@@ -485,10 +532,17 @@ export class TerraformService {
       }));
   }
 
+  /**
+   * The IDs of the module folders this run rendered.
+   */
   getModuleIds(): string[] {
     return [...this.modules.keys()];
   }
 
+  /**
+   * How each octo resource maps into terraform, which validate and commit read to match a plan
+   * entry or an output back to the resource that produced it.
+   */
   getOctoTerraformResourceMappings(): OctoTerraformResourceMapping[] {
     return [...this.resourceRegistry.values()].map((r) => {
       const isExternal = r.externalResultExpression !== undefined;
@@ -666,6 +720,9 @@ export class TerraformService {
     };
   }
 
+  /**
+   * Drops everything the last run rendered, keeping the registered providers and config.
+   */
   reset(): void {
     this.minTerraformVersion = '1.6.0';
     this.providers.clear();
@@ -686,6 +743,9 @@ export class TerraformService {
     this.sanitizedResourceIds.clear();
   }
 
+  /**
+   * The {@link TerraformModuleScope} handed to a resource's `toHCL()`, bound to one module folder.
+   */
   scope(moduleId: string): TerraformModuleScope {
     return {
       addOctoTerraformExternalResource: (octoResource) => this.addOctoTerraformExternalResource(moduleId, octoResource),
@@ -751,6 +811,9 @@ export class TerraformService {
 
     return octoTerraformResource;
   }
+  /**
+   * @internal
+   */
   private addOctoTerraformResource<T extends UnknownResource>(
     moduleId: string,
     octoResource: T,
@@ -810,6 +873,9 @@ export class TerraformService {
     return newResource;
   }
 
+  /**
+   * @internal
+   */
   private addTerraformData(
     moduleId: string,
     type: string,
@@ -1046,20 +1112,32 @@ export class TerraformService {
     return { alias: provider.alias, key, providerType: provider.providerType };
   }
 
+  /**
+   * @internal
+   */
   private getProviderAliasRef(moduleId: string, accountId: string, regionId?: string): HclExpression {
     const { alias, key, providerType } = this.findProvider(accountId, regionId);
     this.module(moduleId).providerKeys.add(key);
     return new ExpressionHclNode(`${providerType}.${alias}`);
   }
 
+  /**
+   * @internal
+   */
   private getRef<T extends UnknownResource>(
     resource: T,
     key: keyof ResourceSchema<T>['response'] & string,
   ): HclExpression;
+  /**
+   * @internal
+   */
   private getRef<S extends BaseResourceSchema>(
     resource: MatchingResource<S>,
     key: keyof S['response'] & string,
   ): HclExpression;
+  /**
+   * @internal
+   */
   private getRef(resource: UnknownResource | MatchingResource<any>, key: string): HclExpression {
     const resourceId =
       resource instanceof MatchingResource
@@ -1068,14 +1146,23 @@ export class TerraformService {
     return new RefHclNode(resourceId, key);
   }
 
+  /**
+   * @internal
+   */
   private jsonencode(subject: object | unknown[]): HclExpression {
     return new JsonEncodeHclNode(subject);
   }
 
+  /**
+   * @internal
+   */
   private mapAttr(value: Record<string, unknown>): HclExpression {
     return new MapHclNode(Object.entries(value).map(([k, v]) => [k, toHclNode(v)]));
   }
 
+  /**
+   * @internal
+   */
   private module(moduleId: string): TerraformModule {
     if (!this.modules.has(moduleId)) {
       this.modules.set(moduleId, new TerraformModule(moduleId));
@@ -1083,10 +1170,16 @@ export class TerraformService {
     return this.modules.get(moduleId)!;
   }
 
+  /**
+   * @internal
+   */
   private providerKey(providerType: string, accountId: string, regionId: string): string {
     return `${providerType}:${accountId}:${regionId}`;
   }
 
+  /**
+   * @internal
+   */
   private raw(value: unknown): HclExpression {
     return new ExpressionHclNode(String(value));
   }
@@ -1221,10 +1314,16 @@ export class TerraformService {
     return sections.join('\n\n');
   }
 
+  /**
+   * @internal
+   */
   private type(schema: unknown): HclExpression {
     return new TypeHclNode(schema);
   }
 
+  /**
+   * @internal
+   */
   private variable(
     moduleId: string,
     name: string,
@@ -1319,6 +1418,9 @@ export class TerraformService {
 export class TerraformServiceFactory {
   private static instance: TerraformService;
 
+  /**
+   * @internal
+   */
   static async create(
     {
       runOctoResourceActionCommandPrefix = 'octo run-action',

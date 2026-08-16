@@ -7,7 +7,22 @@ import { Region } from '../region/region.model.js';
 import { AccountSchema, AccountType } from './account.schema.js';
 
 /**
+ * An Account model is the cloud provider account the infrastructure below it is deployed into.
+ * It sits between the {@link App} and its {@link Region}s, so one app can span several accounts -
+ * e.g. a separate account per environment, or per cloud provider.
+ *
+ * Credentials are not held here. A module such as `AwsIniAccountModule` extends this model and
+ * supplies them.
+ *
+ * @example
+ * ```ts
+ * const account = new Account(AccountType.AWS, '1234567890');
+ * app.addAccount(account);
+ * ```
+ *
  * @group Models/Account
+ *
+ * @see Definition of [Default Models](/docs/fundamentals/models#default-models).
  */
 @Model<Account>('@octo', 'account', AccountSchema)
 export class Account extends AModel<AccountSchema, Account> {
@@ -15,6 +30,10 @@ export class Account extends AModel<AccountSchema, Account> {
 
   readonly accountType: AccountType;
 
+  /**
+   * @param accountType The cloud provider this account belongs to.
+   * @param accountId The provider's own identifier for the account.
+   */
   constructor(accountType: AccountType, accountId: string) {
     super();
 
@@ -22,6 +41,9 @@ export class Account extends AModel<AccountSchema, Account> {
     this.accountType = accountType;
   }
 
+  /**
+   * @internal
+   */
   static override async unSynth(
     account: AccountSchema,
     deReferenceContext: (context: string) => Promise<UnknownModel>,
@@ -46,6 +68,9 @@ export class Account extends AModel<AccountSchema, Account> {
     this.addChild('accountId', region, 'regionId');
   }
 
+  /**
+   * @internal
+   */
   override setContext(): string | undefined {
     const parents = this.getParents();
     const app = parents['app']?.[0]?.to;
@@ -55,6 +80,9 @@ export class Account extends AModel<AccountSchema, Account> {
     return [`${(this.constructor as typeof Account).NODE_NAME}=${this.accountId}`, app.getContext()].join(',');
   }
 
+  /**
+   * @internal
+   */
   override synth(): AccountSchema {
     return {
       accountId: this.accountId,

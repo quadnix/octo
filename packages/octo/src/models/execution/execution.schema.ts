@@ -3,11 +3,19 @@ import { Schema } from '../../functions/schema/schema.js';
 import type { IModelReference } from '../model.interface.js';
 
 /**
+ * Schema of the {@link Execution} model.
+ *
  * @group Models/Execution
  */
 export class ExecutionSchema {
+  /**
+   * The deployment whose code this execution runs.
+   */
   deployment = Schema<IModelReference>();
 
+  /**
+   * The environment this execution runs in.
+   */
   environment = Schema<IModelReference>();
 
   /**
@@ -23,5 +31,8 @@ export class ExecutionSchema {
   })
   environmentVariables = Schema<{ [key: string]: string }>();
 
+  /**
+   * The subnet this execution is placed in. It must belong to the same region as the environment.
+   */
   subnet = Schema<IModelReference>();
 }

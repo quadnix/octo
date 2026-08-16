@@ -9,20 +9,51 @@ import type { IResource, IResourceReference } from './resource.interface.js';
 import type { BaseResourceSchema } from './resource.schema.js';
 
 /**
+ * The base class of every resource - the nodes that describe actual cloud infrastructure.
+ *
+ * Where a model says *what you want*, a resource says *what exists*. Resources are never constructed
+ * by you directly; a model action declares them, and Octo diffs the declared graph against the last
+ * committed one to decide what to create, update, or destroy.
+ *
+ * A resource is identified by its `resourceId`, configured by its `properties`, and reports back
+ * through its `response` once the infrastructure exists.
+ *
+ * Most resources extend {@link ATerraformResource} rather than this class.
+ *
  * @group Resources
+ *
+ * @see Definition of [Resources](/docs/fundamentals/resources).
  */
 export abstract class AResource<S extends BaseResourceSchema, T extends UnknownResource>
   extends ANode<S, T>
   implements IResource<S, T>
 {
+  /**
+   * The resources this one is built on top of. A parent is always created before its children,
+   * and destroyed after them.
+   */
   readonly parents: (MatchingResource<BaseResourceSchema> | UnknownResource)[] = [];
 
+  /**
+   * What the cloud provider reported back about this resource, e.g. an ARN or a generated ID.
+   * It is empty until the resource has actually been created, and is what other resources read
+   * when they need to reference this one.
+   */
   readonly response: S['response'] = {};
 
+  /**
+   * The tags applied to this resource. See {@link Octo.registerTags} to set them in bulk.
+   */
   readonly tags: S['tags'] = {};
 
   private _deleteMarker = false;
 
+  /**
+   * @param resourceId The ID of the resource, unique across the infrastructure.
+   * @param properties The desired configuration of the resource.
+   * @param parents The resources this one is built on top of.
+   * @throws {@link ResourceError} If the resource ID is not alphanumeric with `-`, `_`, or `/`.
+   */
   protected constructor(
     readonly resourceId: S['resourceId'],
     readonly properties: S['properties'],
@@ -39,6 +70,9 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
     }
   }
 
+  /**
+   * @internal
+   */
   static async cloneResource<T extends UnknownResource>(
     sourceResource: T,
     deReferenceResource: (context: string) => Promise<UnknownResource>,
@@ -47,6 +81,9 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
     return deserializationClass.unSynth(deserializationClass, sourceResource.synth(), deReferenceResource);
   }
 
+  /**
+   * @internal
+   */
   static override async unSynth<S extends BaseResourceSchema, T>(
     deserializationClass: any,
     resource: S,
@@ -74,6 +111,9 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
     return newResource;
   }
 
+  /**
+   * @internal
+   */
   override addChild(
     onField: keyof T | string,
     child: UnknownResource,
@@ -120,6 +160,9 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
     throw new ResourceError('Relationships are not supported in resources!', this);
   }
 
+  /**
+   * @internal
+   */
   clonePropertiesInPlace(sourceResource: T): void {
     for (const key of Object.keys(this.properties)) {
       delete this.properties[key];
@@ -132,6 +175,9 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
     }
   }
 
+  /**
+   * @internal
+   */
   async cloneResourceInPlace(
     sourceResource: T,
     deReferenceResource: (context: string) => Promise<UnknownResource>,
@@ -186,6 +232,9 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
     this.cloneTagsInPlace(sourceResource);
   }
 
+  /**
+   * @internal
+   */
   cloneResponseInPlace(sourceResource: UnknownResource): void {
     for (const key of Object.keys(this.response)) {
       delete this.response[key];
@@ -198,6 +247,9 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
     }
   }
 
+  /**
+   * @internal
+   */
   cloneTagsInPlace(sourceResource: UnknownResource): void {
     for (const key of Object.keys(this.tags)) {
       delete this.tags[key];
@@ -207,6 +259,9 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
     }
   }
 
+  /**
+   * @internal
+   */
   override async diff(previous: T): Promise<Diff[]> {
     const diffs: Diff[] = [];
 
@@ -252,6 +307,9 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
     return diffs;
   }
 
+  /**
+   * @internal
+   */
   async diffInverse(diff: Diff, deReferenceResource: (context: string) => Promise<UnknownResource>): Promise<void> {
     if (diff.action === DiffAction.VALIDATE) {
       return;
@@ -327,10 +385,16 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
     }
   }
 
+  /**
+   * @internal
+   */
   override async diffProperties(previous: T): Promise<Diff[]> {
     return DiffUtility.diffObject(previous as unknown as UnknownResource, this, 'properties');
   }
 
+  /**
+   * @internal
+   */
   async diffTags(previous: T): Promise<Diff<UnknownResource, DiffValueTypeTagUpdate>[]> {
     const tagsToAdd: { [key: string]: string } = {};
     const tagsToDelete: string[] = [];
@@ -355,10 +419,21 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
     return [new Diff(this, DiffAction.UPDATE, 'tags', { add: tagsToAdd, delete: tagsToDelete, update: tagsToUpdate })];
   }
 
+  /**
+   * Splits one diff into the diffs a resource action will actually receive.
+   *
+   * Override it when a single change on this resource has to be applied as several ordered steps.
+   * The default returns the diff unchanged.
+   */
   diffUnpack(diff: Diff): Diff[] {
     return [diff];
   }
 
+  /**
+   * To find this resource's parents whose properties match every given filter.
+   *
+   * @param filters Each filter is a property `key` the parent must carry with the given `value`.
+   */
   findParentsByProperty(filters: { key: string; value: unknown }[]): UnknownResource[] {
     const parents: UnknownResource[] = [];
     const dependencies = Object.values(this.getParents()).flat();
@@ -371,6 +446,11 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
     return parents;
   }
 
+  /**
+   * To find this resource's parents whose tags match every given filter.
+   *
+   * @param filters Each filter is a tag `key` the parent must carry with the given `value`.
+   */
   findParentsByTag(filters: { key: string; value: string }[]): UnknownResource[] {
     const parents: UnknownResource[] = [];
     const dependencies = Object.values(this.getParents()).flat();
@@ -397,6 +477,9 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
     throw new ResourceError('Siblings are not supported in resources!', this);
   }
 
+  /**
+   * @internal
+   */
   isDeepEquals(other?: UnknownResource): boolean {
     if (!other) {
       return false;
@@ -424,10 +507,16 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
     });
   }
 
+  /**
+   * Whether this resource is marked for deletion, and will leave the graph at the end of the transaction.
+   */
   isMarkedDeleted(): boolean {
     return this._deleteMarker;
   }
 
+  /**
+   * @internal
+   */
   merge(previous: AResource<S, T>): AResource<S, T> {
     const currentDependencies = this.getDependencies();
     const previousDependencies = previous.getDependencies();
@@ -453,6 +542,12 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
     return previous;
   }
 
+  /**
+   * To mark this resource for deletion. It leaves the graph at the end of the transaction.
+   *
+   * @param force Removes the resource even if other resources still depend on it.
+   * @throws {@link RemoveResourceError} If the resource still has children, and `force` is not set.
+   */
   remove(force: boolean = false): void {
     const dependencies = this.getDependencies();
 
@@ -477,18 +572,28 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
     this._deleteMarker = true;
   }
 
+  /**
+   * @internal
+   */
   override setContext(): string {
     const nodePackage = (this.constructor as typeof AResource).NODE_PACKAGE;
     const nodeName = (this.constructor as typeof AResource).NODE_NAME;
     return `${nodePackage}/${nodeName}=${this.resourceId}`;
   }
 
+  /**
+   * To record what the cloud provider reported back about this resource.
+   * Keys absent from `response` are left as they were.
+   */
   setResponse(response: S['response']): void {
     for (const key of Object.keys(response || {}) as (keyof S['response'])[]) {
       this.response[key] = response[key] === undefined ? undefined : JSON.parse(JSON.stringify(response[key]));
     }
   }
 
+  /**
+   * @internal
+   */
   override synth(): S {
     const resourceSynth: BaseResourceSchema = {
       parents: this.parents.map((p) => {

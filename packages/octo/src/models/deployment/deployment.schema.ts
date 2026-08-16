@@ -2,6 +2,8 @@ import { Validate } from '../../decorators/validate.decorator.js';
 import { Schema } from '../../functions/schema/schema.js';
 
 /**
+ * Schema of the {@link Deployment} model.
+ *
  * @group Models/Deployment
  */
 export class DeploymentSchema {

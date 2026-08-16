@@ -6,15 +6,24 @@ import { AModule } from '../../modules/module.abstract.js';
 import { ModuleContainer } from '../../modules/module.container.js';
 import { TestOverlay } from './test-classes.js';
 
+/**
+ * @internal
+ */
 class TestAppModuleSchema {
   name = Schema<string>();
 }
 
+/**
+ * @internal
+ */
 class TestAppOverlayModuleSchema {
   anchorName = Schema<string>();
   app = Schema<App>();
 }
 
+/**
+ * @internal
+ */
 export function createAppModule(): Constructable<AModule<TestAppModuleSchema, App>> & {
   setClassName(className: string): Constructable<AModule<TestAppModuleSchema, App>>;
 } {
@@ -23,17 +32,26 @@ export function createAppModule(): Constructable<AModule<TestAppModuleSchema, Ap
 
     static override readonly MODULE_SCHEMA = TestAppModuleSchema;
 
+    /**
+     * @internal
+     */
     static setClassName(className: string): Constructable<AModule<TestAppModuleSchema, App>> {
       Object.defineProperty(this, 'name', { value: className });
       return this;
     }
 
+    /**
+     * @internal
+     */
     async onInit(inputs: TestAppModuleSchema): Promise<App> {
       return new App(inputs.name);
     }
   };
 }
 
+/**
+ * @internal
+ */
 export function createAppOverlayModule(): Constructable<AModule<TestAppOverlayModuleSchema, TestOverlay>> & {
   setClassName(className: string): Constructable<AModule<TestAppOverlayModuleSchema, TestOverlay>>;
 } {
@@ -42,11 +60,17 @@ export function createAppOverlayModule(): Constructable<AModule<TestAppOverlayMo
 
     static override readonly MODULE_SCHEMA = TestAppOverlayModuleSchema;
 
+    /**
+     * @internal
+     */
     static setClassName(className: string): Constructable<AModule<TestAppOverlayModuleSchema, TestOverlay>> {
       Object.defineProperty(this, 'name', { value: className });
       return this;
     }
 
+    /**
+     * @internal
+     */
     async onInit(inputs: TestAppOverlayModuleSchema): Promise<TestOverlay> {
       const anchor = inputs.app.getAnchor(inputs.anchorName)!;
       return new TestOverlay('test-overlay', {}, [anchor]);
@@ -54,6 +78,9 @@ export function createAppOverlayModule(): Constructable<AModule<TestAppOverlayMo
   };
 }
 
+/**
+ * @internal
+ */
 export async function runModule<M extends UnknownModule>(
   container: Container,
   { inputs, moduleId, type }: { inputs: ModuleSchemaInputs<M>; moduleId: string; type: Constructable<M> },

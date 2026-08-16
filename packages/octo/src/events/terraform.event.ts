@@ -4,8 +4,6 @@ import { Event } from './event.model.js';
  * The TerraformEvent class is the superclass for all events in relation to terraform and terragrunt.
  *
  * @group Events/Terraform
- *
- * @returns The Event instance.
  */
 export class TerraformEvent<T = undefined> extends Event<T> {}
 
@@ -14,8 +12,6 @@ export class TerraformEvent<T = undefined> extends Event<T> {}
  * `emptied` lists folders written without resources, because their module left intent.
  *
  * @group Events/Terraform
- *
- * @returns The Event instance.
  */
 export class TerraformFoldersWrittenEvent extends TerraformEvent<{
   emptied: string[];
@@ -27,8 +23,6 @@ export class TerraformFoldersWrittenEvent extends TerraformEvent<{
  * This event is emitted before a terraform/terragrunt command is invoked.
  *
  * @group Events/Terraform
- *
- * @returns The Event instance.
  */
 export class TerraformCommandStartedEvent extends TerraformEvent<{ command: string; dir: string }> {}
 
@@ -36,8 +30,6 @@ export class TerraformCommandStartedEvent extends TerraformEvent<{ command: stri
  * This event is emitted after a terraform/terragrunt command returns, whatever its exit code.
  *
  * @group Events/Terraform
- *
- * @returns The Event instance.
  */
 export class TerraformCommandFinishedEvent extends TerraformEvent<{
   command: string;

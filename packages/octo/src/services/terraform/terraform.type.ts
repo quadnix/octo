@@ -14,6 +14,9 @@ export interface RenderContext {
   step: string;
 }
 
+/**
+ * @internal
+ */
 export function toHclNode(value: unknown): HclExpression {
   if (value instanceof HclExpression) {
     return value;
@@ -27,13 +30,30 @@ export function toHclNode(value: unknown): HclExpression {
   return new LiteralHclNode(value as string | number | boolean | null | undefined);
 }
 
+/**
+ * A rendered terraform expression.
+ *
+ * You never construct one directly - {@link TerraformModuleScope}'s `raw()`, `jsonencode()`,
+ * `mapAttr()`, `type()`, and `getRef()` return them, and you pass them back as attribute values.
+ *
+ * @group Resources
+ */
 export abstract class HclExpression {
+  /**
+   * @internal
+   */
   collectRefs(_into: RefHclNode[]): void {}
 
   abstract render(indent: string, context: RenderContext): string;
 }
 
+/**
+ * @internal
+ */
 export class ExpressionHclNode extends HclExpression {
+  /**
+   * @internal
+   */
   constructor(private readonly text: string) {
     super();
   }
@@ -46,11 +66,20 @@ export class ExpressionHclNode extends HclExpression {
   }
 }
 
+/**
+ * @internal
+ */
 export class InterpolatedStringHclNode extends HclExpression {
+  /**
+   * @internal
+   */
   constructor(private readonly parts: (string | HclExpression)[]) {
     super();
   }
 
+  /**
+   * @internal
+   */
   override collectRefs(into: RefHclNode[]): void {
     this.parts.forEach((p) => {
       if (p instanceof HclExpression) {
@@ -70,11 +99,20 @@ export class InterpolatedStringHclNode extends HclExpression {
   }
 }
 
+/**
+ * @internal
+ */
 export class JsonEncodeHclNode extends HclExpression {
+  /**
+   * @internal
+   */
   constructor(private readonly subject: object | unknown[]) {
     super();
   }
 
+  /**
+   * @internal
+   */
   override collectRefs(into: RefHclNode[]): void {
     const walk = (value: unknown): void => {
       if (value instanceof HclExpression) {
@@ -141,11 +179,20 @@ export class JsonEncodeHclNode extends HclExpression {
   }
 }
 
+/**
+ * @internal
+ */
 export class ListHclNode extends HclExpression {
+  /**
+   * @internal
+   */
   constructor(private readonly items: HclExpression[]) {
     super();
   }
 
+  /**
+   * @internal
+   */
   override collectRefs(into: RefHclNode[]): void {
     this.items.forEach((i) => i.collectRefs(into));
   }
@@ -159,7 +206,13 @@ export class ListHclNode extends HclExpression {
   }
 }
 
+/**
+ * @internal
+ */
 export class LiteralHclNode extends HclExpression {
+  /**
+   * @internal
+   */
   constructor(private readonly value: boolean | number | null | string | undefined) {
     super();
   }
@@ -172,11 +225,20 @@ export class LiteralHclNode extends HclExpression {
   }
 }
 
+/**
+ * @internal
+ */
 export class MapHclNode extends HclExpression {
+  /**
+   * @internal
+   */
   constructor(private readonly entries: [string, HclExpression][]) {
     super();
   }
 
+  /**
+   * @internal
+   */
   override collectRefs(into: RefHclNode[]): void {
     this.entries.forEach(([, v]) => v.collectRefs(into));
   }
@@ -193,7 +255,13 @@ export class MapHclNode extends HclExpression {
   }
 }
 
+/**
+ * @internal
+ */
 export class MapHclNodeRaw extends HclExpression {
+  /**
+   * @internal
+   */
   constructor(private readonly lines: string[]) {
     super();
   }
@@ -221,6 +289,9 @@ export class MapHclNodeRaw extends HclExpression {
  * The map is wrapped in `jsonencode(...)` so it survives as a single string argument/trigger value.
  */
 export class RefHclNode extends HclExpression {
+  /**
+   * @internal
+   */
   constructor(
     readonly resourceId: string,
     readonly key: string,
@@ -229,6 +300,9 @@ export class RefHclNode extends HclExpression {
     super();
   }
 
+  /**
+   * @internal
+   */
   override collectRefs(into: RefHclNode[]): void {
     into.push(this);
   }
@@ -244,7 +318,13 @@ export class RefHclNode extends HclExpression {
   }
 }
 
+/**
+ * @internal
+ */
 export class TypeHclNode extends HclExpression {
+  /**
+   * @internal
+   */
   constructor(private readonly schema: unknown) {
     super();
   }
@@ -286,12 +366,21 @@ export class TypeHclNode extends HclExpression {
   }
 }
 
+/**
+ * @internal
+ */
 export class TerraformAttribute {
+  /**
+   * @internal
+   */
   constructor(
     private readonly key: string,
     private readonly value: HclExpression,
   ) {}
 
+  /**
+   * @internal
+   */
   collectRefs(into: RefHclNode[]): void {
     this.value.collectRefs(into);
   }
@@ -304,21 +393,39 @@ export class TerraformAttribute {
   }
 }
 
+/**
+ * A nested `<type> { ... }` block inside a resource or data source.
+ *
+ * @group Resources
+ */
 export class TerraformBlock {
   private readonly children: (TerraformAttribute | TerraformBlock)[] = [];
 
+  /**
+   * @internal
+   */
   constructor(private readonly type: string) {}
 
+  /**
+   * Sets an argument on this block. The value is converted to HCL, so a plain JS value works as
+   * well as an {@link HclExpression}.
+   */
   attribute(key: string, value: unknown): void {
     this.children.push(new TerraformAttribute(key, toHclNode(value)));
   }
 
+  /**
+   * Opens a nested block, e.g. `image_scanning_configuration { ... }`.
+   */
   block(type: string): TerraformBlock {
     const newBlock = new TerraformBlock(type);
     this.children.push(newBlock);
     return newBlock;
   }
 
+  /**
+   * @internal
+   */
   collectRefs(into: RefHclNode[]): void {
     this.children.forEach((c) => c.collectRefs(into));
   }
@@ -334,28 +441,49 @@ export class TerraformBlock {
   }
 }
 
+/**
+ * A `data "<type>" "<name>"` source, as returned by {@link TerraformModuleScope.addTerraformData}.
+ *
+ * @group Resources
+ */
 export class TerraformData {
   private readonly children: (TerraformAttribute | TerraformBlock)[] = [];
 
+  /**
+   * @internal
+   */
   private get address(): string {
     return `data.${this.type}.${this.name}`;
   }
 
+  /**
+   * @internal
+   */
   constructor(
     private readonly type: string,
     private readonly name: string,
   ) {}
 
+  /**
+   * Sets an argument on this block. The value is converted to HCL, so a plain JS value works as
+   * well as an {@link HclExpression}.
+   */
   attribute(key: string, value: unknown): void {
     this.children.push(new TerraformAttribute(key, toHclNode(value)));
   }
 
+  /**
+   * Opens a nested block, e.g. `image_scanning_configuration { ... }`.
+   */
   block(type: string): TerraformBlock {
     const newBlock = new TerraformBlock(type);
     this.children.push(newBlock);
     return newBlock;
   }
 
+  /**
+   * @internal
+   */
   collectRefs(into: RefHclNode[]): void {
     this.children.forEach((c) => c.collectRefs(into));
   }
@@ -377,7 +505,13 @@ export class TerraformData {
   }
 }
 
+/**
+ * @internal
+ */
 export class TerraformOutput {
+  /**
+   * @internal
+   */
   constructor(
     private readonly name: string,
     private readonly value: HclExpression,
@@ -397,29 +531,52 @@ export class TerraformOutput {
   }
 }
 
+/**
+ * A `resource "<type>" "<name>"` block, as returned by
+ * {@link OctoTerraformResourceScope.addTerraformResource}.
+ *
+ * @group Resources
+ */
 export class TerraformResource {
+  /**
+   * The terraform address of this resource, `<type>.<name>`. Interpolate it to reference an
+   * attribute terraform only knows after an apply.
+   */
   get address(): string {
     return `${this.type}.${this.name}`;
   }
 
   private readonly children: (TerraformAttribute | TerraformBlock)[] = [];
 
+  /**
+   * @internal
+   */
   constructor(
     private readonly type: string,
     private readonly name: string,
     private readonly intraDependsOn: string[], // Each intra TF resource of an octo resource depends on previous one.
   ) {}
 
+  /**
+   * Sets an argument on this block. The value is converted to HCL, so a plain JS value works as
+   * well as an {@link HclExpression}.
+   */
   attribute(key: string, value: unknown): void {
     this.children.push(new TerraformAttribute(key, toHclNode(value)));
   }
 
+  /**
+   * Opens a nested block, e.g. `image_scanning_configuration { ... }`.
+   */
   block(type: string): TerraformBlock {
     const newBlock = new TerraformBlock(type);
     this.children.push(newBlock);
     return newBlock;
   }
 
+  /**
+   * @internal
+   */
   collectRefs(into: RefHclNode[]): void {
     this.children.forEach((c) => c.collectRefs(into));
   }
@@ -449,6 +606,11 @@ export class TerraformResource {
   }
 }
 
+/**
+ * A module input variable, as returned by {@link TerraformModuleScope.variable}.
+ *
+ * @group Resources
+ */
 export class TerraformVariable {
   /**
    * Returns the `var.<name>` expression for consuming this variable.
@@ -457,12 +619,18 @@ export class TerraformVariable {
     return new ExpressionHclNode(`var.${this.name}`);
   }
 
+  /**
+   * @internal
+   */
   constructor(
     private readonly name: string,
     private readonly typeExpression: HclExpression,
     private readonly options: { default: TerraformLiteralType; sensitive: boolean },
   ) {}
 
+  /**
+   * @internal
+   */
   collectRefs(into: RefHclNode[]): void {
     this.typeExpression.collectRefs(into);
   }

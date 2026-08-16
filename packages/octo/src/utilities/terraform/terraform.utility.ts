@@ -32,6 +32,26 @@ interface TerraformPlanResult {
   plans: Map<string, TerraformPlan>;
 }
 
+/**
+ * Octo's single interface to the terraform and terragrunt binaries.
+ *
+ * {@link Octo.generate} writes module folders; this runs them, and turns their output back into the
+ * shapes the other modes expect - `plan(dir, { json: true })` feeds {@link Octo.validate}, and
+ * `output(dir, { json: true })` feeds {@link Octo.commit}. Routing every invocation through one class
+ * is what keeps flags, timeouts, and event emission consistent.
+ *
+ * Resolve it from the {@link Container} so that a run's terraform events reach the same listeners as
+ * everything else.
+ *
+ * @example
+ * ```ts
+ * const terraform = await Container.getInstance().get(TerraformUtility);
+ * const { errors, plans } = await terraform.plan('./infrastructure', { json: true });
+ * const report = await octo.validate(app, { errors, plans });
+ * ```
+ *
+ * @group Utilities/Terraform
+ */
 export class TerraformUtility {
   private onceArgs: string[] | undefined;
 
@@ -41,6 +61,10 @@ export class TerraformUtility {
     timeoutInMs: number;
   };
 
+  /**
+   * @param options Overrides for the binaries invoked and the per-command timeout. `terragruntBinary`
+   * defaults to `terragrunt`, and `timeoutInMs` to 60 minutes.
+   */
   constructor(options: { terraformBinary?: string; terragruntBinary?: string; timeoutInMs?: number } = {}) {
     this.options = {
       terraformBinary: options.terraformBinary,
@@ -50,6 +74,11 @@ export class TerraformUtility {
   }
 
   /**
+   * Runs `terragrunt run-all apply` over every generated module folder.
+   *
+   * **This changes real infrastructure**, and runs with `-auto-approve`. Use
+   * {@link TerraformUtility.findPlannedDestroys} beforehand if a destroy needs confirming.
+   *
    * @param onOutput Called with each chunk terragrunt writes, as it writes it. An apply can run for
    * tens of minutes, and the buffered result only arrives at the end - without this the caller has
    * nothing to show for the whole run. The chunks are also still accumulated into the result.
@@ -61,6 +90,11 @@ export class TerraformUtility {
     return this.runAll(terragruntDir, 'apply', ['-input=false', '-auto-approve', ...this.consumeArgs()], { onOutput });
   }
 
+  /**
+   * Runs `terragrunt run-all destroy` over every generated module folder.
+   *
+   * **This tears down real infrastructure**, and runs with `-auto-approve`.
+   */
   async destroy(terragruntDir: string): Promise<TerraformRawResult> {
     return this.runAll(terragruntDir, 'destroy', ['-input=false', '-auto-approve', ...this.consumeArgs()]);
   }
@@ -117,8 +151,20 @@ export class TerraformUtility {
     return moduleIds.sort();
   }
 
+  /**
+   * Reads the outputs of every generated module folder.
+   *
+   * @param options Pass `{ json: true }` to get the outputs parsed and keyed by `moduleId`, which is
+   * the shape {@link Octo.commit} takes. Without it, terragrunt's raw output is returned.
+   */
   output(terragruntDir: string, options: { json: true }): Promise<Map<string, TerraformOutputs>>;
+  /**
+   * @internal
+   */
   output(terragruntDir: string, options?: { json?: false }): Promise<TerraformRawResult>;
+  /**
+   * @internal
+   */
   async output(
     terragruntDir: string,
     options: { json?: boolean } = {},
@@ -140,8 +186,21 @@ export class TerraformUtility {
     });
   }
 
+  /**
+   * Plans every generated module folder.
+   *
+   * @param options Pass `{ json: true }` to get the plans parsed and keyed by `moduleId`, which is
+   * the shape {@link Octo.validate} takes - along with the `errors` of any folder that could not be
+   * planned. Without it, terragrunt's raw output is returned.
+   */
   plan(terragruntDir: string, options: { json: true }): Promise<TerraformPlanResult>;
+  /**
+   * @internal
+   */
   plan(terragruntDir: string, options?: { json?: false }): Promise<TerraformRawResult>;
+  /**
+   * @internal
+   */
   async plan(
     terragruntDir: string,
     options: { json?: boolean } = {},
@@ -168,10 +227,17 @@ export class TerraformUtility {
     });
   }
 
+  /**
+   * To append extra CLI arguments to the *next* command only. Returns `this`, so it chains.
+   */
   setArgsOnce(args: string[]): this {
     this.onceArgs = args;
     return this;
   }
+  /**
+   * Runs `terragrunt run-all validate` over every generated module folder, checking the generated
+   * HCL is well-formed. Unrelated to {@link Octo.validate}, which compares plans against intent.
+   */
   async validate(terragruntDir: string): Promise<TerraformRawResult> {
     return this.runAll(terragruntDir, 'validate', this.consumeArgs());
   }
@@ -204,6 +270,9 @@ export class TerraformUtility {
     });
   }
 
+  /**
+   * The environment a terragrunt command runs with, carrying the terraform binary override.
+   */
   private buildEnv(): NodeJS.ProcessEnv {
     const env = { ...process.env };
     env.TG_PROVIDER_CACHE ??= '1'; // Enable Terragrunt shared provider cache by default.
@@ -213,6 +282,9 @@ export class TerraformUtility {
     return env;
   }
 
+  /**
+   * Takes the arguments set by {@link TerraformUtility.setArgsOnce}, clearing them.
+   */
   private consumeArgs(): string[] {
     const args = this.onceArgs ?? [];
     this.onceArgs = undefined;
@@ -235,9 +307,8 @@ export class TerraformUtility {
    * Publishes the same started/finished pair {@link runAll} does, around a body that drives
    * terragrunt folder by folder instead.
    *
-   * The JSON-mode `plan` and `output` take that per-folder path, and used to emit nothing at all —
-   * so the slowest step of `validate` (a full plan, ~40s on an eight-folder stack) was a total
-   * silence in the log, followed by a mode that reported finishing in 2ms.
+   * The JSON-mode `plan` and `output` take that per-folder path, and it is the slowest step of a
+   * `validate` - a full plan runs for tens of seconds - so the log must not fall silent through it.
    */
   private async emitAround<T>(command: string, terragruntDir: string, body: () => Promise<T>): Promise<T> {
     const eventService = EventService.getInstance();
@@ -392,6 +463,9 @@ export class TerraformUtility {
     }
   }
 
+  /**
+   * Wraps whatever a failed spawn threw into a {@link TerraformCommandError}.
+   */
   private toTerraformCommandError(binary: string, args: string[], dir: string, error: unknown): TerraformCommandError {
     const e = error as { code?: number | string; message?: string; stderr?: string; stdout?: string };
     const exitCode = typeof e.code === 'number' ? e.code : -1;
@@ -409,6 +483,9 @@ export class TerraformUtility {
 export class TerraformUtilityFactory {
   private static instance: TerraformUtility;
 
+  /**
+   * @internal
+   */
   static async create(
     options: ConstructorParameters<typeof TerraformUtility>[0] = {},
     forceNew: boolean = false,

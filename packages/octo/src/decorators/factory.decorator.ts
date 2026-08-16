@@ -3,61 +3,45 @@ import { Container } from '../functions/container/container.js';
 
 /**
  * A `@Factory` is a class decorator to be placed on top of a class that represents a factory.
- * A factory is responsible for creating instances of a class.
+ * A factory is responsible for creating instances of a class - Octo resolves every service through one
+ * rather than calling `new`, which is what lets you swap an internal implementation for your own.
  *
- * It is possible to generate multiple factories for the same class
- * by assigning a unique set of metadata to the factory.
- * Of all registered factories, only one can be the default factory.
+ * The same class may have several factories, told apart by their metadata.
+ * The factory registered without metadata is the default.
  *
  * @example
  * ```ts
  * // Factory definition.
  * @Factory<MyService>(MyService, { metadata: { key: 'value' } })
  * export class MyServiceFactory {
- *   static async create(arg1, arg2, ...): Promise<MyService> { ... }
+ *   static async create(arg1, arg2): Promise<MyService> { ... }
  * }
  *
+ * const container = Container.getInstance();
+ *
  * // Get instance using default factory.
- * const myService = await Container.get(MyService);
+ * const myService = await container.get(MyService);
  *
  * // Get instance using specific factory.
- * const myService = await Container.get(MyService, { metadata: { key: 'value' } });
+ * const myService = await container.get(MyService, { metadata: { key: 'value' } });
  *
  * // Pass args to factory.
- * const myService = await Container.get(MyService, { args: [arg1, arg2, ...] });
+ * const myService = await container.get(MyService, { args: [arg1, arg2] });
  * ```
  * @group Decorators
  * @param type The type of class that the factory creates.
  * @param options Allows registering multiple factories for the same class that differ by metadata.
  * @remarks
- * If the factory is dependent on other factories, it should not block creation of its instance.
+ * A factory that produces a singleton must `await` its own dependencies *before* the instance check.
+ * Awaiting inside the check is a race - concurrent callers each pass the check while suspended,
+ * and each gets a different instance.
  * ```ts
- * // Correct, since creation of instance is not blocked.
- * // In this case, when multiple code paths are trying to get Container.get(MyService) at the same time,
- * // each of them will `await` for OtherService to get resolved,
- * // and the first to resolve will be able to create the instance, that the rest will re-use.
- * export class MyServiceFactory {
- *   private static instance: MyService;
- *   static async create(): Promise<MyService> {
- *     const otherInstance = await Container.get(OtherService);
- *     if (!this.instance) {
- *       this.instance = new MyService(otherInstance);
- *     }
+ * static async create(): Promise<MyService> {
+ *   const otherInstance = await Container.get(OtherService); // Await first.
+ *   if (!this.instance) {
+ *     this.instance = new MyService(otherInstance);
  *   }
- * }
- * ```
- * ```ts
- * // Wrong, since creation of instance is blocked.
- * // In this case, when multiple code paths are trying to get Container.get(MyService) at the same time,
- * // each of them will get a new instance since during `await` there is race condition.
- * export class MyServiceFactory {
- *   private static instance: MyService;
- *   static async create(): Promise<MyService> {
- *     if (!this.instance) {
- *       const otherInstance = await Container.get(OtherService);
- *       this.instance = new MyService(otherInstance);
- *     }
- *   }
+ *   return this.instance;
  * }
  * ```
  * @returns The decorated class.

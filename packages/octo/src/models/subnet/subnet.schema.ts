@@ -23,11 +23,20 @@ export enum SubnetType {
 }
 
 /**
+ * Schema of the {@link Subnet} model.
+ *
  * @group Models/Subnet
  */
 export class SubnetSchema {
+  /**
+   * The behavior options of the subnet.
+   * - See {@link Subnet.disableSubnetIntraNetwork} and {@link SubnetType}.
+   */
   options = Schema<{ disableSubnetIntraNetwork: boolean; subnetType: SubnetType }>();
 
+  /**
+   * The region this subnet belongs to.
+   */
   region = Schema<IModelReference>();
 
   /**

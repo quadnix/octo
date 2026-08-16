@@ -6,8 +6,6 @@ import { Event } from './event.model.js';
  * The ModeResultEvent class is the superclass for all events carrying what a mode concluded.
  *
  * @group Events/ModeResult
- *
- * @returns The Event instance.
  */
 export class ModeResultEvent<T> extends Event<T> {}
 
@@ -16,8 +14,6 @@ export class ModeResultEvent<T> extends Event<T> {}
  * The payload is the {@link ValidateReport} that `validate` returns to its caller.
  *
  * @group Events/ModeResult
- *
- * @returns The Event instance.
  */
 export class ValidateModeCompletedEvent extends ModeResultEvent<{ report: ValidateReport }> {}
 
@@ -25,8 +21,6 @@ export class ValidateModeCompletedEvent extends ModeResultEvent<{ report: Valida
  * This event is emitted when `commit` has recorded a terraform apply back into octo state.
  *
  * @group Events/ModeResult
- *
- * @returns The Event instance.
  */
 export class CommitModeCompletedEvent extends ModeResultEvent<{
   /**

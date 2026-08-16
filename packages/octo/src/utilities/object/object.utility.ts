@@ -5,6 +5,9 @@ import { ANode } from '../../functions/node/node.abstract.js';
  */
 export class ObjectUtility {
   // Source: https://stackoverflow.com/a/58496119/1834562
+  /**
+   * @internal
+   */
   static deepFreeze<T extends object>(object: T): void {
     Object.freeze(object);
     Object.values(object)
@@ -12,6 +15,9 @@ export class ObjectUtility {
       .forEach(ObjectUtility.deepFreeze);
   }
 
+  /**
+   * @internal
+   */
   static deepMergeInPlace(target: object, source: object): void {
     for (const key of Object.keys(source)) {
       const sourceValue = source[key];
@@ -29,10 +35,16 @@ export class ObjectUtility {
     }
   }
 
+  /**
+   * @internal
+   */
   static isPlainObject(value: unknown): value is object {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
   }
 
+  /**
+   * @internal
+   */
   static onEveryNestedKey(object: object, callback: (parent: object, key: string, value: unknown) => void): void {
     const keys = object instanceof ANode ? Object.keys(object.synth()) : Object.keys(object);
     for (const key of keys) {

@@ -11,9 +11,23 @@ type ValidationOptions<T> = {
  * A `@Validate` is a property decorator to validate a property.
  * It is typically used in {@link Schema} to validate schema properties.
  *
+ * Validation runs on assignment, and a failure throws a {@link ValidationTransactionError}.
+ * Declaring constraints here is what lets a module reject bad inputs before any infrastructure is touched.
+ *
+ * @example
+ * ```ts
+ * @Validate({ options: { maxLength: 65535, minLength: 1 } })
+ * containerPort = Schema<number>();
+ * ```
+ *
  * @group Decorators
  *
- * @see Techniques for [Validation](/docs/techniques/validation).
+ * @param validators One constraint, or an array of them. Each constraint carries the `options` to apply,
+ * and an optional `destruct` to reduce the property into the list of values the constraints run against.
+ * Without `destruct`, the property value is validated as-is.
+ * @param transform Runs before validation, and **replaces** the stored value with what it returns.
+ *
+ * @see Techniques for [Validation](/docs/techniques/validation) for the full list of constraints.
  */
 export function Validate<T>(
   validators: ValidationOptions<T> | ValidationOptions<T>[],

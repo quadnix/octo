@@ -26,8 +26,14 @@ export class Container {
 
   private readonly startupUnhandledPromises: Promise<unknown>[] = [];
 
+  /**
+   * @internal
+   */
   private constructor() {}
 
+  /**
+   * The Container is a singleton - this is how you reach it.
+   */
   static getInstance(): Container {
     if (!this.instance) {
       this.instance = new Container();
@@ -35,6 +41,9 @@ export class Container {
     return this.instance;
   }
 
+  /**
+   * @internal
+   */
   copyFactories(): { [key: string]: FactoryContainer<unknown>[] } {
     const newFactoriesCopy: { [key: string]: FactoryContainer<unknown>[] } = {};
 
@@ -52,8 +61,9 @@ export class Container {
   }
 
   /**
-   * `container.get()` allows to get an instance of a class using its factory.
-   * If the factory is not yet registered, it places a blocking promise in the queue to wait for the registration.
+   * To get an instance of a class from its factory.
+   * If the factory is not registered yet, this waits for it, and times out - see
+   * {@link Container.setFactoryTimeout}.
    *
    * @param type The type or name of the class to get.
    * @param options Allows selection of a specific factory to use to get the instance.
@@ -108,6 +118,9 @@ export class Container {
     return factory.create(...args);
   }
 
+  /**
+   * Whether a factory is registered for the class.
+   */
   has<T>(
     type: Constructable<T> | string,
     options?: {
@@ -125,7 +138,8 @@ export class Container {
   }
 
   /**
-   * `Container.registerFactory()` allows to register a factory for a class.
+   * To register a factory for a class. Prefer the {@link Factory} decorator; call this directly only
+   * when the factory is built at runtime.
    *
    * @param type The type or name of the class for which the factory is registered.
    * @param factory The factory class being registered.
@@ -164,10 +178,16 @@ export class Container {
     this.factories[name].push({ factory, metadata });
   }
 
+  /**
+   * @internal
+   */
   registerStartupUnhandledPromise<T>(promise: Promise<T>): void {
     this.startupUnhandledPromises.push(promise);
   }
 
+  /**
+   * To register a ready-made instance, instead of a factory that builds one.
+   */
   registerValue<T>(
     type: Constructable<T> | string,
     value: T,
@@ -178,6 +198,9 @@ export class Container {
     this.registerFactory(
       type,
       class {
+        /**
+         * @internal
+         */
         static async create(): Promise<T> {
           return value;
         }
@@ -187,7 +210,7 @@ export class Container {
   }
 
   /**
-   * `Container.reset()` clears all registered factories and empties the container. This is mostly used in testing.
+   * To clear every registered factory and empty the container. Mostly used in testing.
    */
   reset(): void {
     this.FACTORY_TIMEOUT_IN_MS = 3000;
@@ -199,6 +222,9 @@ export class Container {
     this.startupUnhandledPromises.splice(0, this.startupUnhandledPromises.length);
   }
 
+  /**
+   * @internal
+   */
   setFactories(factories: { [key: string]: FactoryContainer<unknown>[] }): void {
     for (const [type, factoryContainers] of Object.entries(factories)) {
       this.factories[type] = [];
@@ -212,20 +238,22 @@ export class Container {
   }
 
   /**
-   * The Container, by default, will wait a maximum of 5 seconds for a factory to resolve and provide an instance.
-   * This method allows to change that timeout.
+   * To change how long `get()` waits for a factory to be registered.
    *
+   * @defaultValue `3000`
    * @param timeoutInMs The timeout in milliseconds.
+   *
    */
   setFactoryTimeout(timeoutInMs: number): void {
     this.FACTORY_TIMEOUT_IN_MS = timeoutInMs;
   }
 
   /**
-   * `Container.unRegisterFactory()` will unregister all factories of a class.
+   * To unregister a class's factories, so that your own can take their place.
    *
-   * @param type The type or name of the class for which all factory is unregistered.
-   * @param options
+   * @param type The type or name of the class whose factories are unregistered.
+   * @param options Pass `metadata` to unregister one specific factory. Without it, all of the
+   * class's factories are unregistered.
    */
   unRegisterFactory<T>(type: Constructable<T> | string, options?: { metadata?: { [key: string]: string } }): void {
     const name = typeof type === 'string' ? type : type.name;
@@ -242,6 +270,9 @@ export class Container {
     }
   }
 
+  /**
+   * @internal
+   */
   async waitToResolveAllFactories(): Promise<void> {
     const promiseToResolveAllFactories: Promise<Factory<unknown>>[] = [];
 

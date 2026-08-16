@@ -27,11 +27,17 @@ export class InputService {
     _global: {},
   };
 
+  /**
+   * @internal
+   */
   constructor(
     private readonly overlayDataRepository: OverlayDataRepository,
     private readonly resourceDataRepository: ResourceDataRepository,
   ) {}
 
+  /**
+   * @internal
+   */
   getAllNodeKeys(moduleId: string): string[] {
     const keys: string[] = [];
 
@@ -56,33 +62,51 @@ export class InputService {
     return keys;
   }
 
+  /**
+   * @internal
+   */
   getMetadataKeys(moduleId: string): string[] {
     return Object.keys(this.metadata).filter((key) => key.startsWith(`${moduleId}.metadata`));
   }
 
+  /**
+   * @internal
+   */
   getModule<M extends UnknownModule>(moduleId: string): M | undefined {
     const moduleKey = `${moduleId}.module`;
     return this.modules[moduleKey] as M | undefined;
   }
 
+  /**
+   * @internal
+   */
   getModuleIdFromModel(model: UnknownModel): string | undefined {
     const context = model.getContext();
     const entry = Object.entries(this.models).find(([, m]) => m.getContext() === context);
     return entry?.[0].split('.')[0];
   }
 
+  /**
+   * @internal
+   */
   getModuleIdFromOverlay(overlay: UnknownOverlay): string | undefined {
     const context = overlay.getContext();
     const entry = Object.entries(this.overlays).find(([, o]) => o === context);
     return entry?.[0].split('.')[0];
   }
 
+  /**
+   * @internal
+   */
   getModuleIdFromResource(resource: UnknownResource): string | undefined {
     const context = resource.getContext();
     const entry = Object.entries(this.resources).find(([, r]) => r === context);
     return entry?.[0].split('.')[0];
   }
 
+  /**
+   * @internal
+   */
   getModuleResources(moduleId: string): UnknownResource[] {
     const resourceKeys: string[] = [];
 
@@ -137,6 +161,9 @@ export class InputService {
     this.inputs[inputKey] = value;
   }
 
+  /**
+   * @internal
+   */
   registerMetadata(moduleId: string, key: string, value: unknown): void {
     const metadataKey = `${moduleId}.metadata.${key}`;
     if (Object.prototype.hasOwnProperty.call(this.metadata, metadataKey)) {
@@ -157,6 +184,9 @@ export class InputService {
     this.models[modelKey] = model;
   }
 
+  /**
+   * @internal
+   */
   registerModule(moduleId: string, module: UnknownModule): void {
     const moduleKey = `${moduleId}.module`;
     if (Object.prototype.hasOwnProperty.call(this.modules, moduleKey)) {
@@ -189,6 +219,9 @@ export class InputService {
     this.resources[resourceKey] = resource.getContext();
   }
 
+  /**
+   * @internal
+   */
   registerTag(
     scope: true | { moduleId: string } | { moduleId: string; resourceContext: string },
     tags: { [key: string]: string },
@@ -233,6 +266,9 @@ export class InputService {
     }
   }
 
+  /**
+   * @internal
+   */
   resolve(key: string): unknown | undefined {
     if (!['metadata', 'tag'].includes(key.split('.')[1])) {
       key = this.resolveInputKey(key);
@@ -339,6 +375,9 @@ export class InputService {
     return this.resolveInputKey(pattern[1].trim(), maxRecursion - 1, originalInputKey || inputKey);
   }
 
+  /**
+   * @internal
+   */
   private resolveInputValue(inputValue: unknown, maxRecursion = 15, originalInputValue?: unknown): unknown {
     if (maxRecursion === 0) {
       throw new InputResolutionError('Input could not be resolved!', (originalInputValue || inputValue) as string);
@@ -360,6 +399,9 @@ export class InputService {
   }
 
   // Source: https://stackoverflow.com/a/69459511/1834562
+  /**
+   * @internal
+   */
   private resolveObjectPath(subject: object, path: string): any {
     if (!path.length) {
       return subject;
@@ -376,6 +418,9 @@ export class InputService {
 export class InputServiceFactory {
   private static instance: InputService;
 
+  /**
+   * @internal
+   */
   static async create(forceNew: boolean = false): Promise<InputService> {
     const overlayDataRepository = await Container.getInstance().get(OverlayDataRepository);
     const resourceDataRepository = await Container.getInstance().get(ResourceDataRepository);

@@ -25,6 +25,9 @@ export class EventService {
     };
   } = {};
 
+  /**
+   * @internal
+   */
   constructor() {
     this.emitter.on('*', (event: Event<unknown>) => {
       this.bufferEvent(event);
@@ -34,6 +37,9 @@ export class EventService {
     });
   }
 
+  /**
+   * @internal
+   */
   static getInstance(): EventService {
     if (!this.instance) {
       this.instance = new EventService();
@@ -41,6 +47,9 @@ export class EventService {
     return this.instance;
   }
 
+  /**
+   * @internal
+   */
   emit(event: Event<unknown>): void {
     this.emitter.emit('*', event);
   }
@@ -68,6 +77,9 @@ export class EventService {
     }
   }
 
+  /**
+   * @internal
+   */
   forwardEvent(event: Event<unknown>, listeners: ((event: Event<unknown>) => Promise<any>)[] = []): void {
     if (!listeners.length) {
       for (const eventClassName of Object.keys(this.listeners)) {
@@ -88,6 +100,9 @@ export class EventService {
     }
   }
 
+  /**
+   * @internal
+   */
   registerListeners(eventClass: Constructable<Event<unknown>>, target: any, descriptor: PropertyDescriptor): void {
     if (!this.listeners[eventClass.name]) {
       this.listeners[eventClass.name] = { eventClass, eventListeners: [] };
@@ -115,6 +130,9 @@ export class EventService {
     }
   }
 
+  /**
+   * @internal
+   */
   private bufferEvent(event: Event<unknown>): void {
     if (!this.eventBuffer[event.constructor.name]) {
       this.eventBuffer[event.constructor.name] = { eventClass: Object.getPrototypeOf(event).constructor, events: [] };
@@ -131,6 +149,9 @@ export class EventService {
  */
 @Factory<EventService>(EventService)
 export class EventServiceFactory {
+  /**
+   * @internal
+   */
   static async create(): Promise<EventService> {
     return EventService.getInstance();
   }

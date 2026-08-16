@@ -27,15 +27,26 @@ interface ResourceStateUserData {
 }
 
 /**
+ * Reads and writes Octo's state files through the configured {@link IStateProvider}.
+ *
+ * Resolve it from the {@link Container} when you need to inspect what the last run recorded.
+ * Octo manages its own state files, so writing through this service is rarely the right move.
+ *
  * @group Services/State Management
  */
 export class StateManagementService {
   private readonly stateProvider: IStateProvider;
 
+  /**
+   * @param stateProvider Where state is read from and written to.
+   */
   constructor(stateProvider: IStateProvider) {
     this.stateProvider = stateProvider;
   }
 
+  /**
+   * Reads the model graph. Returns an empty graph when no state exists yet.
+   */
   async getModelState(
     stateFileName: string,
     { freeze = true }: { freeze?: boolean } = {},
@@ -62,6 +73,9 @@ export class StateManagementService {
     }
   }
 
+  /**
+   * Reads a resource graph. Returns an empty graph when no state exists yet.
+   */
   async getResourceState(
     stateFileName: string,
     { freeze = true }: { freeze?: boolean } = {},
@@ -86,6 +100,11 @@ export class StateManagementService {
     }
   }
 
+  /**
+   * Reads a state file as-is.
+   *
+   * @param defaultValue Returned instead of throwing when the file does not exist.
+   */
   async getState(stateFileName: string, defaultValue?: any): Promise<Buffer> {
     try {
       return await this.stateProvider.getState(stateFileName);
@@ -98,6 +117,9 @@ export class StateManagementService {
     }
   }
 
+  /**
+   * @internal
+   */
   async saveModelState(
     stateFileName: string,
     data: ModelSerializedOutput,
@@ -106,6 +128,9 @@ export class StateManagementService {
     await this.saveState(stateFileName, Buffer.from(JSON.stringify({ data, userData })));
   }
 
+  /**
+   * @internal
+   */
   async saveResourceState(
     stateFileName: string,
     data: ResourceSerializedOutput,
@@ -114,6 +139,9 @@ export class StateManagementService {
     await this.saveState(stateFileName, Buffer.from(JSON.stringify({ data, userData })));
   }
 
+  /**
+   * Writes a state file as-is.
+   */
   async saveState(stateFileName: string, data: Buffer): Promise<void> {
     return this.stateProvider.saveState(stateFileName, data);
   }
@@ -126,6 +154,9 @@ export class StateManagementService {
 export class StateManagementServiceFactory {
   private static instance: StateManagementService;
 
+  /**
+   * @internal
+   */
   static async create(stateProvider?: IStateProvider): Promise<StateManagementService> {
     if (!this.instance) {
       if (!stateProvider) {

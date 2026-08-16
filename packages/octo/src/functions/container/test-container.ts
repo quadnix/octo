@@ -25,18 +25,27 @@ type TestContainerSubjects = {
 type TestContainerOptions = { factoryTimeoutInMs?: number; force?: boolean };
 
 /**
- * The TestContainer class is an isolated {@link Container} for tests.
+ * An isolated {@link Container} for tests.
+ *
+ * The Container is a process-wide singleton, which makes it awkward to mock. TestContainer solves
+ * that: create one in `beforeEach()` and it takes over the Container for that test, letting you
+ * replace any factory with a stub. `reset()` in `afterEach()` puts it back.
  *
  * :::info Info
- * A test framework like Jest, supports parallel test executions in different cores of the machine.
- * Each test is a single test file, whose `it()` blocks are executed serially.
+ * A test framework like Jest runs test *files* in parallel across cores, and the `it()` blocks
+ * within a file serially. So a TestContainer never leaks into a test running in parallel.
  * :::
  *
- * TestContainer is created with testing framework's parallel execution in mind.
- * A TestContainer should be created in the `beforeAll()` block of your test,
- * which modifies the Container for the duration of the test.
- * This TestContainer does not affect other tests in parallel since they are on a separate machine core.
- * Once tests are done executing, the `afterAll()` block cleans up the Container.
+ * @example
+ * ```ts
+ * beforeEach(async () => {
+ *   container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
+ * });
+ *
+ * afterEach(async () => {
+ *   await TestContainer.reset();
+ * });
+ * ```
  *
  * @group Functions/Container
  */
@@ -44,19 +53,16 @@ export class TestContainer {
   private static originalFactories: Container['factories'];
 
   /**
-   * The `TestContainer.create()` method allows you to mock factories.
+   * To take over the Container for one test, replacing the factories you name.
    *
    * @example
    * ```ts
-   * beforeAll(async () => {
-   *   await TestContainer.create({
-   *     mocks: [
-   *       { type: MyClass, value: jest.fn() },
-   *       { metadata: { key: 'value' }, type: AnotherClass, value: new AnotherClass() },
-   *     ],
-   *   }, { factoryTimeoutInMs: 500 });
-   * });
-   *
+   * await TestContainer.create({
+   *   mocks: [
+   *     { type: MyClass, value: jest.fn() },
+   *     { metadata: { key: 'value' }, type: AnotherClass, value: new AnotherClass() },
+   *   ],
+   * }, { factoryTimeoutInMs: 500 });
    * ```
    * @param subjects The subjects being mocked.
    * - `mocks` is an array of objects, to override the default factories.
@@ -93,16 +99,9 @@ export class TestContainer {
   }
 
   /**
-   * The `TestContainer.reset()` method will completely destroy all factories from the Container.
-   * Because the entire Container is destroyed, and not just the mocks,
-   * it must always be called in your `afterAll()` block.
-   *
-   * @example
-   * ```ts
-   * afterAll(async () => {
-   *   await TestContainer.reset();
-   * });
-   * ```
+   * To destroy every factory in the Container. Because it destroys the whole Container and not only
+   * the mocks, it must always be called in your teardown block - otherwise the next test starts
+   * against a Container this test left behind.
    */
   static async reset(): Promise<void> {
     Container.getInstance().reset();

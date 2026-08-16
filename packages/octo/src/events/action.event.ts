@@ -5,7 +5,5 @@ import { Event } from './event.model.js';
  * This can be used to emit log events within actions.
  *
  * @group Events/Action
- *
- * @returns The Event instance.
  */
 export class ActionEvent extends Event<{ message: string; metadata: Record<string, unknown> }> {}

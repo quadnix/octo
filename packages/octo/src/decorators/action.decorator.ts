@@ -15,28 +15,41 @@ import { AOverlay } from '../overlays/overlay.abstract.js';
 import { AResource } from '../resources/resource.abstract.js';
 import { TransactionService } from '../services/transaction/transaction.service.js';
 
+/**
+ * @internal
+ */
 function isModel(nodeClass: Constructable<UnknownNode>): nodeClass is Constructable<UnknownModel> {
   return nodeClass.prototype instanceof AModel;
 }
 
+/**
+ * @internal
+ */
 function isOverlay(nodeClass: Constructable<UnknownNode>): nodeClass is Constructable<UnknownOverlay> {
   return nodeClass.prototype instanceof AOverlay;
 }
 
+/**
+ * @internal
+ */
 function isResource(nodeClass: Constructable<UnknownNode>): nodeClass is Constructable<UnknownResource> {
   return nodeClass.prototype instanceof AResource;
 }
 
 /**
- * An `@Action` is a class decorator to be placed on top of a class that represents an action of one of ModelType.
- * - A NodeType.MODEL action must implement the {@link IModelAction} interface.
- * - A NodeType.OVERLAY action must implement the {@link IModelAction} interface.
- * - A NodeType.RESOURCE action must implement the {@link IResourceAction} interface.
+ * An `@Action` is a class decorator to be placed on top of a class that reacts to a change in the node it is
+ * declared for. Octo diffs your infrastructure on every run, and invokes the actions whose node changed.
+ *
+ * The interface the action implements is determined by the node it is declared for.
+ * - An action for a model or an overlay implements {@link IModelAction}, and produces resources.
+ * - An action for a resource implements {@link IResourceAction}, and talks to the cloud provider.
+ *
+ * The decorated class is resolved through the {@link Container}, so it must have a registered {@link Factory}.
  *
  * @example
  * ```ts
- * @Action(MyModelClass)
- * export class MyModelAction implements IModelAction { ... }
+ * @Action(MyModel)
+ * export class AddMyModelAction implements IModelAction<MyModule> { ... }
  * ```
  * @group Decorators
  * @param forNode The class of node for which this action is being declared.

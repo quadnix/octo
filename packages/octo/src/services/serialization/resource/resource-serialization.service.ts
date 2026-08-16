@@ -25,11 +25,17 @@ export class ResourceSerializationService {
 
   private RESOURCE_DESERIALIZATION_TIMEOUT_IN_MS = 3000;
 
+  /**
+   * @internal
+   */
   constructor(
     private readonly resourceDataRepository: ResourceDataRepository,
     private readonly inputService: InputService,
   ) {}
 
+  /**
+   * @internal
+   */
   @EventSource(ResourceDeserializedEvent)
   async deserialize(
     actualSerializedOutput: ResourceSerializedOutput,
@@ -47,6 +53,9 @@ export class ResourceSerializationService {
     );
   }
 
+  /**
+   * @internal
+   */
   @EventSource(ResourceRegistrationEvent)
   registerClass(className: string, deserializationClass: any): void {
     if (this.classMapping[className]) {
@@ -55,22 +64,34 @@ export class ResourceSerializationService {
     this.classMapping[className] = deserializationClass;
   }
 
+  /**
+   * @internal
+   */
   @EventSource(ActualResourceSerializedEvent)
   async serializeActualResources(): Promise<ResourceSerializedOutput> {
     const resources = this.resourceDataRepository.getActualResourcesByProperties();
     return this.serialize(resources);
   }
 
+  /**
+   * @internal
+   */
   @EventSource(NewResourceSerializedEvent)
   async serializeNewResources(): Promise<ResourceSerializedOutput> {
     const resources = this.resourceDataRepository.getNewResourcesByProperties();
     return this.serialize(resources);
   }
 
+  /**
+   * @internal
+   */
   setResourceDeserializationTimeout(timeoutInMs: number): void {
     this.RESOURCE_DESERIALIZATION_TIMEOUT_IN_MS = timeoutInMs;
   }
 
+  /**
+   * @internal
+   */
   private async _deserialize(serializedOutput: ResourceSerializedOutput, freeze: boolean): Promise<ActionOutputs> {
     const deReferencePromises: {
       [p: string]: [Promise<boolean>, (value: boolean) => void, (error: Error) => void, NodeJS.Timeout];
@@ -135,6 +156,9 @@ export class ResourceSerializationService {
     return seen;
   }
 
+  /**
+   * @internal
+   */
   private async serialize(resources: UnknownResource[]): Promise<ResourceSerializedOutput> {
     const dependencies: IDependency[] = [];
     const serializedResources: ResourceSerializedOutput['resources'] = {};
@@ -175,6 +199,9 @@ export class ResourceSerializationService {
 export class ResourceSerializationServiceFactory {
   private static instance: ResourceSerializationService;
 
+  /**
+   * @internal
+   */
   static async create(): Promise<ResourceSerializationService> {
     const resourceDataRepository = await Container.getInstance().get(ResourceDataRepository);
     const inputService = await Container.getInstance().get(InputService);

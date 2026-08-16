@@ -5,22 +5,28 @@ import { ModuleContainer } from '../modules/module.container.js';
 import { ValidationUtility } from '../utilities/validation/validation.utility.js';
 
 /**
- * A `@Module` is a class decorator to be placed on top of a class that represents a module.
- * - A Module class must implement the {@link IModule} interface.
- * - The {@link IModule.onInit} method is called to initialize the module,
- * and is where you will *define* your infrastructure.
+ * A `@Module` is a class decorator and must be placed on top of a class representing a module.
+ * - A module must also extend the {@link AModule} class.
+ * - For type safety, the type of module being decorated is passed to the decorator.
+ *
+ * Decorating a class registers it with Octo, which is what makes the module loadable by name
+ * with {@link Octo.loadModule}.
  *
  * @example
  * ```ts
- * @Module<MyInputInterface, OutputModel>('my-package', {})
- * export class MyModule implements IModule<Region> {
- *   constructor(inputs: IMyInputs) { ... }
- *
- *   async onInit(): Promise<Region> { ... }
- * }
+ * @Module<MyModule>('@example', MyModuleSchema)
+ * export class MyModule extends AModule<MyModuleSchema, MyRegion> { ... }
  * ```
+ *
  * @group Decorators
+ *
+ * @param packageName - The name of the package under which the module is registered.
+ * Selecting a unique package name helps avoid collisions between same module class names across different libraries.
+ * You will reuse the same package name throughout your library for different Octo components you create.
+ * @param schema - The schema of the module, describing the inputs it accepts.
+ *
  * @returns The decorated class.
+ *
  * @see Definition of [Modules](/docs/fundamentals/modules).
  */
 export function Module<T>(packageName: string, schema: Constructable<ModuleSchema<T>>): (constructor: any) => void {

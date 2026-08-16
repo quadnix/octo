@@ -10,6 +10,9 @@ import { AResource } from '../../resources/resource.abstract.js';
  * @internal
  */
 export class ValidationUtility {
+  /**
+   * @internal
+   */
   static validateCustom(subject: any, customFn: (subject: any) => boolean): boolean {
     if (typeof customFn !== 'function') {
       return false;
@@ -17,6 +20,9 @@ export class ValidationUtility {
     return customFn(subject);
   }
 
+  /**
+   * @internal
+   */
   static validateIsModel(
     subject: any,
     staticProperties: {
@@ -54,6 +60,9 @@ export class ValidationUtility {
     });
   }
 
+  /**
+   * @internal
+   */
   static validateIsOverlay(
     subject: any,
     staticProperties: {
@@ -93,6 +102,9 @@ export class ValidationUtility {
     });
   }
 
+  /**
+   * @internal
+   */
   static validateIsResource(
     subject: any,
     staticProperties: { NODE_NAME: string; NODE_PACKAGE?: string; resourceId?: string },
@@ -108,6 +120,9 @@ export class ValidationUtility {
     );
   }
 
+  /**
+   * @internal
+   */
   static validateIsSchema(subject: any, staticProperties: { schema: Constructable<any> }): boolean {
     try {
       getSchemaInstance(staticProperties.schema, subject);
@@ -120,6 +135,9 @@ export class ValidationUtility {
     }
   }
 
+  /**
+   * @internal
+   */
   static validateMaxLength(subject: any, maxLength: number): boolean {
     if (typeof subject === 'boolean') {
       return String(subject).length <= maxLength;
@@ -134,6 +152,9 @@ export class ValidationUtility {
     }
   }
 
+  /**
+   * @internal
+   */
   static validateMinLength(subject: any, minLength: number): boolean {
     if (typeof subject === 'boolean') {
       return String(subject).length >= minLength;
@@ -148,6 +169,9 @@ export class ValidationUtility {
     }
   }
 
+  /**
+   * @internal
+   */
   static validateRegex(subject: any, pattern: RegExp): boolean {
     if (typeof subject !== 'string') {
       return false;

@@ -4,17 +4,24 @@ import { ModelSerializationService } from '../services/serialization/model/model
 import { ValidationUtility } from '../utilities/validation/validation.utility.js';
 
 /**
- * An `@Anchor` is a class decorator to be placed on top of a class that represents an anchor.
- * - An anchor must extend the {@link AAnchor} class.
+ * An `@Anchor` is a class decorator and must be placed on top of a class representing an anchor.
+ * - An anchor must also extend the {@link AAnchor} class.
  *
  * @example
  * ```ts
- * @Anchor('my-package')
- * export class MyAnchor extends AAnchor { ... }
+ * @Anchor('@example')
+ * export class MyAnchor extends AAnchor<MyAnchorSchema, MyModel> { ... }
  * ```
+ *
  * @group Decorators
+ *
+ * @param packageName - The name of the package under which the anchor is registered.
+ * Selecting a unique package name helps avoid collisions between same anchor class names across different libraries.
+ * You will reuse the same package name throughout your library for different Octo components you create.
+ *
  * @returns The decorated class.
- * @see Definition of [Anchors](/docs/fundamentals/overlays).
+ *
+ * @see Definition of [Anchors](/docs/fundamentals/anchors).
  */
 export function Anchor(packageName: string): (constructor: any) => void {
   const container = Container.getInstance();

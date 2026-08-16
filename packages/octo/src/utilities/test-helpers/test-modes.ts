@@ -38,6 +38,9 @@ export class ExternalIgwResource extends AResource<BaseResourceSchema, ExternalI
   static override readonly NODE_SCHEMA = {};
   static override readonly NODE_TYPE: NodeType = NodeType.RESOURCE;
 
+  /**
+   * @internal
+   */
   constructor(resourceId: string, properties: BaseResourceSchema['properties'] = {}, parents: UnknownResource[] = []) {
     super(resourceId, properties, parents);
   }
@@ -54,10 +57,16 @@ export class TfSgResource extends ATerraformResource<BaseResourceSchema, TfSgRes
   static override readonly NODE_SCHEMA = {};
   static override readonly NODE_TYPE: NodeType = NodeType.RESOURCE;
 
+  /**
+   * @internal
+   */
   constructor(resourceId: string, properties: BaseResourceSchema['properties'] = {}, parents: UnknownResource[] = []) {
     super(resourceId, properties, parents);
   }
 
+  /**
+   * @internal
+   */
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {
     const igw = this.parents[0] as UnknownResource;
     const sgTf = terraform.addOctoTerraformResource(this as TfSgResource);
@@ -79,10 +88,16 @@ export class TfVpcResource extends ATerraformResource<BaseResourceSchema, TfVpcR
   static override readonly NODE_SCHEMA = {};
   static override readonly NODE_TYPE: NodeType = NodeType.RESOURCE;
 
+  /**
+   * @internal
+   */
   constructor(resourceId: string, properties: BaseResourceSchema['properties'] = {}, parents: UnknownResource[] = []) {
     super(resourceId, properties, parents);
   }
 
+  /**
+   * @internal
+   */
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {
     // Bind a provider only when the resource carries an accountId, so the default (provider-less)
     // graph keeps exercising the no-provider path while a provider-aware test can opt in.
@@ -113,10 +128,16 @@ export class ReplacingTfVpcResource extends ATerraformResource<BaseResourceSchem
   static override readonly NODE_SCHEMA = {};
   static override readonly NODE_TYPE: NodeType = NodeType.RESOURCE;
 
+  /**
+   * @internal
+   */
   constructor(resourceId: string, properties: BaseResourceSchema['properties'] = {}, parents: UnknownResource[] = []) {
     super(resourceId, properties, parents);
   }
 
+  /**
+   * @internal
+   */
   override async diffProperties(previous: ReplacingTfVpcResource): Promise<Diff[]> {
     if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties)) {
       return [new Diff(this, DiffAction.REPLACE, 'properties', '', 'CidrBlock change forces VPC recreation')];
@@ -124,6 +145,9 @@ export class ReplacingTfVpcResource extends ATerraformResource<BaseResourceSchem
     return [];
   }
 
+  /**
+   * @internal
+   */
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {
     const vpcTf = terraform.addOctoTerraformResource(this as ReplacingTfVpcResource);
     vpcTf.addTerraformResource('aws_vpc', this.resourceId, { cidr_block: this.properties['CidrBlock'] });
@@ -147,10 +171,16 @@ export class RefusingTfResource extends ATerraformResource<BaseResourceSchema, R
 
   static readonly toHCLInvocations: string[] = [];
 
+  /**
+   * @internal
+   */
   constructor(resourceId: string, properties: BaseResourceSchema['properties'] = {}, parents: UnknownResource[] = []) {
     super(resourceId, properties, parents);
   }
 
+  /**
+   * @internal
+   */
   override async diffProperties(previous: RefusingTfResource): Promise<Diff[]> {
     if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties)) {
       throw new ResourceError('Cannot update RefusingTfResource once it has been created!', this);
@@ -158,6 +188,9 @@ export class RefusingTfResource extends ATerraformResource<BaseResourceSchema, R
     return super.diffProperties(previous);
   }
 
+  /**
+   * @internal
+   */
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {
     RefusingTfResource.toHCLInvocations.push(this.resourceId);
     const tf = terraform.addOctoTerraformResource(this as RefusingTfResource);
@@ -198,6 +231,9 @@ export class TestModes {
   private readonly terraformConfigs: Parameters<Octo['registerTerraformConfig']>[] = [];
   private readonly terraformProviders: Parameters<Octo['registerTerraformProvider']>[] = [];
 
+  /**
+   * @internal
+   */
   private constructor(
     private readonly octo: Octo,
     readonly outputDir: string,
@@ -207,6 +243,9 @@ export class TestModes {
     private readonly testModuleContainer: TestModuleContainer,
   ) {}
 
+  /**
+   * @internal
+   */
   static async create(): Promise<TestModes> {
     const container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500, force: true });
 
@@ -267,11 +306,17 @@ export class TestModes {
     this.terraformProviders.length = 0;
   }
 
+  /**
+   * @internal
+   */
   async commit(...args: Parameters<Octo['commit']>): ReturnType<Octo['commit']> {
     await this.simulateFreshProcess();
     return this.octo.commit(...args);
   }
 
+  /**
+   * @internal
+   */
   async createProviderBoundResourceGraph(provider: { accountId: string; regionId?: string }): Promise<{
     app: App;
     vpc: TfVpcResource;
@@ -327,6 +372,9 @@ export class TestModes {
     return { app: app as App, igw, sg, vpc };
   }
 
+  /**
+   * @internal
+   */
   async createResourceGraph(options?: {
     save?: boolean;
   }): Promise<{ app: App; igw: ExternalIgwResource; sg: TfSgResource; vpc: TfVpcResource }> {
@@ -343,11 +391,17 @@ export class TestModes {
     return { app: app as App, igw, sg, vpc };
   }
 
+  /**
+   * @internal
+   */
   async generate(...args: Parameters<Octo['generate']>): ReturnType<Octo['generate']> {
     await this.simulateFreshProcess();
     return this.octo.generate(...args);
   }
 
+  /**
+   * @internal
+   */
   async getCommittedTerraformState(): Promise<{
     terraformFolders: TerraformFolderOutput[];
     terraformResources: TerraformResourceOutput[];
@@ -359,16 +413,25 @@ export class TestModes {
     };
   }
 
+  /**
+   * @internal
+   */
   async getModelState(): Promise<ModelSerializedOutput> {
     const { data } = await this.stateManagementService.getModelState('models.json');
     return data;
   }
 
+  /**
+   * @internal
+   */
   async getResourceState(fileName = 'resources-old.json'): Promise<ResourceSerializedOutput> {
     const { data } = await this.stateManagementService.getResourceState(fileName);
     return data;
   }
 
+  /**
+   * @internal
+   */
   async getTerraformFolderRecords(): Promise<TerraformFolderOutput[]> {
     const { userData } = await this.stateManagementService.getModelState('models.json');
     return userData.terraformFolders ?? [];
@@ -380,16 +443,25 @@ export class TestModes {
    */
   igwActionFilter: (diff: Diff) => boolean = () => true;
 
+  /**
+   * @internal
+   */
   registerTerraformConfig(...args: Parameters<Octo['registerTerraformConfig']>): void {
     this.terraformConfigs.push(args);
     this.octo.registerTerraformConfig(...args);
   }
 
+  /**
+   * @internal
+   */
   registerTerraformProvider(...args: Parameters<Octo['registerTerraformProvider']>): void {
     this.terraformProviders.push(args);
     this.octo.registerTerraformProvider(...args);
   }
 
+  /**
+   * @internal
+   */
   async runAction(...args: Parameters<Octo['runAction']>): ReturnType<Octo['runAction']> {
     await this.simulateFreshProcess();
     return this.octo.runAction(...args);
@@ -421,17 +493,26 @@ export class TestModes {
     }
   }
 
+  /**
+   * @internal
+   */
   async teardown(): Promise<void> {
     await rm(this.outputDir, { force: true, recursive: true });
     await this.testModuleContainer.reset();
     await TestContainer.reset();
   }
 
+  /**
+   * @internal
+   */
   async validate(...args: Parameters<Octo['validate']>): ReturnType<Octo['validate']> {
     await this.simulateFreshProcess();
     return this.octo.validate(...args);
   }
 
+  /**
+   * @internal
+   */
   writePlan(
     moduleId: string,
     resourceChanges: {
@@ -460,6 +541,9 @@ export class TestModes {
     });
   }
 
+  /**
+   * @internal
+   */
   writeTfState(moduleId: string, outputs: Record<string, unknown>): void {
     this.outputs.set(
       moduleId,

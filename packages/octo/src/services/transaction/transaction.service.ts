@@ -55,10 +55,16 @@ import { TerraformService } from '../terraform/terraform.service.js';
  * @internal
  */
 class TerraformNoopResourceAction implements IUnknownResourceAction {
+  /**
+   * @internal
+   */
   filter(): boolean {
     return true;
   }
 
+  /**
+   * @internal
+   */
   async handle(): Promise<void> {}
 }
 
@@ -70,6 +76,9 @@ export class TransactionService {
   private overlayActions: { actions: IUnknownModelAction[]; overlayClass: Constructable<UnknownOverlay> }[] = [];
   private resourceActions: { actions: IUnknownResourceAction[]; resourceClass: Constructable<UnknownResource> }[] = [];
 
+  /**
+   * @internal
+   */
   constructor(
     private readonly eventService: EventService,
     private readonly inputService: InputService,
@@ -124,6 +133,9 @@ export class TransactionService {
     return this.applyResources(deleteDiffs, { skipActualResourceUpdate: true });
   }
 
+  /**
+   * @internal
+   */
   async *beginTransaction(
     diffs: Diff[],
     {
@@ -307,6 +319,9 @@ export class TransactionService {
     return modelTransaction;
   }
 
+  /**
+   * @internal
+   */
   @EventSource(ModelActionRegistrationEvent)
   registerModelActions(forModel: Constructable<UnknownModel>, actions: IUnknownModelAction[]): void {
     const modelActions = this.modelActions.find((a) => a.modelClass === forModel);
@@ -322,6 +337,9 @@ export class TransactionService {
     }
   }
 
+  /**
+   * @internal
+   */
   @EventSource(ModelActionRegistrationEvent)
   registerOverlayActions(forOverlay: Constructable<UnknownOverlay>, actions: IUnknownModelAction[]): void {
     const overlayActions = this.overlayActions.find((a) => a.overlayClass === forOverlay);
@@ -337,6 +355,9 @@ export class TransactionService {
     }
   }
 
+  /**
+   * @internal
+   */
   @EventSource(ResourceActionRegistrationEvent)
   registerResourceActions(forResource: Constructable<UnknownResource>, actions: IUnknownResourceAction[]): void {
     if (forResource.prototype instanceof ATerraformResource) {
@@ -359,6 +380,9 @@ export class TransactionService {
     }
   }
 
+  /**
+   * @internal
+   */
   unregisterModelActions(forModel: Constructable<UnknownModel>): void {
     const modelActions = this.modelActions.find((a) => a.modelClass === forModel);
     if (!modelActions) {
@@ -368,6 +392,9 @@ export class TransactionService {
     modelActions.actions = [];
   }
 
+  /**
+   * @internal
+   */
   unregisterOverlayActions(forOverlay: Constructable<UnknownOverlay>): void {
     const overlayActions = this.overlayActions.find((a) => a.overlayClass === forOverlay);
     if (!overlayActions) {
@@ -377,6 +404,9 @@ export class TransactionService {
     overlayActions.actions = [];
   }
 
+  /**
+   * @internal
+   */
   private async applyModels(diffs: DiffMetadata[]): Promise<DiffMetadata[][]> {
     const transaction: DiffMetadata[][] = [];
 
@@ -504,6 +534,9 @@ export class TransactionService {
     return transaction;
   }
 
+  /**
+   * @internal
+   */
   private async applyResources(
     diffs: DiffMetadata[],
     { skipActualResourceUpdate = false }: { skipActualResourceUpdate?: boolean } = {},
@@ -702,10 +735,16 @@ export class TransactionService {
     }
   }
 
+  /**
+   * @internal
+   */
   private getDiffsOfSameNode(diff: DiffMetadata, diffs: DiffMetadata[], diffAction: DiffAction): DiffMetadata[] {
     return diffs.filter((d) => d.node.getContext() === diff.node.getContext() && d.action === diffAction);
   }
 
+  /**
+   * @internal
+   */
   private getDuplicateDiffs(diff: DiffMetadata, diffs: DiffMetadata[]): DiffMetadata[] {
     return diffs.filter(
       (d) =>
@@ -716,6 +755,9 @@ export class TransactionService {
     );
   }
 
+  /**
+   * @internal
+   */
   private getMatchingDiffs(diff: DiffMetadata, diffs: DiffMetadata[]): DiffMetadata[] {
     return diffs.filter(
       (d) =>
@@ -797,6 +839,9 @@ export class TransactionService {
 export class TransactionServiceFactory {
   private static instance: TransactionService;
 
+  /**
+   * @internal
+   */
   static async create(): Promise<TransactionService> {
     const container = Container.getInstance();
     const [

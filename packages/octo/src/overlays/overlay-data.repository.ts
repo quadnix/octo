@@ -8,8 +8,14 @@ import type { AOverlay } from './overlay.abstract.js';
  * @internal
  */
 export class OverlayDataRepository {
+  /**
+   * @internal
+   */
   constructor(private newOverlays: UnknownOverlay[]) {}
 
+  /**
+   * @internal
+   */
   add(overlay: UnknownOverlay): void {
     if ((overlay.constructor as typeof AOverlay).NODE_TYPE !== NodeType.OVERLAY) {
       throw new OverlayError('Adding non-overlay model!', overlay);
@@ -23,6 +29,9 @@ export class OverlayDataRepository {
     }
   }
 
+  /**
+   * @internal
+   */
   async diff(): Promise<Diff[]> {
     const diffs: Diff[] = [];
 
@@ -34,10 +43,16 @@ export class OverlayDataRepository {
     return diffs;
   }
 
+  /**
+   * @internal
+   */
   getByContext(overlayContext: string): UnknownOverlay | undefined {
     return this.newOverlays.find((o) => o.getContext() === overlayContext);
   }
 
+  /**
+   * @internal
+   */
   getByProperties(filters: { key: string; value: any }[] = []): UnknownOverlay[] {
     return this.newOverlays.filter((o) => filters.every((c) => o.properties[c.key] === c.value));
   }
@@ -50,6 +65,9 @@ export class OverlayDataRepository {
 export class OverlayDataRepositoryFactory {
   private static instance: OverlayDataRepository;
 
+  /**
+   * @internal
+   */
   static async create(forceNew = false, newOverlays: UnknownOverlay[] = []): Promise<OverlayDataRepository> {
     if (!this.instance) {
       this.instance = new OverlayDataRepository(newOverlays);

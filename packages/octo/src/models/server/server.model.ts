@@ -23,11 +23,17 @@ import { ServerSchema } from './server.schema.js';
 export class Server extends AModel<ServerSchema, Server> {
   readonly serverKey: string;
 
+  /**
+   * @param serverKey The name of the server, unique within the app.
+   */
   constructor(serverKey: string) {
     super();
     this.serverKey = serverKey;
   }
 
+  /**
+   * @internal
+   */
   static override async unSynth(
     server: ServerSchema,
     deReferenceContext: (context: string) => Promise<UnknownModel>,
@@ -52,6 +58,9 @@ export class Server extends AModel<ServerSchema, Server> {
     this.addChild('serverKey', deployment, 'deploymentTag');
   }
 
+  /**
+   * @internal
+   */
   override setContext(): string | undefined {
     const parents = this.getParents();
     const app = parents['app']?.[0]?.to;
@@ -61,6 +70,9 @@ export class Server extends AModel<ServerSchema, Server> {
     return [`${(this.constructor as typeof Server).NODE_NAME}=${this.serverKey}`, app.getContext()].join(',');
   }
 
+  /**
+   * @internal
+   */
   override synth(): ServerSchema {
     return {
       serverKey: this.serverKey,

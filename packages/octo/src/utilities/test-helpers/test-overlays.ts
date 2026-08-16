@@ -15,16 +15,25 @@ import type { BaseOverlaySchema } from '../../overlays/overlay.schema.js';
 import { ModelSerializationService } from '../../services/serialization/model/model-serialization.service.js';
 import { TransactionService } from '../../services/transaction/transaction.service.js';
 
+/**
+ * @internal
+ */
 export function createAnchor(): Constructable<AAnchor<BaseAnchorSchema, UnknownModel>> & {
   setClassName(className: string): Constructable<AAnchor<BaseAnchorSchema, UnknownModel>>;
 } {
   return class extends AAnchor<BaseAnchorSchema, UnknownModel> {
     static override readonly NODE_PACKAGE: string = '@octo';
 
+    /**
+     * @internal
+     */
     constructor(anchorId: string, properties: BaseAnchorSchema['properties'], parent: UnknownModel) {
       super(anchorId, properties, parent);
     }
 
+    /**
+     * @internal
+     */
     static setClassName(className: string): Constructable<AAnchor<BaseAnchorSchema, UnknownModel>> {
       Object.defineProperty(this, 'name', { value: className });
       return this;
@@ -32,6 +41,9 @@ export function createAnchor(): Constructable<AAnchor<BaseAnchorSchema, UnknownM
   };
 }
 
+/**
+ * @internal
+ */
 export function createOverlay(
   nodeName: string,
 ): Constructable<AOverlay<any, any>> & { setClassName(className: string): Constructable<AOverlay<any, any>> } {
@@ -41,10 +53,16 @@ export function createOverlay(
     static override readonly NODE_SCHEMA = {};
     static override readonly NODE_TYPE: NodeType = NodeType.OVERLAY;
 
+    /**
+     * @internal
+     */
     constructor(overlayId: string, properties: BaseOverlaySchema['properties'] = {}, anchors: UnknownAnchor[] = []) {
       super(overlayId, properties, anchors);
     }
 
+    /**
+     * @internal
+     */
     static setClassName(className: string): Constructable<AOverlay<any, any>> {
       Object.defineProperty(this, 'name', { value: className });
       return this;

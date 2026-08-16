@@ -19,6 +19,9 @@ export class TestAction {}
 export class TestAnchor extends AAnchor<BaseAnchorSchema, UnknownModel> {
   static override readonly NODE_PACKAGE: string = '@octo';
 
+  /**
+   * @internal
+   */
   constructor(anchorId: string, properties: BaseAnchorSchema['properties'], parent: UnknownModel) {
     super(anchorId, properties, parent);
   }
@@ -33,14 +36,23 @@ export class TestModelWithoutUnsynth extends AModel<object, TestModelWithoutUnsy
   static override readonly NODE_SCHEMA = {};
   static override readonly NODE_TYPE: NodeType = NodeType.MODEL;
 
+  /**
+   * @internal
+   */
   override async diffProperties(): Promise<Diff[]> {
     return [];
   }
 
+  /**
+   * @internal
+   */
   override setContext(): string {
     return 'test-model=test';
   }
 
+  /**
+   * @internal
+   */
   override synth(): object {
     return {};
   }
@@ -55,6 +67,9 @@ export class TestOverlay extends AOverlay<BaseOverlaySchema, TestOverlay> {
   static override readonly NODE_SCHEMA = {};
   static override readonly NODE_TYPE: NodeType = NodeType.OVERLAY;
 
+  /**
+   * @internal
+   */
   constructor(
     overlayId: BaseOverlaySchema['overlayId'],
     properties: BaseOverlaySchema['properties'],
@@ -73,6 +88,9 @@ export class TestResource extends AResource<BaseResourceSchema, TestResource> {
   static override readonly NODE_SCHEMA = {};
   static override readonly NODE_TYPE: NodeType = NodeType.RESOURCE;
 
+  /**
+   * @internal
+   */
   constructor(resourceId: string, properties: BaseResourceSchema['properties'] = {}, parents: UnknownResource[] = []) {
     super(resourceId, properties, parents);
   }

@@ -26,11 +26,27 @@ import { SchemaTranslationService } from '../services/schema-translation/schema-
 import type { IModel } from './model.interface.js';
 
 /**
+ * The base class of every model - the nodes that describe your infrastructure as *intent*,
+ * before any cloud resource is involved.
+ *
+ * You rarely extend `AModel` directly. Extend one of the base models Octo ships - {@link App},
+ * {@link Region}, {@link Server}, and so on - so that the rest of the ecosystem knows what your
+ * model is. `AModel` is where the behavior common to all of them lives: anchors, and the queries a
+ * module uses to find what other modules have already built.
+ *
  * @group Models
+ *
+ * @see Definition of [Models](/docs/fundamentals/models).
  */
 export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> implements IModel<S, T> {
+  /**
+   * The anchors attached to this model, whether declared on it or borrowed from another model.
+   */
   readonly anchors: (MatchingAnchor<BaseAnchorSchema> | UnknownAnchor)[] = [];
 
+  /**
+   * @internal
+   */
   static override async unSynth(...args: unknown[]): Promise<UnknownModel> {
     if (args.length > 4) {
       throw new Error('Too many args in unSynth()');
@@ -39,6 +55,10 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
     throw new Error('Method not implemented! Use derived class implementation');
   }
 
+  /**
+   * To attach an {@link AAnchor} to this model.
+   * An anchor is only added once - re-adding the same anchor, identified by its ID and parent, throws.
+   */
   addAnchor(anchor: MatchingAnchor<BaseAnchorSchema> | UnknownAnchor): void {
     const existingAnchor =
       anchor instanceof MatchingAnchor
@@ -51,6 +71,9 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
     }
   }
 
+  /**
+   * @internal
+   */
   deriveDependencyField(): string | undefined {
     if (this.getDependencies().length === 0 && (this.constructor as typeof ANode).NODE_NAME === 'app') {
       return 'name';
@@ -63,6 +86,9 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
       ?.getRelationship()!.onField;
   }
 
+  /**
+   * @internal
+   */
   override async diff(): Promise<Diff[]> {
     const diffs: Diff[] = [];
 
@@ -104,10 +130,19 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
     return diffs;
   }
 
+  /**
+   * @internal
+   */
   override async diffProperties(): Promise<Diff[]> {
     return [];
   }
 
+  /**
+   * To get an attached anchor by its ID.
+   *
+   * @param anchorId The ID of the anchor.
+   * @param parent The model that declared the anchor. Defaults to self.
+   */
   getAnchor(anchorId: string, parent?: UnknownModel): UnknownAnchor | undefined {
     const index = this.getAnchorIndex(anchorId, parent);
     if (index === -1) {
@@ -122,6 +157,12 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
     }
   }
 
+  /**
+   * The position of an attached anchor in {@link AModel.anchors}, or `-1` when it is not attached.
+   *
+   * @param anchorId The ID of the anchor.
+   * @param parent The model that declared the anchor. Defaults to self.
+   */
   getAnchorIndex(anchorId: string, parent?: UnknownModel): number {
     return this.anchors.findIndex((a) => {
       if (a instanceof MatchingAnchor) {
@@ -135,6 +176,12 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
     });
   }
 
+  /**
+   * To get all attached anchors, narrowed by anchor class and/or by the value of their properties.
+   *
+   * @param filters Each filter is a property `key` the anchor must carry with the given `value`.
+   * @param types The anchor classes to keep. An empty list keeps every class.
+   */
   getAnchors(
     filters: { key: string; value: unknown }[] = [],
     types: Constructable<MatchingAnchor<BaseAnchorSchema> | UnknownAnchor>[] = [],
@@ -153,6 +200,20 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
       .map((a) => (a instanceof MatchingAnchor ? a.getActual() : a));
   }
 
+  /**
+   * To find anchors by their *schema* rather than by their class.
+   *
+   * This is how a module consumes what another module produced without importing its classes -
+   * you match on the shape you need, and any anchor satisfying that shape is returned.
+   * Anchors that do not satisfy the schema are skipped, not reported as errors.
+   *
+   * @param from The anchor schema to match against.
+   * @param propertyFilters Each filter is a property `key` the anchor must carry with the given `value`.
+   * @param options `searchBoundaryMembers` searches the whole boundary this model belongs to.
+   * Set it to `false` to search only this model.
+   *
+   * @see Definition of [Anchors](/docs/fundamentals/anchors).
+   */
   async getAnchorsMatchingSchema<S extends BaseAnchorSchema>(
     from: Constructable<S>,
     propertyFilters: ObjectKeyValue<S['properties']>[] = [],
@@ -191,6 +252,14 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
     return matches.map((m) => new MatchingAnchor(m[0], m[1]));
   }
 
+  /**
+   * To find models by their schema. See {@link AModel.getAnchorsMatchingSchema}.
+   *
+   * @param schema The model schema to match against.
+   * @param filters Each filter is a schema `key` the model must carry with the given `value`.
+   * @param options `searchBoundaryMembers` searches the whole boundary this model belongs to.
+   * Set it to `false` to search only this model.
+   */
   async getModelsMatchingSchema<S extends object>(
     schema: Constructable<S>,
     filters: ObjectKeyValue<S>[] = [],
@@ -228,6 +297,14 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
     return matches.map((m) => new MatchingModel(m[0], m[1]));
   }
 
+  /**
+   * To find overlays by their schema. See {@link AModel.getAnchorsMatchingSchema}.
+   *
+   * @param schema The overlay schema to match against.
+   * @param propertyFilters Each filter is a property `key` the overlay must carry with the given `value`.
+   * @param options `searchBoundaryMembers` searches the whole boundary this model belongs to.
+   * Set it to `false` to search only this model.
+   */
   async getOverlaysMatchingSchema<S extends BaseOverlaySchema>(
     schema: Constructable<S>,
     propertyFilters: ObjectKeyValue<S['properties']>[] = [],
@@ -269,6 +346,18 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
     return matches.map((m) => new MatchingModel(m[0], m[1]));
   }
 
+  /**
+   * To find resources by their schema. See {@link AModel.getAnchorsMatchingSchema}.
+   *
+   * Only resources produced by the modules that own the searched models are considered, so this
+   * returns another module's resources rather than every resource in the run.
+   *
+   * @param schema The resource schema to match against.
+   * @param propertyFilters Each filter is a property `key` the resource must carry with the given `value`.
+   * @param responseFilters Each filter is a response `key` the resource must carry with the given `value`.
+   * @param options `searchBoundaryMembers` searches the whole boundary this model belongs to.
+   * Set it to `false` to search only this model.
+   */
   async getResourcesMatchingSchema<S extends BaseResourceSchema>(
     schema: Constructable<S>,
     propertyFilters: ObjectKeyValue<S['properties']>[] = [],
@@ -323,6 +412,9 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
     return matches.map((m) => new MatchingResource(m[0], m[1]));
   }
 
+  /**
+   * To detach every anchor from this model.
+   */
   removeAllAnchors(): void {
     const anchors = this.getAnchors();
     while (anchors.length > 0) {
@@ -330,6 +422,9 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
     }
   }
 
+  /**
+   * To detach an anchor from this model. Detaching an anchor that is not attached is a no-op.
+   */
   removeAnchor(anchor: MatchingAnchor<BaseAnchorSchema> | UnknownAnchor): void {
     const existingAnchorIndex =
       anchor instanceof MatchingAnchor

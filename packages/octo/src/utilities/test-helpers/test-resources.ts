@@ -42,6 +42,9 @@ export async function commitResources({
   await resourceSerializationService.deserialize(actualSerializedResources, oldSerializedResources);
 }
 
+/**
+ * @internal
+ */
 export function createResource(
   nodeName: string,
 ): Constructable<AResource<any, any>> & { setClassName(className: string): Constructable<AResource<any, any>> } {
@@ -51,6 +54,9 @@ export function createResource(
     static override readonly NODE_SCHEMA = {};
     static override readonly NODE_TYPE: NodeType = NodeType.RESOURCE;
 
+    /**
+     * @internal
+     */
     constructor(
       resourceId: string,
       properties: BaseResourceSchema['properties'] = {},
@@ -59,6 +65,9 @@ export function createResource(
       super(resourceId, properties, parents);
     }
 
+    /**
+     * @internal
+     */
     static setClassName(className: string): Constructable<AResource<any, any>> {
       Object.defineProperty(this, 'name', { value: className });
       return this;
@@ -81,6 +90,9 @@ export function createTerraformResource(nodeName: string): Constructable<ATerraf
     static override readonly NODE_SCHEMA = {};
     static override readonly NODE_TYPE: NodeType = NodeType.RESOURCE;
 
+    /**
+     * @internal
+     */
     constructor(
       resourceId: string,
       properties: BaseResourceSchema['properties'] = {},
@@ -89,6 +101,9 @@ export function createTerraformResource(nodeName: string): Constructable<ATerraf
       super(resourceId, properties, parents);
     }
 
+    /**
+     * @internal
+     */
     override async toHCL(terraform: TerraformModuleScope): Promise<void> {
       const octoResource = terraform.addOctoTerraformResource(this);
       if (Object.keys(this.response).length > 0) {

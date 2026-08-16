@@ -12,8 +12,6 @@ import { Event } from './event.model.js';
  * The RegistrationEvent class is the superclass for all events in relation to class registration.
  *
  * @group Events/Registration
- *
- * @returns The Event instance.
  */
 export class RegistrationEvent extends Event<void> {}
 
@@ -22,10 +20,11 @@ export class RegistrationEvent extends Event<void> {}
  * It emits the name of the class.
  *
  * @group Events/Registration
- *
- * @returns The Event instance.
  */
 export class AnchorRegistrationEvent extends RegistrationEvent {
+  /**
+   * @internal
+   */
   static override registrar(eventService: EventService, descriptor: PropertyDescriptor): void {
     const originalMethod: (
       ...args: Parameters<ModelSerializationService['registerClass']>
@@ -48,10 +47,11 @@ export class AnchorRegistrationEvent extends RegistrationEvent {
  * It emits the name of the model class and the name of the action.
  *
  * @group Events/Registration
- *
- * @returns The Event instance.
  */
 export class ModelActionRegistrationEvent extends RegistrationEvent {
+  /**
+   * @internal
+   */
   static override registrar(eventService: EventService, descriptor: PropertyDescriptor): void {
     type MethodParameters =
       | Parameters<TransactionService['registerModelActions']>
@@ -77,10 +77,11 @@ export class ModelActionRegistrationEvent extends RegistrationEvent {
  * It emits the name of the class.
  *
  * @group Events/Registration
- *
- * @returns The Event instance.
  */
 export class ModelRegistrationEvent extends RegistrationEvent {
+  /**
+   * @internal
+   */
   static override registrar(eventService: EventService, descriptor: PropertyDescriptor): void {
     const originalMethod: (
       ...args: Parameters<ModelSerializationService['registerClass']>
@@ -103,10 +104,11 @@ export class ModelRegistrationEvent extends RegistrationEvent {
  * It emits the name of the class.
  *
  * @group Events/Registration
- *
- * @returns The Event instance.
  */
 export class OverlayRegistrationEvent extends RegistrationEvent {
+  /**
+   * @internal
+   */
   static override registrar(eventService: EventService, descriptor: PropertyDescriptor): void {
     const originalMethod: (
       ...args: Parameters<ModelSerializationService['registerClass']>
@@ -129,10 +131,11 @@ export class OverlayRegistrationEvent extends RegistrationEvent {
  * It emits the name of the resource class and the name of the action.
  *
  * @group Events/Registration
- *
- * @returns The Event instance.
  */
 export class ResourceActionRegistrationEvent extends RegistrationEvent {
+  /**
+   * @internal
+   */
   static override registrar(eventService: EventService, descriptor: PropertyDescriptor): void {
     const originalMethod: (
       ...args: Parameters<TransactionService['registerResourceActions']>
@@ -155,10 +158,11 @@ export class ResourceActionRegistrationEvent extends RegistrationEvent {
  * It emits the name of the class.
  *
  * @group Events/Registration
- *
- * @returns The Event instance.
  */
 export class ResourceRegistrationEvent extends RegistrationEvent {
+  /**
+   * @internal
+   */
   static override registrar(eventService: EventService, descriptor: PropertyDescriptor): void {
     const originalMethod: (
       ...args: Parameters<ResourceSerializationService['registerClass']>

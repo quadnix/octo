@@ -2,6 +2,9 @@
  * @internal
  */
 export class ArrayUtility {
+  /**
+   * @internal
+   */
   static intersect<T>(compareFn: (a: T, b: T) => boolean, ...args: T[][]): T[] {
     for (const arg of args) {
       if (!Array.isArray(arg)) {

@@ -85,6 +85,9 @@ export interface IModel<S, T extends UnknownModel> extends INode<S, T> {
 }
 
 /**
+ * A pointer to another model, held as its context string rather than as an object reference.
+ * Schemas use it wherever one model refers to another, so that a serialized model stays flat.
+ *
  * @group Models
  */
 export interface IModelReference extends INodeReference {}

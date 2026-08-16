@@ -8,6 +8,9 @@ export class SchemaTranslationService {
   private readonly translations: Map<Constructable<unknown>, Map<Constructable<unknown>, (from: unknown) => unknown>> =
     new Map();
 
+  /**
+   * @internal
+   */
   getTranslatedSchema<S1, S2>(
     from: Constructable<S1>,
   ): { schema: Constructable<S2>; translator: (synth: S2) => S1 } | undefined {
@@ -23,6 +26,9 @@ export class SchemaTranslationService {
     };
   }
 
+  /**
+   * @internal
+   */
   registerSchemaTranslation<S1, S2>(
     from: Constructable<S1>,
     to: Constructable<S2>,
@@ -42,6 +48,9 @@ export class SchemaTranslationService {
 export class SchemaTranslationServiceFactory {
   private static instance: SchemaTranslationService;
 
+  /**
+   * @internal
+   */
   static async create(): Promise<SchemaTranslationService> {
     if (!this.instance) {
       this.instance = new SchemaTranslationService();

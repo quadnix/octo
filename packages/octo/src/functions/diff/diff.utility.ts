@@ -5,6 +5,11 @@ import { ANode } from '../node/node.abstract.js';
 import { Diff, DiffAction } from './diff.js';
 
 /**
+ * Helpers for producing {@link Diff}s between two versions of a node.
+ *
+ * Use them when overriding `diffProperties()` on a model or resource - each one compares a single
+ * field of the previous node against the latest, and returns the diffs that field's change implies.
+ *
  * @group Functions/Diff
  */
 export class DiffUtility {
@@ -176,6 +181,13 @@ export class DiffUtility {
     return diff;
   }
 
+  /**
+   * Whether two values are deeply equal.
+   *
+   * @param x The first value.
+   * @param y The second value.
+   * @param excludePaths Dot-separated paths to ignore, e.g. `tags`.
+   */
   static isObjectDeepEquals(x: unknown, y: unknown, excludePaths: string[] = [], currentPath: string[] = []): boolean {
     if (x instanceof AAnchor && y instanceof AAnchor) {
       return this.isObjectDeepEquals(x.synth(), y.synth(), excludePaths, currentPath);
@@ -210,6 +222,9 @@ export class DiffUtility {
     }
   }
 
+  /**
+   * The diffs that deleting a node implies - the node itself, and every child below it.
+   */
   private static generateDeleteDiff(node: UnknownNode, field: string): Diff[] {
     const diff: Diff[] = [];
 

@@ -26,8 +26,14 @@ export class ModelActionHook implements IHook<PreHookSignature, PostHookSignatur
     [key: string]: Omit<PreHookSignature, 'action'>[];
   } = {};
 
+  /**
+   * @internal
+   */
   private constructor() {}
 
+  /**
+   * @internal
+   */
   static getInstance(): ModelActionHook {
     if (!this.instance) {
       this.instance = new ModelActionHook();
@@ -35,6 +41,9 @@ export class ModelActionHook implements IHook<PreHookSignature, PostHookSignatur
     return this.instance;
   }
 
+  /**
+   * @internal
+   */
   collectHooks(hooks: { postHooks?: PostHookSignature[]; preHooks?: PreHookSignature[] }): void {
     for (const { action, handle } of hooks.postHooks || []) {
       if (!this.postModelActionHooks[action.constructor.name]) {
@@ -51,6 +60,9 @@ export class ModelActionHook implements IHook<PreHookSignature, PostHookSignatur
     }
   }
 
+  /**
+   * @internal
+   */
   registrar(modelAction: IUnknownModelAction): void {
     // `self` here references this class, vs `this` references the original method.
     // eslint-disable-next-line @typescript-eslint/no-this-alias
@@ -80,6 +92,9 @@ export class ModelActionHook implements IHook<PreHookSignature, PostHookSignatur
     };
   }
 
+  /**
+   * @internal
+   */
   reset(): void {
     for (const name in this.postModelActionHooks) {
       delete this.postModelActionHooks[name];

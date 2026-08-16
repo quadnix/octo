@@ -281,8 +281,14 @@ export function create({
   return result;
 }
 
+/**
+ * @internal
+ */
 function createTestServiceModel(serviceId: string, properties: Record<string, unknown>): Constructable<Service> {
   const TestServiceClass = class extends Service {
+    /**
+     * @internal
+     */
     constructor() {
       super(serviceId);
 
@@ -291,6 +297,9 @@ function createTestServiceModel(serviceId: string, properties: Record<string, un
       }
     }
 
+    /**
+     * @internal
+     */
     override synth(): ServiceSchema {
       return {
         ...properties,
@@ -304,6 +313,9 @@ function createTestServiceModel(serviceId: string, properties: Record<string, un
   return TestServiceClass;
 }
 
+/**
+ * @internal
+ */
 function splitEntry(entry: string, currentIndex: number): [string, ...number[]] {
   const parts = entry.split(':');
   if (parts.length === 1) {

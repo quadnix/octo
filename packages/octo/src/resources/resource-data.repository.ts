@@ -10,6 +10,9 @@ import type { AResource } from './resource.abstract.js';
 export class ResourceDataRepository {
   private dirtyResources: UnknownResource[] = [];
 
+  /**
+   * @internal
+   */
   constructor(
     private actualResources: UnknownResource[],
     private oldResources: UnknownResource[],
@@ -28,6 +31,9 @@ export class ResourceDataRepository {
     }
   }
 
+  /**
+   * @internal
+   */
   addActualResource(resource: UnknownResource): void {
     if ((resource.constructor as typeof AResource).NODE_TYPE !== NodeType.RESOURCE) {
       throw new ResourceError('Adding non-resource node!', resource);
@@ -42,6 +48,9 @@ export class ResourceDataRepository {
     }
   }
 
+  /**
+   * @internal
+   */
   addNewResource(resource: UnknownResource): void {
     if ((resource.constructor as typeof AResource).NODE_TYPE !== NodeType.RESOURCE) {
       throw new ResourceError('Adding non-resource node!', resource);
@@ -62,6 +71,9 @@ export class ResourceDataRepository {
     }
   }
 
+  /**
+   * @internal
+   */
   async diff(): Promise<Diff[]> {
     const oldResources: ActionOutputs = this.oldResources.reduce(
       (accumulator, current) => ({ ...accumulator, [current.getContext()]: current }),
@@ -108,6 +120,9 @@ export class ResourceDataRepository {
     return diffs;
   }
 
+  /**
+   * @internal
+   */
   async diffDirty(): Promise<Diff[]> {
     const actualResources: ActionOutputs = this.actualResources.reduce(
       (accumulator, current) => ({ ...accumulator, [current.getContext()]: current }),
@@ -159,6 +174,9 @@ export class ResourceDataRepository {
     return diffs;
   }
 
+  /**
+   * @internal
+   */
   diffValidate(): Diff[] {
     const diffs: Diff[] = [];
 
@@ -169,6 +187,9 @@ export class ResourceDataRepository {
     return diffs;
   }
 
+  /**
+   * @internal
+   */
   ensureDiffsNotOperatingOnDirtyResources(diffs: Diff[]): void {
     if (diffs.some((d) => this.dirtyResources.some((dr) => d.node.hasAncestor(dr)))) {
       throw new DiffsOnDirtyResourcesTransactionError(
@@ -179,22 +200,37 @@ export class ResourceDataRepository {
     }
   }
 
+  /**
+   * @internal
+   */
   getActualResourceByContext(context: string): UnknownResource | undefined {
     return this.actualResources.find((r) => r.getContext() === context);
   }
 
+  /**
+   * @internal
+   */
   getActualResourcesByProperties(filters: { key: string; value: any }[] = []): UnknownResource[] {
     return this.actualResources.filter((r) => filters.every((c) => r.properties[c.key] === c.value));
   }
 
+  /**
+   * @internal
+   */
   getNewResourceByContext(context: string): UnknownResource | undefined {
     return this.newResources.find((r) => r.getContext() === context);
   }
 
+  /**
+   * @internal
+   */
   getNewResourcesByProperties(filters: { key: string; value: any }[] = []): UnknownResource[] {
     return this.newResources.filter((r) => filters.every((c) => r.properties[c.key] === c.value));
   }
 
+  /**
+   * @internal
+   */
   removeNewResource(resource: UnknownResource): void {
     if ((resource.constructor as typeof AResource).NODE_TYPE !== NodeType.RESOURCE) {
       throw new ResourceError('Removing non-resource node!', resource);
@@ -228,6 +264,9 @@ export class ResourceDataRepository {
 export class ResourceDataRepositoryFactory {
   private static instance: ResourceDataRepository;
 
+  /**
+   * @internal
+   */
   static async create(
     forceNew: boolean = false,
     actualResources: UnknownResource[] = [],

@@ -26,11 +26,17 @@ import { RegionSchema } from './region.schema.js';
 export class Region extends AModel<RegionSchema, Region> {
   readonly regionId: string;
 
+  /**
+   * @param regionId The ID of the region, unique within its account.
+   */
   constructor(regionId: string) {
     super();
     this.regionId = regionId;
   }
 
+  /**
+   * @internal
+   */
   static override async unSynth(
     region: RegionSchema,
     deReferenceContext: (context: string) => Promise<UnknownModel>,
@@ -55,6 +61,9 @@ export class Region extends AModel<RegionSchema, Region> {
     this.addChild('regionId', environment, 'environmentName');
   }
 
+  /**
+   * To add a {@link Filesystem}.
+   */
   addFilesystem(filesystem: Filesystem): void {
     const childrenDependencies = this.getChildren('filesystem');
     if (!childrenDependencies['filesystem']) childrenDependencies['filesystem'] = [];
@@ -82,6 +91,9 @@ export class Region extends AModel<RegionSchema, Region> {
     this.addChild('regionId', subnet, 'subnetId');
   }
 
+  /**
+   * @internal
+   */
   override setContext(): string | undefined {
     const parents = this.getParents();
     const account = parents['account']?.[0]?.to;
@@ -91,6 +103,9 @@ export class Region extends AModel<RegionSchema, Region> {
     return [`${(this.constructor as typeof Region).NODE_NAME}=${this.regionId}`, account.getContext()].join(',');
   }
 
+  /**
+   * @internal
+   */
   override synth(): RegionSchema {
     return {
       regionId: this.regionId,

@@ -13,12 +13,31 @@ import type { BaseResourceSchema } from './resource.schema.js';
  *
  * Terraform resources cannot have resource actions; registering one throws.
  *
+ * @example
+ * ```ts
+ * override async toHCL(terraform: TerraformModuleScope): Promise<void> {
+ *   const scope = terraform.addOctoTerraformResource(this, {
+ *     provider: { accountId: this.properties.awsAccountId, regionId: this.properties.awsRegionId },
+ *   });
+ *   const bucket = scope.addTerraformResource('aws_s3_bucket', this.resourceId, {
+ *     bucket: this.properties.bucketName,
+ *   });
+ *   scope.output({ arn: terraform.raw(`${bucket.address}.arn`) });
+ * }
+ * ```
+ *
  * @group Resources
+ *
+ * @see {@link TerraformModuleScope} for what `toHCL()` can emit.
+ * @see Definition of [Resources](/docs/fundamentals/resources).
  */
 export abstract class ATerraformResource<S extends BaseResourceSchema, T extends UnknownResource> extends AResource<
   S,
   T
 > {
+  /**
+   * @internal
+   */
   override async diffInverse(
     diff: Diff,
     deReferenceResource: (context: string) => Promise<UnknownResource>,
@@ -33,5 +52,10 @@ export abstract class ATerraformResource<S extends BaseResourceSchema, T extends
     await this.cloneResourceInPlace(diff.node as T, deReferenceResource);
   }
 
+  /**
+   * Emits this resource as terraform.
+   *
+   * @param terraform The module folder to write into, already scoped to this resource's module.
+   */
   abstract toHCL(terraform: TerraformModuleScope): Promise<void> | void;
 }

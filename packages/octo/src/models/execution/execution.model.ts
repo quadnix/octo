@@ -50,6 +50,15 @@ export class Execution extends AModel<ExecutionSchema, Execution> {
     ].join('-');
   }
 
+  /**
+   * All three parents claim the new execution as their child, so the graph is complete on construction.
+   *
+   * @param deployment The deployment whose code this execution runs.
+   * @param environment The environment this execution runs in.
+   * @param subnet The subnet this execution is placed in.
+   * @throws {@link ModelError} If the environment and subnet are in different regions, or an
+   * identical execution already exists.
+   */
   constructor(deployment: Deployment, environment: Environment, subnet: Subnet) {
     super();
 
@@ -95,6 +104,9 @@ export class Execution extends AModel<ExecutionSchema, Execution> {
     subnet.addChild('subnetId', this, 'executionId');
   }
 
+  /**
+   * @internal
+   */
   static override async unSynth(
     execution: ExecutionSchema,
     deReferenceContext: (context: string) => Promise<UnknownModel>,
@@ -113,6 +125,9 @@ export class Execution extends AModel<ExecutionSchema, Execution> {
     return newExecution;
   }
 
+  /**
+   * @internal
+   */
   override setContext(): string | undefined {
     const parents = this.getParents();
     const deployment = parents['deployment']?.[0]?.to as Deployment;
@@ -129,6 +144,9 @@ export class Execution extends AModel<ExecutionSchema, Execution> {
     ].join(',');
   }
 
+  /**
+   * @internal
+   */
   override synth(): ExecutionSchema {
     const parents = this.getParents();
     const deployment = parents['deployment'][0]['to'] as Deployment;

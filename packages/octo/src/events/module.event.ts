@@ -5,7 +5,5 @@ import { Event } from './event.model.js';
  * It emits the name of the module.
  *
  * @group Events/Module
- *
- * @returns The Event instance.
  */
 export class ModuleEvent extends Event<void> {}

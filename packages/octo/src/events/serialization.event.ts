@@ -8,8 +8,6 @@ import { Event } from './event.model.js';
  * The SerializationEvent class is the superclass for all events in relation to serialization and deserialization.
  *
  * @group Events/Serialization
- *
- * @returns The Event instance.
  */
 export class SerializationEvent<T> extends Event<T> {}
 
@@ -17,10 +15,11 @@ export class SerializationEvent<T> extends Event<T> {}
  * This event is emitted when models are deserialized from serialized output.
  *
  * @group Events/Serialization
- *
- * @returns The Event instance.
  */
 export class ModelDeserializedEvent extends SerializationEvent<ModelSerializedOutput> {
+  /**
+   * @internal
+   */
   static override registrar(eventService: EventService, descriptor: PropertyDescriptor): void {
     const originalMethod: (
       ...args: Parameters<ModelSerializationService['deserialize']>
@@ -42,10 +41,11 @@ export class ModelDeserializedEvent extends SerializationEvent<ModelSerializedOu
  * This event is emitted when models are serialized to an output.
  *
  * @group Events/Serialization
- *
- * @returns The Event instance.
  */
 export class ModelSerializedEvent extends SerializationEvent<ModelSerializedOutput> {
+  /**
+   * @internal
+   */
   static override registrar(eventService: EventService, descriptor: PropertyDescriptor): void {
     const originalMethod: (
       ...args: Parameters<ModelSerializationService['serialize']>
@@ -67,13 +67,14 @@ export class ModelSerializedEvent extends SerializationEvent<ModelSerializedOutp
  * This event is emitted when resources are deserialized from serialized output.
  *
  * @group Events/Serialization
- *
- * @returns The Event instance.
  */
 export class ResourceDeserializedEvent extends SerializationEvent<{
   actual: ResourceSerializedOutput;
   old: ResourceSerializedOutput;
 }> {
+  /**
+   * @internal
+   */
   static override registrar(eventService: EventService, descriptor: PropertyDescriptor): void {
     const originalMethod: (
       ...args: Parameters<ResourceSerializationService['deserialize']>
@@ -93,10 +94,11 @@ export class ResourceDeserializedEvent extends SerializationEvent<{
  * This event is emitted when actual resources are serialized to an output.
  *
  * @group Events/Serialization
- *
- * @returns The Event instance.
  */
 export class ActualResourceSerializedEvent extends SerializationEvent<ResourceSerializedOutput> {
+  /**
+   * @internal
+   */
   static override registrar(eventService: EventService, descriptor: PropertyDescriptor): void {
     const originalMethod: (
       ...args: Parameters<ResourceSerializationService['serializeActualResources']>
@@ -118,10 +120,11 @@ export class ActualResourceSerializedEvent extends SerializationEvent<ResourceSe
  * This event is emitted when new resources are serialized to an output.
  *
  * @group Events/Serialization
- *
- * @returns The Event instance.
  */
 export class NewResourceSerializedEvent extends SerializationEvent<ResourceSerializedOutput> {
+  /**
+   * @internal
+   */
   static override registrar(eventService: EventService, descriptor: PropertyDescriptor): void {
     const originalMethod: (
       ...args: Parameters<ResourceSerializationService['serializeNewResources']>

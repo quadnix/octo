@@ -27,11 +27,17 @@ import { AppSchema } from './app.schema.js';
 export class App extends AModel<AppSchema, App> {
   readonly name: string;
 
+  /**
+   * @param name The name of the app.
+   */
   constructor(name: string) {
     super();
     this.name = name;
   }
 
+  /**
+   * @internal
+   */
   static override async unSynth(
     app: AppSchema,
     deReferenceContext: (context: string) => Promise<UnknownModel>,
@@ -41,6 +47,9 @@ export class App extends AModel<AppSchema, App> {
     return new App(app.name);
   }
 
+  /**
+   * To add an {@link Account}.
+   */
   addAccount(account: Account): void {
     const childrenDependencies = this.getChildren('account');
     if (!childrenDependencies['account']) childrenDependencies['account'] = [];
@@ -113,10 +122,16 @@ export class App extends AModel<AppSchema, App> {
     this.addChild('name', service, 'serviceId');
   }
 
+  /**
+   * @internal
+   */
   override setContext(): string {
     return `${(this.constructor as typeof App).NODE_NAME}=${this.name}`;
   }
 
+  /**
+   * @internal
+   */
   override synth(): AppSchema {
     return {
       name: this.name,

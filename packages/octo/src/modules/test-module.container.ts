@@ -45,31 +45,63 @@ import { AModule } from './module.abstract.js';
 import { ModuleContainer } from './module.container.js';
 
 // Universal Test Module and Actions.
+/**
+ * @internal
+ */
 class UniversalTestModuleSchema {}
+/**
+ * @internal
+ */
 class UniversalTestModule extends AModule<UniversalTestModuleSchema, any> {
   static override readonly MODULE_PACKAGE = '@octo';
   static override readonly MODULE_SCHEMA = UniversalTestModuleSchema;
 
+  /**
+   * @internal
+   */
   async onInit(): Promise<void> {
     return;
   }
 }
+/**
+ * @internal
+ */
 class UniversalModelAction implements IModelAction<UniversalTestModule> {
+  /**
+   * @internal
+   */
   filter(): boolean {
     return true;
   }
+  /**
+   * @internal
+   */
   async handle(): Promise<ActionOutputs> {
     return {};
   }
 }
+/**
+ * @internal
+ */
 class UniversalResourceAction implements IResourceAction<any> {
+  /**
+   * @internal
+   */
   filter(): boolean {
     return true;
   }
+  /**
+   * @internal
+   */
   async handle(): Promise<void> {}
 }
 
 /**
+ * One module to load into a {@link TestModuleContainer} run.
+ *
+ * Set `hidden` to register the module without running it - use it for a module a test needs
+ * present but not applied, e.g. one that is only there to be found by a schema lookup.
+ *
  * @group Modules
  */
 export type TestModule<M extends UnknownModule> = {
@@ -80,6 +112,24 @@ export type TestModule<M extends UnknownModule> = {
 };
 
 /**
+ * The harness for testing a module.
+ *
+ * It runs your module through the real Octo lifecycle against an in-memory state provider, and hands
+ * back everything a test needs to assert on: the model and resource transactions, the generated HCL,
+ * and the resource responses. Create it inside a {@link TestContainer} so each test file is isolated.
+ *
+ * @example
+ * ```ts
+ * const container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
+ * const testModuleContainer = new TestModuleContainer(container);
+ * await testModuleContainer.initialize();
+ *
+ * const generator = testModuleContainer.runModules([
+ *   { inputs: { name: 'test-app' }, moduleId: 'app', type: SimpleAppModule },
+ * ]);
+ * const { modelTransaction } = (await generator.next()).value;
+ * ```
+ *
  * @group Modules
  */
 export class TestModuleContainer {
@@ -88,11 +138,18 @@ export class TestModuleContainer {
   private previousHcl: string | undefined;
   private stateProvider: IStateProvider;
 
+  /**
+   * @param container The {@link TestContainer} this run resolves its services from.
+   */
   constructor(container: Container) {
     this.container = container;
     this.octo = new Octo();
   }
 
+  /**
+   * To seed resources that already exist, as though the given module had produced them.
+   * Use it to stand up the prerequisites a module under test expects to find.
+   */
   async createResources(
     moduleId: string,
     args: Parameters<typeof createResources>[0],
@@ -116,6 +173,9 @@ export class TestModuleContainer {
     return result;
   }
 
+  /**
+   * To build a throwaway anchor for a test double, without declaring an anchor class.
+   */
   createTestAnchor<S extends BaseAnchorSchema & { parentInstance: UnknownModel }>(
     anchorId: string,
     properties: S['properties'],
@@ -124,6 +184,10 @@ export class TestModuleContainer {
     return new TestAnchor(anchorId, properties, parent);
   }
 
+  /**
+   * To seed models, as though the given module had produced them.
+   * Each model gets a no-op action, so the models appear in a transaction without doing any work.
+   */
   async createTestModels(moduleId: string, args: Parameters<typeof create>[0]): Promise<ReturnType<typeof create>> {
     const container = this.container;
     const [inputService, moduleContainer, transactionService] = await Promise.all([
@@ -168,6 +232,10 @@ export class TestModuleContainer {
     return result;
   }
 
+  /**
+   * To seed overlays, as though the given module had produced them.
+   * An overlay given no actions gets a no-op one.
+   */
   async createTestOverlays(
     moduleId: string,
     args: Parameters<typeof createTestOverlays>[0],
@@ -204,6 +272,10 @@ export class TestModuleContainer {
     return result;
   }
 
+  /**
+   * To seed resources, as though the given module had produced them.
+   * A resource given no actions gets a no-op one, unless terraform owns it.
+   */
   async createTestResources<S extends BaseResourceSchema[]>(
     moduleId: string,
     args: Parameters<typeof createTestResources<S>>[0],
@@ -243,15 +315,15 @@ export class TestModuleContainer {
   }
 
   /**
-   * Reduces a transaction's diffs (resource or model) to a stable, snapshot-friendly digest:
+   * Reduces a transaction's diffs, model or resource, to a stable digest you can snapshot:
    * `+ <context>` (create), `- <context>` (delete), `^ <context>` (replace), `* <context>` (update).
-   * Folds in the former standalone `DiffAssert` — everything a test needs lives on this container.
    *
-   * Classifies each diff exactly as {@link validate} aggregates it, so a digest and the validate
-   * report of the same transaction never disagree about what happened to a resource. Only an
-   * add/delete of a `resourceId` creates or destroys a resource; an add/delete on any other field
-   * changes a resource that stays — re-pointing a `parent`, most commonly — and is therefore an
-   * update. Digesting per diff rather than per resource, a resource may still appear more than once.
+   * A diff is classified exactly as {@link Octo.validate} aggregates it, so a digest and a validate
+   * report of the same transaction never disagree. Only an add/delete of a `resourceId` creates or
+   * destroys a resource; an add/delete on any other field changes a resource that stays -
+   * re-pointing a `parent`, most commonly - and reads as an update.
+   *
+   * The digest has one entry per diff, not per resource, so a resource may appear more than once.
    */
   digestDiffs(diffs: DiffMetadata[][]): string[] {
     const changes: string[] = [];
@@ -272,6 +344,14 @@ export class TestModuleContainer {
     return changes;
   }
 
+  /**
+   * Boots Octo for the test. Call it once, before running any module.
+   *
+   * @param stateProvider Defaults to an in-memory {@link TestStateProvider}. Only the local and test
+   * providers are accepted - a test must never write to shared state.
+   * @param initializeInContainer Factories to resolve at boot. See {@link Octo.initialize}.
+   * @param excludeInContainer Factories to unregister at boot. See {@link Octo.initialize}.
+   */
   async initialize(
     stateProvider?: IStateProvider,
     initializeInContainer?: Parameters<typeof Octo.prototype.initialize>[1],
@@ -295,6 +375,10 @@ export class TestModuleContainer {
     moduleContainer.register(UniversalTestModule, { packageName: '@octo' });
   }
 
+  /**
+   * Whether the committed resource state matches the previous one, i.e. whether the last run
+   * settled without leaving a pending change.
+   */
   async isResourceStateEqual(): Promise<boolean> {
     const container = this.container;
     const stateManagementService = await container.get(StateManagementService);
@@ -303,26 +387,42 @@ export class TestModuleContainer {
     return DiffUtility.isObjectDeepEquals(resourcesActual.data, resourcesOld.data);
   }
 
+  /**
+   * Reduces a transaction to the names of the actions it ran, in order. Snapshot it to assert that
+   * a change triggered the actions you expected.
+   */
   mapTransactionActions(transaction: DiffMetadata[][]): string[][] {
     return transaction.map((i) =>
       i.map((j) => j.actions.map((a: IModelAction<any> | IResourceAction<any>) => a.constructor.name)).flat(),
     );
   }
 
+  /**
+   * See {@link Octo.registerHooks}.
+   */
   registerHooks(...args: Parameters<Octo['registerHooks']>): ReturnType<Octo['registerHooks']> {
     return this.octo.registerHooks(...args);
   }
 
+  /**
+   * See {@link Octo.registerTags}.
+   */
   registerTags(...args: Parameters<Octo['registerTags']>): ReturnType<Octo['registerTags']> {
     return this.octo.registerTags(...args);
   }
 
+  /**
+   * See {@link Octo.registerTerraformConfig}. Required before a run that generates terraform.
+   */
   registerTerraformConfig(
     ...args: Parameters<Octo['registerTerraformConfig']>
   ): ReturnType<Octo['registerTerraformConfig']> {
     return this.octo.registerTerraformConfig(...args);
   }
 
+  /**
+   * See {@link Octo.registerTerraformProvider}. Required before a run that generates terraform.
+   */
   registerTerraformProvider(
     ...args: Parameters<Octo['registerTerraformProvider']>
   ): ReturnType<Octo['registerTerraformProvider']> {
@@ -330,8 +430,8 @@ export class TestModuleContainer {
   }
 
   /**
-   * This function tears down the *composed* graph (models, overlays, inputs, modules) at the end of a lifecycle
-   * so the next `runModules()` composes fresh.
+   * Tears down the composed graph - models, overlays, inputs, and modules - so the next
+   * {@link TestModuleContainer.runModules} composes fresh. Call it in your test teardown.
    */
   async reset(): Promise<void> {
     const container = this.container;
@@ -348,12 +448,17 @@ export class TestModuleContainer {
   }
 
   /**
-   * Runs given modules against Octo to follow the complete lifecycle.
+   * Runs the given modules through Octo's lifecycle, and yields the result once.
    *
-   * The `terraformTarget` flag is the key here - it dictates how the lifecycle completes.
-   * - 'skip' → calls commit() — pure in-memory model-graph apply.
-   * - 'plan' → generate → terraformUtility.plan
-   * - 'apply' → generate → terraformUtility.plan/apply → commit.
+   * How far the lifecycle goes is set by `terraformTarget`, and this is the choice that decides what
+   * the test costs:
+   * - `'skip'` - composes and commits in memory. No terraform, no cloud. This is a unit test.
+   * - `'plan'` - generates the module folders and runs `terraform plan` against them.
+   * - `'apply'` - generates, plans, applies, and commits. **This creates real infrastructure.**
+   *
+   * @param modules The modules to load, in order.
+   * @param options `filterByModuleIds` narrows the run to those modules; `outputDir` is where the
+   * terraform folders are written, defaulting to a temporary directory.
    */
   async *runModules<M extends UnknownModule>(
     modules: TestModule<M> | TestModule<M>[],
@@ -485,6 +590,9 @@ export class TestModuleContainer {
     yield { ...result, responses: collectResponses(), warnings };
   }
 
+  /**
+   * Persists the run's state, so a later run in the same test diffs against it.
+   */
   private async commit(
     app: App,
     {

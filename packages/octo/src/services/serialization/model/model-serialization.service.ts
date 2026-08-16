@@ -32,8 +32,14 @@ export class ModelSerializationService {
 
   private MODEL_DESERIALIZATION_TIMEOUT_IN_MS = 3000;
 
+  /**
+   * @internal
+   */
   constructor(private readonly inputService: InputService) {}
 
+  /**
+   * @internal
+   */
   @EventSource(ModelDeserializedEvent)
   async deserialize(
     serializedOutput: ModelSerializedOutput,
@@ -50,6 +56,9 @@ export class ModelSerializationService {
     return root;
   }
 
+  /**
+   * @internal
+   */
   @EventSource(AnchorRegistrationEvent)
   @EventSource(ModelRegistrationEvent)
   @EventSource(OverlayRegistrationEvent)
@@ -60,6 +69,9 @@ export class ModelSerializationService {
     this.classMapping[className] = deserializationClass;
   }
 
+  /**
+   * @internal
+   */
   @EventSource(ModelSerializedEvent)
   async serialize(root: UnknownModel): Promise<ModelSerializedOutput> {
     const boundary = root.getBoundaryMembers();
@@ -118,10 +130,16 @@ export class ModelSerializationService {
     return { anchors, dependencies, models, overlays };
   }
 
+  /**
+   * @internal
+   */
   setModelDeserializationTimeout(timeoutInMs: number): void {
     this.MODEL_DESERIALIZATION_TIMEOUT_IN_MS = timeoutInMs;
   }
 
+  /**
+   * @internal
+   */
   private async _deserialize(
     serializedOutput: ModelSerializedOutput,
     freeze: boolean,
@@ -245,6 +263,9 @@ export class ModelSerializationService {
 export class ModelSerializationServiceFactory {
   private static instance: ModelSerializationService;
 
+  /**
+   * @internal
+   */
   static async create(): Promise<ModelSerializationService> {
     const inputService = await Container.getInstance().get(InputService);
 

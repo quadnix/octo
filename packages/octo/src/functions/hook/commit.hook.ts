@@ -16,8 +16,14 @@ export class CommitHook implements IHook<PreHookSignature, PostHookSignature> {
   private readonly postCommitHooks: PostHookSignature[] = [];
   private readonly preCommitHooks: PreHookSignature[] = [];
 
+  /**
+   * @internal
+   */
   private constructor() {}
 
+  /**
+   * @internal
+   */
   static getInstance(): CommitHook {
     if (!this.instance) {
       this.instance = new CommitHook();
@@ -25,6 +31,9 @@ export class CommitHook implements IHook<PreHookSignature, PostHookSignature> {
     return this.instance;
   }
 
+  /**
+   * @internal
+   */
   collectHooks(hooks: { postHooks?: PostHookSignature[]; preHooks?: PreHookSignature[] }): void {
     for (const { handle } of hooks.postHooks || []) {
       this.postCommitHooks.push({ handle });
@@ -35,6 +44,9 @@ export class CommitHook implements IHook<PreHookSignature, PostHookSignature> {
     }
   }
 
+  /**
+   * @internal
+   */
   registrar(descriptor: PropertyDescriptor): void {
     // `self` here references this class, vs `this` references the original method.
     // eslint-disable-next-line @typescript-eslint/no-this-alias
@@ -60,6 +72,9 @@ export class CommitHook implements IHook<PreHookSignature, PostHookSignature> {
     };
   }
 
+  /**
+   * @internal
+   */
   reset(): void {
     this.postCommitHooks.splice(0, this.postCommitHooks.length);
     this.preCommitHooks.splice(0, this.preCommitHooks.length);

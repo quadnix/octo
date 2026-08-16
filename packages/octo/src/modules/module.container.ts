@@ -29,12 +29,18 @@ export class ModuleContainer {
     properties: ModuleOptions;
   }[] = [];
 
+  /**
+   * @internal
+   */
   constructor(
     private readonly eventService: EventService,
     private readonly inputService: InputService,
     private readonly overlayDataRepository: OverlayDataRepository,
   ) {}
 
+  /**
+   * @internal
+   */
   async apply(): Promise<{ [key: string]: unknown }> {
     const result = {};
 
@@ -119,17 +125,26 @@ export class ModuleContainer {
     return result;
   }
 
+  /**
+   * @internal
+   */
   getMetadata(module: Constructable<UnknownModule> | string): ModuleContainer['modules'][0] | undefined {
     const index = this.getMetadataIndex(module);
     return index === -1 ? undefined : this.modules[index];
   }
 
+  /**
+   * @internal
+   */
   getMetadataIndex(module: Constructable<UnknownModule> | string): number {
     const moduleName =
       typeof module === 'string' ? module : `${(module as unknown as typeof AModule).MODULE_PACKAGE}/${module.name}`;
     return this.modules.findIndex((m) => `${m.properties.packageName}/${m.module.name}` === moduleName);
   }
 
+  /**
+   * @internal
+   */
   getModuleInstanceInputKeys(moduleId: string): string[] {
     const moduleIndex = this.modules.findIndex((m) => m.instances.findIndex((i) => i.moduleId === moduleId) !== -1);
     if (moduleIndex === -1) {
@@ -138,6 +153,9 @@ export class ModuleContainer {
     return this.modules[moduleIndex].instances.find((i) => i.moduleId === moduleId)!.inputKeys;
   }
 
+  /**
+   * @internal
+   */
   load<M extends UnknownModule>(
     module: Constructable<M> | string,
     moduleId: string,
@@ -166,6 +184,9 @@ export class ModuleContainer {
     }
   }
 
+  /**
+   * @internal
+   */
   order(modules: (Constructable<UnknownModule> | string)[]): void {
     this.modules.sort((a, b) => {
       const aIndex = modules.findIndex((m) => {
@@ -180,6 +201,9 @@ export class ModuleContainer {
     });
   }
 
+  /**
+   * @internal
+   */
   register(module: Constructable<UnknownModule>, properties: ModuleOptions): void {
     const moduleName = `${(module as unknown as typeof AModule).MODULE_PACKAGE}/${module.name}`;
     if (!this.modules.some((m) => `${m.properties.packageName}/${m.module.name}` === moduleName)) {
@@ -187,6 +211,9 @@ export class ModuleContainer {
     }
   }
 
+  /**
+   * @internal
+   */
   registerHooks({
     postCommitHooks,
     postModelActionHooks,
@@ -213,6 +240,9 @@ export class ModuleContainer {
     });
   }
 
+  /**
+   * @internal
+   */
   reset(): void {
     for (const m of this.modules) {
       m.hidden = true;
@@ -220,6 +250,9 @@ export class ModuleContainer {
     }
   }
 
+  /**
+   * @internal
+   */
   unload(module: Constructable<UnknownModule>): void {
     const m = this.getMetadata(module);
     if (m) {
@@ -235,6 +268,9 @@ export class ModuleContainer {
 export class ModuleContainerFactory {
   private static instance: ModuleContainer;
 
+  /**
+   * @internal
+   */
   static async create(forceNew: boolean = false): Promise<ModuleContainer> {
     const [eventService, inputService, overlayDataRepository] = await Promise.all([
       Container.getInstance().get(EventService),

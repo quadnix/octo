@@ -5,6 +5,11 @@ import { EventService } from '../services/event/event.service.js';
 /**
  * An `@OnEvent` is a method decorator to listen to an event.
  *
+ * Octo narrates everything it does as {@link Event}s. Subscribing is how you add logging, reporting,
+ * or notifications without changing the framework. A handler receives every event that is an instance
+ * of the given type, so listening to a base class such as {@link TransactionEvent} catches all of its
+ * subclasses.
+ *
  * @example
  * ```ts
  * // Async handler.

@@ -8,7 +8,13 @@ const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 12;
 const TAG_LENGTH = 16;
 
+/**
+ * @internal
+ */
 export class FileUtility {
+  /**
+   * @internal
+   */
   static async decryptFileToBuffer(inputFilePath: string, key: string): Promise<Buffer> {
     // sha256 always produces a 32 byte key.
     const keyBuffer = createHash('sha256').update(key).digest();
@@ -50,6 +56,9 @@ export class FileUtility {
     }
   }
 
+  /**
+   * @internal
+   */
   static async encryptBufferToFile(data: Buffer, outputFilePath: string, key: string): Promise<void> {
     // sha256 always produces a 32 byte key.
     const keyBuffer = createHash('sha256').update(key).digest();

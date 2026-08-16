@@ -6,12 +6,12 @@ import { ImageSchema } from './image.schema.js';
 
 /**
  * An Image model represents a Docker image, to either build, or run, your microservices.
+ * Images belong to the {@link App} rather than to a region, so the same image can be deployed anywhere.
  *
  * @example
  * ```ts
- * const image = new Image('nginx', '2.4', { dockerfilePath: './Dockerfile' });
- *
- * const image = new Image('docker/hello-world', '1.0', { dockerfilePath: './Dockerfile' });
+ * const image = new Image('nginx', '2.4');
+ * app.addImage(image);
  * ```
  *
  * @group Models/Image
@@ -26,6 +26,10 @@ export class Image extends AModel<ImageSchema, Image> {
 
   readonly imageName: string;
 
+  /**
+   * @param imageFamily The repository name shared by all versions of this image.
+   * @param imageName The version or tag of this image within its family.
+   */
   constructor(imageFamily: string, imageName: string) {
     super();
     this.imageFamily = imageFamily;
@@ -33,6 +37,9 @@ export class Image extends AModel<ImageSchema, Image> {
     this.imageName = imageName;
   }
 
+  /**
+   * @internal
+   */
   static override async unSynth(
     image: ImageSchema,
     deReferenceContext: (context: string) => Promise<UnknownModel>,
@@ -42,6 +49,9 @@ export class Image extends AModel<ImageSchema, Image> {
     return new Image(image.imageFamily, image.imageName);
   }
 
+  /**
+   * @internal
+   */
   override setContext(): string | undefined {
     const parents = this.getParents();
     const app = parents['app']?.[0]?.to;
@@ -51,6 +61,9 @@ export class Image extends AModel<ImageSchema, Image> {
     return [`${(this.constructor as typeof Image).NODE_NAME}=${this.imageId}`, app.getContext()].join(',');
   }
 
+  /**
+   * @internal
+   */
   override synth(): ImageSchema {
     return {
       imageFamily: this.imageFamily,

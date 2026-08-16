@@ -6,8 +6,6 @@ import { Event } from './event.model.js';
  * A transaction processes actions generated from model and resource diffs.
  *
  * @group Events/Transaction
- *
- * @returns The Event instance.
  */
 export class TransactionEvent<T> extends Event<T> {}
 
@@ -15,8 +13,6 @@ export class TransactionEvent<T> extends Event<T> {}
  * This event is emitted when a model action in a transaction is done executing.
  *
  * @group Events/Transaction
- *
- * @returns The Event instance.
  */
 export class ModelActionTransactionEvent extends TransactionEvent<void> {}
 
@@ -24,8 +20,6 @@ export class ModelActionTransactionEvent extends TransactionEvent<void> {}
  * This event is emitted when transaction prepares a model diff.
 
  * @group Events/Transaction
- *
- * @returns The Event instance.
  */
 export class ModelDiffsTransactionEvent extends TransactionEvent<DiffMetadata[][]> {}
 
@@ -33,8 +27,6 @@ export class ModelDiffsTransactionEvent extends TransactionEvent<DiffMetadata[][
  * This event is emitted when transaction prepares a model transaction.
 
  * @group Events/Transaction
- *
- * @returns The Event instance.
  */
 export class ModelTransactionTransactionEvent extends TransactionEvent<DiffMetadata[][]> {}
 
@@ -42,8 +34,6 @@ export class ModelTransactionTransactionEvent extends TransactionEvent<DiffMetad
  * This event is emitted when a resource action in a transaction is done executing.
  *
  * @group Events/Transaction
- *
- * @returns The Event instance.
  */
 export class ResourceActionCompletedTransactionEvent extends TransactionEvent<DiffMetadata> {}
 
@@ -51,8 +41,6 @@ export class ResourceActionCompletedTransactionEvent extends TransactionEvent<Di
  * This event is emitted when a resource action in a transaction begins executing.
  *
  * @group Events/Transaction
- *
- * @returns The Event instance.
  */
 export class ResourceActionInitiatedTransactionEvent extends TransactionEvent<DiffMetadata> {}
 
@@ -61,8 +49,6 @@ export class ResourceActionInitiatedTransactionEvent extends TransactionEvent<Di
  * It emits a summary of the action.
  *
  * @group Events/Transaction
- *
- * @returns The Event instance.
  */
 export class ResourceActionSummaryTransactionEvent extends TransactionEvent<{
   diff: DiffMetadata;
@@ -73,8 +59,6 @@ export class ResourceActionSummaryTransactionEvent extends TransactionEvent<{
  * This event is emitted when transaction prepares a resource diff.
 
  * @group Events/Transaction
- *
- * @returns The Event instance.
  */
 export class ResourceDiffsTransactionEvent extends TransactionEvent<[DiffMetadata[][], DiffMetadata[][]]> {}
 
@@ -82,7 +66,5 @@ export class ResourceDiffsTransactionEvent extends TransactionEvent<[DiffMetadat
  * This event is emitted when transaction prepares a resource transaction.
 
  * @group Events/Transaction
- *
- * @returns The Event instance.
  */
 export class ResourceTransactionTransactionEvent extends TransactionEvent<[DiffMetadata[][], DiffMetadata[][]]> {}

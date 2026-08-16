@@ -67,6 +67,9 @@ export abstract class ANode<S, T> implements INode<S, T> {
     throw new Error('Method not implemented! Use derived class implementation');
   }
 
+  /**
+   * @internal
+   */
   addChild(
     onField: keyof T | string,
     child: UnknownNode,
@@ -127,6 +130,9 @@ export abstract class ANode<S, T> implements INode<S, T> {
     return { childToParentDependency, parentToChildDependency };
   }
 
+  /**
+   * @internal
+   */
   addFieldDependency(
     behaviors: { forAction: DiffAction; onAction: DiffAction; onField: keyof T | string; toField: keyof T | string }[],
   ): void {
@@ -168,6 +174,9 @@ export abstract class ANode<S, T> implements INode<S, T> {
     }
   }
 
+  /**
+   * @internal
+   */
   addRelationship(to: UnknownNode): { thisToThatDependency: Dependency } {
     const thisToThatDependency = new Dependency(this, to);
     this.dependencies.push(thisToThatDependency);
@@ -178,6 +187,9 @@ export abstract class ANode<S, T> implements INode<S, T> {
 
   abstract diffProperties(previous: T): Promise<Diff[]>;
 
+  /**
+   * @internal
+   */
   getAncestors(): UnknownNode[] {
     const members: UnknownNode[] = [this];
     const membersProcessed: UnknownNode[] = [];
@@ -208,6 +220,9 @@ export abstract class ANode<S, T> implements INode<S, T> {
     return membersProcessed;
   }
 
+  /**
+   * @internal
+   */
   getBoundaryMembers(): UnknownNode[] {
     const extenders: UnknownNode[] = [this];
     const members: UnknownNode[] = [];
@@ -282,6 +297,9 @@ export abstract class ANode<S, T> implements INode<S, T> {
     return members;
   }
 
+  /**
+   * @internal
+   */
   getChild(name: string, filters: { key: string; value: any }[] = []): UnknownNode | undefined {
     const dependencies = this.getChildren(name)[name]?.filter((d) => filters.every((c) => d.to[c.key] === c.value));
     if (!dependencies) {
@@ -293,6 +311,9 @@ export abstract class ANode<S, T> implements INode<S, T> {
     return dependencies[0].to;
   }
 
+  /**
+   * @internal
+   */
   getChildren(name?: string): { [key: string]: Dependency[] } {
     return this.dependencies
       .filter((d) => d.isParentRelationship() && (name ? (d.to.constructor as typeof ANode).NODE_NAME === name : true))
@@ -305,6 +326,9 @@ export abstract class ANode<S, T> implements INode<S, T> {
       }, {});
   }
 
+  /**
+   * @internal
+   */
   getContext(): string {
     if (!this.context) {
       const context = this.setContext();
@@ -316,6 +340,9 @@ export abstract class ANode<S, T> implements INode<S, T> {
     return this.context;
   }
 
+  /**
+   * @internal
+   */
   getDependencies(to?: UnknownNode): Dependency[] {
     const filters: { key: string; value: string }[] = [];
     if (to) {
@@ -333,11 +360,17 @@ export abstract class ANode<S, T> implements INode<S, T> {
     });
   }
 
+  /**
+   * @internal
+   */
   getDependency(to: UnknownNode, relationship: DependencyRelationship): Dependency | undefined {
     const index = this.getDependencyIndex(to, relationship);
     return index > -1 ? this.dependencies[index] : undefined;
   }
 
+  /**
+   * @internal
+   */
   getDependencyIndex(to: UnknownNode, relationship: DependencyRelationship): number {
     return this.dependencies.findIndex(
       (d) =>
@@ -348,6 +381,9 @@ export abstract class ANode<S, T> implements INode<S, T> {
     );
   }
 
+  /**
+   * @internal
+   */
   getParents(name?: string): { [key: string]: Dependency[] } {
     return this.dependencies
       .filter((d) => d.isChildRelationship() && (name ? (d.to.constructor as typeof ANode).NODE_NAME === name : true))
@@ -360,6 +396,9 @@ export abstract class ANode<S, T> implements INode<S, T> {
       }, {});
   }
 
+  /**
+   * @internal
+   */
   getSiblings(name?: string): { [key: string]: Dependency[] } {
     return this.dependencies
       .filter(
@@ -380,6 +419,9 @@ export abstract class ANode<S, T> implements INode<S, T> {
       }, {});
   }
 
+  /**
+   * @internal
+   */
   hasAncestor(node: UnknownNode): boolean {
     const nodeParts = node
       .getContext()
@@ -401,12 +443,18 @@ export abstract class ANode<S, T> implements INode<S, T> {
     });
   }
 
+  /**
+   * @internal
+   */
   removeDependency(dependencyIndex: number): void {
     if (dependencyIndex > -1 && dependencyIndex < this.dependencies.length) {
       this.dependencies.splice(dependencyIndex, 1);
     }
   }
 
+  /**
+   * @internal
+   */
   removeRelationship(node: UnknownNode): void {
     for (let i = this.dependencies.length - 1; i >= 0; i--) {
       const dependency = this.dependencies[i];
@@ -427,6 +475,9 @@ export abstract class ANode<S, T> implements INode<S, T> {
 
   abstract synth(): S;
 
+  /**
+   * @internal
+   */
   toJSON(): S {
     return {
       context: this.getContext(),

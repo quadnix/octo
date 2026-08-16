@@ -16,58 +16,106 @@ import type { ValidationUtility } from './utilities/validation/validation.utilit
 /* Classes */
 
 /**
+ * An anchor found by schema, paired with the translation needed to read it as that schema.
+ *
+ * {@link AModel.getAnchorsMatchingSchema} returns these rather than raw anchors: the anchor you
+ * matched may have been declared against a different version of the schema, and this is what keeps
+ * that difference out of your module. Read it with `getSchemaInstance()`.
+ *
  * @group Types
  */
 export class MatchingAnchor<S extends BaseAnchorSchema> {
+  /**
+   * @param actual The anchor that was matched.
+   * @param schemaTranslator Reads `actual` as the matched schema, when the two differ.
+   */
   constructor(
     private readonly actual: AAnchor<S, any>,
     private readonly schemaTranslator?: (synth: any) => S,
   ) {}
 
+  /**
+   * The anchor itself, with its properties hidden - read those through
+   * {@link MatchingAnchor.getSchemaInstance}.
+   */
   getActual(): AAnchor<Omit<S, 'properties'> & { properties: Record<never, never> }, any> {
     return this.actual;
   }
 
+  /**
+   * The anchor read as the schema you matched on.
+   */
   getSchemaInstance(): S {
     return this.hasSchemaTranslator() ? this.schemaTranslator!(this.actual.synth()) : (this.actual.synth() as S);
   }
 
+  /**
+   * Whether the match went through a schema translation.
+   */
   hasSchemaTranslator(): boolean {
     return !!this.schemaTranslator;
   }
 }
 
 /**
+ * A model found by schema. See {@link MatchingAnchor}.
+ *
  * @group Types
  */
 export class MatchingModel<S extends object> {
+  /**
+   * @param actual The model that was matched.
+   * @param schemaTranslator Reads `actual` as the matched schema, when the two differ.
+   */
   constructor(
     private readonly actual: AModel<S, any>,
     private readonly schemaTranslator?: (synth: any) => S,
   ) {}
 
+  /**
+   * The model itself, with its schema hidden - read it through
+   * {@link MatchingModel.getSchemaInstance}.
+   */
   getActual(): AModel<Record<never, never>, any> {
     return this.actual;
   }
 
+  /**
+   * The model read as the schema you matched on.
+   */
   getSchemaInstance(): S {
     return this.hasSchemaTranslator() ? this.schemaTranslator!(this.actual.synth()) : (this.actual.synth() as S);
   }
 
+  /**
+   * Whether the match went through a schema translation.
+   */
   hasSchemaTranslator(): boolean {
     return !!this.schemaTranslator;
   }
 }
 
 /**
+ * A resource found by schema. See {@link MatchingAnchor}.
+ *
+ * Pass one wherever a resource parent is expected, and the translation is carried into the graph, so
+ * the child keeps reading its parent through the schema it was written against.
+ *
  * @group Types
  */
 export class MatchingResource<S extends BaseResourceSchema> {
+  /**
+   * @param actual The resource that was matched.
+   * @param schemaTranslator Reads `actual` as the matched schema, when the two differ.
+   */
   constructor(
     private readonly actual: AResource<S, any>,
     readonly schemaTranslator?: (synth: BaseResourceSchema) => S,
   ) {}
 
+  /**
+   * @internal
+   */
   addChild(
     ...args: Parameters<AResource<BaseResourceSchema, any>['addChild']>
   ): ReturnType<AResource<BaseResourceSchema, any>['addChild']> {
@@ -84,6 +132,10 @@ export class MatchingResource<S extends BaseResourceSchema> {
     return results;
   }
 
+  /**
+   * The resource itself, with its schema hidden - read it through
+   * {@link MatchingResource.getSchemaInstance}.
+   */
   getActual(): AResource<
     Omit<S, 'properties' | 'response' | 'tags'> & { properties: Record<never, never> } & {
       response: Record<never, never>;
@@ -93,14 +145,24 @@ export class MatchingResource<S extends BaseResourceSchema> {
     return this.actual;
   }
 
+  /**
+   * The resource read as the schema you matched on.
+   */
   getSchemaInstance(): S {
     return this.hasSchemaTranslator() ? this.schemaTranslator!(this.actual.synth()) : (this.actual.synth() as S);
   }
 
+  /**
+   * The resource read as the schema you matched on, with its `response` typed as fully populated.
+   * Only call it from a resource action, where the parent is guaranteed to already exist.
+   */
   getSchemaInstanceInResourceAction(): Omit<S, 'response'> & { response: Required<S['response']> } {
     return this.getSchemaInstance() as unknown as Omit<S, 'response'> & { response: Required<S['response']> };
   }
 
+  /**
+   * Whether the match went through a schema translation.
+   */
   hasSchemaTranslator(): boolean {
     return !!this.schemaTranslator;
   }
@@ -148,6 +210,10 @@ export type ValidationTypeOptions = {
 /* Functions */
 
 /**
+ * Whether a node was registered under the given name, e.g. `region`.
+ *
+ * Use it to identify a base model without importing the subclass that implements it.
+ *
  * @group Types
  */
 export function hasNodeName(node: UnknownNode, nodeName: string): boolean {
@@ -155,6 +221,11 @@ export function hasNodeName(node: UnknownNode, nodeName: string): boolean {
 }
 
 /**
+ * Marks a placeholder value that a later step fills in - typically a resource property whose real
+ * value is only known once the infrastructure exists.
+ *
+ * It is a type assertion and nothing more; it emits the string you give it.
+ *
  * @group Types
  */
 export function stub<T>(value: string): T {
@@ -169,6 +240,8 @@ export function stub<T>(value: string): T {
 export type ActionInputs = EnhancedModuleSchema<UnknownModule>;
 
 /**
+ * The resources an action declared, keyed by an ID of your choosing.
+ *
  * @group Types
  */
 export type ActionOutputs = { [key: string]: UnknownResource };
@@ -184,6 +257,8 @@ export type ClassOptionalProperties<T> = {
 }[keyof T];
 
 /**
+ * The `value` of a {@link Diff} on a `properties` field: which property changed, and to what.
+ *
  * @group Types
  */
 export type DiffValueTypePropertyUpdate = {
@@ -192,6 +267,8 @@ export type DiffValueTypePropertyUpdate = {
 };
 
 /**
+ * The `value` of a {@link Diff} on a `tags` field, split by what happened to each tag.
+ *
  * @group Types
  */
 export type DiffValueTypeTagUpdate = {
@@ -206,11 +283,15 @@ export type DiffValueTypeTagUpdate = {
 export type ObjectKeyValue<T> = { [K in keyof T]: { key: K; value: T[K] } }[keyof T];
 
 /**
+ * The class of `T`, i.e. what you pass when an API wants a type rather than an instance.
+ *
  * @group Types
  */
 export type Constructable<T> = new (...args: any[]) => T;
 
 /**
+ * The model graph as written to state.
+ *
  * @group Types
  */
 export type ModelSerializedOutput = {
@@ -224,6 +305,8 @@ export type ModelSerializedOutput = {
 };
 
 /**
+ * The resource graph as written to state.
+ *
  * @group Types
  */
 export type ResourceSerializedOutput = {
@@ -232,6 +315,9 @@ export type ResourceSerializedOutput = {
 };
 
 /**
+ * A record of one generated terraform module folder, kept in state so that a later run can tell
+ * which folders it owns.
+ *
  * @group Types
  */
 export type TerraformFolderOutput = {
@@ -247,6 +333,9 @@ export type TerraformFolderOutput = {
 };
 
 /**
+ * A record of where one octo resource ended up in terraform, kept in state so that a plan entry can
+ * be traced back to the resource that produced it.
+ *
  * @group Types
  */
 export type TerraformResourceOutput = {
@@ -277,11 +366,18 @@ export type TransactionOptions = {
 export type ModifyInterface<T, R> = Omit<T, keyof R> & R;
 
 /**
+ * The schema of an anchor class.
+ *
  * @group Types
  */
 export type AnchorSchema<T> = T extends AAnchor<infer S, any> ? S : never;
 
 /**
+ * Everything an action knows about the module it belongs to: the inputs it was loaded with, whatever
+ * {@link AModule.registerMetadata} derived, and the nodes the module produced.
+ *
+ * This is the second argument of {@link IModelAction.handle}.
+ *
  * @group Types
  */
 export type EnhancedModuleSchema<T extends UnknownModule> = {
@@ -309,11 +405,16 @@ export type ModelSchema<T> = T extends AModel<infer S, any> ? S : never;
 export type ModuleOutput<M> = M extends AModule<any, infer T> ? T : never;
 
 /**
+ * The schema of a module class.
+ *
  * @group Types
  */
 export type ModuleSchema<T> = T extends AModule<infer S, any> ? S : never;
 
 /**
+ * A module's schema as the caller supplies it - properties with a default become optional.
+ * This is the shape {@link Octo.loadModule} accepts.
+ *
  * @group Types
  */
 export type ModuleSchemaInputs<T> = { [K in ClassRequiredProperties<ModuleSchema<T>>]: ModuleSchema<T>[K] } & {
@@ -326,11 +427,15 @@ export type ModuleSchemaInputs<T> = { [K in ClassRequiredProperties<ModuleSchema
 export type NodeSchema<T> = T extends ANode<infer S, any> ? S : never;
 
 /**
+ * The schema of an overlay class.
+ *
  * @group Types
  */
 export type OverlaySchema<T> = T extends AOverlay<infer S, any> ? S : never;
 
 /**
+ * The schema of a resource class.
+ *
  * @group Types
  */
 export type ResourceSchema<T> = T extends AResource<infer S, any> ? S : never;

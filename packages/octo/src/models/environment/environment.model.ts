@@ -23,11 +23,17 @@ export class Environment extends AModel<EnvironmentSchema, Environment> {
 
   readonly environmentVariables: Map<string, string> = new Map();
 
+  /**
+   * @param environmentName The name of the environment, unique within its region.
+   */
   constructor(environmentName: string) {
     super();
     this.environmentName = environmentName;
   }
 
+  /**
+   * @internal
+   */
   static override async unSynth(
     environment: EnvironmentSchema,
     deReferenceContext: (context: string) => Promise<UnknownModel>,
@@ -41,6 +47,9 @@ export class Environment extends AModel<EnvironmentSchema, Environment> {
     return newEnvironment;
   }
 
+  /**
+   * @internal
+   */
   override setContext(): string | undefined {
     const parents = this.getParents();
     const region = parents['region']?.[0]?.to;
@@ -52,6 +61,9 @@ export class Environment extends AModel<EnvironmentSchema, Environment> {
     );
   }
 
+  /**
+   * @internal
+   */
   override synth(): EnvironmentSchema {
     return {
       environmentName: this.environmentName,

@@ -5,6 +5,9 @@ import { DiffAction } from '../../functions/diff/diff.js';
  * @internal
  */
 export class NodeUtility {
+  /**
+   * @internal
+   */
   static sortResourcesByDependency(resources: UnknownResource[]): UnknownResource[] {
     const sortedResources: UnknownResource[] = [];
 

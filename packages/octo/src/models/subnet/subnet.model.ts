@@ -38,14 +38,25 @@ export class Subnet extends AModel<SubnetSchema, Subnet> {
     return this.options.disableSubnetIntraNetwork;
   }
 
+  /**
+   * @internal
+   */
   set disableSubnetIntraNetwork(disableSubnetIntraNetwork: boolean) {
     this.options.disableSubnetIntraNetwork = disableSubnetIntraNetwork;
   }
 
+  /**
+   * Whether this subnet is reachable from the internet.
+   *
+   * @defaultValue {@link SubnetType.PRIVATE}
+   */
   get subnetType(): SubnetType {
     return this.options.subnetType;
   }
 
+  /**
+   * @internal
+   */
   set subnetType(subnetType: SubnetType) {
     this.options.subnetType = subnetType || SubnetType.PRIVATE;
   }
@@ -55,12 +66,19 @@ export class Subnet extends AModel<SubnetSchema, Subnet> {
     subnetType: SubnetType.PRIVATE,
   };
 
+  /**
+   * @param region The region this subnet belongs to.
+   * @param name The name of the subnet. The subnet's ID is derived from the region and this name.
+   */
   constructor(region: Region, name: string) {
     super();
     this.subnetId = region.regionId + '-' + name;
     this.subnetName = name;
   }
 
+  /**
+   * @internal
+   */
   static override async unSynth(
     subnet: SubnetSchema,
     deReferenceContext: (context: string) => Promise<UnknownModel>,
@@ -74,6 +92,9 @@ export class Subnet extends AModel<SubnetSchema, Subnet> {
     return newSubnet;
   }
 
+  /**
+   * @internal
+   */
   override setContext(): string | undefined {
     const parents = this.getParents();
     const region = parents['region']?.[0]?.to;
@@ -83,6 +104,9 @@ export class Subnet extends AModel<SubnetSchema, Subnet> {
     return [`${(this.constructor as typeof Subnet).NODE_NAME}=${this.subnetId}`, region.getContext()].join(',');
   }
 
+  /**
+   * @internal
+   */
   override synth(): SubnetSchema {
     const parents = this.getParents();
     const region = parents['region'][0].to as Region;

@@ -29,7 +29,7 @@ import { ValidationUtility } from '../utilities/validation/validation.utility.js
  * @returns The decorated class.
  *
  * @see Definition of [Models](/docs/fundamentals/models).
- * @see {@link App} and {@link Region} are a few base models. More can be found in the same folder.
+ * @see {@link App}, {@link Region}, and {@link Server} for the base models you can extend.
  */
 export function Model<T extends UnknownModel>(
   packageName: string,

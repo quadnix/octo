@@ -15,6 +15,9 @@ export class ValidationService {
     value: any;
   }[] = [];
 
+  /**
+   * @internal
+   */
   addSubject<T>(
     type: ValidationType,
     constraint: any,
@@ -26,6 +29,9 @@ export class ValidationService {
     this.subjects.push({ constraint, destruct, propertyKey, target, type, value });
   }
 
+  /**
+   * @internal
+   */
   removeSubject<T>(target: Constructable<T>, propertyKey: string): void {
     for (let i = this.subjects.length - 1; i >= 0; i--) {
       if (
@@ -37,6 +43,9 @@ export class ValidationService {
     }
   }
 
+  /**
+   * @internal
+   */
   validate(): { errors: { constraint: any; type: ValidationType; value: any }[]; pass: boolean } {
     const result: ReturnType<typeof this.validate> = { errors: [], pass: true };
 
@@ -94,6 +103,9 @@ export class ValidationService {
 export class ValidationServiceFactory {
   private static instance: ValidationService;
 
+  /**
+   * @internal
+   */
   static async create(): Promise<ValidationService> {
     if (!this.instance) {
       this.instance = new ValidationService();

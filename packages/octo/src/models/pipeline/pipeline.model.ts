@@ -27,11 +27,17 @@ export class Pipeline extends AModel<PipelineSchema, Pipeline> {
 
   readonly pipelineName: string;
 
+  /**
+   * @param pipelineName The name of the pipeline, unique within the app.
+   */
   constructor(pipelineName: string) {
     super();
     this.pipelineName = pipelineName;
   }
 
+  /**
+   * @internal
+   */
   static override async unSynth(
     pipeline: PipelineSchema,
     deReferenceContext: (context: string) => Promise<UnknownModel>,
@@ -43,6 +49,9 @@ export class Pipeline extends AModel<PipelineSchema, Pipeline> {
     return newPipeline;
   }
 
+  /**
+   * @internal
+   */
   override setContext(): string | undefined {
     const parents = this.getParents();
     const app = parents['app']?.[0]?.to;
@@ -52,6 +61,9 @@ export class Pipeline extends AModel<PipelineSchema, Pipeline> {
     return [`${(this.constructor as typeof Pipeline).NODE_NAME}=${this.pipelineName}`, app.getContext()].join(',');
   }
 
+  /**
+   * @internal
+   */
   override synth(): PipelineSchema {
     return {
       instructionSet: JSON.parse(JSON.stringify(this.instructionSet)),

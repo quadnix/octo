@@ -40,7 +40,37 @@ import type { IStateProvider } from './services/state-management/state-provider.
 import { TerraformService } from './services/terraform/terraform.service.js';
 
 /**
+ * The entry point to Octo.
+ *
+ * You describe infrastructure by loading modules, and Octo turns that description into terraform,
+ * checks what terraform intends to do, and records what it did. That is the lifecycle, and it is
+ * always these four steps:
+ *
+ * 1. {@link Octo.generate} - write the terraform module folders for the infrastructure you described.
+ * 2. {@link Octo.validate} - correlate terraform's plans with your intent, and report the difference.
+ * 3. `terraform apply` - see {@link TerraformUtility}. Octo does not do this for you.
+ * 4. {@link Octo.commit} - record the applied result back into Octo's state.
+ *
+ * Splitting them is deliberate: nothing is applied until you have seen a report of what would change,
+ * and each step is a separate process, so a CI pipeline can gate between them.
+ *
+ * @example
+ * ```ts
+ * const octo = new Octo();
+ * await octo.initialize(new LocalStateProvider('./infrastructure'));
+ *
+ * octo.registerTerraformConfig({ providers: { aws: { source: 'hashicorp/aws' } } });
+ * octo.registerTerraformProvider('aws', '1234567890', 'us-east-1');
+ *
+ * octo.loadModule(SimpleAppModule, 'app-module', { name: 'my-app' });
+ * await octo.compose();
+ *
+ * await octo.generate(octo.getRootModel(), { outputDir: './infrastructure/terraform' });
+ * ```
+ *
  * @group Main
+ *
+ * @see Definition of [Modules](/docs/fundamentals/modules).
  */
 export class Octo {
   private readonly actualResourceStateFileName: string = 'resources-actual.json';
@@ -57,17 +87,18 @@ export class Octo {
   private terraformService: TerraformService;
 
   /**
-   * The last and final step of the octo lifecycle - this function commits the result of a `terraform apply`
-   * back into octo's state.
+   * The last step of the lifecycle - records the result of a `terraform apply` back into Octo's state.
    *
-   * The Terraform apply generates a `.tfstate` file that contains the metadata of each resource it created.
-   * Some of that metadata maps directly into octo's resource's response.
-   * This function takes those response objects - per octo resource,
-   * and also the previous state, and it updates octo state files (model + resources) with this data.
+   * A terraform apply reports what it created, and part of that is what each octo resource's
+   * `response` is made of - ARNs, generated IDs, endpoints. Without this step the next run has no
+   * idea any of it exists.
    *
-   * **All-or-nothing**: the function errors before mutating anything if an expected output is missing,
-   * leaving state untouched. Outputs supplied for a folder octo does not track (not in intent or committed
-   * state) are ignored — returned as warnings for the caller to surface.
+   * **All-or-nothing**: if an expected output is missing, this throws before touching state, so a
+   * partial apply never leaves a half-written record behind. Outputs for a folder Octo does not track
+   * are ignored, and returned as warnings for you to surface.
+   *
+   * @param app The root model, from {@link Octo.getRootModel}.
+   * @param options `outputs` is `TerraformUtility.output(dir, { json: true })` in full.
    */
   async commit(
     app: App,
@@ -95,28 +126,26 @@ export class Octo {
   }
 
   /**
-   * This function runs all the modules you loaded using {@link loadModule} function,
-   * in the order determined by the {@link orderModules} function.
+   * Runs every loaded module, in the order {@link Octo.orderModules} set, building the model graph.
+   * Call it once, after loading modules and before any lifecycle step.
    *
-   * @returns object A map of each model or overlay that all modules have created, keyed by a unique id,
-   * and the value is the actual model or overlay object.
+   * @returns Every model and overlay the modules created, keyed by a unique ID.
    */
   async compose(): Promise<{ [key: string]: unknown }> {
     return await this.moduleContainer.apply();
   }
 
   /**
-   * The first step of the octo lifecycle - this method generates TerraGrunt module folders
-   * representing the full desired infrastructure captured as IaC, and also saves the current model state.
+   * The first step of the lifecycle - writes the terragrunt module folders for the infrastructure you
+   * described, one folder per module, and saves the model state.
    *
-   * - If a previous model state exists, folders recorded by the previous generate or the last commit
-   * that the current intent no longer fills are **emptied** — rewritten with their recorded provider
-   * blocks and no resources — so a later terraform apply destroys their live infrastructure instead of
-   * orphaning it.
-   * - A new module is captured in a new folder.
-   * - An updated module is rewritten in its existing folder.
-   *
+   * A new module gets a new folder, and a changed module is rewritten in the folder it already has.
+   * A module you *removed* is not deleted: its folder is **emptied**, keeping only the provider
+   * blocks, so the next terraform apply destroys the live infrastructure rather than orphaning it.
    * Octo never deletes a folder.
+   *
+   * @param app The root model, from {@link Octo.getRootModel}.
+   * @param options `outputDir` is where the module folders are written.
    */
   async generate(
     app: App,
@@ -164,41 +193,40 @@ export class Octo {
   }
 
   /**
-   * This function can fetch a registered module by its module ID.
+   * To fetch a loaded module by its module ID.
    *
-   * @returns The module itself, or undefined if not found.
+   * @returns The module, or `undefined` if no module was loaded under that ID.
    */
   getModule<M extends UnknownModule>(...args: Parameters<InputService['getModule']>): M | undefined {
     return this.inputService.getModule(...args);
   }
 
   /**
-   * This function can retrieve resources associated with a specific module, queried by the module ID.
-   *
-   * @returns Array of resource objects this module generated.
+   * To fetch the resources a module produced, by its module ID.
    */
   getModuleResources(...args: Parameters<InputService['getModuleResources']>): UnknownResource[] {
     return this.inputService.getModuleResources(...args);
   }
 
   /**
-   * This function derives the root of the model graph - the one and only `App` any loaded module
-   * produced. Call after {@link compose}.
+   * The root of the model graph - the one {@link App} the loaded modules produced. Every lifecycle
+   * step takes it. Call after {@link Octo.compose}.
    *
-   * @returns The root {@link App} model.
-   * @throws If no app model, or more than one distinct app model, has been registered.
+   * @throws If no app model, or more than one distinct app model, was registered.
    */
   getRootModel(): App {
     return this.inputService.getRootModel() as App;
   }
 
   /**
-   * This function allows the {@link Octo} class to be initialized with a
-   * state provider {@link IStateProvider}, and optional registration or exclusion
-   * of custom Factories {@link Factory} created by you.
+   * Boots Octo. Call it once, before anything else.
    *
-   * The exclusion always runs first by design - allowing you to un-register an existing Factory,
-   * and supplying your own.
+   * The two optional arguments are how you replace Octo's internals with your own: exclusions run
+   * first, so you can unregister a built-in {@link Factory} and then resolve yours in its place.
+   *
+   * @param stateProvider Where Octo reads and writes its state. See {@link IStateProvider}.
+   * @param initializeInContainer Factories to resolve at boot - event listeners, most commonly.
+   * @param excludeInContainer Factories to unregister at boot.
    */
   async initialize(
     stateProvider: IStateProvider,
@@ -249,11 +277,14 @@ export class Octo {
   }
 
   /**
-   * This function allows loading of modules into octo's memory, to be applied by the {@link compose} function.
+   * To load a module, which {@link Octo.compose} will then run.
    *
-   * By supplying the module's class, its module ID, and the inputs,
-   * you bind the module to its unique Constructor,
-   * so that identically named modules won't get mixed up.
+   * The same module class can be loaded more than once under different module IDs, and the ID scopes
+   * everything that instance produces.
+   *
+   * @param module The module class, or its registered name.
+   * @param moduleId A unique ID for this instance of the module.
+   * @param inputs The inputs, matching the module's schema.
    */
   loadModule<M extends UnknownModule>(
     module: Constructable<M> | string,
@@ -264,46 +295,38 @@ export class Octo {
   }
 
   /**
-   * This function defines the order in which the loaded modules are executed by the {@link compose} function.
+   * To set the order {@link Octo.compose} runs modules in, by listing their classes.
    *
-   * You supply the same Constructors you passed to {@link loadModule} to define the order.
+   * Order matters because a module resolves what earlier modules produced - a subnet module must run
+   * after the region module whose region it attaches to.
    */
   orderModules(...args: Parameters<ModuleContainer['order']>): ReturnType<ModuleContainer['order']> {
     this.moduleContainer.order(...args);
   }
 
   /**
-   * Octo allows several locations where a custom function can be injected to
-   * modify the default behavior of the framework.
+   * To register callbacks that run at fixed points of the lifecycle. Use them to inject behavior -
+   * an audit trail, an approval gate - without modifying the framework.
    *
-   * This function allows those hooks to be registered from this one place.
-   * Octo will invoke those hooks when the appropriate lifecycle event occurs.
+   * The hook points, each with its own signature:
+   * - `PreCommitHook` / `PostCommitHook` - around the commit.
+   * - `PreModelActionHook` / `PostModelActionHook` - around every model action.
+   * - `PreResourceActionHook` / `PostResourceActionHook` - around every resource action.
    *
-   * There are several hook-points that Octo provides.
-   * Each hook's signature depends on the hook type.
-   * - PreCommitHook: invoked before the commit process starts.
-   * - PostCommitHook: invoked after the commit process completes.
-   * - PreModelActionHook: invoked before a model action is about to start.
-   * - PostModelActionHook: invoked after a model action completes.
-   * - PreResourceActionHook: invoked before a resource action is about to start.
-   * - PostResourceActionHook: invoked after a resource action completes.
-   *
-   * @see Definition of [Hooks](/docs/fundamentals/modules#hooks).
+   * @see Techniques for [Hooks](/docs/techniques/hooks).
    */
   registerHooks(...args: Parameters<ModuleContainer['registerHooks']>): ReturnType<ModuleContainer['registerHooks']> {
     this.moduleContainer.registerHooks(...args);
   }
 
   /**
-   * Octo recognizes and embraces the fact that modules are created by different authors.
-   * When a module depends on another author's module,
-   * they reference the parent modules using various `Schema`.
+   * To teach Octo how to read one schema as another.
    *
-   * If the parent module's schema changes, other modules could easily break.
-   * In very specialized situations, you can control Schema by providing a translation layer.
-   * In simple words, it allows you to transform a Schema to another Schema.
+   * Modules find each other by schema, so a module that changes its schema breaks its consumers.
+   * A translation is the escape hatch: register the schema you have, the schema your module expects,
+   * and a function between them, and the lookup keeps working while you migrate.
    *
-   * This function allows the registration of both the schemas and the translation layer.
+   * @see Techniques for [Schema](/docs/techniques/schema).
    */
   registerSchemaTranslation(
     ...args: Parameters<SchemaTranslationService['registerSchemaTranslation']>
@@ -312,15 +335,11 @@ export class Octo {
   }
 
   /**
-   * This function allows you to register tags for your resources on a more global scale.
+   * To apply tags to resources in bulk, so that individual modules do not each have to be told about
+   * your organization's tagging policy.
    *
-   * You can target tags to,
-   * - Apply to ALL modules and ALL its resources.
-   * - Target a specific module and ALL its resources.
-   * - Target a specific resource.
-   *
-   * The `scope` can be set empty for global, or targeted to a specific module or resource.
-   * The second argument is for supplying the tags themselves.
+   * Each entry's `scope` decides its reach: empty tags every resource of the run, `moduleId` tags
+   * every resource of one module, and `resourceContext` tags a single resource.
    */
   registerTags(
     args: { scope: { moduleId?: string; resourceContext?: string }; tags: { [key: string]: string } }[],
@@ -332,10 +351,10 @@ export class Octo {
   }
 
   /**
-   * Sets the minimum terraform version and the `required_providers` sources/versions rendered
-   * into every generated module folder.
+   * To set the minimum terraform version, and the `required_providers` block rendered into every
+   * generated module folder.
    *
-   * Call after `initialize()`, before `generate()`.
+   * Call it after {@link Octo.initialize}, and before {@link Octo.generate}.
    */
   registerTerraformConfig(
     ...args: Parameters<TerraformService['addTerraformConfig']>
@@ -344,11 +363,13 @@ export class Octo {
   }
 
   /**
-   * Registers a terraform provider block for a deployment target (provider type + account + region).
-   * Resources bind to providers by `{ accountId, regionId }` alone — registration is
-   * the one place a provider type is named.
+   * To register a terraform provider for one deployment target - a provider type, an account, and a
+   * region.
    *
-   * Call after `initialize()`, before `generate()`.
+   * Resources bind to a provider by `{ accountId, regionId }` alone, so this is the one place a
+   * provider type is named. Register one per account/region combination you deploy into.
+   *
+   * Call it after {@link Octo.initialize}, and before {@link Octo.generate}.
    */
   registerTerraformProvider(
     ...args: Parameters<TerraformService['addTerraformProvider']>
@@ -357,7 +378,12 @@ export class Octo {
   }
 
   /**
-   * This function runs a single resource action, invoked by terraform mid-apply for an external resource.
+   * Runs one resource action for an external resource.
+   *
+   * Terraform calls back into this mid-apply, through the generated CLI command; it is not a step you
+   * run yourself.
+   *
+   * @internal
    */
   async runAction(
     app: App,
@@ -367,22 +393,22 @@ export class Octo {
   }
 
   /**
-   * The second step of the octo lifecycle - this function correlates the generated terraform plans
-   * with octo's resource diff and reports what it finds.
+   * The second step of the lifecycle - correlates terraform's plans with your intent, and reports
+   * what it finds. This is what you read before deciding whether to apply.
    *
    * The report answers two questions separately:
-   * 1. What will change, and why — including terraform changes octo did not flag directly but can
-   *    attribute to something it did (a referenced resource whose identity moved, or an address the
-   *    resource no longer renders).
-   * 2. What changed that intent does *not* explain — drift, i.e. infrastructure modified outside
-   *    octo. Read {@link ValidateReport.confidence} first: drift detection is only reliable when
-   *    intent itself is unchanged.
+   * 1. **What will change, and why.** Including terraform changes Octo did not flag directly but can
+   *    attribute to something it did - a referenced resource whose identity moved, or an address the
+   *    resource no longer renders.
+   * 2. **What changed that your intent does not explain** - drift, i.e. infrastructure modified
+   *    outside Octo. Read `confidence` first: drift is only reliable when intent itself is unchanged.
    *
-   * The report is unsuccessful only when terraform could not plan a folder octo generated
-   * ({@link ValidateReport.failures}). Folders octo does not track are excluded and noted.
+   * The report fails only when terraform could not plan a folder Octo generated. Folders Octo does
+   * not track are excluded, and noted.
    *
-   * Pass the whole result of `TerraformUtility.plan(dir, { json: true })`, whose `errors` map carries
-   * terraform's own message for each folder that failed.
+   * @param app The root model, from {@link Octo.getRootModel}.
+   * @param plans The whole result of `TerraformUtility.plan(dir, { json: true })`. Its `errors` map
+   * carries terraform's own message for each folder that failed to plan.
    */
   async validate(
     app: App,

@@ -26,8 +26,14 @@ export class ResourceActionHook implements IHook<PreHookSignature, PostHookSigna
     [key: string]: Omit<PostHookSignature, 'action'>[];
   } = {};
 
+  /**
+   * @internal
+   */
   private constructor() {}
 
+  /**
+   * @internal
+   */
   static getInstance(): ResourceActionHook {
     if (!this.instance) {
       this.instance = new ResourceActionHook();
@@ -35,6 +41,9 @@ export class ResourceActionHook implements IHook<PreHookSignature, PostHookSigna
     return this.instance;
   }
 
+  /**
+   * @internal
+   */
   collectHooks(hooks: { postHooks?: PostHookSignature[]; preHooks?: PreHookSignature[] }): void {
     for (const { action, handle } of hooks.postHooks || []) {
       if (!this.postResourceActionHooks[action.constructor.name]) {
@@ -51,6 +60,9 @@ export class ResourceActionHook implements IHook<PreHookSignature, PostHookSigna
     }
   }
 
+  /**
+   * @internal
+   */
   registrar(resourceAction: IUnknownResourceAction): void {
     // `self` here references this class, vs `this` references the original method.
     // eslint-disable-next-line @typescript-eslint/no-this-alias
@@ -80,6 +92,9 @@ export class ResourceActionHook implements IHook<PreHookSignature, PostHookSigna
     };
   }
 
+  /**
+   * @internal
+   */
   reset(): void {
     for (const name in this.postResourceActionHooks) {
       delete this.postResourceActionHooks[name];
