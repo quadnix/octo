@@ -1,4 +1,5 @@
 import type { TestModuleContainer } from '@quadnix/octo';
+import { RedactionUtility } from './redaction.utility.js';
 
 type ValidateReport = NonNullable<
   (TestModuleContainer['runModules'] extends (...args: never[]) => AsyncGenerator<infer TYield>
@@ -7,54 +8,42 @@ type ValidateReport = NonNullable<
 >;
 
 /**
- * An AWS-assigned identifier: a lowercase type prefix and a hexadecimal suffix, e.g. `subnet-013a66645b3b4cd15`.
- */
-const AWS_IDENTIFIER = /\b[a-z]+(?:-[a-z]+)*-[0-9a-f]{8,17}\b/g;
-
-/**
- * A bare IPv4 address. A CIDR block carries a prefix length and is declared configuration, so it is left alone.
- */
-const IPV4_ADDRESS = /(?<![\d.])\d{1,3}(?:\.\d{1,3}){3}(?![\d./])/g;
-
-/**
- * Replaces AWS-assigned identifiers in a validate report with an alias naming the resource that owns them.
+ * Replaces provider-assigned identifiers in a validate report with an alias naming the resource that
+ * owns them.
  *
- * A report captured from a live plan carries whatever identifiers AWS handed out on that run, so a
- * committed snapshot of one breaks the moment the infrastructure is recreated. An alias is derived
- * from the terraform address octo renders, which is the same on every run.
+ * A report captured from a live plan carries whatever identifiers the provider handed out on that
+ * run, so a committed snapshot of one breaks the moment the infrastructure is recreated. An alias is
+ * derived from the terraform address octo renders, which is the same on every run.
  *
- * Aliasing is all-or-nothing: an identifier this utility cannot name throws rather than reaching a
- * snapshot, so a resource kind it has never seen fails the test instead of leaking.
+ * Which values count is the identifier rules of
+ * [RedactionUtility](./redaction.utility.ts), so a new cloud is a rule file rather than a change
+ * here. Aliasing is all-or-nothing: an identifier this utility cannot name throws rather than
+ * reaching a snapshot, so a resource kind it has never seen fails the test instead of leaking.
  */
-export class AwsResourceAliasUtility {
+export class ResourceAliasUtility {
   /**
-   * The hexadecimal suffix of an identifier that is already a fixture, e.g. terragrunt's `vpc-0123456789abcdef0`.
-   */
-  static readonly PLACEHOLDER_SUFFIX = '0123456789abcdef0';
-
-  /**
-   * Returns a copy of `report` with every AWS-assigned identifier replaced by its alias.
+   * Returns a copy of `report` with every provider-assigned identifier replaced by its alias.
    *
    * @throws If the report holds an identifier that no terraform address claims.
    */
   static alias(report: ValidateReport): ValidateReport {
-    const aliases = AwsResourceAliasUtility.buildAliases(report);
+    const aliases = ResourceAliasUtility.buildAliases(report);
 
     // Replace the longest identifiers first, so one that contains another cannot be half-substituted.
     const literals = [...aliases.keys()].sort((a, b) => b.length - a.length);
-    const aliased = AwsResourceAliasUtility.mapStrings(report, (text) =>
+    const aliased = ResourceAliasUtility.mapStrings(report, (text) =>
       literals.reduce((substituted, literal) => substituted.split(literal).join(aliases.get(literal)!), text),
     );
 
     // Refuse to hand back a report that still names live infrastructure.
     const leaked = new Set<string>();
-    AwsResourceAliasUtility.mapStrings(aliased, (text) => {
-      AwsResourceAliasUtility.findCandidates(text).forEach((candidate) => leaked.add(candidate));
+    ResourceAliasUtility.mapStrings(aliased, (text) => {
+      ResourceAliasUtility.findCandidates(text).forEach((candidate) => leaked.add(candidate));
       return text;
     });
     if (leaked.size > 0) {
       throw new Error(
-        `Validate report holds an AWS identifier that no terraform address claims: ${[...leaked].sort().join(', ')}!`,
+        `Validate report holds an identifier that no terraform address claims: ${[...leaked].sort().join(', ')}!`,
       );
     }
 
@@ -62,7 +51,7 @@ export class AwsResourceAliasUtility {
   }
 
   /**
-   * Maps every AWS-assigned identifier in the report to the terraform address and field that owns it.
+   * Maps every provider-assigned identifier in the report to the terraform address and field that owns it.
    *
    * An identifier is owned by the address whose `id` it is, and otherwise by the first address and
    * field that mention it. Ordering is by address and field rather than by encounter, so adding a
@@ -75,7 +64,7 @@ export class AwsResourceAliasUtility {
       for (const terraformChange of intentChange.terraformChanges) {
         for (const changedField of terraformChange.changedFields) {
           for (const value of [changedField.from, changedField.to]) {
-            for (const candidate of AwsResourceAliasUtility.findCandidates(value ?? '')) {
+            for (const candidate of ResourceAliasUtility.findCandidates(value ?? '')) {
               const entries = occurrences.get(candidate) ?? [];
               entries.push({
                 address: terraformChange.address,
@@ -116,12 +105,10 @@ export class AwsResourceAliasUtility {
   }
 
   /**
-   * Returns the AWS-assigned identifiers in one value, ignoring the fixtures that are already stable.
+   * Returns the provider-assigned identifiers in one value, ignoring the fixtures that are already stable.
    */
   private static findCandidates(value: string): string[] {
-    return [...value.matchAll(AWS_IDENTIFIER), ...value.matchAll(IPV4_ADDRESS)]
-      .map((match) => match[0])
-      .filter((candidate) => !candidate.includes(AwsResourceAliasUtility.PLACEHOLDER_SUFFIX));
+    return RedactionUtility.findMatches(value, RedactionUtility.identifierRules());
   }
 
   /**
@@ -134,11 +121,11 @@ export class AwsResourceAliasUtility {
       return transform(value) as T;
     }
     if (Array.isArray(value)) {
-      return value.map((entry) => AwsResourceAliasUtility.mapStrings(entry, transform)) as T;
+      return value.map((entry) => ResourceAliasUtility.mapStrings(entry, transform)) as T;
     }
     if (value !== null && typeof value === 'object') {
       return Object.fromEntries(
-        Object.entries(value).map(([key, entry]) => [key, AwsResourceAliasUtility.mapStrings(entry, transform)]),
+        Object.entries(value).map(([key, entry]) => [key, ResourceAliasUtility.mapStrings(entry, transform)]),
       ) as T;
     }
     return value;

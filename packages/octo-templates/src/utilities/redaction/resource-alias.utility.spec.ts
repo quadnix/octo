@@ -1,7 +1,7 @@
 import { DiffAction } from '@quadnix/octo';
-import { AwsResourceAliasUtility } from './aws-resource-alias.utility.js';
+import { ResourceAliasUtility } from './resource-alias.utility.js';
 
-type Report = Parameters<typeof AwsResourceAliasUtility.alias>[0];
+type Report = Parameters<typeof ResourceAliasUtility.alias>[0];
 type IntentChange = Report['intentChanges'][0];
 
 const buildReport = (intentChanges: IntentChange[], overrides: Partial<Report> = {}): Report => ({
@@ -28,11 +28,7 @@ const buildIntentChange = (
   terraformChanges: [{ address, changedFields, tfActions: ['update'] }],
 });
 
-describe('AwsResourceAliasUtility UT', () => {
-  it('should set static members', () => {
-    expect(AwsResourceAliasUtility.PLACEHOLDER_SUFFIX).toBe('0123456789abcdef0');
-  });
-
+describe('ResourceAliasUtility UT', () => {
   describe('alias()', () => {
     it('should throw error if an identifier is owned by no terraform address', () => {
       const report = buildReport([], {
@@ -40,15 +36,15 @@ describe('AwsResourceAliasUtility UT', () => {
         notes: [{ message: 'saw subnet-0b2c3d4e5f6a7b8c9' }],
       });
 
-      expect(() => AwsResourceAliasUtility.alias(report)).toThrow(
-        'Validate report holds an AWS identifier that no terraform address claims: subnet-0b2c3d4e5f6a7b8c9!',
+      expect(() => ResourceAliasUtility.alias(report)).toThrow(
+        'Validate report holds an identifier that no terraform address claims: subnet-0b2c3d4e5f6a7b8c9!',
       );
     });
 
     it('should throw error listing every identifier it cannot name', () => {
       const report = buildReport([], { notes: [{ message: 'saw vpc-0a1b2c3d4e5f6a7b8 and 203.0.113.10' }] });
 
-      expect(() => AwsResourceAliasUtility.alias(report)).toThrow('203.0.113.10, vpc-0a1b2c3d4e5f6a7b8!');
+      expect(() => ResourceAliasUtility.alias(report)).toThrow('203.0.113.10, vpc-0a1b2c3d4e5f6a7b8!');
     });
 
     it('should name an identifier after the address whose id it is', () => {
@@ -58,7 +54,7 @@ describe('AwsResourceAliasUtility UT', () => {
         ]),
       ]);
 
-      expect(AwsResourceAliasUtility.alias(report).intentChanges[0].terraformChanges[0].changedFields[0].from).toBe(
+      expect(ResourceAliasUtility.alias(report).intentChanges[0].terraformChanges[0].changedFields[0].from).toBe(
         '<aws_vpc.vpc-app-region-east>',
       );
     });
@@ -70,7 +66,7 @@ describe('AwsResourceAliasUtility UT', () => {
         ]),
       ]);
 
-      expect(AwsResourceAliasUtility.alias(report).intentChanges[0].terraformChanges[0].changedFields[0].from).toBe(
+      expect(ResourceAliasUtility.alias(report).intentChanges[0].terraformChanges[0].changedFields[0].from).toBe(
         '<aws_vpc.vpc-app-region-east.default_security_group_id>',
       );
     });
@@ -84,7 +80,7 @@ describe('AwsResourceAliasUtility UT', () => {
           { field: 'subnets', from: 'subnet-0c3d4e5f6a7b8c9d0', to: '(known after apply)' },
         ]),
       ]);
-      const aliased = AwsResourceAliasUtility.alias(report);
+      const aliased = ResourceAliasUtility.alias(report);
 
       expect(aliased.intentChanges[1].terraformChanges[0].changedFields[0].from).toBe(
         '<aws_subnet.subnet-app-region-east-public-subnet>',
@@ -98,7 +94,7 @@ describe('AwsResourceAliasUtility UT', () => {
           { field: 'arn', from: 'arn:aws:ec2:us-east-1::subnet/subnet-0c3d4e5f6a7b8c9d0', to: '(none)' },
         ]),
       ]);
-      const changedFields = AwsResourceAliasUtility.alias(report).intentChanges[0].terraformChanges[0].changedFields;
+      const changedFields = ResourceAliasUtility.alias(report).intentChanges[0].terraformChanges[0].changedFields;
 
       expect(changedFields[0].from).toBe('<aws_subnet.subnet-app-region-east-public-subnet>');
       expect(changedFields[1].from).toBe(
@@ -124,7 +120,7 @@ describe('AwsResourceAliasUtility UT', () => {
           ],
         },
       ]);
-      const terraformChanges = AwsResourceAliasUtility.alias(report).intentChanges[0].terraformChanges;
+      const terraformChanges = ResourceAliasUtility.alias(report).intentChanges[0].terraformChanges;
 
       expect(terraformChanges[0].changedFields[0].from).toBe(
         '<aws_vpc_security_group_ingress_rule.sec-grp-backend_ingress_0>',
@@ -141,7 +137,7 @@ describe('AwsResourceAliasUtility UT', () => {
         ]),
       ]);
 
-      expect(AwsResourceAliasUtility.alias(report).intentChanges[0].terraformChanges[0].changedFields[0].from).toBe(
+      expect(ResourceAliasUtility.alias(report).intentChanges[0].terraformChanges[0].changedFields[0].from).toBe(
         '<aws_lb.alb-app-region-east-qa-api-alb.subnets[0]>, <aws_lb.alb-app-region-east-qa-api-alb.subnets[1]>',
       );
     });
@@ -153,7 +149,7 @@ describe('AwsResourceAliasUtility UT', () => {
         ]),
       ]);
 
-      expect(AwsResourceAliasUtility.alias(report).intentChanges[0].terraformChanges[0].changedFields[0].from).toBe(
+      expect(ResourceAliasUtility.alias(report).intentChanges[0].terraformChanges[0].changedFields[0].from).toBe(
         '<aws_nat_gateway.nat-gateway-app-region-east.public_ip>',
       );
     });
@@ -165,7 +161,7 @@ describe('AwsResourceAliasUtility UT', () => {
         ]),
       ]);
 
-      expect(AwsResourceAliasUtility.alias(report).intentChanges[0].terraformChanges[0].changedFields[0]).toEqual({
+      expect(ResourceAliasUtility.alias(report).intentChanges[0].terraformChanges[0].changedFields[0]).toEqual({
         field: 'cidr_block',
         from: '10.0.0.0/16',
         to: '10.1.0.0/16',
@@ -179,7 +175,7 @@ describe('AwsResourceAliasUtility UT', () => {
         ]),
       ]);
 
-      expect(AwsResourceAliasUtility.alias(report).intentChanges[0].terraformChanges[0].changedFields[0].to).toBe(
+      expect(ResourceAliasUtility.alias(report).intentChanges[0].terraformChanges[0].changedFields[0].to).toBe(
         'vpc-0123456789abcdef0',
       );
     });
@@ -190,7 +186,7 @@ describe('AwsResourceAliasUtility UT', () => {
           { field: 'id', from: 'vpc-0a1b2c3d4e5f6a7b8' },
         ]),
       ]);
-      const aliased = AwsResourceAliasUtility.alias(report);
+      const aliased = ResourceAliasUtility.alias(report);
 
       expect(Object.keys(aliased.intentChanges[0])).toContain('reason');
       expect(aliased.intentChanges[0].reason).toBeUndefined();
@@ -204,7 +200,7 @@ describe('AwsResourceAliasUtility UT', () => {
         ]),
       ]);
 
-      expect(AwsResourceAliasUtility.alias(report)).toEqual(report);
+      expect(ResourceAliasUtility.alias(report)).toEqual(report);
     });
   });
 });

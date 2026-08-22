@@ -28,9 +28,6 @@ jobs:
       - name: Validate PR Title
         run: |-
           .github/jobs/validate-pr-title.job.sh "${{ github.event.pull_request.title }}"
-      - name: Detect AWS Account ID
-        run: |-
-          .github/jobs/detect-aws-account-id.job.sh
 
   restore-cache:
     continue-on-error: true
@@ -69,6 +66,9 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Lint
         run: pnpm run lint
+      - name: Detect Secrets
+        run: |-
+          .github/jobs/detect-secrets.job.sh
 
   build-check:
     continue-on-error: false

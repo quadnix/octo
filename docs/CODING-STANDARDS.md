@@ -33,6 +33,7 @@ One concept per folder. The file suffix carries the meaning.
 | `*.service.ts`                   | one container-registered service plus its `*ServiceFactory`                                             |
 | `*.utility.ts`                   | one `static`-only utility class                                                                         |
 | `*.setup.ts`                     | one jest `setupFilesAfterEnv` module, registered in that package's `package.json`                       |
+| `*.rule.ts`                      | one redaction rule, typed by `IRedactionRule`                                                          |
 | `*.command.ts`                   | one octo-build CLI command                                                                              |
 | `*.error.ts`                     | the error classes of one area                                                                           |
 | `index.ts`                       | re-exports, nothing else                                                                                |
@@ -201,12 +202,15 @@ describe('<Subject> UT', () => {
 The repository is public and the e2e suites run against a live AWS account, so captured output
 carries that account.
 
-- Never commit a real AWS account number. Snapshots in `octo-templates` are redacted on the way in
-  by `aws-account-redaction.setup.ts`, and `.github/jobs/detect-aws-account-id.job.sh` fails the PR
-  for every other path. Add a placeholder to that script rather than widening its pattern.
+- What must never be committed is declared once, as a rule under
+  `packages/octo-templates/src/utilities/redaction/rules`. Both enforcers read those rules: the jest
+  snapshot serializer redacts on the way into a snapshot, and `repository-secrets.spec.ts` fails the
+  build on any other tracked file. A new cloud is a new rule file, never a second copy of a pattern.
+- Never commit a real AWS account number. Add a placeholder to its rule rather than widening the
+  pattern.
 - Never commit an AWS-assigned identifier captured from a run under `packages/` — a `vpc-…`,
   `subnet-…`, or a public address. A snapshot of a validate report passes through
-  `AwsResourceAliasUtility.alias()`, which names each one after the terraform address that owns it,
+  `ResourceAliasUtility.alias()`, which names each one after the terraform address that owns it,
   and throws on one it cannot name. Secrecy is the smaller half of the reason: an identifier AWS
   handed out on one run is new on the next, so an unaliased snapshot churns on every run and buries
   the drift it exists to show. `apps/octo-docs` keeps captured ids on purpose — see

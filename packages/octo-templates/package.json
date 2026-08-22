@@ -39,7 +39,7 @@
     "preset": "ts-jest/presets/default-esm",
     "rootDir": ".",
     "setupFilesAfterEnv": [
-      "<rootDir>/src/utilities/redaction/aws-account-redaction.setup.ts"
+      "<rootDir>/src/utilities/redaction/redaction.setup.ts"
     ],
     "testEnvironment": "node",
     "testRegex": ".*spec\\.ts$",
@@ -73,6 +73,7 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "NODE_OPTIONS=--experimental-vm-modules jest --testRegex=\"\\.e2e-spec.ts$\"",
     "test:integration": "NODE_OPTIONS=--experimental-vm-modules jest --testRegex=\"\\.ispec.ts$\" --runInBand",
+    "test:secrets": "NODE_OPTIONS=--experimental-vm-modules jest --testRegex=\"repository-secrets\\.spec.ts$\"",
     "test:watch": "jest --watch"
   },
   "type": "module",
