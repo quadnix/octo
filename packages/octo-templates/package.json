@@ -38,6 +38,9 @@
     "passWithNoTests": true,
     "preset": "ts-jest/presets/default-esm",
     "rootDir": ".",
+    "setupFilesAfterEnv": [
+      "<rootDir>/src/utilities/redaction/aws-account-redaction.setup.ts"
+    ],
     "testEnvironment": "node",
     "testRegex": ".*spec\\.ts$",
     "transform": {

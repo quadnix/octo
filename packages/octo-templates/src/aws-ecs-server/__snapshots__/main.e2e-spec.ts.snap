@@ -301,12 +301,12 @@ exports[`Main E2E input changes AwsEcsDeploymentModule should handle deploymentC
           "changedFields": [
             {
               "field": "arn",
-              "from": "arn:aws:ecs:us-east-1:099051346528:task-definition/qa-app-region-east-private-su…",
+              "from": "arn:aws:ecs:us-east-1:<AWS_ACCOUNT_ID>:task-definition/qa-app-region-east-private-su…",
               "to": "(known after apply)",
             },
             {
               "field": "arn_without_revision",
-              "from": "arn:aws:ecs:us-east-1:099051346528:task-definition/qa-app-region-east-private-su…",
+              "from": "arn:aws:ecs:us-east-1:<AWS_ACCOUNT_ID>:task-definition/qa-app-region-east-private-su…",
               "to": "(known after apply)",
             },
             {
@@ -369,7 +369,7 @@ exports[`Main E2E input changes AwsEcsDeploymentModule should handle deploymentC
           "changedFields": [
             {
               "field": "task_definition",
-              "from": "arn:aws:ecs:us-east-1:099051346528:task-definition/qa-app-region-east-private-su…",
+              "from": "arn:aws:ecs:us-east-1:<AWS_ACCOUNT_ID>:task-definition/qa-app-region-east-private-su…",
               "to": "(known after apply)",
             },
           ],
@@ -465,12 +465,12 @@ exports[`Main E2E input changes AwsEcsEnvironmentModule should handle environmen
           "changedFields": [
             {
               "field": "arn",
-              "from": "arn:aws:ecs:us-east-1:099051346528:task-definition/qa-app-region-east-private-su…",
+              "from": "arn:aws:ecs:us-east-1:<AWS_ACCOUNT_ID>:task-definition/qa-app-region-east-private-su…",
               "to": "(known after apply)",
             },
             {
               "field": "arn_without_revision",
-              "from": "arn:aws:ecs:us-east-1:099051346528:task-definition/qa-app-region-east-private-su…",
+              "from": "arn:aws:ecs:us-east-1:<AWS_ACCOUNT_ID>:task-definition/qa-app-region-east-private-su…",
               "to": "(known after apply)",
             },
             {
@@ -528,7 +528,7 @@ exports[`Main E2E input changes AwsEcsEnvironmentModule should handle environmen
           "changedFields": [
             {
               "field": "arn",
-              "from": "arn:aws:ecs:us-east-1:099051346528:service/app-region-east-qa/backend-v1-qa-exec…",
+              "from": "arn:aws:ecs:us-east-1:<AWS_ACCOUNT_ID>:service/app-region-east-qa/backend-v1-qa-exec…",
               "to": "(known after apply)",
             },
             {
@@ -538,7 +538,7 @@ exports[`Main E2E input changes AwsEcsEnvironmentModule should handle environmen
             },
             {
               "field": "cluster",
-              "from": "arn:aws:ecs:us-east-1:099051346528:cluster/app-region-east-qa",
+              "from": "arn:aws:ecs:us-east-1:<AWS_ACCOUNT_ID>:cluster/app-region-east-qa",
               "to": "arn:aws:ecs:us-east-1:000000000000:cluster/mock-cluster",
             },
             {
@@ -568,7 +568,7 @@ exports[`Main E2E input changes AwsEcsEnvironmentModule should handle environmen
             },
             {
               "field": "id",
-              "from": "arn:aws:ecs:us-east-1:099051346528:service/app-region-east-qa/backend-v1-qa-exec…",
+              "from": "arn:aws:ecs:us-east-1:<AWS_ACCOUNT_ID>:service/app-region-east-qa/backend-v1-qa-exec…",
               "to": "(known after apply)",
             },
             {
@@ -583,7 +583,7 @@ exports[`Main E2E input changes AwsEcsEnvironmentModule should handle environmen
             },
             {
               "field": "task_definition",
-              "from": "arn:aws:ecs:us-east-1:099051346528:task-definition/qa-app-region-east-private-su…",
+              "from": "arn:aws:ecs:us-east-1:<AWS_ACCOUNT_ID>:task-definition/qa-app-region-east-private-su…",
               "to": "(known after apply)",
             },
           ],
@@ -642,12 +642,12 @@ exports[`Main E2E input changes AwsEcsEnvironmentModule should handle environmen
           "changedFields": [
             {
               "field": "arn",
-              "from": "arn:aws:ecs:us-east-1:099051346528:task-definition/qa-app-region-east-private-su…",
+              "from": "arn:aws:ecs:us-east-1:<AWS_ACCOUNT_ID>:task-definition/qa-app-region-east-private-su…",
               "to": "(known after apply)",
             },
             {
               "field": "arn_without_revision",
-              "from": "arn:aws:ecs:us-east-1:099051346528:task-definition/qa-app-region-east-private-su…",
+              "from": "arn:aws:ecs:us-east-1:<AWS_ACCOUNT_ID>:task-definition/qa-app-region-east-private-su…",
               "to": "(known after apply)",
             },
             {
@@ -700,7 +700,7 @@ exports[`Main E2E input changes AwsEcsEnvironmentModule should handle environmen
           "changedFields": [
             {
               "field": "task_definition",
-              "from": "arn:aws:ecs:us-east-1:099051346528:task-definition/qa-app-region-east-private-su…",
+              "from": "arn:aws:ecs:us-east-1:<AWS_ACCOUNT_ID>:task-definition/qa-app-region-east-private-su…",
               "to": "(known after apply)",
             },
           ],
@@ -742,12 +742,12 @@ exports[`Main E2E input changes AwsEcsExecutionModule should handle deployments 
           "changedFields": [
             {
               "field": "arn",
-              "from": "arn:aws:ecs:us-east-1:099051346528:task-definition/qa-app-region-east-private-su…",
+              "from": "arn:aws:ecs:us-east-1:<AWS_ACCOUNT_ID>:task-definition/qa-app-region-east-private-su…",
               "to": "(known after apply)",
             },
             {
               "field": "arn_without_revision",
-              "from": "arn:aws:ecs:us-east-1:099051346528:task-definition/qa-app-region-east-private-su…",
+              "from": "arn:aws:ecs:us-east-1:<AWS_ACCOUNT_ID>:task-definition/qa-app-region-east-private-su…",
               "to": "(known after apply)",
             },
             {
@@ -805,7 +805,7 @@ exports[`Main E2E input changes AwsEcsExecutionModule should handle deployments 
             },
             {
               "field": "task_definition",
-              "from": "arn:aws:ecs:us-east-1:099051346528:task-definition/qa-app-region-east-private-su…",
+              "from": "arn:aws:ecs:us-east-1:<AWS_ACCOUNT_ID>:task-definition/qa-app-region-east-private-su…",
               "to": "(known after apply)",
             },
           ],
@@ -1214,12 +1214,12 @@ exports[`Main E2E input changes AwsEcsServerModule should handle serverKey chang
           "changedFields": [
             {
               "field": "arn",
-              "from": "arn:aws:ecs:us-east-1:099051346528:task-definition/qa-app-region-east-private-su…",
+              "from": "arn:aws:ecs:us-east-1:<AWS_ACCOUNT_ID>:task-definition/qa-app-region-east-private-su…",
               "to": "(known after apply)",
             },
             {
               "field": "arn_without_revision",
-              "from": "arn:aws:ecs:us-east-1:099051346528:task-definition/qa-app-region-east-private-su…",
+              "from": "arn:aws:ecs:us-east-1:<AWS_ACCOUNT_ID>:task-definition/qa-app-region-east-private-su…",
               "to": "(known after apply)",
             },
             {
@@ -1234,7 +1234,7 @@ exports[`Main E2E input changes AwsEcsServerModule should handle serverKey chang
             },
             {
               "field": "execution_role_arn",
-              "from": "arn:aws:iam::099051346528:role/ServerRole-backend",
+              "from": "arn:aws:iam::<AWS_ACCOUNT_ID>:role/ServerRole-backend",
               "to": "arn:aws:iam::000000000000:role/mock-role",
             },
             {
@@ -1264,7 +1264,7 @@ exports[`Main E2E input changes AwsEcsServerModule should handle serverKey chang
             },
             {
               "field": "task_role_arn",
-              "from": "arn:aws:iam::099051346528:role/ServerRole-backend",
+              "from": "arn:aws:iam::<AWS_ACCOUNT_ID>:role/ServerRole-backend",
               "to": "arn:aws:iam::000000000000:role/mock-role",
             },
           ],
@@ -1292,7 +1292,7 @@ exports[`Main E2E input changes AwsEcsServerModule should handle serverKey chang
             },
             {
               "field": "task_definition",
-              "from": "arn:aws:ecs:us-east-1:099051346528:task-definition/qa-app-region-east-private-su…",
+              "from": "arn:aws:ecs:us-east-1:<AWS_ACCOUNT_ID>:task-definition/qa-app-region-east-private-su…",
               "to": "(known after apply)",
             },
           ],
@@ -1951,7 +1951,7 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle name change
           "changedFields": [
             {
               "field": "arn",
-              "from": "arn:aws:ec2:us-east-1:099051346528:security-group/sg-04241c53dd799c14a",
+              "from": "arn:aws:ec2:us-east-1:<AWS_ACCOUNT_ID>:security-group/sg-04241c53dd799c14a",
               "to": "(known after apply)",
             },
             {
@@ -1981,7 +1981,7 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle name change
             },
             {
               "field": "owner_id",
-              "from": "099051346528",
+              "from": "<AWS_ACCOUNT_ID>",
               "to": "(known after apply)",
             },
             {
@@ -2009,7 +2009,7 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle name change
           "changedFields": [
             {
               "field": "arn",
-              "from": "arn:aws:ec2:us-east-1:099051346528:security-group/sg-003e9d4688dd3c2e0",
+              "from": "arn:aws:ec2:us-east-1:<AWS_ACCOUNT_ID>:security-group/sg-003e9d4688dd3c2e0",
               "to": "(known after apply)",
             },
             {
@@ -2039,7 +2039,7 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle name change
             },
             {
               "field": "owner_id",
-              "from": "099051346528",
+              "from": "<AWS_ACCOUNT_ID>",
               "to": "(known after apply)",
             },
             {
@@ -2058,7 +2058,7 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle name change
           "changedFields": [
             {
               "field": "arn",
-              "from": "arn:aws:ec2:us-east-1:099051346528:security-group-rule/sgr-0184139cf14954317",
+              "from": "arn:aws:ec2:us-east-1:<AWS_ACCOUNT_ID>:security-group-rule/sgr-0184139cf14954317",
               "to": "(known after apply)",
             },
             {
@@ -2087,7 +2087,7 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle name change
           "changedFields": [
             {
               "field": "arn",
-              "from": "arn:aws:ec2:us-east-1:099051346528:security-group-rule/sgr-01edf92f632e6b072",
+              "from": "arn:aws:ec2:us-east-1:<AWS_ACCOUNT_ID>:security-group-rule/sgr-01edf92f632e6b072",
               "to": "(known after apply)",
             },
             {
@@ -2116,7 +2116,7 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle name change
           "changedFields": [
             {
               "field": "arn",
-              "from": "arn:aws:ec2:us-east-1:099051346528:security-group-rule/sgr-0ae37d85e7b94a134",
+              "from": "arn:aws:ec2:us-east-1:<AWS_ACCOUNT_ID>:security-group-rule/sgr-0ae37d85e7b94a134",
               "to": "(known after apply)",
             },
             {
@@ -2154,12 +2154,12 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle name change
           "changedFields": [
             {
               "field": "arn",
-              "from": "arn:aws:ecs:us-east-1:099051346528:task-definition/qa-app-region-east-private-su…",
+              "from": "arn:aws:ecs:us-east-1:<AWS_ACCOUNT_ID>:task-definition/qa-app-region-east-private-su…",
               "to": "(known after apply)",
             },
             {
               "field": "arn_without_revision",
-              "from": "arn:aws:ecs:us-east-1:099051346528:task-definition/qa-app-region-east-private-su…",
+              "from": "arn:aws:ecs:us-east-1:<AWS_ACCOUNT_ID>:task-definition/qa-app-region-east-private-su…",
               "to": "(known after apply)",
             },
             {
@@ -2217,7 +2217,7 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle name change
           "changedFields": [
             {
               "field": "arn",
-              "from": "arn:aws:ecs:us-east-1:099051346528:service/app-region-east-qa/backend-v1-qa-exec…",
+              "from": "arn:aws:ecs:us-east-1:<AWS_ACCOUNT_ID>:service/app-region-east-qa/backend-v1-qa-exec…",
               "to": "(known after apply)",
             },
             {
@@ -2227,7 +2227,7 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle name change
             },
             {
               "field": "cluster",
-              "from": "arn:aws:ecs:us-east-1:099051346528:cluster/app-region-east-qa",
+              "from": "arn:aws:ecs:us-east-1:<AWS_ACCOUNT_ID>:cluster/app-region-east-qa",
               "to": "arn:aws:ecs:us-east-1:000000000000:cluster/mock-cluster",
             },
             {
@@ -2257,7 +2257,7 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle name change
             },
             {
               "field": "id",
-              "from": "arn:aws:ecs:us-east-1:099051346528:service/app-region-east-qa/backend-v1-qa-exec…",
+              "from": "arn:aws:ecs:us-east-1:<AWS_ACCOUNT_ID>:service/app-region-east-qa/backend-v1-qa-exec…",
               "to": "(known after apply)",
             },
             {
@@ -2295,7 +2295,7 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle name change
           "changedFields": [
             {
               "field": "arn",
-              "from": "arn:aws:elasticloadbalancing:us-east-1:099051346528:targetgroup/backend-v1-80/a5…",
+              "from": "arn:aws:elasticloadbalancing:us-east-1:<AWS_ACCOUNT_ID>:targetgroup/backend-v1-80/a5…",
               "to": "(known after apply)",
             },
             {
@@ -2310,12 +2310,12 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle name change
             },
             {
               "field": "id",
-              "from": "arn:aws:elasticloadbalancing:us-east-1:099051346528:targetgroup/backend-v1-80/a5…",
+              "from": "arn:aws:elasticloadbalancing:us-east-1:<AWS_ACCOUNT_ID>:targetgroup/backend-v1-80/a5…",
               "to": "(known after apply)",
             },
             {
               "field": "load_balancer_arns",
-              "from": "arn:aws:elasticloadbalancing:us-east-1:099051346528:loadbalancer/app/qa-api-alb/…",
+              "from": "arn:aws:elasticloadbalancing:us-east-1:<AWS_ACCOUNT_ID>:loadbalancer/app/qa-api-alb/…",
               "to": "(known after apply)",
             },
             {
@@ -2857,7 +2857,7 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle vpcCidrBloc
           "changedFields": [
             {
               "field": "arn",
-              "from": "arn:aws:ec2:us-east-1:099051346528:vpc/vpc-0e5d50288289a080f",
+              "from": "arn:aws:ec2:us-east-1:<AWS_ACCOUNT_ID>:vpc/vpc-0e5d50288289a080f",
               "to": "(known after apply)",
             },
             {
@@ -2957,7 +2957,7 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle vpcCidrBloc
           "changedFields": [
             {
               "field": "arn",
-              "from": "arn:aws:ec2:us-east-1:099051346528:subnet/subnet-06782045873e361dc",
+              "from": "arn:aws:ec2:us-east-1:<AWS_ACCOUNT_ID>:subnet/subnet-06782045873e361dc",
               "to": "(known after apply)",
             },
             {
@@ -3007,7 +3007,7 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle vpcCidrBloc
             },
             {
               "field": "owner_id",
-              "from": "099051346528",
+              "from": "<AWS_ACCOUNT_ID>",
               "to": "(known after apply)",
             },
             {
@@ -3178,7 +3178,7 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle vpcCidrBloc
           "changedFields": [
             {
               "field": "arn",
-              "from": "arn:aws:ec2:us-east-1:099051346528:subnet/subnet-022e1addb834f8acf",
+              "from": "arn:aws:ec2:us-east-1:<AWS_ACCOUNT_ID>:subnet/subnet-022e1addb834f8acf",
               "to": "(known after apply)",
             },
             {
@@ -3228,7 +3228,7 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle vpcCidrBloc
             },
             {
               "field": "owner_id",
-              "from": "099051346528",
+              "from": "<AWS_ACCOUNT_ID>",
               "to": "(known after apply)",
             },
             {
@@ -3321,7 +3321,7 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle vpcCidrBloc
           "changedFields": [
             {
               "field": "arn",
-              "from": "arn:aws:ec2:us-east-1:099051346528:subnet/subnet-013a66645b3b4cd15",
+              "from": "arn:aws:ec2:us-east-1:<AWS_ACCOUNT_ID>:subnet/subnet-013a66645b3b4cd15",
               "to": "(known after apply)",
             },
             {
@@ -3371,7 +3371,7 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle vpcCidrBloc
             },
             {
               "field": "owner_id",
-              "from": "099051346528",
+              "from": "<AWS_ACCOUNT_ID>",
               "to": "(known after apply)",
             },
             {
@@ -3535,7 +3535,7 @@ exports[`Main E2E input changes AwsSimpleSubnetModule should handle subnetAvaila
           "changedFields": [
             {
               "field": "arn",
-              "from": "arn:aws:ec2:us-east-1:099051346528:subnet/subnet-06782045873e361dc",
+              "from": "arn:aws:ec2:us-east-1:<AWS_ACCOUNT_ID>:subnet/subnet-06782045873e361dc",
               "to": "(known after apply)",
             },
             {
@@ -3585,7 +3585,7 @@ exports[`Main E2E input changes AwsSimpleSubnetModule should handle subnetAvaila
             },
             {
               "field": "owner_id",
-              "from": "099051346528",
+              "from": "<AWS_ACCOUNT_ID>",
               "to": "(known after apply)",
             },
             {
@@ -3779,7 +3779,7 @@ exports[`Main E2E input changes AwsSimpleSubnetModule should handle subnetCidrBl
           "changedFields": [
             {
               "field": "arn",
-              "from": "arn:aws:ec2:us-east-1:099051346528:subnet/subnet-06782045873e361dc",
+              "from": "arn:aws:ec2:us-east-1:<AWS_ACCOUNT_ID>:subnet/subnet-06782045873e361dc",
               "to": "(known after apply)",
             },
             {
@@ -3829,7 +3829,7 @@ exports[`Main E2E input changes AwsSimpleSubnetModule should handle subnetCidrBl
             },
             {
               "field": "owner_id",
-              "from": "099051346528",
+              "from": "<AWS_ACCOUNT_ID>",
               "to": "(known after apply)",
             },
             {

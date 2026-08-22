@@ -32,6 +32,7 @@ One concept per folder. The file suffix carries the meaning.
 | `*.action.ts`                    | one node action, named `<verb>-<node>.<kind>.action.ts` where kind is `model`, `overlay`, or `resource` |
 | `*.service.ts`                   | one container-registered service plus its `*ServiceFactory`                                             |
 | `*.utility.ts`                   | one `static`-only utility class                                                                         |
+| `*.setup.ts`                     | one jest `setupFilesAfterEnv` module, registered in that package's `package.json`                       |
 | `*.command.ts`                   | one octo-build CLI command                                                                              |
 | `*.error.ts`                     | the error classes of one area                                                                           |
 | `index.ts`                       | re-exports, nothing else                                                                                |
@@ -194,6 +195,22 @@ describe('<Subject> UT', () => {
 - One `describe` per method, named `'methodName()'`, in the order the methods appear on the class.
 - Every `it` starts with `should`.
 - Error cases before happy paths within a method.
+
+## Secrets
+
+The repository is public and the e2e suites run against a live AWS account, so captured output
+carries that account.
+
+- Never commit a real AWS account number. Snapshots in `octo-templates` are redacted on the way in
+  by `aws-account-redaction.setup.ts`, and `.github/jobs/detect-aws-account-id.job.sh` fails the PR
+  for every other path. Add a placeholder to that script rather than widening its pattern.
+- A test fixture that needs an account number uses `123456789012`. Terragrunt's own mock outputs
+  read `000000000000` and are left as the tool wrote them.
+- Real account values reach a suite through a gitignored `.env`, never through a source. The tracked
+  `.env.defaults` beside it carries a placeholder and documents the key.
+- The same rule covers anything else that identifies the account or the operator: access key ids,
+  session tokens, non-default profile names, and absolute paths from the machine that ran a capture.
+  `docs/DOCUMENTATION-STANDARDS.md` holds the version of this rule that applies to `apps/octo-docs`.
 
 ## Public API
 

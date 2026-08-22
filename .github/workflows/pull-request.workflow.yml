@@ -28,6 +28,9 @@ jobs:
       - name: Validate PR Title
         run: |-
           .github/jobs/validate-pr-title.job.sh "${{ github.event.pull_request.title }}"
+      - name: Detect AWS Account ID
+        run: |-
+          .github/jobs/detect-aws-account-id.job.sh
 
   restore-cache:
     continue-on-error: true
