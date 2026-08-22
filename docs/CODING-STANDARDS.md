@@ -204,8 +204,13 @@ carries that account.
 - Never commit a real AWS account number. Snapshots in `octo-templates` are redacted on the way in
   by `aws-account-redaction.setup.ts`, and `.github/jobs/detect-aws-account-id.job.sh` fails the PR
   for every other path. Add a placeholder to that script rather than widening its pattern.
+- Never commit an AWS-assigned identifier — a `vpc-…`, `subnet-…`, or a public address. A snapshot of
+  a validate report passes through `AwsResourceAliasUtility.alias()`, which names each one after the
+  terraform address that owns it, and throws on one it cannot name. Both problems are the same
+  problem: an identifier AWS handed out on one run is new on the next, so an unaliased snapshot
+  leaks and churns at once.
 - A test fixture that needs an account number uses `123456789012`. Terragrunt's own mock outputs
-  read `000000000000` and are left as the tool wrote them.
+  read `000000000000` and are left as the tool wrote them, as are `…0123456789abcdef0` identifiers.
 - Real account values reach a suite through a gitignored `.env`, never through a source. The tracked
   `.env.defaults` beside it carries a placeholder and documents the key.
 - The same rule covers anything else that identifies the account or the operator: access key ids,

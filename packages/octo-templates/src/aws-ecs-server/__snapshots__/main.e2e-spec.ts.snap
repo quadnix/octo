@@ -1951,7 +1951,7 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle name change
           "changedFields": [
             {
               "field": "arn",
-              "from": "arn:aws:ec2:us-east-1:<AWS_ACCOUNT_ID>:security-group/sg-04241c53dd799c14a",
+              "from": "arn:aws:ec2:us-east-1:<AWS_ACCOUNT_ID>:security-group/<aws_security_group.sec-grp-SecurityGroup-backend>",
               "to": "(known after apply)",
             },
             {
@@ -1961,7 +1961,7 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle name change
             },
             {
               "field": "id",
-              "from": "sg-04241c53dd799c14a",
+              "from": "<aws_security_group.sec-grp-SecurityGroup-backend>",
               "to": "(known after apply)",
             },
             {
@@ -1986,7 +1986,7 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle name change
             },
             {
               "field": "vpc_id",
-              "from": "vpc-0e5d50288289a080f",
+              "from": "<aws_security_group.sec-grp-SecurityGroup-backend.vpc_id>",
               "to": "vpc-0123456789abcdef0",
             },
           ],
@@ -2009,7 +2009,7 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle name change
           "changedFields": [
             {
               "field": "arn",
-              "from": "arn:aws:ec2:us-east-1:<AWS_ACCOUNT_ID>:security-group/sg-003e9d4688dd3c2e0",
+              "from": "arn:aws:ec2:us-east-1:<AWS_ACCOUNT_ID>:security-group/<aws_security_group.sec-grp-SecurityGroup-backend-v1-qa-execution>",
               "to": "(known after apply)",
             },
             {
@@ -2019,7 +2019,7 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle name change
             },
             {
               "field": "id",
-              "from": "sg-003e9d4688dd3c2e0",
+              "from": "<aws_security_group.sec-grp-SecurityGroup-backend-v1-qa-execution>",
               "to": "(known after apply)",
             },
             {
@@ -2044,7 +2044,7 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle name change
             },
             {
               "field": "vpc_id",
-              "from": "vpc-0e5d50288289a080f",
+              "from": "<aws_security_group.sec-grp-SecurityGroup-backend.vpc_id>",
               "to": "vpc-0123456789abcdef0",
             },
           ],
@@ -2058,22 +2058,22 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle name change
           "changedFields": [
             {
               "field": "arn",
-              "from": "arn:aws:ec2:us-east-1:<AWS_ACCOUNT_ID>:security-group-rule/sgr-0184139cf14954317",
+              "from": "arn:aws:ec2:us-east-1:<AWS_ACCOUNT_ID>:security-group-rule/<aws_vpc_security_group_ingress_rule.sec-grp-SecurityGroup-backend-v1-qa-execution_ingress_0>",
               "to": "(known after apply)",
             },
             {
               "field": "id",
-              "from": "sgr-0184139cf14954317",
+              "from": "<aws_vpc_security_group_ingress_rule.sec-grp-SecurityGroup-backend-v1-qa-execution_ingress_0>",
               "to": "(known after apply)",
             },
             {
               "field": "security_group_id",
-              "from": "sg-003e9d4688dd3c2e0",
+              "from": "<aws_security_group.sec-grp-SecurityGroup-backend-v1-qa-execution>",
               "to": "(known after apply)",
             },
             {
               "field": "security_group_rule_id",
-              "from": "sgr-0184139cf14954317",
+              "from": "<aws_vpc_security_group_ingress_rule.sec-grp-SecurityGroup-backend-v1-qa-execution_ingress_0>",
               "to": "(known after apply)",
             },
           ],
@@ -2087,22 +2087,22 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle name change
           "changedFields": [
             {
               "field": "arn",
-              "from": "arn:aws:ec2:us-east-1:<AWS_ACCOUNT_ID>:security-group-rule/sgr-01edf92f632e6b072",
+              "from": "arn:aws:ec2:us-east-1:<AWS_ACCOUNT_ID>:security-group-rule/<aws_vpc_security_group_egress_rule.sec-grp-SecurityGroup-backend-v1-qa-execution_egress_0>",
               "to": "(known after apply)",
             },
             {
               "field": "id",
-              "from": "sgr-01edf92f632e6b072",
+              "from": "<aws_vpc_security_group_egress_rule.sec-grp-SecurityGroup-backend-v1-qa-execution_egress_0>",
               "to": "(known after apply)",
             },
             {
               "field": "security_group_id",
-              "from": "sg-003e9d4688dd3c2e0",
+              "from": "<aws_security_group.sec-grp-SecurityGroup-backend-v1-qa-execution>",
               "to": "(known after apply)",
             },
             {
               "field": "security_group_rule_id",
-              "from": "sgr-01edf92f632e6b072",
+              "from": "<aws_vpc_security_group_egress_rule.sec-grp-SecurityGroup-backend-v1-qa-execution_egress_0>",
               "to": "(known after apply)",
             },
           ],
@@ -2116,22 +2116,22 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle name change
           "changedFields": [
             {
               "field": "arn",
-              "from": "arn:aws:ec2:us-east-1:<AWS_ACCOUNT_ID>:security-group-rule/sgr-0ae37d85e7b94a134",
+              "from": "arn:aws:ec2:us-east-1:<AWS_ACCOUNT_ID>:security-group-rule/<aws_vpc_security_group_egress_rule.sec-grp-SecurityGroup-backend-v1-qa-execution_egress_1>",
               "to": "(known after apply)",
             },
             {
               "field": "id",
-              "from": "sgr-0ae37d85e7b94a134",
+              "from": "<aws_vpc_security_group_egress_rule.sec-grp-SecurityGroup-backend-v1-qa-execution_egress_1>",
               "to": "(known after apply)",
             },
             {
               "field": "security_group_id",
-              "from": "sg-003e9d4688dd3c2e0",
+              "from": "<aws_security_group.sec-grp-SecurityGroup-backend-v1-qa-execution>",
               "to": "(known after apply)",
             },
             {
               "field": "security_group_rule_id",
-              "from": "sgr-0ae37d85e7b94a134",
+              "from": "<aws_vpc_security_group_egress_rule.sec-grp-SecurityGroup-backend-v1-qa-execution_egress_1>",
               "to": "(known after apply)",
             },
           ],
@@ -2857,7 +2857,7 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle vpcCidrBloc
           "changedFields": [
             {
               "field": "arn",
-              "from": "arn:aws:ec2:us-east-1:<AWS_ACCOUNT_ID>:vpc/vpc-0e5d50288289a080f",
+              "from": "arn:aws:ec2:us-east-1:<AWS_ACCOUNT_ID>:vpc/<aws_vpc.vpc-app-region-east>",
               "to": "(known after apply)",
             },
             {
@@ -2872,22 +2872,22 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle vpcCidrBloc
             },
             {
               "field": "default_network_acl_id",
-              "from": "acl-0d0c8dfbe28dc1379",
+              "from": "<aws_vpc.vpc-app-region-east.default_network_acl_id>",
               "to": "(known after apply)",
             },
             {
               "field": "default_route_table_id",
-              "from": "rtb-0bb458c1479284305",
+              "from": "<aws_vpc.vpc-app-region-east.default_route_table_id>",
               "to": "(known after apply)",
             },
             {
               "field": "default_security_group_id",
-              "from": "sg-0129d4a8d73429a53",
+              "from": "<aws_vpc.vpc-app-region-east.default_security_group_id>",
               "to": "(known after apply)",
             },
             {
               "field": "dhcp_options_id",
-              "from": "dopt-8c9004ea",
+              "from": "<aws_vpc.vpc-app-region-east.dhcp_options_id>",
               "to": "(known after apply)",
             },
             {
@@ -2897,7 +2897,7 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle vpcCidrBloc
             },
             {
               "field": "id",
-              "from": "vpc-0e5d50288289a080f",
+              "from": "<aws_vpc.vpc-app-region-east>",
               "to": "(known after apply)",
             },
             {
@@ -2935,7 +2935,7 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle vpcCidrBloc
           "changedFields": [
             {
               "field": "vpc_id",
-              "from": "vpc-0e5d50288289a080f",
+              "from": "<aws_vpc.vpc-app-region-east>",
               "to": "(known after apply)",
             },
           ],
@@ -2957,7 +2957,7 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle vpcCidrBloc
           "changedFields": [
             {
               "field": "arn",
-              "from": "arn:aws:ec2:us-east-1:<AWS_ACCOUNT_ID>:subnet/subnet-06782045873e361dc",
+              "from": "arn:aws:ec2:us-east-1:<AWS_ACCOUNT_ID>:subnet/<aws_subnet.subnet-app-region-east-public-subnet>",
               "to": "(known after apply)",
             },
             {
@@ -2982,7 +2982,7 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle vpcCidrBloc
             },
             {
               "field": "id",
-              "from": "subnet-06782045873e361dc",
+              "from": "<aws_subnet.subnet-app-region-east-public-subnet>",
               "to": "(known after apply)",
             },
             {
@@ -3035,7 +3035,7 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle vpcCidrBloc
           "changedFields": [
             {
               "field": "association_id",
-              "from": "eipassoc-03308f37f25a17f2a",
+              "from": "<aws_nat_gateway.nat-gateway-app-region-east-public-subnet.association_id>",
               "to": "(known after apply)",
             },
             {
@@ -3055,22 +3055,22 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle vpcCidrBloc
             },
             {
               "field": "id",
-              "from": "nat-0d435861d018ec976",
+              "from": "<aws_nat_gateway.nat-gateway-app-region-east-public-subnet>",
               "to": "(known after apply)",
             },
             {
               "field": "network_interface_id",
-              "from": "eni-0615da1b41ed6c1aa",
+              "from": "<aws_nat_gateway.nat-gateway-app-region-east-public-subnet.network_interface_id>",
               "to": "(known after apply)",
             },
             {
               "field": "private_ip",
-              "from": "10.0.0.34",
+              "from": "<aws_nat_gateway.nat-gateway-app-region-east-public-subnet.private_ip>",
               "to": "(known after apply)",
             },
             {
               "field": "public_ip",
-              "from": "54.209.242.119",
+              "from": "<aws_nat_gateway.nat-gateway-app-region-east-public-subnet.public_ip>",
               "to": "(known after apply)",
             },
             {
@@ -3118,12 +3118,12 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle vpcCidrBloc
             },
             {
               "field": "id",
-              "from": "rtbassoc-064b92fafda72fb5d",
+              "from": "<aws_route_table_association.rt-app-region-east-public-subnet_assoc>",
               "to": "(known after apply)",
             },
             {
               "field": "subnet_id",
-              "from": "subnet-06782045873e361dc",
+              "from": "<aws_subnet.subnet-app-region-east-public-subnet>",
               "to": "(known after apply)",
             },
           ],
@@ -3156,7 +3156,7 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle vpcCidrBloc
             },
             {
               "field": "subnet_ids",
-              "from": "subnet-06782045873e361dc",
+              "from": "<aws_subnet.subnet-app-region-east-public-subnet>",
               "to": "(known after apply)",
             },
           ],
@@ -3178,7 +3178,7 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle vpcCidrBloc
           "changedFields": [
             {
               "field": "arn",
-              "from": "arn:aws:ec2:us-east-1:<AWS_ACCOUNT_ID>:subnet/subnet-022e1addb834f8acf",
+              "from": "arn:aws:ec2:us-east-1:<AWS_ACCOUNT_ID>:subnet/<aws_subnet.subnet-app-region-east-public-backup-subnet>",
               "to": "(known after apply)",
             },
             {
@@ -3203,7 +3203,7 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle vpcCidrBloc
             },
             {
               "field": "id",
-              "from": "subnet-022e1addb834f8acf",
+              "from": "<aws_subnet.subnet-app-region-east-public-backup-subnet>",
               "to": "(known after apply)",
             },
             {
@@ -3261,12 +3261,12 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle vpcCidrBloc
             },
             {
               "field": "id",
-              "from": "rtbassoc-0d1c4e125491b7bd2",
+              "from": "<aws_route_table_association.rt-app-region-east-public-backup-subnet_assoc>",
               "to": "(known after apply)",
             },
             {
               "field": "subnet_id",
-              "from": "subnet-022e1addb834f8acf",
+              "from": "<aws_subnet.subnet-app-region-east-public-backup-subnet>",
               "to": "(known after apply)",
             },
           ],
@@ -3299,7 +3299,7 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle vpcCidrBloc
             },
             {
               "field": "subnet_ids",
-              "from": "subnet-022e1addb834f8acf",
+              "from": "<aws_subnet.subnet-app-region-east-public-backup-subnet>",
               "to": "(known after apply)",
             },
           ],
@@ -3321,7 +3321,7 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle vpcCidrBloc
           "changedFields": [
             {
               "field": "arn",
-              "from": "arn:aws:ec2:us-east-1:<AWS_ACCOUNT_ID>:subnet/subnet-013a66645b3b4cd15",
+              "from": "arn:aws:ec2:us-east-1:<AWS_ACCOUNT_ID>:subnet/<aws_subnet.subnet-app-region-east-private-subnet>",
               "to": "(known after apply)",
             },
             {
@@ -3346,7 +3346,7 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle vpcCidrBloc
             },
             {
               "field": "id",
-              "from": "subnet-013a66645b3b4cd15",
+              "from": "<aws_subnet.subnet-app-region-east-private-subnet>",
               "to": "(known after apply)",
             },
             {
@@ -3404,12 +3404,12 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle vpcCidrBloc
             },
             {
               "field": "id",
-              "from": "rtbassoc-02e64a7041e7dc25a",
+              "from": "<aws_route_table_association.rt-app-region-east-private-subnet_assoc>",
               "to": "(known after apply)",
             },
             {
               "field": "subnet_id",
-              "from": "subnet-013a66645b3b4cd15",
+              "from": "<aws_subnet.subnet-app-region-east-private-subnet>",
               "to": "(known after apply)",
             },
           ],
@@ -3442,7 +3442,7 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle vpcCidrBloc
             },
             {
               "field": "subnet_ids",
-              "from": "subnet-013a66645b3b4cd15",
+              "from": "<aws_subnet.subnet-app-region-east-private-subnet>",
               "to": "(known after apply)",
             },
           ],
@@ -3535,7 +3535,7 @@ exports[`Main E2E input changes AwsSimpleSubnetModule should handle subnetAvaila
           "changedFields": [
             {
               "field": "arn",
-              "from": "arn:aws:ec2:us-east-1:<AWS_ACCOUNT_ID>:subnet/subnet-06782045873e361dc",
+              "from": "arn:aws:ec2:us-east-1:<AWS_ACCOUNT_ID>:subnet/<aws_subnet.subnet-app-region-east-public-subnet>",
               "to": "(known after apply)",
             },
             {
@@ -3560,7 +3560,7 @@ exports[`Main E2E input changes AwsSimpleSubnetModule should handle subnetAvaila
             },
             {
               "field": "id",
-              "from": "subnet-06782045873e361dc",
+              "from": "<aws_subnet.subnet-app-region-east-public-subnet>",
               "to": "(known after apply)",
             },
             {
@@ -3613,7 +3613,7 @@ exports[`Main E2E input changes AwsSimpleSubnetModule should handle subnetAvaila
           "changedFields": [
             {
               "field": "association_id",
-              "from": "eipassoc-03308f37f25a17f2a",
+              "from": "<aws_nat_gateway.nat-gateway-app-region-east-public-subnet.association_id>",
               "to": "(known after apply)",
             },
             {
@@ -3633,22 +3633,22 @@ exports[`Main E2E input changes AwsSimpleSubnetModule should handle subnetAvaila
             },
             {
               "field": "id",
-              "from": "nat-0d435861d018ec976",
+              "from": "<aws_nat_gateway.nat-gateway-app-region-east-public-subnet>",
               "to": "(known after apply)",
             },
             {
               "field": "network_interface_id",
-              "from": "eni-0615da1b41ed6c1aa",
+              "from": "<aws_nat_gateway.nat-gateway-app-region-east-public-subnet.network_interface_id>",
               "to": "(known after apply)",
             },
             {
               "field": "private_ip",
-              "from": "10.0.0.34",
+              "from": "<aws_nat_gateway.nat-gateway-app-region-east-public-subnet.private_ip>",
               "to": "(known after apply)",
             },
             {
               "field": "public_ip",
-              "from": "54.209.242.119",
+              "from": "<aws_nat_gateway.nat-gateway-app-region-east-public-subnet.public_ip>",
               "to": "(known after apply)",
             },
             {
@@ -3696,12 +3696,12 @@ exports[`Main E2E input changes AwsSimpleSubnetModule should handle subnetAvaila
             },
             {
               "field": "id",
-              "from": "rtbassoc-064b92fafda72fb5d",
+              "from": "<aws_route_table_association.rt-app-region-east-public-subnet_assoc>",
               "to": "(known after apply)",
             },
             {
               "field": "subnet_id",
-              "from": "subnet-06782045873e361dc",
+              "from": "<aws_subnet.subnet-app-region-east-public-subnet>",
               "to": "(known after apply)",
             },
           ],
@@ -3724,7 +3724,7 @@ exports[`Main E2E input changes AwsSimpleSubnetModule should handle subnetAvaila
           "changedFields": [
             {
               "field": "subnet_ids",
-              "from": "subnet-06782045873e361dc",
+              "from": "<aws_subnet.subnet-app-region-east-public-subnet>",
               "to": "(known after apply)",
             },
           ],
@@ -3779,7 +3779,7 @@ exports[`Main E2E input changes AwsSimpleSubnetModule should handle subnetCidrBl
           "changedFields": [
             {
               "field": "arn",
-              "from": "arn:aws:ec2:us-east-1:<AWS_ACCOUNT_ID>:subnet/subnet-06782045873e361dc",
+              "from": "arn:aws:ec2:us-east-1:<AWS_ACCOUNT_ID>:subnet/<aws_subnet.subnet-app-region-east-public-subnet>",
               "to": "(known after apply)",
             },
             {
@@ -3804,7 +3804,7 @@ exports[`Main E2E input changes AwsSimpleSubnetModule should handle subnetCidrBl
             },
             {
               "field": "id",
-              "from": "subnet-06782045873e361dc",
+              "from": "<aws_subnet.subnet-app-region-east-public-subnet>",
               "to": "(known after apply)",
             },
             {
@@ -3857,7 +3857,7 @@ exports[`Main E2E input changes AwsSimpleSubnetModule should handle subnetCidrBl
           "changedFields": [
             {
               "field": "association_id",
-              "from": "eipassoc-03308f37f25a17f2a",
+              "from": "<aws_nat_gateway.nat-gateway-app-region-east-public-subnet.association_id>",
               "to": "(known after apply)",
             },
             {
@@ -3877,22 +3877,22 @@ exports[`Main E2E input changes AwsSimpleSubnetModule should handle subnetCidrBl
             },
             {
               "field": "id",
-              "from": "nat-0d435861d018ec976",
+              "from": "<aws_nat_gateway.nat-gateway-app-region-east-public-subnet>",
               "to": "(known after apply)",
             },
             {
               "field": "network_interface_id",
-              "from": "eni-0615da1b41ed6c1aa",
+              "from": "<aws_nat_gateway.nat-gateway-app-region-east-public-subnet.network_interface_id>",
               "to": "(known after apply)",
             },
             {
               "field": "private_ip",
-              "from": "10.0.0.34",
+              "from": "<aws_nat_gateway.nat-gateway-app-region-east-public-subnet.private_ip>",
               "to": "(known after apply)",
             },
             {
               "field": "public_ip",
-              "from": "54.209.242.119",
+              "from": "<aws_nat_gateway.nat-gateway-app-region-east-public-subnet.public_ip>",
               "to": "(known after apply)",
             },
             {
@@ -3940,12 +3940,12 @@ exports[`Main E2E input changes AwsSimpleSubnetModule should handle subnetCidrBl
             },
             {
               "field": "id",
-              "from": "rtbassoc-064b92fafda72fb5d",
+              "from": "<aws_route_table_association.rt-app-region-east-public-subnet_assoc>",
               "to": "(known after apply)",
             },
             {
               "field": "subnet_id",
-              "from": "subnet-06782045873e361dc",
+              "from": "<aws_subnet.subnet-app-region-east-public-subnet>",
               "to": "(known after apply)",
             },
           ],
@@ -3978,7 +3978,7 @@ exports[`Main E2E input changes AwsSimpleSubnetModule should handle subnetCidrBl
             },
             {
               "field": "subnet_ids",
-              "from": "subnet-06782045873e361dc",
+              "from": "<aws_subnet.subnet-app-region-east-public-subnet>",
               "to": "(known after apply)",
             },
           ],
@@ -4169,8 +4169,8 @@ exports[`Main E2E input changes AwsSimpleSubnetModule should handle subnetName c
             },
             {
               "field": "subnets",
-              "from": "subnet-022e1addb834f8acf, subnet-06782045873e361dc",
-              "to": "subnet-0123456789abcdef0, subnet-022e1addb834f8acf",
+              "from": "<aws_lb.alb-app-region-east-qa-api-alb.subnets[0]>, <aws_lb.alb-app-region-east-qa-api-alb.subnets[1]>",
+              "to": "subnet-0123456789abcdef0, <aws_lb.alb-app-region-east-qa-api-alb.subnets[0]>",
             },
           ],
           "tfActions": [
