@@ -11,8 +11,8 @@ build/
 *.tsbuildinfo
 
 # Octo generated Terraform / Terragrunt artifacts.
-# `.octo/` itself is NOT ignored - model and resource state belong in the repo - but its reports do not.
-.octo-tf/
+# `.octo/` and `.octo-tf/` are NOT ignored - model state, resource state, and the generated
+# Terraform belong in the repo, so a change to them shows up in review. What apply leaves behind does not.
 .octo-outputs/
 .terragrunt-cache/
 *.tfstate*
