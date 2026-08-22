@@ -15,6 +15,9 @@ terraform:
   providers:
     - providerType: aws
       accountId: "${env.AWS_ACCOUNT_ID}"
+      # Names the account in the generated provider alias, which is committed. Without it the alias
+      # carries the account number, e.g. `aws._123456789012-us-east-1`.
+      # accountName: prod
       regionId: us-east-1
       spec:
         profile: default

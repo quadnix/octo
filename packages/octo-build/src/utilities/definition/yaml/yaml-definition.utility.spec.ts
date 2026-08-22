@@ -124,6 +124,8 @@ describe('YamlDefinitionUtility UT', () => {
       expect(terraform.providers).toEqual([
         {
           accountId: '111111111111',
+          // Absent from the definition, so the alias falls back to the account id.
+          accountName: undefined,
           providerType: 'aws',
           regionId: 'us-east-1',
           // Left undefined rather than defaulted here: octo decides per provider type, so that the
@@ -134,6 +136,7 @@ describe('YamlDefinitionUtility UT', () => {
         },
         {
           accountId: '222222222222',
+          accountName: 'prod',
           providerType: 'aws',
           regionId: 'us-west-2',
           setRegionAttribute: false,

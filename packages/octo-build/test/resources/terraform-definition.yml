@@ -19,6 +19,7 @@ terraform:
         profile: '${env.AWS_PROFILE}'
     - providerType: 'aws'
       accountId: '222222222222'
+      accountName: 'prod'
       regionId: 'us-west-2'
       setRegionAttribute: false
 

@@ -45,6 +45,7 @@ interface IYamlDefinition {
   terraform: {
     providers: Array<{
       accountId: string;
+      accountName?: string;
       providerType: string;
       regionId: string;
       setRegionAttribute?: boolean;
@@ -332,6 +333,7 @@ export class YamlDefinitionUtility {
   resolveTerraformOptions(): {
     providers: {
       accountId: string;
+      accountName: string | undefined;
       providerType: string;
       regionId: string;
       setRegionAttribute: boolean | undefined;
@@ -350,6 +352,7 @@ export class YamlDefinitionUtility {
 
       return {
         accountId: this.resolveEnvironmentValue<string>(p.accountId),
+        accountName: p.accountName ? this.resolveEnvironmentValue<string>(p.accountName) : undefined,
         providerType: p.providerType,
         regionId: this.resolveEnvironmentValue<string>(p.regionId),
         // Passed through as-is: undefined lets octo apply its per-provider-type default.

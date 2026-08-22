@@ -464,6 +464,10 @@ export class TerraformService {
    *   - Plain objects become blocks (`key { }`).
    *   - Wrap with `mapAttr()` when the provider schema expects a map attribute (`key = { }`).
    * @param options - optional provider configurations.
+   *   - options.accountName - What to call the account in the provider alias, in place of its id.
+   *   `prod` renders `aws.prod-us-east-1` where the id renders `aws._123456789012-us-east-1`. Two
+   *   accounts may not share a name within one provider type and region, and the generated terraform
+   *   is committed, so a name is also how a repository keeps its account number out of it.
    *   - options.setRegionAttribute - Whether to write `region = <regionId>` onto the provider block.
    *   Defaults to true, except for the utility providers in {@link REGIONLESS_PROVIDER_TYPES}, which
    *   accept no arguments at all and fail the plan outright with
@@ -475,7 +479,7 @@ export class TerraformService {
     accountId: string,
     regionId: string,
     spec: Record<string, unknown> = {},
-    { setRegionAttribute }: { setRegionAttribute?: boolean } = {},
+    { accountName, setRegionAttribute }: { accountName?: string; setRegionAttribute?: boolean } = {},
   ): void {
     if (!(providerType in this.requiredProviders)) {
       throw new Error(
@@ -484,11 +488,21 @@ export class TerraformService {
     }
 
     // Terraform identifiers (here, the provider alias) must start with a letter or underscore.
-    const sanitizedAlias = StringUtility.sanitizeForIdentifier(`${accountId}-${regionId}`);
+    const sanitizedAlias = StringUtility.sanitizeForIdentifier(`${accountName ?? accountId}-${regionId}`);
     const alias = /^[0-9]/.test(sanitizedAlias) ? `_${sanitizedAlias}` : sanitizedAlias;
     const key = this.providerKey(providerType, accountId, regionId);
 
     if (!this.providers.has(key)) {
+      // A name is the caller's to pick, so two accounts can collide on one where two ids cannot.
+      const taken = [...this.providers.values()].find(
+        (provider) => provider.providerType === providerType && provider.alias === alias,
+      );
+      if (taken) {
+        throw new Error(
+          `Terraform provider alias "${alias}" is already taken by account "${taken.accountId}"! Give one of them a different accountName.`,
+        );
+      }
+
       const block = new TerraformBlock(`provider "${providerType}"`);
       block.attribute('alias', alias);
       if (setRegionAttribute ?? !REGIONLESS_PROVIDER_TYPES.has(providerType)) {

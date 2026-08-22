@@ -72,6 +72,7 @@ export async function bootOcto({ quietStdout = false }: { quietStdout?: boolean 
   });
   for (const provider of terraformOptions.providers) {
     octo.registerTerraformProvider(provider.providerType, provider.accountId, provider.regionId, provider.spec, {
+      accountName: provider.accountName,
       setRegionAttribute: provider.setRegionAttribute,
     });
   }

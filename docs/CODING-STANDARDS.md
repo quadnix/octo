@@ -221,6 +221,11 @@ carries that account.
   `…0123456789abcdef0` identifiers.
 - Real account values reach a suite through a gitignored `.env`, never through a source. The tracked
   `.env.defaults` beside it carries a placeholder and documents the key.
+- Generated terraform is the one committed artifact that carries an account number by design, as the
+  provider alias `aws._<accountId>-<regionId>`. `accountName` on a provider replaces the id with a
+  name a repository can show, and is the fix where that matters; the default stays the id, so a
+  generated `main.tf` holding one is expected rather than a leak. This is the only such exception —
+  everywhere else the rules above apply.
 - The same rule covers anything else that identifies the account or the operator: access key ids,
   session tokens, non-default profile names, and absolute paths from the machine that ran a capture.
   `docs/DOCUMENTATION-STANDARDS.md` holds the version of this rule that applies to `apps/octo-docs`.

@@ -69,6 +69,46 @@ describe('TerraformService UT', () => {
       expect(mainTf).toContain('region = "us-east-1"');
     });
 
+    it('should throw error when two accounts share an accountName in one region', () => {
+      service.addTerraformConfig({ providers: { aws: { source: 'hashicorp/aws' } } });
+      service.addTerraformProvider('aws', '111111111', 'us-east-1', {}, { accountName: 'prod' });
+
+      expect(() => service.addTerraformProvider('aws', '222222222', 'us-east-1', {}, { accountName: 'prod' })).toThrow(
+        'Terraform provider alias "prod-us-east-1" is already taken by account "111111111"!',
+      );
+    });
+
+    it('should name the provider alias after accountName when one is given', () => {
+      service.addTerraformConfig({ providers: { aws: { source: 'hashicorp/aws' } } });
+      service.addTerraformProvider('aws', '111111111', 'us-east-1', {}, { accountName: 'prod' });
+
+      const scope = service.scope('m1');
+      const vpc = new TestTerraformResource('vpc-1', {});
+      scope
+        .addOctoTerraformResource(vpc, { provider: { accountId: '111111111', regionId: 'us-east-1' } })
+        .addTerraformResource('aws_vpc', 'vpc-1', {});
+
+      const mainTf = service.renderAllModules().get('m1')!.mainTf;
+      expect(mainTf).toContain('alias = "prod-us-east-1"');
+      expect(mainTf).not.toContain('111111111');
+      expect(mainTf).toContain('provider = aws.prod-us-east-1');
+    });
+
+    it('should let one accountName serve every region it is registered in', () => {
+      service.addTerraformConfig({ providers: { aws: { source: 'hashicorp/aws' } } });
+      service.addTerraformProvider('aws', '111111111', 'us-east-1', {}, { accountName: 'prod' });
+      service.addTerraformProvider('aws', '111111111', 'us-west-2', {}, { accountName: 'prod' });
+
+      const scope = service.scope('m1');
+      const vpc = new TestTerraformResource('vpc-1', {});
+      scope
+        .addOctoTerraformResource(vpc, { provider: { accountId: '111111111', regionId: 'us-west-2' } })
+        .addTerraformResource('aws_vpc', 'vpc-1', {});
+
+      const mainTf = service.renderAllModules().get('m1')!.mainTf;
+      expect(mainTf).toContain('alias = "prod-us-west-2"');
+    });
+
     it('should skip the region attribute when setRegionAttribute is false', () => {
       service.addTerraformConfig({ providers: { azurerm: { source: 'hashicorp/azurerm' } } });
       service.addTerraformProvider('azurerm', 'sub-1', 'east-us', { features: {} }, { setRegionAttribute: false });
