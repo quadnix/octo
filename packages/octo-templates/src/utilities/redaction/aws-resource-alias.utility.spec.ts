@@ -37,24 +37,24 @@ describe('AwsResourceAliasUtility UT', () => {
     it('should throw error if an identifier is owned by no terraform address', () => {
       const report = buildReport([], {
         drift: [{ address: 'aws_vpc.vpc-1', moduleId: 'region-module', tfActions: ['update'] }],
-        notes: [{ message: 'saw subnet-013a66645b3b4cd15' }],
+        notes: [{ message: 'saw subnet-0b2c3d4e5f6a7b8c9' }],
       });
 
       expect(() => AwsResourceAliasUtility.alias(report)).toThrow(
-        'Validate report holds an AWS identifier that no terraform address claims: subnet-013a66645b3b4cd15!',
+        'Validate report holds an AWS identifier that no terraform address claims: subnet-0b2c3d4e5f6a7b8c9!',
       );
     });
 
     it('should throw error listing every identifier it cannot name', () => {
-      const report = buildReport([], { notes: [{ message: 'saw vpc-0e5d50288289a080f and 54.209.242.119' }] });
+      const report = buildReport([], { notes: [{ message: 'saw vpc-0a1b2c3d4e5f6a7b8 and 203.0.113.10' }] });
 
-      expect(() => AwsResourceAliasUtility.alias(report)).toThrow('54.209.242.119, vpc-0e5d50288289a080f!');
+      expect(() => AwsResourceAliasUtility.alias(report)).toThrow('203.0.113.10, vpc-0a1b2c3d4e5f6a7b8!');
     });
 
     it('should name an identifier after the address whose id it is', () => {
       const report = buildReport([
         buildIntentChange('vpc-app-region-east', 'aws_vpc.vpc-app-region-east', [
-          { field: 'id', from: 'vpc-0e5d50288289a080f', to: '(known after apply)' },
+          { field: 'id', from: 'vpc-0a1b2c3d4e5f6a7b8', to: '(known after apply)' },
         ]),
       ]);
 
@@ -66,7 +66,7 @@ describe('AwsResourceAliasUtility UT', () => {
     it('should name a referencing identifier after the address and field that holds it', () => {
       const report = buildReport([
         buildIntentChange('vpc-app-region-east', 'aws_vpc.vpc-app-region-east', [
-          { field: 'default_security_group_id', from: 'sg-0129d4a8d73429a53', to: '(known after apply)' },
+          { field: 'default_security_group_id', from: 'sg-0d4e5f6a7b8c9d0e1', to: '(known after apply)' },
         ]),
       ]);
 
@@ -78,10 +78,10 @@ describe('AwsResourceAliasUtility UT', () => {
     it('should prefer the address that identifies over the address that references', () => {
       const report = buildReport([
         buildIntentChange('subnet-app-region-east-public-subnet', 'aws_subnet.subnet-app-region-east-public-subnet', [
-          { field: 'id', from: 'subnet-06782045873e361dc', to: '(known after apply)' },
+          { field: 'id', from: 'subnet-0c3d4e5f6a7b8c9d0', to: '(known after apply)' },
         ]),
         buildIntentChange('alb-app-region-east-qa-api-alb', 'aws_lb.alb-app-region-east-qa-api-alb', [
-          { field: 'subnets', from: 'subnet-06782045873e361dc', to: '(known after apply)' },
+          { field: 'subnets', from: 'subnet-0c3d4e5f6a7b8c9d0', to: '(known after apply)' },
         ]),
       ]);
       const aliased = AwsResourceAliasUtility.alias(report);
@@ -94,8 +94,8 @@ describe('AwsResourceAliasUtility UT', () => {
     it('should give the same identifier the same alias everywhere it appears', () => {
       const report = buildReport([
         buildIntentChange('subnet-app-region-east-public-subnet', 'aws_subnet.subnet-app-region-east-public-subnet', [
-          { field: 'id', from: 'subnet-06782045873e361dc', to: '(known after apply)' },
-          { field: 'arn', from: 'arn:aws:ec2:us-east-1::subnet/subnet-06782045873e361dc', to: '(none)' },
+          { field: 'id', from: 'subnet-0c3d4e5f6a7b8c9d0', to: '(known after apply)' },
+          { field: 'arn', from: 'arn:aws:ec2:us-east-1::subnet/subnet-0c3d4e5f6a7b8c9d0', to: '(none)' },
         ]),
       ]);
       const changedFields = AwsResourceAliasUtility.alias(report).intentChanges[0].terraformChanges[0].changedFields;
@@ -113,12 +113,12 @@ describe('AwsResourceAliasUtility UT', () => {
           terraformChanges: [
             {
               address: 'aws_vpc_security_group_ingress_rule.sec-grp-backend_ingress_0',
-              changedFields: [{ field: 'id', from: 'sgr-0184139cf14954317', to: '(known after apply)' }],
+              changedFields: [{ field: 'id', from: 'sgr-0e5f6a7b8c9d0e1f2', to: '(known after apply)' }],
               tfActions: ['update'],
             },
             {
               address: 'aws_vpc_security_group_egress_rule.sec-grp-backend_egress_0',
-              changedFields: [{ field: 'id', from: 'sgr-01edf92f632e6b072', to: '(known after apply)' }],
+              changedFields: [{ field: 'id', from: 'sgr-0f6a7b8c9d0e1f2a3', to: '(known after apply)' }],
               tfActions: ['update'],
             },
           ],
@@ -137,7 +137,7 @@ describe('AwsResourceAliasUtility UT', () => {
     it('should index two identifiers listed in one field', () => {
       const report = buildReport([
         buildIntentChange('alb-app-region-east-qa-api-alb', 'aws_lb.alb-app-region-east-qa-api-alb', [
-          { field: 'subnets', from: 'subnet-06782045873e361dc, subnet-013a66645b3b4cd15', to: '(none)' },
+          { field: 'subnets', from: 'subnet-0c3d4e5f6a7b8c9d0, subnet-0b2c3d4e5f6a7b8c9', to: '(none)' },
         ]),
       ]);
 
@@ -149,7 +149,7 @@ describe('AwsResourceAliasUtility UT', () => {
     it('should alias a bare ip address', () => {
       const report = buildReport([
         buildIntentChange('nat-gateway-app-region-east', 'aws_nat_gateway.nat-gateway-app-region-east', [
-          { field: 'public_ip', from: '54.209.242.119', to: '(known after apply)' },
+          { field: 'public_ip', from: '203.0.113.10', to: '(known after apply)' },
         ]),
       ]);
 
@@ -187,7 +187,7 @@ describe('AwsResourceAliasUtility UT', () => {
     it('should keep a key whose value is undefined', () => {
       const report = buildReport([
         buildIntentChange('vpc-app-region-east', 'aws_vpc.vpc-app-region-east', [
-          { field: 'id', from: 'vpc-0e5d50288289a080f' },
+          { field: 'id', from: 'vpc-0a1b2c3d4e5f6a7b8' },
         ]),
       ]);
       const aliased = AwsResourceAliasUtility.alias(report);
