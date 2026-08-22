@@ -139,8 +139,23 @@ terraform:
 
 `requiredVersion` and `requiredProviders` become the `terraform` block. `providers` is one entry per
 deployment target, and a target is an account and a region together. Resources bind to a provider by
-that pair alone, which is why the generated alias reads `_123456789012-eu-west-1`, and why a shop
-that spans two regions needs two entries.
+that pair alone, which is why a shop that spans two regions needs two entries.
+
+Each entry becomes a named provider block, and the name is built from the account number:
+`_123456789012-eu-west-1`. That name reaches every generated folder, and generated Terraform is
+committed, so `accountName` lets you put something else there:
+
+```yaml
+  providers:
+    - providerType: aws
+      accountId: "${env.AWS_ACCOUNT_ID}"
+      accountName: prod
+      regionId: eu-west-1
+```
+
+The alias then reads `prod-eu-west-1`. The region is still added, so one name covers every region it
+is registered in. Two accounts may not share a name within one region; the second one fails at
+generate rather than writing two provider blocks that answer to the same alias.
 
 `spec` is passed through to the provider block as written, so anything the provider accepts goes
 there: `profile`, `assume_role`, `endpoints`. If your module produces resources in a region with no

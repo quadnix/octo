@@ -33,7 +33,7 @@ One concept per folder. The file suffix carries the meaning.
 | `*.service.ts`                   | one container-registered service plus its `*ServiceFactory`                                             |
 | `*.utility.ts`                   | one `static`-only utility class                                                                         |
 | `*.setup.ts`                     | one jest `setupFilesAfterEnv` module, registered in that package's `package.json`                       |
-| `*.rule.ts`                      | one redaction rule, typed by `IRedactionRule`                                                          |
+| `*.rule.ts`                      | one redaction rule, typed by `IRedactionRule`                                                           |
 | `*.command.ts`                   | one octo-build CLI command                                                                              |
 | `*.error.ts`                     | the error classes of one area                                                                           |
 | `index.ts`                       | re-exports, nothing else                                                                                |
@@ -134,7 +134,7 @@ return [subnet];
   drops the item entirely. Use it on the framework plumbing of an exported class — serialization,
   diffing, cloning — so the page shows only what a user calls.
 - `@example` with a fenced `ts` block on models, modules, and anything a user constructs. Nobody
-   compiles an example, so check its inputs against the schema when you touch too.
+  compiles an example, so check its inputs against the schema when you touch too.
 - `@see`, `@link`, `@reference` to connect a module to the schemas and resources it touches.
 - `{@link X}` resolves only within the same package. Across packages, link the docs site instead —
   `[ModuleError](/api/octo/class/ModuleError)`. A broken `{@link}` renders as bare text.
@@ -275,6 +275,12 @@ Format is enforced by `.github/jobs/validate-pr-title.job.sh`:
 
 ## Docs
 
+- A change that moves something a reader can see or type ships its doc change in the same commit.
+  Decide which page with the map at the top of `docs/DOCUMENTATION-STANDARDS.md`: it asks one
+  question, and names the page that owns each surface. Do not read the docs looking for work — a
+  change that moves no surface needs no page, and the map says so in a sentence.
+- A doc change split into a follow-up commit is a doc change that does not happen. The commit that
+  renames the flag is the only one that knows the flag was renamed.
 - Living docs record what is, not what was. Delete a section once its issue is fixed.
 - Write the trade-offs into the doc before asking for a decision. Do not ask someone to choose
   between options they cannot weigh.

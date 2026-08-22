@@ -85,6 +85,12 @@ A module produced resources in an account and region combination with no matchin
 `terraform.providers`. Every account and region pair you deploy into needs one; a module that spans
 two regions needs two.
 
+**`Terraform provider alias "prod-eu-west-1" is already taken by account "123456789012"!`**
+
+Two entries under `terraform.providers` gave the same `accountName` for the same region. An alias
+has to be unique within a provider type, and a name, unlike the account number it replaces, is
+yours to repeat by accident. Rename one of the two.
+
 **`No matching action given for diff!`**
 
 A node changed and nothing is registered to handle it. The error carries the diff itself, including

@@ -31,6 +31,50 @@ justification: a working result the shop cannot show, on a page nothing else bui
 
 ---
 
+## The map
+
+A code change ships with its doc change in the same commit. This section is how that is decided
+without reading forty pages: find the surface you touched, update the page that owns it, and stop.
+
+Ask one question first: **can a reader see or type the thing you changed?** A key in `octo.yaml`, a
+CLI command or flag, what a command prints, a file octo writes, a module name or input, a field in a
+report, an API a module author calls. If none of those moved, no page did either — an internal
+refactor, a test, a private helper, or a bug fix that restores documented behaviour needs nothing
+here. JSDoc needs nothing either: `apps/octo-docs` generates the API pages from it at build time.
+
+If something did move, the row below names the page that **owns** it. An owner page explains the
+surface, so it changes whenever the surface's meaning, spelling, or defaults change. The pages
+beside it only **quote** the surface in captured output, so they change only when that output would
+now come out different — and then by re-capturing, never by hand-editing.
+
+| Changed in `packages/`                                                                               | Owner page                                   | Also quotes it                                                                                                                                     |
+|------------------------------------------------------------------------------------------------------|----------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
+| A key in `octo.yaml` — `octo-v1.schema.json`, `yaml-definition.utility.ts`                           | `using-octo/the-definition-file`             | `getting-started/shop-stack`, `getting-started/static-website`, and the `techniques/` page owning that key                                         |
+| A CLI command, its flags, or what it prints — `octo-build/src/commands`                              | `reference/cli`                              | `getting-started/the-lifecycle`, `getting-started/installation`, `using-octo/destroying-infrastructure`, `techniques/github-actions-pipeline`      |
+| An `octo-aws-cdk` module, its name, or its inputs                                                    | `reference/aws-module-catalog`               | `getting-started/shop-stack`, `fundamentals/shop-stack-explained`                                                                                  |
+| A template in `octo-templates`                                                                       | `reference/templates`                        | `getting-started/static-website`                                                                                                                   |
+| The validate report's shape or rendering — `validate.mode.ts`, `octo-event-listeners`                | `using-octo/reading-a-validate-report`       | `getting-started/the-lifecycle`, `getting-started/shop-stack`, `using-octo/troubleshooting`                                                        |
+| A state provider or what it writes — `state-management/`                                             | `techniques/state-providers`                 | `fundamentals/state`, `getting-started/project-structure`                                                                                          |
+| An event or listener                                                                                 | `techniques/events-and-listeners`            | `using-octo/the-definition-file`                                                                                                                   |
+| A hook                                                                                               | `techniques/hooks`                           | `using-octo/the-definition-file`                                                                                                                   |
+| A schema or validation decorator                                                                     | `techniques/schema`, `techniques/validation` | `building-modules/create-a-model`                                                                                                                  |
+| Tag resolution — `registerTags`                                                                      | `using-octo/tagging-resources`               | —                                                                                                                                                  |
+| The HCL or terragrunt octo generates for a resource — `terraform.service.ts`                         | `fundamentals/how-octo-works`                | `getting-started/shop-stack`, `getting-started/static-website`, `building-modules/create-a-module`, `building-modules/create-a-terraform-resource` |
+| What a model, resource, module, anchor, overlay, action, or dependency *means*                       | `fundamentals/<that concept>`                | `building-modules/<the matching create- page>`                                                                                                     |
+| An API a module author calls to build one                                                            | `building-modules/<the matching page>`       | `fundamentals/<that concept>`                                                                                                                      |
+| The order the lifecycle runs in, or what a step does                                                 | `getting-started/the-lifecycle`              | `fundamentals/how-octo-works`                                                                                                                      |
+| Which files a project holds, and which are committed                                                 | `getting-started/project-structure`          | `getting-started/installation`                                                                                                                     |
+| What the `create-app` scaffold writes into a new project — `octo-build/.../generators/app/templates` | `getting-started/project-structure`          | `getting-started/static-website`, which reproduces the scaffold's files as the reader will find them                                               |
+| A user-facing error message, new or reworded                                                         | `using-octo/troubleshooting`                 | —                                                                                                                                                  |
+
+Two pages are deliberately absent. `introduction.mdx` and `why-octo.mdx` argue from problems rather
+than from surfaces, so a surface change never reaches them; they change when the argument does.
+
+The map is a shortcut, not the authority. When a change fits no row, or fits one badly, find the
+pages by grepping for the thing you renamed and read what comes back — then add the row you needed.
+A surface with no owner page is worth noticing on its own: it usually means the surface is
+undocumented rather than that the map is wrong.
+
 ## The reader
 
 - The audience is wide: a developer, a devops engineer, a CEO, a marketing person. Their knowledge
