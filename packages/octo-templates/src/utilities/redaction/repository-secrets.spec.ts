@@ -3,6 +3,14 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { RedactionUtility } from './redaction.utility.js';
 
+/**
+ * Scans every tracked file for a value the redaction rules forbid.
+ *
+ * The rules under `rules/` are the whole of what counts, and are the same ones the jest snapshot
+ * serializer applies, so a new cloud is one rule file rather than a second copy of its patterns.
+ * CI runs this on its own through `test:secrets`, after the install a rule import needs.
+ */
+
 const REPOSITORY_ROOT = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
 
 /**

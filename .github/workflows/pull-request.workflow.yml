@@ -67,8 +67,7 @@ jobs:
       - name: Lint
         run: pnpm run lint
       - name: Detect Secrets
-        run: |-
-          .github/jobs/detect-secrets.job.sh
+        run: pnpm --filter @quadnix/octo-templates run test:secrets
 
   build-check:
     continue-on-error: false
