@@ -197,7 +197,7 @@ teams means production and everything else. Reach for the model first.
 |------------------------------------------------|--------|--------------------------------------------------------------------|
 | `octo.yaml`                                    | Yes    | It is the intent.                                                  |
 | `.octo/models.json`, `.octo/resources-*.json`  | Yes    | Octo's state. Without it the next run starts from nothing.         |
-| `.octo/*.tfstate`                              | Yes    | Terraform's state. Without it the next apply rebuilds what exists. |
+| `.octo/*.tfstate`, `.octo/*.tfstate.enc`       | Yes    | Terraform's state. Without it the next apply rebuilds what exists. |
 | `.octo/local-state.lock`                       | No     | The app lock. It exists only while a run holds it.                 |
 | `.octo/reports/`                               | No     | Output of a run.                                                   |
 | `.octo-tf/**/*.tf`, `terragrunt.hcl`           | Yes    | The Terraform your change produced, reviewable next to the change. |

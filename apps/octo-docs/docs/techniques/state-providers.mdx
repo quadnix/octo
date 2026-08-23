@@ -58,6 +58,13 @@ settings:
 
 Keep the key out of the file. Declare it under `env` and let the shell supply it.
 
+The suffix lands on every file, Terraform's state included, so what you commit is
+`<moduleId>.tfstate.enc` rather than `<moduleId>.tfstate`. The scaffolded `.gitignore` re-includes
+both, because the `*.tfstate*` rule that excludes Terraform's working copies would otherwise catch
+the encrypted state as well. Committing state that a run cannot find is the failure that rebuilds
+infrastructure you already have, so it is worth confirming with `git status --ignored` after your
+first apply.
+
 `TestStateProvider` keeps everything in memory, and is what the test harness uses.
 
 ## Writing one
