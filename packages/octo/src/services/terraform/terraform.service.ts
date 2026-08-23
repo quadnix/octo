@@ -1,3 +1,4 @@
+import { relative, resolve, sep } from 'node:path';
 import {
   type Constructable,
   MatchingResource,
@@ -17,6 +18,7 @@ import {
   LiteralHclNode,
   MapHclNode,
   MapHclNodeRaw,
+  PROJECT_ROOT_VARIABLE_NAME,
   RefHclNode,
   type RenderContext,
   TerraformBlock,
@@ -170,6 +172,16 @@ export interface TerraformModuleScope {
    * Wraps a value in a `jsonencode(...)` call.
    */
   jsonencode(subject: object | unknown[]): HclExpression;
+
+  /**
+   * Returns the HCL for a file on the developer's disk, as a quoted string ready to pass to
+   * {@link TerraformModuleScope.raw} or to a terraform function such as `filemd5`.
+   *
+   * The path renders relative to the octo project root and is joined to `var.OCTO_PROJECT_ROOT` at
+   * plan time, so the generated folder holds the same text whichever machine wrote it. Terragrunt
+   * runs terraform from a copy of the folder, so a plain relative path would not resolve.
+   */
+  localPath(filePath: string): string;
 
   /**
    * Use `mapAttr()` when the provider schema defines a **map/object attribute** (`key = { }`).
@@ -379,6 +391,7 @@ class OctoTerraformResource<TResponse extends BaseResourceSchema['response'] = B
 class TerraformModule {
   readonly dataSources: TerraformData[] = [];
   hasExternalResources: boolean = false; // True when folder has external resources requiring null/external configs.
+  needsProjectRoot: boolean = false; // True when a resource named a local file, requiring the project root variable.
   readonly providerKeys: Set<string> = new Set(); // Specific providers this folder's resources require.
   readonly resources: OctoTerraformResource[] = [];
   readonly variables: TerraformVariable[] = [];
@@ -657,6 +670,9 @@ export class TerraformService {
       // coerces the object to a JSON string and `var.<name>.<key>` fails at plan/apply. Per-key scalar
       // variables stay un-typed.
       const variablesTf = [
+        ...(module.needsProjectRoot
+          ? [`variable "${PROJECT_ROOT_VARIABLE_NAME}" {\n${this.step}type = string\n}`]
+          : []),
         ...[...moduleWiring.autoVariables.entries()]
           .sort(([a], [b]) => a.localeCompare(b))
           .map(([name, v]) =>
@@ -770,6 +786,7 @@ export class TerraformService {
       getRef: ((resource: UnknownResource | MatchingResource<any>, key: string) =>
         this.getRef(resource as UnknownResource, key)) as TerraformModuleScope['getRef'],
       jsonencode: (subject) => this.jsonencode(subject),
+      localPath: (filePath) => this.localPath(moduleId, filePath),
       mapAttr: (value) => this.mapAttr(value),
       moduleId,
       raw: (value) => this.raw(value),
@@ -1165,6 +1182,20 @@ export class TerraformService {
    */
   private jsonencode(subject: object | unknown[]): HclExpression {
     return new JsonEncodeHclNode(subject);
+  }
+
+  /**
+   * Renders a local file path as `"${var.OCTO_PROJECT_ROOT}/<path from the project root>"`, and
+   * marks this folder as needing that variable declared.
+   *
+   * Separators are normalized to `/`, so a folder generated on Windows reads the same as one
+   * generated anywhere else.
+   */
+  private localPath(moduleId: string, filePath: string): string {
+    this.module(moduleId).needsProjectRoot = true;
+
+    const pathFromProjectRoot = relative(process.cwd(), resolve(filePath)).split(sep).join('/');
+    return `"\${var.${PROJECT_ROOT_VARIABLE_NAME}}/${pathFromProjectRoot}"`;
   }
 
   /**

@@ -11,6 +11,7 @@ import type { TerraformOutputs } from '../../modes/commit.mode.js';
 import type { TerraformPlan } from '../../modes/validate.mode.js';
 import { EventService } from '../../services/event/event.service.js';
 import { TerraformStateService } from '../../services/state-management/terraform-state.service.js';
+import { PROJECT_ROOT_VARIABLE_NAME } from '../../services/terraform/terraform.type.js';
 
 const DEFAULT_TIMEOUT_IN_MS = 60 * 60 * 1000; // 60 minutes.
 const MAX_BUFFER = 256 * 1024 * 1024; // 256 KB.
@@ -282,6 +283,9 @@ export class TerraformUtility {
   private buildEnv(): NodeJS.ProcessEnv {
     const env = { ...process.env };
     env.TG_PROVIDER_CACHE ??= '1'; // Enable Terragrunt shared provider cache by default.
+    // Resolves the paths a generated folder names relative to the project root. Terragrunt runs
+    // terraform from a copy of the folder, so terraform cannot work the root out for itself.
+    env[`TF_VAR_${PROJECT_ROOT_VARIABLE_NAME}`] ??= process.cwd();
     if (this.options.terraformBinary) {
       env.TG_TF_PATH = this.options.terraformBinary;
     }

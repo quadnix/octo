@@ -1,5 +1,14 @@
 type TerraformType = 'any' | 'bool' | 'list' | 'map' | 'number' | 'object' | 'set' | 'string' | 'tuple';
 
+/**
+ * The terraform variable holding the octo project root.
+ *
+ * A generated folder names files on the developer's disk relative to this variable rather than by
+ * absolute path, so the same intent renders the same text on every machine. Octo supplies the value
+ * as `TF_VAR_OCTO_PROJECT_ROOT` on every terragrunt command it runs.
+ */
+export const PROJECT_ROOT_VARIABLE_NAME = 'OCTO_PROJECT_ROOT';
+
 export type TerraformLiteralType =
   | string
   | number

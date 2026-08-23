@@ -237,9 +237,9 @@ resource "aws_s3_object" "bucket-octo-hello-website_file_indexhtml" {
   provider = aws._123456789012-us-east-1
   bucket = aws_s3_bucket.bucket-octo-hello-website_website_bucket.id
   content_type = "text/html"
-  etag = filemd5("/home/you/hello-website/website/index.html")
+  etag = filemd5("${var.OCTO_PROJECT_ROOT}/website/index.html")
   key = "index.html"
-  source = "/home/you/hello-website/website/index.html"
+  source = "${var.OCTO_PROJECT_ROOT}/website/index.html"
 
   depends_on = [aws_s3_object.bucket-octo-hello-website_file_errorhtml]
 }
@@ -254,6 +254,10 @@ other.
 Those two files are the last two resources in the report, one `aws_s3_object` each, with
 `content_type` looked up from the extension and `etag` a checksum of the file on disk. Add a
 stylesheet and there are seven.
+
+`var.OCTO_PROJECT_ROOT` is how a generated folder names a file on your disk without writing down a
+path that only exists on your machine. Octo declares the variable in `variables.tf` and fills it in
+when it runs Terragrunt, so the folder reads the same for everyone who checks it out.
 
 `apply` creates them. It never stops to ask, because Terraform runs with `-auto-approve` underneath.
 What scrolls past is Terragrunt's own output, resource by resource, and the command ends with

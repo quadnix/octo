@@ -8,8 +8,6 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const resourcesPath = join(__dirname, '../../../../resources');
 const websiteSourcePath = join(resourcesPath, 's3-static-website');
 
-const toRelativePaths = (hcl: string): string => hcl.replaceAll(resourcesPath, 'resources');
-
 async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
   const {
     account: [account],
@@ -60,7 +58,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
     );
 
     const { hclRender, modelTransaction, resourceDiffs } = (await runModulesGenerator.next()).value!;
-    expect(toRelativePaths(hclRender)).toMatchInlineSnapshot(`
+    expect(hclRender).toMatchInlineSnapshot(`
      "# service/main.tf
      terraform {
        required_version = ">= 1.6.0"
@@ -127,9 +125,9 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
        provider = aws._123-us-east-1
        bucket = aws_s3_bucket.bucket-test-bucket_website_bucket.id
        content_type = "text/html"
-       etag = filemd5("resources/s3-static-website/error.html")
+       etag = filemd5("\${var.OCTO_PROJECT_ROOT}/resources/s3-static-website/error.html")
        key = "error.html"
-       source = "resources/s3-static-website/error.html"
+       source = "\${var.OCTO_PROJECT_ROOT}/resources/s3-static-website/error.html"
 
        depends_on = [aws_s3_bucket_policy.bucket-test-bucket_website_bucket_public_read_policy]
      }
@@ -138,9 +136,9 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
        provider = aws._123-us-east-1
        bucket = aws_s3_bucket.bucket-test-bucket_website_bucket.id
        content_type = "text/html"
-       etag = filemd5("resources/s3-static-website/index.html")
+       etag = filemd5("\${var.OCTO_PROJECT_ROOT}/resources/s3-static-website/index.html")
        key = "index.html"
-       source = "resources/s3-static-website/index.html"
+       source = "\${var.OCTO_PROJECT_ROOT}/resources/s3-static-website/index.html"
 
        depends_on = [aws_s3_object.bucket-test-bucket_file_errorhtml]
      }
@@ -149,9 +147,9 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
        provider = aws._123-us-east-1
        bucket = aws_s3_bucket.bucket-test-bucket_website_bucket.id
        content_type = "text/html"
-       etag = filemd5("resources/s3-static-website/page-1.html")
+       etag = filemd5("\${var.OCTO_PROJECT_ROOT}/resources/s3-static-website/page-1.html")
        key = "page-1.html"
-       source = "resources/s3-static-website/page-1.html"
+       source = "\${var.OCTO_PROJECT_ROOT}/resources/s3-static-website/page-1.html"
 
        depends_on = [aws_s3_object.bucket-test-bucket_file_indexhtml]
      }
@@ -178,7 +176,9 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
      }
 
      # service/variables.tf
-     <empty>"
+     variable "OCTO_PROJECT_ROOT" {
+       type = string
+     }"
     `);
     expect(testModuleContainer.mapTransactionActions(modelTransaction)).toMatchInlineSnapshot(`
      [
@@ -242,7 +242,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
         )
         .next()
     ).value!;
-    expect(toRelativePaths(updateNoChange.hclDiff)).toMatchSnapshot();
+    expect(updateNoChange.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(updateNoChange.resourceDiffs)).toMatchInlineSnapshot(`[]`);
 
     await setup(testModuleContainer);
@@ -264,7 +264,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
         )
         .next()
     ).value!;
-    expect(toRelativePaths(deleteResult.hclDiff)).toMatchSnapshot();
+    expect(deleteResult.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(deleteResult.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "- @octo/s3-website=bucket-test-bucket",
@@ -321,7 +321,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
         )
         .next()
     ).value!;
-    expect(toRelativePaths(updateTags.hclDiff)).toMatchSnapshot();
+    expect(updateTags.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(updateTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/s3-website=bucket-test-bucket",
@@ -346,7 +346,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
         )
         .next()
     ).value!;
-    expect(toRelativePaths(deleteTags.hclDiff)).toMatchSnapshot();
+    expect(deleteTags.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(deleteTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/s3-website=bucket-test-bucket",
@@ -436,7 +436,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
           )
           .next()
       ).value!;
-      expect(toRelativePaths(hclDiff)).toMatchSnapshot();
+      expect(hclDiff).toMatchSnapshot();
       expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
          "- @octo/s3-website=bucket-test-bucket",
@@ -482,7 +482,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
           )
           .next()
       ).value!;
-      expect(toRelativePaths(hclDiff)).toMatchSnapshot();
+      expect(hclDiff).toMatchSnapshot();
       expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
          "* @octo/s3-website=bucket-test-bucket",
@@ -527,7 +527,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
         )
         .next()
     ).value!;
-    expect(toRelativePaths(hclDiff)).toMatchSnapshot();
+    expect(hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`[]`);
   });
 

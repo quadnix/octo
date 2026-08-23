@@ -221,6 +221,12 @@ carries that account.
   `…0123456789abcdef0` identifiers.
 - Real account values reach a suite through a gitignored `.env`, never through a source. The tracked
   `.env.defaults` beside it carries a placeholder and documents the key.
+- Generated terraform is committed and reviewed, so nothing in it may name the machine that produced
+  it. A resource pointing at a file on disk emits `terraform.localPath(filePath)`, which renders the
+  path relative to the project root against `var.OCTO_PROJECT_ROOT`; octo declares that variable in
+  the folder's `variables.tf` and supplies it as `TF_VAR_OCTO_PROJECT_ROOT` on every terragrunt
+  command. An absolute path written straight into `source` or `filemd5()` renders differently on
+  every checkout and puts a developer's directory layout in the repository.
 - Generated terraform is the one committed artifact that carries an account number by design, as the
   provider alias `aws._<accountId>-<regionId>`. `accountName` on a provider replaces the id with a
   name a repository can show, and is the fix where that matters; the default stays the id, so a

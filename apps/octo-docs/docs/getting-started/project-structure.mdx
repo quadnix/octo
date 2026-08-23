@@ -131,14 +131,6 @@ survive a regenerate, and those are the parts that stay out of git. A module you
 intent leaves an emptied folder behind, and that emptied folder is what makes the next apply destroy
 its resources.
 
-:::note[One generated line is machine-specific]
-A module that uploads files from disk, such as `AwsS3StaticWebsiteServiceModule`, writes the
-absolute path of each file into `source` and `filemd5()` on the `aws_s3_object` it renders. That
-path is resolved against the working directory, so the same intent generates a different line on a
-different machine, and the folder shows a diff nobody made. Regenerating on the machine that
-applies, which the pipeline does anyway, keeps it consistent.
-:::
-
 :::note[The `terraform.tfstate` in here is a working copy]
 The generated `terragrunt.hcl` configures a local backend at
 `.octo-tf/<moduleId>/terraform.tfstate`, and the scaffolded `.gitignore` excludes it. That file is

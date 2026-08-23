@@ -1,3 +1,4 @@
+import { join } from 'node:path';
 import { createResource, createTerraformResource } from '../../utilities/test-helpers/test-resources.js';
 import { TerraformService } from './terraform.service.js';
 
@@ -588,6 +589,52 @@ describe('TerraformService UT', () => {
       });
 
       expect(service.renderAllModules().get('m1')!.mainTf).toContain('vpc_id = aws_vpc.vpc-1.id');
+    });
+  });
+
+  describe('localPath()', () => {
+    it('should render the path relative to the project root, against the project root variable', () => {
+      const scope = service.scope('m1');
+      const website = new TestTerraformResource('website-1', {});
+      scope.addOctoTerraformResource(website).addTerraformResource('aws_s3_object', 'website-1', {
+        source: scope.raw(scope.localPath(join(process.cwd(), 'website', 'index.html'))),
+      });
+
+      expect(service.renderAllModules().get('m1')!.mainTf).toContain(
+        'source = "${var.OCTO_PROJECT_ROOT}/website/index.html"',
+      );
+    });
+
+    it('should declare the project root variable on the folder that named a file', () => {
+      const scope = service.scope('m1');
+      const website = new TestTerraformResource('website-1', {});
+      scope.addOctoTerraformResource(website).addTerraformResource('aws_s3_object', 'website-1', {
+        source: scope.raw(scope.localPath(join(process.cwd(), 'website', 'index.html'))),
+      });
+
+      expect(service.renderAllModules().get('m1')!.variablesTf).toBe('variable "OCTO_PROJECT_ROOT" {\n  type = string\n}\n');
+    });
+
+    it('should declare the variable once for a folder naming several files', () => {
+      const scope = service.scope('m1');
+      const website = new TestTerraformResource('website-1', {});
+      const websiteTf = scope.addOctoTerraformResource(website);
+      for (const page of ['index.html', 'error.html']) {
+        websiteTf.addTerraformResource('aws_s3_object', `website-1-${page}`, {
+          source: scope.raw(scope.localPath(join(process.cwd(), 'website', page))),
+        });
+      }
+
+      const variablesTf = service.renderAllModules().get('m1')!.variablesTf;
+      expect(variablesTf.match(/variable "OCTO_PROJECT_ROOT"/g)).toHaveLength(1);
+    });
+
+    it('should leave a folder that names no local file without the variable', () => {
+      const scope = service.scope('m1');
+      const vpc = new TestTerraformResource('vpc-1', {});
+      scope.addOctoTerraformResource(vpc).addTerraformResource('aws_vpc', 'vpc-1', {});
+
+      expect(service.renderAllModules().get('m1')!.variablesTf).toBe('');
     });
   });
 

@@ -200,6 +200,7 @@ the point you would write it, the answer is not known.
 | `terraform.raw(expr)`                                | An HCL expression to emit unquoted, such as `${address}.arn`.           |
 | `terraform.jsonencode(obj)`                          | Wraps a value in `jsonencode(...)`. Policy documents.                   |
 | `terraform.mapAttr(obj)`                             | A map attribute, `key = { }`, as opposed to a block.                    |
+| `terraform.localPath(filePath)`                      | A file on disk, named so the folder reads the same everywhere.          |
 | `terraform.getProviderAliasRef(accountId, regionId)` | The provider expression, when a resource has to target a different one. |
 | `terraform.addTerraformData(type, name, spec)`       | A `data` block, for looking something up.                               |
 | `resource.block(type)`                               | A nested block inside a resource.                                       |
@@ -209,6 +210,23 @@ The distinction that catches people is `mapAttr` against a plain object. A plain
 becomes a block, with no `=`; `mapAttr` produces a map attribute, with one. Which of the two a
 provider wants is per argument, and the provider documentation is the only authority. Getting it
 wrong produces `Blocks of type "x" are not expected here` at plan time.
+
+`localPath` is for a resource that uploads something, and it returns a quoted HCL string rather than
+an expression:
+
+```ts
+const source = terraform.localPath(filePath);
+scope.addTerraformResource('aws_s3_object', name, {
+  etag: terraform.raw(`filemd5(${source})`),
+  source: terraform.raw(source),
+});
+```
+
+What it renders is `"${var.OCTO_PROJECT_ROOT}/website/index.html"`, a path relative to the project
+root joined to a variable Octo declares in that folder's `variables.tf` and fills in when it runs
+Terragrunt. Writing the path yourself puts the generating machine's directory layout into a file
+your team commits, and Terragrunt runs Terraform from a copy of the folder, so a plain relative path
+would not resolve either.
 
 ## Checking it
 

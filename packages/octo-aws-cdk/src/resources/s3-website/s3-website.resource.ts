@@ -181,12 +181,13 @@ export class S3Website extends ATerraformResource<S3WebsiteSchema, S3Website> {
 
       const safeLabel = PolicyUtility.getSafeSid(remotePath);
       const contentType = mime.getType(remotePath) ?? 'application/octet-stream';
+      const sourceHcl = terraform.localPath(filePath);
       s3WebsiteOctoResource.addTerraformResource('aws_s3_object', `${this.resourceId}_file_${safeLabel}`, {
         bucket: terraform.raw(`${s3WebsiteTFResource.address}.id`),
         content_type: contentType,
-        etag: terraform.raw(`filemd5(${JSON.stringify(filePath)})`),
+        etag: terraform.raw(`filemd5(${sourceHcl})`),
         key: remotePath,
-        source: filePath,
+        source: terraform.raw(sourceHcl),
       });
     }
 
