@@ -29,6 +29,97 @@ describe('LocalStateProvider UT', () => {
     }
   });
 
+  describe('app lock', () => {
+    let localStateProvider: LocalStateProvider;
+
+    beforeEach(() => {
+      localStateProvider = new LocalStateProvider(__dirname);
+    });
+
+    afterEach(async () => {
+      const lockId = await localStateProvider.getAppLock();
+      if (lockId) {
+        await localStateProvider.unlockApp(lockId);
+      }
+    });
+
+    it('should throw error when locking an app that is already locked', async () => {
+      await localStateProvider.lockApp();
+
+      await expect(localStateProvider.lockApp()).rejects.toThrowErrorMatchingInlineSnapshot(`"App already locked!"`);
+    });
+
+    it('should throw error when checking a lock ID that is not the one held', async () => {
+      await localStateProvider.lockApp();
+
+      await expect(localStateProvider.isAppLocked('not-the-lock')).rejects.toThrowErrorMatchingInlineSnapshot(
+        `"Invalid lock ID!"`,
+      );
+    });
+
+    it('should throw error when unlocking with a lock ID that is not the one held', async () => {
+      await localStateProvider.lockApp();
+
+      await expect(localStateProvider.unlockApp('not-the-lock')).rejects.toThrowErrorMatchingInlineSnapshot(
+        `"Invalid lock ID!"`,
+      );
+    });
+
+    it('should report an unlocked app', async () => {
+      expect(await localStateProvider.getAppLock()).toBeUndefined();
+      expect(await localStateProvider.isAppLocked('any-lock')).toBe(false);
+    });
+
+    it('should hold the lock it took', async () => {
+      const { lockId } = await localStateProvider.lockApp();
+
+      expect(await localStateProvider.getAppLock()).toBe(lockId);
+      expect(await localStateProvider.isAppLocked(lockId)).toBe(true);
+    });
+
+    it('should release the lock it took', async () => {
+      const { lockId } = await localStateProvider.lockApp();
+
+      await localStateProvider.unlockApp(lockId);
+
+      expect(await localStateProvider.getAppLock()).toBeUndefined();
+    });
+
+    it('should not throw when unlocking an app that is not locked', async () => {
+      await expect(localStateProvider.unlockApp('any-lock')).resolves.not.toThrow();
+    });
+
+    // The lock is worth nothing if two runners can both believe they hold it, which is what a read
+    // followed by a write would allow.
+    it('should give the lock to exactly one of two callers racing for it', async () => {
+      const results = await Promise.allSettled([localStateProvider.lockApp(), localStateProvider.lockApp()]);
+
+      expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+      expect(results.filter((r) => r.status === 'rejected')).toHaveLength(1);
+    });
+  });
+
+  describe('deleteState()', () => {
+    it('should not throw when there is nothing to delete', async () => {
+      const localStateProvider = new LocalStateProvider(__dirname);
+      const stateManagementService = new StateManagementService(localStateProvider);
+
+      await expect(stateManagementService.deleteState('manifest3.json')).resolves.not.toThrow();
+    });
+
+    it('should delete the saved state', async () => {
+      const localStateProvider = new LocalStateProvider(__dirname);
+      const stateManagementService = new StateManagementService(localStateProvider);
+
+      await stateManagementService.saveState('manifest4.json', Buffer.from('saved'));
+      await stateManagementService.deleteState('manifest4.json');
+
+      await expect(stateManagementService.getState('manifest4.json')).rejects.toThrowErrorMatchingInlineSnapshot(
+        `"No state found!"`,
+      );
+    });
+  });
+
   describe('getModelState()', () => {
     it('should be able to get a default state', async () => {
       const localStateProvider = new LocalStateProvider(__dirname);

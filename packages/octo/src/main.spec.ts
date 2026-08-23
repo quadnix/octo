@@ -23,6 +23,54 @@ describe('Main UT', () => {
   }
 
   describe('commit()', () => {
+    it('should throw error if the app is not locked', async () => {
+      const graph = await testModes.createResourceGraph();
+      await testModes.generate(graph.app, { outputDir: testModes.outputDir });
+
+      await expect(
+        testModes.commit(graph.app, { lockId: 'never-taken', outputs: testModes.outputs }),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`"App is not locked!"`);
+    });
+
+    it('should throw error if the lock ID is not the one held', async () => {
+      const graph = await testModes.createResourceGraph();
+      await testModes.generate(graph.app, { outputDir: testModes.outputDir });
+      await testModes.stateManagementService.lockApp();
+
+      await expect(
+        testModes.commit(graph.app, { lockId: 'another-runs-lock', outputs: testModes.outputs }),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`"Invalid lock ID!"`);
+    });
+
+    it('should hold on to the lock it was given, leaving the release to its caller', async () => {
+      const graph = await testModes.createResourceGraph();
+      await testModes.generate(graph.app, { outputDir: testModes.outputDir });
+      const { lockId } = await testModes.stateManagementService.lockApp();
+      testModes.writeTfState('region-module', { 'igw-1': { igwId: 'igw-0real' }, 'vpc-1-VpcId': 'vpc-0real' });
+      testModes.writeTfState('sg-module', { 'sg-1-SgId': 'sg-0real' });
+
+      await testModes.simulateFreshProcess();
+      await testModes['octo'].commit(graph.app, { lockId, outputs: testModes.outputs });
+
+      expect(await testModes.stateManagementService.getAppLock()).toBe(lockId);
+    });
+
+    it('should record what applied and leave the rest uncommitted on a partial commit', async () => {
+      const graph = await testModes.createResourceGraph();
+      await testModes.generate(graph.app, { outputDir: testModes.outputDir });
+      // Only one of the two folders applied, which is what a failed `run-all apply` leaves behind.
+      testModes.writeTfState('region-module', { 'igw-1': { igwId: 'igw-0real' }, 'vpc-1-VpcId': 'vpc-0real' });
+
+      const { warnings } = await testModes.commit(graph.app, { outputs: testModes.outputs, partial: true });
+
+      const committedResourceIds = testModes.resourceDataRepository
+        .getActualResourcesByProperties()
+        .map((r) => r.resourceId);
+      expect(committedResourceIds).toContain('vpc-1');
+      expect(committedResourceIds).not.toContain('sg-1');
+      expect(warnings.map((w) => w.message).join('\n')).toContain('left uncommitted');
+    });
+
     it('should persist state so responses land in actual/old and nothing is dirty', async () => {
       await generateAndCommitFullGraph();
 

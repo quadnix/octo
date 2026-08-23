@@ -8,6 +8,7 @@ import type {
   UnknownResource,
 } from './app.type.js';
 import { EnableHook } from './decorators/enable-hook.decorator.js';
+import { TransactionError } from './errors/index.js';
 import {
   CommitModeCompletedEvent,
   type ModeEventPayload,
@@ -94,17 +95,31 @@ export class Octo {
    * idea any of it exists.
    *
    * **All-or-nothing**: if an expected output is missing, this throws before touching state, so a
-   * partial apply never leaves a half-written record behind. Outputs for a folder Octo does not track
-   * are ignored, and returned as warnings for you to surface.
+   * partial apply never leaves a half-written record behind. Pass `partial` after an apply that
+   * failed and the missing outputs become warnings instead, with every resource they belong to left
+   * out of the committed graph. Outputs for a folder Octo does not track are ignored, and returned
+   * as warnings for you to surface.
+   *
+   * **Requires the lock**, and does not release it. Taking and releasing the lock belongs to whoever
+   * drives the lifecycle - the CLI's `octo commit` releases it once this returns, however it ended.
    *
    * @param app The root model, from {@link Octo.getRootModel}.
-   * @param options `outputs` is `TerraformUtility.output(dir, { json: true })` in full.
+   * @param options `lockId` is the lock from `octo lock`. `outputs` is
+   * `TerraformUtility.output(dir, { json: true })` in full. `partial` records what a failed apply
+   * did build.
+   * @param transaction The model transaction result.
+   * @throws {@link TransactionError} When the app is not locked, or `lockId` is not the lock held.
    */
   async commit(
     app: App,
-    options: { outputs: Map<string, TerraformOutputs> },
+    options: { lockId: string; outputs: Map<string, TerraformOutputs>; partial?: boolean },
     transaction?: ModelTransactionResult,
   ): Promise<Pick<Awaited<ReturnType<typeof runCommit>>, 'warnings'>> {
+    // Checked before the mode starts, so a run without the lock reads no state and writes none.
+    if (!(await this.stateManagementService.isAppLocked(options.lockId))) {
+      throw new TransactionError('App is not locked!');
+    }
+
     return this.runMode('commit', app.name, async () => {
       const { userData } = await this.stateManagementService.getResourceState(this.actualResourceStateFileName);
 
@@ -146,6 +161,7 @@ export class Octo {
    *
    * @param app The root model, from {@link Octo.getRootModel}.
    * @param options `outputDir` is where the module folders are written.
+   * @param transaction The model transaction result.
    */
   async generate(
     app: App,
@@ -409,6 +425,7 @@ export class Octo {
    * @param app The root model, from {@link Octo.getRootModel}.
    * @param plans The whole result of `TerraformUtility.plan(dir, { json: true })`. Its `errors` map
    * carries terraform's own message for each folder that failed to plan.
+   * @param transaction The model transaction result.
    */
   async validate(
     app: App,

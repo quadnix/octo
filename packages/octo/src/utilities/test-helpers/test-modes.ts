@@ -238,7 +238,7 @@ export class TestModes {
     private readonly octo: Octo,
     readonly outputDir: string,
     readonly resourceDataRepository: ResourceDataRepository,
-    private readonly stateManagementService: StateManagementService,
+    readonly stateManagementService: StateManagementService,
     private readonly terraformService: TerraformService,
     private readonly testModuleContainer: TestModuleContainer,
   ) {}
@@ -307,11 +307,25 @@ export class TestModes {
   }
 
   /**
+   * Takes the app lock the CLI would have taken, unless the caller supplied one, and releases it
+   * afterwards the way `octo commit` does - however the commit turned out.
+   *
    * @internal
    */
-  async commit(...args: Parameters<Octo['commit']>): ReturnType<Octo['commit']> {
+  async commit(
+    app: Parameters<Octo['commit']>[0],
+    options: Omit<Parameters<Octo['commit']>[1], 'lockId'> & { lockId?: string },
+    transaction?: Parameters<Octo['commit']>[2],
+  ): ReturnType<Octo['commit']> {
     await this.simulateFreshProcess();
-    return this.octo.commit(...args);
+
+    const lockId = options.lockId ?? (await this.stateManagementService.lockApp()).lockId;
+
+    try {
+      return await this.octo.commit(app, { ...options, lockId }, transaction);
+    } finally {
+      await this.stateManagementService.unlockApp(lockId);
+    }
   }
 
   /**

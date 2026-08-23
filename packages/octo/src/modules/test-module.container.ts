@@ -578,12 +578,18 @@ export class TestModuleContainer {
     // Apply.
     await terraformUtility.apply(dir);
 
-    // Commit.
-    const { warnings } = await this.octo.commit(
-      app,
-      { outputs: await terraformUtility.output(dir, { json: true }) },
-      transaction,
-    );
+    // Commit. The lock is taken and released here, the way the CLI does it around octo.commit().
+    const { lockId } = await this.stateProvider.lockApp();
+    let warnings: Awaited<ReturnType<Octo['commit']>>['warnings'];
+    try {
+      ({ warnings } = await this.octo.commit(
+        app,
+        { lockId, outputs: await terraformUtility.output(dir, { json: true }) },
+        transaction,
+      ));
+    } finally {
+      await this.stateProvider.unlockApp(lockId);
+    }
 
     // Re-collect responses after the commit: it is commit that maps terraform outputs onto the
     // actual resource graph, so a snapshot taken before it (as `response` holds) would miss them.

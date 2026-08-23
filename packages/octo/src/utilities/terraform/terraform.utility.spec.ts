@@ -1,9 +1,15 @@
 import type { ExecFileOptionsWithStringEncoding } from 'node:child_process';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { jest } from '@jest/globals';
 import { TerraformCommandError } from '../../errors/index.js';
+import { Container } from '../../functions/container/container.js';
+import {
+  StateManagementService,
+  type StateManagementServiceFactory,
+} from '../../services/state-management/state-management.service.js';
+import { TestStateProvider } from '../../services/state-management/test.state-provider.js';
 import { TerraformUtility } from './terraform.utility.js';
 
 type OnOutput = (chunk: string, stream: 'stderr' | 'stdout') => void;
@@ -41,12 +47,21 @@ class StreamingTerraformUtility extends TerraformUtility {
 }
 
 describe('TerraformUtility UT', () => {
+  let stateProvider: TestStateProvider;
   let terragruntDir: string;
   let terraform: TestableTerraformUtility;
 
   beforeEach(async () => {
     terragruntDir = await mkdtemp(join(tmpdir(), 'terraform-utility-'));
     terraform = new TestableTerraformUtility({});
+
+    // Every command checks terraform state out of the state provider and back into it, so one has
+    // to be there before any of them runs.
+    stateProvider = new TestStateProvider();
+    await Container.getInstance().get<StateManagementService, typeof StateManagementServiceFactory>(
+      StateManagementService,
+      { args: [stateProvider] },
+    );
   });
 
   afterEach(async () => {
@@ -398,6 +413,45 @@ describe('TerraformUtility UT', () => {
       );
 
       await expect(terraform.validate(terragruntDir)).rejects.toThrow(/terragrunt/);
+    });
+  });
+
+  // Terraform state lives with octo state, not in the module folder, so every command has to put it
+  // there and take it back.
+  describe('terraform state', () => {
+    it('should write the state provider state into each module folder before running', async () => {
+      await createModuleFolder('module-a');
+      await stateProvider.saveState('module-a.tfstate', Buffer.from('{"resources":[{}]}'));
+
+      await terraform.apply(terragruntDir);
+
+      expect((await readFile(join(terragruntDir, 'module-a', 'terraform.tfstate'))).toString()).toBe(
+        '{"resources":[{}]}',
+      );
+    });
+
+    it('should write each module folder state back to the state provider after running', async () => {
+      await createModuleFolder('module-a');
+      terraform.execFileAsyncMock.mockImplementation(async () => {
+        await writeFile(join(terragruntDir, 'module-a', 'terraform.tfstate'), '{"resources":[{"applied":true}]}');
+        return { stderr: '', stdout: '' };
+      });
+
+      await terraform.apply(terragruntDir);
+
+      expect((await stateProvider.getState('module-a.tfstate')).toString()).toBe('{"resources":[{"applied":true}]}');
+    });
+
+    it('should write the state back even when the command fails', async () => {
+      await createModuleFolder('module-a');
+      terraform.execFileAsyncMock.mockImplementation(async () => {
+        await writeFile(join(terragruntDir, 'module-a', 'terraform.tfstate'), '{"resources":[{"halfBuilt":true}]}');
+        throw Object.assign(new Error('exit 1'), { code: 1, stderr: 'boom', stdout: '' });
+      });
+
+      await expect(terraform.apply(terragruntDir)).rejects.toBeInstanceOf(TerraformCommandError);
+
+      expect((await stateProvider.getState('module-a.tfstate')).toString()).toBe('{"resources":[{"halfBuilt":true}]}');
     });
   });
 

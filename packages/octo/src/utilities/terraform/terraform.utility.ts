@@ -6,9 +6,11 @@ import { join } from 'node:path';
 import { Factory } from '../../decorators/factory.decorator.js';
 import { TerraformCommandError } from '../../errors/index.js';
 import { TerraformCommandFinishedEvent, TerraformCommandStartedEvent } from '../../events/index.js';
+import { Container } from '../../functions/container/container.js';
 import type { TerraformOutputs } from '../../modes/commit.mode.js';
 import type { TerraformPlan } from '../../modes/validate.mode.js';
 import { EventService } from '../../services/event/event.service.js';
+import { TerraformStateService } from '../../services/state-management/terraform-state.service.js';
 
 const DEFAULT_TIMEOUT_IN_MS = 60 * 60 * 1000; // 60 minutes.
 const MAX_BUFFER = 256 * 1024 * 1024; // 256 KB.
@@ -174,16 +176,18 @@ export class TerraformUtility {
     }
 
     const composedArgs = this.consumeArgs();
-    return this.emitAround('output', terragruntDir, async () => {
-      const outputs = new Map<string, TerraformOutputs>();
-      for (const moduleId of await this.listModuleFolders(terragruntDir)) {
-        const moduleOutputs = await this.readOutputs(join(terragruntDir, moduleId), composedArgs);
-        if (moduleOutputs !== undefined) {
-          outputs.set(moduleId, moduleOutputs);
+    return this.withTerraformState(terragruntDir, async (moduleIds) =>
+      this.emitAround('output', terragruntDir, async () => {
+        const outputs = new Map<string, TerraformOutputs>();
+        for (const moduleId of moduleIds) {
+          const moduleOutputs = await this.readOutputs(join(terragruntDir, moduleId), composedArgs);
+          if (moduleOutputs !== undefined) {
+            outputs.set(moduleId, moduleOutputs);
+          }
         }
-      }
-      return outputs;
-    });
+        return outputs;
+      }),
+    );
   }
 
   /**
@@ -210,21 +214,23 @@ export class TerraformUtility {
     }
 
     const composedArgs = this.consumeArgs();
-    return this.emitAround('plan', terragruntDir, async () => {
-      const errors = new Map<string, string>();
-      const plans = new Map<string, TerraformPlan>();
+    return this.withTerraformState(terragruntDir, async (moduleIds) =>
+      this.emitAround('plan', terragruntDir, async () => {
+        const errors = new Map<string, string>();
+        const plans = new Map<string, TerraformPlan>();
 
-      for (const moduleId of await this.listModuleFolders(terragruntDir)) {
-        const result = await this.readPlan(join(terragruntDir, moduleId), composedArgs);
-        if ('plan' in result) {
-          plans.set(moduleId, result.plan);
-        } else {
-          errors.set(moduleId, result.error);
+        for (const moduleId of moduleIds) {
+          const result = await this.readPlan(join(terragruntDir, moduleId), composedArgs);
+          if ('plan' in result) {
+            plans.set(moduleId, result.plan);
+          } else {
+            errors.set(moduleId, result.error);
+          }
         }
-      }
 
-      return { errors, plans };
-    });
+        return { errors, plans };
+      }),
+    );
   }
 
   /**
@@ -340,6 +346,68 @@ export class TerraformUtility {
   }
 
   /**
+   * The `terragrunt run --all` invocation itself, wrapped in its started/finished pair.
+   */
+  private async invokeRunAll(
+    terragruntDir: string,
+    command: string,
+    commandArgs: string[],
+    { onOutput }: { onOutput?: (chunk: string, stream: 'stderr' | 'stdout') => void } = {},
+  ): Promise<TerraformRawResult> {
+    const binary = this.options.terragruntBinary;
+    const args = [
+      '--non-interactive',
+      '--no-color',
+      '--working-dir',
+      terragruntDir,
+      'run',
+      '--all',
+      '--',
+      command,
+      ...commandArgs,
+    ];
+
+    const eventService = EventService.getInstance();
+    const startedAt = Date.now();
+    eventService.emit(new TerraformCommandStartedEvent(command, { command, dir: terragruntDir }));
+
+    try {
+      const { stderr, stdout } = await this.execFileAsync(
+        binary,
+        args,
+        {
+          env: this.buildEnv(),
+          maxBuffer: MAX_BUFFER,
+          timeout: this.options.timeoutInMs,
+        },
+        onOutput,
+      );
+
+      eventService.emit(
+        new TerraformCommandFinishedEvent(command, {
+          command,
+          dir: terragruntDir,
+          durationInMs: Date.now() - startedAt,
+          exitCode: 0,
+        }),
+      );
+
+      return { args, exitCode: 0, stderr, stdout };
+    } catch (error) {
+      const commandError = this.toTerraformCommandError(binary, args, terragruntDir, error);
+      eventService.emit(
+        new TerraformCommandFinishedEvent(command, {
+          command,
+          dir: terragruntDir,
+          durationInMs: Date.now() - startedAt,
+          exitCode: (commandError as unknown as { exitCode?: number }).exitCode ?? -1,
+        }),
+      );
+      throw commandError;
+    }
+  }
+
+  /**
    * Runs `terragrunt output -json` in one module folder.
    *
    * A folder whose output fails is reported as `undefined`, not thrown — one bad module folder must not
@@ -402,7 +470,8 @@ export class TerraformUtility {
   }
 
   /**
-   * Runs `terragrunt run --all -- <command>` across every module folder under `terragruntDir`.
+   * Runs `terragrunt run --all -- <command>` across every module folder under `terragruntDir`, with
+   * the terraform state of every folder checked out around it.
    */
   private async runAll(
     terragruntDir: string,
@@ -410,57 +479,9 @@ export class TerraformUtility {
     commandArgs: string[],
     { onOutput }: { onOutput?: (chunk: string, stream: 'stderr' | 'stdout') => void } = {},
   ): Promise<TerraformRawResult> {
-    const binary = this.options.terragruntBinary;
-    const args = [
-      '--non-interactive',
-      '--no-color',
-      '--working-dir',
-      terragruntDir,
-      'run',
-      '--all',
-      '--',
-      command,
-      ...commandArgs,
-    ];
-
-    const eventService = EventService.getInstance();
-    const startedAt = Date.now();
-    eventService.emit(new TerraformCommandStartedEvent(command, { command, dir: terragruntDir }));
-
-    try {
-      const { stderr, stdout } = await this.execFileAsync(
-        binary,
-        args,
-        {
-          env: this.buildEnv(),
-          maxBuffer: MAX_BUFFER,
-          timeout: this.options.timeoutInMs,
-        },
-        onOutput,
-      );
-
-      eventService.emit(
-        new TerraformCommandFinishedEvent(command, {
-          command,
-          dir: terragruntDir,
-          durationInMs: Date.now() - startedAt,
-          exitCode: 0,
-        }),
-      );
-
-      return { args, exitCode: 0, stderr, stdout };
-    } catch (error) {
-      const commandError = this.toTerraformCommandError(binary, args, terragruntDir, error);
-      eventService.emit(
-        new TerraformCommandFinishedEvent(command, {
-          command,
-          dir: terragruntDir,
-          durationInMs: Date.now() - startedAt,
-          exitCode: (commandError as unknown as { exitCode?: number }).exitCode ?? -1,
-        }),
-      );
-      throw commandError;
-    }
+    return this.withTerraformState(terragruntDir, () =>
+      this.invokeRunAll(terragruntDir, command, commandArgs, { onOutput }),
+    );
   }
 
   /**
@@ -473,6 +494,29 @@ export class TerraformUtility {
       e.stderr || e.message || String(error)
     }`;
     return new TerraformCommandError(message, args, exitCode, e.stdout ?? '', e.stderr ?? '');
+  }
+
+  /**
+   * Checks every module folder's terraform state out of Octo's state provider, runs `body`, and
+   * checks it back in.
+   *
+   * The check-in runs on the way out of a failure as much as a success, because what terraform has
+   * already built is real whether or not the command that built it returned cleanly. A timer checks
+   * in through the command as well, bounding what a killed runner loses.
+   */
+  private async withTerraformState<T>(terragruntDir: string, body: (moduleIds: string[]) => Promise<T>): Promise<T> {
+    const terraformStateService = await Container.getInstance().get(TerraformStateService);
+    const moduleIds = await this.listModuleFolders(terragruntDir);
+
+    await terraformStateService.checkOut(terragruntDir, moduleIds);
+    terraformStateService.startPeriodicCheckIn(terragruntDir, moduleIds);
+
+    try {
+      return await body(moduleIds);
+    } finally {
+      terraformStateService.stopPeriodicCheckIn();
+      await terraformStateService.checkIn(terragruntDir, moduleIds);
+    }
   }
 }
 

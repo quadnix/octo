@@ -35,7 +35,8 @@ describe('CommitHook UT', () => {
       postCommitHooks: [{ handle: postCommitHookMock as any }],
       preCommitHooks: [{ handle: preCommitHookMock as any }],
     });
-    await octo.commit(new App('test-app'), { outputs: new Map() });
+    const { lockId } = await stateProvider.lockApp();
+    await octo.commit(new App('test-app'), { lockId, outputs: new Map() });
 
     expect(postCommitHookMock).toHaveBeenCalledTimes(1);
     expect(preCommitHookMock).toHaveBeenCalledTimes(1);

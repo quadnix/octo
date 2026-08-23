@@ -247,12 +247,17 @@ export class ResourceDataRepository {
   }
 
   /**
-   * Marks the new (desired) resource graph as fully applied: the actual graph becomes the new
-   * graph and nothing is dirty. Used by terraform commit, where terraform has already applied
-   * the full desired state.
+   * Marks the new (desired) resource graph as applied: the actual graph becomes the new graph and
+   * nothing is dirty. Used by terraform commit, where terraform has already applied the desired
+   * state.
+   *
+   * `excludeResourceContexts` names resources a partial commit could not confirm. They are left out
+   * of the actual graph, so the next run plans to create them again - which terraform reconciles
+   * against its own state as a no-op if they do exist. Recording less than reality is recoverable;
+   * recording more is not.
    */
-  syncActualToNew(): void {
-    this.actualResources = [...this.newResources];
+  syncActualToNew(excludeResourceContexts: Set<string> = new Set()): void {
+    this.actualResources = this.newResources.filter((r) => !excludeResourceContexts.has(r.getContext()));
     this.dirtyResources = [];
   }
 }

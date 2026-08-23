@@ -20,7 +20,9 @@ export type TerraformOutputs = Record<string, { value: unknown }>;
  * `${resourceId}-${key}` convention, and syncs the actual graph to the new graph.
  *
  * Rejects — all-or-nothing, throwing before any mutation: a declared output that is missing
- * (partial apply) or carries a null value (broken apply). Outputs are demanded only for the
+ * (partial apply) or carries a null value (broken apply). `partial` turns those rejections into
+ * warnings and keeps every resource whose outputs did not all resolve out of the committed graph,
+ * which is what lets a failed apply still record the half that worked. Outputs are demanded only for the
  * modules the sweep filled — never for an emptied (deleted) folder, whose destroy simply drops its
  * resources from the committed state. Warns: outputs supplied for a folder that is neither in
  * intent nor in the committed folder record (`previousFolders`) are ignored — octo never fails on,
@@ -36,11 +38,13 @@ export type TerraformOutputs = Record<string, { value: unknown }>;
  */
 export async function commit({
   outputs,
+  partial = false,
   previousFolders = [],
   previousMappings = [],
   transaction,
 }: {
   outputs: Map<string, TerraformOutputs>;
+  partial?: boolean;
   previousFolders?: TerraformFolderOutput[];
   previousMappings?: TerraformResourceOutput[];
   transaction: ModelTransactionResult;
@@ -62,12 +66,22 @@ export async function commit({
 
   const mappings = terraformService.getOctoTerraformResourceMappings();
 
-  // Read every filled module folder's outputs from the caller-supplied map.
+  const warnings: { message: string; moduleId?: string }[] = [];
+
+  // Read every filled module folder's outputs from the caller-supplied map. A folder with no
+  // outputs at all never applied, which a partial commit records as a warning and skips.
   const outputsByModule = new Map<string, TerraformOutputs>();
   for (const moduleId of terraformService.getModuleIds()) {
     const moduleOutputs = outputs.get(moduleId);
     if (moduleOutputs === undefined) {
-      throw new TransactionError(`No terraform outputs provided for module "${moduleId}"!`);
+      if (!partial) {
+        throw new TransactionError(`No terraform outputs provided for module "${moduleId}"!`);
+      }
+      warnings.push({
+        message: `No terraform outputs for module "${moduleId}"; its resources are left uncommitted.`,
+        moduleId,
+      });
+      continue;
     }
     outputsByModule.set(moduleId, moduleOutputs);
   }
@@ -75,7 +89,6 @@ export async function commit({
   // Outputs for a folder octo does not track (not in intent, not in the committed folder record)
   // are ignored: warn, never reject. Tracked-but-emptied folders pass silently — their outputs
   // (if any) are simply not demanded or read.
-  const warnings: { message: string; moduleId?: string }[] = [];
   const trackedModuleIds = new Set([
     ...terraformService.getModuleIds(),
     ...previousFolders.map((folder) => folder.moduleId),
@@ -97,6 +110,7 @@ export async function commit({
   const missingOutputs: string[] = [];
   const nullOutputs: string[] = [];
   const responseUpdates: { key: string; resource: UnknownResource; value: string }[] = [];
+  const unresolvedResourceContexts = new Set<string>();
   for (const mapping of mappings) {
     const resource = resourceDataRepository.getNewResourceByContext(mapping.resourceContext);
     if (!resource) {
@@ -105,47 +119,70 @@ export async function commit({
 
     const outputs = outputsByModule.get(mapping.moduleId) ?? {};
 
+    // A resource is recorded only when every one of its outputs resolved, so a partial commit never
+    // half-records one.
+    const resourceUpdates: { key: string; resource: UnknownResource; value: string }[] = [];
+    let isResolved = true;
+
     if (mapping.entireResponseOutput !== undefined) {
       const outputName = mapping.entireResponseOutput;
       if (!(outputName in outputs)) {
         missingOutputs.push(`${mapping.moduleId}/${outputName}`);
+        isResolved = false;
       } else if (outputs[outputName].value === null || outputs[outputName].value === undefined) {
         nullOutputs.push(`${mapping.moduleId}/${outputName}`);
+        isResolved = false;
       } else {
         const wholeResponse = outputs[outputName].value as Record<string, unknown>;
         for (const [key, value] of Object.entries(wholeResponse)) {
           if (value === null || value === undefined) {
             nullOutputs.push(`${mapping.moduleId}/${outputName}.${key}`);
+            isResolved = false;
           } else {
-            responseUpdates.push({ key, resource, value: String(value) });
+            resourceUpdates.push({ key, resource, value: String(value) });
           }
         }
       }
-      continue;
-    }
-
-    for (const { key, outputName } of mapping.outputMappings) {
-      if (!(outputName in outputs)) {
-        missingOutputs.push(`${mapping.moduleId}/${outputName}`);
-      } else if (outputs[outputName].value === null || outputs[outputName].value === undefined) {
-        nullOutputs.push(`${mapping.moduleId}/${outputName}`);
-      } else {
-        responseUpdates.push({ key, resource, value: String(outputs[outputName].value) });
+    } else {
+      for (const { key, outputName } of mapping.outputMappings) {
+        if (!(outputName in outputs)) {
+          missingOutputs.push(`${mapping.moduleId}/${outputName}`);
+          isResolved = false;
+        } else if (outputs[outputName].value === null || outputs[outputName].value === undefined) {
+          nullOutputs.push(`${mapping.moduleId}/${outputName}`);
+          isResolved = false;
+        } else {
+          resourceUpdates.push({ key, resource, value: String(outputs[outputName].value) });
+        }
       }
     }
+
+    if (isResolved) {
+      responseUpdates.push(...resourceUpdates);
+    } else {
+      unresolvedResourceContexts.add(mapping.resourceContext);
+    }
   }
 
-  if (missingOutputs.length > 0) {
+  if (!partial && missingOutputs.length > 0) {
     throw new TransactionError(
       `Cannot commit: missing terraform outputs (partial apply?): ${missingOutputs.join(', ')}! ` +
-        'Octo state is unchanged.',
+        'Octo state is unchanged. Re-run with a partial commit to record what did apply.',
     );
   }
-  if (nullOutputs.length > 0) {
+  if (!partial && nullOutputs.length > 0) {
     throw new TransactionError(
       `Cannot commit: null terraform outputs (broken apply?): ${nullOutputs.join(', ')}! ` +
         'A declared output must carry a value. Octo state is unchanged.',
     );
+  }
+  if (unresolvedResourceContexts.size > 0) {
+    warnings.push({
+      message:
+        `Partial commit: ${unresolvedResourceContexts.size} resource(s) left uncommitted because their terraform ` +
+        `outputs are missing or null: ${[...unresolvedResourceContexts].sort().join(', ')}. The next run plans to ` +
+        'create them again, which terraform reconciles against its own state.',
+    });
   }
 
   // Capture the previous value before overwriting.
@@ -172,16 +209,17 @@ export async function commit({
   // untouched, so the resource is still recorded as present and the deletion is retried next run.
   await transactionService.applyExternalResourceDeletes(transaction.resourceDiffs);
 
-  // Terraform has applied the full desired state: actual ← new.
-  resourceDataRepository.syncActualToNew();
+  // Terraform has applied the desired state: actual ← new, less anything a partial commit could not confirm.
+  resourceDataRepository.syncActualToNew(unresolvedResourceContexts);
 
   // Describe what was committed. Addresses come from this run's sweep, falling back to the last
   // commit's mapping for deleted resources, which the sweep no longer renders.
   const mappingByContext = new Map(mappings.map((mapping) => [mapping.resourceContext, mapping]));
   const previousByContext = new Map(previousMappings.map((mapping) => [mapping.resourceContext, mapping]));
 
-  const resources = [...aggregateResourceActions(transaction.resourceDiffs.flat()).entries()].map(
-    ([resourceContext, action]) => {
+  const resources = [...aggregateResourceActions(transaction.resourceDiffs.flat()).entries()]
+    .filter(([resourceContext]) => !unresolvedResourceContexts.has(resourceContext))
+    .map(([resourceContext, action]) => {
       const mapping = mappingByContext.get(resourceContext) ?? previousByContext.get(resourceContext);
       return {
         action: action.action,
@@ -191,8 +229,7 @@ export async function commit({
         resourceId: action.resourceId,
         terraformAddresses: mapping?.terraformAddresses ?? [],
       };
-    },
-  );
+    });
 
   const writtenModuleIds = terraformService.getModuleIds();
   const emptiedModuleIds = previousFolders

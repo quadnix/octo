@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { TransactionError } from '../../errors/index.js';
 import type { IStateProvider } from './state-provider.interface.js';
 
@@ -10,6 +11,22 @@ import type { IStateProvider } from './state-provider.interface.js';
  */
 export class TestStateProvider implements IStateProvider {
   private readonly localState: { [key: string]: Buffer } = {};
+
+  private lockId: string | undefined = undefined;
+
+  /**
+   * Deletes a state file. Deleting one that is not there is not an error.
+   */
+  async deleteState(stateFileName: string): Promise<void> {
+    delete this.localState[stateFileName];
+  }
+
+  /**
+   * The id of the lock currently held, or `undefined` when the app is unlocked.
+   */
+  async getAppLock(): Promise<string | undefined> {
+    return this.lockId;
+  }
 
   /**
    * Reads a state file.
@@ -24,9 +41,54 @@ export class TestStateProvider implements IStateProvider {
   }
 
   /**
+   * Whether `lockId` is the lock currently held.
+   *
+   * @throws {@link TransactionError} With the message `Invalid lock ID!` when a different lock is held.
+   */
+  async isAppLocked(lockId: string): Promise<boolean> {
+    if (!this.lockId) {
+      return false;
+    }
+    if (this.lockId !== lockId) {
+      throw new TransactionError('Invalid lock ID!');
+    }
+
+    return true;
+  }
+
+  /**
+   * Takes the app lock.
+   *
+   * @throws {@link TransactionError} With the message `App already locked!` when one is held.
+   */
+  async lockApp(): Promise<{ lockId: string }> {
+    if (this.lockId) {
+      throw new TransactionError('App already locked!');
+    }
+    this.lockId = randomUUID();
+
+    return { lockId: this.lockId };
+  }
+
+  /**
    * Writes a state file, overwriting whatever was there.
    */
   async saveState(stateFileName: string, data: Buffer): Promise<void> {
     this.localState[stateFileName] = data;
+  }
+
+  /**
+   * Releases the app lock.
+   *
+   * @throws {@link TransactionError} With the message `Invalid lock ID!` when a different lock is held.
+   */
+  async unlockApp(lockId: string): Promise<void> {
+    if (!this.lockId) {
+      return;
+    }
+    if (this.lockId !== lockId) {
+      throw new TransactionError('Invalid lock ID!');
+    }
+    this.lockId = undefined;
   }
 }

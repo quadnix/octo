@@ -1,6 +1,7 @@
-import { readFile, writeFile } from 'fs/promises';
+import { readFile, rm, writeFile } from 'fs/promises';
 import { join, resolve } from 'path';
 import { TransactionError } from '../../errors/index.js';
+import { FileAppLockUtility } from './file-app-lock.utility.js';
 import type { IStateProvider } from './state-provider.interface.js';
 
 /**
@@ -21,11 +22,28 @@ import type { IStateProvider } from './state-provider.interface.js';
 export class LocalStateProvider implements IStateProvider {
   private readonly localStateDirectoryPath: string;
 
+  private readonly lockFilePath: string;
+
   /**
    * @param localStateDirectoryPath The directory state files are written into.
    */
   constructor(localStateDirectoryPath: string) {
     this.localStateDirectoryPath = resolve(localStateDirectoryPath);
+    this.lockFilePath = join(this.localStateDirectoryPath, 'local-state.lock');
+  }
+
+  /**
+   * Deletes a state file. Deleting one that is not there is not an error.
+   */
+  async deleteState(stateFileName: string): Promise<void> {
+    await rm(join(this.localStateDirectoryPath, stateFileName), { force: true });
+  }
+
+  /**
+   * The id of the lock currently held, or `undefined` when the app is unlocked.
+   */
+  async getAppLock(): Promise<string | undefined> {
+    return FileAppLockUtility.getAppLock(this.lockFilePath);
   }
 
   /**
@@ -45,9 +63,36 @@ export class LocalStateProvider implements IStateProvider {
   }
 
   /**
+   * Whether `lockId` is the lock currently held.
+   *
+   * @throws {@link TransactionError} With the message `Invalid lock ID!` when a different lock is held.
+   */
+  async isAppLocked(lockId: string): Promise<boolean> {
+    return FileAppLockUtility.isAppLocked(this.lockFilePath, lockId);
+  }
+
+  /**
+   * Takes the app lock, writing its id into `local-state.lock` beside the state files.
+   *
+   * @throws {@link TransactionError} With the message `App already locked!` when one is held.
+   */
+  async lockApp(): Promise<{ lockId: string }> {
+    return FileAppLockUtility.lockApp(this.lockFilePath);
+  }
+
+  /**
    * Writes a state file, overwriting whatever was there.
    */
   async saveState(stateFileName: string, data: Buffer): Promise<void> {
     await writeFile(join(this.localStateDirectoryPath, stateFileName), data);
+  }
+
+  /**
+   * Releases the app lock by deleting the lock file.
+   *
+   * @throws {@link TransactionError} With the message `Invalid lock ID!` when a different lock is held.
+   */
+  async unlockApp(lockId: string): Promise<void> {
+    return FileAppLockUtility.unlockApp(this.lockFilePath, lockId);
   }
 }
