@@ -10,14 +10,21 @@ until an approval has to live somewhere other than a terminal session.
 Octo splits the work into four commands, each its own process:
 
 ```bash
-npm run octo:generate   # 1. intent   -> terragrunt module folders
-npm run octo:validate   # 2. folders  -> a report, correlated against intent   (optional)
-npm run octo:apply      # 3. folders  -> real infrastructure
-npm run octo:commit     # 4. outputs  -> octo state
+npm run octo:generate                       # 1. intent   -> terragrunt module folders
+npm run octo:validate                       # 2. folders  -> a report against intent  (optional)
+
+LOCK_ID=$(npm run --silent octo:lock)       # steps 3 and 4 write shared state
+npm run octo:apply -- --lockId $LOCK_ID     # 3. folders  -> real infrastructure
+npm run octo:commit -- --lockId $LOCK_ID    # 4. outputs  -> octo state, and the lock is released
 ```
 
 Nothing reaches the cloud before step 3, the first two need no permission to change anything, and a
 pipeline can put a human between any two of them.
+
+Steps 3 and 4 are the two that write shared state, so both require the **app lock** — that is what
+keeps two runs from writing at once. The commit releases it however it ends, so a run that completes
+leaves nothing behind. [The app lock](/docs/reference/cli#the-app-lock) covers taking it, and
+breaking one a dead run left behind.
 
 ```mermaid
 graph LR
@@ -88,13 +95,16 @@ a Validate Report](/docs/using-octo/reading-a-validate-report) covers it before 
 ## Apply
 
 ```bash
-octo apply --terragruntDir .octo-tf
+octo apply --terragruntDir .octo-tf --lockId $LOCK_ID
 ```
 
-The only step that changes live infrastructure, and the only one that does not boot Octo at all. It
-neither loads your modules nor reads Octo state. It runs `terragrunt run --all -- apply` over the
-directory and streams the output as it goes, because an ECS apply can run for tens of minutes and
-its progress is the only sign it is alive.
+The only step that changes live infrastructure, and the only one that loads none of your modules. It
+reads no model or resource state either — the definition file is opened only for the state provider,
+because the app lock lives there and apply verifies it before planning, so a run without the lock
+fails having done nothing.
+
+It runs `terragrunt run --all -- apply` over the directory and streams the output as it goes, because
+an ECS apply can run for tens of minutes and its progress is the only sign it is alive.
 
 Terragrunt is given `-auto-approve`, so there is no prompt to answer. Octo puts its own gate in
 front instead: apply plans first, and refuses to run if anything would be destroyed.
@@ -113,6 +123,7 @@ would destroy something and will not guess.
 
 | Flag                        | Effect                                                |
 |-----------------------------|-------------------------------------------------------|
+| `--lockId <id>`             | The app lock, from `octo lock`. Required.             |
 | `--auto-approve`            | Skip the destroy check. Required to destroy anything. |
 | `--terraformBinary tofu`    | Sets `TG_TF_PATH`, so Terragrunt drives OpenTofu.     |
 | `--terragruntBinary <path>` | Use a specific Terragrunt binary.                     |
@@ -121,16 +132,23 @@ would destroy something and will not guess.
 ## Commit
 
 ```bash
-octo commit --terragruntDir .octo-tf
+octo commit --terragruntDir .octo-tf --lockId $LOCK_ID
 ```
 
 Commit reads every folder's Terraform outputs and records them into Octo's state: each resource's
 response, meaning the ARNs, generated IDs, and endpoints the provider handed back, along with the
 resource graph and the mapping from each Octo resource to the Terraform addresses that render it.
 
+It is also the step that ends a run, so it **releases the app lock** — on a clean commit, and on one
+that throws.
+
 It is all or nothing. If an expected output is missing, which is what a partial apply looks like,
 commit throws before touching state rather than writing half a record. Re-running a commit that
 failed is safe. Outputs for a folder Octo does not track are ignored and reported as a warning.
+
+When the apply itself failed, `--partial` is the way through: it records every resource whose
+outputs did resolve and leaves the rest out, so the half that was built is not lost. What it skips
+comes back as warnings.
 
 :::warning[Do not skip it]
 Without a commit, the next run has no record that any of this exists, and will propose creating all
@@ -141,16 +159,20 @@ it would, the resource's configuration is already gone.
 
 ## What each step touches
 
-|            | Cloud         | Model state | Resource state | Generated folders |
-|------------|---------------|-------------|----------------|-------------------|
-| `generate` |               | writes      |                | writes            |
-| `validate` | reads a plan  |             |                | reads             |
-| `apply`    | **writes**    |             |                | reads             |
-| `commit`   | reads outputs | writes      | writes         | reads             |
+|            | Cloud         | Model state | Resource state | Generated folders | App lock           |
+|------------|---------------|-------------|----------------|-------------------|--------------------|
+| `generate` |               | writes      |                | writes            |                    |
+| `validate` | reads a plan  |             |                | reads             |                    |
+| `apply`    | **writes**    |             |                | reads             | requires           |
+| `commit`   | reads outputs | writes      | writes         | reads             | requires, releases |
 
 Generate is the only step that runs without credentials of any kind. Apply is the only one that does
 not load your modules; the other three boot Octo and will fail on a definition file whose imports do
 not resolve.
+
+Generate writes model state, but only into your own working copy's state directory — it is
+bookkeeping about the folders it just wrote, so that a module you delete before ever applying it
+still gets its folder emptied. That is why it needs no lock.
 
 ## In a pipeline
 
@@ -158,14 +180,17 @@ The split is what makes gating possible. A pull-request job runs the two read-on
 publishes the report. A merge job, after somebody has read it, applies.
 
 ```yaml
-# On a pull request. No credentials that can change anything.
+# On a pull request. No credentials that can change anything, and no lock.
 - run: npm run octo:generate
 - run: npm run octo:validate
 
 # On merge to main, after a human approved the report above.
 - run: npm run octo:generate
-- run: npm run octo:apply
-- run: npm run octo:commit
+- run: |
+    LOCK_ID=$(npm run --silent octo:lock)
+    echo "LOCK_ID=$LOCK_ID" >> $GITHUB_ENV
+- run: npm run octo:apply -- --lockId $LOCK_ID
+- run: npm run octo:commit -- --lockId $LOCK_ID
 ```
 
 Regenerate on the merge job rather than carrying the folders over from the pull-request job.

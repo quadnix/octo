@@ -85,7 +85,8 @@ but whether anything you did not remove is quietly in there too.
 ## Applying it
 
 ```bash
-npm run octo:apply
+LOCK_ID=$(npm run --silent octo:lock)
+npm run octo:apply -- --lockId $LOCK_ID
 ```
 
 ```text
@@ -103,7 +104,7 @@ check is what stands in for one: `octo apply` plans first, and refuses if anythi
 destroyed.
 
 ```bash
-npm run octo:apply -- --auto-approve
+npm run octo:apply -- --lockId $LOCK_ID --auto-approve
 ```
 
 That flag is required for every destroy, including one you fully intended. It is not a `--force`; it
@@ -112,7 +113,7 @@ is an acknowledgement that you have read the list above.
 ## Committing the removal
 
 ```bash
-npm run octo:commit
+npm run octo:commit -- --lockId $LOCK_ID
 ```
 
 ```text
@@ -163,8 +164,10 @@ are what the rest of the file hangs off:
 
 ```bash
 npm run octo:generate
-npm run octo:apply -- --auto-approve
-npm run octo:commit
+
+LOCK_ID=$(npm run --silent octo:lock)
+npm run octo:apply -- --lockId $LOCK_ID --auto-approve
+npm run octo:commit -- --lockId $LOCK_ID
 ```
 
 Afterwards, `.octo/` still exists and describes an app with nothing in it, and `.octo-tf/` is full

@@ -13,23 +13,24 @@ release steps belong around them.
 :::caution[Treat these as a starting point]
 The workflows below are assembled from the pieces this page explains rather than lifted from a
 running pipeline. Run them against a throwaway account first, and check two things before your first
-apply from CI. That the apply job reaches Terraform state reflecting reality, which is the failure
-that creates duplicate infrastructure and stays silent until the bill. And that only one apply can
+apply from CI. That the apply job reaches state reflecting reality, which is the failure that
+creates duplicate infrastructure and stays silent until the bill. And that only one apply can
 run at a time, which you verify by starting two runs and watching the second queue.
 :::
 
 ## What CI has to get right
 
-Four things, and getting any of them wrong is how state gets corrupted.
+Three things, and getting any of them wrong is how state gets corrupted.
 
-**One writer at a time.** Octo does not lock its state. Two concurrent applies interleave writes to
-`.octo/` and there is no error to tell you.
+**One writer at a time.** `apply` and `commit` require the app lock, so a second run that starts
+while one holds it fails immediately. That is a real guard on one runner; across runners it is only
+as good as the store the lock lives in, which for a file beside the state is not at all. The
+`concurrency` group below is what actually serializes CI.
 
-**Octo state has to survive the job.** `.octo/` is Octo's memory of your infrastructure. Commit it
-back, or write it to durable storage with a [state provider](/docs/techniques/state-providers).
-
-**Terraform state has to survive too.** The generated folders are in the repository, so a fresh
-runner has them, but the `terraform.tfstate` files inside them are not and it does not.
+**State has to survive the job.** `.octo/` holds Octo's memory of your infrastructure and
+Terraform's, because Octo checks each module's `terraform.tfstate` out of the state provider before a
+Terraform command and back in after. Commit it back, or write it to durable storage with a [state
+provider](/docs/techniques/state-providers).
 
 **Regenerate before applying.** Generate is deterministic and takes milliseconds. Doing it again in
 the apply job guarantees the folders match the definition file that was merged.
@@ -99,10 +100,10 @@ JSON output.
 Credentials are needed even to plan. `octo validate` runs a real `terraform plan` against a real
 provider, so give the job a read-only role.
 
-The plan is only as good as the Terraform state it can reach. A fresh runner has the generated
-folders from the repository and no `terraform.tfstate` in any of them, so every plan reads as
-"create everything" and the report is noise. Restore state the way the apply job below does, or
-accept that the pull-request report shows intent rather than a real plan.
+The plan is only as good as the state it can reach. A fresh runner has the generated folders and,
+because `.octo/` is committed, the Terraform state that goes with them — `octo validate` writes each
+module's state into its folder before planning it. What a checkout does not have is state committed
+after the branch was cut, so rebase a long-lived branch before trusting its report.
 
 ### Posting the report
 
@@ -172,7 +173,8 @@ on:
   push:
     branches: [ main ]
 
-# Serialize. Octo has no locking, and two concurrent applies corrupt state.
+# Serialize. Apply and commit take the app lock, but a lock file beside the state is invisible to a
+# second runner, so this group is what actually keeps two applies apart.
 concurrency:
   group: octo-apply
   cancel-in-progress: false
@@ -195,29 +197,28 @@ jobs:
       - run: npm ci
       - run: npm run build
 
-      - name: Restore terraform state
-        run: aws s3 sync s3://shop-octo-tfstate/.octo-tf .octo-tf
-
       - name: Generate
         env:
           AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
         run: npm run octo:generate
 
+      - name: Lock
+        run: |
+          LOCK_ID=$(npm run --silent octo:lock)
+          echo "LOCK_ID=$LOCK_ID" >> $GITHUB_ENV
+
       - name: Apply
         env:
           AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-        run: npm run octo:apply
+        run: npm run octo:apply -- --lockId $LOCK_ID
 
       - name: Commit
         env:
           AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-        run: npm run octo:commit
+        run: npm run octo:commit -- --lockId $LOCK_ID
 
-      - name: Persist terraform state
+      - name: Persist state
         if: always()
-        run: aws s3 sync .octo-tf s3://shop-octo-tfstate/.octo-tf
-
-      - name: Persist octo state
         run: |
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
@@ -230,6 +231,14 @@ jobs:
           fi
 ```
 
+One commit carries both records, because Terraform's state is checked into `.octo/` alongside
+Octo's. `if: always()` is what makes a failed apply still leave behind what it did build — a partial
+record beats none, and the half that cannot be rebuilt is Terraform's.
+
+The commit releases the lock however it ends, so a failed job leaves nothing held. If the runner
+itself dies between the lock and the commit, the next job fails with `App already locked with lock
+ID "..."` and a human runs `npm run octo:unlock -- --force` after checking what the dead run did.
+
 Note that `--auto-approve` is absent. `octo apply` refuses when the plan would destroy anything,
 which in CI is what you want: the job fails, prints what would go, and a human decides. Allowing a
 destroy is a deliberate addition, gated on something:
@@ -237,22 +246,19 @@ destroy is a deliberate addition, gated on something:
 ```yaml
       - name: Apply, destroys allowed
         if: contains(github.event.head_commit.message, '[octo-destroy]')
-        run: npm run octo:apply -- --auto-approve
+        run: npm run octo:apply -- --lockId $LOCK_ID --auto-approve
 ```
 
-## Terraform state on a fresh runner
+## A real Terraform backend
 
-:::warning[Read this before the first apply from CI]
 The generated `terragrunt.hcl` configures a local backend at
-`.octo-tf/<moduleId>/terraform.tfstate`, and that file is gitignored, so a fresh runner has the
-Terraform but not the state. Without it, Terraform believes nothing exists and the apply creates
-duplicates of everything.
+`.octo-tf/<moduleId>/terraform.tfstate`, and that file is gitignored — it is a working copy of
+`.octo/<moduleId>.tfstate`, which is not. So a fresh runner does have Terraform state, and the
+`concurrency` group is what keeps two jobs from writing it at once.
 
-The `aws s3 sync` steps above are the crude fix, and they are not safe under concurrency, which is
-why the `concurrency` group is mandatory rather than nice to have.
-:::
-
-The better fix is to rewrite the `remote_state` block to a real backend, between generate and apply:
+What that arrangement still does not give you is a lock. If you want one, rewrite the `remote_state`
+block to a real backend, between generate and apply. Terraform then keeps its own state there and
+stops writing the file Octo checks in:
 
 ```javascript title="scripts/rewrite-backend.mjs"
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -300,21 +306,24 @@ node scripts/rewrite-backend.mjs .octo-tf
 npm run octo:apply
 ```
 
-There is no definition-file setting for the backend today, so this rewrite is the workaround. It
+There is no definition-file setting for the backend today, so this rewrite is how you get one. It
 depends on Octo emitting `remote_state` as the first block, which it does, but it is your script:
 diff a generated folder before and after the first time you run it, and test it on a throwaway
 stack.
 
 ## One writer
 
-There is no locking, so pick one of these and mean it.
+The app lock is the mechanism, but a lock kept as a file beside the state is only a lock to the
+runner that can see that file. Until state lives somewhere every runner reaches, pick one of these
+too and mean it.
 
 A **concurrency group**, as above. Simple, and enough for most teams.
 
 A **merge queue**. GitHub serializes merges, so only one apply is ever in flight.
 
-A **state provider with conditional writes**, which turns a race into a failed job rather than
-corruption. [State Providers](/docs/techniques/state-providers) covers writing one.
+A **state provider whose lock is real** — one backed by a conditional write, so two runners racing
+for it produce a failed job rather than corruption. [State
+Providers](/docs/techniques/state-providers) covers writing one.
 
 None of them help if somebody runs an apply from a laptop while CI is running.
 
@@ -329,8 +338,9 @@ Separate definition files, separate state paths, separate output directories:
           AWS_ACCOUNT_ID: ${{ secrets.AWS_STAGING_ACCOUNT_ID }}
         run: |
           node_modules/.bin/octo generate -o .octo-tf-staging
-          node_modules/.bin/octo apply --terragruntDir .octo-tf-staging
-          node_modules/.bin/octo commit --terragruntDir .octo-tf-staging
+          LOCK_ID=$(node_modules/.bin/octo lock)
+          node_modules/.bin/octo apply --terragruntDir .octo-tf-staging --lockId $LOCK_ID
+          node_modules/.bin/octo commit --terragruntDir .octo-tf-staging --lockId $LOCK_ID
 ```
 
 Give each one its own `concurrency` group, so staging and production do not block each other.

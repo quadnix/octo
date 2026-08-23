@@ -2,23 +2,35 @@
 title: State Providers
 ---
 
-Octo's [state](/docs/fundamentals/state) is three JSON files, and where they live decides who can
-run your infrastructure. On a laptop, one person can. In a repository, whoever has the repository
-can, as long as nobody runs two deploys at once. Neither is where a team ends up.
+Octo's [state](/docs/fundamentals/state) is three JSON files and a Terraform state file per module,
+and where they live decides who can run your infrastructure. On a laptop, one person can. In a
+repository, whoever has the repository can, as long as they take the lock. Neither is where a team
+ends up.
 
-A **state provider** is the seam. It is two methods, and implementing them puts state wherever your
-team already keeps things that matter.
+A **state provider** is the seam. Implementing it puts state wherever your team already keeps things
+that matter.
 
 ```typescript
 export interface IStateProvider {
+  deleteState (stateFileName: string): Promise<void>;
+
   getState (stateFileName: string): Promise<Buffer>;
 
   saveState (stateFileName: string, data: Buffer): Promise<void>;
+
+  lockApp (): Promise<{ lockId: string }>;
+
+  isAppLocked (lockId: string): Promise<boolean>;
+
+  unlockApp (lockId: string): Promise<void>;
+
+  getAppLock (): Promise<string | undefined>;
 }
 ```
 
-Octo asks for a named blob and hands one back. It does not care what a file is, whether the store is
-transactional, or how it is encrypted.
+Three methods move blobs: Octo asks for a named one and hands one back, and does not care what a
+file is, whether the store is transactional, or how it is encrypted. Four more are the app lock,
+which is how Octo keeps one writer at a time — covered below.
 
 ## The three that ship
 
@@ -53,7 +65,8 @@ Keep the key out of the file. Declare it under `env` and let the shell supply it
 An S3 provider, which is what most teams want:
 
 ```typescript
-import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { randomUUID } from 'node:crypto';
+import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { TransactionError, type IStateProvider } from '@quadnix/octo';
 
 export class S3StateProvider implements IStateProvider {
@@ -62,6 +75,34 @@ export class S3StateProvider implements IStateProvider {
     private readonly bucket: string,
     private readonly prefix: string,
   ) {}
+
+  async deleteState (stateFileName: string): Promise<void> {
+    await this.client.send(
+      new DeleteObjectCommand({ Bucket: this.bucket, Key: `${this.prefix}/${stateFileName}` }),
+    );
+  }
+
+  async lockApp (): Promise<{ lockId: string }> {
+    const lockId = randomUUID();
+    try {
+      // `IfNoneMatch` makes this a create-only write, which S3 evaluates atomically. Of two runners
+      // racing for the lock, exactly one gets a 200 and the other a 412.
+      await this.client.send(
+        new PutObjectCommand({
+          Body: lockId,
+          Bucket: this.bucket,
+          IfNoneMatch: '*',
+          Key: `${this.prefix}/.lock`,
+        }),
+      );
+    } catch (error) {
+      if (error.name === 'PreconditionFailed') {
+        throw new TransactionError(`App already locked with lock ID "${await this.getAppLock()}"!`);
+      }
+      throw error;
+    }
+    return { lockId };
+  }
 
   async getState (stateFileName: string): Promise<Buffer> {
     try {
@@ -90,6 +131,14 @@ One detail is not optional. When the state file does not exist, `getState` has t
 run. Any other error, and a first run looks like a failure; no error at all, and Octo tries to parse
 nothing as a graph.
 
+`deleteState` is the mirror of that rule: deleting a file that is not there is not an error. Octo
+calls it for a module Terraform has destroyed, and it must not fail because the destroy already
+removed the record.
+
+`getAppLock`, `isAppLocked`, and `unlockApp` round out the lock — read the `.lock` object, compare
+the ID, and delete it. They are left out of the listing above for length; the rules they follow are
+in [It holds the lock](#it-holds-the-lock).
+
 Everything else is yours. The `prefix` above is what lets one bucket hold state for several
 definition files, which is the shape most teams want: one bucket, one prefix per app or per
 environment.
@@ -113,17 +162,70 @@ directory on shared storage, or `LocalEncryptionStateProvider` with the files co
 repository.
 :::
 
+## It holds the lock
+
+Octo's state has one writer at a time, and the provider is what enforces it. Four of the methods are
+the lock:
+
+```typescript
+export interface IStateProvider {
+  /** Throws when a lock is already held, naming the id that holds it. */
+  lockApp (): Promise<{ lockId: string }>;
+
+  /** Throws `Invalid lock ID!` when a different lock is held. */
+  isAppLocked (lockId: string): Promise<boolean>;
+
+  /** Throws `Invalid lock ID!` rather than releasing a lock that is not the caller's. */
+  unlockApp (lockId: string): Promise<void>;
+
+  /** The ID currently held, or `undefined` when the app is unlocked. */
+  getAppLock (): Promise<string | undefined>;
+}
+```
+
+`octo lock` calls `lockApp` and prints the ID. `octo apply` and `octo commit` present that ID, and
+the commit releases it. `generate` and `validate` never touch any of this — neither writes shared
+state.
+
+Two rules a provider of your own has to honour:
+
+- **Taking the lock must be atomic.** Reading first and writing second lets two runners both believe
+  they hold it, which is worse than no lock, because it manufactures confidence. The bundled
+  providers use an exclusive file create; a remote store wants a conditional write — S3's
+  `If-None-Match: *`, or a DynamoDB conditional put.
+- **The ID proves ownership.** Every check compares against the ID that was handed out, so one run
+  can never release another's lock, and a caller holding a stale ID is told it is stale rather than
+  told the app is free.
+
+There is deliberately no timeout. A lock that expires mid-apply would let a second apply start while
+the first might still be running, and from outside you cannot tell whether a dead run applied
+nothing, everything, or half of it. A stuck lock is the correct outcome, and `octo unlock --force`
+is the way out once a human has looked.
+
+## It holds Terraform's state too
+
+Terraform keeps its own record of what exists, and by default a local backend leaves it in the
+generated module folder, where only the machine that ran the apply can see it. That is the one file
+Octo cannot rebuild — lose it and Terraform plans to create infrastructure that is already there.
+
+So it goes through the provider as well. Before any Terraform command, Octo writes each module's
+state from the provider into its folder; after the command returns — whether it succeeded or failed
+— it writes what the folder now holds back, under `<moduleId>.tfstate`. A long apply is also checked
+in on a timer, so a runner killed halfway through loses at most a minute of record rather than all
+of it.
+
+Two consequences worth knowing:
+
+- A module whose folder holds no state, or state recording no resources, is **deleted** from the
+  provider rather than written. That is a module Terraform has destroyed.
+- A module the provider holds nothing for keeps whatever its folder already has. That is what adopts
+  the state of a stack which has been running with a local backend until now: the first check-in
+  hands it over, and from then on the provider is the one that answers.
+
+Point `remote_state` at a backend of your own and Terraform stops writing the file Octo checks in,
+which is fine — the two arrangements are alternatives, not layers.
+
 ## What a provider does not do
-
-**It does not lock.** Octo asks for a blob and writes a blob. Two runs committing at the same time
-is a lost update with no error to tell you. If your store supports conditional writes, using them
-inside `saveState` is worth doing; otherwise, run the lifecycle from one place, which in practice
-means a pipeline.
-
-**It does not hold Terraform's state.** That is separate, it lives in the generated folders, and it
-is configured through the `remote_state` block rather than here. [Project
-Structure](/docs/getting-started/project-structure#octo-tf) covers moving it somewhere durable,
-which you need to do as well.
 
 **It does not version anything.** Octo writes each file whole, every time, and keeps no history. If
 you want to be able to go back, that is your store's job.

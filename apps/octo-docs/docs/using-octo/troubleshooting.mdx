@@ -128,6 +128,25 @@ Expected. A folder planned before its dependency exists is planned against Terra
 `mock_outputs`, which is exactly what an approximate report means. Apply, commit, then validate
 again; the second report is exact.
 
+## While taking the lock
+
+**`App already locked with lock ID "..."`**
+
+Another run holds the lock, and the message names it. Wait for that run to finish. If it is gone,
+`octo unlock --force` releases it — but do that only after looking at what the dead run actually
+did, because Octo cannot tell whether it applied nothing, everything, or half of it. That is exactly
+why the lock does not expire on its own.
+
+**`App is not locked!`**
+
+`apply` and `commit` both require the lock. Take it with `octo lock` and pass the ID it prints to
+both — apply adds `Run "octo lock" first.` to the same message.
+
+**`Invalid lock ID!`**
+
+A lock is held, but not the one you passed. Usually a stale `LOCK_ID` from a previous run still in
+the shell. Take a fresh one.
+
 ## While applying
 
 **`This apply would DESTROY: ...`**
@@ -153,10 +172,20 @@ lifecycle through the npm scripts, which put `node_modules/.bin` on `PATH` for c
 The apply did not finish, so some folders never produced their outputs. Octo state is unchanged, and
 the message says so. Fix whatever stopped the apply, run it again, then commit; a re-run is safe.
 
+If you would rather not lose what the apply did build, `octo commit --partial` records every
+resource whose outputs all resolved and leaves the rest out, reporting what it skipped. The next run
+plans to create those again, which Terraform reconciles against its own state as a no-op if they
+exist.
+
 **`Cannot commit: null terraform outputs (broken apply?)`**
 
 A declared output exists but carries no value, which normally means the resource behind it did not
 come up. Same handling: state is untouched, fix and re-run.
+
+**A commit that failed, and a lock that is gone**
+
+Expected. `octo commit` releases the lock however it ends, including when it throws, because it is
+the step that ends a run. Take a fresh lock before retrying.
 
 **`Terraform outputs supplied for folder "X", which octo does not track`**
 

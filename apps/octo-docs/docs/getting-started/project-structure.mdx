@@ -76,13 +76,15 @@ Octo's memory of what your infrastructure is.
 | `models.json`           | The model graph: models, anchors, overlays, and every dependency edge between them.                                             |
 | `resources-actual.json` | The resource graph Octo believes exists, with each resource's response and the mapping from Octo resource to Terraform address. |
 | `resources-old.json`    | The previous resource graph, kept so a re-run can tell a settled state from a pending one.                                      |
+| `<moduleId>.tfstate`    | One module's Terraform state, checked out into its folder before a Terraform command and back in after.                         |
+| `local-state.lock`      | The app lock, present only while a run holds it. `apply` and `commit` require it; `commit` releases it.                         |
 | `reports/`              | HTML and JSON from each validate and commit. Generated output, not state, and gitignored.                                       |
 
 Where it lives comes from `settings.stateProvider.statePath`, resolved against the definition file
-rather than the working directory. Losing it does nothing to your cloud account, but Octo will
-believe it is starting from nothing and propose creating everything again.
-[State](/docs/fundamentals/state) covers what is in these files and how to keep them somewhere a
-team can share.
+rather than the working directory. Losing it costs you both records at once — Octo believes it is
+starting from nothing and proposes creating everything again, and Terraform has nothing left to say
+otherwise. [State](/docs/fundamentals/state) covers what is in these files and how to keep them
+somewhere a team can share.
 
 ## src/
 
@@ -137,15 +139,16 @@ different machine, and the folder shows a diff nobody made. Regenerating on the 
 applies, which the pipeline does anyway, keeps it consistent.
 :::
 
-:::warning[Terraform state lives in here, and it is local by default]
+:::note[The `terraform.tfstate` in here is a working copy]
 The generated `terragrunt.hcl` configures a local backend at
-`.octo-tf/<moduleId>/terraform.tfstate`, and the scaffolded `.gitignore` excludes `*.tfstate*` along
-with `.terragrunt-cache/`. Out of the box, that state exists on one machine only.
+`.octo-tf/<moduleId>/terraform.tfstate`, and the scaffolded `.gitignore` excludes it. That file is
+not where Terraform state is kept: Octo writes it out of `.octo/<moduleId>.tfstate` before every
+Terraform command and writes what it holds back afterwards, so the copy that survives is the one
+under `.octo/`, wherever your state provider puts that.
 
-Fine for one person trying things out. For a team or for CI you need Terraform state that outlives
-the working directory: either keep `.octo-tf/` on durable shared storage, or rewrite the
-`remote_state` block to point at S3 or another backend, as a step between `octo generate` and `octo
-apply`. There is no definition-file setting for the backend today.
+Rewriting the `remote_state` block to point at S3 or another backend still works, and then Terraform
+stops writing the file Octo checks in. The two are alternatives. There is no definition-file setting
+for the backend today.
 :::
 
 ## A project that has outgrown one file
@@ -194,6 +197,8 @@ teams means production and everything else. Reach for the model first.
 |------------------------------------------------|--------|--------------------------------------------------------------------|
 | `octo.yaml`                                    | Yes    | It is the intent.                                                  |
 | `.octo/models.json`, `.octo/resources-*.json`  | Yes    | Octo's state. Without it the next run starts from nothing.         |
+| `.octo/*.tfstate`                              | Yes    | Terraform's state. Without it the next apply rebuilds what exists. |
+| `.octo/local-state.lock`                       | No     | The app lock. It exists only while a run holds it.                 |
 | `.octo/reports/`                               | No     | Output of a run.                                                   |
 | `.octo-tf/**/*.tf`, `terragrunt.hcl`           | Yes    | The Terraform your change produced, reviewable next to the change. |
 | `.octo-tf/**/*.tfstate*`, `.terragrunt-cache/` | No     | Terraform's own working files, written during an apply.            |

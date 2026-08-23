@@ -11,8 +11,8 @@ octo --help
 octo --version
 ```
 
-Every command that boots Octo reads `OCTO_DEFINITION_FILE_PATH`, and there is no flag for it. The
-generated npm scripts set it; if you call the binary directly, so must you.
+Every command reads `OCTO_DEFINITION_FILE_PATH`, and there is no flag for it. The generated npm
+scripts set it; if you call the binary directly, so must you.
 
 ```bash
 OCTO_DEFINITION_FILE_PATH=octo.yaml node_modules/.bin/octo generate -o .octo-tf
@@ -22,6 +22,19 @@ OCTO_DEFINITION_FILE_PATH=octo.yaml node_modules/.bin/octo generate -o .octo-tf
 
 Four commands, in this order. [The Lifecycle](/docs/getting-started/the-lifecycle) covers what each
 one is for.
+
+The last two write shared state, so they require the **app lock** — take it with
+[`octo lock`](#lock) and pass the ID it prints. `generate` and `validate` write nothing shared and
+need no lock.
+
+```bash
+npm run octo:generate
+npm run octo:validate
+
+LOCK_ID=$(npm run --silent octo:lock)
+npm run octo:apply -- --lockId $LOCK_ID
+npm run octo:commit -- --lockId $LOCK_ID     # releases the lock
+```
 
 ### generate
 
@@ -56,15 +69,21 @@ not failures. See [Reading a Validate Report](/docs/using-octo/reading-a-validat
 ### apply
 
 The only command that changes live infrastructure, and the only one that does not boot Octo: it
-neither loads your modules nor reads Octo state.
+loads none of your modules and reads no model or resource state. It does read the definition file,
+because the state provider named there is where Terraform's own state is checked out of and back
+into around the apply.
 
 | Flag                 |          |                                                       |
 |----------------------|----------|-------------------------------------------------------|
 | `--terragruntDir`    | required | The generated directory to apply.                     |
+| `--lockId`           | required | The app lock ID from `octo lock`.                     |
 | `--auto-approve`     |          | Skip the destroy check. Required to destroy anything. |
 | `--terraformBinary`  |          | Override the binary Terragrunt invokes.               |
 | `--terragruntBinary` |          | Override the Terragrunt binary.                       |
 | `--timeoutInMs`      |          | Per-command timeout. Default 60 minutes.              |
+
+Verifies the lock before planning, so a run without it fails having done nothing. It does not
+release the lock — the apply is the middle of a run, and `commit` is the end of it.
 
 Plans first and refuses if anything would be destroyed, or if a folder could not be planned.
 
@@ -80,12 +99,60 @@ spelling, and these pages use the hyphenated one because it matches Terraform's.
 Reads every folder's Terraform outputs and records them into Octo's state. All or nothing: a missing
 or null output throws before any state is written.
 
-| Flag                 |          |                                          |
-|----------------------|----------|------------------------------------------|
-| `--terragruntDir`    | required | The generated directory, after an apply. |
-| `--terraformBinary`  |          | Override the binary Terragrunt invokes.  |
-| `--terragruntBinary` |          | Override the Terragrunt binary.          |
-| `--timeoutInMs`      |          | Per-command timeout. Default 60 minutes. |
+| Flag                 |          |                                                                        |
+|----------------------|----------|------------------------------------------------------------------------|
+| `--terragruntDir`    | required | The generated directory, after an apply.                               |
+| `--lockId`           | required | The app lock ID from `octo lock`. Released when this command finishes. |
+| `--partial`          |          | Record what did apply, after an apply that failed.                     |
+| `--terraformBinary`  |          | Override the binary Terragrunt invokes.                                |
+| `--terragruntBinary` |          | Override the Terragrunt binary.                                        |
+| `--timeoutInMs`      |          | Per-command timeout. Default 60 minutes.                               |
+
+This is the command that ends a run, so it **releases the lock however it finishes** — on a clean
+commit, and on one that throws. A normal run never leaves a lock behind.
+
+`--partial` is for after an apply that failed. Instead of rejecting the whole commit over the
+outputs a half-finished apply could not produce, it records every resource whose outputs did all
+resolve and leaves the rest out of Octo's state. Those come back as warnings naming what was
+skipped. The next run plans to create them again, which Terraform reconciles against its own state:
+recording less than reality is recoverable, recording more is not.
+
+## The app lock
+
+Octo's state has one writer at a time, and the lock is how that is enforced. `apply` and `commit`
+both require it; `generate` and `validate` do not, because neither writes shared state.
+
+### lock
+
+Takes the lock and prints its ID — and nothing else on stdout, so a shell can capture it.
+
+```bash
+LOCK_ID=$(npm run --silent octo:lock)
+```
+
+Fails if a lock is already held, naming the ID that holds it. Nothing else runs, so a second runner
+stops before it reads state or plans anything.
+
+### unlock
+
+Releases the lock.
+
+| Flag       |                                                                               |
+|------------|-------------------------------------------------------------------------------|
+| `--lockId` | The ID to release.                                                            |
+| `--force`  | Release whatever is held, without knowing its ID. One of the two is required. |
+
+A finished run releases its own lock in `commit`, so this is for a run that never reached its
+commit. If a runner died holding one, `--force` is the way out:
+
+```bash
+npm run octo:unlock -- --force
+```
+
+There is no timeout on a lock. An expiring one would let a second apply start while the first might
+still be running, and from outside you cannot tell whether a dead run applied nothing, everything,
+or half of it. A stuck lock is the correct outcome: look at what actually happened before anything
+else touches it.
 
 ## Scaffolding
 
@@ -197,7 +264,7 @@ jobs and their dependencies, and runs them with a concurrency limit.
 
 ## Environment
 
-|                                         |                                                                                                                                                                                                            |
-|-----------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `OCTO_DEFINITION_FILE_PATH`             | The definition file. Required by every command that boots Octo. Relative paths resolve against the working directory, and everything the definition names resolves against the definition's own directory. |
-| Any key in the definition's `env` block | Overrides the declared value. See [The Definition File](/docs/using-octo/the-definition-file#env).                                                                                                         |
+|                                         |                                                                                                                                                                                            |
+|-----------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `OCTO_DEFINITION_FILE_PATH`             | The definition file. Required by every command. Relative paths resolve against the working directory, and everything the definition names resolves against the definition's own directory. |
+| Any key in the definition's `env` block | Overrides the declared value. See [The Definition File](/docs/using-octo/the-definition-file#env).                                                                                         |

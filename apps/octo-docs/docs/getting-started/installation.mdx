@@ -87,8 +87,10 @@ The generated `package.json` wraps the four lifecycle steps as scripts:
 ```bash
 npm run octo:generate    # write the Terraform
 npm run octo:validate    # plan it, and report the plan against your intent
-npm run octo:apply       # create the infrastructure
-npm run octo:commit      # record what was created
+
+LOCK_ID=$(npm run --silent octo:lock)      # apply and commit write shared state
+npm run octo:apply -- --lockId $LOCK_ID    # create the infrastructure
+npm run octo:commit -- --lockId $LOCK_ID   # record what was created, and release the lock
 ```
 
 Each script sets `OCTO_DEFINITION_FILE_PATH=octo.yaml` and points at `.octo-tf`, so the four steps
@@ -109,7 +111,9 @@ own configuration, or per command:
 
 ```bash
 npm run octo:validate -- --terraformBinary tofu
-npm run octo:apply -- --terraformBinary tofu
+
+LOCK_ID=$(npm run --silent octo:lock)
+npm run octo:apply -- --lockId $LOCK_ID --terraformBinary tofu
 ```
 
 The flag sets `TG_TF_PATH` for that invocation only.

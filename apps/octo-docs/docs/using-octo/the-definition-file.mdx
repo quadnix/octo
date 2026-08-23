@@ -182,9 +182,12 @@ settings:
     statePath: .octo
 ```
 
-`stateProvider` is required, and picks where Octo's own state is kept. `LocalStateProvider` writes
-plain JSON to `statePath`. `LocalEncryptionStateProvider` writes the same files encrypted, and takes
-an `encryptionKey` alongside the path:
+`stateProvider` is required, and picks where state is kept — Octo's own, the Terraform state Octo
+checks in and out around every Terraform command, and the app lock that `apply` and `commit` both
+require.
+
+`LocalStateProvider` writes plain JSON to `statePath`. `LocalEncryptionStateProvider` writes the
+same files encrypted, and takes an `encryptionKey` alongside the path:
 
 ```yaml
   stateProvider:

@@ -149,14 +149,20 @@ the second says where the bucket goes.
 
 ## The run
 
-The four commands, in order:
+The four commands, in order, with one more in front of the last two:
 
 ```bash
 npm run octo:generate
 npm run octo:validate
-npm run octo:apply
-npm run octo:commit
+
+LOCK_ID=$(npm run --silent octo:lock)
+npm run octo:apply -- --lockId $LOCK_ID
+npm run octo:commit -- --lockId $LOCK_ID
 ```
+
+`octo lock` takes the app lock and prints its ID. Apply and commit are the two steps that write
+shared state, so both require it — that is what stops two runs writing at once. The commit releases
+it, so you take it once and never think about it again.
 
 `generate` reads the definition file and writes Terraform. It needs no credentials, and touches
 nothing outside your project. One folder comes out, because one of the three modules has cloud
@@ -342,7 +348,9 @@ resource lines, marked `~`. [Reading a Validate
 Report](/docs/using-octo/reading-a-validate-report) covers the markers in full.
 
 ```bash
-npm run octo:apply && npm run octo:commit
+LOCK_ID=$(npm run --silent octo:lock)
+npm run octo:apply -- --lockId $LOCK_ID
+npm run octo:commit -- --lockId $LOCK_ID
 ```
 
 Reload the page and the new line is there.
@@ -365,8 +373,10 @@ the app and account modules:
 ```bash
 npm run octo:generate
 npm run octo:validate
-npm run octo:apply -- --auto-approve
-npm run octo:commit
+
+LOCK_ID=$(npm run --silent octo:lock)
+npm run octo:apply -- --lockId $LOCK_ID --auto-approve
+npm run octo:commit -- --lockId $LOCK_ID
 ```
 
 `validate` is worth running here, because it says why each resource is going away. And `apply` needs

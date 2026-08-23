@@ -260,8 +260,13 @@ the page for that.
 ## Apply and commit
 
 ```bash
-npm run octo:apply
+LOCK_ID=$(npm run --silent octo:lock)
+npm run octo:apply -- --lockId $LOCK_ID
 ```
+
+`octo lock` takes the app lock and prints its ID. Apply and commit are the two steps that write
+shared state, so both require it — that is what stops two people writing at once. The commit
+releases it, so you take it once per run and never think about it again.
 
 This is the only step that changes anything. It streams Terragrunt's own output, because an apply
 can run for a long time and its progress is the only sign it is alive. At the end:
@@ -277,7 +282,7 @@ can run for a long time and its progress is the only sign it is alive. At the en
 Then record what happened:
 
 ```bash
-npm run octo:commit
+npm run octo:commit -- --lockId $LOCK_ID
 ```
 
 ```text
@@ -434,7 +439,9 @@ produced, so a consequence that crosses from one folder to another is not visibl
 Apply and record it:
 
 ```bash
-npm run octo:apply && npm run octo:commit
+LOCK_ID=$(npm run --silent octo:lock)
+npm run octo:apply -- --lockId $LOCK_ID
+npm run octo:commit -- --lockId $LOCK_ID
 ```
 
 ## Tear it down
@@ -445,8 +452,10 @@ again:
 
 ```bash
 npm run octo:generate
-npm run octo:apply -- --auto-approve
-npm run octo:commit
+
+LOCK_ID=$(npm run --silent octo:lock)
+npm run octo:apply -- --lockId $LOCK_ID --auto-approve
+npm run octo:commit -- --lockId $LOCK_ID
 ```
 
 Without `--auto-approve`, the apply refuses and shows you what it would have removed:

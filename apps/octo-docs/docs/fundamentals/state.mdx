@@ -101,18 +101,19 @@ from one where a change was started and not finished.
 
 ## Two states, two jobs
 
-|                 | Records                                                         | Written by                        | Lives in                                           |
-|-----------------|-----------------------------------------------------------------|-----------------------------------|----------------------------------------------------|
-| Octo state      | Intent, resources, and the mapping between intent and Terraform | `octo generate` and `octo commit` | `.octo/`                                           |
-| Terraform state | Cloud objects and their attributes                              | `terraform apply`                 | `.octo-tf/<moduleId>/terraform.tfstate` by default |
+|                 | Records                                                         | Written by                        | Lives in                   |
+|-----------------|-----------------------------------------------------------------|-----------------------------------|----------------------------|
+| Octo state      | Intent, resources, and the mapping between intent and Terraform | `octo generate` and `octo commit` | `.octo/`                   |
+| Terraform state | Cloud objects and their attributes                              | `terraform apply`                 | `.octo/<moduleId>.tfstate` |
 
 They answer different questions and neither replaces the other. Terraform state is what lets
 Terraform know a bucket exists. Octo state is what lets a report say the bucket is checkout's
 receipts storage.
 
-Both need to survive, and by default only one of them is in your repository. [Project
-Structure](/docs/getting-started/project-structure#octo-tf) covers moving Terraform's state
-somewhere durable, which is the first thing to fix before more than one person runs this.
+Both need to survive, and both go through the same state provider. Terraform writes its file into
+the module folder as it always has; Octo checks that file out before every Terraform command and
+back in after, so `.octo/` is where it is kept and whoever can reach Octo state can reach Terraform
+state with it.
 
 ## When state is written
 
@@ -133,13 +134,18 @@ made the apply incomplete.
 ## Where it is kept
 
 A state provider is the interface between Octo and wherever state lives, and it is deliberately
-small:
+small: three methods that move a named blob around, and four that are the app lock.
 
 ```typescript
 export interface IStateProvider {
+  deleteState (stateFileName: string): Promise<void>;
   getState (stateFileName: string): Promise<Buffer>;
-
   saveState (stateFileName: string, data: Buffer): Promise<void>;
+
+  lockApp (): Promise<{ lockId: string }>;
+  isAppLocked (lockId: string): Promise<boolean>;
+  unlockApp (lockId: string): Promise<void>;
+  getAppLock (): Promise<string | undefined>;
 }
 ```
 
@@ -157,23 +163,27 @@ settings:
 small team can commit them to a repository and share state without running anything.
 `TestStateProvider` keeps everything in memory, for tests.
 
-Anything else, S3 or a database or whatever your team already trusts, is those two methods. [State
+Anything else, S3 or a database or whatever your team already trusts, is those seven methods. [State
 Providers](/docs/techniques/state-providers) covers writing one.
 
-:::warning[Nothing locks it]
-Octo does not lock its state. Two people running `octo commit` against the same state at the same
-time is a lost update, and there is no error to tell you it happened. Run the lifecycle from one
-place, which in practice means a pipeline.
+:::info[One writer at a time]
+`apply` and `commit` are the two steps that write shared state, and both require the **app lock**.
+`octo lock` takes it and prints an ID they each have to present; the commit releases it. A second
+run that tries to take a held lock fails immediately, before it reads state or plans anything.
+
+The lock is a file beside the state, `local-state.lock`, which makes it a real lock on one machine
+and no lock at all across machines. Until state lives somewhere every runner can reach, run the
+lifecycle from one place — which in practice means a pipeline.
 :::
 
 ## Losing it
 
-Deleting `.octo/` does nothing to your cloud account and everything to Octo's understanding of it.
-The next `octo generate` finds no prior state, treats the run as a first run, and proposes creating
-your entire infrastructure again.
+Deleting `.octo/` does nothing to your cloud account and everything to what Octo and Terraform know
+about it, because both records are in there. The next `octo generate` finds no prior state, treats
+the run as a first run, and proposes creating your entire infrastructure again — and Terraform, with
+no state of its own left to object, agrees.
 
-Terraform will not actually recreate what already exists, because Terraform's own state is separate
-and still knows. What you get instead is a report that is wrong about everything, and a commit that
-records a fresh set of `response` values as though they were new. Recovering means restoring the
-files, which is the argument for keeping them in version control rather than for having a recovery
-procedure.
+The apply that follows does not quietly recreate anything. It fails on whatever is unique: a bucket
+name already taken, a role that already exists, an address already in use. Recovering means
+restoring the files, which is the argument for keeping them in version control rather than for
+having a recovery procedure.
