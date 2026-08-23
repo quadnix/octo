@@ -375,6 +375,12 @@ For pages the reader runs, not only reads.
   through `terraform.providers[].spec` as a workaround, and that renders `tags` as an HCL block, so
   Terraform rejects it. Say what does not exist yet, in an admonition, and stop; a workaround that
   was never run is worse than the gap.
+- An admonition carries a fact about Octo that the section needs, and every `:::caution` in the docs
+  names a capability that does not exist yet. It never disclaims our own confidence in the page.
+  "These workflows are assembled from the pieces this page explains rather than lifted from a
+  running pipeline" defended the page above the fold and handed the reader a doubt they did not
+  have. Where a page carries configuration our own CI cannot run, name what the reader should prove
+  and how, down in the section that owns the risk.
 - The card verb in a validate report says whether a piece of intent is present, not whether it
   changed: everything still in the definition file reads as `added`. A page showing a report must
   describe the per-resource markers as the change indicator, and must not read the verb as one.

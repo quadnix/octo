@@ -2,42 +2,77 @@
 title: GitHub Actions Pipeline
 ---
 
-Splitting the lifecycle into four commands only pays off somewhere the split is visible. On a laptop
-you run all four in a row and the gate between them is you looking at a terminal. In CI, the gate
-can be a pull request: one job generates and validates and posts the report, a human reads it, and a
-merge job applies.
+Octo keeps one record of what your infrastructure is, in the files under `.octo/`, and that record
+has room for one writer. On a laptop that is fine: there is one of you, and you are watching the
+terminal. In a repository several people work in, it is not. One person adds an order queue to the
+[shop](/docs/getting-started/shop-stack) while another changes its checkout server, the two applies
+overlap, and the record is left describing something the cloud no longer holds. Nothing warns anyone
+at the time. The next plan does, by offering to build things that already exist.
 
-This page builds that. The Octo-specific parts are all that is here; your own build, test, and
-release steps belong around them.
+The pipeline below removes the overlap instead of detecting it: every apply happens in one place,
+one at a time.
 
-:::caution[Treat these as a starting point]
-The workflows below are assembled from the pieces this page explains rather than lifted from a
-running pipeline. Run them against a throwaway account first, and check two things before your first
-apply from CI. That the apply job reaches state reflecting reality, which is the failure that
-creates duplicate infrastructure and stays silent until the bill. And that only one apply can
-run at a time, which you verify by starting two runs and watching the second queue.
-:::
+## The shape
 
-## What CI has to get right
+```mermaid
+flowchart TD
+  PR["Pull request<br/>generate, validate, comment"]
+  Q["Merge queue<br/>rebases and tests one at a time"]
+  M["main"]
+  A["Merge workflow<br/>generate, lock, apply, commit"]
+  S["State commit<br/>.octo/ pushed back"]
+  PR --> Q
+  Q --> M
+  M --> A
+  A --> S
+  S -->|"skipped by the path filter"| M
+```
 
-Three things, and getting any of them wrong is how state gets corrupted.
+Three parts, and each one has a job the other two cannot do.
 
-**One writer at a time.** `apply` and `commit` require the app lock, so a second run that starts
-while one holds it fails immediately. That is a real guard on one runner; across runners it is only
-as good as the store the lock lives in, which for a file beside the state is not at all. The
-`concurrency` group below is what actually serializes CI.
+The **pull request workflow** runs `generate` and `validate` and posts the result as a comment. It
+writes nothing anywhere, so it runs with credentials that can only read.
 
-**State has to survive the job.** `.octo/` holds Octo's memory of your infrastructure and
-Terraform's, because Octo checks each module's `terraform.tfstate` out of the state provider before a
-Terraform command and back in after. Commit it back, or write it to durable storage with a [state
-provider](/docs/techniques/state-providers).
+The **merge queue** is GitHub's own feature. You press "Merge when ready" and forget about it.
+GitHub puts your pull request in a line behind the ones already waiting, rebases it onto them, runs
+its checks again, and merges it when its turn arrives. Nobody has to click "Update branch" and wait
+for the checks a second time.
 
-**Regenerate before applying.** Generate is deterministic and takes milliseconds. Doing it again in
-the apply job guarantees the folders match the definition file that was merged.
+The **merge workflow** runs on `main` and does the work that changes things: generate, lock, apply,
+commit, then push the updated `.octo/` back. A concurrency group keeps two of them from overlapping.
 
-## Pull request
+## Merge and forget
 
-Read-only, with credentials that cannot change anything.
+It is safe to walk away because nothing in the run replays a decision taken earlier. The merge
+workflow generates from the [definition file](/docs/using-octo/the-definition-file) at the commit it
+is sitting on, and applies the folders that came out of it. An apply started from the tip of `main`
+therefore covers everything merged up to that moment, including whatever landed while an earlier
+apply was still running. The end state follows `main`, whatever order things arrived in, so no merge
+order can leave you somewhere `main` does not describe.
+
+One limit comes with that, and your team needs to know it. The report on a pull request is computed
+against `main` as the queue found it, which is before the previous merge's apply finished writing
+state, so on a busy day it can differ from what the merge workflow ends up doing. What actually
+happened is in the merge workflow's own report, which the same listener writes.
+
+## 1. The queue
+
+In the repository's **Settings**, under **Rules**, add a ruleset targeting `main` with four rules
+turned on:
+
+- **Restrict deletions** and **Block force pushes**.
+- **Require a pull request before merging.**
+- **Require status checks to pass**, with `Generate & Validate` added. That is the job name from
+  step 2.
+- **Require merge queue.** Set the merge method to squash, and set the maximum pull requests to
+  build to `1`, so the queue tests and merges one entry at a time.
+
+One detail decides whether the queue works at all. A queued pull request is tested on a branch
+GitHub builds for it, and that produces a `merge_group` event rather than a `pull_request` event. A
+required check that only triggers on `pull_request` is never reported for the merge group, and the
+entry sits in the queue until it times out. The workflow in step 2 triggers on both.
+
+## 2. Pull requests
 
 ```yaml title=".github/workflows/octo-plan.yml"
 name: Octo Plan
@@ -45,6 +80,8 @@ name: Octo Plan
 on:
   pull_request:
     branches: [ main ]
+  # Required. Without this the merge queue waits forever for the check below.
+  merge_group:
 
 jobs:
   plan:
@@ -67,11 +104,11 @@ jobs:
           terraform_version: 1.6.0
           terraform_wrapper: false      # the wrapper intercepts stdout
 
-      - uses: gruntwork-io/terragrunt-action@v2
-        with:
-          tg_version: 1.0.8
-          tg_dir: .
-          tg_command: --version
+      - name: Install Terragrunt
+        run: |
+          curl -sSL https://github.com/gruntwork-io/terragrunt/releases/download/v1.0.8/terragrunt_linux_amd64.tar.gz | tar -xz
+          sudo install -m 0755 terragrunt_linux_amd64 /usr/local/bin/terragrunt
+          terragrunt --version
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -79,7 +116,7 @@ jobs:
           role-to-assume: ${{ secrets.AWS_PLAN_ROLE_ARN }}   # read-only
 
       - run: npm ci
-      - run: npm run build                                   # if you have modules of your own
+      - run: npm run build            # only if the project holds modules of its own
 
       - name: Generate
         env:
@@ -90,29 +127,9 @@ jobs:
         env:
           AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
         run: npm run octo:validate
-```
 
-Three things about that setup are worth knowing.
-
-`terraform_wrapper: false` matters, because the wrapper intercepts stdout and Octo reads Terraform's
-JSON output.
-
-Credentials are needed even to plan. `octo validate` runs a real `terraform plan` against a real
-provider, so give the job a read-only role.
-
-The plan is only as good as the state it can reach. A fresh runner has the generated folders and,
-because `.octo/` is committed, the Terraform state that goes with them — `octo validate` writes each
-module's state into its folder before planning it. What a checkout does not have is state committed
-after the branch was cut, so rebase a long-lived branch before trusting its report.
-
-### Posting the report
-
-The [HTML report listener](/docs/using-octo/reading-a-validate-report#the-html-report) writes each
-run as JSON alongside the page, and that is what to read:
-
-```yaml
       - name: Comment the report
-        if: always()
+        if: always() && github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |
@@ -142,29 +159,28 @@ run as JSON alongside the page, and that is what to read:
             });
 ```
 
-### Gating on destroys
+Four things about that are easy to get wrong.
 
-`octo validate` exits non-zero only when it could not read a plan. Drift and destructive changes are
-findings, not build failures, because deciding what to do about them is your policy rather than
-Octo's. To gate, read the same JSON:
+`terraform_wrapper: false` matters, because the wrapper intercepts stdout and Octo reads Terraform's
+JSON output from there.
 
-```yaml
-      - name: Fail on destructive changes
-        if: "!contains(github.event.pull_request.labels.*.name, 'approved-destroy')"
-        run: |
-          node -e '
-            const fs = require("fs");
-            const dir = ".octo/reports";
-            const latest = fs.readdirSync(dir).filter(f => f.endsWith("-validate.json")).sort().pop();
-            const report = JSON.parse(fs.readFileSync(`${dir}/${latest}`, "utf8"));
-            if (report.totals.delete > 0 || report.totals.recreate > 0) {
-              console.error("Destructive change requires the approved-destroy label");
-              process.exit(1);
-            }
-          '
-```
+Credentials are needed even to plan. `octo validate` runs a real `terraform plan` against a real
+provider, so the job needs a role. Give it one that can only read.
 
-## Merge
+The comment step is guarded on the event. A merge group has no pull request attached, so
+`context.issue.number` is undefined there and the call would fail.
+
+The [HTML report listener](/docs/using-octo/reading-a-validate-report#the-html-report) is what
+writes the JSON the script reads. Register it in `octo.yaml` or there will be no
+`.octo/reports/` directory to look in.
+
+Terragrunt is installed by hand because the action Gruntwork publishes for it runs in a container,
+which leaves nothing on the runner for the steps below to call. Between that binary, Terraform, and
+the AWS provider, a run downloads a few hundred megabytes and caches none of it. Octo runs
+Terragrunt with its provider cache server on, so the provider, which is the bulk of that, is
+downloaded once per run rather than once per generated folder.
+
+## 3. Merges
 
 ```yaml title=".github/workflows/octo-apply.yml"
 name: Octo Apply
@@ -172,9 +188,19 @@ name: Octo Apply
 on:
   push:
     branches: [ main ]
+    # The state commit at the end of this workflow touches nothing but `.octo/`, so this filter is
+    # what stops that commit starting another run. Keep the commit to that one path.
+    paths-ignore: [ '.octo/**' ]
+  workflow_dispatch:
+    inputs:
+      autoApprove:
+        description: 'Allow this run to destroy resources'
+        default: false
+        type: boolean
 
-# Serialize. Apply and commit take the app lock, but a lock file beside the state is invisible to a
-# second runner, so this group is what actually keeps two applies apart.
+# One apply at a time. `cancel-in-progress: false` lets a run finish rather than killing it. A run
+# still waiting when a newer one arrives is dropped, which costs nothing: the newer one generates
+# from the tip of `main` and covers the dropped change as well.
 concurrency:
   group: octo-apply
   cancel-in-progress: false
@@ -184,18 +210,37 @@ jobs:
     name: Apply & Commit
     runs-on: ubuntu-latest
     permissions:
-      contents: write        # to push the state commit
+      contents: write
       id-token: write
     steps:
       - uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GH_TOKEN }}
+          token: ${{ secrets.OCTO_PUSH_TOKEN }}   # see step 4
+          fetch-depth: 0                          # the rebase below needs real history
 
-      # ... the same node, terraform, terragrunt, and credentials setup as above,
-      # with a role that can create things.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
+          terraform_wrapper: false
+
+      - name: Install Terragrunt
+        run: |
+          curl -sSL https://github.com/gruntwork-io/terragrunt/releases/download/v1.0.8/terragrunt_linux_amd64.tar.gz | tar -xz
+          sudo install -m 0755 terragrunt_linux_amd64 /usr/local/bin/terragrunt
+          terragrunt --version
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: eu-west-1
+          role-to-assume: ${{ secrets.AWS_APPLY_ROLE_ARN }}   # can create and change things
 
       - run: npm ci
-      - run: npm run build
+      - run: npm run build            # only if the project holds modules of its own
 
       - name: Generate
         env:
@@ -203,144 +248,171 @@ jobs:
         run: npm run octo:generate
 
       - name: Lock
+        id: lock
         run: |
           LOCK_ID=$(npm run --silent octo:lock)
-          echo "LOCK_ID=$LOCK_ID" >> $GITHUB_ENV
+          echo "LOCK_ID=$LOCK_ID" >> "$GITHUB_ENV"
 
+      # `continue-on-error` so the two steps after this one still run. The last step turns a failed
+      # apply back into a failed job.
       - name: Apply
+        id: apply
+        continue-on-error: true
         env:
           AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-        run: npm run octo:apply -- --lockId $LOCK_ID
-
-      - name: Commit
-        env:
-          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-        run: npm run octo:commit -- --lockId $LOCK_ID
-
-      - name: Persist state
-        if: always()
+          AUTO_APPROVE: ${{ github.event.inputs.autoApprove }}
         run: |
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git config user.name "github-actions[bot]"
-          if [ -n "$(git status --porcelain .octo)" ]; then
-            git add .octo
-            git commit --no-verify -m "chore(infra): octo state"
-            git push origin HEAD:main
+          if [ "$AUTO_APPROVE" = "true" ]; then
+            npm run octo:apply -- --lockId "$LOCK_ID" --auto-approve
           else
-            echo "No state changes to commit."
+            npm run octo:apply -- --lockId "$LOCK_ID"
           fi
+
+      # `--partial` records the resources that did apply and leaves the ones with missing outputs
+      # alone, so a half-finished apply still leaves a usable record behind.
+      - name: Commit
+        if: ${{ !cancelled() && steps.lock.outcome == 'success' }}
+        env:
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+        run: |
+          if [ "${{ steps.apply.outcome }}" = "success" ]; then
+            npm run octo:commit -- --lockId "$LOCK_ID"
+          else
+            npm run octo:commit -- --lockId "$LOCK_ID" --partial
+          fi
+
+      - name: Push the state commit
+        if: ${{ !cancelled() }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if [ -z "$(git status --porcelain .octo)" ]; then
+            echo "No state changes to push."
+            exit 0
+          fi
+
+          git add .octo
+          git commit --no-verify -m "chore(infra): octo state"
+
+          # The queue can have merged something while this apply was running. The state commit
+          # touches only `.octo/`, which a merge never does, so the rebase replays it cleanly.
+          for attempt in 1 2 3; do
+            git pull --rebase origin main && git push origin HEAD:main && exit 0
+            echo "main moved while pushing, retry $attempt"
+          done
+
+          echo "Could not push the state commit."
+          exit 1
+
+      - name: Fail the run if apply failed
+        if: steps.apply.outcome != 'success'
+        run: exit 1
 ```
 
-One commit carries both records, because Terraform's state is checked into `.octo/` alongside
-Octo's. `if: always()` is what makes a failed apply still leave behind what it did build — a partial
-record beats none, and the half that cannot be rebuilt is Terraform's.
+Generate runs again here, instead of the pull request's folders being carried over, because this is
+the first time the definition file as merged has been on disk anywhere. Generate is deterministic
+and takes milliseconds, and running it again is what guarantees the folders match what landed.
 
-The commit releases the lock however it ends, so a failed job leaves nothing held. If the runner
-itself dies between the lock and the commit, the next job fails with `App already locked with lock
-ID "..."` and a human runs `npm run octo:unlock -- --force` after checking what the dead run did.
+Recording the result takes two steps, because they do different halves of the job. `octo commit`
+reads Terraform's outputs back and updates the files under `.octo/`. The git push is what carries
+those files to the next run, on a fresh runner that has none of this workspace. One git commit
+carries both records, Octo's and Terraform's, because Terraform's state lives under `.octo/` too.
 
-Note that `--auto-approve` is absent. `octo apply` refuses when the plan would destroy anything,
-which in CI is what you want: the job fails, prints what would go, and a human decides. Allowing a
-destroy is a deliberate addition, gated on something:
+That commit adds `.octo/` and nothing else. The `.octo-tf/` folders are regenerated by every run and
+are already committed by whoever opened the pull request, so pushing them again would only break the
+path filter that keeps this workflow from starting itself.
 
-```yaml
-      - name: Apply, destroys allowed
-        if: contains(github.event.head_commit.message, '[octo-destroy]')
-        run: npm run octo:apply -- --lockId $LOCK_ID --auto-approve
-```
+Do not cancel a run of this workflow. Octo writes Terraform's state back into `.octo/` after every
+Terraform command and on a timer during a long apply, but that write goes to the runner's workspace,
+and cancelling takes the workspace with it. Anything created since the last write is then real and
+unrecorded.
 
-## A real Terraform backend
+## 4. The push
 
-The generated `terragrunt.hcl` configures a local backend at
-`.octo-tf/<moduleId>/terraform.tfstate`, and that file is gitignored — it is a working copy of
-`.octo/<moduleId>.tfstate`, which is not. So a fresh runner does have Terraform state, and the
-`concurrency` group is what keeps two jobs from writing it at once.
+`main` is protected now, so a plain push from Actions is rejected. Give the workflow an identity
+that is allowed past the ruleset.
 
-What that arrangement still does not give you is a lock. If you want one, rewrite the `remote_state`
-block to a real backend, between generate and apply. Terraform then keeps its own state there and
-stops writing the file Octo checks in:
+Create a fine-grained personal access token, or an installation token for a GitHub App you own, with
+**Contents: read and write** on the repository. Store it as the `OCTO_PUSH_TOKEN` secret, and add
+that identity to the **Bypass list** on the ruleset from step 1. Passing it to `actions/checkout`,
+as above, is what makes the later `git push` use it.
 
-```javascript title="scripts/rewrite-backend.mjs"
-import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+Which token you pick does not decide whether the state commit starts the workflow again. The
+`paths-ignore` filter does that, and it holds for any token. It has two consequences to know about.
+A push that changes only `.octo/` never triggers an apply, so reverting a bad state commit by hand
+does nothing on its own, and running the workflow from the Actions tab is how you follow it up. And
+the filter holds only while this workflow's commit stays limited to `.octo/`. Add a second path to
+that commit and the push no longer matches the filter, and the workflow starts triggering itself.
 
-const dir = process.argv[2];              // e.g. .octo-tf
-const bucket = process.env.TFSTATE_BUCKET;
-const table = process.env.TFSTATE_LOCK_TABLE;
-
-for (const moduleId of readdirSync(dir, { withFileTypes: true })
-  .filter((e) => e.isDirectory())
-  .map((e) => e.name)) {
-  const file = join(dir, moduleId, 'terragrunt.hcl');
-  const contents = readFileSync(file, 'utf8');
-
-  // Octo writes remote_state as the first block. Replace it and keep everything after,
-  // because the dependency and inputs blocks are what wire the folders together.
-  const rest = contents.replace(/^remote_state\s*\{[\s\S]*?\n\}\n?/, '');
-
-  writeFileSync(
-    file,
-    `remote_state {
-  backend = "s3"
-  generate = {
-    path      = "backend.tf"
-    if_exists = "overwrite_terragrunt"
-  }
-  config = {
-    bucket         = "${bucket}"
-    key            = "${moduleId}/terraform.tfstate"
-    region         = "eu-west-1"
-    dynamodb_table = "${table}"
-    encrypt        = true
-  }
-}
-
-${rest}`,
-  );
-}
-```
-
-```bash
-npm run octo:generate
-node scripts/rewrite-backend.mjs .octo-tf
-npm run octo:apply
-```
-
-There is no definition-file setting for the backend today, so this rewrite is how you get one. It
-depends on Octo emitting `remote_state` as the first block, which it does, but it is your script:
-diff a generated folder before and after the first time you run it, and test it on a throwaway
-stack.
+That is the piece worth proving before this pipeline points at anything you care about. On a
+throwaway repository and a throwaway account, merge two pull requests in quick succession and watch
+what the state commit does: one apply per merge, and no run started by the push at the end of one.
 
 ## One writer
 
-The app lock is the mechanism, but a lock kept as a file beside the state is only a lock to the
-runner that can see that file. Until state lives somewhere every runner reaches, pick one of these
-too and mean it.
+`octo apply` and `octo commit` both require a lock id from `octo lock`, and both refuse to run
+without one. The bundled state providers keep that lock as a file at `.octo/local-state.lock`, which
+is gitignored, so a fresh runner always finds it free. In CI the lock is an argument the commands
+demand rather than a guard on anything, and the `concurrency` group above is what actually keeps two
+applies apart.
 
-A **concurrency group**, as above. Simple, and enough for most teams.
+A run that dies holding the lock leaves nothing to clear in CI, because the file dies with the
+runner. On a developer machine it does persist, and the next apply fails with `App already locked
+with lock ID "..."`. Clear it with `npm run octo:unlock -- --force` once somebody has looked at what
+the dead run did.
 
-A **merge queue**. GitHub serializes merges, so only one apply is ever in flight.
+None of this covers an apply run from somebody's laptop while the merge workflow is going. If that
+matters to you, the durable answer is a [state provider](/docs/techniques/state-providers) whose
+lock is a conditional write against a store both can reach.
 
-A **state provider whose lock is real** — one backed by a conditional write, so two runners racing
-for it produce a failed job rather than corruption. [State
-Providers](/docs/techniques/state-providers) covers writing one.
+## When apply fails
 
-None of them help if somebody runs an apply from a laptop while CI is running.
+The merge workflow records what it managed to build, pushes it, and fails. The queue does not
+notice, and keeps merging pull requests onto infrastructure that is now part-built. Nothing in
+GitHub links the two.
 
-## Several environments
+Watch for it instead. Turn on notifications for the Octo Apply workflow failing, and when it does,
+remove the entries waiting in the queue and fix `main` before letting anything else through. The
+fix is a normal pull request: the next apply generates from the tip of `main` and reconciles
+whatever the failed one left behind.
 
-Separate definition files, separate state paths, separate output directories:
+## Destroying
+
+`octo apply` refuses to run when the plan would
+[destroy](/docs/using-octo/destroying-infrastructure) anything, so a merge that removes a service
+fails the workflow and prints what would go. A destroy is the one change this pipeline does not make
+on its own.
+
+Run it yourself from the **Actions** tab: pick **Octo Apply**, **Run workflow** on `main`, and tick
+**Allow this run to destroy resources**. That passes `--auto-approve`, which skips the destroy check
+for that run only.
+
+## Several deployments
+
+A deployment that must not share state with another is a separate definition file with its own
+`statePath`, its own output directory, its own concurrency group, and its own copy of the merge
+workflow. The `octo:*` scripts a new project ships with have `octo.yaml` and `.octo-tf` built into
+them, so a second deployment calls the CLI directly:
 
 ```yaml
-      - name: Apply staging
+concurrency:
+  group: octo-apply-prod      # its own group, so production never waits on the default
+  cancel-in-progress: false
+
+# ...
+
+      - name: Apply production
         env:
-          OCTO_DEFINITION_FILE_PATH: octo.staging.yaml
-          AWS_ACCOUNT_ID: ${{ secrets.AWS_STAGING_ACCOUNT_ID }}
+          OCTO_DEFINITION_FILE_PATH: octo.prod.yaml
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_PROD_ACCOUNT_ID }}
         run: |
-          node_modules/.bin/octo generate -o .octo-tf-staging
+          node_modules/.bin/octo generate -o .octo-tf-prod
           LOCK_ID=$(node_modules/.bin/octo lock)
-          node_modules/.bin/octo apply --terragruntDir .octo-tf-staging --lockId $LOCK_ID
-          node_modules/.bin/octo commit --terragruntDir .octo-tf-staging --lockId $LOCK_ID
+          node_modules/.bin/octo apply --terragruntDir .octo-tf-prod --lockId "$LOCK_ID"
+          node_modules/.bin/octo commit --terragruntDir .octo-tf-prod --lockId "$LOCK_ID"
 ```
 
-Give each one its own `concurrency` group, so staging and production do not block each other.
+The state commit and the path filter follow from that. This workflow pushes `.octo-prod/` where the
+default one pushes `.octo/`, and every copy has to ignore both paths, or one deployment's state
+commit starts the other deployment's apply.
