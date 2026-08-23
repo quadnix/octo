@@ -143,7 +143,7 @@ export class StateManagementService {
   /**
    * Takes the app lock and returns its id.
    *
-   * @throws {@link TransactionError} With the message `App already locked!` when one is held.
+   * @throws {@link TransactionError} When a lock is held, naming the id that holds it.
    */
   async lockApp(): Promise<{ lockId: string }> {
     return this.stateProvider.lockApp();

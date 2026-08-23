@@ -59,11 +59,11 @@ export class TestStateProvider implements IStateProvider {
   /**
    * Takes the app lock.
    *
-   * @throws {@link TransactionError} With the message `App already locked!` when one is held.
+   * @throws {@link TransactionError} When a lock is held, naming the id that holds it.
    */
   async lockApp(): Promise<{ lockId: string }> {
     if (this.lockId) {
-      throw new TransactionError('App already locked!');
+      throw new TransactionError(`App already locked with lock ID "${this.lockId}"!`);
     }
     this.lockId = randomUUID();
 

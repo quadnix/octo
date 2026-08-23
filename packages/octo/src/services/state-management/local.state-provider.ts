@@ -74,7 +74,7 @@ export class LocalStateProvider implements IStateProvider {
   /**
    * Takes the app lock, writing its id into `local-state.lock` beside the state files.
    *
-   * @throws {@link TransactionError} With the message `App already locked!` when one is held.
+   * @throws {@link TransactionError} When a lock is held, naming the id that holds it.
    */
   async lockApp(): Promise<{ lockId: string }> {
     return FileAppLockUtility.lockApp(this.lockFilePath);

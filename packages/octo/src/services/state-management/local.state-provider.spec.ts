@@ -43,10 +43,10 @@ describe('LocalStateProvider UT', () => {
       }
     });
 
-    it('should throw error when locking an app that is already locked', async () => {
-      await localStateProvider.lockApp();
+    it('should throw error naming the holder when locking an app that is already locked', async () => {
+      const { lockId } = await localStateProvider.lockApp();
 
-      await expect(localStateProvider.lockApp()).rejects.toThrowErrorMatchingInlineSnapshot(`"App already locked!"`);
+      await expect(localStateProvider.lockApp()).rejects.toThrow(`App already locked with lock ID "${lockId}"!`);
     });
 
     it('should throw error when checking a lock ID that is not the one held', async () => {

@@ -44,7 +44,7 @@ export interface IStateProvider {
    *
    * The lock is taken atomically, so of two callers racing for it exactly one wins.
    *
-   * @throws {@link TransactionError} With the message `App already locked!` when one is held.
+   * @throws {@link TransactionError} When a lock is held, naming the id that holds it.
    */
   lockApp(): Promise<{ lockId: string }>;
 

@@ -53,7 +53,9 @@ export class FileAppLockUtility {
       await writeFile(lockFilePath, lockId, { flag: 'wx' });
     } catch (error) {
       if (error.code === 'EEXIST') {
-        throw new TransactionError('App already locked!');
+        // The holder's id is read back and reported, so a blocked run can be told what to break
+        // without a separate command to ask.
+        throw new TransactionError(`App already locked with lock ID "${await this.getAppLock(lockFilePath)}"!`);
       }
       throw error;
     }
