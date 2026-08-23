@@ -11,11 +11,16 @@ build/
 *.tsbuildinfo
 
 # Octo generated Terraform / Terragrunt artifacts.
-# `.octo/` and `.octo-tf/` are NOT ignored - model state, resource state, and the generated
-# Terraform belong in the repo, so a change to them shows up in review. What apply leaves behind does not.
+# `.octo/` and `.octo-tf/` are NOT ignored - model state, resource state, terraform state, and the
+# generated Terraform belong in the repo, so a change to them shows up in review. What apply leaves
+# behind does not. The `terraform.tfstate` in a module folder is one of those leftovers: octo checks
+# it out of `.octo/` before every terraform command and back in after, so the copy under `.octo/` is
+# the one that is kept.
 .octo-outputs/
 .terragrunt-cache/
 *.tfstate*
+!.octo/*.tfstate
+.octo/local-state.lock
 .octo/reports/
 
 # Environment variables

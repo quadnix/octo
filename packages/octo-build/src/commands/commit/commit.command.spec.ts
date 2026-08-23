@@ -1,6 +1,6 @@
 import { resolve } from 'path';
 import { jest } from '@jest/globals';
-import { Container, TerraformUtility, TestContainer } from '@quadnix/octo';
+import { Container, StateManagementService, TerraformUtility, TestContainer } from '@quadnix/octo';
 import type { ArgumentsCamelCase } from 'yargs';
 
 type CommitResult = {
@@ -11,6 +11,7 @@ const mockedBootOcto =
   jest.fn<
     () => Promise<{ app: unknown; octo: { commit: jest.Mock<(...args: unknown[]) => Promise<CommitResult>> } }>
   >();
+const mockedBootStateProvider = jest.fn<() => Promise<void>>().mockResolvedValue();
 const mockedReportError = jest.fn<(error: unknown) => void>();
 
 // Real ESM (`--experimental-vm-modules`) doesn't support `jest.mock()`'s hoisted auto-mocking of
@@ -18,6 +19,7 @@ const mockedReportError = jest.fn<(error: unknown) => void>();
 // `import()` of the module under test (below) is the mechanism that actually works here.
 jest.unstable_mockModule('../../utilities/octo/octo.utility.js', () => ({
   bootOcto: mockedBootOcto,
+  bootStateProvider: mockedBootStateProvider,
   reportError: mockedReportError,
 }));
 
@@ -26,13 +28,18 @@ const { commitCommand } = await import('./commit.command.js');
 describe('commitCommand UT', () => {
   const terragruntDir = 'my-terragrunt-dir';
   const resolvedDir = resolve(process.cwd(), terragruntDir);
-  const argv = { _: [], $0: 'octo', terragruntDir } as unknown as ArgumentsCamelCase<{ terragruntDir: string }>;
+  const lockId = 'lock-1';
+  const argv = { _: [], $0: 'octo', lockId, terragruntDir } as unknown as ArgumentsCamelCase<{
+    lockId: string;
+    terragruntDir: string;
+  }>;
 
   let octoCommitMock: jest.Mock<(...args: unknown[]) => Promise<CommitResult>>;
   let terraformUtilityMock: {
     listModuleFolders: jest.Mock<() => Promise<string[]>>;
     output: jest.Mock<() => Promise<Map<string, unknown>>>;
   };
+  let stateManagementServiceMock: { unlockApp: jest.Mock<(lockId: string) => Promise<void>> };
   let processExitSpy: jest.SpiedFunction<typeof process.exit>;
   let consoleErrorSpy: jest.SpiedFunction<typeof console.error>;
   let consoleLogSpy: jest.SpiedFunction<typeof console.log>;
@@ -45,8 +52,12 @@ describe('commitCommand UT', () => {
       listModuleFolders: jest.fn<() => Promise<string[]>>().mockResolvedValue([]),
       output: jest.fn<() => Promise<Map<string, unknown>>>().mockResolvedValue(new Map()),
     };
+    stateManagementServiceMock = { unlockApp: jest.fn<(lockId: string) => Promise<void>>().mockResolvedValue() };
     await TestContainer.create({
-      mocks: [{ type: TerraformUtility, value: terraformUtilityMock as unknown as TerraformUtility }],
+      mocks: [
+        { type: StateManagementService, value: stateManagementServiceMock as unknown as StateManagementService },
+        { type: TerraformUtility, value: terraformUtilityMock as unknown as TerraformUtility },
+      ],
     });
 
     processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => undefined as never);
@@ -62,6 +73,31 @@ describe('commitCommand UT', () => {
     await TestContainer.reset();
   });
 
+  it('releases the app lock after a successful commit', async () => {
+    await commitCommand.handler(argv);
+
+    expect(stateManagementServiceMock.unlockApp).toHaveBeenCalledWith(lockId);
+    expect(processExitSpy).not.toHaveBeenCalled();
+  });
+
+  it('releases the app lock even when the commit throws', async () => {
+    octoCommitMock.mockRejectedValue(new Error('missing terraform outputs'));
+
+    await commitCommand.handler(argv);
+
+    expect(stateManagementServiceMock.unlockApp).toHaveBeenCalledWith(lockId);
+    expect(processExitSpy).toHaveBeenCalledWith(1);
+  });
+
+  it('releases the app lock even when octo fails to boot', async () => {
+    mockedBootOcto.mockRejectedValue(new Error('Definition file failed validation against schema!'));
+
+    await commitCommand.handler(argv);
+
+    expect(stateManagementServiceMock.unlockApp).toHaveBeenCalledWith(lockId);
+    expect(processExitSpy).toHaveBeenCalledWith(1);
+  });
+
   it('reads outputs via TerraformUtility and passes them to octo.commit()', async () => {
     const outputs = new Map([['module-a', { bucket: { value: 'my-bucket' } }]]);
     terraformUtilityMock.listModuleFolders.mockResolvedValue(['module-a']);
@@ -70,7 +106,7 @@ describe('commitCommand UT', () => {
     await commitCommand.handler(argv);
 
     expect(terraformUtilityMock.output).toHaveBeenCalledWith(resolvedDir, { json: true });
-    expect(octoCommitMock).toHaveBeenCalledWith({}, { outputs });
+    expect(octoCommitMock).toHaveBeenCalledWith({}, { lockId, outputs, partial: undefined });
     // The listeners own stdout and render the commit report there; a `console.log` alongside pino
     // lands out of order, so the handler writes nothing to it.
     expect(consoleLogSpy).not.toHaveBeenCalled();

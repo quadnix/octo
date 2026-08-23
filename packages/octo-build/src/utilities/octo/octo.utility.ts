@@ -1,6 +1,6 @@
 import { existsSync } from 'fs';
 import { resolve } from 'path';
-import { type App, Octo } from '@quadnix/octo';
+import { type App, Container, Octo, StateManagementService } from '@quadnix/octo';
 import chalk from 'chalk';
 import { YamlDefinitionUtility } from '../definition/yaml/yaml-definition.utility.js';
 
@@ -23,6 +23,22 @@ function resolveDefinitionFilePath(): string {
   }
 
   return definitionFilePath;
+}
+
+/**
+ * Boots only the state provider the definition names, without loading a single module.
+ *
+ * `apply` is a terraform action rather than an octo mode, so it has no reason to compose a model
+ * graph - but terraform state is checked out of the state provider and back into it around every
+ * terraform command, so the provider still has to be there.
+ */
+export async function bootStateProvider(): Promise<void> {
+  const definition = new YamlDefinitionUtility(resolveDefinitionFilePath());
+  const stateProvider = definition.resolveStateProvider();
+
+  await Container.getInstance().get<StateManagementService, any>(StateManagementService, {
+    args: [stateProvider.type],
+  });
 }
 
 /**

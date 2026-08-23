@@ -14,7 +14,9 @@ import { createModuleCommand } from './commands/create-module/index.js';
 import { createOverlayCommand } from './commands/create-overlay/index.js';
 import { createTerraformResourceCommand } from './commands/create-terraform-resource/index.js';
 import { generateCommand } from './commands/generate/index.js';
+import { lockCommand } from './commands/lock/index.js';
 import { runActionCommand } from './commands/run-action/index.js';
+import { unlockCommand } from './commands/unlock/index.js';
 import { validateCommand } from './commands/validate/index.js';
 
 const PROGRAM_NAME = 'octo';
@@ -39,7 +41,9 @@ parser.command(applyCommand);
 parser.command(buildCommand);
 parser.command(commitCommand);
 parser.command(generateCommand);
+parser.command(lockCommand);
 parser.command(runActionCommand);
+parser.command(unlockCommand);
 parser.command(validateCommand);
 
 await parser.argv;

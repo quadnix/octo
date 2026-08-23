@@ -1,12 +1,13 @@
 import { existsSync } from 'fs';
 import { delimiter, dirname, resolve } from 'path';
-import { Container, TerraformUtility } from '@quadnix/octo';
+import { Container, StateManagementService, TerraformUtility } from '@quadnix/octo';
 import chalk from 'chalk';
 import type { ArgumentsCamelCase, Argv } from 'yargs';
-import { reportError } from '../../utilities/octo/octo.utility.js';
+import { bootStateProvider, reportError } from '../../utilities/octo/octo.utility.js';
 
 type ApplyCommandArguments = {
   autoApprove?: boolean;
+  lockId: string;
   terraformBinary?: string;
   terragruntBinary?: string;
   terragruntDir: string;
@@ -93,9 +94,11 @@ function prepareCallbackEnvironment(): void {
 /**
  * Step 3 of the octo lifecycle, and the only one that changes live infrastructure.
  *
- * Unlike the other three, this is a terraform action rather than an octo mode - it neither boots
- * octo nor reads octo state. It refuses to run when the plan would destroy anything, unless
- * `--auto-approve` is passed.
+ * Unlike generate and validate, this is a terraform action rather than an octo mode - it composes no
+ * model graph and reads no model or resource state. What it does need is the state provider, both
+ * because terraform's own state is checked out of it before every terraform command and back in
+ * after, and because this is one of the two commands that require the app lock. It refuses to run
+ * when the plan would destroy anything, unless `--auto-approve` is passed.
  */
 export const applyCommand = {
   builder: (yargs: Argv): Argv => {
@@ -103,6 +106,11 @@ export const applyCommand = {
       .option('terragruntDir', {
         demandOption: true,
         description: 'The generated Terragrunt directory to apply.',
+        type: 'string',
+      })
+      .option('lockId', {
+        demandOption: true,
+        description: 'The app lock ID from `octo lock`. Applying without the lock is refused.',
         type: 'string',
       })
       .option('autoApprove', {
@@ -130,12 +138,21 @@ export const applyCommand = {
   command: 'apply',
   describe: 'Step 3: apply the generated Terraform in the Terragrunt directory.',
   handler: async (argv: ArgumentsCamelCase<ApplyCommandArguments>): Promise<void> => {
-    const { autoApprove, terraformBinary, terragruntBinary, terragruntDir, timeoutInMs } = argv;
+    const { autoApprove, lockId, terraformBinary, terragruntBinary, terragruntDir, timeoutInMs } = argv;
     const resolvedDir = resolve(process.cwd(), terragruntDir);
 
     prepareCallbackEnvironment();
 
     try {
+      await bootStateProvider();
+
+      // The lock is verified before anything is planned, so a run without it fails having done
+      // nothing. It is released by `octo commit`, not here - the apply is the middle of a run.
+      const stateManagementService = await Container.getInstance().get(StateManagementService);
+      if (!(await stateManagementService.isAppLocked(lockId))) {
+        throw new Error('App is not locked! Run "octo lock" first.');
+      }
+
       const terraformUtility = await Container.getInstance().get<TerraformUtility, any>(TerraformUtility, {
         args: [{ terraformBinary, terragruntBinary, timeoutInMs }, true],
       });

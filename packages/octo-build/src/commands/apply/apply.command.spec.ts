@@ -1,6 +1,6 @@
 import { resolve } from 'path';
 import { jest } from '@jest/globals';
-import { Container, TerraformUtility, TestContainer } from '@quadnix/octo';
+import { Container, StateManagementService, TerraformUtility, TestContainer } from '@quadnix/octo';
 import type { ArgumentsCamelCase } from 'yargs';
 
 type TerraformRawResult = { args: string[]; exitCode: number; stderr: string; stdout: string };
@@ -11,12 +11,14 @@ type TerraformPlanResult = {
   plans: Parameters<TerraformUtility['findPlannedDestroys']>[0];
 };
 
+const mockedBootStateProvider = jest.fn<() => Promise<void>>().mockResolvedValue();
 const mockedReportError = jest.fn<(error: unknown) => void>();
 
 // Real ESM (`--experimental-vm-modules`) doesn't support `jest.mock()`'s hoisted auto-mocking of
 // named function exports the way Jest's CJS mode does — `jest.unstable_mockModule` + a dynamic
 // `import()` of the module under test (below) is the mechanism that actually works here.
 jest.unstable_mockModule('../../utilities/octo/octo.utility.js', () => ({
+  bootStateProvider: mockedBootStateProvider,
   reportError: mockedReportError,
 }));
 
@@ -25,13 +27,18 @@ const { applyCommand } = await import('./apply.command.js');
 describe('applyCommand UT', () => {
   const terragruntDir = 'my-terragrunt-dir';
   const resolvedDir = resolve(process.cwd(), terragruntDir);
-  const argv = { _: [], $0: 'octo', terragruntDir } as unknown as ArgumentsCamelCase<{ terragruntDir: string }>;
+  const lockId = 'lock-1';
+  const argv = { _: [], $0: 'octo', lockId, terragruntDir } as unknown as ArgumentsCamelCase<{
+    lockId: string;
+    terragruntDir: string;
+  }>;
 
   let terraformUtilityMock: {
     apply: jest.Mock<(dir: string, options?: { onOutput?: OnOutput }) => Promise<TerraformRawResult>>;
     findPlannedDestroys: TerraformUtility['findPlannedDestroys'];
     plan: jest.Mock<() => Promise<TerraformPlanResult>>;
   };
+  let stateManagementServiceMock: { isAppLocked: jest.Mock<(lockId: string) => Promise<boolean>> };
   let processExitSpy: jest.SpiedFunction<typeof process.exit>;
   let consoleErrorSpy: jest.SpiedFunction<typeof console.error>;
   let consoleLogSpy: jest.SpiedFunction<typeof console.log>;
@@ -50,8 +57,12 @@ describe('applyCommand UT', () => {
         .fn<() => Promise<TerraformPlanResult>>()
         .mockResolvedValue({ errors: new Map(), plans: new Map([['module-a', { resource_changes: [] }]]) }),
     };
+    stateManagementServiceMock = { isAppLocked: jest.fn<(lockId: string) => Promise<boolean>>().mockResolvedValue(true) };
     await TestContainer.create({
-      mocks: [{ type: TerraformUtility, value: terraformUtilityMock as unknown as TerraformUtility }],
+      mocks: [
+        { type: StateManagementService, value: stateManagementServiceMock as unknown as StateManagementService },
+        { type: TerraformUtility, value: terraformUtilityMock as unknown as TerraformUtility },
+      ],
     });
 
     processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => undefined as never);
@@ -65,6 +76,15 @@ describe('applyCommand UT', () => {
 
   afterAll(async () => {
     await TestContainer.reset();
+  });
+
+  it('refuses to apply when the app is not locked', async () => {
+    stateManagementServiceMock.isAppLocked.mockResolvedValue(false);
+
+    await applyCommand.handler(argv);
+
+    expect(terraformUtilityMock.apply).not.toHaveBeenCalled();
+    expect(processExitSpy).toHaveBeenCalledWith(1);
   });
 
   it('applies the terragrunt directory via TerraformUtility', async () => {
@@ -162,7 +182,11 @@ describe('applyCommand UT', () => {
     // TestContainer's mock (above) uses registerValue, which ignores any `args` passed to
     // container.get() — this test bypasses it with a direct spy to assert what the command
     // actually forwards.
-    const getSpy = jest.spyOn(Container.getInstance(), 'get').mockResolvedValue(terraformUtilityMock);
+    const getSpy = jest
+      .spyOn(Container.getInstance(), 'get')
+      .mockImplementation(async (type) =>
+        type === StateManagementService ? stateManagementServiceMock : terraformUtilityMock,
+      );
 
     const overriddenArgv = {
       ...argv,
@@ -181,7 +205,11 @@ describe('applyCommand UT', () => {
   });
 
   it('forwards undefined overrides when no CLI flags are given, still with forceNew: true', async () => {
-    const getSpy = jest.spyOn(Container.getInstance(), 'get').mockResolvedValue(terraformUtilityMock);
+    const getSpy = jest
+      .spyOn(Container.getInstance(), 'get')
+      .mockImplementation(async (type) =>
+        type === StateManagementService ? stateManagementServiceMock : terraformUtilityMock,
+      );
 
     await applyCommand.handler(argv);
 

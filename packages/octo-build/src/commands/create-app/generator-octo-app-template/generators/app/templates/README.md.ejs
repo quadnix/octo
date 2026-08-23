@@ -32,10 +32,21 @@ npm run octo:generate
 #    `validate` runs the plan itself; there is nothing to run beforehand.
 npm run octo:validate
 
-# 3. Apply, then record the applied outputs into Octo.
-npm run octo:apply
-npm run octo:commit
+# 3. Take the app lock. Apply and commit both require it, so that only one run writes state at a time.
+LOCK_ID=$(npm run --silent octo:lock)
+
+# 4. Apply, then record the applied outputs into Octo. The commit releases the lock.
+npm run octo:apply -- --lockId $LOCK_ID
+npm run octo:commit -- --lockId $LOCK_ID
 ```
+
+Generate and validate need no lock — neither writes shared state. Apply and commit do, and refuse to
+run without one. The commit releases it however it ends, so a normal run leaves nothing behind. If a
+run dies between the lock and the commit, `npm run octo:unlock -- --force` releases it.
+
+If the apply fails partway, `npm run octo:commit -- --lockId $LOCK_ID --partial` records what did
+apply instead of rejecting the whole commit, leaving the resources it could not confirm out of Octo's
+state so the next run creates them again.
 
 `octo apply` plans first and refuses to proceed if the apply would destroy anything, printing what
 would be destroyed. Run `npm run octo:validate` to see why each one is being destroyed, then re-run
@@ -45,7 +56,7 @@ required for every destroy, including the teardown flow below.
 Each script sets `OCTO_DEFINITION_FILE_PATH=octo.yaml` and points at `.octo-tf` for you. Edit the
 scripts in `package.json` if your definition file or output directory is named differently. Running
 the commands by hand works too — `node_modules/.bin/octo generate -o .octo-tf` with that variable
-set — but the scripts are what keep the four steps agreeing with each other.
+set — but the scripts are what keep the steps agreeing with each other.
 
 > `octo run-action` is invoked automatically by Terraform mid-apply for resources whose lifecycle runs
 > outside Terraform; you do not call it directly. `octo apply` hands it the definition file and the
@@ -106,8 +117,9 @@ destroy anything without it.
 
 ```bash
 npm run octo:generate
-npm run octo:apply -- --auto-approve
-npm run octo:commit
+LOCK_ID=$(npm run --silent octo:lock)
+npm run octo:apply -- --lockId $LOCK_ID --auto-approve
+npm run octo:commit -- --lockId $LOCK_ID
 ```
 
 The commit is not optional here. A resource whose lifecycle runs outside Terraform is deleted by its
