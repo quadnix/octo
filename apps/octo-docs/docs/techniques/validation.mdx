@@ -75,8 +75,7 @@ property is checked as-is, and a `minLength` against an object fails whatever th
   ],
   options: { minLength: 1 },
 })
-override
-properties = Schema<{ /* ... */ }>();
+override properties = Schema<{ /* ... */ }>();
 ```
 
 Three fields, one rule, applied to each. This is the pattern in every resource schema: pull out the

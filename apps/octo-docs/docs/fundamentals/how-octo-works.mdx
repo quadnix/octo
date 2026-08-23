@@ -143,21 +143,20 @@ Comparing them produces the resource diff. That is what every report shows, and 
 correlates Terraform's plan against. A resource author shapes it by overriding `diffProperties()`:
 
 ```typescript
-override
-async
-diffProperties(previous
-:
-Vpc
-):
-Promise < Diff[] > {
-  if (!
-DiffUtility.isObjectDeepEquals(previous.properties, this.properties, ['awsAvailabilityZones'])
-)
-{
-  return [new Diff(this, DiffAction.REPLACE, 'resourceId', this.getContext(),
-    'cidr_block is force-new on aws_vpc; a change recreates the VPC')];
-}
-return [];
+override async diffProperties(previous: Vpc): Promise<Diff[]> {
+  if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties, ['awsAvailabilityZones'])) {
+    return [
+      new Diff(
+        this,
+        DiffAction.REPLACE,
+        'resourceId',
+        this.getContext(),
+        'cidr_block is force-new on aws_vpc; a change recreates the VPC',
+      ),
+    ];
+  }
+
+  return [];
 }
 ```
 
@@ -172,13 +171,7 @@ out the creates and deletes against its own state; Octo always writes the full d
 configuration.
 
 ```typescript
-override
-async
-toHCL(terraform
-:
-TerraformModuleScope
-):
-Promise < void > {
+override async toHCL(terraform: TerraformModuleScope): Promise<void> {
   const vpc = terraform.addOctoTerraformResource(this as Vpc, {
     provider: { accountId: this.properties.awsAccountId, regionId: this.properties.awsRegionId },
   });

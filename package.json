@@ -61,6 +61,7 @@
   },
   "scripts": {
     "build": "nx run-many -t build",
+    "check:docs-code": "node apps/octo-docs/scripts/check-code-blocks.mjs",
     "format": "nx run-many -t format",
     "generate:jsdoc": "node --loader ts-node/esm utilities/generate-jsdoc.utility.ts",
     "lint": "nx run-many -t lint && pnpm run lint:root",

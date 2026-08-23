@@ -145,27 +145,24 @@ for anything a provider marks force-new. Terraform would recreate the queue whil
 update, and `octo validate` would show the recreate with nothing to explain it.
 
 ```typescript
-override
-async
-diffProperties(previous
-:
-ShopQueue
-):
-Promise < Diff[] > {
-  if (previous.properties.queueName !== this.properties.queueName
-)
-{
-  return [
-    new Diff(this, DiffAction.REPLACE, 'resourceId', this.getContext(),
-      'name is force-new on aws_sqs_queue; a change recreates the queue and loses its messages'),
-  ];
-}
+override async diffProperties(previous: ShopQueue): Promise<Diff[]> {
+  if (previous.properties.queueName !== this.properties.queueName) {
+    return [
+      new Diff(
+        this,
+        DiffAction.REPLACE,
+        'resourceId',
+        this.getContext(),
+        'name is force-new on aws_sqs_queue; a change recreates the queue and loses its messages',
+      ),
+    ];
+  }
 
-if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties)) {
-  return [new Diff(this, DiffAction.UPDATE, 'properties', this.properties)];
-}
+  if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties)) {
+    return [new Diff(this, DiffAction.UPDATE, 'properties', this.properties)];
+  }
 
-return [];
+  return [];
 }
 ```
 

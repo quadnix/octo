@@ -75,9 +75,7 @@ only one commit.
 A module can bring its own, for the duration of that module:
 
 ```typescript
-override
-registerHooks()
-{
+override registerHooks() {
   return {
     postModelActionHooks: [
       { action: new AddShopQueueServiceModelAction(), handle: /* ... */ },

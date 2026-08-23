@@ -77,13 +77,7 @@ Almost every resource is a Terraform resource. It extends `ATerraformResource` a
 `toHCL()`, which contributes blocks to the folder its module owns:
 
 ```typescript
-override
-async
-toHCL(terraform
-:
-TerraformModuleScope
-):
-Promise < void > {
+override async toHCL(terraform: TerraformModuleScope): Promise<void> {
   const bucket = terraform.addOctoTerraformResource(this as S3Storage, {
     provider: { accountId: this.properties.awsAccountId, regionId: this.properties.awsRegionId },
   });
@@ -136,21 +130,20 @@ On every run, Octo compares the resource graph your intent implies against the o
 the last commit. That comparison is the diff, and a resource controls its own half of it:
 
 ```typescript
-override
-async
-diffProperties(previous
-:
-Vpc
-):
-Promise < Diff[] > {
-  if (!
-DiffUtility.isObjectDeepEquals(previous.properties, this.properties, ['awsAvailabilityZones'])
-)
-{
-  return [new Diff(this, DiffAction.REPLACE, 'resourceId', this.getContext(),
-    'cidr_block is force-new on aws_vpc; a change recreates the VPC')];
-}
-return [];
+override async diffProperties(previous: Vpc): Promise<Diff[]> {
+  if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties, ['awsAvailabilityZones'])) {
+    return [
+      new Diff(
+        this,
+        DiffAction.REPLACE,
+        'resourceId',
+        this.getContext(),
+        'cidr_block is force-new on aws_vpc; a change recreates the VPC',
+      ),
+    ];
+  }
+
+  return [];
 }
 ```
 

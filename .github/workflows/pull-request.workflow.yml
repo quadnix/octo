@@ -68,6 +68,8 @@ jobs:
         run: pnpm run lint
       - name: Detect Secrets
         run: pnpm --filter @quadnix/octo-templates run test:secrets
+      - name: Check Docs Code Blocks
+        run: pnpm run check:docs-code
 
   build-check:
     continue-on-error: false

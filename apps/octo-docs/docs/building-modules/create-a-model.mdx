@@ -101,23 +101,22 @@ than making the module do it, because the model is the thing that gets deseriali
 is not. Our S3 storage model does this for directories:
 
 ```typescript
-addDirectory(remoteDirectoryPath
-:
-string
-):
-void {
-  if (this.directories.find((d) => d.remoteDirectoryPath === remoteDirectoryPath)
-)
-{
-  throw new ModelError('Remote directory already added in S3 bucket!', this);
-}
+addDirectory(remoteDirectoryPath: string): void {
+  if (this.directories.find((d) => d.remoteDirectoryPath === remoteDirectoryPath)) {
+    throw new ModelError('Remote directory already added in S3 bucket!', this);
+  }
 
-const remoteDirectoryPathHash = CommonUtility.hash(remoteDirectoryPath).substring(0, 12);
-const directoryAnchorName = `AwsS3StorageServiceDirectoryAnchor-${remoteDirectoryPathHash}`;
-this.addAnchor(new AwsS3StorageServiceDirectoryAnchor(directoryAnchorName,
-  { bucketName: this.bucketName, remoteDirectoryPath }, this));
+  const remoteDirectoryPathHash = CommonUtility.hash(remoteDirectoryPath).substring(0, 12);
+  const directoryAnchorName = `AwsS3StorageServiceDirectoryAnchor-${remoteDirectoryPathHash}`;
+  this.addAnchor(
+    new AwsS3StorageServiceDirectoryAnchor(
+      directoryAnchorName,
+      { bucketName: this.bucketName, remoteDirectoryPath },
+      this,
+    ),
+  );
 
-this.directories.push({ directoryAnchorName, remoteDirectoryPath });
+  this.directories.push({ directoryAnchorName, remoteDirectoryPath });
 }
 ```
 

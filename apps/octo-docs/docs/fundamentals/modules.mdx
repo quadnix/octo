@@ -57,10 +57,7 @@ this module as `actionInputs.metadata`. The storage module uses it to resolve wh
 region the bucket belongs in, working up from the region it was handed:
 
 ```typescript
-override
-async
-registerMetadata(inputs)
-{
+override async registerMetadata(inputs) {
   const region = inputs.region;
   const account = region.getParents()['account'][0].to as Account;
   const app = account.getParents()['app'][0].to as App;
@@ -72,7 +69,7 @@ registerMetadata(inputs)
   return {
     app,
     awsAccountId: account.accountId,
-    awsRegionId: matchingAnchor.getSchemaInstance().properties.awsRegionId
+    awsRegionId: matchingAnchor.getSchemaInstance().properties.awsRegionId,
   };
 }
 ```

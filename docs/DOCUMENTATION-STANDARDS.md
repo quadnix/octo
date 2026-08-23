@@ -425,7 +425,16 @@ a page, not afterwards.
 Prose wraps at 100; captured output and code blocks are left exactly as the tool produced them,
 even when a line is longer.
 
+Never point a formatter at a page. A `.mdx` file looks formattable and is not: a fenced snippet is
+usually a class member or an object literal rather than a whole file, so a TypeScript-aware
+formatter reflows it into something nobody could have typed — `Promise < Diff[] > {`, a modifier
+alone on a line — which parses, renders, and destroys a reader's trust in the prose around it. A
+code block is written by hand, from the source it quotes.
+
 ```sh
+# every typescript block parses, and none carries a formatter's damage — also runs in CI
+pnpm run check:docs-code
+
 # wraps at 100, code blocks, table rows, and diagram node lines excluded
 awk '/^```/{c=!c} !c && length>100 && $0 !~ /^\|/ {print FNR": "length}' <page>
 
