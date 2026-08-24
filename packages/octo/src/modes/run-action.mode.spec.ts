@@ -52,6 +52,16 @@ describe('runAction()', () => {
     expect(parentVpc.response['VpcId']).toBe('vpc-0real');
   });
 
+  it('should hand the action the tags the resource carries', async () => {
+    const { app, igw } = await testModes.createResourceGraph();
+    igw.tags['Owner'] = 'platform-team';
+
+    await runAction(app, { inputs: { 'vpc-1.VpcId': 'vpc-0real' }, resourceId: 'igw-1' });
+
+    const handledNode = testModes.igwActionHandledDiffs[0].node as UnknownResource;
+    expect(handledNode.tags).toEqual({ Owner: 'platform-team' });
+  });
+
   it('should inject a whole-response parent input passed as one JSON object', async () => {
     const { app } = await testModes.createResourceGraph();
 

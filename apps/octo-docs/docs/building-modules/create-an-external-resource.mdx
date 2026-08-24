@@ -132,12 +132,14 @@ output "catalog-entry-shop-orders" {
 Octo also adds `hashicorp/null` and `hashicorp/external` to the folder's required providers, without
 you declaring them.
 
-## Two things it does not get
+## Two limits
 
-**Tags do not reach it.** The triggers are the properties hash and the parent inputs; `tags` is not
-among them. A tags-only change re-triggers nothing, Terraform does not re-run the provisioner, and
-no action is invoked. If the underlying system supports tags, apply them inside the add and update
-actions.
+**Tags do not trigger it.** They do reach it: Octo resolves a resource's tags before the actions
+run, so `diff.node.tags` holds whatever `octo.yaml` declared for it, and an action that wants to put
+them on the thing it creates can read them there. What tags cannot do is cause a run. The triggers
+are the properties hash and the parent inputs, and `tags` is not among them, so changing only a tag
+re-triggers nothing and no action is invoked. Apply tags from the add and update actions, on the
+runs those actions already have.
 
 **There is no validate action.** `octo validate` compares Terraform's plan against Octo's diff, and
 does not run resource actions. What you see in a report for an external resource is that the
