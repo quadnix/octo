@@ -7,51 +7,87 @@ usual way to satisfy it is for every module to accept a `tags` variable and ever
 same map, which means the policy is enforced by convention across every file that creates anything,
 and a new module is compliant only if its author remembered.
 
-Octo applies tags from outside the modules. You register them once, with a scope, and every resource
-a run produces picks them up. Module authors write nothing.
+Octo applies tags from outside the modules. You declare them once in `octo.yaml`, with a scope, and
+every resource a run produces picks them up. Module authors write nothing.
 
-:::caution[Not available from the definition file yet]
-`registerTags` is a method on the `Octo` class, and there is no `tags` section in `octo.yaml`. So
-tagging works when you drive Octo from TypeScript, and in tests, but not from the CLI.
+## The scopes
 
-The obvious workaround, putting the AWS provider's `default_tags` into `terraform.providers[].spec`,
-does not work either: a nested object in `spec` is rendered as an HCL block, and `default_tags`
-expects `tags` as a map attribute. Terraform rejects the result with `Blocks of type "tags" are not
-expected here`.
-:::
+`tags` is a list, and each entry is a set of tags together with the scope they reach.
 
-## The three scopes
+```yaml title="octo.yaml"
+tags:
+  # Every resource in the run.
+  - tags:
+      ManagedBy: octo
+      Owner: platform-team
 
-```typescript
-octo.registerTags([
-  // Every resource in the run.
-  { scope: {}, tags: { ManagedBy: 'octo', Owner: 'platform-team' } },
-
-  // Every resource the region module produced.
-  { scope: { moduleId: 'region-module' }, tags: { Tier: 'network' } },
-
-  // One resource.
-  {
-    scope: { moduleId: 'region-module', resourceContext: '@octo/vpc=vpc-eu-west-1' },
-    tags: { Critical: 'true' },
-  },
-]);
+  # Every resource the region module produced.
+  - scope:
+      moduleId: region-module
+    tags:
+      Tier: network
 ```
 
-Narrowest wins on a key collision, so global loses to module, and module loses to resource.
+`scope` is optional, and leaving it out means the same as writing `scope: {}`: the tags reach
+everything. A `moduleId` narrows them to the resources that one module declared, and where both set
+the same key, the narrower scope wins.
 
-Each scope has a moment before which it cannot be registered, because each needs something to exist:
+A key belongs to one entry per scope. Two global entries that both set `Owner` stop the run before
+anything is written:
 
-| Scope               | Register after                                                 |
-|---------------------|----------------------------------------------------------------|
-| Global, `scope: {}` | `initialize()`                                                 |
-| Module              | `compose()`, or it throws `Module not found!`                  |
-| Resource            | the resource has been produced, which in practice means a test |
+```
+Error: Tag has already been registered!
+inputKey: Owner
+```
+
+A `scope` naming a module that is not in `modules` fails the same way, with `Module not found!` and
+the ID you typed. Tag values are strings, so an unquoted `true` or a number is caught earlier still,
+by the schema:
+
+```
+  [/tags/1/tags/Critical] must be string
+```
+
+A value may come from `env` like any other, as `"${env.COST_CENTRE}"`, which is how one file carries
+a different cost centre per deployment.
 
 ## Where the tags end up
 
 After the model actions have declared their resources, and before anything is rendered, Octo
-resolves the tags for each resource and writes them onto it. A resource's `toHCL()` then emits them:
+resolves the tags for each resource and writes them onto it. A resource's `toHCL()` then emits them,
+so the two entries above reach the shop's VPC as one map:
+
+```hcl title=".octo-tf/region-module/main.tf"
+resource "aws_vpc" "vpc-eu-west-1" {
+  provider = aws._123456789012-eu-west-1
+  cidr_block = "10.0.0.0/16"
+  enable_dns_hostnames = true
+  enable_dns_support = true
+  instance_tenancy = "default"
+  tags = {
+    ManagedBy = "octo"
+    Owner = "platform-team"
+    Tier = "network"
+  }
+}
+```
+
+The receipts bucket sits in a different module, so it carries the two global tags and not `Tier`:
+
+```hcl title=".octo-tf/receipts-module/main.tf"
+resource "aws_s3_bucket" "bucket-shop-receipts" {
+  provider = aws._123456789012-eu-west-1
+  bucket = "shop-receipts"
+  tags = {
+    ManagedBy = "octo"
+    Owner = "platform-team"
+  }
+}
+```
+
+Every resource in `@quadnix/octo-aws-cdk` does this, so a tag you declare reaches the whole stack.
+If you write your own [Terraform resource](/docs/building-modules/create-a-terraform-resource),
+copying these two lines is what opts it in:
 
 ```typescript
 if (Object.keys(this.tags).length > 0) {
@@ -59,16 +95,12 @@ if (Object.keys(this.tags).length > 0) {
 }
 ```
 
-Every resource in `@quadnix/octo-aws-cdk` does this, so a tag you register reaches the whole stack.
-If you write your own [Terraform resource](/docs/building-modules/create-a-terraform-resource),
-copying those two lines is what opts it in.
-
 Tags are part of the diff, so adding one to a live stack shows up in the next report as an update on
 each resource that gains it, rather than as an invisible change.
 
 ## What to tag with
 
-Two things are worth registering globally on any real project, and neither is about cost reporting.
+Two things are worth declaring globally on any real project, and neither is about cost reporting.
 
 An owner, so that whoever finds an unexpected resource in the console knows who to ask. And a marker
 saying the resource is managed by Octo, so that a resource created by hand is distinguishable from

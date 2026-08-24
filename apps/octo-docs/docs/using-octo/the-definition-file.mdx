@@ -53,9 +53,9 @@ modules:
   # ...
 ```
 
-`version`, `imports`, `modules`, `settings`, and `terraform` are required. `env` and `hooks` are
-optional. The file is validated against a JSON schema before anything else happens, so a typo in a
-key name is caught with a message about that key.
+`version`, `imports`, `modules`, `settings`, and `terraform` are required. `env`, `hooks`, and
+`tags` are optional. The file is validated against a JSON schema before anything else happens, so a
+typo in a key name is caught with a message about that key.
 
 The name `octo.yaml` is a convention. Octo reads whatever `OCTO_DEFINITION_FILE_PATH` points at, and
 the scaffolded npm scripts set it. Everything the file names by relative path, imports and the state
@@ -249,6 +249,25 @@ hooks:
 
 The named export is called, and returns the hooks to register. [Hooks](/docs/techniques/hooks)
 covers the shapes available.
+
+## tags
+
+Tags applied to every resource a run produces, without any module being told about them.
+
+```yaml
+tags:
+  - tags:
+      ManagedBy: octo
+      Owner: platform-team
+  - scope:
+      moduleId: region-module
+    tags:
+      Tier: network
+```
+
+An entry with no `scope` reaches every resource; one naming a `moduleId` reaches only what that
+module declared, and wins where both set the same key. [Tagging
+Resources](/docs/using-octo/tagging-resources) covers what to put there.
 
 ## References between modules
 

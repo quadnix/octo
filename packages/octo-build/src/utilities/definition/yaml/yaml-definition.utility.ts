@@ -2,7 +2,13 @@ import { existsSync, readFileSync } from 'fs';
 import { createRequire } from 'module';
 import { dirname, join, resolve } from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
-import { type Constructable, LocalEncryptionStateProvider, LocalStateProvider, TestStateProvider } from '@quadnix/octo';
+import {
+  type Constructable,
+  LocalEncryptionStateProvider,
+  LocalStateProvider,
+  type Octo,
+  TestStateProvider,
+} from '@quadnix/octo';
 import type { HtmlReportEventListener } from '@quadnix/octo-event-listeners/html-report';
 import type { LoggingEventListener } from '@quadnix/octo-event-listeners/logging';
 import { Ajv2020 as Ajv } from 'ajv/dist/2020.js';
@@ -42,6 +48,10 @@ interface IYamlDefinition {
       | { statePath: string; type: 'LocalStateProvider' }
       | { type: 'TestStateProvider' };
   };
+  tags: Array<{
+    scope?: { moduleId?: string };
+    tags: Record<string, unknown>;
+  }>;
   terraform: {
     providers: Array<{
       accountId: string;
@@ -325,6 +335,33 @@ export class YamlDefinitionUtility {
     } else {
       throw new Error(`Invalid state provider!`);
     }
+  }
+
+  /**
+   * The tag registrations the definition declares, in the shape {@link Octo.registerTags} takes.
+   *
+   * A `scope` naming a `moduleId` reaches that module's resources; an absent or empty one reaches
+   * every resource of the run.
+   */
+  resolveTags(): Parameters<Octo['registerTags']>[0] {
+    const tags: ReturnType<YamlDefinitionUtility['resolveTags']> = [];
+
+    if (!this.definition.tags?.length) {
+      return tags;
+    }
+
+    for (const tagDefinition of this.definition.tags) {
+      const resolvedTags: { [key: string]: string } = {};
+      for (const [key, value] of Object.entries(tagDefinition.tags)) {
+        // A tag value is always a string, so an `${env.KEY}` declared as a number or a boolean is
+        // rendered rather than handed to the resource as the kind it was declared with.
+        resolvedTags[key] = String(this.resolveEnvironmentValue(value));
+      }
+
+      tags.push({ scope: tagDefinition.scope || {}, tags: resolvedTags });
+    }
+
+    return tags;
   }
 
   /**

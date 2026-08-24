@@ -164,6 +164,31 @@
       "required": ["stateProvider"],
       "type": "object"
     },
+    "tags": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "scope": {
+            "additionalProperties": false,
+            "properties": {
+              "moduleId": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "tags": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          }
+        },
+        "required": ["tags"],
+        "type": "object"
+      },
+      "type": "array"
+    },
     "terraform": {
       "additionalProperties": false,
       "properties": {

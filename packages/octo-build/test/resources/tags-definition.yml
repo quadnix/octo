@@ -1,0 +1,36 @@
+version: 1
+
+env:
+  - key: OCTO_TEST_BUDGET_CODE
+    kind: number
+    value: 4815
+
+terraform:
+  requiredVersion: '1.6.0'
+  requiredProviders: {}
+  providers: []
+
+imports:
+  - className: 'SomeModule'
+    importPath: './some-module.js'
+
+modules:
+  - moduleClass: 'SomeModule'
+    moduleId: 'app'
+    moduleInputs: {}
+
+settings:
+  stateProvider:
+    type: 'TestStateProvider'
+
+tags:
+  - tags:
+      ManagedBy: 'octo'
+      BudgetCode: '${env.OCTO_TEST_BUDGET_CODE}'
+  - scope: {}
+    tags:
+      Owner: 'platform-team'
+  - scope:
+      moduleId: 'app'
+    tags:
+      Tier: 'network'

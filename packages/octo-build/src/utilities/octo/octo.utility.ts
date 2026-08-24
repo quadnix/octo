@@ -59,6 +59,7 @@ export async function bootOcto({ quietStdout = false }: { quietStdout?: boolean 
   const listeners = await definition.resolveListeners({ logDestination: quietStdout ? 'stderr' : 'stdout' });
   const modules = definition.resolveModules(imports);
   const stateProvider = definition.resolveStateProvider();
+  const tags = definition.resolveTags();
   const terraformOptions = definition.resolveTerraformOptions();
 
   if (!quietStdout) {
@@ -102,6 +103,9 @@ export async function bootOcto({ quietStdout = false }: { quietStdout?: boolean 
   // Compose.
   await octo.compose();
   const app = octo.getRootModel();
+
+  // Register tags. A module-scoped tag names a module that only exists once compose has run it.
+  octo.registerTags(tags);
 
   return { app, octo };
 }

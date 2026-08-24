@@ -112,6 +112,25 @@ describe('YamlDefinitionUtility UT', () => {
     });
   });
 
+  describe('resolveTags()', () => {
+    it('should return nothing when the definition declares no "tags" block', () => {
+      const definition = new YamlDefinitionUtility(fixture('terraform-minimal-definition.yml'));
+
+      expect(definition.resolveTags()).toEqual([]);
+    });
+
+    it('should parse every scope, and render an env-resolved value as a string', () => {
+      const definition = new YamlDefinitionUtility(fixture('tags-definition.yml'));
+
+      expect(definition.resolveTags()).toEqual([
+        // An absent scope is the global scope, same as an empty one.
+        { scope: {}, tags: { BudgetCode: '4815', ManagedBy: 'octo' } },
+        { scope: {}, tags: { Owner: 'platform-team' } },
+        { scope: { moduleId: 'app' }, tags: { Tier: 'network' } },
+      ]);
+    });
+  });
+
   describe('resolveTerraformOptions()', () => {
     it('should parse the terraform section, defaulting and env-resolving providers', () => {
       const definition = new YamlDefinitionUtility(fixture('terraform-definition.yml'));
