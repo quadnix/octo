@@ -375,6 +375,12 @@ For pages the reader runs, not only reads.
   through `terraform.providers[].spec` as a workaround, and that renders `tags` as an HCL block, so
   Terraform rejects it. Say what does not exist yet, in an admonition, and stop; a workaround that
   was never run is worse than the gap.
+- `octo.yaml` is the supported surface. An extension point the definition file cannot reach is not
+  documented as a user-facing feature, even where the TypeScript API exposes it and a page could
+  show the code. `IStateProvider` is exported and implementable, and the page says only that three
+  providers ship: teaching somebody to write one is teaching them to drive Octo from TypeScript,
+  which is not what we support. Support arrives when somebody asks for it, and the page changes
+  then. Do not restore such a section, and do not soften the gap with a "you could also" aside.
 - A consequence you worked out while writing does not earn a paragraph on a page whose subject is
   something else. Project Structure gained one on git merge semantics because the investigation
   behind it had been interesting, and a reader asking which directories go in git was handed a

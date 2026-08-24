@@ -139,22 +139,7 @@ made the apply incomplete.
 
 ## Where it is kept
 
-A state provider is the interface between Octo and wherever state lives, and it is deliberately
-small: three methods that move a named blob around, and four that are the app lock.
-
-```typescript
-export interface IStateProvider {
-  deleteState (stateFileName: string): Promise<void>;
-  getState (stateFileName: string): Promise<Buffer>;
-  saveState (stateFileName: string, data: Buffer): Promise<void>;
-
-  lockApp (): Promise<{ lockId: string }>;
-  isAppLocked (lockId: string): Promise<boolean>;
-  unlockApp (lockId: string): Promise<void>;
-  getAppLock (): Promise<string | undefined>;
-}
-```
-
+A state provider decides where those files live, and it owns the app lock as well as the files.
 Three ship with Octo, chosen in the definition file:
 
 ```yaml
@@ -169,8 +154,8 @@ settings:
 small team can commit them to a repository and share state without running anything.
 `TestStateProvider` keeps everything in memory, for tests.
 
-Anything else, S3 or a database or whatever your team already trusts, is those seven methods. [State
-Providers](/docs/techniques/state-providers) covers writing one.
+[State Providers](/docs/techniques/state-providers) covers what each one gives you, and how far it
+carries as a team grows.
 
 :::info[One writer at a time]
 `apply` and `commit` are the two steps that write shared state, and both require the **app lock**.
