@@ -64,6 +64,10 @@ export async function generateJson(
   const app = await TypeDoc.Application.bootstrapWithPlugins(
     {
       // stripYamlFrontmatter: true,
+      // TypeDoc warns on any tag it does not know, so the two octo writes itself are declared
+      // alongside its defaults: `@reference` builds the reference categories below, and
+      // `@overrideProperty` documents an inherited property a schema narrows.
+      blockTags: [...TypeDoc.OptionDefaults.blockTags, '@overrideProperty', '@reference'],
       // Only emit when using project references
       emit: shouldEmit(projectRoot, tsconfig),
       // Only document the public API by default
