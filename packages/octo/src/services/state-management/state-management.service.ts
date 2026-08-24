@@ -27,6 +27,20 @@ interface ResourceStateUserData {
 }
 
 /**
+ * Serializes one state file.
+ *
+ * Formatted rather than written as a single line, because these files are committed: a reviewer
+ * reading the pull request that produced them sees which entries moved, and a merge conflict lands
+ * on the entries that actually collide instead of on the whole file.
+ */
+function serializeState(
+  data: ModelSerializedOutput | ResourceSerializedOutput,
+  userData: ModelStateUserData | ResourceStateUserData,
+): Buffer {
+  return Buffer.from(JSON.stringify({ data, userData }, null, 2));
+}
+
+/**
  * Reads and writes Octo's state files through the configured {@link IStateProvider}.
  *
  * Resolve it from the {@link Container} when you need to inspect what the last run recorded.
@@ -157,7 +171,7 @@ export class StateManagementService {
     data: ModelSerializedOutput,
     userData: ModelStateUserData,
   ): Promise<void> {
-    await this.saveState(stateFileName, Buffer.from(JSON.stringify({ data, userData })));
+    await this.saveState(stateFileName, serializeState(data, userData));
   }
 
   /**
@@ -168,7 +182,7 @@ export class StateManagementService {
     data: ResourceSerializedOutput,
     userData: ResourceStateUserData,
   ): Promise<void> {
-    await this.saveState(stateFileName, Buffer.from(JSON.stringify({ data, userData })));
+    await this.saveState(stateFileName, serializeState(data, userData));
   }
 
   /**
