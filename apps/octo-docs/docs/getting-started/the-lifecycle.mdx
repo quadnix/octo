@@ -21,8 +21,8 @@ npm run octo:commit -- --lockId $LOCK_ID    # 4. outputs  -> octo state, and the
 Nothing reaches the cloud before step 3, the first two need no permission to change anything, and a
 pipeline can put a human between any two of them.
 
-Steps 3 and 4 are the two that write shared state, so both require the **app lock** — that is what
-keeps two runs from writing at once. The commit releases it however it ends, so a run that completes
+Steps 3 and 4 are the two that write shared state, so both require the **app lock**, which keeps
+two runs from writing at once. The commit releases it however it ends, so a run that completes
 leaves nothing behind. [The app lock](/docs/reference/cli#the-app-lock) covers taking it, and
 breaking one a dead run left behind.
 
@@ -99,12 +99,12 @@ octo apply --terragruntDir .octo-tf --lockId $LOCK_ID
 ```
 
 The only step that changes live infrastructure, and the only one that loads none of your modules. It
-reads no model or resource state either — the definition file is opened only for the state provider,
+reads no model or resource state either. The definition file is opened only for the state provider,
 because the app lock lives there and apply verifies it before planning, so a run without the lock
 fails having done nothing.
 
-It runs `terragrunt run --all -- apply` over the directory and streams the output as it goes, because
-an ECS apply can run for tens of minutes and its progress is the only sign it is alive.
+It runs `terragrunt run --all -- apply` over the directory and streams the output as it goes,
+because an ECS apply can run for tens of minutes and its progress is the only sign it is alive.
 
 Terragrunt is given `-auto-approve`, so there is no prompt to answer. Octo puts its own gate in
 front instead: apply plans first, and refuses to run if anything would be destroyed.
@@ -139,7 +139,7 @@ Commit reads every folder's Terraform outputs and records them into Octo's state
 response, meaning the ARNs, generated IDs, and endpoints the provider handed back, along with the
 resource graph and the mapping from each Octo resource to the Terraform addresses that render it.
 
-It is also the step that ends a run, so it **releases the app lock** — on a clean commit, and on one
+It is also the step that ends a run, so it **releases the app lock**, on a clean commit and on one
 that throws.
 
 It is all or nothing. If an expected output is missing, which is what a partial apply looks like,
@@ -170,8 +170,8 @@ Generate is the only step that runs without credentials of any kind. Apply is th
 not load your modules; the other three boot Octo and will fail on a definition file whose imports do
 not resolve.
 
-Generate writes model state, but only into your own working copy's state directory — it is
-bookkeeping about the folders it just wrote, so that a module you delete before ever applying it
+Generate writes model state, but only into your own working copy's state directory. It is
+bookkeeping about the folders it wrote, so that a module you delete before ever applying it
 still gets its folder emptied. That is why it needs no lock.
 
 ## In a pipeline

@@ -265,7 +265,7 @@ npm run octo:apply -- --lockId $LOCK_ID
 ```
 
 `octo lock` takes the app lock and prints its ID. Apply and commit are the two steps that write
-shared state, so both require it — that is what stops two people writing at once. The commit
+shared state, so both require it, which is what stops two people writing at once. The commit
 releases it, so you take it once per run and never think about it again.
 
 This is the only step that changes anything. It streams Terragrunt's own output, because an apply

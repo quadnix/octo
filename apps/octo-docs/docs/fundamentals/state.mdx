@@ -28,18 +28,18 @@ shop's receipts service in it:
 
 ```json
 "service=shop-receipts-s3-storage,app=shop": {
-"className": "@octo/AwsS3StorageService",
-"model": {
-"bucketName": "shop-receipts",
-"directories": [
-{
-"directoryAnchorName": "AwsS3StorageServiceDirectoryAnchor-fb611de45b88",
-"remoteDirectoryPath": "uploads"
-}
-],
-"serviceId": "shop-receipts-s3-storage"
-},
-"moduleId": "receipts-module"
+  "className": "@octo/AwsS3StorageService",
+  "model": {
+    "bucketName": "shop-receipts",
+    "directories": [
+      {
+        "directoryAnchorName": "AwsS3StorageServiceDirectoryAnchor-fb611de45b88",
+        "remoteDirectoryPath": "uploads"
+      }
+    ],
+    "serviceId": "shop-receipts-s3-storage"
+  },
+  "moduleId": "receipts-module"
 }
 ```
 
@@ -49,27 +49,33 @@ The overlay that grants checkout access is in the same file, holding the two anc
 
 ```json
 "@octo/s3-storage=bucket-shop-receipts": {
-"className": "@octo/S3Storage",
-"resource": {
-"parents": [{"context": "@octo/iam-role=iam-role-ServerRole-checkout"}],
-"properties": {
-"awsAccountId": "123456789012",
-"awsRegionId": "eu-west-1",
-"Bucket": "shop-receipts",
-"permissions": [
-{
-"allowRead": true,
-"allowWrite": true,
-"principalResourceId": "iam-role-ServerRole-checkout",
-"remoteDirectoryPath": "uploads"
-}
-]
-},
-"resourceId": "bucket-shop-receipts",
-"response": {"Arn": "arn:aws:s3:::shop-receipts"},
-"tags": {}
-},
-"moduleId": "receipts-module"
+  "className": "@octo/S3Storage",
+  "resource": {
+    "parents": [
+      {
+        "context": "@octo/iam-role=iam-role-ServerRole-checkout"
+      }
+    ],
+    "properties": {
+      "awsAccountId": "123456789012",
+      "awsRegionId": "eu-west-1",
+      "Bucket": "shop-receipts",
+      "permissions": [
+        {
+          "allowRead": true,
+          "allowWrite": true,
+          "principalResourceId": "iam-role-ServerRole-checkout",
+          "remoteDirectoryPath": "uploads"
+        }
+      ]
+    },
+    "resourceId": "bucket-shop-receipts",
+    "response": {
+      "Arn": "arn:aws:s3:::shop-receipts"
+    },
+    "tags": {}
+  },
+  "moduleId": "receipts-module"
 }
 ```
 
@@ -173,14 +179,14 @@ run that tries to take a held lock fails immediately, before it reads state or p
 
 The lock is a file beside the state, `local-state.lock`, which makes it a real lock on one machine
 and no lock at all across machines. Until state lives somewhere every runner can reach, run the
-lifecycle from one place — which in practice means a pipeline.
+lifecycle from one place, which in practice means a pipeline.
 :::
 
 ## Losing it
 
 Deleting `.octo/` does nothing to your cloud account and everything to what Octo and Terraform know
 about it, because both records are in there. The next `octo generate` finds no prior state, treats
-the run as a first run, and proposes creating your entire infrastructure again — and Terraform, with
+the run as a first run, and proposes creating your entire infrastructure again, and Terraform, with
 no state of its own left to object, agrees.
 
 The apply that follows does not quietly recreate anything. It fails on whatever is unique: a bucket

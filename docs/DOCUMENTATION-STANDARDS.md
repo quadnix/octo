@@ -375,6 +375,12 @@ For pages the reader runs, not only reads.
   through `terraform.providers[].spec` as a workaround, and that renders `tags` as an HCL block, so
   Terraform rejects it. Say what does not exist yet, in an admonition, and stop; a workaround that
   was never run is worse than the gap.
+- A consequence you worked out while writing does not earn a paragraph on a page whose subject is
+  something else. Project Structure gained one on git merge semantics because the investigation
+  behind it had been interesting, and a reader asking which directories go in git was handed a
+  hazard, a workflow rule, and a resolution procedure they had not asked about. Where a page's
+  instruction has a consequence, name it in one sentence at the point of the instruction and link
+  to the page that owns the explanation.
 - An admonition carries a fact about Octo that the section needs, and every `:::caution` in the docs
   names a capability that does not exist yet. It never disclaims our own confidence in the page.
   "These workflows are assembled from the pieces this page explains rather than lifted from a

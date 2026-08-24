@@ -161,7 +161,7 @@ npm run octo:commit -- --lockId $LOCK_ID
 ```
 
 `octo lock` takes the app lock and prints its ID. Apply and commit are the two steps that write
-shared state, so both require it — that is what stops two runs writing at once. The commit releases
+shared state, so both require it, which is what stops two runs writing at once. The commit releases
 it, so you take it once and never think about it again.
 
 `generate` reads the definition file and writes Terraform. It needs no credentials, and touches
@@ -308,19 +308,19 @@ Three things go wrong often enough to name, and each surfaces at a different ste
 
 1. `validate` fails before it plans anything when the credentials are not there: the AWS provider
    cannot configure itself. Check `spec.profile` against `~/.aws/credentials`, and that
-   `aws sts get-caller-identity --profile <the one you named>` prints the account number you put in
-   `AWS_ACCOUNT_ID`. Without `--profile` that command reads your default profile, which is a different
-   account from the one Octo is using.
+   `aws sts get-caller-identity --profile <the one you named>` prints the account number you put
+   in `AWS_ACCOUNT_ID`. Without `--profile` that command reads your default profile, which is a
+   different account from the one Octo is using.
 
-2. `apply` fails when the bucket name is taken. A plan cannot know that, because names are checked at
-   creation, so `validate` passes and AWS rejects the create with `BucketAlreadyExists`. Pick another
-   name in `AWS_S3_WEBSITE_BUCKET_NAME` and run the cycle again from `generate`.
+2. `apply` fails when the bucket name is taken. A plan cannot know that, because names are checked
+   at creation, so `validate` passes and AWS rejects the create with `BucketAlreadyExists`. Pick
+   another name in `AWS_S3_WEBSITE_BUCKET_NAME` and run the cycle again from `generate`.
 
 3. The site answers 403 to everyone, with the apply having succeeded, when S3 Block Public Access is
-   turned on for the whole account. The module opens the block on its own bucket, and the account-level
-   setting overrides it. It is a control an administrator turns on rather than a default, so it mostly
-   shows up in company accounts, and if it is on for a reason, a bucket serving a public website is not
-   the argument to reverse it.
+   turned on for the whole account. The module opens the block on its own bucket, and the
+   account-level setting overrides it. It is a control an administrator turns on rather than a
+   default, so it mostly shows up in company accounts, and if it is on for a reason, a bucket
+   serving a public website is not the argument to reverse it.
 
 ## Change a page
 

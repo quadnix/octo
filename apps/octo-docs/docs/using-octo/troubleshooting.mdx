@@ -133,14 +133,14 @@ again; the second report is exact.
 **`App already locked with lock ID "..."`**
 
 Another run holds the lock, and the message names it. Wait for that run to finish. If it is gone,
-`octo unlock --force` releases it — but do that only after looking at what the dead run actually
+`octo unlock --force` releases it, but do that only after looking at what the dead run actually
 did, because Octo cannot tell whether it applied nothing, everything, or half of it. That is exactly
 why the lock does not expire on its own.
 
 **`App is not locked!`**
 
 `apply` and `commit` both require the lock. Take it with `octo lock` and pass the ID it prints to
-both — apply adds `Run "octo lock" first.` to the same message.
+both. Apply adds `Run "octo lock" first.` to the same message.
 
 **`Invalid lock ID!`**
 
@@ -211,6 +211,12 @@ meaningless until you restore the state files. See [State](/docs/fundamentals/st
 
 **Two people ran it at once**
 
-Octo does not lock its state, and there is no error when a concurrent write is lost. If two runs
-overlapped, treat the state as suspect: restore from version control, or run generate, apply, and
-commit once from one place to re-establish it.
+`apply` and `commit` require the app lock, so a second run on the same machine fails while taking
+it. Two machines are a different matter: the bundled providers keep that lock as a file beside the
+state, and each machine has its own. `generate` takes no lock at all, so two of those overwrite each
+other's model state with no error either way.
+
+Treat the state as suspect: restore it from version control, then run generate, apply, and commit
+once from one place. Running the lifecycle from a pipeline is what stops it recurring, and a [state
+provider](/docs/techniques/state-providers) whose lock is a conditional write against a store both
+machines reach is what removes the possibility.

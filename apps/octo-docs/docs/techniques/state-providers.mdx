@@ -30,7 +30,7 @@ export interface IStateProvider {
 
 Three methods move blobs: Octo asks for a named one and hands one back, and does not care what a
 file is, whether the store is transactional, or how it is encrypted. Four more are the app lock,
-which is how Octo keeps one writer at a time — covered below.
+which is how Octo keeps one writer at a time, covered below.
 
 ## The three that ship
 
@@ -43,6 +43,13 @@ settings:
 
 `LocalStateProvider` writes plain JSON into a directory. Readable, diffable, and the right choice
 while you are learning.
+
+What those files hold decides how far that choice travels. Octo records every Terraform output it
+maps to a resource, including the ones Terraform marked sensitive: keep the ECR image module's state
+as plain JSON and the registry authorization token is in it, in one of the files a project commits.
+Terraform's own state, which sits in the same directory, has always worked this way. Reports are the
+exception and need nothing done to them: the renderer prints `(sensitive)` in place of any value
+Terraform marked, and the scaffolded `.gitignore` excludes the directory they are written to.
 
 `LocalEncryptionStateProvider` writes the same files encrypted, with an `.enc` suffix, and takes an
 `encryptionKey`. The point is that the result is safe to commit, which gives a small team shared
@@ -142,7 +149,7 @@ nothing as a graph.
 calls it for a module Terraform has destroyed, and it must not fail because the destroy already
 removed the record.
 
-`getAppLock`, `isAppLocked`, and `unlockApp` round out the lock — read the `.lock` object, compare
+`getAppLock`, `isAppLocked`, and `unlockApp` round out the lock: read the `.lock` object, compare
 the ID, and delete it. They are left out of the listing above for length; the rules they follow are
 in [It holds the lock](#it-holds-the-lock).
 
@@ -191,14 +198,14 @@ export interface IStateProvider {
 ```
 
 `octo lock` calls `lockApp` and prints the ID. `octo apply` and `octo commit` present that ID, and
-the commit releases it. `generate` and `validate` never touch any of this — neither writes shared
-state.
+the commit releases it. `generate` and `validate` never touch any of this, because neither writes
+shared state.
 
 Two rules a provider of your own has to honour:
 
 - **Taking the lock must be atomic.** Reading first and writing second lets two runners both believe
   they hold it, which is worse than no lock, because it manufactures confidence. The bundled
-  providers use an exclusive file create; a remote store wants a conditional write — S3's
+  providers use an exclusive file create; a remote store wants a conditional write: S3's
   `If-None-Match: *`, or a DynamoDB conditional put.
 - **The ID proves ownership.** Every check compares against the ID that was handed out, so one run
   can never release another's lock, and a caller holding a stale ID is told it is stale rather than
@@ -213,11 +220,11 @@ is the way out once a human has looked.
 
 Terraform keeps its own record of what exists, and by default a local backend leaves it in the
 generated module folder, where only the machine that ran the apply can see it. That is the one file
-Octo cannot rebuild — lose it and Terraform plans to create infrastructure that is already there.
+Octo cannot rebuild: lose it and Terraform plans to create infrastructure that is already there.
 
 So it goes through the provider as well. Before any Terraform command, Octo writes each module's
-state from the provider into its folder; after the command returns — whether it succeeded or failed
-— it writes what the folder now holds back, under `<moduleId>.tfstate`. A long apply is also checked
+state from the provider into its folder; after the command returns, whether it succeeded or failed,
+it writes what the folder now holds back, under `<moduleId>.tfstate`. A long apply is also checked
 in on a timer, so a runner killed halfway through loses at most a minute of record rather than all
 of it.
 
@@ -230,7 +237,7 @@ Two consequences worth knowing:
   hands it over, and from then on the provider is the one that answers.
 
 Point `remote_state` at a backend of your own and Terraform stops writing the file Octo checks in,
-which is fine — the two arrangements are alternatives, not layers.
+which is fine, because the two arrangements are alternatives, not layers.
 
 ## What a provider does not do
 

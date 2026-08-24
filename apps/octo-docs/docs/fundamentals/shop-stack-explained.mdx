@@ -36,11 +36,11 @@ holds the result, keyed by context:
 
 ```json title=".octo/models.json"
 "models": {
-"app=shop": {...},
-"server=checkout,app=shop": {...},
-"service=shop-receipts-s3-storage,app=shop": {...},
-"account=123456789012,app=shop": {...},
-"region=eu-west-1,account=123456789012,app=shop": {...}
+  "app=shop": {...},
+  "server=checkout,app=shop": {...},
+  "service=shop-receipts-s3-storage,app=shop": {...},
+  "account=123456789012,app=shop": {...},
+  "region=eu-west-1,account=123456789012,app=shop": {...}
 }
 ```
 
@@ -155,15 +155,15 @@ receipts bucket.
 
 ```json
 "properties": {
-"Bucket": "shop-receipts",
-"permissions": [
-{
-"allowRead": true,
-"allowWrite": true,
-"principalResourceId": "iam-role-ServerRole-checkout",
-"remoteDirectoryPath": "uploads"
-}
-]
+  "Bucket": "shop-receipts",
+  "permissions": [
+    {
+      "allowRead": true,
+      "allowWrite": true,
+      "principalResourceId": "iam-role-ServerRole-checkout",
+      "remoteDirectoryPath": "uploads"
+    }
+  ]
 }
 ```
 

@@ -23,7 +23,7 @@ OCTO_DEFINITION_FILE_PATH=octo.yaml node_modules/.bin/octo generate -o .octo-tf
 Four commands, in this order. [The Lifecycle](/docs/getting-started/the-lifecycle) covers what each
 one is for.
 
-The last two write shared state, so they require the **app lock** — take it with
+The last two write shared state, so they require the **app lock**. Take it with
 [`octo lock`](#lock) and pass the ID it prints. `generate` and `validate` write nothing shared and
 need no lock.
 
@@ -83,7 +83,7 @@ into around the apply.
 | `--timeoutInMs`      |          | Per-command timeout. Default 60 minutes.              |
 
 Verifies the lock before planning, so a run without it fails having done nothing. It does not
-release the lock — the apply is the middle of a run, and `commit` is the end of it.
+release the lock, because the apply is the middle of a run and `commit` is the end of it.
 
 Plans first and refuses if anything would be destroyed, or if a folder could not be planned.
 
@@ -108,8 +108,8 @@ or null output throws before any state is written.
 | `--terragruntBinary` |          | Override the Terragrunt binary.                                        |
 | `--timeoutInMs`      |          | Per-command timeout. Default 60 minutes.                               |
 
-This is the command that ends a run, so it **releases the lock however it finishes** — on a clean
-commit, and on one that throws. A normal run never leaves a lock behind.
+This is the command that ends a run, so it **releases the lock however it finishes**, on a clean
+commit and on one that throws. A normal run never leaves a lock behind.
 
 `--partial` is for after an apply that failed. Instead of rejecting the whole commit over the
 outputs a half-finished apply could not produce, it records every resource whose outputs did all
@@ -124,7 +124,7 @@ both require it; `generate` and `validate` do not, because neither writes shared
 
 ### lock
 
-Takes the lock and prints its ID — and nothing else on stdout, so a shell can capture it.
+Takes the lock and prints its ID, and nothing else on stdout, so a shell can capture it.
 
 ```bash
 LOCK_ID=$(npm run --silent octo:lock)

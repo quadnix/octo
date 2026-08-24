@@ -81,7 +81,7 @@ Octo's memory of what your infrastructure is.
 | `reports/`              | HTML and JSON from each validate and commit. Generated output, not state, and gitignored.                                       |
 
 Where it lives comes from `settings.stateProvider.statePath`, resolved against the definition file
-rather than the working directory. Losing it costs you both records at once — Octo believes it is
+rather than the working directory. Losing it costs you both records at once: Octo believes it is
 starting from nothing and proposes creating everything again, and Terraform has nothing left to say
 otherwise. [State](/docs/fundamentals/state) covers what is in these files and how to keep them
 somewhere a team can share.
@@ -91,7 +91,8 @@ somewhere a team can share.
 Empty in a new project, and it can stay that way. An app that composes only modules from
 `@quadnix/octo-aws-cdk` needs nothing here.
 
-When you write your own, the `create-*` CLI commands put them under `src/` and maintain `src/index.ts`:
+When you write your own, the `create-*` CLI commands put them under `src/` and maintain
+`src/index.ts`:
 
 ```typescript title="src/index.ts"
 export { ShopRegionModule } from './modules/region/shop-region/index.js';
@@ -198,3 +199,7 @@ teams means production and everything else. Reach for the model first.
 | `dist/`                                        | No     | Build output.                                                      |
 
 The scaffolded `.gitignore` already says all of this.
+
+State files hold the values Terraform returned, and some of those are secrets. [State
+Providers](/docs/techniques/state-providers) covers encrypting them before they go into a
+repository.
