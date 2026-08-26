@@ -5,6 +5,12 @@ interface TypewriterOptions {
   className?: string;
   deletingSpeed?: number;
   pauseDuration?: number;
+
+  /**
+   * Punctuation to keep attached to the typed word, rendered ahead of the cursor so the cursor
+   * always trails the whole phrase.
+   */
+  suffix?: string;
   typingSpeed?: number;
   words: string[];
 }
@@ -13,11 +19,14 @@ export default function Typewriter({
   className,
   deletingSpeed = 50,
   pauseDuration = 2000,
+  suffix = '',
   typingSpeed = 100,
   words,
 }: TypewriterOptions): ReactElement {
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
-  const [currentText, setCurrentText] = useState('');
+  // Starts on the first word rather than on an empty string, so the sentence around it is complete
+  // on the first paint and in the pre-rendered HTML.
+  const [currentText, setCurrentText] = useState(words[0]);
   const [isDeleting, setIsDeleting] = useState(false);
   const [speed, setSpeed] = useState(typingSpeed);
 
@@ -56,6 +65,7 @@ export default function Typewriter({
   return (
     <span className={className}>
       {currentText}
+      {currentText.length > 0 ? suffix : ''}
       <span className={styles.typewriterCursor}>|</span>
     </span>
   );

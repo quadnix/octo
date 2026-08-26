@@ -1,0 +1,29 @@
+/**
+ * The default is visible. The entrance is added only where a scroll timeline exists to drive it,
+ * which keeps a browser without one, or with motion turned down, showing the content as it is.
+ */
+.reveal {
+  opacity: 1;
+  transform: none;
+}
+
+@keyframes revealIn {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation: revealIn linear both;
+      animation-range: entry 5% cover 28%;
+      animation-timeline: view();
+    }
+  }
+}

@@ -1,0 +1,223 @@
+.section {
+  background: var(--landing-bg-soft);
+  padding: 6.5rem 0;
+}
+
+.header {
+  margin: 0 auto 3rem;
+  max-width: 50rem;
+  text-align: center;
+}
+
+.eyebrow {
+  color: var(--landing-accent);
+  display: block;
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.78rem;
+  letter-spacing: 0.18em;
+  margin-bottom: 1.25rem;
+  text-transform: uppercase;
+}
+
+.title {
+  color: var(--landing-text);
+  font-size: clamp(1.55rem, 4.2vw, 2.8rem) !important;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.14;
+  margin-bottom: 1.25rem;
+}
+
+.subtitle {
+  color: var(--landing-muted);
+  font-size: 1.05rem;
+  line-height: 1.75;
+  margin: 0;
+}
+
+.figure {
+  background: var(--landing-surface);
+  border: 1px solid var(--landing-border);
+  border-radius: 20px;
+  box-shadow: 0 20px 50px -34px rgba(11, 26, 43, 0.6);
+  margin: 0 auto 3rem;
+  max-width: 900px;
+  padding: 2rem;
+}
+
+.svg {
+  display: block;
+  height: auto;
+  width: 100%;
+}
+
+.boundary {
+  rect {
+    fill: rgba(79, 70, 229, 0.035);
+    stroke: rgba(79, 70, 229, 0.3);
+    stroke-dasharray: 5 4;
+    stroke-width: 1;
+  }
+
+  text {
+    fill: #6d5fe0;
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+  }
+}
+
+.edge path {
+  fill: none;
+  stroke: #b9c6d8;
+  stroke-width: 1.5;
+}
+
+/* The one edge that crosses a boundary, drawn in the accent so the crossing is the thing you see. */
+.overlayEdge {
+  path {
+    fill: none;
+    stroke: #4f46e5;
+    stroke-dasharray: 5 4;
+    stroke-width: 1.75;
+  }
+
+  text {
+    fill: #4f46e5;
+    font-size: 11px;
+    font-weight: 600;
+  }
+}
+
+.node {
+  rect {
+    fill: #ffffff;
+    stroke: #d3deec;
+    stroke-width: 1.25;
+  }
+}
+
+.nodeKind {
+  fill: #7788a1;
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.nodeName {
+  fill: #0b1a2b;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.legend {
+  border-top: 1px solid var(--landing-border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  justify-content: center;
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+}
+
+.legendItem {
+  align-items: center;
+  color: var(--landing-muted);
+  display: flex;
+  font-size: 0.85rem;
+  gap: 0.5rem;
+}
+
+.legendMark {
+  display: inline-block;
+  height: 12px;
+  width: 22px;
+}
+
+.legendSolid {
+  background: linear-gradient(to bottom, transparent 45%, #b9c6d8 45%, #b9c6d8 60%, transparent 60%);
+}
+
+.legendDashed {
+  background-image: linear-gradient(to right, #4f46e5 60%, transparent 60%);
+  background-position: 0 50%;
+  background-repeat: repeat-x;
+  background-size: 8px 1.75px;
+}
+
+.legendBox {
+  border: 1px dashed rgba(79, 70, 229, 0.55);
+  border-radius: 4px;
+  height: 14px;
+}
+
+.points {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.point {
+  background: var(--landing-surface);
+  border: 1px solid var(--landing-border);
+  border-radius: 18px;
+  height: 100%;
+  padding: 1.75rem;
+  transition: border-color 0.3s ease, transform 0.3s ease;
+
+  &:hover {
+    border-color: var(--landing-border-strong);
+    transform: translateY(-3px);
+  }
+}
+
+.pointImage {
+  display: block;
+  height: 86px;
+  margin-bottom: 1.1rem;
+  object-fit: contain;
+  width: auto;
+}
+
+.pointTitle {
+  color: var(--landing-text);
+  font-size: 1.12rem !important;
+  font-weight: 700;
+  line-height: 1.3;
+  margin-bottom: 0.6rem;
+}
+
+.pointDescription {
+  color: var(--landing-muted);
+  font-size: 0.95rem;
+  line-height: 1.7;
+  margin: 0 0 0.75rem;
+}
+
+@media screen and (max-width: 996px) {
+  .section {
+    padding: 3.5rem 0;
+  }
+
+  .figure {
+    padding: 1.25rem;
+  }
+
+  /* Shrunk to a phone's width the labels stop being readable, so it scrolls at a usable size. */
+  .svgScroll {
+    overflow-x: auto;
+  }
+
+  .svg {
+    min-width: 560px;
+  }
+
+  .points {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.pointDescription:last-child {
+  margin-bottom: 0;
+}

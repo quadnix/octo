@@ -1,76 +1,358 @@
-.features {
-  padding: 2rem 0;
-  width: 100%;
+.section {
+  border-top: 1px solid var(--landing-border);
+  padding: 6.5rem 0;
 }
 
-.featureCard {
-  border: 1px solid var(--ifm-color-emphasis-300, rgba(0, 0, 0, 0.1));
-  border-radius: var(--ifm-card-border-radius, 0.5rem);
-  box-shadow: var(--ifm-global-shadow-lw);
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 3rem;
-  padding: 2rem;
-  transition: box-shadow 0.2s ease-in-out, border-color 0.2s ease-in-out;
-
-  &:hover {
-    border-color: var(--ifm-color-emphasis-400, rgba(0, 0, 0, 0.15));
-    box-shadow: var(--ifm-global-shadow-md);
-  }
-
-  &:last-child {
-    margin-bottom: 0;
-  }
-}
-
-.featureContent {
-  margin-bottom: 2rem;
+.header {
+  margin: 0 auto 3.5rem;
+  max-width: 46rem;
   text-align: center;
 }
 
-.featureTitle {
-  font-size: 2rem;
-  margin-bottom: 1rem;
+.eyebrow {
+  color: var(--landing-accent);
+  display: block;
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.78rem;
+  letter-spacing: 0.18em;
+  margin-bottom: 1.25rem;
+  text-transform: uppercase;
 }
 
-.featureDescription {
-  color: var(--ifm-color-content-secondary);
-  font-size: 1.1rem;
-  margin: 0 auto;
-  max-width: 800px;
+.title {
+  color: var(--landing-text);
+  font-size: clamp(1.55rem, 4.4vw, 3rem) !important;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+  margin: 0;
 }
 
-.featureImage {
+/* Mixed-width rows, so the eye is given a rhythm instead of four identical boxes. */
+.bento {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  margin-bottom: 1.25rem;
+}
+
+.slotWide {
+  grid-column: span 7;
+}
+
+.slotNarrow {
+  grid-column: span 5;
+}
+
+.card {
+  background: var(--landing-surface);
+  border: 1px solid var(--landing-border);
+  border-radius: 20px;
+  box-shadow: 0 10px 30px -24px rgba(11, 26, 43, 0.5);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 1.85rem;
+  transition: border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+
+  &:hover {
+    border-color: var(--landing-border-strong);
+    box-shadow: 0 18px 40px -26px rgba(79, 70, 229, 0.6);
+    transform: translateY(-4px);
+  }
+}
+
+/* The artwork sits beside the heading, and the wording runs the full width underneath both. */
+.cardHead {
   align-items: center;
   display: flex;
-  justify-content: center;
-  width: 100%;
+  gap: 1.1rem;
+  margin-bottom: 1.1rem;
+}
 
-  img {
-    border-radius: 0.75rem;
-    height: auto;
-    max-width: 100%;
-    object-fit: contain;
-    width: 100%;
+.cardImage {
+  flex: 0 0 auto;
+  height: 76px;
+  object-fit: contain;
+  width: auto;
+}
+
+.cardTitle {
+  color: var(--landing-text);
+  font-size: 1.28rem !important;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.28;
+  margin-bottom: 0.6rem;
+}
+
+.cardProblem {
+  color: var(--landing-muted);
+  font-size: 0.98rem;
+  line-height: 1.7;
+  margin: 0 0 0.85rem;
+}
+
+/* What Octo does, set apart from the problem above it so a skim lands on this line. */
+.cardAnswer {
+  color: var(--landing-text);
+  font-size: 0.98rem;
+  font-weight: 600;
+  line-height: 1.7;
+
+  /*
+   * The figure below takes `margin-top: auto` to sit at the foot of the card, and an auto margin
+   * collapses to nothing once the card is full. This is what guarantees a gap either way.
+   */
+  margin: 0 0 1.4rem;
+}
+
+/* The worked picture at the foot of each card. */
+.figure {
+  background: var(--landing-bg-soft);
+  border: 1px solid var(--landing-border);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: auto;
+  padding: 1.1rem 1.2rem;
+}
+
+.figureQuote {
+  color: var(--landing-text);
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.figureLabel {
+  color: var(--landing-muted);
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.figureChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.chip {
+  background: var(--landing-surface);
+  border: 1px solid var(--landing-border-strong);
+  border-radius: 6px;
+  color: var(--landing-muted);
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.78rem;
+  padding: 0.2rem 0.55rem;
+  white-space: nowrap;
+}
+
+.chipAccent {
+  background: var(--landing-accent-soft);
+  border-color: rgba(79, 70, 229, 0.3);
+  color: var(--landing-accent);
+}
+
+.moduleName {
+  color: var(--landing-text);
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.moduleRow {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.moduleKey {
+  color: var(--landing-muted);
+  font-size: 0.74rem;
+  font-style: normal;
+  letter-spacing: 0.1em;
+  min-width: 3.4rem;
+  text-transform: uppercase;
+}
+
+.figureBad {
+  background: rgba(220, 38, 38, 0.045);
+  border-color: rgba(220, 38, 38, 0.24);
+}
+
+.figureGood {
+  background: rgba(22, 163, 74, 0.05);
+  border-color: rgba(22, 163, 74, 0.26);
+}
+
+.figureBadHead,
+.figureGoodHead {
+  align-items: center;
+  display: flex;
+  font-size: 0.98rem;
+  font-weight: 600;
+  gap: 0.5rem;
+}
+
+.figureBadHead {
+  color: #b91c1c;
+}
+
+.figureGoodHead {
+  color: #15803d;
+}
+
+.figureMark {
+  font-size: 0.9rem;
+}
+
+.figureMono {
+  color: var(--landing-muted);
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.figureNote {
+  color: var(--landing-muted);
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+.figureSub {
+  color: var(--landing-muted);
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.8rem;
+  padding-left: 1.4rem;
+}
+
+@media screen and (max-width: 996px) {
+  .section {
+    padding: 3.5rem 0;
+  }
+
+  .header {
+    margin-bottom: 2.5rem;
+  }
+
+  .slotWide,
+  .slotNarrow {
+    grid-column: span 12;
+  }
+
+  .card {
+    padding: 1.5rem;
   }
 }
 
-.featureImageGraphs {
-  background: linear-gradient(to top, #fdcbf1 0%, #fdcbf1 1%, #e6dee9 100%);
-}
-
-.featureImagePipeline {
-  background: linear-gradient(to top, #a18cd1 0%, #fbc2eb 100%);
-
-  img {
-    max-width: 50%;
+@media screen and (max-width: 600px) {
+  .cardImage {
+    height: 60px;
   }
+
+  .cardHead {
+    gap: 0.9rem;
+  }
+
 }
 
-:global(html[data-theme='dark']) .featureTitle {
-  color: #000000;
+/* The compile-time versus apply-time timeline. */
+.timelineRow {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
 }
 
-:global(html[data-theme='dark']) .featureDescription {
-  color: #525860;
+.timelineWho {
+  color: var(--landing-muted);
+  font-size: 0.72rem;
+  font-style: normal;
+  letter-spacing: 0.1em;
+  min-width: 3.6rem;
+  text-transform: uppercase;
+}
+
+.step {
+  background: var(--landing-surface);
+  border: 1px solid var(--landing-border-strong);
+  border-radius: 6px;
+  color: var(--landing-text);
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.76rem;
+  padding: 0.2rem 0.5rem;
+}
+
+.stepMuted {
+  color: #9aa8bb;
+  opacity: 0.55;
+}
+
+.stepFail {
+  background: rgba(220, 38, 38, 0.07);
+  border-color: rgba(220, 38, 38, 0.4);
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.stepArrow {
+  background: var(--landing-border-strong);
+  height: 1px;
+  width: 10px;
+}
+
+.timelineNote {
+  color: var(--landing-muted);
+  font-size: 0.82rem;
+  font-style: italic;
+  padding-left: 4rem;
+}
+
+.timelineNoteGood {
+  color: #15803d;
+  font-style: normal;
+}
+
+/* The review panel: one thing you asked for, one thing you did not. */
+.reviewGood,
+.reviewBad {
+  align-items: center;
+  display: flex;
+  font-size: 0.8rem;
+  font-weight: 700;
+  gap: 0.45rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.reviewGood {
+  color: #15803d;
+}
+
+.reviewBad {
+  border-top: 1px solid var(--landing-border);
+  color: #b45309;
+  margin-top: 0.35rem;
+  padding-top: 0.75rem;
+}
+
+.reviewMark {
+  font-size: 0.9rem;
+}
+
+.reviewLine {
+  color: var(--landing-text);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.reviewSub {
+  color: var(--landing-muted);
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.78rem;
 }

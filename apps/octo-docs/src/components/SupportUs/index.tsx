@@ -6,6 +6,10 @@ import React, { type ReactElement } from 'react';
 
 import styles from './styles.module.scss';
 
+import gardenerImage from '@site/static/img/emotes/octo-gardener.png';
+import painterImage from '@site/static/img/emotes/octo-painter.png';
+import securityImage from '@site/static/img/emotes/octo-security.png';
+import superheroImage from '@site/static/img/emotes/octo-system-superhero.png';
 import CheckboxSvg from '@site/static/img/icons/checkbox.svg';
 import CommentSvg from '@site/static/img/icons/comment.svg';
 import DiscordSvg from '@site/static/img/icons/discord.svg';
@@ -13,6 +17,11 @@ import StarSvg from '@site/static/img/icons/star.svg';
 
 type SupportOption = {
   description: string;
+
+  /**
+   * Sits opposite the icon, in the row the icon already takes up, so a card is no taller for it.
+   */
+  emote: string;
   href: string;
   icon?: ReactElement;
   label: string;
@@ -21,34 +30,41 @@ type SupportOption = {
 const SupportOptions: SupportOption[] = [
   {
     description: 'Star us on GitHub to show your support and help others discover Octo.',
+    emote: superheroImage,
     href: 'https://github.com/quadnix/octo',
     icon: <StarSvg />,
     label: 'Star on GitHub',
   },
   {
     description: 'Contribute code, documentation, or ideas to help improve Octo.',
+    emote: painterImage,
     href: 'https://github.com/quadnix/octo',
     icon: <CheckboxSvg />,
     label: 'Contribute',
   },
   {
     description: 'Join our Discord community to connect with other Octo users and developers.',
+    emote: gardenerImage,
     href: 'https://discord.gg/n8rjuwXy',
     icon: <DiscordSvg />,
     label: 'Join Discord',
   },
   {
     description: 'Share your feedback, report issues, or suggest new features.',
+    emote: securityImage,
     href: 'https://github.com/quadnix/octo/issues',
     icon: <CommentSvg />,
     label: 'Share Feedback',
   },
 ];
 
-function SupportOptionElement({ description, href, icon, label }: SupportOption): ReactElement {
+function SupportOptionElement({ description, emote, href, icon, label }: SupportOption): ReactElement {
   return (
     <Link href={href} className={styles.supportCard} target="_blank" rel="noopener noreferrer">
-      <div className={styles.supportIcon}>{icon}</div>
+      <div className={styles.supportHead}>
+        <span className={styles.supportIcon}>{icon}</span>
+        <img alt="" className={styles.supportEmote} src={emote} />
+      </div>
       <div className={styles.supportContent}>
         <Heading as="h3" className={styles.supportTitle}>
           {label}

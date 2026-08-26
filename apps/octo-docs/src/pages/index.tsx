@@ -1,57 +1,35 @@
-import Link from '@docusaurus/Link';
-import Heading from '@theme/Heading';
+import Head from '@docusaurus/Head';
 import Layout from '@theme/Layout';
-import clsx from 'clsx';
 import React, { type ReactElement } from 'react';
 
-import styles from './styles.module.scss';
+import ClosingCta from '@site/src/components/ClosingCta';
 import HomepageFeatures from '@site/src/components/HomepageFeatures';
+import HomepageHero from '@site/src/components/HomepageHero';
+import HowItRuns from '@site/src/components/HowItRuns';
 import SupportUs from '@site/src/components/SupportUs';
-import Typewriter from '@site/src/components/Typewriter';
-import WhyOcto from '@site/src/components/WhyOcto';
-import mascotImage from '@site/static/img/emotes/octo-mascot.png';
-import backgroundImage from '@site/static/img/octo-landing-page-bg.jpg';
-
-function HomepageHeader(): ReactElement {
-  return (
-    <header className={clsx('hero', styles.heroBanner)} style={{ backgroundImage: `url(${backgroundImage})` }}>
-      <div className="container">
-        <div className={styles.heroTitleContainer}>
-          <div>
-            <Heading as="h1" className={clsx('hero__title', styles.hero__title)}>
-              <span className={clsx(styles.hero__title__highlight)}>
-                Infrastructure made <Typewriter words={['simple', 'amazing', 'awesome', 'powerful', 'intuitive']} />
-              </span>
-            </Heading>
-            <p className={clsx('hero__subtitle', styles.hero__subtitle)}>
-              Octo is a general-purpose cloud infrastructure modeling and management tool.
-              <br />
-              Made easy for <b>developers</b> and <b>devops</b> alike.
-            </p>
-          </div>
-
-          <div className={styles.mascotContainer}>
-            <img src={mascotImage} alt="Octo Mascot" className={styles.mascotImage} />
-          </div>
-        </div>
-
-        <div className={styles.buttons}>
-          <Link className="button button--secondary button--lg" to="/docs/introduction">
-            Let's Begin! 🚀
-          </Link>
-        </div>
-      </div>
-    </header>
-  );
-}
+import TheGraph from '@site/src/components/TheGraph';
+import TheShift from '@site/src/components/TheShift';
+import WhereItSits from '@site/src/components/WhereItSits';
 
 export default function Home(): ReactElement {
   return (
-    <Layout title={`Octo - Infrastructure Modeling`} description="Description will go into a meta tag in <head />">
-      <HomepageHeader />
+    <Layout
+      title="Octo"
+      description="Octo is an infrastructure-as-code framework where you describe your application, and the cloud resources follow."
+    >
+      {/* Turns the whole page, navbar included, into one light canvas of its own. */}
+      <Head>
+        <body className="octo-landing" />
+      </Head>
+
+      <HomepageHero />
       <main>
-        <WhyOcto />
+        <TheShift />
         <HomepageFeatures />
+        <TheGraph />
+        <WhereItSits />
+        <HowItRuns />
+        <ClosingCta />
         <SupportUs />
       </main>
     </Layout>

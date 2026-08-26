@@ -73,3 +73,44 @@ h4 {
 .theme-edit-this-page {
   font-weight: bold;
 }
+
+/**
+ * The landing page keeps one light palette of its own, whichever theme the rest of the site is in.
+ * The class sits on the body so the navbar joins it instead of sitting as a dark bar above it.
+ */
+body.octo-landing {
+  --landing-accent: #4f46e5;
+  --landing-accent-soft: rgba(79, 70, 229, 0.09);
+  --landing-bg: #ffffff;
+  --landing-bg-soft: #f3f7fd;
+  --landing-border: #e3eaf3;
+  --landing-border-strong: #c6d3e4;
+  --landing-muted: #57687f;
+  --landing-surface: #ffffff;
+  --landing-text: #0b1a2b;
+
+  background-color: var(--landing-bg);
+  color: var(--landing-text);
+}
+
+body.octo-landing main {
+  background-color: var(--landing-bg);
+}
+
+body.octo-landing .navbar {
+  backdrop-filter: saturate(150%) blur(14px);
+  background-color: rgba(255, 255, 255, 0.82);
+  border-bottom: 1px solid var(--landing-border);
+  box-shadow: none;
+}
+
+body.octo-landing .navbar__title,
+body.octo-landing .navbar__link,
+body.octo-landing .navbar__toggle,
+body.octo-landing .navbar .clean-btn {
+  color: var(--landing-text);
+}
+
+body.octo-landing .navbar__link:hover {
+  color: var(--landing-accent);
+}

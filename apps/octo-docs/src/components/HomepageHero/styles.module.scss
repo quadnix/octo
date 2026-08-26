@@ -1,0 +1,269 @@
+.hero {
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 62%, var(--landing-bg-soft) 100%);
+  isolation: isolate;
+  overflow: hidden;
+  padding: 6rem 0 7rem;
+  position: relative;
+}
+
+/* A soft colour mesh on white, well below the text, so the section is never a flat panel. */
+.heroAurora {
+  animation: drift 22s ease-in-out infinite alternate;
+  background:
+    radial-gradient(40rem 28rem at 12% 16%, rgba(8, 145, 178, 0.1), transparent 64%),
+    radial-gradient(46rem 32rem at 80% 34%, rgba(79, 70, 229, 0.13), transparent 64%);
+  inset: -20%;
+  pointer-events: none;
+  position: absolute;
+  z-index: -2;
+}
+
+.heroGrid {
+  background-image: radial-gradient(rgba(79, 70, 229, 0.2) 1.1px, transparent 1.1px);
+  background-position: -1px -1px;
+  background-size: 24px 24px;
+  inset: 0;
+  mask-image: radial-gradient(ellipse 85% 70% at 50% 0%, #000 35%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 85% 70% at 50% 0%, #000 35%, transparent 100%);
+  pointer-events: none;
+  position: absolute;
+  z-index: -1;
+}
+
+@keyframes drift {
+  from {
+    transform: translate3d(-2%, -1%, 0) scale(1);
+  }
+  to {
+    transform: translate3d(2%, 2%, 0) scale(1.08);
+  }
+}
+
+.heroInner {
+  align-items: center;
+  display: grid;
+  gap: 4rem;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+}
+
+.heroText {
+  min-width: 0;
+}
+
+.heroTitle {
+  color: var(--landing-text);
+  font-size: clamp(2.1rem, 5.6vw, 4.1rem) !important;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+  margin-bottom: 1rem;
+}
+
+.heroTitleAccent {
+  background: linear-gradient(100deg, #0891b2 0%, #4f46e5 52%, #c026d3 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.heroLead {
+  color: var(--landing-text);
+  font-size: clamp(1.1rem, 2vw, 1.45rem);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  margin-bottom: 1.25rem;
+}
+
+.heroSubtitle {
+  color: var(--landing-muted);
+  font-size: 1.08rem;
+  line-height: 1.72;
+  margin-bottom: 2.25rem;
+  max-width: 36rem;
+}
+
+.heroButtons {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 2.5rem;
+}
+
+.buttonPrimary,
+.buttonGhost {
+  border-radius: 10px;
+  display: inline-flex;
+  font-size: 0.98rem;
+  font-weight: 600;
+  padding: 0.85rem 1.6rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.buttonPrimary {
+  background: linear-gradient(100deg, #0891b2 0%, #4f46e5 100%);
+  box-shadow: 0 10px 26px -10px rgba(79, 70, 229, 0.75);
+  color: #ffffff;
+
+  &:hover {
+    box-shadow: 0 14px 32px -10px rgba(79, 70, 229, 0.9);
+    color: #ffffff;
+    text-decoration: none;
+    transform: translateY(-2px);
+  }
+}
+
+.buttonGhost {
+  background: var(--landing-surface);
+  border: 1px solid var(--landing-border-strong);
+  color: var(--landing-text);
+
+  &:hover {
+    border-color: var(--landing-accent);
+    color: var(--landing-text);
+    text-decoration: none;
+    transform: translateY(-2px);
+  }
+}
+
+/* The old pain line, kept small and low, where it colours the pitch instead of leading it. */
+.heroHint {
+  border-left: 2px solid var(--landing-border-strong);
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin: 0;
+  padding-left: 0.9rem;
+}
+
+.heroHintLabel {
+  color: var(--landing-muted);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.heroHintQuote {
+  color: var(--landing-text);
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.95rem;
+}
+
+.heroHintWord {
+  color: var(--landing-accent);
+  font-weight: 600;
+}
+
+/**
+ * On a white page a glow has nothing to glow against, so the mascot is given a lit disc with a real
+ * edge and a cast shadow. The ring is a drawn stroke rather than a bloom, for the same reason.
+ */
+.orb {
+  aspect-ratio: 1;
+  display: grid;
+  justify-self: center;
+  place-items: center;
+  position: relative;
+  width: min(100%, 400px);
+}
+
+.orbDisc {
+  background: radial-gradient(circle at 50% 34%, #ffffff 0%, #f8faff 52%, #eaf0fb 100%);
+  border: 1px solid rgba(79, 70, 229, 0.12);
+  border-radius: 50%;
+  box-shadow:
+    0 30px 60px -30px rgba(30, 58, 138, 0.4),
+    0 4px 12px -6px rgba(30, 58, 138, 0.12);
+  inset: 8%;
+  position: absolute;
+}
+
+/* A faint full circle, so the orbit reads as a complete shape even where the arc is not. */
+.orbTrack {
+  border: 1px solid rgba(79, 70, 229, 0.16);
+  border-radius: 50%;
+  inset: 0;
+  position: absolute;
+}
+
+.orbTrackInner {
+  inset: 13%;
+  opacity: 0.7;
+}
+
+.orbArc {
+  animation: spin 16s linear infinite;
+  background: conic-gradient(
+    from 0deg,
+    rgba(8, 145, 178, 0) 0deg,
+    #0891b2 50deg,
+    #4f46e5 110deg,
+    rgba(79, 70, 229, 0) 160deg
+  );
+  border-radius: 50%;
+  inset: 0;
+  mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2.5px));
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2.5px));
+  position: absolute;
+}
+
+.orbArcInner {
+  animation-direction: reverse;
+  animation-duration: 24s;
+  inset: 13%;
+  mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 2px));
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 2px));
+  opacity: 0.75;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.orbImage {
+  filter: drop-shadow(0 16px 22px rgba(30, 58, 138, 0.26));
+  position: relative;
+  width: 66%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .heroAurora,
+  .orbArc {
+    animation: none;
+  }
+}
+
+@media screen and (max-width: 996px) {
+  .hero {
+    padding: 2.5rem 0 3.5rem;
+  }
+
+  .heroInner {
+    gap: 2rem;
+    grid-template-columns: minmax(0, 1fr);
+    text-align: center;
+  }
+
+  .heroSubtitle {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .heroButtons {
+    justify-content: center;
+  }
+
+  /* Centred, a left rule would hang off the text, so the quote stands on its own. */
+  .heroHint {
+    align-items: center;
+    border-left: 0;
+    padding-left: 0;
+  }
+
+  .orb {
+    grid-row: 1;
+    width: min(100%, 250px);
+  }
+}
