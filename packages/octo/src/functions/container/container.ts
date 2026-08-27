@@ -210,6 +210,27 @@ export class Container {
   }
 
   /**
+   * To register a ready-made instance over whatever is already registered under the same type and
+   * metadata, rather than refusing as {@link Container.registerValue} does.
+   *
+   * Registering once is the right default - two factories for one type is usually a mistake. This is
+   * for the callers that legitimately register the same thing more than once: a module whose
+   * `onInit` runs on every `compose()`, and a test replacing a factory with a mock.
+   */
+  replaceValue<T>(
+    type: Constructable<T> | string,
+    value: T,
+    options?: {
+      metadata?: { [key: string]: string };
+    },
+  ): void {
+    if (this.has(type, options)) {
+      this.unRegisterFactory(type, options);
+    }
+    this.registerValue(type, value, options);
+  }
+
+  /**
    * To clear every registered factory and empty the container. Mostly used in testing.
    */
   reset(): void {

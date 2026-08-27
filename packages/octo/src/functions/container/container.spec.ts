@@ -149,6 +149,44 @@ describe('Container UT', () => {
     });
   });
 
+  describe('replaceValue()', () => {
+    it('should throw error if registerValue is used twice, which is what this exists for', () => {
+      container.registerValue(Test, new Test('first'));
+
+      expect(() => container.registerValue(Test, new Test('second'))).toThrowErrorMatchingInlineSnapshot(
+        `"Factory has already been registered!"`,
+      );
+    });
+
+    it('should register a value nothing is registered under yet', async () => {
+      container.replaceValue(Test, new Test('value'));
+
+      const test = await container.get(Test);
+      expect(test.property).toBe('value');
+    });
+
+    it('should replace a value already registered', async () => {
+      container.registerValue(Test, new Test('first'));
+      container.replaceValue(Test, new Test('second'));
+
+      const test = await container.get(Test);
+      expect(test.property).toBe('second');
+    });
+
+    it('should replace only the value carrying the same metadata', async () => {
+      container.registerValue(Test, new Test('value'));
+      container.registerValue(Test, new Test('valueWithMetadata'), { metadata: { type: 'metadata' } });
+
+      container.replaceValue(Test, new Test('replaced'), { metadata: { type: 'metadata' } });
+
+      const test1 = await container.get(Test);
+      expect(test1.property).toBe('value');
+
+      const test2 = await container.get(Test, { metadata: { type: 'metadata' } });
+      expect(test2.property).toBe('replaced');
+    });
+  });
+
   describe('unRegisterFactory()', () => {
     it('should be able to unregister a factory of type class', async () => {
       container.setFactoryTimeout(10);

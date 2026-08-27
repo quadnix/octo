@@ -91,8 +91,7 @@ export class TestContainer {
 
     // Override new container with mock factories as instructed.
     for (const mock of subjects.mocks || []) {
-      container.unRegisterFactory(mock.type, { metadata: mock.metadata });
-      container.registerValue(mock.type, mock.value, { metadata: mock.metadata });
+      container.replaceValue(mock.type, mock.value, { metadata: mock.metadata });
     }
 
     return container;
