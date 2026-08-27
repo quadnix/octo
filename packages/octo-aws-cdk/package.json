@@ -1,6 +1,10 @@
 {
   "dependencies": {
+    "@aws-sdk/client-ecr": "~3.743.0",
+    "@aws-sdk/client-sts": "~3.743.0",
+    "@aws-sdk/credential-provider-ini": "~3.743.0",
     "@quadnix/octo": "~0.0.30",
+    "@smithy/types": "~4.1.0",
     "fast-cidr-tools": "~0.3.2",
     "mime": "~4.0.6"
   },
