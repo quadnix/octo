@@ -1,6 +1,6 @@
 import { createCipheriv, createDecipheriv, createHash } from 'node:crypto';
 import { createReadStream, createWriteStream } from 'node:fs';
-import { open } from 'node:fs/promises';
+import { mkdir, open } from 'node:fs/promises';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 
@@ -85,5 +85,14 @@ export class FileUtility {
         tagAppendStream.end(resolve);
       });
     });
+  }
+
+  /**
+   * Creates a directory and every missing parent of it. A directory that already exists is not an error.
+   *
+   * @internal
+   */
+  static async ensureDirectory(directoryPath: string): Promise<void> {
+    await mkdir(directoryPath, { recursive: true });
   }
 }

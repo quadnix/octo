@@ -91,6 +91,7 @@ export class LocalEncryptionStateProvider implements IStateProvider {
    * @throws {@link TransactionError} When a lock is held, naming the id that holds it.
    */
   async lockApp(): Promise<{ lockId: string }> {
+    await FileUtility.ensureDirectory(this.localStateDirectoryPath);
     return FileAppLockUtility.lockApp(this.lockFilePath);
   }
 
@@ -98,6 +99,7 @@ export class LocalEncryptionStateProvider implements IStateProvider {
    * Writes a state file, overwriting whatever was there.
    */
   async saveState(stateFileName: string, data: Buffer): Promise<void> {
+    await FileUtility.ensureDirectory(this.localStateDirectoryPath);
     await FileUtility.encryptBufferToFile(
       data,
       join(this.localStateDirectoryPath, stateFileName + '.enc'),

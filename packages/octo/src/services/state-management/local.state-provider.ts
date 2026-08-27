@@ -1,6 +1,7 @@
 import { readFile, rm, writeFile } from 'fs/promises';
 import { join, resolve } from 'path';
 import { TransactionError } from '../../errors/index.js';
+import { FileUtility } from '../../utilities/file/file.utility.js';
 import { FileAppLockUtility } from './file-app-lock.utility.js';
 import type { IStateProvider } from './state-provider.interface.js';
 
@@ -77,6 +78,7 @@ export class LocalStateProvider implements IStateProvider {
    * @throws {@link TransactionError} When a lock is held, naming the id that holds it.
    */
   async lockApp(): Promise<{ lockId: string }> {
+    await FileUtility.ensureDirectory(this.localStateDirectoryPath);
     return FileAppLockUtility.lockApp(this.lockFilePath);
   }
 
@@ -84,6 +86,7 @@ export class LocalStateProvider implements IStateProvider {
    * Writes a state file, overwriting whatever was there.
    */
   async saveState(stateFileName: string, data: Buffer): Promise<void> {
+    await FileUtility.ensureDirectory(this.localStateDirectoryPath);
     await writeFile(join(this.localStateDirectoryPath, stateFileName), data);
   }
 
