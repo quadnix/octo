@@ -12,7 +12,7 @@ import { AccountSchema, AccountType } from './account.schema.js';
  * e.g. a separate account per environment, or per cloud provider.
  *
  * Credentials are not held here. A module such as `AwsIniAccountModule` extends this model and
- * supplies them.
+ * supplies them through {@link Account.getCredentials}.
  *
  * @example
  * ```ts
@@ -66,6 +66,18 @@ export class Account extends AModel<AccountSchema, Account> {
       throw new ModelError('Region already exists!', this);
     }
     this.addChild('accountId', region, 'regionId');
+  }
+
+  /**
+   * The credentials this account authenticates with, for the paths octo drives itself rather than
+   * through a provider - an external resource's actions, most of all. The shape is the provider's
+   * own; octo only carries it from the model to whatever builds the client.
+   *
+   * @throws {@link ModelError} On the base model, which holds no credentials. Override it in the
+   * subclass a module creates.
+   */
+  getCredentials(): object {
+    throw new ModelError('Method not implemented! Use subclass', this);
   }
 
   /**
