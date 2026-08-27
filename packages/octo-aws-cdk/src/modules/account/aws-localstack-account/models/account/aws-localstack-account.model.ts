@@ -1,4 +1,5 @@
 import { Account, AccountType, Model } from '@quadnix/octo';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { AwsLocalstackAccountSchema } from './aws-localstack-account.schema.js';
 
 /**
@@ -18,6 +19,18 @@ export class AwsLocalstackAccount extends Account {
    */
   static override async unSynth(account: AwsLocalstackAccountSchema): Promise<AwsLocalstackAccount> {
     return new AwsLocalstackAccount(account.accountId);
+  }
+
+  /**
+   * Localstack accepts any credentials, and by convention they are `test`.
+   *
+   * @internal
+   */
+  override getCredentials(): AwsCredentialIdentityProvider {
+    return async () => ({
+      accessKeyId: 'test',
+      secretAccessKey: 'test',
+    });
   }
 
   /**

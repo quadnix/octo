@@ -1,4 +1,6 @@
+import { GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
 import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import { mockClient } from 'aws-sdk-client-mock';
 import { AwsIniAccountModule } from './index.js';
 
 async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
@@ -8,8 +10,15 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
 describe('AwsIniAccountModule UT', () => {
   let testModuleContainer: TestModuleContainer;
 
+  const STSClientMock = mockClient(STSClient);
+
   beforeEach(async () => {
-    const container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
+    STSClientMock.on(GetCallerIdentityCommand).resolves({ Account: '123' });
+
+    const container = await TestContainer.create(
+      { mocks: [{ metadata: { package: '@octo' }, type: STSClient, value: STSClientMock }] },
+      { factoryTimeoutInMs: 500 },
+    );
 
     testModuleContainer = new TestModuleContainer(container);
     await testModuleContainer.initialize();
@@ -19,6 +28,7 @@ describe('AwsIniAccountModule UT', () => {
   });
 
   afterEach(async () => {
+    STSClientMock.restore();
     await testModuleContainer.reset();
     await TestContainer.reset();
   });
@@ -162,6 +172,9 @@ describe('AwsIniAccountModule UT', () => {
           { terraformTarget: 'skip' },
         )
         .next();
+
+      // The account being composed is the one STS must answer for.
+      STSClientMock.on(GetCallerIdentityCommand).resolves({ Account: '456' });
 
       await setup(testModuleContainer);
       const { hclDiff, resourceDiffs } = (

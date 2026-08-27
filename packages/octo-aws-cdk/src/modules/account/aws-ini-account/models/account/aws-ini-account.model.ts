@@ -1,4 +1,6 @@
+import { fromIni } from '@aws-sdk/credential-provider-ini';
 import { Account, AccountType, Model } from '@quadnix/octo';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { AwsIniAccountSchema } from './aws-ini-account.schema.js';
 
 /**
@@ -22,6 +24,15 @@ export class AwsIniAccount extends Account {
    */
   static override async unSynth(account: AwsIniAccountSchema): Promise<AwsIniAccount> {
     return new AwsIniAccount(account.accountId, account.iniProfile);
+  }
+
+  /**
+   * Resolves the named profile out of the shared AWS config files, when it is asked for.
+   *
+   * @internal
+   */
+  override getCredentials(): AwsCredentialIdentityProvider {
+    return fromIni({ profile: this.iniProfile });
   }
 
   /**

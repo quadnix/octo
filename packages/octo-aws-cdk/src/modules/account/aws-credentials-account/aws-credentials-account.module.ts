@@ -1,5 +1,7 @@
-import { AModule, Module } from '@quadnix/octo';
+import { GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
+import { AModule, Container, Module, ModuleError } from '@quadnix/octo';
 import { AwsAccountAnchor } from '../../../anchors/aws-account/aws-account.anchor.js';
+import { STSClientFactory } from '../../../factories/aws-client.factory.js';
 import { AwsCredentialsAccountModuleSchema } from './index.schema.js';
 import { AwsCredentialsAccount } from './models/account/index.js';
 
@@ -39,6 +41,7 @@ export class AwsCredentialsAccountModule extends AModule<AwsCredentialsAccountMo
    */
   async onInit(inputs: AwsCredentialsAccountModuleSchema): Promise<AwsCredentialsAccount> {
     const app = inputs.app;
+    const container = Container.getInstance();
 
     // Create a new account.
     const account = new AwsCredentialsAccount(inputs.accountId, inputs.credentials);
@@ -46,6 +49,23 @@ export class AwsCredentialsAccountModule extends AModule<AwsCredentialsAccountMo
 
     // Add anchors.
     account.addAnchor(new AwsAccountAnchor('AwsAccountAnchor', { awsAccountId: inputs.accountId }, account));
+
+    // Register AWS credentials, and any endpoint overrides, against the account they belong to.
+    const metadata = { awsAccountId: inputs.accountId, package: '@octo' };
+    container.replaceValue('AwsCredentialIdentityProvider', account.getCredentials(), { metadata });
+    if (Object.keys(inputs.endpoints!).length > 0) {
+      container.replaceValue('AwsServiceEndpoints', inputs.endpoints!, { metadata });
+    }
+
+    // Ensure the credentials are valid, and that they belong to the account they were given for.
+    const stsClient = await container.get<STSClient, typeof STSClientFactory>(STSClient, {
+      args: [inputs.accountId],
+      metadata: { package: '@octo' },
+    });
+    const callerIdentity = await stsClient.send(new GetCallerIdentityCommand({}));
+    if (callerIdentity.Account !== inputs.accountId) {
+      throw new ModuleError(`Account ID "${inputs.accountId}" does not belong to given credentials!`, this.constructor.name);
+    }
 
     return account;
   }

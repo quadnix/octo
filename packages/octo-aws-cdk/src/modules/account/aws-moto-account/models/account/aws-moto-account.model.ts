@@ -1,4 +1,5 @@
 import { Account, AccountType, Model } from '@quadnix/octo';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { AwsMotoAccountSchema } from './aws-moto-account.schema.js';
 
 /**
@@ -18,6 +19,18 @@ export class AwsMotoAccount extends Account {
    */
   static override async unSynth(account: AwsMotoAccountSchema): Promise<AwsMotoAccount> {
     return new AwsMotoAccount(account.accountId);
+  }
+
+  /**
+   * Moto accepts any credentials, and by convention they are `test`.
+   *
+   * @internal
+   */
+  override getCredentials(): AwsCredentialIdentityProvider {
+    return async () => ({
+      accessKeyId: 'test',
+      secretAccessKey: 'test',
+    });
   }
 
   /**
