@@ -2,7 +2,7 @@ import { resolve } from 'path';
 import { Container, TerraformUtility } from '@quadnix/octo';
 import chalk from 'chalk';
 import type { ArgumentsCamelCase, Argv } from 'yargs';
-import { bootOcto, reportError } from '../../utilities/octo/octo.utility.js';
+import { bootOcto, prepareCallbackEnvironment, reportError } from '../../utilities/octo/octo.utility.js';
 
 type ValidateCommandArguments = {
   terraformBinary?: string;
@@ -45,6 +45,9 @@ export const validateCommand = {
     const resolvedDir = resolve(process.cwd(), terragruntDir);
 
     try {
+      // A plan reads every `data "external"`, and each one shells back out to `octo get-response`.
+      prepareCallbackEnvironment();
+
       const { app, octo } = await bootOcto();
       const terraformUtility = await Container.getInstance().get<TerraformUtility, any>(TerraformUtility, {
         args: [{ terraformBinary, terragruntBinary, timeoutInMs }, true],

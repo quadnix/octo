@@ -28,6 +28,7 @@ const mockedBootOcto =
   jest.fn<
     () => Promise<{ app: unknown; octo: { validate: jest.Mock<(...args: unknown[]) => Promise<ValidateReport>> } }>
   >();
+const mockedPrepareCallbackEnvironment = jest.fn<() => void>();
 const mockedReportError = jest.fn<(error: unknown) => void>();
 
 // Real ESM (`--experimental-vm-modules`) doesn't support `jest.mock()`'s hoisted auto-mocking of
@@ -35,6 +36,7 @@ const mockedReportError = jest.fn<(error: unknown) => void>();
 // `import()` of the module under test (below) is the mechanism that actually works here.
 jest.unstable_mockModule('../../utilities/octo/octo.utility.js', () => ({
   bootOcto: mockedBootOcto,
+  prepareCallbackEnvironment: mockedPrepareCallbackEnvironment,
   reportError: mockedReportError,
 }));
 

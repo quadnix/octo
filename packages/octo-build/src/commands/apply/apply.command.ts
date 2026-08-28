@@ -1,9 +1,8 @@
-import { existsSync } from 'fs';
-import { delimiter, dirname, resolve } from 'path';
+import { resolve } from 'path';
 import { Container, StateManagementService, TerraformUtility } from '@quadnix/octo';
 import chalk from 'chalk';
 import type { ArgumentsCamelCase, Argv } from 'yargs';
-import { bootStateProvider, reportError } from '../../utilities/octo/octo.utility.js';
+import { bootStateProvider, prepareCallbackEnvironment, reportError } from '../../utilities/octo/octo.utility.js';
 
 type ApplyCommandArguments = {
   autoApprove?: boolean;
@@ -57,38 +56,6 @@ async function isBlockedByDestroys(terraformUtility: TerraformUtility, resolvedD
   );
 
   return true;
-}
-
-/**
- * Makes the environment survive the trip into terraform's `local-exec`.
- *
- * An external resource's `null_resource` shells back out to `octo run-action` mid-apply, and that
- * command inherits this process's environment through terragrunt and terraform. Two things about it
- * are wrong by default, and both fail only after real infrastructure exists:
- *
- * - **`octo` is a bare binary name**, resolved through `PATH`. Invoking a binary by path -
- *   `node_modules/.bin/octo apply` - does not put its directory on `PATH` for child processes, so
- *   the callback dies with `octo: command not found`. The generated app runs the flow through
- *   package scripts, and `npm run` does put that directory on `PATH`, but running the binary
- *   directly is still supported and has to work the same. The project's bin directory is prepended
- *   here, and the directory this CLI is running from after it, so a globally installed or linked
- *   octo still wins over nothing at all.
- * - **`OCTO_DEFINITION_FILE_PATH` is usually relative** (`octo.yaml` - the package scripts set
- *   exactly that), and terraform runs `local-exec` with a terragrunt cache directory as its cwd,
- *   where that resolves to nothing. It is made absolute here, against the cwd the user actually
- *   invoked from.
- */
-function prepareCallbackEnvironment(): void {
-  const definitionFilePath = process.env.OCTO_DEFINITION_FILE_PATH;
-  if (definitionFilePath) {
-    process.env.OCTO_DEFINITION_FILE_PATH = resolve(process.cwd(), definitionFilePath);
-  }
-
-  const binDirectories = [resolve(process.cwd(), 'node_modules', '.bin'), dirname(process.argv[1] ?? '')].filter(
-    (directory) => directory && existsSync(directory),
-  );
-  const pathEntries = (process.env.PATH ?? '').split(delimiter).filter(Boolean);
-  process.env.PATH = [...binDirectories.filter((d) => !pathEntries.includes(d)), ...pathEntries].join(delimiter);
 }
 
 /**

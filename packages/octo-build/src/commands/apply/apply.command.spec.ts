@@ -12,6 +12,7 @@ type TerraformPlanResult = {
 };
 
 const mockedBootStateProvider = jest.fn<() => Promise<void>>().mockResolvedValue();
+const mockedPrepareCallbackEnvironment = jest.fn<() => void>();
 const mockedReportError = jest.fn<(error: unknown) => void>();
 
 // Real ESM (`--experimental-vm-modules`) doesn't support `jest.mock()`'s hoisted auto-mocking of
@@ -19,6 +20,7 @@ const mockedReportError = jest.fn<(error: unknown) => void>();
 // `import()` of the module under test (below) is the mechanism that actually works here.
 jest.unstable_mockModule('../../utilities/octo/octo.utility.js', () => ({
   bootStateProvider: mockedBootStateProvider,
+  prepareCallbackEnvironment: mockedPrepareCallbackEnvironment,
   reportError: mockedReportError,
 }));
 
