@@ -1,4 +1,11 @@
-import { ATerraformResource, Diff, DiffAction, DiffUtility, Resource, type TerraformModuleScope } from '@quadnix/octo';
+import {
+  ATerraformResource,
+  Diff,
+  DiffAction,
+  DiffUtility,
+  Resource,
+  type TerraformModuleScope,
+} from '@quadnix/octo';
 import { EcrImageSchema } from './index.schema.js';
 
 /**
@@ -50,21 +57,12 @@ export class EcrImage extends ATerraformResource<EcrImageSchema, EcrImage> {
       name: this.properties.imageId,
     });
 
-    const ecrAuthToken = terraform.addTerraformData('aws_ecr_authorization_token', this.resourceId, {
-      registry_id: terraform.raw(`${ecrImageTFResource.address}.registry_id`),
+    ecrImageOctoResource.output({
+      registryId: terraform.raw(`${ecrImageTFResource.address}.registry_id`),
+      repositoryArn: terraform.raw(`${ecrImageTFResource.address}.arn`),
+      repositoryName: terraform.raw(`${ecrImageTFResource.address}.name`),
+      repositoryUri: terraform.raw(`${ecrImageTFResource.address}.repository_url`),
     });
-
-    ecrImageOctoResource.output(
-      {
-        authorizationToken: ecrAuthToken.ref('authorization_token'),
-        proxyEndpoint: ecrAuthToken.ref('proxy_endpoint'),
-        registryId: terraform.raw(`${ecrImageTFResource.address}.registry_id`),
-        repositoryArn: terraform.raw(`${ecrImageTFResource.address}.arn`),
-        repositoryName: terraform.raw(`${ecrImageTFResource.address}.name`),
-        repositoryUri: terraform.raw(`${ecrImageTFResource.address}.repository_url`),
-      },
-      { sensitiveKeys: ['authorizationToken'] },
-    );
 
     if (Object.keys(this.tags).length > 0) {
       ecrImageTFResource.attribute('tags', this.tags);

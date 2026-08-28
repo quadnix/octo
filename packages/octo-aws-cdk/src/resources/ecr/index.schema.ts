@@ -6,6 +6,9 @@ import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
  * Terraform provisions it as
  * [`aws_ecr_repository`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecr_repository).
  *
+ * It is the repository alone. The images published into it are {@link EcrImageTagSchema} resources,
+ * one per tag, and its tags are immutable - publishing new content means publishing a new tag.
+ *
  * @group Resources/Ecr
  *
  * @hideconstructor
@@ -33,8 +36,6 @@ export class EcrImageSchema extends BaseResourceSchema {
 
   /**
    * Saved response.
-   * * `response.authorizationToken` - The base64-encoded authorization token for authenticating to the registry.
-   * * `response.proxyEndpoint` - The registry URL for container image push and pull operations.
    * * `response.registryId` - The AWS account ID associated with the registry that contains the repository.
    * * `response.repositoryArn` - The ARN of the repository.
    * * `response.repositoryName` - The name of the repository.
@@ -43,12 +44,6 @@ export class EcrImageSchema extends BaseResourceSchema {
   @Validate({
     destruct: (value: EcrImageSchema['response']): string[] => {
       const subjects: string[] = [];
-      if (value.authorizationToken) {
-        subjects.push(value.authorizationToken);
-      }
-      if (value.proxyEndpoint) {
-        subjects.push(value.proxyEndpoint);
-      }
       if (value.registryId) {
         subjects.push(value.registryId);
       }
@@ -66,15 +61,11 @@ export class EcrImageSchema extends BaseResourceSchema {
     options: { minLength: 1 },
   })
   override response = Schema<{
-    authorizationToken?: string;
-    proxyEndpoint?: string;
     registryId?: string;
     repositoryArn?: string;
     repositoryName?: string;
     repositoryUri?: string;
   }>({
-    authorizationToken: 'token',
-    proxyEndpoint: 'https://000000000000.dkr.ecr.us-east-1.amazonaws.com',
     registryId: '000000000000',
     repositoryArn: 'arn:aws:ecr:us-east-1:000000000000:repository/mock-repository',
     repositoryName: 'mock-repository',

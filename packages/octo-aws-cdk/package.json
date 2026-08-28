@@ -76,6 +76,7 @@
     "./resources/alb/schema": "./dist/resources/alb/index.schema.js",
     "./resources/dynamodb-global/schema": "./dist/resources/dynamodb-global/index.schema.js",
     "./resources/dynamodb/schema": "./dist/resources/dynamodb/index.schema.js",
+    "./resources/ecr-image-tag/schema": "./dist/resources/ecr-image-tag/index.schema.js",
     "./resources/ecr/schema": "./dist/resources/ecr/index.schema.js",
     "./resources/ecs-cluster/schema": "./dist/resources/ecs-cluster/index.schema.js",
     "./resources/ecs-service/schema": "./dist/resources/ecs-service/index.schema.js",
