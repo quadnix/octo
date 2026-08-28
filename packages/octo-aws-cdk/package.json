@@ -19,6 +19,7 @@
     "./anchors/aws-account/schema": "./dist/anchors/aws-account/aws-account.anchor.schema.js",
     "./anchors/aws-dynamodb-global/schema": "./dist/anchors/aws-dynamodb/aws-dynamodb-global.anchor.schema.js",
     "./anchors/aws-dynamodb/schema": "./dist/anchors/aws-dynamodb/aws-dynamodb.anchor.schema.js",
+    "./anchors/aws-ecr-image/schema": "./dist/anchors/aws-ecr/aws-ecr-image.anchor.schema.js",
     "./anchors/aws-ecs-alb/schema": "./dist/anchors/aws-ecs/aws-ecs-alb.anchor.schema.js",
     "./anchors/aws-ecs-cluster/schema": "./dist/anchors/aws-ecs/aws-ecs-cluster.anchor.schema.js",
     "./anchors/aws-ecs-execution/schema": "./dist/anchors/aws-ecs/aws-ecs-execution.anchor.schema.js",
