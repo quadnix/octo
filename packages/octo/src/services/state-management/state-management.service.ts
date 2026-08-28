@@ -49,6 +49,21 @@ function serializeState(
  * @group Services/State Management
  */
 export class StateManagementService {
+  /**
+   * The resource graph as it stands after the last commit.
+   */
+  readonly actualResourceStateFileName: string = 'resources-actual.json';
+
+  /**
+   * The model graph as it stands after the last commit.
+   */
+  readonly modelStateFileName: string = 'models.json';
+
+  /**
+   * The resource graph as intent described it on the last commit.
+   */
+  readonly oldResourceStateFileName: string = 'resources-old.json';
+
   private readonly stateProvider: IStateProvider;
 
   /**
@@ -56,6 +71,15 @@ export class StateManagementService {
    */
   constructor(stateProvider: IStateProvider) {
     this.stateProvider = stateProvider;
+  }
+
+  /**
+   * Clears an external resource's published response.
+   *
+   * @internal
+   */
+  async deleteExternalResourceResponse(resourceId: string): Promise<void> {
+    await this.deleteState(this.externalResourceResponseFileName(resourceId));
   }
 
   /**
@@ -99,6 +123,33 @@ export class StateManagementService {
         throw error;
       }
     }
+  }
+
+  /**
+   * The response of one resource: what an external resource's action published and `commit` has not
+   * recorded yet, falling back to what the last commit recorded. Undefined when neither holds it.
+   *
+   * @internal
+   */
+  async getResourceResponse(resourceId: string): Promise<Record<string, string> | undefined> {
+    const publishedResponse = await this.getState(this.externalResourceResponseFileName(resourceId), Buffer.from(''));
+    if (publishedResponse.length > 0) {
+      return JSON.parse(publishedResponse.toString());
+    }
+
+    const { data } = await this.getResourceState(this.actualResourceStateFileName);
+    const serializedResource = Object.values(data.resources).find((r) => r.resource.resourceId === resourceId);
+    if (!serializedResource) {
+      return undefined;
+    }
+
+    return Object.entries(serializedResource.resource.response).reduce(
+      (accumulator, [key, value]) => {
+        accumulator[key] = String(value);
+        return accumulator;
+      },
+      {} as Record<string, string>,
+    );
   }
 
   /**
@@ -164,6 +215,16 @@ export class StateManagementService {
   }
 
   /**
+   * Records what an external resource's action published, so that a later plan can read it back
+   * before `commit` has folded it into the resource graph.
+   *
+   * @internal
+   */
+  async saveExternalResourceResponse(resourceId: string, response: Record<string, string>): Promise<void> {
+    await this.saveState(this.externalResourceResponseFileName(resourceId), Buffer.from(JSON.stringify(response)));
+  }
+
+  /**
    * @internal
    */
   async saveModelState(
@@ -199,6 +260,14 @@ export class StateManagementService {
    */
   async unlockApp(lockId: string): Promise<void> {
     return this.stateProvider.unlockApp(lockId);
+  }
+
+  /**
+   * @internal
+   */
+  private externalResourceResponseFileName(resourceId: string): string {
+    // A resource id is not a file name - it carries `/` where a resource is named after a path.
+    return `resource-response-${encodeURIComponent(resourceId)}.json`;
   }
 }
 

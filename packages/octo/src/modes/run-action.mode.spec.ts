@@ -150,6 +150,30 @@ describe('runAction()', () => {
     });
   });
 
+  // The record an action writes is the only copy of its response until `commit` folds it into the
+  // resource graph, and it is what a plan reads back through `get-response`.
+  describe('the published response record', () => {
+    it('should record the response the action published', async () => {
+      const { app } = await testModes.createResourceGraph();
+
+      await runAction(app, { inputs: { 'vpc-1.VpcId': 'vpc-0real' }, resourceId: 'igw-1' });
+
+      await expect(testModes.stateManagementService.getResourceResponse('igw-1')).resolves.toEqual({
+        igwId: 'igw-0real',
+      });
+    });
+
+    it('should clear the record when the action deletes the resource', async () => {
+      const { app } = await testModes.createResourceGraph({ save: true });
+      await commitResources({ skipAddActualResource: true });
+      await recreateDesiredGraph({ withoutChildren: true });
+
+      await runAction(app, { inputs: { 'vpc-1.VpcId': 'vpc-0real' }, resourceId: 'igw-1' });
+
+      await expect(testModes.stateManagementService.getResourceResponse('igw-1')).resolves.toBeUndefined();
+    });
+  });
+
   it('should throw, not silently do nothing, when no action matches the diff', async () => {
     const { app } = await testModes.createResourceGraph({ save: true });
     await commitResources({ skipAddActualResource: true });

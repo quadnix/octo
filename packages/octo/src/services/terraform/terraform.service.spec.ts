@@ -9,7 +9,7 @@ describe('TerraformService UT', () => {
   let service: TerraformService;
 
   beforeEach(() => {
-    service = new TerraformService('octo run-action', 2);
+    service = new TerraformService('octo', 2);
   });
 
   // ── Stage 1: Global setup ─────────────────────────────────────────────────

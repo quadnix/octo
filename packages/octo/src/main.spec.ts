@@ -71,6 +71,32 @@ describe('Main UT', () => {
       expect(warnings.map((w) => w.message).join('\n')).toContain('left uncommitted');
     });
 
+    // An external resource's action records what it published, because octo state is the only place
+    // a later plan can read it from. The committed graph takes that over once the commit lands.
+    it('should keep the published record of an external resource a partial commit left out', async () => {
+      const graph = await testModes.createResourceGraph();
+      await testModes.generate(graph.app, { outputDir: testModes.outputDir });
+      await testModes.stateManagementService.saveExternalResourceResponse('igw-1', { igwId: 'igw-0published' });
+      // The apply got as far as the vpc: neither the external resource nor its child reported an output.
+      testModes.writeTfState('region-module', { 'vpc-1-VpcId': 'vpc-0real' });
+
+      await testModes.commit(graph.app, { outputs: testModes.outputs, partial: true });
+
+      await expect(testModes.stateManagementService.getResourceResponse('igw-1')).resolves.toEqual({
+        igwId: 'igw-0published',
+      });
+    });
+
+    it('should clear the published record of an external resource once it is committed', async () => {
+      await testModes.stateManagementService.saveExternalResourceResponse('igw-1', { igwId: 'igw-0published' });
+
+      await generateAndCommitFullGraph();
+
+      await expect(testModes.stateManagementService.getResourceResponse('igw-1')).resolves.toEqual({
+        igwId: 'igw-0real',
+      });
+    });
+
     it('should persist state so responses land in actual/old and nothing is dirty', async () => {
       await generateAndCommitFullGraph();
 

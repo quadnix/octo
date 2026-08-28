@@ -7,6 +7,7 @@ import type { App } from '../models/app/app.model.js';
 import { ResourceDataRepository } from '../resources/resource-data.repository.js';
 import { AResource } from '../resources/resource.abstract.js';
 import { ATerraformResource } from '../resources/terraform-resource.abstract.js';
+import { StateManagementService } from '../services/state-management/state-management.service.js';
 import { TransactionService } from '../services/transaction/transaction.service.js';
 
 interface RunActionResult {
@@ -56,8 +57,11 @@ function toFlatStringResponse(resourceId: string, response: Record<string, unkno
  * Boots normally, computes the full resource diff, filters to `resourceId` — the diff decides
  * whether this is an add, update, delete, or noop. Explicit `inputs`
  * (`<parentResourceId>.<responseKey>` keys) are injected into the parent resources' responses in
- * memory before the action runs. Rejects a `resourceId` that is not an external resource. Fully
- * stateless: never writes octo state.
+ * memory before the action runs. Rejects a `resourceId` that is not an external resource.
+ *
+ * The response it publishes is recorded against the resource, and a delete clears that record. That
+ * record is the only copy of the response until `commit` folds it into the resource graph, and it is
+ * what a later plan reads back. Nothing else in octo state is touched.
  *
  * @internal
  */
@@ -66,8 +70,9 @@ export async function runAction(
   { inputs = {}, resourceId }: { inputs?: Record<string, unknown>; resourceId: string },
 ): Promise<RunActionResult> {
   const container = Container.getInstance();
-  const [resourceDataRepository, transactionService] = await Promise.all([
+  const [resourceDataRepository, stateManagementService, transactionService] = await Promise.all([
     container.get(ResourceDataRepository),
+    container.get(StateManagementService),
     container.get(TransactionService),
   ]);
 
@@ -131,10 +136,15 @@ export async function runAction(
       : 'update';
 
   if (action === 'delete') {
+    await stateManagementService.deleteExternalResourceResponse(resourceId);
     return { action, resourceId, response: {} };
   }
 
+  // Record what was published, so a plan running before the next commit can still read it.
   const targetContext = (allDiffs[0].node as UnknownResource).getContext();
   const resource = resourceDataRepository.getNewResourceByContext(targetContext);
-  return { action, resourceId, response: toFlatStringResponse(resourceId, resource?.response ?? {}) };
+  const response = toFlatStringResponse(resourceId, resource?.response ?? {});
+  await stateManagementService.saveExternalResourceResponse(resourceId, response);
+
+  return { action, resourceId, response };
 }

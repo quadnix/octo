@@ -74,14 +74,10 @@ import { TerraformService } from './services/terraform/terraform.service.js';
  * @see Definition of [Modules](/docs/fundamentals/modules).
  */
 export class Octo {
-  private readonly actualResourceStateFileName: string = 'resources-actual.json';
   private eventService: EventService;
   private inputService: InputService;
   private modelSerializationService: ModelSerializationService;
-
-  private readonly modelStateFileName: string = 'models.json';
   private moduleContainer: ModuleContainer;
-  private readonly oldResourceStateFileName: string = 'resources-old.json';
   private resourceSerializationService: ResourceSerializationService;
   private schemaTranslationService: SchemaTranslationService;
   private stateManagementService: StateManagementService;
@@ -121,19 +117,29 @@ export class Octo {
     }
 
     return this.runMode('commit', app.name, async () => {
-      const { userData } = await this.stateManagementService.getResourceState(this.actualResourceStateFileName);
+      const { userData } = await this.stateManagementService.getResourceState(
+        this.stateManagementService.actualResourceStateFileName,
+      );
 
       // Build the transaction unless a single-process driver already built it and passed it in.
       const resolvedTransaction = transaction ?? (await applyModelTransaction(app));
-      const { modelTransaction, ...completed } = await runCommit({
+      const { externalResourceIds, modelTransaction, ...completed } = await runCommit({
         ...options,
         previousFolders: userData.terraformFolders ?? [],
         previousMappings: userData.terraformResources ?? [],
         transaction: resolvedTransaction,
       });
 
-      // Emitted after the state is persisted, so a listener never sees an uncommitted commit.
       await this.commitTransaction(app, modelTransaction, []);
+
+      // The committed graph now carries every response an external resource published, so the
+      // records its actions wrote mid-apply are cleared. Done after the state is persisted, so a
+      // failure here costs a stale record rather than the response itself.
+      await Promise.all(
+        externalResourceIds.map((resourceId) => this.stateManagementService.deleteExternalResourceResponse(resourceId)),
+      );
+
+      // Emitted after the state is persisted, so a listener never sees an uncommitted commit.
       this.eventService.emit(new CommitModeCompletedEvent(undefined, completed));
 
       return { warnings: completed.warnings };
@@ -172,8 +178,8 @@ export class Octo {
       // The previous folder records must be read before this run writes the new `models.json`, so a
       // module deleted from intent is caught on the generate right after its removal.
       const [{ userData: modelUserData }, { userData: actualResourceUserData }] = await Promise.all([
-        this.stateManagementService.getModelState(this.modelStateFileName),
-        this.stateManagementService.getResourceState(this.actualResourceStateFileName),
+        this.stateManagementService.getModelState(this.stateManagementService.modelStateFileName),
+        this.stateManagementService.getResourceState(this.stateManagementService.actualResourceStateFileName),
       ]);
       const previousFolders = new Map<string, TerraformFolderOutput>();
       for (const record of [
@@ -433,7 +439,9 @@ export class Octo {
     transaction?: ModelTransactionResult,
   ): ReturnType<typeof runValidate> {
     return this.runMode('validate', app.name, async () => {
-      const { userData } = await this.stateManagementService.getResourceState(this.actualResourceStateFileName);
+      const { userData } = await this.stateManagementService.getResourceState(
+        this.stateManagementService.actualResourceStateFileName,
+      );
       const { terraformFolders, terraformResources } = userData;
 
       const previousMappings = terraformResources ?? [];
@@ -491,10 +499,10 @@ export class Octo {
    */
   private async retrieveResourceState(): Promise<void> {
     const { data: actualSerializedOutput } = await this.stateManagementService.getResourceState(
-      this.actualResourceStateFileName,
+      this.stateManagementService.actualResourceStateFileName,
     );
     const { data: oldSerializedOutput } = await this.stateManagementService.getResourceState(
-      this.oldResourceStateFileName,
+      this.stateManagementService.oldResourceStateFileName,
     );
 
     // Initialize previous resource state.
@@ -540,10 +548,14 @@ export class Octo {
    */
   private async saveModelState(app: App): Promise<void> {
     const modelSerializedOutput = await this.modelSerializationService.serialize(app);
-    await this.stateManagementService.saveModelState(this.modelStateFileName, modelSerializedOutput, {
-      terraformFolders: this.terraformService.getFolderRecords(),
-      version: 1,
-    });
+    await this.stateManagementService.saveModelState(
+      this.stateManagementService.modelStateFileName,
+      modelSerializedOutput,
+      {
+        terraformFolders: this.terraformService.getFolderRecords(),
+        version: 1,
+      },
+    );
   }
 
   /**
@@ -555,22 +567,30 @@ export class Octo {
    */
   private async saveResourceState(): Promise<void> {
     const actualSerializedOutput = await this.resourceSerializationService.serializeActualResources();
-    await this.stateManagementService.saveResourceState(this.actualResourceStateFileName, actualSerializedOutput, {
-      terraformFolders: this.terraformService.getFolderRecords(),
-      terraformResources: this.terraformService.getOctoTerraformResourceMappings().map(
-        (m): TerraformResourceOutput => ({
-          moduleId: m.moduleId,
-          resourceContext: m.resourceContext,
-          resourceId: m.resourceId,
-          terraformAddresses: m.terraformAddresses,
-        }),
-      ),
-      version: 1,
-    });
+    await this.stateManagementService.saveResourceState(
+      this.stateManagementService.actualResourceStateFileName,
+      actualSerializedOutput,
+      {
+        terraformFolders: this.terraformService.getFolderRecords(),
+        terraformResources: this.terraformService.getOctoTerraformResourceMappings().map(
+          (m): TerraformResourceOutput => ({
+            moduleId: m.moduleId,
+            resourceContext: m.resourceContext,
+            resourceId: m.resourceId,
+            terraformAddresses: m.terraformAddresses,
+          }),
+        ),
+        version: 1,
+      },
+    );
 
     const oldSerializedOutput = await this.resourceSerializationService.serializeNewResources();
-    await this.stateManagementService.saveResourceState(this.oldResourceStateFileName, oldSerializedOutput, {
-      version: 1,
-    });
+    await this.stateManagementService.saveResourceState(
+      this.stateManagementService.oldResourceStateFileName,
+      oldSerializedOutput,
+      {
+        version: 1,
+      },
+    );
   }
 }

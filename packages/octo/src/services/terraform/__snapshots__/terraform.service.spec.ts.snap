@@ -14,7 +14,7 @@ exports[`TerraformService UT addOctoTerraformExternalResource() should generate 
 }
 
 data "external" "igw-1" {
-  program = ["cat", "\${path.module}/.octo-outputs/igw-1.json"]
+  program = ["octo", "get-response", "--resourceId=igw-1"]
   depends_on = [null_resource.igw-1]
 }
 
@@ -24,7 +24,7 @@ resource "null_resource" "igw-1" {
     input_vpc_1_VpcId = "\${var.vpc_1_VpcId}"
   }
   provisioner "local-exec" {
-    command = "mkdir -p \${path.module}/.octo-outputs && octo run-action --resourceId=igw-1 --input vpc-1.VpcId=\${var.vpc_1_VpcId} > \${path.module}/.octo-outputs/igw-1.json"
+    command = "octo run-action --resourceId=igw-1 --input vpc-1.VpcId=\${var.vpc_1_VpcId}"
   }
   provisioner "local-exec" {
     when = destroy
@@ -55,7 +55,7 @@ exports[`TerraformService UT addOctoTerraformExternalResource() should resolve p
 }
 
 data "external" "igw-1" {
-  program = ["cat", "\${path.module}/.octo-outputs/igw-1.json"]
+  program = ["octo", "get-response", "--resourceId=igw-1"]
   depends_on = [null_resource.igw-1]
 }
 
@@ -69,7 +69,7 @@ resource "null_resource" "igw-1" {
     input_vpc_1_VpcId = "\${aws_vpc.vpc-1.id}"
   }
   provisioner "local-exec" {
-    command = "mkdir -p \${path.module}/.octo-outputs && octo run-action --resourceId=igw-1 --input vpc-1.VpcId=\${aws_vpc.vpc-1.id} > \${path.module}/.octo-outputs/igw-1.json"
+    command = "octo run-action --resourceId=igw-1 --input vpc-1.VpcId=\${aws_vpc.vpc-1.id}"
   }
   provisioner "local-exec" {
     when = destroy

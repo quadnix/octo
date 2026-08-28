@@ -223,7 +223,6 @@ export interface TerraformModuleScope {
  * {@link TerraformService.wireExternalResourceInputs}.
  */
 interface PendingExternalResourceInputWiring {
-  name: string;
   nullResource: TerraformResource;
   octoResource: UnknownResource;
   resourceId: string;
@@ -447,7 +446,7 @@ export class TerraformService {
    * @internal
    */
   constructor(
-    private readonly runOctoResourceActionCommandPrefix: string = 'octo run-action',
+    private readonly octoCommandPrefix: string = 'octo',
     private readonly indentLength: number = 2,
   ) {}
 
@@ -799,7 +798,8 @@ export class TerraformService {
    *
    * Only the parts that depend on no other resource are built here:
    * - the `null_resource` shell (its triggers and `local-exec` provisioners are filled in later),
-   * - the `data "external"` read of `.octo-outputs/<id>.json`, deferred to apply time via `depends_on`,
+   * - the `data "external"` read of the response octo recorded, which terraform re-runs on every plan
+   *   and every apply, and defers to apply time only while the `null_resource` is planned to change,
    * - the single whole-result output (`data.external.<name>.result`) that carries the entire response.
    *
    * The external resource is never enumerated per response key: its response shape is unknown at
@@ -832,13 +832,12 @@ export class TerraformService {
     // once every parent's outputs are known.
     const nullResource = octoTerraformResource.addTerraformResource('null_resource', name);
 
-    const outputsFile = `\${path.module}/.octo-outputs/${name}.json`;
     const dataExternal = this.addTerraformData(moduleId, 'external', name, {
-      program: ['cat', new ExpressionHclNode(`"${outputsFile}"`)],
+      program: [...this.octoCommandPrefix.split(' '), 'get-response', `--resourceId=${resourceId}`],
     });
     dataExternal.attribute('depends_on', new ExpressionHclNode(`[null_resource.${name}]`));
 
-    this.pendingExternalResourcesInputWiring.push({ name, nullResource, octoResource, resourceId });
+    this.pendingExternalResourcesInputWiring.push({ nullResource, octoResource, resourceId });
 
     return octoTerraformResource;
   }
@@ -1393,7 +1392,7 @@ export class TerraformService {
    * which resources were contributed. Idempotent: clears the queue, so a repeat call is a no-op.
    */
   private wireExternalResourceInputs(): void {
-    for (const { name, nullResource, octoResource, resourceId } of this.pendingExternalResourcesInputWiring) {
+    for (const { nullResource, octoResource, resourceId } of this.pendingExternalResourcesInputWiring) {
       const parents: UnknownResource[] = (octoResource.parents || []).map((p) =>
         p instanceof MatchingResource ? p.getActual() : p,
       );
@@ -1424,19 +1423,16 @@ export class TerraformService {
         }
       }
 
-      const outputsDir = '${path.module}/.octo-outputs';
-      const outputsFile = `${outputsDir}/${name}.json`;
       const createCommand: (string | HclExpression)[] = [
-        `mkdir -p ${outputsDir} && ${this.runOctoResourceActionCommandPrefix} --resourceId=${resourceId}`,
+        `${this.octoCommandPrefix} run-action --resourceId=${resourceId}`,
       ];
       const destroyCommand: (string | HclExpression)[] = [
-        `${this.runOctoResourceActionCommandPrefix} --resourceId=${resourceId}`,
+        `${this.octoCommandPrefix} run-action --resourceId=${resourceId}`,
       ];
       for (const input of inputs) {
         createCommand.push(` --input ${input.argKey}=`, input.ref);
         destroyCommand.push(` --input ${input.argKey}=\${self.triggers.${input.triggerKey}}`);
       }
-      createCommand.push(` > ${outputsFile}`);
 
       const triggers: [string, HclExpression][] = [
         ['octo_properties_hash', new LiteralHclNode(StringUtility.deterministicHash(octoResource.properties))],
@@ -1468,16 +1464,16 @@ export class TerraformServiceFactory {
    */
   static async create(
     {
-      runOctoResourceActionCommandPrefix = 'octo run-action',
+      octoCommandPrefix = 'octo',
       terraformFileIndentLength = 2,
     }: {
-      runOctoResourceActionCommandPrefix?: string;
+      octoCommandPrefix?: string;
       terraformFileIndentLength?: number;
     } = {},
     forceNew: boolean = false,
   ): Promise<TerraformService> {
     if (!this.instance) {
-      this.instance = new TerraformService(runOctoResourceActionCommandPrefix, terraformFileIndentLength);
+      this.instance = new TerraformService(octoCommandPrefix, terraformFileIndentLength);
     }
 
     if (forceNew) {

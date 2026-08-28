@@ -5,6 +5,7 @@ import { Container } from '../functions/container/container.js';
 import { aggregateResourceActions } from '../functions/diff/aggregate-resource-actions.js';
 import type { DiffMetadata } from '../functions/diff/diff-metadata.js';
 import { ResourceDataRepository } from '../resources/resource-data.repository.js';
+import { ATerraformResource } from '../resources/terraform-resource.abstract.js';
 import { TerraformService } from '../services/terraform/terraform.service.js';
 import { TransactionService } from '../services/transaction/transaction.service.js';
 import type { ModelTransactionResult } from './apply-transaction.js';
@@ -50,6 +51,7 @@ export async function commit({
   transaction: ModelTransactionResult;
 }): Promise<{
   emptiedModuleIds: string[];
+  externalResourceIds: string[];
   modelTransaction: DiffMetadata[][];
   resources: CommitModeCompletedEvent['payload']['resources'];
   responses: { key: string; previousValue?: string; resourceContext: string; value: string }[];
@@ -236,5 +238,19 @@ export async function commit({
     .map((folder) => folder.moduleId)
     .filter((moduleId) => !writtenModuleIds.includes(moduleId));
 
-  return { emptiedModuleIds, modelTransaction, resources, responses, warnings };
+  // Every external resource whose response is now part of the committed graph. One left out of a
+  // partial commit is excluded: its published record is still the only copy of what it produced.
+  const externalResourceIds = [
+    ...new Set(
+      [
+        ...resourceDataRepository.getNewResourcesByProperties(),
+        ...transaction.resourceDiffs.flat().map((diff) => diff.node as UnknownResource),
+      ]
+        .filter((resource) => !(resource instanceof ATerraformResource))
+        .filter((resource) => !unresolvedResourceContexts.has(resource.getContext()))
+        .map((resource) => resource.resourceId),
+    ),
+  ];
+
+  return { emptiedModuleIds, externalResourceIds, modelTransaction, resources, responses, warnings };
 }
