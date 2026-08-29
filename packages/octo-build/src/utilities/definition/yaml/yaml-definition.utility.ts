@@ -104,50 +104,14 @@ export class YamlDefinitionUtility {
 
   /**
    * Substitutes `${env.KEY}` references in a value with what the definition's `env` block declares.
+   *
+   * Arrays and objects are walked, because a module input is as nested as its schema: a reference
+   * can sit inside a list of images, or a key of an object, as readily as at the top level.
+   *
+   * @throws If a value holds one of its own ancestors, which no substitution over it terminates on.
    */
   resolveEnvironmentValue<T>(value: unknown): T {
-    if (typeof value !== 'string') {
-      return value as T;
-    }
-
-    const pattern = value.match(/^\$\{env\.(.+)}$/);
-    if (!pattern || pattern.length < 2) {
-      return value as T;
-    }
-
-    // `env` is optional in the schema, so a definition can reference `${env.X}` without declaring
-    // one. Treat that as an empty block and let the "not found" error below report it.
-    const environmentKey = (this.definition.env ?? []).find((e) => e.key === pattern[1]);
-    if (!environmentKey) {
-      throw new Error(`Key "${pattern[1]}" not found under "env"!`);
-    }
-
-    let resolvedValue = process.env[pattern[1]] || environmentKey.value;
-
-    const { kind } = environmentKey;
-    switch (kind) {
-      case 'boolean': {
-        // A shell always supplies a string, and `Boolean("false")` is `true`. Parse the string form
-        // rather than coercing it, and reject anything that is not plainly a boolean.
-        if (typeof resolvedValue === 'boolean') {
-          return resolvedValue as T;
-        }
-        const normalizedValue = String(resolvedValue).trim().toLowerCase();
-        if (normalizedValue === 'true') {
-          return true as T;
-        } else if (normalizedValue === 'false') {
-          return false as T;
-        } else {
-          throw new Error(`Value "${resolvedValue}" for key "${pattern[1]}" is not a boolean!`);
-        }
-      }
-      case 'number': {
-        return Number(resolvedValue) as T;
-      }
-      default: {
-        return String(resolvedValue) as T;
-      }
-    }
+    return this.resolveNestedEnvironmentValue(value, new Set());
   }
 
   /**
@@ -406,6 +370,55 @@ export class YamlDefinitionUtility {
   }
 
   /**
+   * Substitutes one `${env.KEY}` reference with what the definition's `env` block declares for that
+   * key, read in the kind the block gives it. Anything holding no reference is returned as it came.
+   */
+  private resolveEnvironmentReference<T>(value: unknown): T {
+    if (typeof value !== 'string') {
+      return value as T;
+    }
+
+    const pattern = value.match(/^\$\{env\.(.+)}$/);
+    if (!pattern || pattern.length < 2) {
+      return value as T;
+    }
+
+    // `env` is optional in the schema, so a definition can reference `${env.X}` without declaring
+    // one. Treat that as an empty block and let the "not found" error below report it.
+    const environmentKey = (this.definition.env ?? []).find((e) => e.key === pattern[1]);
+    if (!environmentKey) {
+      throw new Error(`Key "${pattern[1]}" not found under "env"!`);
+    }
+
+    let resolvedValue = process.env[pattern[1]] || environmentKey.value;
+
+    const { kind } = environmentKey;
+    switch (kind) {
+      case 'boolean': {
+        // A shell always supplies a string, and `Boolean("false")` is `true`. Parse the string form
+        // rather than coercing it, and reject anything that is not plainly a boolean.
+        if (typeof resolvedValue === 'boolean') {
+          return resolvedValue as T;
+        }
+        const normalizedValue = String(resolvedValue).trim().toLowerCase();
+        if (normalizedValue === 'true') {
+          return true as T;
+        } else if (normalizedValue === 'false') {
+          return false as T;
+        } else {
+          throw new Error(`Value "${resolvedValue}" for key "${pattern[1]}" is not a boolean!`);
+        }
+      }
+      case 'number': {
+        return Number(resolvedValue) as T;
+      }
+      default: {
+        return String(resolvedValue) as T;
+      }
+    }
+  }
+
+  /**
    * Resolves a definition-file import specifier to something `import()` can load.
    *
    * A relative path resolves against the **definition file's own directory**. It cannot resolve
@@ -425,6 +438,35 @@ export class YamlDefinitionUtility {
 
     const requireFromProject = createRequire(join(this.definitionDir, 'package.json'));
     return pathToFileURL(requireFromProject.resolve(importPath)).href;
+  }
+
+  /**
+   * Walks a value, substituting every `${env.KEY}` reference it holds at any depth.
+   *
+   * `ancestors` is the chain currently being walked rather than everything already seen. A YAML
+   * anchor used in two places points one node at two parents, which resolves twice and is no cycle;
+   * a node reappearing beneath itself is one, and walking it never ends.
+   *
+   * @throws If a value holds one of its own ancestors.
+   */
+  private resolveNestedEnvironmentValue<T>(value: unknown, ancestors: Set<object>): T {
+    if (value === null || typeof value !== 'object') {
+      return this.resolveEnvironmentReference(value);
+    }
+
+    if (ancestors.has(value)) {
+      throw new Error('Definition holds a value that contains itself!');
+    }
+    ancestors.add(value);
+
+    const resolvedValue = Array.isArray(value)
+      ? value.map((v) => this.resolveNestedEnvironmentValue(v, ancestors))
+      : Object.fromEntries(
+          Object.entries(value).map(([key, v]) => [key, this.resolveNestedEnvironmentValue(v, ancestors)]),
+        );
+
+    ancestors.delete(value);
+    return resolvedValue as T;
   }
 
   /**

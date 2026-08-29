@@ -50,6 +50,46 @@ describe('YamlDefinitionUtility UT', () => {
       expect(definition.resolveEnvironmentValue('${env.OCTO_TEST_STRING}')).toBe('hello');
     });
 
+    it('should resolve a reference nested in an array of objects', () => {
+      const definition = new YamlDefinitionUtility(fixture('env-kinds-definition.yml'));
+
+      expect(
+        definition.resolveEnvironmentValue([
+          { imageTag: '${env.OCTO_TEST_STRING}', replicas: '${env.OCTO_TEST_NUMBER}' },
+          { imageTag: 'literal' },
+        ]),
+      ).toEqual([{ imageTag: 'hello', replicas: 42 }, { imageTag: 'literal' }]);
+    });
+
+    it('should resolve one node reached twice, which a YAML anchor produces', () => {
+      const definition = new YamlDefinitionUtility(fixture('env-kinds-definition.yml'));
+      const shared = { imageTag: '${env.OCTO_TEST_STRING}' };
+
+      expect(definition.resolveEnvironmentValue({ first: shared, second: shared })).toEqual({
+        first: { imageTag: 'hello' },
+        second: { imageTag: 'hello' },
+      });
+    });
+
+    it('should report a value that contains itself', () => {
+      const definition = new YamlDefinitionUtility(fixture('env-kinds-definition.yml'));
+      const cyclic: Record<string, unknown> = { imageTag: '${env.OCTO_TEST_STRING}' };
+      cyclic.self = cyclic;
+
+      expect(() => definition.resolveEnvironmentValue(cyclic)).toThrowErrorMatchingInlineSnapshot(
+        `"Definition holds a value that contains itself!"`,
+      );
+    });
+
+    it('should leave a value carrying no reference alone', () => {
+      const definition = new YamlDefinitionUtility(fixture('env-kinds-definition.yml'));
+
+      expect(definition.resolveEnvironmentValue({ a: [1, 'two', null], b: { c: true } })).toEqual({
+        a: [1, 'two', null],
+        b: { c: true },
+      });
+    });
+
     it('should report a missing key when the definition declares no "env" block', () => {
       const definition = new YamlDefinitionUtility(fixture('terraform-minimal-definition.yml'));
 
