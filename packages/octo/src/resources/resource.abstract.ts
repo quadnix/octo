@@ -471,6 +471,19 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
   }
 
   /**
+   * The properties whose change means an external resource has to be run again. Terraform hashes
+   * them into the trigger of the `null_resource` that stands in for the resource, which is how it
+   * decides to call back.
+   *
+   * A resource that overrides {@link diffProperties} to ignore a property must exclude that property
+   * here too. The two answer the same question, and terraform plans a replacement for any property
+   * only this one covers, which octo then reports no change for.
+   */
+  getExternalTriggerProperties(): Partial<S['properties']> {
+    return this.properties;
+  }
+
+  /**
    * @deprecated Siblings are not supported in resources!
    */
   override getSiblings(): { [p: string]: Dependency[] } {

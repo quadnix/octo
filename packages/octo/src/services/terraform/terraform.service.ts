@@ -1435,7 +1435,10 @@ export class TerraformService {
       }
 
       const triggers: [string, HclExpression][] = [
-        ['octo_properties_hash', new LiteralHclNode(StringUtility.deterministicHash(octoResource.properties))],
+        [
+          'octo_properties_hash',
+          new LiteralHclNode(StringUtility.deterministicHash(octoResource.getExternalTriggerProperties())),
+        ],
         ...inputs.map((i): [string, HclExpression] => [i.triggerKey, new InterpolatedStringHclNode([i.ref])]),
       ];
       nullResource.attribute('triggers', new MapHclNode(triggers));
