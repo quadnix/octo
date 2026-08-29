@@ -1,0 +1,235 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`AwsEcrImageTagModule UT publishing a version should publish nothing when what the image is built from changes 1`] = `"<no changes>"`;
+
+exports[`AwsEcrImageTagModule UT should CUD 2`] = `
+"- image-tag/main.tf
+data "external" "ecr-image-tag-us-east-1-family_image-0-0-1" {
+  program = ["octo", "get-response", "--resourceId=ecr-image-tag-us-east-1-family/image-0-0-1"]
+  depends_on = [null_resource.ecr-image-tag-us-east-1-family_image-0-0-1]
+}
+
+- image-tag/main.tf
+resource "null_resource" "ecr-image-tag-us-east-1-family_image-0-0-1" {
+  triggers = {
+    octo_properties_hash = "44136fa355b3678a"
+    input_ecr_us_east_1_family_image_registryId = "\${var.ecr_us_east_1_family_image_registryId}"
+    input_ecr_us_east_1_family_image_repositoryArn = "\${var.ecr_us_east_1_family_image_repositoryArn}"
+    input_ecr_us_east_1_family_image_repositoryName = "\${var.ecr_us_east_1_family_image_repositoryName}"
+    input_ecr_us_east_1_family_image_repositoryUri = "\${var.ecr_us_east_1_family_image_repositoryUri}"
+  }
+  provisioner "local-exec" {
+    command = "octo run-action --resourceId=ecr-image-tag-us-east-1-family/image-0-0-1 --input ecr-us-east-1-family/image.registryId=\${var.ecr_us_east_1_family_image_registryId} --input ecr-us-east-1-family/image.repositoryArn=\${var.ecr_us_east_1_family_image_repositoryArn} --input ecr-us-east-1-family/image.repositoryName=\${var.ecr_us_east_1_family_image_repositoryName} --input ecr-us-east-1-family/image.repositoryUri=\${var.ecr_us_east_1_family_image_repositoryUri}"
+  }
+  provisioner "local-exec" {
+    when = destroy
+    command = "octo run-action --resourceId=ecr-image-tag-us-east-1-family/image-0-0-1 --input ecr-us-east-1-family/image.registryId=\${self.triggers.input_ecr_us_east_1_family_image_registryId} --input ecr-us-east-1-family/image.repositoryArn=\${self.triggers.input_ecr_us_east_1_family_image_repositoryArn} --input ecr-us-east-1-family/image.repositoryName=\${self.triggers.input_ecr_us_east_1_family_image_repositoryName} --input ecr-us-east-1-family/image.repositoryUri=\${self.triggers.input_ecr_us_east_1_family_image_repositoryUri}"
+  }
+}
+
+- image-tag/main.tf
+terraform {
+  required_version = ">= 1.6.0"
+  required_providers {
+    external = {
+      source = "hashicorp/external"
+    }
+    null = {
+      source = "hashicorp/null"
+    }
+  }
+}
+
+- image-tag/outputs.tf
+output "ecr-image-tag-us-east-1-family_image-0-0-1" {
+  value = data.external.ecr-image-tag-us-east-1-family_image-0-0-1.result
+}
+
+- image-tag/terragrunt.hcl
+dependency "testModule" {
+  config_path = "../testModule"
+
+- image-tag/terragrunt.hcl
+inputs = {
+  ecr_us_east_1_family_image_registryId = dependency.testModule.outputs["ecr-us-east-1-family_image-registryId"]
+  ecr_us_east_1_family_image_repositoryArn = dependency.testModule.outputs["ecr-us-east-1-family_image-repositoryArn"]
+  ecr_us_east_1_family_image_repositoryName = dependency.testModule.outputs["ecr-us-east-1-family_image-repositoryName"]
+  ecr_us_east_1_family_image_repositoryUri = dependency.testModule.outputs["ecr-us-east-1-family_image-repositoryUri"]
+}
+
+- image-tag/terragrunt.hcl
+mock_outputs = {
+    "ecr-us-east-1-family_image-registryId" = "000000000000"
+    "ecr-us-east-1-family_image-repositoryArn" = "arn:aws:ecr:us-east-1:000000000000:repository/mock-repository"
+    "ecr-us-east-1-family_image-repositoryName" = "mock-repository"
+    "ecr-us-east-1-family_image-repositoryUri" = "000000000000.dkr.ecr.us-east-1.amazonaws.com/mock-repository"
+  }
+  mock_outputs_allowed_terraform_commands = ["init", "plan", "show", "validate"]
+  mock_outputs_merge_strategy_with_state = "shallow"
+}
+
+- image-tag/terragrunt.hcl
+remote_state {
+  backend = "local"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite_terragrunt"
+  }
+  config = {
+    path = "\${get_terragrunt_dir()}/terraform.tfstate"
+  }
+}
+
+- image-tag/variables.tf
+variable "ecr_us_east_1_family_image_registryId" {}
+
+- image-tag/variables.tf
+variable "ecr_us_east_1_family_image_repositoryArn" {}
+
+- image-tag/variables.tf
+variable "ecr_us_east_1_family_image_repositoryName" {}
+
+- image-tag/variables.tf
+variable "ecr_us_east_1_family_image_repositoryUri" {}"
+`;
+
+exports[`AwsEcrImageTagModule UT should call correct actions 1`] = `
+"# image-tag/main.tf
+terraform {
+  required_version = ">= 1.6.0"
+  required_providers {
+    external = {
+      source = "hashicorp/external"
+    }
+    null = {
+      source = "hashicorp/null"
+    }
+  }
+}
+
+data "external" "ecr-image-tag-us-east-1-family_image-0-0-1" {
+  program = ["octo", "get-response", "--resourceId=ecr-image-tag-us-east-1-family/image-0-0-1"]
+  depends_on = [null_resource.ecr-image-tag-us-east-1-family_image-0-0-1]
+}
+
+resource "null_resource" "ecr-image-tag-us-east-1-family_image-0-0-1" {
+  triggers = {
+    octo_properties_hash = "44136fa355b3678a"
+    input_ecr_us_east_1_family_image_registryId = "\${var.ecr_us_east_1_family_image_registryId}"
+    input_ecr_us_east_1_family_image_repositoryArn = "\${var.ecr_us_east_1_family_image_repositoryArn}"
+    input_ecr_us_east_1_family_image_repositoryName = "\${var.ecr_us_east_1_family_image_repositoryName}"
+    input_ecr_us_east_1_family_image_repositoryUri = "\${var.ecr_us_east_1_family_image_repositoryUri}"
+  }
+  provisioner "local-exec" {
+    command = "octo run-action --resourceId=ecr-image-tag-us-east-1-family/image-0-0-1 --input ecr-us-east-1-family/image.registryId=\${var.ecr_us_east_1_family_image_registryId} --input ecr-us-east-1-family/image.repositoryArn=\${var.ecr_us_east_1_family_image_repositoryArn} --input ecr-us-east-1-family/image.repositoryName=\${var.ecr_us_east_1_family_image_repositoryName} --input ecr-us-east-1-family/image.repositoryUri=\${var.ecr_us_east_1_family_image_repositoryUri}"
+  }
+  provisioner "local-exec" {
+    when = destroy
+    command = "octo run-action --resourceId=ecr-image-tag-us-east-1-family/image-0-0-1 --input ecr-us-east-1-family/image.registryId=\${self.triggers.input_ecr_us_east_1_family_image_registryId} --input ecr-us-east-1-family/image.repositoryArn=\${self.triggers.input_ecr_us_east_1_family_image_repositoryArn} --input ecr-us-east-1-family/image.repositoryName=\${self.triggers.input_ecr_us_east_1_family_image_repositoryName} --input ecr-us-east-1-family/image.repositoryUri=\${self.triggers.input_ecr_us_east_1_family_image_repositoryUri}"
+  }
+}
+
+# image-tag/outputs.tf
+output "ecr-image-tag-us-east-1-family_image-0-0-1" {
+  value = data.external.ecr-image-tag-us-east-1-family_image-0-0-1.result
+}
+
+# image-tag/terragrunt.hcl
+remote_state {
+  backend = "local"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite_terragrunt"
+  }
+  config = {
+    path = "\${get_terragrunt_dir()}/terraform.tfstate"
+  }
+}
+
+dependency "testModule" {
+  config_path = "../testModule"
+
+  mock_outputs = {
+    "ecr-us-east-1-family_image-registryId" = "000000000000"
+    "ecr-us-east-1-family_image-repositoryArn" = "arn:aws:ecr:us-east-1:000000000000:repository/mock-repository"
+    "ecr-us-east-1-family_image-repositoryName" = "mock-repository"
+    "ecr-us-east-1-family_image-repositoryUri" = "000000000000.dkr.ecr.us-east-1.amazonaws.com/mock-repository"
+  }
+  mock_outputs_allowed_terraform_commands = ["init", "plan", "show", "validate"]
+  mock_outputs_merge_strategy_with_state = "shallow"
+}
+
+inputs = {
+  ecr_us_east_1_family_image_registryId = dependency.testModule.outputs["ecr-us-east-1-family_image-registryId"]
+  ecr_us_east_1_family_image_repositoryArn = dependency.testModule.outputs["ecr-us-east-1-family_image-repositoryArn"]
+  ecr_us_east_1_family_image_repositoryName = dependency.testModule.outputs["ecr-us-east-1-family_image-repositoryName"]
+  ecr_us_east_1_family_image_repositoryUri = dependency.testModule.outputs["ecr-us-east-1-family_image-repositoryUri"]
+}
+
+# image-tag/variables.tf
+variable "ecr_us_east_1_family_image_registryId" {}
+
+variable "ecr_us_east_1_family_image_repositoryArn" {}
+
+variable "ecr_us_east_1_family_image_repositoryName" {}
+
+variable "ecr_us_east_1_family_image_repositoryUri" {}
+
+# testModule/main.tf
+terraform {
+  required_version = ">= 1.6.0"
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = ">= 5.49"
+    }
+  }
+}
+
+provider "aws" {
+  alias = "_123-us-east-1"
+  region = "us-east-1"
+}
+
+resource "aws_ecr_repository" "ecr-us-east-1-family_image" {
+  provider = aws._123-us-east-1
+  force_delete = true
+  image_scanning_configuration {
+    scan_on_push = false
+  }
+  image_tag_mutability = "IMMUTABLE"
+  name = "family/image"
+}
+
+# testModule/outputs.tf
+output "ecr-us-east-1-family_image-registryId" {
+  value = aws_ecr_repository.ecr-us-east-1-family_image.registry_id
+}
+
+output "ecr-us-east-1-family_image-repositoryArn" {
+  value = aws_ecr_repository.ecr-us-east-1-family_image.arn
+}
+
+output "ecr-us-east-1-family_image-repositoryName" {
+  value = aws_ecr_repository.ecr-us-east-1-family_image.name
+}
+
+output "ecr-us-east-1-family_image-repositoryUri" {
+  value = aws_ecr_repository.ecr-us-east-1-family_image.repository_url
+}
+
+# testModule/terragrunt.hcl
+remote_state {
+  backend = "local"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite_terragrunt"
+  }
+  config = {
+    path = "\${get_terragrunt_dir()}/terraform.tfstate"
+  }
+}
+
+# testModule/variables.tf
+<empty>"
+`;
