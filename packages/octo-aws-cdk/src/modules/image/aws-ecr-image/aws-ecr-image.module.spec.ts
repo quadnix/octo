@@ -79,10 +79,6 @@ describe('AwsEcrImageModule UT', () => {
        region = "us-east-1"
      }
 
-     data "aws_ecr_authorization_token" "ecr-us-east-1-family_image" {
-       registry_id = aws_ecr_repository.ecr-us-east-1-family_image.registry_id
-     }
-
      resource "aws_ecr_repository" "ecr-us-east-1-family_image" {
        provider = aws._123-us-east-1
        force_delete = true
@@ -94,15 +90,6 @@ describe('AwsEcrImageModule UT', () => {
      }
 
      # image/outputs.tf
-     output "ecr-us-east-1-family_image-authorizationToken" {
-       value = data.aws_ecr_authorization_token.ecr-us-east-1-family_image.authorization_token
-       sensitive = true
-     }
-
-     output "ecr-us-east-1-family_image-proxyEndpoint" {
-       value = data.aws_ecr_authorization_token.ecr-us-east-1-family_image.proxy_endpoint
-     }
-
      output "ecr-us-east-1-family_image-registryId" {
        value = aws_ecr_repository.ecr-us-east-1-family_image.registry_id
      }

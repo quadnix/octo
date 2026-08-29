@@ -2,16 +2,6 @@
 
 exports[`AwsEcrImageModule UT input changes should handle imageFamily change 1`] = `
 "+ image/main.tf
-data "aws_ecr_authorization_token" "ecr-us-east-1-changed-family_image" {
-  registry_id = aws_ecr_repository.ecr-us-east-1-changed-family_image.registry_id
-}
-
-- image/main.tf
-data "aws_ecr_authorization_token" "ecr-us-east-1-family_image" {
-  registry_id = aws_ecr_repository.ecr-us-east-1-family_image.registry_id
-}
-
-+ image/main.tf
 resource "aws_ecr_repository" "ecr-us-east-1-changed-family_image" {
   provider = aws._123-us-east-1
   force_delete = true
@@ -34,17 +24,6 @@ resource "aws_ecr_repository" "ecr-us-east-1-family_image" {
 }
 
 + image/outputs.tf
-output "ecr-us-east-1-changed-family_image-authorizationToken" {
-  value = data.aws_ecr_authorization_token.ecr-us-east-1-changed-family_image.authorization_token
-  sensitive = true
-}
-
-+ image/outputs.tf
-output "ecr-us-east-1-changed-family_image-proxyEndpoint" {
-  value = data.aws_ecr_authorization_token.ecr-us-east-1-changed-family_image.proxy_endpoint
-}
-
-+ image/outputs.tf
 output "ecr-us-east-1-changed-family_image-registryId" {
   value = aws_ecr_repository.ecr-us-east-1-changed-family_image.registry_id
 }
@@ -62,17 +41,6 @@ output "ecr-us-east-1-changed-family_image-repositoryName" {
 + image/outputs.tf
 output "ecr-us-east-1-changed-family_image-repositoryUri" {
   value = aws_ecr_repository.ecr-us-east-1-changed-family_image.repository_url
-}
-
-- image/outputs.tf
-output "ecr-us-east-1-family_image-authorizationToken" {
-  value = data.aws_ecr_authorization_token.ecr-us-east-1-family_image.authorization_token
-  sensitive = true
-}
-
-- image/outputs.tf
-output "ecr-us-east-1-family_image-proxyEndpoint" {
-  value = data.aws_ecr_authorization_token.ecr-us-east-1-family_image.proxy_endpoint
 }
 
 - image/outputs.tf
@@ -98,16 +66,6 @@ output "ecr-us-east-1-family_image-repositoryUri" {
 
 exports[`AwsEcrImageModule UT input changes should handle imageName change 1`] = `
 "+ image/main.tf
-data "aws_ecr_authorization_token" "ecr-us-east-1-family_changed-image" {
-  registry_id = aws_ecr_repository.ecr-us-east-1-family_changed-image.registry_id
-}
-
-- image/main.tf
-data "aws_ecr_authorization_token" "ecr-us-east-1-family_image" {
-  registry_id = aws_ecr_repository.ecr-us-east-1-family_image.registry_id
-}
-
-+ image/main.tf
 resource "aws_ecr_repository" "ecr-us-east-1-family_changed-image" {
   provider = aws._123-us-east-1
   force_delete = true
@@ -130,17 +88,6 @@ resource "aws_ecr_repository" "ecr-us-east-1-family_image" {
 }
 
 + image/outputs.tf
-output "ecr-us-east-1-family_changed-image-authorizationToken" {
-  value = data.aws_ecr_authorization_token.ecr-us-east-1-family_changed-image.authorization_token
-  sensitive = true
-}
-
-+ image/outputs.tf
-output "ecr-us-east-1-family_changed-image-proxyEndpoint" {
-  value = data.aws_ecr_authorization_token.ecr-us-east-1-family_changed-image.proxy_endpoint
-}
-
-+ image/outputs.tf
 output "ecr-us-east-1-family_changed-image-registryId" {
   value = aws_ecr_repository.ecr-us-east-1-family_changed-image.registry_id
 }
@@ -158,17 +105,6 @@ output "ecr-us-east-1-family_changed-image-repositoryName" {
 + image/outputs.tf
 output "ecr-us-east-1-family_changed-image-repositoryUri" {
   value = aws_ecr_repository.ecr-us-east-1-family_changed-image.repository_url
-}
-
-- image/outputs.tf
-output "ecr-us-east-1-family_image-authorizationToken" {
-  value = data.aws_ecr_authorization_token.ecr-us-east-1-family_image.authorization_token
-  sensitive = true
-}
-
-- image/outputs.tf
-output "ecr-us-east-1-family_image-proxyEndpoint" {
-  value = data.aws_ecr_authorization_token.ecr-us-east-1-family_image.proxy_endpoint
 }
 
 - image/outputs.tf
@@ -194,11 +130,6 @@ output "ecr-us-east-1-family_image-repositoryUri" {
 
 exports[`AwsEcrImageModule UT should CUD 2`] = `
 "- image/main.tf
-data "aws_ecr_authorization_token" "ecr-us-east-1-family_image" {
-  registry_id = aws_ecr_repository.ecr-us-east-1-family_image.registry_id
-}
-
-- image/main.tf
 provider "aws" {
   alias = "_123-us-east-1"
   region = "us-east-1"
@@ -224,17 +155,6 @@ terraform {
       version = ">= 5.49"
     }
   }
-}
-
-- image/outputs.tf
-output "ecr-us-east-1-family_image-authorizationToken" {
-  value = data.aws_ecr_authorization_token.ecr-us-east-1-family_image.authorization_token
-  sensitive = true
-}
-
-- image/outputs.tf
-output "ecr-us-east-1-family_image-proxyEndpoint" {
-  value = data.aws_ecr_authorization_token.ecr-us-east-1-family_image.proxy_endpoint
 }
 
 - image/outputs.tf
@@ -296,11 +216,6 @@ exports[`AwsEcrImageModule UT should CUD tags 4`] = `
 
 exports[`AwsEcrImageModule UT should handle moduleId change 1`] = `
 "- image-1/main.tf
-data "aws_ecr_authorization_token" "ecr-us-east-1-family_image" {
-  registry_id = aws_ecr_repository.ecr-us-east-1-family_image.registry_id
-}
-
-- image-1/main.tf
 provider "aws" {
   alias = "_123-us-east-1"
   region = "us-east-1"
@@ -326,17 +241,6 @@ terraform {
       version = ">= 5.49"
     }
   }
-}
-
-- image-1/outputs.tf
-output "ecr-us-east-1-family_image-authorizationToken" {
-  value = data.aws_ecr_authorization_token.ecr-us-east-1-family_image.authorization_token
-  sensitive = true
-}
-
-- image-1/outputs.tf
-output "ecr-us-east-1-family_image-proxyEndpoint" {
-  value = data.aws_ecr_authorization_token.ecr-us-east-1-family_image.proxy_endpoint
 }
 
 - image-1/outputs.tf
@@ -375,11 +279,6 @@ remote_state {
 <empty>
 
 + image-2/main.tf
-data "aws_ecr_authorization_token" "ecr-us-east-1-family_image" {
-  registry_id = aws_ecr_repository.ecr-us-east-1-family_image.registry_id
-}
-
-+ image-2/main.tf
 provider "aws" {
   alias = "_123-us-east-1"
   region = "us-east-1"
@@ -405,17 +304,6 @@ terraform {
       version = ">= 5.49"
     }
   }
-}
-
-+ image-2/outputs.tf
-output "ecr-us-east-1-family_image-authorizationToken" {
-  value = data.aws_ecr_authorization_token.ecr-us-east-1-family_image.authorization_token
-  sensitive = true
-}
-
-+ image-2/outputs.tf
-output "ecr-us-east-1-family_image-proxyEndpoint" {
-  value = data.aws_ecr_authorization_token.ecr-us-east-1-family_image.proxy_endpoint
 }
 
 + image-2/outputs.tf

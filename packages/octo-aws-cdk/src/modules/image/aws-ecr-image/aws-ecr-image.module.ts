@@ -1,4 +1,5 @@
 import { AModule, type Account, type App, Module } from '@quadnix/octo';
+import { AwsEcrImageAnchor } from '../../../anchors/aws-ecr/aws-ecr-image.anchor.js';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import { AwsEcrImageModuleSchema } from './index.schema.js';
 import { AwsEcrImage } from './models/image/index.js';
@@ -6,8 +7,8 @@ import { AwsEcrImage } from './models/image/index.js';
 /**
  * `AwsEcrImageModule` is an ECR-based AWS image module that provides an implementation for the `Image` model.
  * This module creates AWS ECR (Elastic Container Registry) repositories for storing and managing container images.
- * It provides functionality to manage Docker images across multiple AWS regions
- * and generate ECR authentication commands.
+ * It creates the repositories and nothing else - the versions inside them are published by the
+ * `AwsEcrImageTagModule`, one module per version.
  *
  * @example
  * TypeScript
@@ -40,6 +41,9 @@ export class AwsEcrImageModule extends AModule<AwsEcrImageModuleSchema, AwsEcrIm
     // Create a new image.
     const image = new AwsEcrImage(inputs.imageFamily, inputs.imageName);
     app.addImage(image);
+
+    // Advertise the repositories, so a module publishing a version into them can find this image.
+    image.addAnchor(new AwsEcrImageAnchor('AwsEcrImageAnchor', { imageId: image.imageId }, image));
 
     return image;
   }
