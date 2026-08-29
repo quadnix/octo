@@ -102,6 +102,7 @@ export class EcsTaskDefinitionImageSchema {
  * ```mermaid
  * graph TD;
  *   iam_role((Iam<br>Role)) --> ecs_task_definition((Ecs<br>Task<br>Definition))
+ *   ecr_image_tag((Ecr<br>Image<br>Tag)) --> ecs_task_definition
  *   efs((Efs)) --> ecs_task_definition
  * ```
  * @overrideProperty resourceId - The resource id is of format `ecs-task-definition-<execution-id>`

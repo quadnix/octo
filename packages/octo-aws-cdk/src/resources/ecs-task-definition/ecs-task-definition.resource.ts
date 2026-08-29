@@ -12,6 +12,7 @@ import {
   hasNodeName,
 } from '@quadnix/octo';
 import { TaskDefinitionUtility } from '../../utilities/task-definition/task-definition.utility.js';
+import type { EcrImageTagSchema } from '../ecr-image-tag/index.schema.js';
 import type { EfsSchema } from '../efs/index.schema.js';
 import type { IamRoleSchema } from '../iam-role/index.schema.js';
 import { EcsTaskDefinitionSchema } from './index.schema.js';
@@ -21,7 +22,10 @@ import { EcsTaskDefinitionSchema } from './index.schema.js';
  */
 @Resource<EcsTaskDefinition>('@octo', 'ecs-task-definition', EcsTaskDefinitionSchema)
 export class EcsTaskDefinition extends ATerraformResource<EcsTaskDefinitionSchema, EcsTaskDefinition> {
-  declare parents: [MatchingResource<IamRoleSchema>, ...MatchingResource<EfsSchema>[]];
+  declare parents: [
+    MatchingResource<IamRoleSchema>,
+    ...(MatchingResource<EcrImageTagSchema> | MatchingResource<EfsSchema>)[],
+  ];
   declare properties: EcsTaskDefinitionSchema['properties'];
   declare response: EcsTaskDefinitionSchema['response'];
 
@@ -31,7 +35,10 @@ export class EcsTaskDefinition extends ATerraformResource<EcsTaskDefinitionSchem
   constructor(
     resourceId: string,
     properties: EcsTaskDefinitionSchema['properties'],
-    parents: [MatchingResource<IamRoleSchema>, ...MatchingResource<EfsSchema>[]],
+    parents: [
+      MatchingResource<IamRoleSchema>,
+      ...(MatchingResource<EcrImageTagSchema> | MatchingResource<EfsSchema>)[],
+    ],
   ) {
     super(resourceId, properties, parents);
 
@@ -39,7 +46,8 @@ export class EcsTaskDefinition extends ATerraformResource<EcsTaskDefinitionSchem
       throw new ResourceError('Invalid values for CPU and/or memory!', this);
     }
 
-    this.updateTaskDefinitionEfs(parents.slice(1).map((p) => p.getActual()));
+    this.updateTaskDefinitionEfs();
+    this.updateTaskDefinitionImageTags();
   }
 
   /**
@@ -52,6 +60,10 @@ export class EcsTaskDefinition extends ATerraformResource<EcsTaskDefinitionSchem
     for (let i = diffs.length - 1; i >= 0; i--) {
       if (diffs[i].field === 'parent' && hasNodeName(diffs[i].value as AResource<any, any>, 'iam-role')) {
         // Skip updating TaskDefinition when iam-role is updated.
+        diffs.splice(i, 1);
+      } else if (diffs[i].field === 'parent' && hasNodeName(diffs[i].value as AResource<any, any>, 'ecr-image-tag')) {
+        // Skip updating TaskDefinition when an ecr-image-tag is added or removed: the image a
+        // container runs is a property of this resource, and a change to it is reported there.
         diffs.splice(i, 1);
       } else if (diffs[i].field === 'parent' && hasNodeName(diffs[i].value as AResource<any, any>, 'efs')) {
         // Consolidate all Efs parent updates into a single UPDATE diff.
@@ -103,7 +115,7 @@ export class EcsTaskDefinition extends ATerraformResource<EcsTaskDefinitionSchem
    */
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {
     const iamRoleParent = this.parents[0] as MatchingResource<IamRoleSchema>;
-    const efsParents = (this.parents as MatchingResource<EfsSchema>[]).slice(1);
+    const efsParents = this.getEfsParents();
 
     const containerDefinitions = this.properties.images.map((image) => ({
       command: image.command,
@@ -161,8 +173,24 @@ export class EcsTaskDefinition extends ATerraformResource<EcsTaskDefinitionSchem
   /**
    * @internal
    */
-  private updateTaskDefinitionEfs(efsParents: ReturnType<MatchingResource<EfsSchema>['getActual']>[]): void {
-    for (const efsParent of efsParents) {
+  private getEcrImageTagParents(): MatchingResource<EcrImageTagSchema>[] {
+    return this.parents.filter((p) =>
+      hasNodeName(p.getActual(), 'ecr-image-tag'),
+    ) as MatchingResource<EcrImageTagSchema>[];
+  }
+
+  /**
+   * @internal
+   */
+  private getEfsParents(): MatchingResource<EfsSchema>[] {
+    return this.parents.filter((p) => hasNodeName(p.getActual(), 'efs')) as MatchingResource<EfsSchema>[];
+  }
+
+  /**
+   * @internal
+   */
+  private updateTaskDefinitionEfs(): void {
+    for (const efsParent of this.getEfsParents().map((p) => p.getActual())) {
       const tdToEfsDep = this.getDependency(efsParent, DependencyRelationship.CHILD)!;
       const efsToTdDep = efsParent.getDependency(this, DependencyRelationship.PARENT)!;
 
@@ -170,6 +198,28 @@ export class EcsTaskDefinition extends ATerraformResource<EcsTaskDefinitionSchem
       tdToEfsDep.addBehavior('resourceId', DiffAction.UPDATE, 'resourceId', DiffAction.ADD);
       // Before deleting efs must update ecs-task-definition.
       efsToTdDep.addBehavior('resourceId', DiffAction.DELETE, 'resourceId', DiffAction.UPDATE);
+    }
+  }
+
+  /**
+   * Orders this task definition against the published images it runs.
+   *
+   * A published image is deleted by octo at commit, outside terraform's own ordering, so nothing
+   * else holds it back until the task definition has stopped naming it.
+   *
+   * @internal
+   */
+  private updateTaskDefinitionImageTags(): void {
+    for (const imageTagParent of this.getEcrImageTagParents().map((p) => p.getActual())) {
+      const tdToImageTagDep = this.getDependency(imageTagParent, DependencyRelationship.CHILD)!;
+      const imageTagToTdDep = imageTagParent.getDependency(this, DependencyRelationship.PARENT)!;
+
+      // Before updating or replacing ecs-task-definition must add ecr-image-tag.
+      tdToImageTagDep.addBehavior('resourceId', DiffAction.UPDATE, 'resourceId', DiffAction.ADD);
+      tdToImageTagDep.addBehavior('resourceId', DiffAction.REPLACE, 'resourceId', DiffAction.ADD);
+      // Before deleting ecr-image-tag must update or replace ecs-task-definition.
+      imageTagToTdDep.addBehavior('resourceId', DiffAction.DELETE, 'resourceId', DiffAction.UPDATE);
+      imageTagToTdDep.addBehavior('resourceId', DiffAction.DELETE, 'resourceId', DiffAction.REPLACE);
     }
   }
 }
