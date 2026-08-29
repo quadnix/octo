@@ -73,6 +73,7 @@ export async function commit({
   // Read every filled module folder's outputs from the caller-supplied map. A folder with no
   // outputs at all never applied, which a partial commit records as a warning and skips.
   const outputsByModule = new Map<string, TerraformOutputs>();
+  const moduleIdsWithoutOutputs: string[] = [];
   for (const moduleId of terraformService.getModuleIds()) {
     const moduleOutputs = outputs.get(moduleId);
     if (moduleOutputs === undefined) {
@@ -83,6 +84,7 @@ export async function commit({
         message: `No terraform outputs for module "${moduleId}"; its resources are left uncommitted.`,
         moduleId,
       });
+      moduleIdsWithoutOutputs.push(moduleId);
       continue;
     }
     outputsByModule.set(moduleId, moduleOutputs);
@@ -207,12 +209,34 @@ export async function commit({
   // configuration - it drops the `null_resource` from state and moves on, so the callback never
   // fires. Without this the real thing outlives both state files with nothing tracking it.
   //
+  // These deletes sit outside terraform's graph, so they run over the whole diff set with no regard
+  // for the order terraform destroyed anything in. That is only safe once terraform reached the
+  // desired state everywhere: an apply that stopped short leaves live infrastructure still pointing
+  // at what is about to be deleted, and octo cannot tell which. So an unconfirmed apply defers every
+  // one of them instead, keeping the resources recorded as present for the next run to delete.
+  //
   // Placed before the sync deliberately. A delete that throws aborts the commit with octo state
   // untouched, so the resource is still recorded as present and the deletion is retried next run.
-  await transactionService.applyExternalResourceDeletes(transaction.resourceDiffs);
+  const deferredResourceContexts = new Set<string>();
+  if (moduleIdsWithoutOutputs.length > 0 || unresolvedResourceContexts.size > 0) {
+    for (const diff of transactionService.getExternalResourceDeletes(transaction.resourceDiffs)) {
+      deferredResourceContexts.add((diff.node as UnknownResource).getContext());
+    }
+    if (deferredResourceContexts.size > 0) {
+      warnings.push({
+        message:
+          `Partial commit: ${deferredResourceContexts.size} external resource(s) were not deleted because this ` +
+          `apply was not confirmed everywhere: ${[...deferredResourceContexts].sort().join(', ')}. They stay ` +
+          'recorded as present, and the next successful run deletes them.',
+      });
+    }
+  } else {
+    await transactionService.applyExternalResourceDeletes(transaction.resourceDiffs);
+  }
 
-  // Terraform has applied the desired state: actual ← new, less anything a partial commit could not confirm.
-  resourceDataRepository.syncActualToNew(unresolvedResourceContexts);
+  // Terraform has applied the desired state: actual ← new, less anything a partial commit could not
+  // confirm, plus anything whose deletion was deferred.
+  resourceDataRepository.syncActualToNew(unresolvedResourceContexts, deferredResourceContexts);
 
   // Describe what was committed. Addresses come from this run's sweep, falling back to the last
   // commit's mapping for deleted resources, which the sweep no longer renders.
@@ -220,7 +244,10 @@ export async function commit({
   const previousByContext = new Map(previousMappings.map((mapping) => [mapping.resourceContext, mapping]));
 
   const resources = [...aggregateResourceActions(transaction.resourceDiffs.flat()).entries()]
-    .filter(([resourceContext]) => !unresolvedResourceContexts.has(resourceContext))
+    .filter(
+      ([resourceContext]) =>
+        !unresolvedResourceContexts.has(resourceContext) && !deferredResourceContexts.has(resourceContext),
+    )
     .map(([resourceContext, action]) => {
       const mapping = mappingByContext.get(resourceContext) ?? previousByContext.get(resourceContext);
       return {

@@ -108,4 +108,37 @@ describe('ResourceDataRepository UT', () => {
       expect((diffOverrideSpy.mock.calls[0] as any)[0].resourceId).toBe('resource-1');
     });
   });
+
+  describe('syncActualToNew()', () => {
+    it('should drop a resource that left intent', async () => {
+      const resourceDataRepository = await container.get(ResourceDataRepository);
+
+      await createTestResources([{ resourceContext: '@octo/test-resource=resource-1' }]);
+      await commitResources();
+
+      resourceDataRepository.syncActualToNew();
+
+      expect(resourceDataRepository.getActualResourcesByProperties()).toHaveLength(0);
+    });
+
+    it('should retain a resource, and the parents it deserializes with, in both graphs', async () => {
+      const resourceDataRepository = await container.get(ResourceDataRepository);
+
+      await createTestResources([
+        { resourceContext: '@octo/test-resource=resource-1' },
+        { parents: ['@octo/test-resource=resource-1'], resourceContext: '@octo/test-resource=resource-2' },
+      ]);
+      await commitResources();
+
+      resourceDataRepository.syncActualToNew(new Set(), new Set(['@octo/test-resource=resource-2']));
+
+      expect(
+        resourceDataRepository
+          .getActualResourcesByProperties()
+          .map((r) => r.getContext())
+          .sort(),
+      ).toEqual(['@octo/test-resource=resource-1', '@octo/test-resource=resource-2']);
+      expect(resourceDataRepository.getNewResourceByContext('@octo/test-resource=resource-2')).toBeDefined();
+    });
+  });
 });

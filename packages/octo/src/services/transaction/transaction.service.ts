@@ -107,15 +107,7 @@ export class TransactionService {
    * @returns The diffs whose actions ran, in the order they ran.
    */
   async applyExternalResourceDeletes(resourceDiffs: DiffMetadata[][]): Promise<DiffMetadata[][]> {
-    const deleteDiffs = resourceDiffs
-      .flat()
-      .filter(
-        (d) =>
-          d.action === DiffAction.DELETE &&
-          d.field === 'resourceId' &&
-          !(d.node instanceof ATerraformResource) &&
-          !d.applied,
-      );
+    const deleteDiffs = this.getExternalResourceDeletes(resourceDiffs);
     if (deleteDiffs.length === 0) {
       return [];
     }
@@ -317,6 +309,25 @@ export class TransactionService {
     }
 
     return modelTransaction;
+  }
+
+  /**
+   * The diffs {@link TransactionService.applyExternalResourceDeletes} runs: the deletion of every
+   * external resource in `resourceDiffs`. A caller that has to decide whether to run them at all
+   * names them through this rather than repeating the filter.
+   *
+   * @internal
+   */
+  getExternalResourceDeletes(resourceDiffs: DiffMetadata[][]): DiffMetadata[] {
+    return resourceDiffs
+      .flat()
+      .filter(
+        (d) =>
+          d.action === DiffAction.DELETE &&
+          d.field === 'resourceId' &&
+          !(d.node instanceof ATerraformResource) &&
+          !d.applied,
+      );
   }
 
   /**

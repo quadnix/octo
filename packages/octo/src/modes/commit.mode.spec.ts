@@ -201,5 +201,47 @@ describe('commit()', () => {
         testModes.resourceDataRepository.getActualResourcesByProperties().find((r) => r.resourceId === 'igw-1'),
       ).toBeDefined();
     });
+
+    // An external delete runs over the whole diff set, after terraform, outside terraform's own
+    // ordering. An apply that stopped short can leave live infrastructure pointing at the resource
+    // being deleted, so an unconfirmed apply defers the delete rather than guessing.
+    it('should defer the delete when a module did not apply, and keep the resource in state', async () => {
+      const { app } = await testModes.createResourceGraph({ save: true });
+      await commitResources({ skipAddActualResource: true });
+      await recreateDesiredGraphWithoutIgw();
+      // A second folder that renders a resource and reports no outputs at all: it never applied.
+      await testModes.addResource('sg-module', new TfVpcResource('vpc-2', { CidrBlock: '10.1.0.0/16' }));
+
+      testModes.writeTfState('region-module', { 'vpc-1-VpcId': 'vpc-0real' });
+
+      const transaction = await applyModelTransaction(app);
+      const { warnings } = await commit({ outputs: testModes.outputs, partial: true, transaction });
+
+      expect(testModes.igwActionHandledDiffs.filter((d) => d.action === 'delete')).toHaveLength(0);
+      expect(warnings).toEqual(
+        expect.arrayContaining([
+          { message: expect.stringContaining('1 external resource(s) were not deleted') as unknown as string },
+        ]),
+      );
+      expect(
+        testModes.resourceDataRepository.getActualResourcesByProperties().find((r) => r.resourceId === 'igw-1'),
+      ).toBeDefined();
+    });
+
+    // The gate is the evidence, not the flag: a partial commit that confirmed every module knows
+    // nothing is left pointing at the resource, so the delete runs.
+    it('should run the delete on a partial commit that confirmed every module', async () => {
+      const { app } = await testModes.createResourceGraph({ save: true });
+      await commitResources({ skipAddActualResource: true });
+      await recreateDesiredGraphWithoutIgw();
+
+      testModes.writeTfState('region-module', { 'vpc-1-VpcId': 'vpc-0real' });
+      testModes.writeTfState('sg-module', {});
+
+      const transaction = await applyModelTransaction(app);
+      await commit({ outputs: testModes.outputs, partial: true, transaction });
+
+      expect(testModes.igwActionHandledDiffs.filter((d) => d.action === 'delete')).toHaveLength(1);
+    });
   });
 });

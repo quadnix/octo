@@ -1,4 +1,4 @@
-import { type ActionOutputs, NodeType, type UnknownResource } from '../app.type.js';
+import { type ActionOutputs, MatchingResource, NodeType, type UnknownResource } from '../app.type.js';
 import { Factory } from '../decorators/factory.decorator.js';
 import { DiffsOnDirtyResourcesTransactionError, ResourceError } from '../errors/index.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';
@@ -255,10 +255,57 @@ export class ResourceDataRepository {
    * of the actual graph, so the next run plans to create them again - which terraform reconciles
    * against its own state as a no-op if they do exist. Recording less than reality is recoverable;
    * recording more is not.
+   *
+   * `retainResourceContexts` names resources whose deletion did not run. Each is carried over from
+   * the graph being replaced, along with the parents it needs to deserialize with, and joins both
+   * graphs: the actual graph records it as still present, and the new graph is what the next run
+   * diffs against, which is what plans its deletion again.
    */
-  syncActualToNew(excludeResourceContexts: Set<string> = new Set()): void {
+  syncActualToNew(
+    excludeResourceContexts: Set<string> = new Set(),
+    retainResourceContexts: Set<string> = new Set(),
+  ): void {
+    for (const resource of this.collectWithParents(retainResourceContexts)) {
+      const rIndex = this.newResources.findIndex((r) => r.getContext() === resource.getContext());
+      if (rIndex === -1) {
+        this.newResources.push(resource);
+      } else if (this.newResources[rIndex].isMarkedDeleted()) {
+        this.newResources[rIndex] = resource;
+      }
+    }
+
     this.actualResources = this.newResources.filter((r) => !excludeResourceContexts.has(r.getContext()));
     this.dirtyResources = [];
+  }
+
+  /**
+   * Collects the named resources out of the actual graph, closed over their parents.
+   *
+   * A resource deserializes by de-referencing every parent it names, so a resource is only worth
+   * keeping when the graph keeps the parents above it too.
+   */
+  private collectWithParents(resourceContexts: Set<string>): UnknownResource[] {
+    const collected = new Map<string, UnknownResource>();
+    const contextsToProcess = [...resourceContexts];
+
+    while (contextsToProcess.length > 0) {
+      const context = contextsToProcess.shift()!;
+      if (collected.has(context)) {
+        continue;
+      }
+
+      const resource = this.actualResources.find((r) => r.getContext() === context);
+      if (!resource) {
+        continue;
+      }
+
+      collected.set(context, resource);
+      contextsToProcess.push(
+        ...resource.parents.map((p) => (p instanceof MatchingResource ? p.getActual() : p).getContext()),
+      );
+    }
+
+    return [...collected.values()];
   }
 }
 
