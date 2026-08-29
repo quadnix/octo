@@ -54,13 +54,21 @@ describe('StateManagementService UT', () => {
     // copy of the response, and it is newer than anything the committed graph holds.
     it('should prefer a published record over the committed graph', async () => {
       await commitResourceState('igw-1', { igwId: 'igw-0committed' });
-      await service.saveExternalResourceResponse('igw-1', { igwId: 'igw-0published' });
+      await service.saveExternalResourceState('igw-1', {
+        inputs: {},
+        properties: {},
+        response: { igwId: 'igw-0published' },
+      });
 
       await expect(service.getResourceResponse('igw-1')).resolves.toEqual({ igwId: 'igw-0published' });
     });
 
     it('should hold the record of a resource whose id is not a legal file name', async () => {
-      await service.saveExternalResourceResponse('image-tag-family/image-0-0-1', { digest: 'sha256:abc' });
+      await service.saveExternalResourceState('image-tag-family/image-0-0-1', {
+        inputs: {},
+        properties: {},
+        response: { digest: 'sha256:abc' },
+      });
 
       await expect(service.getResourceResponse('image-tag-family/image-0-0-1')).resolves.toEqual({
         digest: 'sha256:abc',
@@ -69,8 +77,12 @@ describe('StateManagementService UT', () => {
 
     it('should fall back to the committed graph once the published record is cleared', async () => {
       await commitResourceState('igw-1', { igwId: 'igw-0committed' });
-      await service.saveExternalResourceResponse('igw-1', { igwId: 'igw-0published' });
-      await service.deleteExternalResourceResponse('igw-1');
+      await service.saveExternalResourceState('igw-1', {
+        inputs: {},
+        properties: {},
+        response: { igwId: 'igw-0published' },
+      });
+      await service.deleteExternalResourceState('igw-1');
 
       await expect(service.getResourceResponse('igw-1')).resolves.toEqual({ igwId: 'igw-0committed' });
     });

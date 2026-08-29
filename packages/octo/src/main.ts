@@ -132,11 +132,11 @@ export class Octo {
 
       await this.commitTransaction(app, modelTransaction, []);
 
-      // The committed graph now carries every response an external resource published, so the
-      // records its actions wrote mid-apply are cleared. Done after the state is persisted, so a
-      // failure here costs a stale record rather than the response itself.
+      // The committed graph now carries everything an external resource's actions made of it, so the
+      // records they wrote mid-apply are cleared. Done after the state is persisted, so a failure
+      // here costs a stale record rather than the record itself.
       await Promise.all(
-        externalResourceIds.map((resourceId) => this.stateManagementService.deleteExternalResourceResponse(resourceId)),
+        externalResourceIds.map((resourceId) => this.stateManagementService.deleteExternalResourceState(resourceId)),
       );
 
       // Emitted after the state is persisted, so a listener never sees an uncommitted commit.

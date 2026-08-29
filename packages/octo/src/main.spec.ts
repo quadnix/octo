@@ -76,7 +76,11 @@ describe('Main UT', () => {
     it('should keep the published record of an external resource a partial commit left out', async () => {
       const graph = await testModes.createResourceGraph();
       await testModes.generate(graph.app, { outputDir: testModes.outputDir });
-      await testModes.stateManagementService.saveExternalResourceResponse('igw-1', { igwId: 'igw-0published' });
+      await testModes.stateManagementService.saveExternalResourceState('igw-1', {
+        inputs: {},
+        properties: {},
+        response: { igwId: 'igw-0published' },
+      });
       // The apply got as far as the vpc: neither the external resource nor its child reported an output.
       testModes.writeTfState('region-module', { 'vpc-1-VpcId': 'vpc-0real' });
 
@@ -88,7 +92,11 @@ describe('Main UT', () => {
     });
 
     it('should clear the published record of an external resource once it is committed', async () => {
-      await testModes.stateManagementService.saveExternalResourceResponse('igw-1', { igwId: 'igw-0published' });
+      await testModes.stateManagementService.saveExternalResourceState('igw-1', {
+        inputs: {},
+        properties: {},
+        response: { igwId: 'igw-0published' },
+      });
 
       await generateAndCommitFullGraph();
 

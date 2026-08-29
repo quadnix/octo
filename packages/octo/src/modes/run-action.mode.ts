@@ -9,6 +9,7 @@ import { AResource } from '../resources/resource.abstract.js';
 import { ATerraformResource } from '../resources/terraform-resource.abstract.js';
 import { StateManagementService } from '../services/state-management/state-management.service.js';
 import { TransactionService } from '../services/transaction/transaction.service.js';
+import { StringUtility } from '../utilities/string/string.utility.js';
 
 interface RunActionResult {
   action: 'add' | 'delete' | 'noop' | 'update';
@@ -59,9 +60,11 @@ function toFlatStringResponse(resourceId: string, response: Record<string, unkno
  * (`<parentResourceId>.<responseKey>` keys) are injected into the parent resources' responses in
  * memory before the action runs. Rejects a `resourceId` that is not an external resource.
  *
- * The response it publishes is recorded against the resource, and a delete clears that record. That
- * record is the only copy of the response until `commit` folds it into the resource graph, and it is
- * what a later plan reads back. Nothing else in octo state is touched.
+ * What the action made of the resource is recorded against it, and a delete clears that record.
+ * Repeating a call for the same inputs and the same desired properties does nothing, because that
+ * record says the work is already done - terraform replaces a `null_resource` by destroying and
+ * recreating it, so it calls back twice for one change, and octo state learns nothing of the first
+ * call until `commit`. Nothing else in octo state is touched.
  *
  * @internal
  */
@@ -75,6 +78,8 @@ export async function runAction(
     container.get(StateManagementService),
     container.get(TransactionService),
   ]);
+
+  const recordedState = await stateManagementService.getExternalResourceState(resourceId);
 
   const diffs = await app.diff();
   const transaction = transactionService.beginTransaction(diffs, {
@@ -100,6 +105,19 @@ export async function runAction(
   if (allDiffs.length === 0) {
     // Noop: still report the current response so terraform captures consistent outputs.
     return { action: 'noop', resourceId, response: toFlatStringResponse(resourceId, targetResource?.response ?? {}) };
+  }
+
+  // The work is already done: the record says an action ran for these inputs and left the resource
+  // in the shape being asked for again. The diff cannot tell, because it is computed against the
+  // last commit either way.
+  if (
+    recordedState &&
+    targetResource &&
+    StringUtility.deterministicHash(recordedState.inputs) === StringUtility.deterministicHash(inputs) &&
+    StringUtility.deterministicHash(recordedState.properties) ===
+      StringUtility.deterministicHash(targetResource.properties)
+  ) {
+    return { action: 'noop', resourceId, response: recordedState.response };
   }
 
   // Inject explicit inputs into the parent resources the actions will read. An input is keyed
@@ -136,15 +154,19 @@ export async function runAction(
       : 'update';
 
   if (action === 'delete') {
-    await stateManagementService.deleteExternalResourceResponse(resourceId);
+    await stateManagementService.deleteExternalResourceState(resourceId);
     return { action, resourceId, response: {} };
   }
 
-  // Record what was published, so a plan running before the next commit can still read it.
+  // Record what the action made of the resource, for the next call and for the next plan.
   const targetContext = (allDiffs[0].node as UnknownResource).getContext();
   const resource = resourceDataRepository.getNewResourceByContext(targetContext);
   const response = toFlatStringResponse(resourceId, resource?.response ?? {});
-  await stateManagementService.saveExternalResourceResponse(resourceId, response);
+  await stateManagementService.saveExternalResourceState(resourceId, {
+    inputs,
+    properties: JSON.parse(JSON.stringify(resource?.properties ?? {})),
+    response,
+  });
 
   return { action, resourceId, response };
 }

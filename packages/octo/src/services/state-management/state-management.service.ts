@@ -27,6 +27,19 @@ interface ResourceStateUserData {
 }
 
 /**
+ * What an external resource's action made of it, recorded the moment the action succeeded: the
+ * inputs it was given, the properties it was asked for, and the response it produced.
+ *
+ * It exists only between that moment and the `commit` that folds it into the resource graph, and
+ * while it exists it is the truth about that resource - octo state has not caught up yet.
+ */
+interface ExternalResourceState {
+  inputs: Record<string, unknown>;
+  properties: Record<string, unknown>;
+  response: Record<string, string>;
+}
+
+/**
  * Serializes one state file.
  *
  * Formatted rather than written as a single line, because these files are committed: a reviewer
@@ -74,12 +87,12 @@ export class StateManagementService {
   }
 
   /**
-   * Clears an external resource's published response.
+   * Clears what an external resource's action recorded.
    *
    * @internal
    */
-  async deleteExternalResourceResponse(resourceId: string): Promise<void> {
-    await this.deleteState(this.externalResourceResponseFileName(resourceId));
+  async deleteExternalResourceState(resourceId: string): Promise<void> {
+    await this.deleteState(this.externalResourceStateFileName(resourceId));
   }
 
   /**
@@ -94,6 +107,17 @@ export class StateManagementService {
    */
   async getAppLock(): Promise<string | undefined> {
     return this.stateProvider.getAppLock();
+  }
+
+  /**
+   * What an external resource's action made of it, if `commit` has not folded that into the resource
+   * graph yet. Undefined once it has, or before the action has ever run.
+   *
+   * @internal
+   */
+  async getExternalResourceState(resourceId: string): Promise<ExternalResourceState | undefined> {
+    const recordedState = await this.getState(this.externalResourceStateFileName(resourceId), Buffer.from(''));
+    return recordedState.length > 0 ? JSON.parse(recordedState.toString()) : undefined;
   }
 
   /**
@@ -132,9 +156,9 @@ export class StateManagementService {
    * @internal
    */
   async getResourceResponse(resourceId: string): Promise<Record<string, string> | undefined> {
-    const publishedResponse = await this.getState(this.externalResourceResponseFileName(resourceId), Buffer.from(''));
-    if (publishedResponse.length > 0) {
-      return JSON.parse(publishedResponse.toString());
+    const recordedState = await this.getExternalResourceState(resourceId);
+    if (recordedState) {
+      return recordedState.response;
     }
 
     const { data } = await this.getResourceState(this.actualResourceStateFileName);
@@ -215,13 +239,13 @@ export class StateManagementService {
   }
 
   /**
-   * Records what an external resource's action published, so that a later plan can read it back
-   * before `commit` has folded it into the resource graph.
+   * Records what an external resource's action made of it. The next run reads it back rather than
+   * asking the resource graph, which does not learn any of this until `commit`.
    *
    * @internal
    */
-  async saveExternalResourceResponse(resourceId: string, response: Record<string, string>): Promise<void> {
-    await this.saveState(this.externalResourceResponseFileName(resourceId), Buffer.from(JSON.stringify(response)));
+  async saveExternalResourceState(resourceId: string, state: ExternalResourceState): Promise<void> {
+    await this.saveState(this.externalResourceStateFileName(resourceId), Buffer.from(JSON.stringify(state)));
   }
 
   /**
@@ -265,9 +289,9 @@ export class StateManagementService {
   /**
    * @internal
    */
-  private externalResourceResponseFileName(resourceId: string): string {
+  private externalResourceStateFileName(resourceId: string): string {
     // A resource id is not a file name - it carries `/` where a resource is named after a path.
-    return `resource-response-${encodeURIComponent(resourceId)}.json`;
+    return `resource-state-${encodeURIComponent(resourceId)}.json`;
   }
 }
 

@@ -150,16 +150,65 @@ describe('runAction()', () => {
     });
   });
 
-  // The record an action writes is the only copy of its response until `commit` folds it into the
-  // resource graph, and it is what a plan reads back through `get-response`.
-  describe('the published response record', () => {
-    it('should record the response the action published', async () => {
+  // Terraform replaces a null_resource by destroying and recreating it, so it calls back twice for
+  // one change. The record is how the second call learns the first one already did the work.
+  describe('the applied state record', () => {
+    it('should record what the action made of the resource', async () => {
+      const { app } = await testModes.createResourceGraph();
+
+      await runAction(app, { inputs: { 'vpc-1.VpcId': 'vpc-0real' }, resourceId: 'igw-1' });
+
+      await expect(testModes.stateManagementService.getExternalResourceState('igw-1')).resolves.toEqual({
+        inputs: { 'vpc-1.VpcId': 'vpc-0real' },
+        properties: { Type: 'internet-gateway' },
+        response: { igwId: 'igw-0real' },
+      });
+    });
+
+    it('should record the response where a later plan reads it', async () => {
       const { app } = await testModes.createResourceGraph();
 
       await runAction(app, { inputs: { 'vpc-1.VpcId': 'vpc-0real' }, resourceId: 'igw-1' });
 
       await expect(testModes.stateManagementService.getResourceResponse('igw-1')).resolves.toEqual({
         igwId: 'igw-0real',
+      });
+    });
+
+    it('should run no action on the second call for the same change', async () => {
+      const { app } = await testModes.createResourceGraph({ save: true });
+      await commitResources({ skipAddActualResource: true });
+      await recreateDesiredGraph({ igwType: 'internet-gateway-v2' });
+
+      const first = await runAction(app, { inputs: { 'vpc-1.VpcId': 'vpc-0real' }, resourceId: 'igw-1' });
+      const handledOnFirstCall = testModes.igwActionHandledDiffs.length;
+
+      const second = await runAction(app, { inputs: { 'vpc-1.VpcId': 'vpc-0real' }, resourceId: 'igw-1' });
+
+      expect(first.action).toBe('update');
+      expect(handledOnFirstCall).toBeGreaterThan(0);
+      expect(second.action).toBe('noop');
+      expect(testModes.igwActionHandledDiffs).toHaveLength(handledOnFirstCall);
+    });
+
+    it('should run the action again when the desired state moves on', async () => {
+      const { app } = await testModes.createResourceGraph({ save: true });
+      await commitResources({ skipAddActualResource: true });
+      await recreateDesiredGraph({ igwType: 'internet-gateway-v2' });
+      await runAction(app, { inputs: { 'vpc-1.VpcId': 'vpc-0real' }, resourceId: 'igw-1' });
+
+      const desiredIgw = testModes.resourceDataRepository
+        .getNewResourcesByProperties()
+        .find((r) => r.resourceId === 'igw-1')!;
+      desiredIgw.properties['Type'] = 'internet-gateway-v3';
+
+      const result = await runAction(app, { inputs: { 'vpc-1.VpcId': 'vpc-0real' }, resourceId: 'igw-1' });
+
+      expect(result.action).toBe('update');
+      await expect(testModes.stateManagementService.getExternalResourceState('igw-1')).resolves.toEqual({
+        inputs: { 'vpc-1.VpcId': 'vpc-0real' },
+        properties: { Type: 'internet-gateway-v3' },
+        response: { igwId: 'igw-0real' },
       });
     });
 
