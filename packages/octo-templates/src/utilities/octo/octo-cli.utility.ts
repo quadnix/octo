@@ -24,36 +24,55 @@ export class OctoCliUtility {
   /**
    * Runs the full lifecycle against the given definition: lock, generate, validate, apply, commit.
    *
-   * The lock is released by `commit`, however that ends, and by an explicit unlock when an earlier
-   * step is what failed - a lock left behind blocks the next run, including the teardown.
+   * A run that reached the apply always ends in a commit, because from there on it may have changed
+   * live infrastructure, and octo's record of it would otherwise say nothing happened. A failed
+   * apply commits with `--partial`, which is not a better commit: it drops the check that every
+   * declared output came back, and that is only safe here because a failed apply is already known to
+   * be incomplete. Defaulting to it would turn a successful apply that quietly produced nothing into
+   * a warning nobody reads.
+   *
+   * The lock is released by `commit`, however that ends, and by an explicit unlock when a step
+   * before the apply is what failed - a lock left behind blocks the next run, including the
+   * teardown.
    */
   static async lifecycle(
     projectDirectory: string,
     definitionFilePath: string,
     environment: Record<string, string> = {},
   ): Promise<void> {
-    const lockId = (await OctoCliUtility.run(projectDirectory, definitionFilePath, ['lock'], environment)).trim();
+    const run = (args: string[]): Promise<string> =>
+      OctoCliUtility.run(projectDirectory, definitionFilePath, args, environment);
+    const forceUnlock = (): Promise<unknown> => run(['unlock', '--force']).catch(() => undefined);
 
+    const lockId = (await run(['lock'])).trim();
+
+    // Nothing before the apply reaches infrastructure, so a failure here has nothing to record.
     try {
-      await OctoCliUtility.run(projectDirectory, definitionFilePath, ['generate', '--outputDir', OUTPUT_DIRECTORY], environment);
-      await OctoCliUtility.run(projectDirectory, definitionFilePath, ['validate', '--terragruntDir', OUTPUT_DIRECTORY], environment);
-      await OctoCliUtility.run(
-        projectDirectory,
-        definitionFilePath,
-        ['apply', '--terragruntDir', OUTPUT_DIRECTORY, '--lockId', lockId, '--auto-approve'],
-        environment,
-      );
-      await OctoCliUtility.run(
-        projectDirectory,
-        definitionFilePath,
-        ['commit', '--terragruntDir', OUTPUT_DIRECTORY, '--lockId', lockId],
-        environment,
-      );
+      await run(['generate', '--outputDir', OUTPUT_DIRECTORY]);
+      await run(['validate', '--terragruntDir', OUTPUT_DIRECTORY]);
     } catch (error) {
-      await OctoCliUtility.run(projectDirectory, definitionFilePath, ['unlock', '--force'], environment).catch(
-        () => undefined,
-      );
+      await forceUnlock();
       throw error;
+    }
+
+    let applyError: unknown;
+    try {
+      await run(['apply', '--terragruntDir', OUTPUT_DIRECTORY, '--lockId', lockId, '--auto-approve']);
+    } catch (error) {
+      applyError = error;
+    }
+
+    const commitArguments = ['commit', '--terragruntDir', OUTPUT_DIRECTORY, '--lockId', lockId];
+    try {
+      await run(applyError ? [...commitArguments, '--partial'] : commitArguments);
+    } catch (error) {
+      // Commit releases the lock in a `finally`, but it can fail before ever reaching it.
+      await forceUnlock();
+      throw applyError ?? error;
+    }
+
+    if (applyError) {
+      throw applyError;
     }
   }
 
