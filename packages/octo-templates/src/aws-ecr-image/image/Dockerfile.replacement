@@ -1,0 +1,5 @@
+# A second Dockerfile for the same build context, so a test can republish a tag from something else.
+# Everything about the image is the same except what it carries, which is what makes the digest move.
+FROM scratch
+
+COPY index.html /replacement.html

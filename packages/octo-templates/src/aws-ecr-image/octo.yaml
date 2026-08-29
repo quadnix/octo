@@ -1,0 +1,91 @@
+# yaml-language-server: $schema=../../../octo-build/src/resources/octo-v1.schema.json
+
+version: 1
+
+env:
+  - key: AWS_ACCOUNT_ID
+    kind: string
+    value: "123456789123"
+  - key: AWS_IMAGE_NAME
+    kind: string
+    value: "octo-ecr-image-template"
+  - key: AWS_IMAGE_TAG
+    kind: string
+    value: "0.0.1"
+
+settings:
+  listeners:
+    - type: LoggingEventListener
+      level: info
+
+  stateProvider:
+    type: LocalStateProvider
+    statePath: .octo/state
+
+imports:
+  - className: SimpleAppModule
+    importPath: "@quadnix/octo-aws-cdk/modules/app/simple-app"
+  - className: AwsIniAccountModule
+    importPath: "@quadnix/octo-aws-cdk/modules/account/aws-ini-account"
+  - className: AwsSingleAzRegionModule
+    importPath: "@quadnix/octo-aws-cdk/modules/region/aws-single-az-region"
+  - className: AwsEcrImageModule
+    importPath: "@quadnix/octo-aws-cdk/modules/image/aws-ecr-image"
+  - className: AwsEcrImageTagModule
+    importPath: "@quadnix/octo-aws-cdk/modules/image/aws-ecr-image-tag"
+
+modules:
+  - moduleId: app-module
+    moduleClass: SimpleAppModule
+    moduleInputs:
+      name: aws-ecr-image
+
+  - moduleId: account-module
+    moduleClass: AwsIniAccountModule
+    moduleInputs:
+      accountId: "${env.AWS_ACCOUNT_ID}"
+      app: "${{app-module.model.app}}"
+      iniProfile: default
+
+  - moduleId: region-module
+    moduleClass: AwsSingleAzRegionModule
+    moduleInputs:
+      account: "${{account-module.model.account}}"
+      name: app-region-east
+      regionId: aws-us-east-1a
+      vpcCidrBlock: 10.0.0.0/16
+
+  # The repository. It holds the versions, and creates none of them.
+  - moduleId: image-module
+    moduleClass: AwsEcrImageModule
+    moduleInputs:
+      imageFamily: quadnix
+      imageName: "${env.AWS_IMAGE_NAME}"
+      regions:
+        - "${{region-module.model.region}}"
+
+  # One version in it. Add another module like this one to publish another version alongside it.
+  - moduleId: image-tag-module
+    moduleClass: AwsEcrImageTagModule
+    moduleInputs:
+      dockerfileDirectory: image
+      dockerfileName: Dockerfile
+      image: "${{image-module.model.image}}"
+      imageTag: "${env.AWS_IMAGE_TAG}"
+
+tags:
+  - scope: {}
+    tags:
+      e2e-test: "true"
+      e2e-test-family: aws-ecr-image
+
+terraform:
+  requiredVersion: "1.6.0"
+  requiredProviders:
+    aws:
+      source: hashicorp/aws
+      minVersion: "5.0.0"
+  providers:
+    - providerType: aws
+      accountId: "${env.AWS_ACCOUNT_ID}"
+      regionId: us-east-1

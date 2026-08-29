@@ -2,6 +2,7 @@
   "dependencies": {
     "@aws-sdk/client-dynamodb": "~3.743.0",
     "@aws-sdk/client-ec2": "~3.743.0",
+    "@aws-sdk/client-ecr": "~3.743.0",
     "@aws-sdk/client-ecs": "~3.743.0",
     "@aws-sdk/client-resource-groups-tagging-api": "~3.743.0",
     "@aws-sdk/client-sts": "~3.743.0",
@@ -13,7 +14,9 @@
     "js-yaml": "~4.1.0"
   },
   "description": "Octo-Templates are examples of end-to-end infrastructures.",
-  "devDependencies": {},
+  "devDependencies": {
+    "@quadnix/octo-build": "~0.0.17"
+  },
   "engines": {
     "node": ">=18.18.0"
   },
