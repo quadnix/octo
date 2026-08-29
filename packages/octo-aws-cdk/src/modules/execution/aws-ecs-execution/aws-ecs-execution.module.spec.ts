@@ -1389,13 +1389,14 @@ describe('AwsEcsExecutionModule UT', () => {
     `);
   });
 
-  // The generated terraform names the image by URI either way, so the binding shows only in the
-  // resource graph. It is what holds a published image back until the task definition has stopped
-  // running it - octo deletes an image itself, at commit, outside terraform's own ordering.
+  // The binding shows in two places, and both are needed. In the resource graph it holds a published
+  // image back until the task definition has stopped running it, because octo deletes an image
+  // itself at commit, outside terraform's own ordering. In the generated terraform it names the
+  // image by reference, which is what orders the push before the task definition that runs it.
   it('should bind the task definition to the published image it runs', async () => {
     await setup(testModuleContainer, { publishedImageUri: '123.dkr.ecr.us-east-1.amazonaws.com/family/image:0.0.1' });
 
-    const { resourceDiffs } = (
+    const { hclDiff, resourceDiffs } = (
       await testModuleContainer
         .runModules<AwsEcsExecutionModule>(
           { inputs: executionInputs(), moduleId: 'execution', type: AwsEcsExecutionModule },
@@ -1408,12 +1409,23 @@ describe('AwsEcsExecutionModule UT', () => {
       '@octo/iam-role=iam-role-ServerRole-backend',
       '@octo/ecr-image-tag=ecr-image-tag-us-east-1-family/image-0-0-1',
     ]);
+
+    // The container names the image's output, never the URI it was matched on.
+    expect(hclDiff).toContain('image = var.ecr_image_tag_us_east_1_family_image_0_0_1.imageUri');
+    expect(hclDiff).not.toContain('123.dkr.ecr.us-east-1.amazonaws.com/family/image:0.0.1');
+
+    // Naming that output is what makes the image folder a dependency of this one, which is the
+    // ordering terraform has no other way to know about. Mocks stand in for a plan, never an apply.
+    expect(hclDiff).toContain(
+      'ecr_image_tag_us_east_1_family_image_0_0_1 = dependency.testModule.outputs["ecr-image-tag-us-east-1-family_image-0-0-1"]',
+    );
+    expect(hclDiff).toContain('mock_outputs_allowed_terraform_commands = ["init", "plan", "show", "validate"]');
   });
 
   it('should leave the task definition unbound when it runs an image octo did not publish', async () => {
     await setup(testModuleContainer);
 
-    const { resourceDiffs } = (
+    const { hclDiff, resourceDiffs } = (
       await testModuleContainer
         .runModules<AwsEcsExecutionModule>(
           { inputs: executionInputs(), moduleId: 'execution', type: AwsEcsExecutionModule },
@@ -1423,5 +1435,8 @@ describe('AwsEcsExecutionModule UT', () => {
     ).value!;
 
     expect(taskDefinitionParents(resourceDiffs)).toEqual(['@octo/iam-role=iam-role-ServerRole-backend']);
+
+    // There is no resource behind the image, so the container names it by URI and nothing orders it.
+    expect(hclDiff).toContain('image = "docker.io"');
   });
 });

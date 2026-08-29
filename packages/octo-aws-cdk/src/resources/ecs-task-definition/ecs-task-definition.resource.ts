@@ -11,6 +11,7 @@ import {
   type TerraformModuleScope,
   hasNodeName,
 } from '@quadnix/octo';
+import { EcrImageUriUtility } from '../../utilities/ecr-image-uri/ecr-image-uri.utility.js';
 import { TaskDefinitionUtility } from '../../utilities/task-definition/task-definition.utility.js';
 import type { EcrImageTagSchema } from '../ecr-image-tag/index.schema.js';
 import type { EfsSchema } from '../efs/index.schema.js';
@@ -116,12 +117,13 @@ export class EcsTaskDefinition extends ATerraformResource<EcsTaskDefinitionSchem
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {
     const iamRoleParent = this.parents[0] as MatchingResource<IamRoleSchema>;
     const efsParents = this.getEfsParents();
+    const imageTagParents = this.getEcrImageTagParents();
 
     const containerDefinitions = this.properties.images.map((image) => ({
       command: image.command,
       environment: this.properties.environmentVariables,
       essential: image.essential,
-      image: image.uri,
+      image: this.resolveImageReference(terraform, image.uri, imageTagParents),
       mountPoints: efsParents.map((efs) => ({
         containerPath: `/mnt/${efs.getSchemaInstance().properties.filesystemName}`,
         readOnly: false,
@@ -184,6 +186,38 @@ export class EcsTaskDefinition extends ATerraformResource<EcsTaskDefinitionSchem
    */
   private getEfsParents(): MatchingResource<EfsSchema>[] {
     return this.parents.filter((p) => hasNodeName(p.getActual(), 'efs')) as MatchingResource<EfsSchema>[];
+  }
+
+  /**
+   * Resolves what a container definition names its image by.
+   *
+   * An image octo publishes is named through its resource, which is what tells terraform to push it
+   * before this task definition runs. An image from any other registry is named by its literal URI,
+   * because there is no resource to order against.
+   *
+   * @internal
+   */
+  private resolveImageReference(
+    terraform: TerraformModuleScope,
+    uri: string,
+    imageTagParents: MatchingResource<EcrImageTagSchema>[],
+  ): ReturnType<TerraformModuleScope['getRef']> | string {
+    const imageReference = EcrImageUriUtility.parse(uri);
+    if (!imageReference) {
+      return uri;
+    }
+
+    const imageTagParent = imageTagParents.find((p) => {
+      const { awsAccountId, awsRegionId, imageId, imageTag } = p.getSchemaInstance().properties;
+      return (
+        awsAccountId === imageReference.awsAccountId &&
+        awsRegionId === imageReference.awsRegionId &&
+        imageId === imageReference.imageId &&
+        imageTag === imageReference.imageTag
+      );
+    });
+
+    return imageTagParent ? terraform.getRef(imageTagParent, 'imageUri') : uri;
   }
 
   /**
