@@ -12,6 +12,7 @@ import {
   SubnetType,
   hasNodeName,
 } from '@quadnix/octo';
+import { EcrImageTagSchema } from '../../../../../../resources/ecr-image-tag/index.schema.js';
 import { EcsClusterSchema } from '../../../../../../resources/ecs-cluster/index.schema.js';
 import { EcsService } from '../../../../../../resources/ecs-service/index.js';
 import { EcsTaskDefinition } from '../../../../../../resources/ecs-task-definition/index.js';
@@ -19,6 +20,7 @@ import { EfsSchema } from '../../../../../../resources/efs/index.schema.js';
 import { IamRoleSchema } from '../../../../../../resources/iam-role/index.schema.js';
 import { SecurityGroupSchema } from '../../../../../../resources/security-group/index.schema.js';
 import { SubnetSchema } from '../../../../../../resources/subnet/index.schema.js';
+import { EcrImageUriUtility } from '../../../../../../utilities/ecr-image-uri/ecr-image-uri.utility.js';
 import type { AwsEcsExecutionModule } from '../../../aws-ecs-execution.module.js';
 import { AwsEcsExecutionOverlay } from '../aws-ecs-execution.overlay.js';
 
@@ -118,6 +120,26 @@ export class AddAwsEcsExecutionOverlayAction implements IModelAction<AwsEcsExecu
       efsList.push(matchingEfsResource);
     }
 
+    // Get the published images this task definition runs, so that none of them can be deleted while
+    // it still names them. An image octo did not publish has no resource to match, and is skipped.
+    const ecrImageTagList: MatchingResource<EcrImageTagSchema>[] = [];
+    for (const image of properties.deploymentContainerProperties.images) {
+      const imageReference = EcrImageUriUtility.parse(image.uri);
+      if (!imageReference) {
+        continue;
+      }
+
+      const [matchingEcrImageTagResource] = await awsExecutionOverlay.getResourcesMatchingSchema(EcrImageTagSchema, [
+        { key: 'awsAccountId', value: imageReference.awsAccountId },
+        { key: 'awsRegionId', value: imageReference.awsRegionId },
+        { key: 'imageId', value: imageReference.imageId },
+        { key: 'imageTag', value: imageReference.imageTag },
+      ]);
+      if (matchingEcrImageTagResource) {
+        ecrImageTagList.push(matchingEcrImageTagResource);
+      }
+    }
+
     // Create ECS Task Definition.
     const ecsTaskDefinition = new EcsTaskDefinition(
       `ecs-task-definition-${properties.executionId}`,
@@ -131,7 +153,7 @@ export class AddAwsEcsExecutionOverlayAction implements IModelAction<AwsEcsExecu
         images: properties.deploymentContainerProperties.images,
         memory: properties.deploymentContainerProperties.memory,
       },
-      [matchingMainIamRoleResource, ...efsList],
+      [matchingMainIamRoleResource, ...ecrImageTagList, ...efsList],
     );
 
     // Get matching ECS Cluster resource.

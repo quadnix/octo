@@ -1,4 +1,10 @@
-import { type ModuleSchemaInputs, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import {
+  type MatchingResource,
+  type ModuleSchemaInputs,
+  TestContainer,
+  TestModuleContainer,
+  stub,
+} from '@quadnix/octo';
 import type { AwsEcsClusterAnchorSchema } from '../../../anchors/aws-ecs/aws-ecs-cluster.anchor.schema.js';
 import type { AwsEcsTaskDefinitionAnchorSchema } from '../../../anchors/aws-ecs/aws-ecs-task-definition.anchor.schema.js';
 import type { AwsEfsAnchorSchema } from '../../../anchors/aws-efs/aws-efs.anchor.schema.js';
@@ -7,21 +13,26 @@ import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-regi
 import type { AwsSecurityGroupAnchorSchema } from '../../../anchors/aws-security-group/aws-security-group.anchor.schema.js';
 import type { AwsSubnetLocalFilesystemMountAnchorSchema } from '../../../anchors/aws-subnet/aws-subnet-local-filesystem-mount.anchor.schema.js';
 import type { AwsSubnetAnchorSchema } from '../../../anchors/aws-subnet/aws-subnet.anchor.schema.js';
+import type { EcrImageTagSchema } from '../../../resources/ecr-image-tag/index.schema.js';
 import type { EcsClusterSchema } from '../../../resources/ecs-cluster/index.schema.js';
 import type { EfsSchema } from '../../../resources/efs/index.schema.js';
 import type { EfsMountTargetSchema } from '../../../resources/efs-mount-target/index.schema.js';
 import type { IamRoleSchema } from '../../../resources/iam-role/index.schema.js';
 import type { SubnetSchema } from '../../../resources/subnet/index.schema.js';
 import type { VpcSchema } from '../../../resources/vpc/index.schema.js';
+import { EcrImageUriUtility } from '../../../utilities/ecr-image-uri/ecr-image-uri.utility.js';
 import { AwsEcsExecutionModule } from './index.js';
 
 /**
  * `clusterName` names both the cluster anchor the execution reads and the ECS Cluster resource it
  * resolves to, so passing a different one is how a test hands the same execution a different cluster.
+ *
+ * `publishedImageUri` makes the deployment run an image octo published: the container names it and an
+ * `ecr-image-tag` resource stands behind it, which is what the execution binds the task definition to.
  */
 async function setup(
   testModuleContainer: TestModuleContainer,
-  { clusterName = 'region-qa' }: { clusterName?: string } = {},
+  { clusterName = 'region-qa', publishedImageUri }: { clusterName?: string; publishedImageUri?: string } = {},
 ): Promise<void> {
   const {
     deployment: [deployment],
@@ -45,7 +56,11 @@ async function setup(
       'AwsEcsTaskDefinitionAnchor',
       {
         cpu: 256,
-        image: { command: '/bin/sh', ports: [{ containerPort: 8080, protocol: 'tcp' }], uri: 'docker.io' },
+        image: {
+          command: '/bin/sh',
+          ports: [{ containerPort: 8080, protocol: 'tcp' }],
+          uri: publishedImageUri ?? 'docker.io',
+        },
         memory: 512,
       },
       deployment,
@@ -189,6 +204,59 @@ async function setup(
     ],
     { save: true },
   );
+
+  if (publishedImageUri) {
+    const { awsAccountId, awsRegionId, imageId, imageTag } = EcrImageUriUtility.parse(publishedImageUri)!;
+    await testModuleContainer.createTestResources<[EcrImageTagSchema]>(
+      'testModule',
+      [
+        {
+          properties: {
+            awsAccountId,
+            awsRegionId,
+            dockerfileDirectory: 'images/backend',
+            dockerfileName: 'Dockerfile',
+            imageId,
+            imageTag,
+          },
+          resourceContext: `@octo/ecr-image-tag=ecr-image-tag-${awsRegionId}-${imageId}-${imageTag.replace(/[^\w-]/g, '-')}`,
+          response: { imageUri: publishedImageUri },
+        },
+      ],
+      { save: true },
+    );
+  }
+}
+
+/**
+ * The inputs every case that does not vary them runs the same execution with.
+ */
+function executionInputs(): ModuleSchemaInputs<AwsEcsExecutionModule> {
+  return {
+    deployments: {
+      main: {
+        containerProperties: { image: { essential: true, name: 'backend-v1' } },
+        deployment: stub('${{testModule.model.deployment}}'),
+      },
+      sidecars: [],
+    },
+    desiredCount: 1,
+    environment: stub('${{testModule.model.environment}}'),
+    executionId: 'backend-v1-region-qa-private-subnet',
+    subnet: stub('${{testModule.model.subnet}}'),
+  };
+}
+
+/**
+ * The resources the task definition is built on top of, as this run's diffs carry it.
+ */
+function taskDefinitionParents(resourceDiffs: Parameters<TestModuleContainer['digestDiffs']>[0]): string[] {
+  const taskDefinition = resourceDiffs
+    .flat()
+    .map((d) => d.node as unknown as { parents: MatchingResource<never>[]; resourceId: string })
+    .find((n) => n.resourceId === 'ecs-task-definition-backend-v1-region-qa-private-subnet')!;
+
+  return taskDefinition.parents.map((p) => p.getActual().getContext());
 }
 
 describe('AwsEcsExecutionModule UT', () => {
@@ -402,32 +470,32 @@ describe('AwsEcsExecutionModule UT', () => {
      }
 
      data "external" "ecs-cluster-region-qa" {
-       program = ["cat", "\${path.module}/.octo-outputs/ecs-cluster-region-qa.json"]
+       program = ["octo", "get-response", "--resourceId=ecs-cluster-region-qa"]
        depends_on = [null_resource.ecs-cluster-region-qa]
      }
 
      data "external" "efs-region-test-filesystem" {
-       program = ["cat", "\${path.module}/.octo-outputs/efs-region-test-filesystem.json"]
+       program = ["octo", "get-response", "--resourceId=efs-region-test-filesystem"]
        depends_on = [null_resource.efs-region-test-filesystem]
      }
 
      data "external" "efs-mount-region-private-subnet-test-filesystem" {
-       program = ["cat", "\${path.module}/.octo-outputs/efs-mount-region-private-subnet-test-filesystem.json"]
+       program = ["octo", "get-response", "--resourceId=efs-mount-region-private-subnet-test-filesystem"]
        depends_on = [null_resource.efs-mount-region-private-subnet-test-filesystem]
      }
 
      data "external" "iam-role-ServerRole-backend" {
-       program = ["cat", "\${path.module}/.octo-outputs/iam-role-ServerRole-backend.json"]
+       program = ["octo", "get-response", "--resourceId=iam-role-ServerRole-backend"]
        depends_on = [null_resource.iam-role-ServerRole-backend]
      }
 
      data "external" "subnet-region-private-subnet" {
-       program = ["cat", "\${path.module}/.octo-outputs/subnet-region-private-subnet.json"]
+       program = ["octo", "get-response", "--resourceId=subnet-region-private-subnet"]
        depends_on = [null_resource.subnet-region-private-subnet]
      }
 
      data "external" "vpc-region" {
-       program = ["cat", "\${path.module}/.octo-outputs/vpc-region.json"]
+       program = ["octo", "get-response", "--resourceId=vpc-region"]
        depends_on = [null_resource.vpc-region]
      }
 
@@ -436,7 +504,7 @@ describe('AwsEcsExecutionModule UT', () => {
          octo_properties_hash = "da2c133b3ff12ab8"
        }
        provisioner "local-exec" {
-         command = "mkdir -p \${path.module}/.octo-outputs && octo run-action --resourceId=ecs-cluster-region-qa > \${path.module}/.octo-outputs/ecs-cluster-region-qa.json"
+         command = "octo run-action --resourceId=ecs-cluster-region-qa"
        }
        provisioner "local-exec" {
          when = destroy
@@ -449,7 +517,7 @@ describe('AwsEcsExecutionModule UT', () => {
          octo_properties_hash = "1a31f0c2f24ce06f"
        }
        provisioner "local-exec" {
-         command = "mkdir -p \${path.module}/.octo-outputs && octo run-action --resourceId=efs-region-test-filesystem > \${path.module}/.octo-outputs/efs-region-test-filesystem.json"
+         command = "octo run-action --resourceId=efs-region-test-filesystem"
        }
        provisioner "local-exec" {
          when = destroy
@@ -462,7 +530,7 @@ describe('AwsEcsExecutionModule UT', () => {
          octo_properties_hash = "4c9717384d508cbf"
        }
        provisioner "local-exec" {
-         command = "mkdir -p \${path.module}/.octo-outputs && octo run-action --resourceId=efs-mount-region-private-subnet-test-filesystem > \${path.module}/.octo-outputs/efs-mount-region-private-subnet-test-filesystem.json"
+         command = "octo run-action --resourceId=efs-mount-region-private-subnet-test-filesystem"
        }
        provisioner "local-exec" {
          when = destroy
@@ -475,7 +543,7 @@ describe('AwsEcsExecutionModule UT', () => {
          octo_properties_hash = "6d1a33e75e52b61d"
        }
        provisioner "local-exec" {
-         command = "mkdir -p \${path.module}/.octo-outputs && octo run-action --resourceId=iam-role-ServerRole-backend > \${path.module}/.octo-outputs/iam-role-ServerRole-backend.json"
+         command = "octo run-action --resourceId=iam-role-ServerRole-backend"
        }
        provisioner "local-exec" {
          when = destroy
@@ -488,7 +556,7 @@ describe('AwsEcsExecutionModule UT', () => {
          octo_properties_hash = "8f35c7a4d38e129c"
        }
        provisioner "local-exec" {
-         command = "mkdir -p \${path.module}/.octo-outputs && octo run-action --resourceId=subnet-region-private-subnet > \${path.module}/.octo-outputs/subnet-region-private-subnet.json"
+         command = "octo run-action --resourceId=subnet-region-private-subnet"
        }
        provisioner "local-exec" {
          when = destroy
@@ -501,7 +569,7 @@ describe('AwsEcsExecutionModule UT', () => {
          octo_properties_hash = "f548f82f959ec360"
        }
        provisioner "local-exec" {
-         command = "mkdir -p \${path.module}/.octo-outputs && octo run-action --resourceId=vpc-region > \${path.module}/.octo-outputs/vpc-region.json"
+         command = "octo run-action --resourceId=vpc-region"
        }
        provisioner "local-exec" {
          when = destroy
@@ -1319,5 +1387,41 @@ describe('AwsEcsExecutionModule UT', () => {
        "^ @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
      ]
     `);
+  });
+
+  // The generated terraform names the image by URI either way, so the binding shows only in the
+  // resource graph. It is what holds a published image back until the task definition has stopped
+  // running it - octo deletes an image itself, at commit, outside terraform's own ordering.
+  it('should bind the task definition to the published image it runs', async () => {
+    await setup(testModuleContainer, { publishedImageUri: '123.dkr.ecr.us-east-1.amazonaws.com/family/image:0.0.1' });
+
+    const { resourceDiffs } = (
+      await testModuleContainer
+        .runModules<AwsEcsExecutionModule>(
+          { inputs: executionInputs(), moduleId: 'execution', type: AwsEcsExecutionModule },
+          { terraformTarget: 'skip' },
+        )
+        .next()
+    ).value!;
+
+    expect(taskDefinitionParents(resourceDiffs)).toEqual([
+      '@octo/iam-role=iam-role-ServerRole-backend',
+      '@octo/ecr-image-tag=ecr-image-tag-us-east-1-family/image-0-0-1',
+    ]);
+  });
+
+  it('should leave the task definition unbound when it runs an image octo did not publish', async () => {
+    await setup(testModuleContainer);
+
+    const { resourceDiffs } = (
+      await testModuleContainer
+        .runModules<AwsEcsExecutionModule>(
+          { inputs: executionInputs(), moduleId: 'execution', type: AwsEcsExecutionModule },
+          { terraformTarget: 'skip' },
+        )
+        .next()
+    ).value!;
+
+    expect(taskDefinitionParents(resourceDiffs)).toEqual(['@octo/iam-role=iam-role-ServerRole-backend']);
   });
 });
