@@ -184,6 +184,6 @@ export default [
 
   // Global ignores.
   {
-    ignores: ['package-lock.json', '.idea', '.nx', 'coverage', 'dist', 'node_modules'],
+    ignores: ['package-lock.json', '.idea', '.nx', '**/.octo/**', 'coverage', 'dist', 'node_modules'],
   },
 ];
