@@ -1,4 +1,4 @@
-import { AResource, Diff, DiffAction, DiffUtility, type MatchingResource, Resource } from '@quadnix/octo';
+import { AResource, type Diff, type MatchingResource, Resource } from '@quadnix/octo';
 import type { EcrImageSchema } from '../ecr/index.schema.js';
 import { EcrImageTagSchema } from './index.schema.js';
 
@@ -11,8 +11,8 @@ import { EcrImageTagSchema } from './index.schema.js';
  * shells back into `octo run-action` to do it.
  *
  * A published image only ever arrives and departs. It is never edited: the registry holds whatever
- * was pushed, and the repository's tags are immutable, so a change to what is published under a tag
- * is a delete followed by an add.
+ * was pushed, and the repository's tags are immutable, so publishing something else means
+ * publishing another tag - which, the tag being part of the resource id, is another resource.
  *
  * @internal
  */
@@ -34,46 +34,15 @@ export class EcrImageTag extends AResource<EcrImageTagSchema, EcrImageTag> {
   }
 
   /**
-   * A replacement leaves the image exactly as this resource describes it, so the applied graph
-   * takes the whole resource. The base class knows only how to remove one.
+   * A published image is never diffed against itself. Its identity - account, region, repository and
+   * tag - is the resource id, so two resources sharing an id are the same image, and the tag it sits
+   * under is immutable. What remains are the build inputs, which say how the image was made rather
+   * than what it is: octo does not read the Dockerfile's contents either, and a path to it that
+   * moved is the weaker signal of the two. Publishing something else means publishing another tag.
    *
    * @internal
    */
-  override async diffInverse(
-    diff: Diff<EcrImageTag>,
-    deReferenceResource: (resourceId: string) => Promise<never>,
-  ): Promise<void> {
-    if (diff.action === DiffAction.REPLACE && diff.field === 'resourceId') {
-      await this.cloneResourceInPlace(diff.node, deReferenceResource);
-    } else {
-      await super.diffInverse(diff, deReferenceResource);
-    }
-  }
-
-  /**
-   * The tag is part of the resource id, so publishing another one is another resource. That leaves
-   * a change to what this tag is built from, which cannot be applied in place - the image already
-   * in the registry has to go before the same tag can be written again.
-   *
-   * Terraform reaches the same conclusion on its own: an external resource's properties are hashed
-   * into the trigger of the `null_resource` standing in for it, so a changed property recreates it.
-   * Reporting `REPLACE` here is what keeps octo's diff saying the same thing terraform plans.
-   *
-   * @internal
-   */
-  override async diffProperties(previous: EcrImageTag): Promise<Diff[]> {
-    if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties)) {
-      return [
-        new Diff(
-          this,
-          DiffAction.REPLACE,
-          'resourceId',
-          this.getContext(),
-          'a published image is immutable; republishing the tag deletes it first',
-        ),
-      ];
-    }
-
+  override async diffProperties(_previous: EcrImageTag): Promise<Diff[]> {
     return [];
   }
 
@@ -91,5 +60,15 @@ export class EcrImageTag extends AResource<EcrImageTagSchema, EcrImageTag> {
    */
   override diffUnpack(diff: Diff): Diff[] {
     return diff.field === 'resourceId' ? [diff] : [];
+  }
+
+  /**
+   * Nothing about this resource asks terraform to call back a second time, because nothing about it
+   * can change. It arrives, and it departs.
+   *
+   * @internal
+   */
+  override getExternalTriggerProperties(): Partial<EcrImageTagSchema['properties']> {
+    return {};
   }
 }

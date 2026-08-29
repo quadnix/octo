@@ -53,6 +53,8 @@
     "./modules/filesystem/aws-efs-filesystem": "./dist/modules/filesystem/aws-efs-filesystem/index.js",
     "./modules/filesystem/aws-efs-filesystem/schema": "./dist/modules/filesystem/aws-efs-filesystem/index.schema.js",
     "./modules/image/aws-ecr-image": "./dist/modules/image/aws-ecr-image/index.js",
+    "./modules/image/aws-ecr-image-tag": "./dist/modules/image/aws-ecr-image-tag/index.js",
+    "./modules/image/aws-ecr-image-tag/schema": "./dist/modules/image/aws-ecr-image-tag/index.schema.js",
     "./modules/image/aws-ecr-image/schema": "./dist/modules/image/aws-ecr-image/index.schema.js",
     "./modules/region/aws-multi-az-region": "./dist/modules/region/aws-multi-az-region/index.js",
     "./modules/region/aws-multi-az-region/schema": "./dist/modules/region/aws-multi-az-region/index.schema.js",

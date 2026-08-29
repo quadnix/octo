@@ -1,8 +1,17 @@
-import { ECRClient } from '@aws-sdk/client-ecr';
-import { ANodeAction, Action, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
+import { join } from 'node:path';
+import { DescribeImagesCommand, ECRClient, GetAuthorizationTokenCommand } from '@aws-sdk/client-ecr';
+import {
+  ANodeAction,
+  Action,
+  type Diff,
+  DiffAction,
+  Factory,
+  type IResourceAction,
+  ProjectUtility,
+  hasNodeName,
+} from '@quadnix/octo';
 import type { ECRClientFactory } from '../../../factories/aws-client.factory.js';
 import { DockerService, type DockerServiceFactory } from '../../../services/docker/docker.service.js';
-import { EcrImageTagUtility } from '../../../utilities/ecr-image-tag/ecr-image-tag.utility.js';
 import { EcrImageTag } from '../ecr-image-tag.resource.js';
 import type { EcrImageTagSchema } from '../index.schema.js';
 
@@ -12,9 +21,8 @@ import type { EcrImageTagSchema } from '../index.schema.js';
  * Terraform runs this mid-apply, through the `local-exec` provisioner octo generates for an external
  * resource, once the `aws_ecr_repository` it depends on exists.
  *
- * It also handles a replacement, which is a publish over a tag that already holds something. The
- * repository's tags are immutable, so that starts by deleting what is under the tag - and it is why
- * the two actions of this resource are still only an add and a delete.
+ * It only ever publishes. A tag is immutable and is part of the resource id, so the tag it writes
+ * holds nothing yet, and retiring an older one is the delete action's work on its own resource.
  *
  * @internal
  */
@@ -38,7 +46,7 @@ export class AddEcrImageTagResourceAction extends ANodeAction implements IResour
    */
   filter(diff: Diff): boolean {
     return (
-      (diff.action === DiffAction.ADD || diff.action === DiffAction.REPLACE) &&
+      diff.action === DiffAction.ADD &&
       diff.node instanceof EcrImageTag &&
       hasNodeName(diff.node, 'ecr-image-tag') &&
       diff.field === 'resourceId'
@@ -47,12 +55,15 @@ export class AddEcrImageTagResourceAction extends ANodeAction implements IResour
 
   /**
    * @internal
+   * @throws If docker is unavailable, the build fails, the push is rejected, or AWS reports no image
+   * under the tag afterwards.
    */
   async handle(diff: Diff<EcrImageTag>): Promise<EcrImageTagSchema['response']> {
     // Get properties.
     const ecrImageTag = diff.node;
     const properties = ecrImageTag.properties;
     const { response: ecrImageResponse } = ecrImageTag.parents[0].getSchemaInstanceInResourceAction();
+    const imageUri = `${ecrImageResponse.repositoryUri}:${properties.imageTag}`;
 
     // Get instances.
     const [dockerService, ecrClient] = await Promise.all([
@@ -63,24 +74,36 @@ export class AddEcrImageTagResourceAction extends ANodeAction implements IResour
       }),
     ]);
 
-    // Clear the tag first when republishing: an immutable tag cannot be written twice.
-    if (diff.action === DiffAction.REPLACE) {
-      this.log(`Replacing "${properties.imageId}:${properties.imageTag}"`);
-      await EcrImageTagUtility.delete(ecrClient, {
-        imageTag: properties.imageTag,
-        repositoryName: ecrImageResponse.repositoryName!,
-      });
+    // Authenticate the docker CLI against the registry.
+    const { authorizationData } = await ecrClient.send(new GetAuthorizationTokenCommand({}));
+    const authorizationToken = authorizationData?.[0]?.authorizationToken;
+    const proxyEndpoint = authorizationData?.[0]?.proxyEndpoint;
+    if (!authorizationToken || !proxyEndpoint) {
+      throw new Error('ECR returned no authorization token!');
     }
+    const [username, password] = Buffer.from(authorizationToken, 'base64').toString('utf8').split(':');
+    await dockerService.login(proxyEndpoint, username, password);
 
-    // Build the image and push it.
+    // Build the image and push it. The build context is resolved against the octo project root
+    // rather than the working directory: terraform runs this from a terragrunt cache directory.
     this.log(`Publishing "${properties.imageId}:${properties.imageTag}"`);
-    const { imageDigest, imageUri } = await EcrImageTagUtility.publish(dockerService, ecrClient, {
-      dockerfileDirectory: properties.dockerfileDirectory,
-      dockerfileName: properties.dockerfileName,
-      imageTag: properties.imageTag,
-      repositoryName: ecrImageResponse.repositoryName,
-      repositoryUri: ecrImageResponse.repositoryUri,
-    });
+    const contextDirectory = ProjectUtility.resolveFromProjectRoot(properties.dockerfileDirectory);
+    await dockerService.build(imageUri, join(contextDirectory, properties.dockerfileName), contextDirectory);
+    await dockerService.push(imageUri);
+
+    // Read back the digest AWS assigned, which is the image's real identity.
+    const { imageDetails } = await ecrClient.send(
+      new DescribeImagesCommand({
+        imageIds: [{ imageTag: properties.imageTag }],
+        repositoryName: ecrImageResponse.repositoryName,
+      }),
+    );
+    const imageDigest = imageDetails?.[0]?.imageDigest;
+    if (!imageDigest) {
+      throw new Error(
+        `ECR reports no image under tag "${properties.imageTag}" of repository "${ecrImageResponse.repositoryName}"!`,
+      );
+    }
 
     return {
       imageDigest,

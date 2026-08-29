@@ -84,25 +84,24 @@ describe('EcrImageTag UT', () => {
       await expect(createEcrImageTag().diffProperties(createEcrImageTag())).resolves.toEqual([]);
     });
 
-    it('should replace the image when what it is built from changes', async () => {
+    it('should report no change when what the image is built from changes', async () => {
       const previous = createEcrImageTag();
       const current = createEcrImageTag();
       current.properties.dockerfileDirectory = 'images/other';
+      current.properties.dockerfileName = 'Dockerfile.other';
 
-      const diffs = await current.diffProperties(previous);
+      await expect(current.diffProperties(previous)).resolves.toEqual([]);
+    });
 
-      expect(diffs).toHaveLength(1);
-      expect(diffs[0].action).toBe(DiffAction.REPLACE);
-      expect(diffs[0].field).toBe('resourceId');
-      expect(diffs[0].reason).toMatchInlineSnapshot(
-        `"a published image is immutable; republishing the tag deletes it first"`,
-      );
+    it('should keep the build inputs out of what terraform triggers on', () => {
+      // Octo reports no change for them, so terraform must not plan a replacement for them either.
+      expect(createEcrImageTag().getExternalTriggerProperties()).toEqual({});
     });
 
     it('should carry the publish and the delete of the whole image', () => {
       const ecrImageTag = createEcrImageTag();
 
-      for (const action of [DiffAction.ADD, DiffAction.DELETE, DiffAction.REPLACE]) {
+      for (const action of [DiffAction.ADD, DiffAction.DELETE]) {
         const diff = new Diff(ecrImageTag, action, 'resourceId', ecrImageTag.getContext());
         expect(ecrImageTag.diffUnpack(diff)).toEqual([diff]);
       }
@@ -132,6 +131,9 @@ describe('EcrImageTag UT', () => {
       expect(action.filter(new Diff(ecrImageTag, DiffAction.ADD, 'resourceId', ecrImageTag.getContext()))).toBe(true);
       expect(action.filter(new Diff(ecrImageTag, DiffAction.UPDATE, 'properties', {}))).toBe(false);
       expect(action.filter(new Diff(ecrImageTag, DiffAction.DELETE, 'resourceId', ecrImageTag.getContext()))).toBe(
+        false,
+      );
+      expect(action.filter(new Diff(ecrImageTag, DiffAction.REPLACE, 'resourceId', ecrImageTag.getContext()))).toBe(
         false,
       );
     });
@@ -198,6 +200,16 @@ describe('EcrImageTag UT', () => {
         registryId: '123456789012',
         repositoryName: 'family/image',
       });
+    });
+
+    it('should never remove anything from the registry', async () => {
+      const action = await container.get(AddEcrImageTagResourceAction);
+      const ecrImageTag = createEcrImageTag();
+
+      await action.handle(new Diff(ecrImageTag, DiffAction.ADD, 'resourceId', ecrImageTag.getContext()));
+
+      const commands = ecrClientSend.mock.calls.map(([command]) => command);
+      expect(commands.some((command) => command instanceof BatchDeleteImageCommand)).toBe(false);
     });
 
     it('should resolve the build context against the octo project root', async () => {

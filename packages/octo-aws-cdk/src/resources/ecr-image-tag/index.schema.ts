@@ -16,7 +16,8 @@ import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
  * @overrideProperty parents - The {@link EcrImageSchema} repository the image is published into.
  * @overrideProperty resourceId - The resource id is of format `ecr-image-tag-<region-id>-<image-id>-<image-tag>`.
  * The tag is part of the identity, so publishing another one is a new resource rather than a change
- * to this one.
+ * to this one. Nothing else about a published image is a change: two resources sharing an id are
+ * the same image, and the tag it sits under cannot be written twice.
  */
 export class EcrImageTagSchema extends BaseResourceSchema {
   /**
@@ -24,9 +25,11 @@ export class EcrImageTagSchema extends BaseResourceSchema {
    * * `properties.awsAccountId` - The AWS account ID.
    * * `properties.awsRegionId` - The AWS region ID.
    * * `properties.dockerfileDirectory` - The build context, as a path relative to the octo project
-   * root. It is relative because an absolute path differs on every machine, and this resource's
-   * properties are hashed into the trigger of the terraform that octo commits.
-   * * `properties.dockerfileName` - The name of the Dockerfile within `dockerfileDirectory`.
+   * root. It is relative because an absolute path differs on every machine, and this path is part of
+   * what octo commits. It says how the image was built rather than what it is, so moving it
+   * publishes nothing; publish a new tag instead.
+   * * `properties.dockerfileName` - The name of the Dockerfile within `dockerfileDirectory`. Like
+   * the directory, it is a build instruction rather than part of the image's identity.
    * * `properties.imageId` - The name of the ECR repository, e.g. `quadnix/nginx`.
    * * `properties.imageTag` - The tag to publish the image under. The repository's tags are
    * immutable, so new content is published under a new tag rather than over an existing one.

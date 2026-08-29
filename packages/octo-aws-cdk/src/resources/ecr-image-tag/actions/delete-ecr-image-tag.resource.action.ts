@@ -1,14 +1,15 @@
-import { ECRClient } from '@aws-sdk/client-ecr';
+import { BatchDeleteImageCommand, ECRClient } from '@aws-sdk/client-ecr';
 import { ANodeAction, Action, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import type { ECRClientFactory } from '../../../factories/aws-client.factory.js';
-import { EcrImageTagUtility } from '../../../utilities/ecr-image-tag/ecr-image-tag.utility.js';
 import { EcrImageTag } from '../ecr-image-tag.resource.js';
 
 /**
  * Removes the published image from its repository.
  *
  * `octo commit` runs this, from the project directory, after terraform has destroyed the
- * `null_resource` that stood in for the image.
+ * `null_resource` that stood in for the image. A repository being destroyed in the same run is gone
+ * by then, taking its images with it, so a repository or image AWS no longer knows about is treated
+ * as already deleted rather than as a failure.
  *
  * @internal
  */
@@ -49,10 +50,18 @@ export class DeleteEcrImageTagResourceAction extends ANodeAction implements IRes
 
     // Delete the image.
     this.log(`Deleting "${properties.imageId}:${properties.imageTag}"`);
-    await EcrImageTagUtility.delete(ecrClient, {
-      imageTag: properties.imageTag,
-      repositoryName: properties.imageId,
-    });
+    try {
+      await ecrClient.send(
+        new BatchDeleteImageCommand({
+          imageIds: [{ imageTag: properties.imageTag }],
+          repositoryName: properties.imageId,
+        }),
+      );
+    } catch (error) {
+      if (error.name !== 'RepositoryNotFoundException' && error.name !== 'ImageNotFoundException') {
+        throw error;
+      }
+    }
   }
 }
 
