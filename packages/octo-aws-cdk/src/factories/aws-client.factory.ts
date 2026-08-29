@@ -1,5 +1,4 @@
 import { ECRClient } from '@aws-sdk/client-ecr';
-import { STSClient } from '@aws-sdk/client-sts';
 import { Container, ContainerResolutionError, Factory } from '@quadnix/octo';
 import type { AwsCredentialIdentity, AwsCredentialIdentityProvider } from '@smithy/types';
 
@@ -127,35 +126,5 @@ export class ECRClientFactory extends AwsClientFactory {
     endpoint?: string,
   ): ECRClient {
     return new ECRClient({ credentials, endpoint, region: awsRegionId });
-  }
-}
-
-/**
- * @internal
- */
-@Factory<STSClient>(STSClient, { metadata: { package: '@octo' } })
-export class STSClientFactory extends AwsClientFactory {
-  protected static override readonly serviceName: string = 'sts';
-
-  /**
-   * An account is above any region in the graph, so there is no region to ask for. Every STS
-   * endpoint answers `GetCallerIdentity`, so the region only decides which one is contacted - but
-   * the SDK requires one to be set.
-   *
-   * @internal
-   */
-  static override async create(awsAccountId: string): Promise<STSClient> {
-    return super.create(awsAccountId, 'us-east-1');
-  }
-
-  /**
-   * @internal
-   */
-  static override createInstance(
-    awsRegionId: string,
-    credentials: AwsClientCredentials,
-    endpoint?: string,
-  ): STSClient {
-    return new STSClient({ credentials, endpoint, region: awsRegionId });
   }
 }

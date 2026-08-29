@@ -1,7 +1,5 @@
-import { GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
-import { AModule, Container, Module, ModuleError } from '@quadnix/octo';
+import { AModule, Container, Module } from '@quadnix/octo';
 import { AwsAccountAnchor } from '../../../anchors/aws-account/aws-account.anchor.js';
-import { STSClientFactory } from '../../../factories/aws-client.factory.js';
 import { AwsCredentialsAccountModuleSchema } from './index.schema.js';
 import { AwsCredentialsAccount } from './models/account/index.js';
 
@@ -55,16 +53,6 @@ export class AwsCredentialsAccountModule extends AModule<AwsCredentialsAccountMo
     container.replaceValue('AwsCredentialIdentityProvider', account.getCredentials(), { metadata });
     if (Object.keys(inputs.endpoints!).length > 0) {
       container.replaceValue('AwsServiceEndpoints', inputs.endpoints!, { metadata });
-    }
-
-    // Ensure the credentials are valid, and that they belong to the account they were given for.
-    const stsClient = await container.get<STSClient, typeof STSClientFactory>(STSClient, {
-      args: [inputs.accountId],
-      metadata: { package: '@octo' },
-    });
-    const callerIdentity = await stsClient.send(new GetCallerIdentityCommand({}));
-    if (callerIdentity.Account !== inputs.accountId) {
-      throw new ModuleError(`Account ID "${inputs.accountId}" does not belong to given credentials!`, this.constructor.name);
     }
 
     return account;

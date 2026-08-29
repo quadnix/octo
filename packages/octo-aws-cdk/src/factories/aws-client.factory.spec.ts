@@ -1,7 +1,6 @@
 import { ECRClient } from '@aws-sdk/client-ecr';
-import { STSClient } from '@aws-sdk/client-sts';
 import { type Container, TestContainer } from '@quadnix/octo';
-import { ECRClientFactory, STSClientFactory } from './aws-client.factory.js';
+import { ECRClientFactory } from './aws-client.factory.js';
 
 const CREDENTIALS = { accessKeyId: 'key-of-111', secretAccessKey: 'secret-of-111' };
 
@@ -62,17 +61,24 @@ describe('AwsClientFactory UT', () => {
       expect(otherAccount).not.toBe(first);
     });
 
-    it('should apply the endpoint override of its own service only', async () => {
+    it('should leave a service with no override to the SDK', async () => {
+      const metadata = { awsAccountId: '111111111111', package: '@octo' };
+      container.registerValue('AwsCredentialIdentityProvider', CREDENTIALS, { metadata });
+      container.registerValue('AwsServiceEndpoints', { s3: 'http://localhost:4566' }, { metadata });
+
+      const ecrClient = await ECRClientFactory.create('111111111111', 'us-east-1');
+
+      expect(ecrClient.config.endpoint).toBeUndefined();
+    });
+
+    it('should apply the endpoint override of its own service', async () => {
       const metadata = { awsAccountId: '111111111111', package: '@octo' };
       container.registerValue('AwsCredentialIdentityProvider', CREDENTIALS, { metadata });
       container.registerValue('AwsServiceEndpoints', { ecr: 'http://localhost:4566' }, { metadata });
 
       const ecrClient = await ECRClientFactory.create('111111111111', 'us-east-1');
-      const stsClient = await STSClientFactory.create('111111111111');
 
       expect((await ecrClient.config.endpoint!()).hostname).toBe('localhost');
-      // A service with no override is left to the SDK's own endpoint resolution.
-      expect(stsClient.config.endpoint).toBeUndefined();
     });
   });
 
@@ -84,18 +90,6 @@ describe('AwsClientFactory UT', () => {
     });
   });
 
-  describe('STSClientFactory.create()', () => {
-    it('should not ask for a region, because an account has none', async () => {
-      container.registerValue('AwsCredentialIdentityProvider', CREDENTIALS, {
-        metadata: { awsAccountId: '111111111111', package: '@octo' },
-      });
-
-      const client = await STSClientFactory.create('111111111111');
-
-      expect(client).toBeInstanceOf(STSClient);
-      await expect(client.config.credentials()).resolves.toMatchObject(CREDENTIALS);
-    });
-  });
 });
 
 describe('ECRClient factory registration UT', () => {
