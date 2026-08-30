@@ -157,25 +157,31 @@ export abstract class AOverlay<S extends BaseOverlaySchema, T extends UnknownOve
 
   /**
    * To stop joining an anchor, which also drops this overlay's dependency on the anchor's parent.
+   * - The dependency survives while another joined anchor still shares that parent.
    */
   override removeAnchor(anchor: MatchingAnchor<BaseAnchorSchema> | UnknownAnchor): void {
     anchor = anchor instanceof MatchingAnchor ? anchor.getActual() : anchor;
+    const anchorParent = anchor.getParent();
+
+    super.removeAnchor(anchor);
+
+    // Keep the dependency while another joined anchor is still parented by the same model.
+    if (this.getAnchors().some((a) => a.getParent().getContext() === anchorParent.getContext())) {
+      return;
+    }
 
     const overlayParentDependencyIndex = this.getDependencies().findIndex(
-      (d) => d.to.getContext() === anchor.getParent().getContext(),
+      (d) => d.to.getContext() === anchorParent.getContext(),
     );
     if (overlayParentDependencyIndex > -1) {
       this.removeDependency(overlayParentDependencyIndex);
     }
-    const parentOverlayDependencyIndex = anchor
-      .getParent()
+    const parentOverlayDependencyIndex = anchorParent
       .getDependencies()
       .findIndex((d) => d.to.getContext() === this.getContext());
     if (parentOverlayDependencyIndex > -1) {
-      anchor.getParent().removeDependency(parentOverlayDependencyIndex);
+      anchorParent.removeDependency(parentOverlayDependencyIndex);
     }
-
-    super.removeAnchor(anchor);
   }
 
   /**

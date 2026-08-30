@@ -233,7 +233,7 @@ describe('Overlay UT', () => {
       expect(overlay1.getSiblings()['app']).toBeUndefined();
     });
 
-    it('should only remove one dependency with parent when multiple anchors have same parent', async () => {
+    it('should keep the dependency with parent while another anchor shares that parent', async () => {
       const {
         app: [app],
       } = create({ account: ['aws,account'], app: ['test'] });
@@ -246,13 +246,18 @@ describe('Overlay UT', () => {
         { anchors: [anchor1, anchor2], context: '@octo/test-overlay=overlay-1' },
       ]);
 
-      expect(app.getSiblings()['test-overlay'].length).toBe(2);
-      expect(overlay1.getSiblings()['app'].length).toBe(2);
+      expect(app.getSiblings()['test-overlay'].length).toBe(1);
+      expect(overlay1.getSiblings()['app'].length).toBe(1);
 
       overlay1.removeAnchor(anchor1);
 
       expect(app.getSiblings()['test-overlay'].length).toBe(1);
       expect(overlay1.getSiblings()['app'].length).toBe(1);
+
+      overlay1.removeAnchor(anchor2);
+
+      expect(app.getSiblings()['test-overlay']).toBeUndefined();
+      expect(overlay1.getSiblings()['app']).toBeUndefined();
     });
   });
 
@@ -270,8 +275,8 @@ describe('Overlay UT', () => {
         { anchors: [anchor1, anchor2], context: '@octo/test-overlay=overlay-1' },
       ]);
 
-      expect(app.getSiblings()['test-overlay'].length).toBe(2);
-      expect(overlay1.getSiblings()['app'].length).toBe(2);
+      expect(app.getSiblings()['test-overlay'].length).toBe(1);
+      expect(overlay1.getSiblings()['app'].length).toBe(1);
 
       overlay1.removeAllAnchors();
 

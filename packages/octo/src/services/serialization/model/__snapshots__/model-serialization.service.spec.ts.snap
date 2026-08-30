@@ -659,38 +659,6 @@ exports[`Model Serialization Service UT serialize() should serialize overlay wit
     {
       "behaviors": [
         {
-          "forAction": "delete",
-          "onAction": "delete",
-          "onField": "name",
-          "toField": "overlayId",
-        },
-      ],
-      "from": "app=test-app",
-      "relationship": undefined,
-      "to": "@octo/test-overlay=overlay-1",
-    },
-    {
-      "behaviors": [
-        {
-          "forAction": "add",
-          "onAction": "add",
-          "onField": "overlayId",
-          "toField": "name",
-        },
-        {
-          "forAction": "update",
-          "onAction": "add",
-          "onField": "overlayId",
-          "toField": "name",
-        },
-      ],
-      "from": "@octo/test-overlay=overlay-1",
-      "relationship": undefined,
-      "to": "app=test-app",
-    },
-    {
-      "behaviors": [
-        {
           "forAction": "add",
           "onAction": "add",
           "onField": "overlayId",

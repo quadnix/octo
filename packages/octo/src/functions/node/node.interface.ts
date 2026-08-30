@@ -36,6 +36,7 @@ export interface INode<S, T> {
 
   /**
    * To add another node as a sibling of self.
+   * - An existing sibling edge with the same node is reused, never duplicated.
    *
    * @param to The sibling node.
    * @returns

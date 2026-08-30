@@ -187,4 +187,36 @@ describe('Node UT', () => {
       });
     });
   });
+
+  describe('addRelationship()', () => {
+    it('should add a sibling edge', async () => {
+      const app1 = new App('app');
+      const overlay1 = new TestOverlay('overlay-1', {}, []);
+
+      app1.addRelationship(overlay1);
+
+      expect(app1.getDependencies().length).toBe(1);
+    });
+
+    it('should reuse the sibling edge with a node it already has one with', async () => {
+      const app1 = new App('app');
+      const overlay1 = new TestOverlay('overlay-1', {}, []);
+
+      const { thisToThatDependency: first } = app1.addRelationship(overlay1);
+      const { thisToThatDependency: second } = app1.addRelationship(overlay1);
+
+      expect(app1.getDependencies().length).toBe(1);
+      expect(first).toBe(second);
+    });
+
+    it('should not reuse a parent or child edge as a sibling edge', async () => {
+      const app1 = new App('app');
+      const account1 = new Account(AccountType.AWS, 'account');
+
+      app1.addChild('name', account1, 'accountId');
+      app1.addRelationship(account1);
+
+      expect(app1.getDependencies().length).toBe(2);
+    });
+  });
 });

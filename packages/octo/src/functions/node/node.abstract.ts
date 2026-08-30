@@ -178,6 +178,23 @@ export abstract class ANode<S, T> implements INode<S, T> {
    * @internal
    */
   addRelationship(to: UnknownNode): { thisToThatDependency: Dependency } {
+    const index = this.dependencies.findIndex((d) => {
+      try {
+        d.to.getContext();
+        to.getContext();
+      } catch (error: unknown) {
+        if (error instanceof ContextNodeError) {
+          return false;
+        } else {
+          throw error;
+        }
+      }
+      return d.getRelationship() === undefined && d.to.getContext() === to.getContext();
+    });
+    if (index > -1) {
+      return { thisToThatDependency: this.dependencies[index] };
+    }
+
     const thisToThatDependency = new Dependency(this, to);
     this.dependencies.push(thisToThatDependency);
     return { thisToThatDependency };
