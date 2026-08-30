@@ -72,14 +72,15 @@ generated scripts point it at `octo.yaml`. Keeping several, such as `octo.stagin
 
 Octo's memory of what your infrastructure is.
 
-| File                    | What it holds                                                                                                                   |
-|-------------------------|---------------------------------------------------------------------------------------------------------------------------------|
-| `models.json`           | The model graph: models, anchors, overlays, and every dependency edge between them.                                             |
-| `resources-actual.json` | The resource graph Octo believes exists, with each resource's response and the mapping from Octo resource to Terraform address. |
-| `resources-old.json`    | The previous resource graph, kept so a re-run can tell a settled state from a pending one.                                      |
-| `<moduleId>.tfstate`    | One module's Terraform state, checked out into its folder before a Terraform command and back in after.                         |
-| `local-state.lock`      | The app lock, present only while a run holds it. `apply` and `commit` require it; `commit` releases it.                         |
-| `reports/`              | HTML and JSON from each validate and commit. Generated output, not state, and gitignored.                                       |
+| File                               | What it holds                                                                                                                   |
+|------------------------------------|---------------------------------------------------------------------------------------------------------------------------------|
+| `models.json`                      | The model graph: models, anchors, overlays, and every dependency edge between them.                                             |
+| `resources-actual.json`            | The resource graph Octo believes exists, with each resource's response and the mapping from Octo resource to Terraform address. |
+| `resources-old.json`               | The previous resource graph, kept so a re-run can tell a settled state from a pending one.                                      |
+| `<moduleId>.tfstate`               | One module's Terraform state, checked out into its folder before a Terraform command and back in after.                         |
+| `resource-state-<resourceId>.json` | What an external resource's action produced, from the moment it ran until the commit that records it.                           |
+| `local-state.lock`                 | The app lock, present only while a run holds it. `apply` and `commit` require it; `commit` releases it.                         |
+| `reports/`                         | HTML and JSON from each validate and commit. Generated output, not state, and gitignored.                                       |
 
 Where it lives comes from `settings.stateProvider.statePath`, resolved against the definition file
 rather than the working directory. Losing it costs you both records at once: Octo believes it is

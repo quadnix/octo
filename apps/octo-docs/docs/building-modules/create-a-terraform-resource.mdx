@@ -135,8 +135,8 @@ stops typechecking.
 `addOctoTerraformResource` can be called once, and `addTerraformResource` as many times as the
 resource needs; several calls chain with `depends_on` in call order, which is how one Octo resource
 becomes a role plus two policy attachments. The last two lines are how a resource opts in to
-[tagging](/docs/using-octo/tagging-resources), and every resource in `@quadnix/octo-aws-cdk` has
-them.
+[tagging](/docs/using-octo/tagging-resources), and every Terraform resource in
+`@quadnix/octo-aws-cdk` has them.
 
 ## Saying what a change costs
 

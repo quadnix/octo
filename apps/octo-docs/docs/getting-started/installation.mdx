@@ -94,9 +94,9 @@ npm run octo:commit -- --lockId $LOCK_ID   # record what was created, and releas
 ```
 
 Each script sets `OCTO_DEFINITION_FILE_PATH=octo.yaml` and points at `.octo-tf`, so the four steps
-cannot drift apart. Use the scripts rather than the binary. During an apply, Terraform can call back
-into `octo run-action` for resources whose lifecycle it does not manage, and `npm run` is what puts
-`node_modules/.bin` on `PATH` for that callback to find.
+cannot drift apart. Use the scripts rather than the binary. During a validate or an apply, Terraform
+can call back into `octo` itself for resources whose lifecycle it does not manage, and `npm run` is
+what puts `node_modules/.bin` on `PATH` for that callback to find.
 
 Running the binary directly works too, as long as you supply both yourself:
 

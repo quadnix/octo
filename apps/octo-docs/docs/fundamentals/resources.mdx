@@ -97,9 +97,9 @@ The other kind is an **external resource**, for the cases a provider genuinely c
 extends `AResource` instead, and its create, update, and delete are code you write, driven by
 [resource actions](/docs/fundamentals/actions). Octo still puts it in the Terraform graph, wrapped
 in a `null_resource` that shells back into `octo run-action` mid-apply, so ordering still works.
-Every resource in `@quadnix/octo-aws-cdk` is a Terraform resource; the escape hatch is deliberately
-not the default. [Create an External Resource](/docs/building-modules/create-an-external-resource)
-is the page for it.
+One resource in `@quadnix/octo-aws-cdk` is external, the container image it publishes, and every
+other is a Terraform resource; the escape hatch is deliberately not the default. [Create an External
+Resource](/docs/building-modules/create-an-external-resource) is the page for it.
 
 One resource cannot be both. Registering a resource action for a Terraform resource throws.
 

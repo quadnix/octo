@@ -117,6 +117,13 @@ library registers, so `@shop`'s `ShopQueue` and somebody else's `ShopQueue` can 
 created, including overlays, because those are what later modules resolve against. Nothing here
 creates infrastructure; that is the [action's](/docs/fundamentals/actions) job.
 
+Nothing here reads the cloud either. A module composes on every command, including `generate`, which
+needs no credentials at all, and once more each time Terraform calls back into `octo run-action`
+during an apply. A call made here is paid on all of them, and it does not answer the question it
+looks like it answers: credentials that resolve are not permission to do the work, and they are not
+necessarily the credentials Terraform applies with. Leave the cloud to the actions, which fail on
+their first call, before anything has changed.
+
 `registerMetadata` derives facts that both `onInit` and the module's actions need. Whatever it
 returns arrives in every action of this module as `actionInputs.metadata`, which is how the action
 below gets an AWS region ID without repeating the anchor lookup. It runs before `onInit`, and its

@@ -133,6 +133,13 @@ state with it.
 `generate` saves the model graph because the run has established what your intent is. Resource state
 waits for `commit`, because until an apply has happened there is nothing to record.
 
+An [external resource](/docs/building-modules/create-an-external-resource) is the exception to the
+apply row. Its action runs in the middle of the apply, and what it produced goes into a record of
+its own, `resource-state-<resourceId>.json`, the moment it succeeds. That is because Terraform reads
+the response back on every plan, which can happen long before a commit exists to read it from. The
+commit folds the record into the resource graph and deletes it, so a record still sitting there is a
+run that applied something and never committed it.
+
 Commit is all or nothing. If an expected Terraform output is missing, it throws before touching any
 file rather than writing half a record, so a failed commit can be re-run once you have fixed what
 made the apply incomplete.

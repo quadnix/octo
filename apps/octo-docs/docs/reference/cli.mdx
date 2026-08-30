@@ -66,6 +66,11 @@ nothing.
 Exits non-zero only when a folder could not be planned. Drift and destructive changes are findings,
 not failures. See [Reading a Validate Report](/docs/using-octo/reading-a-validate-report).
 
+Planning a folder that holds an [external
+resource](/docs/building-modules/create-an-external-resource) runs
+[`octo get-response`](#get-response) for it, which reads Octo state and calls nothing. `validate`
+puts the binary on `PATH` for that, the same way `apply` does for `run-action`.
+
 ### apply
 
 The only command that changes live infrastructure, and the only one that does not boot Octo: it
@@ -247,6 +252,27 @@ through a generated provisioner; you do not call it.
 
 Its stdout carries only the action's JSON result, because Terraform reads it as a `data "external"`
 response. Octo's own listeners are routed to stderr for this command.
+
+What the action produced is recorded against the resource as soon as it succeeds, and `octo commit`
+folds that record into the resource graph and clears it. The record is also what keeps the action to
+one run: Terraform never updates a `null_resource` in place, so a changed trigger destroys and
+recreates it and the provisioner is invoked twice for one change. The second invocation finds the
+work already done and returns what the first produced.
+
+### get-response
+
+Prints one resource's recorded response as JSON. Terraform reads it as a `data "external"` for an
+[external resource](/docs/building-modules/create-an-external-resource), on every plan and every
+apply of the folder that resource sits in; you do not call it.
+
+| Flag           |          |                                       |
+|----------------|----------|---------------------------------------|
+| `--resourceId` | required | The resource whose response to print. |
+
+It reads Octo state and nothing else: no modules are composed and nothing is called, which is what
+makes it safe during a plan. The response comes from what `octo run-action` recorded when the commit
+has not folded it in yet, and from the committed resource graph after that. A resource that has
+neither is an error, and the plan or apply that asked for it fails with that error.
 
 ### build
 

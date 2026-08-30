@@ -154,7 +154,8 @@ comes back as warnings.
 Without a commit, the next run has no record that any of this exists, and will propose creating all
 of it again. Commit is also what runs the delete action of an [external
 resource](/docs/building-modules/create-an-external-resource), because Terraform cannot: by the time
-it would, the resource's configuration is already gone.
+it would, the resource's configuration is already gone. Those deletes wait for an apply that
+finished, so a partial commit defers them and names them in its warnings.
 :::
 
 ## What each step touches
@@ -199,9 +200,11 @@ the definition file that was actually merged. [GitHub Actions
 Pipeline](/docs/techniques/github-actions-pipeline) has the complete workflow, including where the
 state directory has to live for any of this to be safe.
 
-## The command you never run
+## The commands you never run
 
-`octo run-action` exists, and is not part of the cycle. Terraform invokes it mid-apply for [external
-resources](/docs/building-modules/create-an-external-resource), the ones whose lifecycle Terraform
-does not manage. `octo apply` prepares what that callback needs, so it works whether you use the npm
+`octo run-action` and `octo get-response` exist, and neither is part of the cycle. Terraform invokes
+them for [external resources](/docs/building-modules/create-an-external-resource), the ones whose
+lifecycle Terraform does not manage: `run-action` mid-apply to do the work, and `get-response` to
+read back what that work produced, which it does on every plan as well as every apply. `octo
+validate` and `octo apply` prepare what those callbacks need, so they work whether you use the npm
 scripts or call the binary directly.

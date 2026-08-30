@@ -85,9 +85,11 @@ resource "aws_s3_bucket" "bucket-shop-receipts" {
 }
 ```
 
-Every resource in `@quadnix/octo-aws-cdk` does this, so a tag you declare reaches the whole stack.
-If you write your own [Terraform resource](/docs/building-modules/create-a-terraform-resource),
-copying these two lines is what opts it in:
+Every Terraform resource in `@quadnix/octo-aws-cdk` does this, so a tag you declare reaches the
+whole stack. The one exception is the published container image, which renders no HCL to put them
+in; ECR tags a repository rather than the images inside it, and the repository is tagged. If you
+write your own [Terraform resource](/docs/building-modules/create-a-terraform-resource), copying
+these two lines is what opts it in:
 
 ```typescript
 if (Object.keys(this.tags).length > 0) {

@@ -23,11 +23,14 @@ settings:
 while you are learning.
 
 What those files hold decides how far that choice travels. Octo records every Terraform output it
-maps to a resource, including the ones Terraform marked sensitive: keep the ECR image module's state
-as plain JSON and the registry authorization token is in it, in one of the files a project commits.
-Terraform's own state, which sits in the same directory, has always worked this way. Reports are the
-exception and need nothing done to them: the renderer prints `(sensitive)` in place of any value
-Terraform marked, and the scaffolded `.gitignore` excludes the directory they are written to.
+maps to a resource, whatever that output is, and `resources-actual.json` is a file a project
+commits: a module that creates a credential and returns it as part of a resource's response puts it
+there in plain text. Nothing in `@quadnix/octo-aws-cdk` returns one today, which is a fact about
+those modules rather than about the file. Terraform's own state, which sits in the same directory,
+has always worked this way and holds every attribute a provider returned rather than only the
+outputs Octo maps. Reports are the exception and need nothing done to them: the renderer prints
+`(sensitive)` in place of any value Terraform marked, and the scaffolded `.gitignore` excludes the
+directory they are written to.
 
 `LocalEncryptionStateProvider` writes the same files encrypted, with an `.enc` suffix, and takes an
 `encryptionKey`. The point is that the result is safe to commit, which gives a small team shared

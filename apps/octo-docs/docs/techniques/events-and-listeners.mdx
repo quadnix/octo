@@ -115,4 +115,5 @@ app, the mode, the duration, and the error, on every run.
 If you print, print to stderr. Octo's logging listener owns stdout, and it flushes independently of
 `console.log`, so anything written to stdout alongside it lands out of order. Some commands rely on
 stdout carrying only their own output: `octo run-action` is read by Terraform as JSON, and Octo
-routes its own listeners to stderr for that reason.
+routes its own listeners to stderr for that reason. `octo get-response` is read the same way and
+loads no listeners at all, because it reads state and composes nothing.

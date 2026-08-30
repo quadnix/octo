@@ -10,9 +10,10 @@ An **external resource** is Octo's answer. It is a resource whose create, update
 code you write, and Octo still puts it in the Terraform graph so that ordering, dependencies, and
 reports all keep working. Terraform calls back into Octo mid-apply to run it.
 
-This is an escape hatch. Every resource in `@quadnix/octo-aws-cdk` is a [Terraform
-resource](/docs/building-modules/create-a-terraform-resource), and yours should be too unless the
-provider genuinely cannot express what you need.
+This is an escape hatch. One resource in `@quadnix/octo-aws-cdk` is external, the published
+container image, because no provider puts an image into a registry; everything else in the library
+is a [Terraform resource](/docs/building-modules/create-a-terraform-resource), and yours should be
+too unless the provider genuinely cannot express what you need.
 
 ```bash
 octo create-external-resource -n shop-catalog-entry --package @shop
@@ -87,13 +88,20 @@ calling is slower than that.
 Keep the explicit `constructor() { super(); }`. `ANodeAction`'s constructor is protected, and
 without a public one the `@Factory` registration below does not typecheck.
 
+An action that reads a file resolves the path with `ProjectUtility.resolveFromProjectRoot()`.
+Terraform runs the add and update actions from a Terragrunt cache directory rather than from your
+project, and `octo commit` runs the delete action from the project root, so a relative path means
+two different things depending on which one is running. Keep the path relative in the resource's
+properties and resolve it in the action: an absolute one puts your directory layout into Octo state
+and into the properties hash the generated Terraform commits.
+
 ## What Octo generates
 
 An external resource still appears in the Terraform folder, wrapped:
 
 ```hcl title=".octo-tf/orders-queue-module/main.tf"
 data "external" "catalog-entry-shop-orders" {
-  program = ["cat", "${path.module}/.octo-outputs/catalog-entry-shop-orders.json"]
+  program = ["octo", "get-response", "--resourceId=catalog-entry-shop-orders"]
   depends_on = [null_resource.catalog-entry-shop-orders]
 }
 
@@ -104,7 +112,7 @@ resource "null_resource" "catalog-entry-shop-orders" {
     input_queue_shop_orders_Url = "${aws_sqs_queue.queue-shop-orders.url}"
   }
   provisioner "local-exec" {
-    command = "mkdir -p ${path.module}/.octo-outputs && octo run-action --resourceId=catalog-entry-shop-orders --input queue-shop-orders.Arn=${aws_sqs_queue.queue-shop-orders.arn} --input queue-shop-orders.Url=${aws_sqs_queue.queue-shop-orders.url} > ${path.module}/.octo-outputs/catalog-entry-shop-orders.json"
+    command = "octo run-action --resourceId=catalog-entry-shop-orders --input queue-shop-orders.Arn=${aws_sqs_queue.queue-shop-orders.arn} --input queue-shop-orders.Url=${aws_sqs_queue.queue-shop-orders.url}"
   }
   provisioner "local-exec" {
     when = destroy
@@ -119,9 +127,26 @@ Read the `triggers` block, because it is what decides when your action runs agai
 of the resource's properties, and one entry per output of each parent. Change a property, or change
 the queue's ARN, and Terraform re-runs the provisioner. Change nothing, and it does not.
 
-The `data "external"` block reads the JSON the action wrote and makes it available to other
-resources, which is how an external resource's response participates in the graph like anything
-else. Note that it is one output for the whole resource rather than one per response key:
+The hash covers every property, which is right until a resource decides that one of its properties
+is not a change. Whatever `diffProperties()` ignores has to be left out of the hash as well, by
+overriding `getExternalTriggerProperties()` to return only the properties that count. The published
+image in our AWS library is that case: a tag is written once and nothing about it can be edited
+afterwards, so it returns `{}` and re-triggers on a parent's output alone. A property only the hash
+covers is one Terraform plans a replacement for and Octo reports no change for.
+
+A `null_resource` is never updated in place. A changed trigger destroys and recreates it, which
+means Terraform runs the provisioner twice for one change, once on the way out and once on the way
+in. **Your action still runs once.** Octo records what an action made of a resource, and a repeated
+call for the same inputs and the same properties does nothing. You do not need to make your action
+idempotent for this case, though making it idempotent anyway is never wrong.
+
+The `data "external"` block reads the response back and makes it available to other resources, which
+is how an external resource's response participates in the graph like anything else. Terraform reads
+it on every plan and every apply, and your action runs on neither of those schedules, so it reads
+from Octo state rather than from the action. `octo run-action` records what it published the moment
+it publishes, `octo commit` folds that into the resource graph, and `octo get-response` reads
+whichever of the two holds it. Note that it is one output for the whole resource rather than one per
+response key:
 
 ```hcl title=".octo-tf/orders-queue-module/outputs.tf"
 output "catalog-entry-shop-orders" {
@@ -153,6 +178,12 @@ instead.
 
 Which means: if you skip the commit after removing an external resource, the cloud-side thing it
 represents is still there. That is the strongest reason commit is not an optional step.
+
+Because these deletes run after Terraform has finished, and outside the order Terraform destroys its
+own resources in, they are only safe once the apply reached the desired state everywhere. **An apply
+that stopped short defers them all.** Octo cannot tell which live infrastructure a failed module
+left pointing at the resource, so it deletes nothing, says so in the commit's warnings, and keeps
+the resource recorded as present. The next successful run deletes it.
 
 ## When it is worth it
 

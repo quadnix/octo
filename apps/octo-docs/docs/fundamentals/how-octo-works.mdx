@@ -242,6 +242,8 @@ is a string you can search for in `.octo/resources-actual.json` and find the exa
 | Terraform         | Provider APIs, execution, state, and ordering within a folder.                         |
 | Terragrunt        | Ordering between folders, backend generation, wiring outputs into inputs.              |
 
-Octo never calls a cloud API to create anything. If something exists in your account that Terraform
-did not create, an [external resource](/docs/building-modules/create-an-external-resource) action
-did, and somebody on your team wrote it.
+Terraform makes the cloud calls, with one exception. An [external
+resource](/docs/building-modules/create-an-external-resource) is code Octo runs itself, for a thing
+no provider can express, and it is what created anything in your account Terraform did not. Our AWS
+library has a single one, the module that publishes a container image, because Terraform has no
+resource that puts an image into a registry. Any other is one somebody on your team wrote.

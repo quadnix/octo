@@ -409,9 +409,23 @@ concurrency:
         run: |
           node_modules/.bin/octo generate -o .octo-tf-prod
           LOCK_ID=$(node_modules/.bin/octo lock)
-          node_modules/.bin/octo apply --terragruntDir .octo-tf-prod --lockId "$LOCK_ID"
-          node_modules/.bin/octo commit --terragruntDir .octo-tf-prod --lockId "$LOCK_ID"
+
+          # A run that reached the apply always ends in a commit, the same way the merge workflow
+          # above does. Testing the apply rather than letting it end the step is what makes that
+          # possible in a single `run` block.
+          if node_modules/.bin/octo apply --terragruntDir .octo-tf-prod --lockId "$LOCK_ID"; then
+            node_modules/.bin/octo commit --terragruntDir .octo-tf-prod --lockId "$LOCK_ID"
+          else
+            node_modules/.bin/octo commit --terragruntDir .octo-tf-prod --lockId "$LOCK_ID" --partial
+            exit 1
+          fi
 ```
+
+Every deployment ends in a commit, whatever the apply did, because `commit` is what writes down
+what was built and what releases the lock. `--partial` is for the apply that failed: it drops the
+check that every declared output came back, which is safe only once the apply is already known to
+be incomplete. A successful apply commits without it, so an output that never arrived is still an
+error rather than a warning.
 
 The state commit and the path filter follow from that. This workflow pushes `.octo-prod/` where the
 default one pushes `.octo/`, and every copy has to ignore both paths, or one deployment's state

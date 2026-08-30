@@ -89,15 +89,23 @@ it.
 
 ## The reference suites
 
-`@quadnix/octo-templates` in the Octo repository holds the same three stacks as end-to-end test
-suites. They are not something you install; they are where the templates are actually verified, and
-they run the real lifecycle against a real AWS account.
+`@quadnix/octo-templates` in the Octo repository holds the three stacks above as end-to-end test
+suites, and a fourth stack that has no scaffold. They are not something you install; they are where
+the templates are actually verified, and they run the real lifecycle against a real AWS account.
 
 They are worth reading for the things a definition file cannot show. `aws-ecs-server` has a drift
 suite that changes infrastructure out from under Octo and checks that validate reports it. It has an
 incremental suite that applies a stack, changes one input, and applies again, which is the case a
 template on its own never exercises. Each suite builds its modules through a `ModuleDefinitions`
 class that a test can mutate, so "remove this module and run again" is a line of code.
+
+The fourth is `aws-ecr-image`, which publishes container images into ECR and needs Docker as well as
+an AWS account. It is the one suite that runs the `octo` binary rather than driving Octo in process,
+because publishing an image is an [external
+resource](/docs/building-modules/create-an-external-resource): Terraform shells back out to a second
+`octo` process mid-apply, which an in-process test never sees. It carries a second definition file
+alongside its own, `octo-ecs.yaml`, where a version and an ECS service running that version are
+declared together and created by one apply.
 
 If you are writing modules of your own, these are the closest thing to a worked example of testing
 them against something real. [Testing a Module](/docs/building-modules/testing-a-module) is the page

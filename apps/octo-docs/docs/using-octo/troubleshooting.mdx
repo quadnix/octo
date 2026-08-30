@@ -45,6 +45,12 @@ before you run anything:
 A `${env.X}` reference with no matching entry in the `env` block. Usually a typo, and it is an error
 rather than an empty string on purpose.
 
+**`Definition holds a value that contains itself!`**
+
+A YAML anchor that points back at something it sits inside. Octo walks every value looking for
+`${env.X}` references, and a value holding one of its own ancestors has no end to walk to. Anchors
+reused in two separate places are fine; this is the one that nests inside itself.
+
 **`Invalid module definition for moduleId="region-module": "AwsMultiAzRegionModule" not found in
 "imports"!`**
 
@@ -122,6 +128,15 @@ terraform init -backend=false
 terraform validate
 ```
 
+**`No response recorded for resource "..."!`**
+
+Terraform asked Octo for an [external
+resource](/docs/building-modules/create-an-external-resource)'s response and neither the apply that
+would have produced it nor a commit that would have recorded it has happened. During a normal first
+plan Terraform does not ask, because it can see the resource is about to change. It asks when the
+resource is settled, so this usually means state that was restored, moved, or partly lost. Applying
+and committing puts the response back.
+
 **Everything reads `(known after apply)` on the first plan**
 
 Expected. A folder planned before its dependency exists is planned against Terragrunt's
@@ -163,7 +178,16 @@ anything, and will not assume. Fix the plan failure.
 
 Terraform called back into `octo run-action` for an [external
 resource](/docs/building-modules/create-an-external-resource) and could not find the binary. Run the
-lifecycle through the npm scripts, which put `node_modules/.bin` on `PATH` for child processes.
+lifecycle through the npm scripts, which put `node_modules/.bin` on `PATH` for child processes. The
+same callback happens during a validate, where it is `octo get-response` and the same fix applies.
+
+**`Could not run "docker build"!` or `"docker build" exited with 1!`, from inside an apply**
+
+Publishing a container image is an external resource, and its action runs the local `docker` CLI on
+the machine doing the apply. The first message means the binary is not on `PATH` or the daemon is
+not running; the second carries Docker's own stderr from a build that failed. Nothing is published
+either way, so the repository is there and empty, and applying again once the build works publishes
+into it with nothing to repair by hand.
 
 ## While committing
 
@@ -186,6 +210,16 @@ come up. Same handling: state is untouched, fix and re-run.
 
 Expected. `octo commit` releases the lock however it ends, including when it throws, because it is
 the step that ends a run. Take a fresh lock before retrying.
+
+**`Partial commit: N external resource(s) were not deleted because this apply was not confirmed
+everywhere`**
+
+A warning, and the intended behaviour. The delete action of an [external
+resource](/docs/building-modules/create-an-external-resource) runs at commit, over the whole diff at
+once, with none of the ordering Terraform destroys its own resources in. That is safe only when the
+apply reached the desired state everywhere, so an apply that stopped short defers every one of them.
+The resources stay recorded as present and the message names each. Fix the apply and run again; the
+next successful run deletes them.
 
 **`Terraform outputs supplied for folder "X", which octo does not track`**
 

@@ -221,7 +221,12 @@ env:
 ```
 
 Reference one as `${env.KEY}`, anywhere in `moduleInputs`, in a provider's `accountId`, `regionId`,
-or `spec`, or in `terraform.requiredVersion`.
+or `spec`, or in `terraform.requiredVersion`. Inside `moduleInputs` that means at any depth: a
+reference in a list, or in a key of an object, resolves the same as one at the top level.
+
+A reference has to be the whole value. It is not substituted inside a longer string, so an image URI
+built from an account, a region, and a tag is one key holding the finished URI rather than three
+keys spliced together.
 
 An environment variable of the same name wins over the declared value, which is what makes the same
 file work in CI:

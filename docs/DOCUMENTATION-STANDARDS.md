@@ -66,6 +66,7 @@ now come out different — and then by re-capturing, never by hand-editing.
 | Which files a project holds, and which are committed                                                 | `getting-started/project-structure`          | `getting-started/installation`                                                                                                                     |
 | What the `create-app` scaffold writes into a new project — `octo-build/.../generators/app/templates` | `getting-started/project-structure`          | `getting-started/static-website`, which reproduces the scaffold's files as the reader will find them                                               |
 | A user-facing error message, new or reworded                                                         | `using-octo/troubleshooting`                 | —                                                                                                                                                  |
+| A first of its kind in `octo-aws-cdk`, e.g. its first external resource                              | `reference/aws-module-catalog`               | `fundamentals/how-octo-works`, `techniques/state-providers`, and whatever else grep finds asserting the old set                                     |
 
 Two pages are deliberately absent. `introduction.mdx` and `why-octo.mdx` argue from problems rather
 than from surfaces, so a surface change never reaches them; they change when the argument does.
@@ -396,6 +397,12 @@ For pages the reader runs, not only reads.
 - The card verb in a validate report says whether a piece of intent is present, not whether it
   changed: everything still in the definition file reads as `added`. A page showing a report must
   describe the per-resource markers as the change indicator, and must not read the verb as one.
+- A claim about what our AWS layer contains has a shelf life. "Octo never calls a cloud API to
+  create anything" and "keep the ECR image module's state as plain JSON and the registry
+  authorization token is in it" were both true when written, and both false the day the library
+  gained an image publisher and dropped that response key. A library change that adds the first of
+  something, or removes a response, is a prompt to grep the docs for the old fact rather than to
+  update the catalog alone.
 - Count before you write a number. "Ten modules", "seventy-seven exports", "around forty events"
   are claims, and three of them were wrong at once because each was written from memory of the
   source rather than from the source. `grep -c`, or count the keys, every time.

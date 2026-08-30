@@ -17,7 +17,8 @@ every input in full.
 ## Apps and accounts
 
 An app produces no cloud resources. An account decides which credentials to use and which provider
-block is rendered, and produces none either.
+block is rendered, and produces none either. Those credentials are also what Octo authenticates with
+where it calls AWS itself rather than through Terraform, which today is the image publishing below.
 
 | Module                        | Inputs                                          | Creates |
 |-------------------------------|-------------------------------------------------|---------|
@@ -96,13 +97,33 @@ and a local secondary index cannot, so changing one recreates the table.
 
 ## Filesystems and images
 
-| Module                   | Inputs                                | Creates        |
-|--------------------------|---------------------------------------|----------------|
-| `AwsEfsFilesystemModule` | `region`, `filesystemName`            | EFS filesystem |
-| `AwsEcrImageModule`      | `imageFamily`, `imageName`, `regions` | ECR repository |
+| Module                   | Inputs                                                        | Creates                            |
+|--------------------------|---------------------------------------------------------------|------------------------------------|
+| `AwsEfsFilesystemModule` | `region`, `filesystemName`                                    | EFS filesystem                     |
+| `AwsEcrImageModule`      | `imageFamily`, `imageName`, `regions`                         | ECR repository, one per region     |
+| `AwsEcrImageTagModule`   | `image`, `imageTag`, `dockerfileDirectory`, `dockerfileName?` | one published image per repository |
 
 An EFS filesystem belongs to a region; mounting it into a subnet is the subnet module's
 `localFilesystems` input, which is what produces the mount target.
+
+The two image modules are a repository and the versions inside it, declared separately.
+`AwsEcrImageModule` creates the repositories and nothing else. `AwsEcrImageTagModule` takes that
+module's image as its `image` input, builds the Dockerfile at `dockerfileDirectory`, and pushes the
+result into every repository the image has, under `imageTag`. That directory is relative to the
+project root, because it is part of what Octo commits and an absolute path would differ on every
+machine. One repository is pointed at by as many tag modules as you have versions, and adding or
+removing one leaves the others alone.
+
+`imageTag` is the only input that decides what is published. A repository's tags are immutable, so
+editing `dockerfileDirectory` or `dockerfileName` publishes nothing: new content is a new tag, which
+is a new module. Changing the tag publishes the new one and deletes the old.
+
+This is the library's one [external
+resource](/docs/building-modules/create-an-external-resource). Terraform has no resource that puts
+an image into a registry, so Octo runs the local `docker` CLI and the ECR API itself, which means
+the machine running the apply needs Docker. An execution whose deployment names an image URI Octo
+published is ordered behind it, so the same run can publish a version and start something that runs
+it.
 
 ## Anchors
 
@@ -126,6 +147,7 @@ where `<name>` is the anchor's own name rather than the directory it sits in:
 | `AwsEcsExecutionAnchorSchema`               | execution         | `desiredCount`, `environmentVariables`                                       |
 | `AwsEcsServiceAnchorSchema`                 | overlay           | `executionId`                                                                |
 | `AwsEcsTaskDefinitionAnchorSchema`          | deployment        | `cpu`, `memory`, `image`                                                     |
+| `AwsEcrImageAnchorSchema`                   | image             | `imageId`                                                                    |
 | `AwsEcsAlbAnchorSchema`                     | service           | `albName`                                                                    |
 | `AwsDynamoDBAnchorSchema`                   | service           | `TableName`                                                                  |
 | `AwsDynamoDBGlobalAnchorSchema`             | service           | `TableName`                                                                  |
