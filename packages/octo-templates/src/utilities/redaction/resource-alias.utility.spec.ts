@@ -47,6 +47,60 @@ describe('ResourceAliasUtility UT', () => {
       expect(() => ResourceAliasUtility.alias(report)).toThrow('203.0.113.10, vpc-0a1b2c3d4e5f6a7b8!');
     });
 
+    it('should replace a provider-assigned counter with a token', () => {
+      const report = buildReport([
+        buildIntentChange('ecs-task-definition-backend', 'aws_ecs_task_definition.ecs-task-definition-backend', [
+          { field: 'revision', from: '13', to: '(known after apply)' },
+        ]),
+      ]);
+
+      const changedField = ResourceAliasUtility.alias(report).intentChanges[0].terraformChanges[0].changedFields[0];
+      expect(changedField.from).toBe('<assigned>');
+      // What the plan will do is the same on every run, so it is left as the report composed it.
+      expect(changedField.to).toBe('(known after apply)');
+    });
+
+    it('should leave a counter that is not provider-assigned alone', () => {
+      const report = buildReport([
+        buildIntentChange('ecs-service-backend', 'aws_ecs_service.ecs-service-backend', [
+          { field: 'desired_count', from: '1', to: '2' },
+        ]),
+      ]);
+
+      const changedField = ResourceAliasUtility.alias(report).intentChanges[0].terraformChanges[0].changedFields[0];
+      expect(changedField.from).toBe('1');
+      expect(changedField.to).toBe('2');
+    });
+
+    it('should name a terraform generated name after its address', () => {
+      const report = buildReport([
+        buildIntentChange('alb-app-region-east', 'aws_lb.alb-app-region-east', [
+          { field: 'name', from: 'terraform-1928412261f614d06a14a8017f', to: '(known after apply)' },
+        ]),
+      ]);
+
+      expect(ResourceAliasUtility.alias(report).intentChanges[0].terraformChanges[0].changedFields[0].from).toBe(
+        '<aws_lb.alb-app-region-east.name>',
+      );
+    });
+
+    it('should name an ELB target group id, whole and truncated, keeping the name in front of it', () => {
+      const report = buildReport([
+        buildIntentChange('target-group-backend', 'aws_lb_target_group.target-group-backend', [
+          { field: 'arn_suffix', from: 'targetgroup/backend-v1-80/a5011f203bf2381a', to: '(known after apply)' },
+          { field: 'arn', from: 'arn:aws:elasticloadbalancing:us-east-1:1234:targetgroup/backend-v1-80/a5…', to: '' },
+        ]),
+      ]);
+
+      const changedFields = ResourceAliasUtility.alias(report).intentChanges[0].terraformChanges[0].changedFields;
+      expect(changedFields[0].from).toBe(
+        'targetgroup/backend-v1-80/<aws_lb_target_group.target-group-backend.arn_suffix>',
+      );
+      expect(changedFields[1].from).toBe(
+        'arn:aws:elasticloadbalancing:us-east-1:1234:targetgroup/backend-v1-80/<aws_lb_target_group.target-group-backend.arn>…',
+      );
+    });
+
     it('should name an identifier after the address whose id it is', () => {
       const report = buildReport([
         buildIntentChange('vpc-app-region-east', 'aws_vpc.vpc-app-region-east', [

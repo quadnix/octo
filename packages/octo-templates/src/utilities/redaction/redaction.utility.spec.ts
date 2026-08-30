@@ -15,7 +15,12 @@ describe('RedactionUtility UT', () => {
   describe('identifierRules()', () => {
     it('should return only rules whose value is named from its context', () => {
       expect(RedactionUtility.identifierRules().every((rule) => rule.token === null)).toBe(true);
-      expect(RedactionUtility.identifierRules().map((rule) => rule.name)).toEqual(['AWS resource id', 'IP address']);
+      expect(RedactionUtility.identifierRules().map((rule) => rule.name)).toEqual([
+        'AWS resource id',
+        'ELB target group id',
+        'IP address',
+        'Terraform generated name',
+      ]);
     });
   });
 

@@ -1,4 +1,10 @@
-import { AWS_ACCOUNT_ID_RULE, AWS_RESOURCE_ID_RULE, IP_ADDRESS_RULE } from './rules/index.js';
+import {
+  AWS_ACCOUNT_ID_RULE,
+  AWS_RESOURCE_ID_RULE,
+  ELB_TARGET_GROUP_ID_RULE,
+  IP_ADDRESS_RULE,
+  TERRAFORM_GENERATED_NAME_RULE,
+} from './rules/index.js';
 
 /**
  * One kind of value that must never reach a committed file, and what stands in for it.
@@ -30,7 +36,13 @@ export interface IRedactionRule {
   token: string | null;
 }
 
-const ALL_RULES: IRedactionRule[] = [AWS_ACCOUNT_ID_RULE, AWS_RESOURCE_ID_RULE, IP_ADDRESS_RULE];
+const ALL_RULES: IRedactionRule[] = [
+  AWS_ACCOUNT_ID_RULE,
+  AWS_RESOURCE_ID_RULE,
+  ELB_TARGET_GROUP_ID_RULE,
+  IP_ADDRESS_RULE,
+  TERRAFORM_GENERATED_NAME_RULE,
+];
 
 /**
  * Replaces values that must not be committed with a fixed token.

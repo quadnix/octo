@@ -1,6 +1,20 @@
 import type { TestModuleContainer } from '@quadnix/octo';
 import { RedactionUtility } from './redaction.utility.js';
 
+/**
+ * Terraform fields whose value the provider mints, and which carry nothing a snapshot should hold.
+ *
+ * A counter has no shape an identifier rule could match - an ECS task definition `revision` is the
+ * string `13`, indistinguishable from any other number - so it is named by the field it sits in. The
+ * revision of a family never resets, so every run that registers one moves it.
+ */
+const PROVIDER_ASSIGNED_FIELDS = new Set(['revision']);
+
+/**
+ * What stands in for a provider-assigned field's value.
+ */
+const PROVIDER_ASSIGNED_TOKEN = '<assigned>';
+
 type ValidateReport = NonNullable<
   (TestModuleContainer['runModules'] extends (...args: never[]) => AsyncGenerator<infer TYield>
     ? TYield
@@ -19,6 +33,9 @@ type ValidateReport = NonNullable<
  * [RedactionUtility](./redaction.utility.ts), so a new cloud is a rule file rather than a change
  * here. Aliasing is all-or-nothing: an identifier this utility cannot name throws rather than
  * reaching a snapshot, so a resource kind it has never seen fails the test instead of leaking.
+ *
+ * A value the provider mints with no shape to match on is handled by the field that holds it
+ * instead. See {@link PROVIDER_ASSIGNED_FIELDS}.
  */
 export class ResourceAliasUtility {
   /**
@@ -27,11 +44,12 @@ export class ResourceAliasUtility {
    * @throws If the report holds an identifier that no terraform address claims.
    */
   static alias(report: ValidateReport): ValidateReport {
-    const aliases = ResourceAliasUtility.buildAliases(report);
+    const blanked = ResourceAliasUtility.blankProviderAssignedFields(report);
+    const aliases = ResourceAliasUtility.buildAliases(blanked);
 
     // Replace the longest identifiers first, so one that contains another cannot be half-substituted.
     const literals = [...aliases.keys()].sort((a, b) => b.length - a.length);
-    const aliased = ResourceAliasUtility.mapStrings(report, (text) =>
+    const aliased = ResourceAliasUtility.mapStrings(blanked, (text) =>
       literals.reduce((substituted, literal) => substituted.split(literal).join(aliases.get(literal)!), text),
     );
 
@@ -48,6 +66,32 @@ export class ResourceAliasUtility {
     }
 
     return aliased;
+  }
+
+  /**
+   * Returns a copy of `report` with every {@link PROVIDER_ASSIGNED_FIELDS} value replaced by a token.
+   *
+   * A value the report composed rather than read - an empty string, or a `(known after apply)` kind
+   * of note - is left alone: it says what the plan will do, and is the same on every run.
+   */
+  private static blankProviderAssignedFields(report: ValidateReport): ValidateReport {
+    const blank = (value: string | undefined): string | undefined =>
+      value === undefined || value === '' || value.startsWith('(') ? value : PROVIDER_ASSIGNED_TOKEN;
+
+    return {
+      ...report,
+      intentChanges: report.intentChanges.map((intentChange) => ({
+        ...intentChange,
+        terraformChanges: intentChange.terraformChanges.map((terraformChange) => ({
+          ...terraformChange,
+          changedFields: terraformChange.changedFields.map((changedField) =>
+            PROVIDER_ASSIGNED_FIELDS.has(changedField.field)
+              ? { ...changedField, from: blank(changedField.from), to: blank(changedField.to) }
+              : changedField,
+          ),
+        })),
+      })),
+    };
   }
 
   /**
