@@ -75,7 +75,10 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
    * @internal
    */
   deriveDependencyField(): string | undefined {
-    if (this.getDependencies().length === 0 && (this.constructor as typeof ANode).NODE_NAME === 'app') {
+    if (
+      (this.constructor as typeof ANode).NODE_NAME === 'app' &&
+      !this.getDependencies().some((d) => d.isChildRelationship())
+    ) {
       return 'name';
     } else if ((this.constructor as typeof ANode).NODE_TYPE === NodeType.OVERLAY) {
       return 'overlayId';

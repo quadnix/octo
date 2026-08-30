@@ -7,7 +7,10 @@ import { BaseResourceSchema } from '../resources/resource.schema.js';
 import { InputService } from '../services/input/input.service.js';
 import { SchemaTranslationService } from '../services/schema-translation/schema-translation.service.js';
 import { create } from '../utilities/test-helpers/test-models.js';
+import { createAnchor, createTestOverlays } from '../utilities/test-helpers/test-overlays.js';
 import { createTestResources } from '../utilities/test-helpers/test-resources.js';
+
+const TestAnchor = createAnchor().setClassName('TestAnchor');
 
 describe('Model UT', () => {
   let container: Container;
@@ -26,6 +29,36 @@ describe('Model UT', () => {
 
   afterEach(async () => {
     await TestContainer.reset();
+  });
+
+  describe('deriveDependencyField()', () => {
+    it('should derive the field of an app that has no children', async () => {
+      const {
+        app: [app],
+      } = create({ app: ['test'] });
+
+      expect(app.deriveDependencyField()).toBe('name');
+    });
+
+    it('should derive the field of an app that only has sibling edges', async () => {
+      const {
+        app: [app],
+      } = create({ app: ['test'] });
+      const anchor1 = new TestAnchor('anchor-1', {}, app);
+      app.addAnchor(anchor1);
+
+      await createTestOverlays([{ anchors: [anchor1], context: '@octo/test-overlay=overlay-1' }]);
+
+      expect(app.deriveDependencyField()).toBe('name');
+    });
+
+    it('should derive the field of an app that has children', async () => {
+      const {
+        app: [app],
+      } = create({ account: ['aws,account'], app: ['test'] });
+
+      expect(app.deriveDependencyField()).toBe('name');
+    });
   });
 
   describe('getModelsMatchingSchema()', () => {
