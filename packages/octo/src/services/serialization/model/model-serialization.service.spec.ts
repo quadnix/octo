@@ -325,5 +325,27 @@ describe('Model Serialization Service UT', () => {
 
       expect(await service.serialize(app)).toMatchSnapshot();
     });
+
+    it('should throw error when an anchor of an overlay is not held by a model', async () => {
+      const {
+        app: [app],
+      } = create({ account: ['aws,account'], app: ['test-app'] });
+      const anchor1 = new TestAnchor('anchor-1', {}, app);
+      app.addAnchor(anchor1);
+
+      const { '@octo/test-overlay=overlay-1': overlay1 } = await createTestOverlays([
+        { anchors: [anchor1], context: '@octo/test-overlay=overlay-1' },
+      ]);
+
+      // An anchor parented by an overlay, and held by an overlay rather than by a model.
+      const anchor2 = new TestAnchor('anchor-2', {}, overlay1);
+      await createTestOverlays([{ anchors: [anchor2], context: '@octo/test-overlay=overlay-2' }]);
+
+      const service = await container.get(ModelSerializationService);
+
+      await expect(async () => {
+        await service.serialize(app);
+      }).rejects.toMatchInlineSnapshot(`[Error: Anchor of overlay is not held by any model!]`);
+    });
   });
 });

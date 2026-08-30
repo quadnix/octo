@@ -9,6 +9,7 @@ import {
 } from '../../../app.type.js';
 import { EventSource } from '../../../decorators/event-source.decorator.js';
 import { Factory } from '../../../decorators/factory.decorator.js';
+import { NodeUnsynthError, OverlayError } from '../../../errors/index.js';
 import {
   AnchorRegistrationEvent,
   ModelDeserializedEvent,
@@ -127,6 +128,21 @@ export class ModelSerializationService {
       }
     }
 
+    // Validate every anchor an overlay joins is held by a model, since only a model's anchors are serialized.
+    const modelAnchorKeys = new Set(anchors.map((a) => [a.parent.context, a.anchorId].join(',')));
+    for (const node of boundary) {
+      if ((node.constructor as typeof ANode).NODE_TYPE !== NodeType.OVERLAY) {
+        continue;
+      }
+
+      const overlay = node as UnknownOverlay;
+      for (const anchor of overlay.getAnchors()) {
+        if (!modelAnchorKeys.has([anchor.getParent().getContext(), anchor.anchorId].join(','))) {
+          throw new OverlayError('Anchor of overlay is not held by any model!', overlay);
+        }
+      }
+    }
+
     return { anchors, dependencies, models, overlays };
   }
 
@@ -221,7 +237,11 @@ export class ModelSerializationService {
     for (const { overlay } of serializedOutput.overlays) {
       const anchors = await Promise.all(
         overlay.anchors.map(async (a: AnchorSchema<UnknownAnchor>): Promise<UnknownAnchor> => {
-          return anchorParentLocationMapping[[a.parent.context, a.anchorId].join(',')];
+          const anchor = anchorParentLocationMapping[[a.parent.context, a.anchorId].join(',')];
+          if (!anchor) {
+            throw new NodeUnsynthError('Cannot find anchor while deserializing overlay!', overlay.overlayId);
+          }
+          return anchor;
         }),
       );
       for (const anchor of anchors) {
