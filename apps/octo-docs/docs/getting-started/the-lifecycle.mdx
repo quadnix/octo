@@ -47,18 +47,12 @@ a checkout server that can read and write it.
 octo generate -o .octo-tf
 ```
 
-Generate reads the definition file, loads every module, and builds the model graph. It runs every
-model action over that graph to work out which cloud resources your intent implies, compares that
-set against the resources it recorded at the last commit, and writes one Terragrunt module folder
-per Octo module: `main.tf`, `variables.tf`, `outputs.tf`, `terragrunt.hcl`.
+Generate turns your definition file into Terraform: one Terragrunt folder per module, holding
+`main.tf`, `variables.tf`, `outputs.tf`, and `terragrunt.hcl`. It needs no credentials and touches
+nothing in the cloud, and the same definition file produces the same folders whatever ran before it.
 
-The comparison happens between resources, not between models. Your intent is rebuilt from scratch on
-every run rather than diffed, which is why the same folder comes out of the same definition file
-whatever ran before it. [How Octo Works](/docs/fundamentals/how-octo-works) follows that path in
-full.
-
-It saves the model state, in `.octo/models.json`. Resource state is not saved here, because nothing
-has been created yet.
+It records your intent in `.octo/models.json` as it goes. There is no resource state yet, because
+nothing has been created.
 
 Three things about how it writes, all of which matter the first time you delete something:
 
@@ -98,10 +92,8 @@ a Validate Report](/docs/using-octo/reading-a-validate-report) covers it before 
 octo apply --terragruntDir .octo-tf --lockId $LOCK_ID
 ```
 
-The only step that changes live infrastructure, and the only one that loads none of your modules. It
-reads no model or resource state either. The definition file is opened only for the state provider,
-because the app lock lives there and apply verifies it before planning, so a run without the lock
-fails having done nothing.
+The only step that changes live infrastructure. It verifies the lock before it plans anything, so a
+run without one fails having done nothing.
 
 It runs `terragrunt run --all -- apply` over the directory and streams the output as it goes,
 because an ECS apply can run for tens of minutes and its progress is the only sign it is alive.
@@ -121,13 +113,7 @@ Refusing to apply. Run "octo validate" to see why each of these is being destroy
 a folder cannot be planned at all, apply also refuses, because it cannot say whether that folder
 would destroy something and will not guess.
 
-| Flag                        | Effect                                                |
-|-----------------------------|-------------------------------------------------------|
-| `--lockId <id>`             | The app lock, from `octo lock`. Required.             |
-| `--auto-approve`            | Skip the destroy check. Required to destroy anything. |
-| `--terraformBinary tofu`    | Sets `TG_TF_PATH`, so Terragrunt drives OpenTofu.     |
-| `--terragruntBinary <path>` | Use a specific Terragrunt binary.                     |
-| `--timeoutInMs <n>`         | Per-command timeout. The default is 60 minutes.       |
+[CLI](/docs/reference/cli#apply) lists every flag it takes.
 
 ## Commit
 
@@ -135,27 +121,18 @@ would destroy something and will not guess.
 octo commit --terragruntDir .octo-tf --lockId $LOCK_ID
 ```
 
-Commit reads every folder's Terraform outputs and records them into Octo's state: each resource's
-response, meaning the ARNs, generated IDs, and endpoints the provider handed back, along with the
-resource graph and the mapping from each Octo resource to the Terraform addresses that render it.
-
-It is also the step that ends a run, so it **releases the app lock**, on a clean commit and on one
-that throws.
+Commit reads what the apply produced, the ARNs and IDs and endpoints the provider handed back, and
+records them as [state](/docs/fundamentals/state). It is also the step that ends a run, so it
+releases the app lock, on a clean commit and on one that throws.
 
 It is all or nothing. If an expected output is missing, which is what a partial apply looks like,
-commit throws before touching state rather than writing half a record. Re-running a commit that
-failed is safe. Outputs for a folder Octo does not track are ignored and reported as a warning.
-
-When the apply itself failed, `--partial` is the way through: it records every resource whose
-outputs did resolve and leaves the rest out, so the half that was built is not lost. What it skips
-comes back as warnings.
+commit throws before touching state rather than writing half a record, and re-running it once you
+have fixed the apply is safe. After an apply that failed and is not going to succeed as it stands,
+`--partial` records the half that was built and reports what it skipped.
 
 :::warning[Do not skip it]
-Without a commit, the next run has no record that any of this exists, and will propose creating all
-of it again. Commit is also what runs the delete action of an [external
-resource](/docs/building-modules/create-an-external-resource), because Terraform cannot: by the time
-it would, the resource's configuration is already gone. Those deletes wait for an apply that
-finished, so a partial commit defers them and names them in its warnings.
+Without a commit, the next run has no record that any of this exists and proposes creating all of it
+again.
 :::
 
 ## What each step touches
@@ -167,13 +144,8 @@ finished, so a partial commit defers them and names them in its warnings.
 | `apply`    | **writes**    |             |                | reads             | requires           |
 | `commit`   | reads outputs | writes      | writes         | reads             | requires, releases |
 
-Generate is the only step that runs without credentials of any kind. Apply is the only one that does
-not load your modules; the other three boot Octo and will fail on a definition file whose imports do
-not resolve.
-
-Generate writes model state, but only into your own working copy's state directory. It is
-bookkeeping about the folders it wrote, so that a module you delete before ever applying it
-still gets its folder emptied. That is why it needs no lock.
+Generate is the only step that runs without credentials of any kind, and the only one you can run
+freely while somebody else holds the lock.
 
 ## In a pipeline
 
@@ -202,9 +174,6 @@ state directory has to live for any of this to be safe.
 
 ## The commands you never run
 
-`octo run-action` and `octo get-response` exist, and neither is part of the cycle. Terraform invokes
-them for [external resources](/docs/building-modules/create-an-external-resource), the ones whose
-lifecycle Terraform does not manage: `run-action` mid-apply to do the work, and `get-response` to
-read back what that work produced, which it does on every plan as well as every apply. `octo
-validate` and `octo apply` prepare what those callbacks need, so they work whether you use the npm
-scripts or call the binary directly.
+`octo run-action` and `octo get-response` are not part of the cycle. Terraform calls them itself,
+mid-run, for the kind of [resource](/docs/fundamentals/resources) it does not manage. Nothing is
+required of you: `validate` and `apply` set up what those callbacks need.

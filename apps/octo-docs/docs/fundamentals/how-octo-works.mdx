@@ -2,49 +2,35 @@
 title: How Octo Works
 ---
 
-A definition file goes in and Terraform comes out, and in between are six transformations nobody
-sees. That is fine until the Terraform is not what you meant, and then the useful question is which
-of the six did something you did not expect: an input that never validated, an action that named a
-resource after something that moves, a reference that resolved into a different folder than you
-thought. This page walks the whole path once, so that each step has a name you can go back to.
+A definition file goes in and Terraform comes out. In between are five steps, and knowing their
+names is what turns "the Terraform is not what I meant" into a question with an answer: which step
+did something you did not expect.
 
 The example is the shop from [Shop Stack](/docs/getting-started/shop-stack): an AWS account, a
 region, a receipts bucket, and a checkout server that can read and write it. Eleven lines of YAML
 described that server, and they became an IAM role in one folder and a bucket policy in another.
 
-## The pipeline
-
 ```mermaid
 graph TD
 ;
     yaml["octo.yaml<br/><i>your intent</i>"];
-    modules["modules<br/><i>onInit()</i>"];
     models["model graph<br/><i>app, region, server, service</i>"];
-    modelActions["model actions<br/><i>handle()</i>"];
     resources["resource graph<br/><i>Vpc, S3Storage, IamRole</i>"];
-    tohcl["toHCL()"];
     folders["terragrunt folders<br/><i>.octo-tf/&lt;moduleId&gt;/</i>"];
     tf["terraform apply"];
-    outputs["terraform outputs"];
     state["octo state<br/><i>.octo/</i>"];
-    yaml --> modules;
-    modules --> models;
-    models --> modelActions;
-    modelActions --> resources;
-    resources --> tohcl;
-    tohcl --> folders;
+    yaml -->|" modules compose "| models;
+    models -->|" actions declare "| resources;
+    resources -->|" resources render "| folders;
     folders --> tf;
-    tf --> outputs;
-    outputs --> state;
-    state -.->|" diffed against the next run's<br/>resource graph "| resources;
+    tf -->|" commit records "| state;
+    state -.->|" diffed against the next run "| resources;
 ```
 
-Each arrow is a transformation, and each one is a place to look when something is not what you
-expected.
+## You describe what you want
 
-## The definition file
-
-`octo.yaml` names module classes, and gives each one an ID and a set of inputs.
+`octo.yaml` names [modules](/docs/fundamentals/modules), and gives each one an ID and a set of
+inputs.
 
 ```yaml
 modules:
@@ -57,169 +43,65 @@ modules:
       vpcCidrBlock: 10.0.0.0/16
 ```
 
-The `moduleId` does two jobs. It scopes everything that instance of the module produces, and it
-becomes the name of the generated Terragrunt folder, which is why the report calls the VPC's folder
-`region-module`. Loading the same class twice under two IDs gives two independent instances, and
-that is how the shop gets several subnets out of one subnet module.
+The `moduleId` is the name that follows that instance through the rest of the run: it names the
+folder Octo generates for it, which is why a report calls the VPC's folder `region-module`.
 
-A `${{...}}` reference is resolved when the module that needs it runs, against what earlier modules
-registered. [Composing Modules](/docs/using-octo/composing-modules) covers the forms it takes.
+## Modules build the model graph
 
-## Modules to models
+Each module runs and returns the [models](/docs/fundamentals/models) it created: an app, an account,
+a region, a server. What comes out is one connected graph rooted at a single app, and it is
+described entirely in those terms. Nothing in it mentions a VPC.
 
-Each module's `onInit()` runs, in the order the definition lists them, and returns the models,
-overlays, and anchors it created.
+Inputs are checked against the module's schema before it runs, so a bad input fails here, naming the
+input, rather than three layers down. Failing while composing costs nothing. Failing during an apply
+costs a half-built stack.
 
-```typescript
+## Actions turn models into resources
 
-@Module<SimpleAppModule>('@octo', SimpleAppModuleSchema)
-export class SimpleAppModule extends AModule<SimpleAppModuleSchema, App> {
-  async onInit (inputs: SimpleAppModuleSchema): Promise<App> {
-    return new App(inputs.name);
-  }
-}
-```
+For every model in the graph, Octo asks the [actions](/docs/fundamentals/actions) registered for it
+what that model means in cloud terms. Their answers are the
+[resources](/docs/fundamentals/resources): the storage service becomes a bucket, the server becomes
+an IAM role, the region becomes a VPC and an internet gateway.
 
-Inputs are validated against the module's schema before `onInit` runs, so a bad input fails here,
-with a message naming the input, rather than three layers down. A module that cannot satisfy what it
-was asked for throws a `ModuleError` in `onInit`. Failing during compose costs nothing; failing
-during an apply costs a half-built stack.
-
-What comes out is one connected graph rooted at a single app. The nodes are
-[models](/docs/fundamentals/models), and the edges are
-[dependencies](/docs/fundamentals/dependencies), either parent and child or a peer relationship.
-
-## Models to resources
-
-Octo walks the model graph and, for each model, asks the [actions](/docs/fundamentals/actions)
-registered for that class whether they apply. The ones that do declare resources. This is where the
-storage service becomes a bucket:
-
-```typescript
-
-@Action(AwsS3StorageService)
-export class AddAwsS3StorageServiceModelAction implements IModelAction<AwsS3StorageServiceModule> {
-  filter (diff: Diff): boolean {
-    return diff.action === DiffAction.ADD && diff.node instanceof AwsS3StorageService
-      && hasNodeName(diff.node, 'service') && diff.field === 'serviceId';
-  }
-
-  async handle (diff, actionInputs, actionOutputs): Promise<ActionOutputs> {
-    const { bucketName } = diff.node;
-    const { awsAccountId, awsRegionId } = actionInputs.metadata;
-
-    const s3Storage = new S3Storage(`bucket-${bucketName.replace(/[^\w-]/g, '-')}`, {
-      awsAccountId,
-      awsRegionId,
-      Bucket: bucketName,
-      permissions: [],
-    });
-
-    actionOutputs[s3Storage.resourceId] = s3Storage;
-    return actionOutputs;
-  }
-}
-```
-
-:::info[Model actions run in full on every run]
-Octo does not diff your model graph against the previous run's. It composes the whole graph from
-scratch and runs every model action, so what it holds afterwards is the complete desired set of
-resources, not a delta.
-
-Change detection happens one layer down, between resource graphs. That is why a model action has to
-be deterministic: the same inputs must produce the same resources with the same resource IDs. A
-resource ID derived from something that moves will read as a delete and a create.
-:::
+This happens in full on every run. Octo does not diff your model graph against the last one; it
+composes the whole thing again, so what it holds at the end of this step is the complete set of
+resources your intent implies, not a list of changes.
 
 ## The diff
 
-At this point Octo holds two resource graphs:
+Octo now holds two resource graphs: the one your intent implies, derived moments ago, and the one it
+recorded at the last commit. Comparing them is the diff, and it is what every report shows and what
+`octo validate` correlates Terraform's plan against.
 
-- **new**, which is what your intent implies, derived moments ago.
-- **actual**, which is what Octo recorded at the last commit, read back from
-  `.octo/resources-actual.json`.
+A change is one of [five things](/api/octo/enum/DiffAction), and the one worth knowing by name is
+`replace`: a change that cannot be made in place, so the infrastructure is destroyed and created
+again. Whoever wrote the resource declares that, with a reason, which is how a report can say why a
+VPC is being recreated instead of leaving you to work it out from a plan.
 
-Comparing them produces the resource diff. That is what every report shows, and what `validate`
-correlates Terraform's plan against. A resource author shapes it by overriding `diffProperties()`:
+## Resources render Terraform
 
-```typescript
-override async diffProperties(previous: Vpc): Promise<Diff[]> {
-  if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties, ['awsAvailabilityZones'])) {
-    return [
-      new Diff(
-        this,
-        DiffAction.REPLACE,
-        'resourceId',
-        this.getContext(),
-        'cidr_block is force-new on aws_vpc; a change recreates the VPC',
-      ),
-    ];
-  }
+One module produces one Terragrunt folder. Every resource in the desired graph writes itself into
+its module's folder, whether or not it changed, and Terraform works out the creates and deletes
+against its own state.
 
-  return [];
-}
-```
-
-The reason string is what a reviewer reads when a plan shows a recreate. Saying `REPLACE` up front
-is also what keeps that recreate out of the drift section, where it would read as something nobody
-asked for. A diff carries one of `ADD`, `UPDATE`, `DELETE`, `REPLACE`, or `VALIDATE`.
-
-## Resources to Terraform
-
-Every resource in the desired graph writes itself out, whether or not it changed. Terraform works
-out the creates and deletes against its own state; Octo always writes the full desired
-configuration.
-
-```typescript
-override async toHCL(terraform: TerraformModuleScope): Promise<void> {
-  const vpc = terraform.addOctoTerraformResource(this as Vpc, {
-    provider: { accountId: this.properties.awsAccountId, regionId: this.properties.awsRegionId },
-  });
-
-  const tf = vpc.addTerraformResource('aws_vpc', this.resourceId, {
-    cidr_block: this.properties.CidrBlock,
-    enable_dns_hostnames: true,
-    enable_dns_support: true,
-    instance_tenancy: this.properties.InstanceTenancy,
-  });
-
-  vpc.output({
-    VpcArn: terraform.raw(`${tf.address}.arn`),
-    VpcId: terraform.raw(`${tf.address}.id`),
-  });
-}
-```
-
-Two things in there do more than they look like they do.
-
-`output()` declares this resource's response keys. They become `output` blocks in the folder, which
-is both how another folder consumes the resource and how `commit` reads the values back into Octo's
-state.
-
-`terraform.getRef(otherResource, 'VpcId')` is how one resource refers to another, and it resolves
-late. If the producer lands in the same folder it renders as a native expression,
-`aws_vpc.vpc-eu-west-1.id`. If it lands in a different folder it renders as `var.vpc_1_VpcId`, and
-Octo writes the matching `variable` block, the Terragrunt `dependency` block, and the `inputs`
-wiring that connects them. That is the mechanism behind the two folders in the Shop Stack: the
-receipts bucket's policy names checkout's role ARN, checkout is a different module, so the receipts
-folder gained a `dependency` block and applied second. Nobody wrote an address, and nobody ordered
-the folders.
-
-One Octo module produces one Terragrunt folder.
+The interesting part is what happens when one resource points at another. The receipts bucket's
+policy needs checkout's role ARN, and checkout came from a different module, so those two resources
+are in different folders. Octo renders that reference as a Terragrunt `dependency` between the two
+folders and writes the wiring on both sides. Nobody typed an address, and nobody put the folders in
+order: the receipts folder applies second because of what it needs, not because of where it sits in
+`octo.yaml`.
 
 ## Apply and commit
 
-Terragrunt applies the folders in the order those dependency blocks imply. Then `commit` reads each
-folder's outputs, writes them into each resource's response, saves the model and resource graphs,
-and rolls `resources-actual.json` forward.
-
-That recorded state is the baseline the next run's resource graph is diffed against, which closes
-the loop in the diagram.
+Terragrunt applies the folders in the order those dependencies imply. Then `octo commit` reads each
+folder's outputs, records them as each resource's response, and saves both graphs, which becomes the
+baseline the next run is diffed against. [The Lifecycle](/docs/getting-started/the-lifecycle) covers
+the four commands and what each one is safe to do.
 
 ## Names
 
 Every node has a context, and that string is its identity everywhere: in state, in diffs, in
-reports, in dependency edges.
+reports.
 
 ```text
 app=shop
@@ -242,8 +124,5 @@ is a string you can search for in `.octo/resources-actual.json` and find the exa
 | Terraform         | Provider APIs, execution, state, and ordering within a folder.                         |
 | Terragrunt        | Ordering between folders, backend generation, wiring outputs into inputs.              |
 
-Terraform makes the cloud calls, with one exception. An [external
-resource](/docs/building-modules/create-an-external-resource) is code Octo runs itself, for a thing
-no provider can express, and it is what created anything in your account Terraform did not. Our AWS
-library has a single one, the module that publishes a container image, because Terraform has no
-resource that puts an image into a registry. Any other is one somebody on your team wrote.
+Terraform makes the cloud calls. The exception is an [external
+resource](/docs/fundamentals/resources), the kind no provider can express, which Octo runs itself.

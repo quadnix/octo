@@ -8,106 +8,13 @@ took real work, and they do not travel: copying a folder of Terraform from anoth
 on their account layout and their naming rules along with their code, because a module's contract
 with its caller is a list of strings and nothing checks them against your world.
 
-A **module** is Octo's unit of reuse, and it is a class rather than a directory. It declares the
-inputs it accepts as a schema, builds models when it runs, and finds what other modules built by
-matching on shape. Two modules from two libraries can be composed without either author having
-planned for it.
+A **module** is Octo's unit of reuse. It declares the inputs it accepts, builds
+[models](/docs/fundamentals/models) when it runs, and finds what other modules built by matching on
+shape rather than by importing their classes. Two modules from two libraries compose without either
+author having planned for it.
 
 The shop is four of them: an app module, an account module, a region module, and a storage module,
-with a server module added later.
-
-## What one looks like
-
-```typescript
-
-@Module<AwsS3StorageServiceModule>('@octo', AwsS3StorageServiceModuleSchema)
-export class AwsS3StorageServiceModule extends AModule<
-  AwsS3StorageServiceModuleSchema,
-  AwsS3StorageService
-> {
-  async onInit (inputs: AwsS3StorageServiceModuleSchema): Promise<AwsS3StorageService> {
-    const { app, awsAccountId, awsRegionId } = await this.registerMetadata(inputs);
-
-    const s3StorageService = new AwsS3StorageService(inputs.bucketName);
-    app.addService(s3StorageService);
-
-    s3StorageService.addAnchor(new AwsS3StorageServiceAnchor('AwsS3StorageServiceAnchor',
-      { awsAccountId, awsRegionId, bucketName: inputs.bucketName }, s3StorageService));
-
-    for (const remoteDirectoryPath of inputs.remoteDirectoryPaths || []) {
-      s3StorageService.addDirectory(remoteDirectoryPath);
-    }
-
-    return s3StorageService;
-  }
-}
-```
-
-That is the whole module that produced the receipts bucket. It creates a model, attaches an anchor
-so other modules can find it, registers the directories it was asked for, and returns.
-
-Three methods matter, and only the first is required.
-
-**`onInit(inputs)`** builds the module's infrastructure and returns the nodes it created. Return all
-of them, overlays included, because those are what later modules resolve against.
-
-**`registerMetadata(inputs)`** derives values that both `onInit` and the module's actions need,
-usually facts pulled out of another module's anchors. Whatever it returns arrives in every action of
-this module as `actionInputs.metadata`. The storage module uses it to resolve which AWS account and
-region the bucket belongs in, working up from the region it was handed:
-
-```typescript
-override async registerMetadata(inputs) {
-  const region = inputs.region;
-  const account = region.getParents()['account'][0].to as Account;
-  const app = account.getParents()['app'][0].to as App;
-
-  const [matchingAnchor] = await region.getAnchorsMatchingSchema(AwsRegionAnchorSchema, [], {
-    searchBoundaryMembers: false,
-  });
-
-  return {
-    app,
-    awsAccountId: account.accountId,
-    awsRegionId: matchingAnchor.getSchemaInstance().properties.awsRegionId,
-  };
-}
-```
-
-**`registerHooks()`** attaches callbacks to lifecycle points for the duration of this module. Most
-modules do not need it. [Hooks](/docs/techniques/hooks) covers it.
-
-## The schema is the contract
-
-A module's inputs are a class, and the decorator takes it:
-
-```typescript
-export class AwsS3StorageServiceModuleSchema {
-  @Validate({ options: { minLength: 1 } })
-  bucketName = Schema<string>();
-
-  @Validate([
-    { options: { isModel: { anchors: [{ schema: AwsRegionAnchorSchema }], NODE_NAME: 'region' } } },
-    { destruct: (value) => [value.synth()], options: { isSchema: { schema: RegionSchema } } },
-  ])
-  region = Schema<Region>();
-
-  @Validate({ destruct: (value) => value!, options: { minLength: 1 } })
-  remoteDirectoryPaths? = Schema<string[]>([]);
-}
-```
-
-Read the middle one as: whatever arrives here must be a region, and it must publish AWS region
-details. Not a string that looks like a region ID. The node itself, with a shape the module can use.
-
-Inputs are resolved and validated before `onInit` runs, so a mistake in `octo.yaml` fails there,
-with a message about the input, rather than three layers down in an action. Optional inputs are
-filled in with their defaults at the same time, which is why `remoteDirectoryPaths` is an array
-inside `onInit` even when the definition file omitted it.
-
-[Validation](/docs/techniques/validation) covers the rules available.
-
-## Loading and ordering
+with a server module added later. Each one is a line in `octo.yaml`:
 
 ```yaml
 modules:
@@ -120,40 +27,45 @@ modules:
         - uploads
 ```
 
-The `moduleId` is yours to pick, and it does two things: it scopes everything this instance
-produces, and it names the Terragrunt folder that instance generates. Load the same class twice
-under two IDs and you get two independent instances, which is how the shop would get several subnets
-out of one subnet module.
+## The inputs are the contract
 
-Modules run in the order the definition file lists them, and the order matters for one reason: a
-module can only resolve what an earlier module already registered. The region module has to run
-before the storage module, because the storage module is handed the region.
+A module declares what it accepts, and the declaration is checked before the module runs. `region`
+there is not a string that looks like a region ID. It is the region node itself, and the storage
+module's requirement is that whatever arrives publishes AWS region details, which is what lets it
+work out the account and region to put the bucket in without being told.
 
-The dependency graph, not this list, decides what happens in what order during an apply. Module
-order decides who can see whom.
+So a mistake in `octo.yaml` fails while modules are still composing, with a message naming the
+input, rather than three layers down while Terraform is being written. Optional inputs get their
+defaults at the same point. [Validation](/docs/techniques/validation) covers the rules a module
+author can put on an input, and [The Definition File](/docs/using-octo/the-definition-file) covers
+writing the YAML.
 
-## Failing early
+A module that cannot satisfy what it was asked for stops there too. Ask the shop's server module for
+access to a directory the receipts bucket does not have, and it says so before anything exists. The
+alternative is finding out partway through an apply with half a stack standing.
 
-A module that cannot satisfy what it was asked for should say so in `onInit`:
+## Order
 
-```typescript
-if (matchingAnchors.length !== 1) {
-  throw new ModuleError('Cannot find remote directory in S3Storage service!', this.constructor.name);
-}
-```
+The `moduleId` is yours to pick, and it does two things: it scopes everything that instance
+produces, and it names the folder that instance generates. Load the same class twice under two IDs
+and you get two independent instances, which is how the shop would get several subnets out of one
+subnet module.
 
-Nothing exists yet at that point. No Terraform has been written, nothing has been created, and the
-message names the thing that was wrong. The alternative is discovering it partway through an apply,
-with half a stack standing.
+Modules run in the order the definition file lists them, and that order matters for one reason: a
+module can only be handed something an earlier module has already built. The region module runs
+before the storage module because the storage module is handed the region.
 
-## One module, one folder
+What happens in what order during an apply is decided by the
+[dependencies](/docs/fundamentals/dependencies) between nodes, not by this list. Module order
+decides who can see whom.
 
-Everything an instance produces lands in one Terragrunt folder named after its `moduleId`. When a
-resource in one folder needs a value from another, Octo writes the `variable` block, the Terragrunt
-`dependency` block, and the wiring between them.
+## Where a swap stops
 
-That boundary is also where a swap stops. Replacing the shop's single-availability-zone region
-module with one that spreads across three changes what `region-module/` contains, and nothing else
-in the definition file moves, as long as the new module publishes the same region anchor. [Composing
-Modules](/docs/using-octo/composing-modules) covers what that looks like in practice, and [Create a
-Module](/docs/building-modules/create-a-module) covers writing one.
+Everything one instance produces lands in one folder of generated Terraform, and that boundary is
+also the boundary of a replacement. Swap the shop's single-availability-zone region module for one
+that spreads across three, and what changes is the contents of `region-module/`. Nothing else in the
+definition file moves, as long as the new module publishes the same region
+[anchor](/docs/fundamentals/anchors).
+
+[Composing Modules](/docs/using-octo/composing-modules) covers what that looks like in practice, and
+[Create a Module](/docs/building-modules/create-a-module) covers writing one.

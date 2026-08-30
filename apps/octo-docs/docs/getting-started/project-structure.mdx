@@ -135,15 +135,10 @@ intent leaves an emptied folder behind, and that emptied folder is what makes th
 its resources.
 
 :::note[The `terraform.tfstate` in here is a working copy]
-The generated `terragrunt.hcl` configures a local backend at
-`.octo-tf/<moduleId>/terraform.tfstate`, and the scaffolded `.gitignore` excludes it. That file is
-not where Terraform state is kept: Octo writes it out of `.octo/<moduleId>.tfstate` before every
-Terraform command and writes what it holds back afterwards, so the copy that survives is the one
-under `.octo/`, wherever your state provider puts that.
-
-Rewriting the `remote_state` block to point at S3 or another backend still works, and then Terraform
-stops writing the file Octo checks in. The two are alternatives. There is no definition-file setting
-for the backend today.
+Terraform state is kept under `.octo/`, and Octo copies it into the folder before each Terraform
+command and back out afterwards. The copy left behind in `.octo-tf/` is gitignored, and deleting it
+costs nothing. [State Providers](/docs/techniques/state-providers#it-holds-terraforms-state-too)
+covers pointing Terraform at a backend of your own instead.
 :::
 
 ## A project that has outgrown one file
@@ -171,20 +166,10 @@ That `src/` layout mirrors `@quadnix/octo-aws-cdk`, which is worth reading as a 
 the `create-*` commands assume it. `octo create-module -n shop-region -t region --package @shop`
 writes to `src/modules/region/shop-region/`.
 
-## Environments
-
-There is no `--env` flag. A deployment that must not share state with another is a separate
-definition file with a separate `statePath`:
-
-```bash
-OCTO_DEFINITION_FILE_PATH=octo.prod.yaml octo generate -o .octo-tf-prod
-OCTO_DEFINITION_FILE_PATH=octo.prod.yaml octo validate --terragruntDir .octo-tf-prod
-```
-
-Octo also has an environment model, which is a different idea. `staging` and `qa` inside one region
-of the shop are environment models: they coexist in one graph, share one state file, and can refer
-to each other. Separate definition files are for deployments that must be isolated, which for most
-teams means production and everything else. Reach for the model first.
+The two definition files are how a deployment is kept from sharing state with another, and each one
+needs its own `statePath` and its own output directory. [The Definition
+File](/docs/using-octo/the-definition-file#several-definition-files) covers when that is the right
+move and when an environment model is.
 
 ## What goes in version control
 

@@ -53,9 +53,8 @@ a different cost centre per deployment.
 
 ## Where the tags end up
 
-After the model actions have declared their resources, and before anything is rendered, Octo
-resolves the tags for each resource and writes them onto it. A resource's `toHCL()` then emits them,
-so the two entries above reach the shop's VPC as one map:
+Octo resolves the tags for every resource before the Terraform is written, so the two entries above
+reach the shop's VPC as one map:
 
 ```hcl title=".octo-tf/region-module/main.tf"
 resource "aws_vpc" "vpc-eu-west-1" {
@@ -85,17 +84,9 @@ resource "aws_s3_bucket" "bucket-shop-receipts" {
 }
 ```
 
-Every Terraform resource in `@quadnix/octo-aws-cdk` does this, so a tag you declare reaches the
-whole stack. The one exception is the published container image, which renders no HCL to put them
-in; ECR tags a repository rather than the images inside it, and the repository is tagged. If you
-write your own [Terraform resource](/docs/building-modules/create-a-terraform-resource), copying
-these two lines is what opts it in:
-
-```typescript
-if (Object.keys(this.tags).length > 0) {
-  vpcTFResource.attribute('tags', this.tags);
-}
-```
+Every resource in `@quadnix/octo-aws-cdk` that Terraform creates carries them, so a tag you declare
+reaches the whole stack. A resource of your own opts in with two lines, which [Create a Terraform
+Resource](/docs/building-modules/create-a-terraform-resource) shows.
 
 Tags are part of the diff, so adding one to a live stack shows up in the next report as an update on
 each resource that gains it, rather than as an invisible change.

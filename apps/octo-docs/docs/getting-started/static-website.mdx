@@ -268,9 +268,7 @@ part way, fix what it complained about and run it again.
 
 `commit` reads the outputs Terraform recorded and writes them into `.octo/`, where Octo keeps its
 picture of your infrastructure. It is a separate command because apply is pure Terragrunt and knows
-nothing about Octo, so reading the results back is a step of its own, and because the two can happen
-in different places: a pipeline can apply on one machine and record on another. Run it only after an
-apply that finished, since a failed one leaves outputs it cannot read. Skip it and the next
+nothing about Octo, so reading the results back is a step of its own. Skip it and the next
 `generate` plans against a world where none of this exists.
 
 ```text

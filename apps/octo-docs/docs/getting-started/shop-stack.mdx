@@ -202,10 +202,9 @@ resource "aws_s3_bucket" "bucket-shop-receipts" {
 }
 ```
 
-That is ordinary Terraform, with no Octo in it. You can read it, `terraform plan` it by hand, and it
-is checked into your repository so that a reviewer sees the resources a change produced next to the
-intent that produced them. Nothing about the generated folders requires Octo to be installed on the
-machine that applies them.
+That is ordinary Terraform, with no Octo in it. You can read it and `terraform plan` it by hand, and
+it is checked into your repository so that a reviewer sees the resources a change produced next to
+the intent that produced them.
 
 ## Validate
 
@@ -238,24 +237,13 @@ WHAT WILL CHANGE
           + aws_s3_bucket.bucket-shop-receipts
 ```
 
-The report is three levels deep, and those three levels are the three vocabularies this whole system
-is built out of:
+The three levels are what you asked for, what Octo decided that needs, and what Terraform will
+create, so you can start at "I added a region" and follow it down to
+`aws_internet_gateway.igw-eu-west-1` without leaving the report.
 
-```text
-+ added region=eu-west-1                     what you asked for
-    + vpc-eu-west-1                          what Octo decided that needs
-        + aws_vpc.vpc-eu-west-1              what Terraform will create
-```
-
-The card headings are your intent, a region and a storage service. Under each one are Octo's
-resources, `vpc-eu-west-1` and `bucket-shop-receipts`, an Octo resource being the unit Octo tracks
-and compares between runs. Under those are the Terraform addresses. So you can start at "I added a
-region" and follow it down to `aws_internet_gateway.igw-eu-west-1` without leaving the report.
-
-The paragraph about approximate confidence is there because your intent changed on this run. Once
-your infrastructure and your intent agree, planning becomes exact, and the same command reports
-drift you did not cause. [Reading a Validate Report](/docs/using-octo/reading-a-validate-report) is
-the page for that.
+It says approximate because your intent changed on this run. Once your infrastructure and your
+intent agree, planning becomes exact and the same command reports drift you did not cause. [Reading
+a Validate Report](/docs/using-octo/reading-a-validate-report) is the page for that.
 
 ## Apply and commit
 
@@ -431,10 +419,9 @@ inputs = {
 }
 ```
 
-`mock_outputs` is the stand-in Terragrunt uses when it has to plan the receipts folder before the
-server folder has been applied and the real ARN exists. That is part of why the report above was
-labelled approximate: every folder is planned on its own, against whatever its dependencies last
-produced, so a consequence that crosses from one folder to another is not visible until the apply.
+The `mock_outputs` block is what lets the receipts folder be planned before the role it names
+exists, and it is why the report above called itself approximate: each folder is planned on its own,
+against whatever its dependencies last produced.
 
 Apply and record it:
 

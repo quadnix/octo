@@ -193,6 +193,32 @@ the `inputs` wiring. That is the mechanism behind the two folders in [Shop
 Stack](/docs/getting-started/shop-stack), and it is why you cannot write the address yourself: at
 the point you would write it, the answer is not known.
 
+## Ordering against another resource
+
+A reference orders the create, because Terraform can see it. What it cannot see is an ordering that
+runs the other way. Deleting checkout's IAM role requires first removing the statement in the
+receipts bucket policy that names it, and nothing in the bucket's configuration points at the role
+in a way that says so.
+
+Say it on the [dependency](/docs/fundamentals/dependencies) instead, in the constructor of the
+resource that knows the rule. The S3 storage resource declares both directions when a principal is
+granted access:
+
+```typescript
+const { childToParentDependency, parentToChildDependency } = principal.addChild('resourceId', this, 'resourceId');
+
+// Before this bucket's permissions are updated, the principal must have been added.
+childToParentDependency.addBehavior('update-permissions', DiffAction.UPDATE, 'resourceId', DiffAction.ADD);
+
+// Before the principal is deleted, this bucket's permissions must have been updated.
+parentToChildDependency.addBehavior('resourceId', DiffAction.DELETE, 'update-permissions', DiffAction.UPDATE);
+```
+
+Each behavior reads as: when this action happens to that field of one node, this other action on
+that field of the other node must have happened first. Octo orders the whole run by them, and
+renders the result as `depends_on` inside a folder and as a Terragrunt `dependency` across folders.
+The full signature is on [`Dependency`](/api/octo/class/Dependency).
+
 ## The rest of the scope
 
 |                                                      |                                                                         |

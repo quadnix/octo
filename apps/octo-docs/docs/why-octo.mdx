@@ -209,23 +209,11 @@ that AWS understands and the tool holding it does not, and each one is checked o
 reaches it.
 
 In intent you hand over the thing rather than its name. Checkout is given the receipts service
-itself, the node in that graph, and the server module states what it is willing to accept:
-
-```typescript
-@Validate([
-  {
-    options: {
-      isModel: { anchors: [{ schema: AwsAccountAnchorSchema }], NODE_NAME: 'account' },
-    },
-  },
-])
-account = Schema<Account>();
-```
-
-Read that as: whatever arrives here must be an account, and it must publish AWS account details. The
-same module requires that anything given to it as storage publishes S3 storage details. Point
-checkout at something that is not storage and the run stops while the graph is being assembled,
-names the input that was wrong, and creates nothing, because no HCL has been written yet.
+itself, the node in that graph, and the module that builds checkout states what it is willing to
+accept: an account, which has to publish AWS account details, and storage, which has to publish S3
+details. Point checkout at something that is not storage and the run stops while the graph is being
+assembled, names the input that was wrong, and creates nothing, because no Terraform has been
+written yet.
 
 A Terraform module can check that a string looks like a network id. It cannot check that the network
 is in the account you are deploying into. CDK constructs and Pulumi components do better, catching a

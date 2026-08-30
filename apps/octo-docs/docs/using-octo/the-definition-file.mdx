@@ -311,3 +311,8 @@ OCTO_DEFINITION_FILE_PATH=octo.prod.yaml octo generate -o .octo-tf-prod
 Keep the output directories separate too. Octo leaves folders it does not recognize alone, so
 nothing is overwritten, but `terragrunt run --all` does not know that: point two definitions at one
 directory and an apply of either one applies both.
+
+Octo's environment model is a different idea, and the one to reach for first. `staging` and `qa`
+inside one region are environment models: they live in one graph, share one state file, and can
+refer to each other. A separate file is for deployments that must be isolated from each other, which
+for most teams means production and everything else.

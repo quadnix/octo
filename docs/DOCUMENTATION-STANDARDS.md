@@ -31,6 +31,43 @@ justification: a working result the shop cannot show, on a page nothing else bui
 
 ---
 
+## What a page is allowed to contain
+
+Every page is one of four kinds, and the kind decides what may go on it. A page that mixes two
+teaches neither.
+
+- **Explanation** is Fundamentals. It answers "what is this and why does it exist", in prose, for
+  somebody who has written no code yet. It carries no API: no class names as headings, no method
+  signatures, no snippet of a module author's implementation. Where the reader would need one, the
+  page links to the API entry for that class and to the Building Modules page that walks it.
+- **Task** is Getting Started, Using Octo, Building Modules, and Techniques. It answers "how do I
+  do this", in order, with the code the reader types and nothing else. Code on a task page is the
+  reader's own: what they put in `octo.yaml`, the class they are writing. Octo's implementation of
+  the same thing is not an illustration, it is a second thing to read.
+- **Reference** is `reference/`. Tables, flags, inputs. It is allowed to be dense and skimmed, and
+  it is the only kind that may be exhaustive.
+- **Argument** is `introduction.mdx` and `why-octo.mdx`. It has one worked change and no API at all.
+
+The generated API at `/api` is the fifth surface, and it is the one the docs kept forgetting: 260
+pages built from JSDoc, linked from the prose pages **zero** times before this rule existed. A
+method's contract, an enum's members, what a call throws, and which override goes with which
+belong there, beside the code, where they cannot go stale. Link to it as
+`/api/octo/class/AResource` or `/api/octo-aws-cdk/class/AwsEcrImageTagModule`. When a detail has to
+leave a page, moving it into the JSDoc and linking is the move; deleting it is not.
+
+Every exception, limit, and "except when" has to earn its place by this test: **does the reader's
+happy path go wrong without it?** If yes, it belongs in one clause at the step where it bites. If
+no, it goes where somebody would look when it does bite them, which is `using-octo/troubleshooting`
+for a message they will see, `reference/` for a flag or an input, and the API page for a contract a
+module author has to honour. A page that stops to cover a case the reader is not in has spent their
+attention on somebody else's problem, and they will not be paying attention when the case that is
+theirs arrives.
+
+One idea per page, one place per fact. `how-octo-works`, `resources`, and
+`create-a-terraform-resource` each carried the same `toHCL()` and the same `diffProperties()`
+example, so a reader met the same twenty lines three times and learned it once. Before adding a
+paragraph, grep the docs for its subject; if another page owns it, link to that page.
+
 ## The map
 
 A code change ships with its doc change in the same commit. This section is how that is decided

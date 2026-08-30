@@ -6,11 +6,8 @@ import { Link } from '@site/src/components/links';
 
 This page gets the tools onto your machine and an Octo project onto disk, ready to deploy.
 
-Octo's own job stops at writing Terraform. It reads what infrastructure you want, works out which
-cloud resources that implies, and writes them out as one Terragrunt module folder per module.
-Creating anything from those folders is Terraform's job, and running the folders in dependency order
-is Terragrunt's. That is why the list below is mostly tools your team already has, plus Node.js to
-run Octo itself.
+Octo writes Terraform and hands it to Terragrunt to run, so most of the list below is tools your
+team already has, plus Node.js to run Octo itself.
 
 ## Prerequisites
 
@@ -68,16 +65,13 @@ Two of those are worth knowing about before you touch anything.
 inputs each one takes, and it is the only file most people edit. [The Definition
 File](/docs/using-octo/the-definition-file) covers it section by section.
 
-`.octo/` is where Octo records what it built. It is not a cache, and deleting it makes the next run
-believe your infrastructure does not exist, so the scaffolded `.gitignore` keeps it in version
-control on purpose. The generated Terraform, which lands in `.octo-tf/` on the first run, is kept
-too: it is the code that gets applied, so a change to it is something a reviewer should see next to
-the change in intent that caused it. What Terraform writes while applying, meaning state files and
-provider caches, is ignored.
+`.octo/` is where Octo records what it built. It is not a cache: delete it and the next run believes
+your infrastructure does not exist, which is why the scaffolded `.gitignore` keeps it in version
+control on purpose. [Project Structure](/docs/getting-started/project-structure) covers which files
+are committed and why.
 
 :::info
-You are free to update `gitignore` to your liking, i.e. ignore the generated Terraform code,
-or version control the Terraform state files as well.
+The scaffolded `.gitignore` is a starting point. Change it to suit your team.
 :::
 
 ## Running the CLI
@@ -94,9 +88,8 @@ npm run octo:commit -- --lockId $LOCK_ID   # record what was created, and releas
 ```
 
 Each script sets `OCTO_DEFINITION_FILE_PATH=octo.yaml` and points at `.octo-tf`, so the four steps
-cannot drift apart. Use the scripts rather than the binary. During a validate or an apply, Terraform
-can call back into `octo` itself for resources whose lifecycle it does not manage, and `npm run` is
-what puts `node_modules/.bin` on `PATH` for that callback to find.
+cannot drift apart. Prefer the scripts to the binary: `npm run` puts `node_modules/.bin` on `PATH`,
+and Terraform needs to find `octo` there when it calls back mid-run.
 
 Running the binary directly works too, as long as you supply both yourself:
 

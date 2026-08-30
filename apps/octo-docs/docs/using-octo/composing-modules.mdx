@@ -30,26 +30,14 @@ is wrong.
       bucketName: "${env.RECEIPTS_BUCKET_NAME}"
 ```
 
-`${{region-module.model.region}}` resolves to the region node itself. What the storage module does
-with it is worth following, because it is the whole pattern in six lines:
+`${{region-module.model.region}}` resolves to the region node itself, and that is what the storage
+module needs. From the region it walks up to the account and the app to learn which account it is
+deploying into, and asks the region itself which AWS region that is. Handed the string `eu-west-1`
+it could do none of that.
 
-```typescript
-const region = inputs.region;
-const account = region.getParents()['account'][0].to as Account;
-const app = account.getParents()['app'][0].to as App;
-
-const [matchingAnchor] = await region.getAnchorsMatchingSchema(AwsRegionAnchorSchema, [], {
-  searchBoundaryMembers: false,
-});
-const awsRegionId = matchingAnchor.getSchemaInstance().properties.awsRegionId;
-```
-
-It walks up to the account and the app, then asks the region for its AWS details. None of that would
-be possible if it had been handed the string `eu-west-1`.
-
-The general rule when writing a definition file: pass the node. `${{region-module.model.region}}`
-gives a module something it can query; `${{region-module.model.region.regionId}}` gives it a string
-it can only trust.
+So the rule when writing a definition file is to pass the node.
+`${{region-module.model.region}}` gives a module something it can ask questions of;
+`${{region-module.model.region.regionId}}` gives it a string it can only trust.
 
 ## The same module, twice
 

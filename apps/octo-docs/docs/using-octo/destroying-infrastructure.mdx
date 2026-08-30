@@ -127,10 +127,8 @@ MODULES THAT NO LONGER RENDER ANYTHING
   region-module
 ```
 
-Committing after a destroy is not optional, and for one reason beyond keeping state accurate. A
-resource whose lifecycle runs outside Terraform is deleted by its own delete action, and `octo
-commit` is what runs it. Terraform cannot: by the time it would, that resource's configuration is
-already gone from the folder.
+Committing after a destroy is not optional. Until it runs, Octo's record still says the bucket and
+the role exist, and anything Terraform did not delete itself has not been dealt with yet.
 
 The last section names the folders that are now empty. Once the destroy is committed they are inert,
 and you can delete them by hand whenever you like.

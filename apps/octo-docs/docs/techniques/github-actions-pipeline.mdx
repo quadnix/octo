@@ -175,10 +175,8 @@ writes the JSON the script reads. Register it in `octo.yaml` or there will be no
 `.octo/reports/` directory to look in.
 
 Terragrunt is installed by hand because the action Gruntwork publishes for it runs in a container,
-which leaves nothing on the runner for the steps below to call. Between that binary, Terraform, and
-the AWS provider, a run downloads a few hundred megabytes and caches none of it. Octo runs
-Terragrunt with its provider cache server on, so the provider, which is the bulk of that, is
-downloaded once per run rather than once per generated folder.
+which leaves nothing on the runner for the steps below to call. Expect a run to download a few
+hundred megabytes of tooling and cache none of it.
 
 ## 3. Merges
 
@@ -351,20 +349,14 @@ what the state commit does: one apply per merge, and no run started by the push 
 
 ## One writer
 
-`octo apply` and `octo commit` both require a lock id from `octo lock`, and both refuse to run
-without one. The bundled state providers keep that lock as a file at `.octo/local-state.lock`, which
-is gitignored, so a fresh runner always finds it free. In CI the lock is an argument the commands
-demand rather than a guard on anything, and the `concurrency` group above is what actually keeps two
-applies apart.
+`octo apply` and `octo commit` both require a lock id from `octo lock`. In CI that lock is a file on
+the runner, so a fresh runner always finds it free and a dead run leaves nothing to clear: the
+`concurrency` group above is what actually keeps two applies apart.
 
-A run that dies holding the lock leaves nothing to clear in CI, because the file dies with the
-runner. On a developer machine it does persist, and the next apply fails with `App already locked
-with lock ID "..."`. Clear it with `npm run octo:unlock -- --force` once somebody has looked at what
-the dead run did.
-
-None of this covers an apply run from somebody's laptop while the merge workflow is going. If that
-matters to you, the durable answer is a [state provider](/docs/techniques/state-providers) whose
-lock is a conditional write against a store both can reach.
+What none of this covers is an apply run from somebody's laptop while the merge workflow is going.
+If that matters to you, the durable answer is a [state
+provider](/docs/techniques/state-providers) whose lock is a conditional write against a store both
+can reach.
 
 ## When apply fails
 
