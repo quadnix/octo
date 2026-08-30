@@ -1,0 +1,176 @@
+# yaml-language-server: $schema=../../../octo-build/src/resources/octo-v1.schema.json
+
+# This template, plus something that runs what it publishes.
+#
+# A task definition names a published image through its resource rather than by copying the URI, so
+# the URI it ends up with comes back through octo's own response path. Declaring the version and the
+# stack running it in one definition is what makes them created by the same apply, which is the only
+# run where every link in that path is cold.
+#
+# It is a definition of its own so that the publishing cases stay publishing cases: with ECS in
+# `octo.yaml` every one of them would build this stack, and the ones that drop a tag module would be
+# deleting an image a task definition still runs.
+
+version: 1
+
+env:
+  - key: AWS_ACCOUNT_ID
+    kind: string
+    value: "123456789123"
+  - key: AWS_IMAGE_NAME
+    kind: string
+    value: "octo-ecr-image-template"
+  - key: AWS_IMAGE_TAG
+    kind: string
+    value: "0.1.0"
+  # The whole URI, because an "${env.KEY}" reference resolves only as an entire value and this one is
+  # assembled from three of them.
+  - key: AWS_ECS_IMAGE_URI
+    kind: string
+    value: "123456789123.dkr.ecr.us-east-1.amazonaws.com/quadnix/octo-ecr-image-template:0.1.0"
+
+settings:
+  listeners:
+    - type: LoggingEventListener
+      level: info
+
+  stateProvider:
+    type: LocalStateProvider
+    statePath: .octo/state
+
+imports:
+  - className: SimpleAppModule
+    importPath: "@quadnix/octo-aws-cdk/modules/app/simple-app"
+  - className: AwsIniAccountModule
+    importPath: "@quadnix/octo-aws-cdk/modules/account/aws-ini-account"
+  - className: AwsSingleAzRegionModule
+    importPath: "@quadnix/octo-aws-cdk/modules/region/aws-single-az-region"
+  - className: AwsEcrImageModule
+    importPath: "@quadnix/octo-aws-cdk/modules/image/aws-ecr-image"
+  - className: AwsEcrImageTagModule
+    importPath: "@quadnix/octo-aws-cdk/modules/image/aws-ecr-image-tag"
+  - className: AwsSimpleSubnetModule
+    importPath: "@quadnix/octo-aws-cdk/modules/subnet/aws-simple-subnet"
+  - className: AwsEcsEnvironmentModule
+    importPath: "@quadnix/octo-aws-cdk/modules/environment/aws-ecs-environment"
+  - className: AwsEcsServerModule
+    importPath: "@quadnix/octo-aws-cdk/modules/server/aws-ecs-server"
+  - className: AwsEcsDeploymentModule
+    importPath: "@quadnix/octo-aws-cdk/modules/deployment/aws-ecs-deployment"
+  - className: AwsEcsExecutionModule
+    importPath: "@quadnix/octo-aws-cdk/modules/execution/aws-ecs-execution"
+
+modules:
+  - moduleId: app-module
+    moduleClass: SimpleAppModule
+    moduleInputs:
+      name: aws-ecr-image
+
+  - moduleId: account-module
+    moduleClass: AwsIniAccountModule
+    moduleInputs:
+      accountId: "${env.AWS_ACCOUNT_ID}"
+      app: "${{app-module.model.app}}"
+      iniProfile: default
+
+  - moduleId: region-module
+    moduleClass: AwsSingleAzRegionModule
+    moduleInputs:
+      account: "${{account-module.model.account}}"
+      name: app-region-east
+      regionId: aws-us-east-1a
+      vpcCidrBlock: 10.0.0.0/16
+
+  - moduleId: image-module
+    moduleClass: AwsEcrImageModule
+    moduleInputs:
+      imageFamily: quadnix
+      imageName: "${env.AWS_IMAGE_NAME}"
+      regions:
+        - "${{region-module.model.region}}"
+
+  - moduleId: image-tag-module
+    moduleClass: AwsEcrImageTagModule
+    moduleInputs:
+      dockerfileDirectory: image
+      dockerfileName: Dockerfile
+      image: "${{image-module.model.image}}"
+      imageTag: "${env.AWS_IMAGE_TAG}"
+
+  # The smallest stack that registers a task definition. No load balancer, no NAT gateway and no
+  # health check: what is asserted is the image the task definition names, not a task that reached a
+  # running state. That an image in ECR can be run is AWS's contract, not octo's.
+  - moduleId: subnet-module
+    moduleClass: AwsSimpleSubnetModule
+    moduleInputs:
+      region: "${{region-module.model.region}}"
+      subnetAvailabilityZone: us-east-1a
+      subnetCidrBlock: 10.0.0.0/24
+      subnetName: ecs-subnet
+      subnetOptions:
+        createNatGateway: false
+        disableSubnetIntraNetwork: false
+        subnetType: public
+
+  - moduleId: environment-module
+    moduleClass: AwsEcsEnvironmentModule
+    moduleInputs:
+      environmentName: qa
+      region: "${{region-module.model.region}}"
+
+  - moduleId: server-module
+    moduleClass: AwsEcsServerModule
+    moduleInputs:
+      account: "${{account-module.model.account}}"
+      serverKey: backend
+
+  - moduleId: deployment-module
+    moduleClass: AwsEcsDeploymentModule
+    moduleInputs:
+      deploymentContainerProperties:
+        cpu: 256
+        image:
+          command: /bin/sh
+          ports:
+            - containerPort: 80
+              protocol: tcp
+          uri: "${env.AWS_ECS_IMAGE_URI}"
+        memory: 512
+      deploymentTag: v1
+      server: "${{server-module.model.server}}"
+
+  # Nothing starts the container. `desiredCount` is the lowest the schema allows, and the image is
+  # the `FROM scratch` one this template publishes, so the service places a task it cannot start.
+  # Terraform does not wait for a service to stabilize, so the apply is unaffected.
+  - moduleId: execution-module
+    moduleClass: AwsEcsExecutionModule
+    moduleInputs:
+      deployments:
+        main:
+          containerProperties:
+            image:
+              essential: true
+              name: backend-v1
+          deployment: "${{deployment-module.model.deployment}}"
+        sidecars: []
+      desiredCount: 1
+      environment: "${{environment-module.model.environment}}"
+      executionId: backend-v1-qa
+      subnet: "${{subnet-module.model.subnet}}"
+
+tags:
+  - scope: {}
+    tags:
+      e2e-test: "true"
+      e2e-test-family: aws-ecr-image
+
+terraform:
+  requiredVersion: "1.6.0"
+  requiredProviders:
+    aws:
+      source: hashicorp/aws
+      minVersion: "5.0.0"
+  providers:
+    - providerType: aws
+      accountId: "${env.AWS_ACCOUNT_ID}"
+      regionId: us-east-1
