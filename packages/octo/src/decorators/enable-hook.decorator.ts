@@ -19,7 +19,7 @@ type Hook = 'CommitHook';
  *
  * @returns The decorated method.
  *
- * @see Definition of [Hooks](/docs/fundamentals/modules#hooks).
+ * @see Definition of [Hooks](/docs/techniques/hooks).
  */
 export function EnableHook(hook: Hook): (target: any, propertyKey: string, descriptor: PropertyDescriptor) => void {
   return function (_target: any, _propertyKey: string, descriptor: PropertyDescriptor) {

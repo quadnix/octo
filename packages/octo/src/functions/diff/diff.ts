@@ -9,10 +9,31 @@ import type { UnknownAnchor, UnknownNode } from '../../app.type.js';
  * @group Functions/Diff
  */
 export enum DiffAction {
+  /**
+   * The node is in the new graph and not in the last committed one, so it has to be created.
+   */
   ADD = 'add',
+
+  /**
+   * The node is in the last committed graph and not in the new one, so it has to be destroyed.
+   */
   DELETE = 'delete',
+
+  /**
+   * A field changed that cannot be changed in place, so the infrastructure is destroyed and created
+   * again. A resource declares this itself, with a reason, which is what a report shows a reviewer
+   * in place of leaving them to work a recreate out of a terraform plan.
+   */
   REPLACE = 'replace',
+
+  /**
+   * A field changed and can be changed in place.
+   */
   UPDATE = 'update',
+
+  /**
+   * Nothing changed, and the node still wants an action to run over it.
+   */
   VALIDATE = 'validate',
 }
 
