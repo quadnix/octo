@@ -12,16 +12,213 @@ exports[`Main E2E input changes AwsEcsAlbServiceModule should handle albName cha
 ]
 `;
 
+exports[`Main E2E input changes AwsEcsAlbServiceModule should handle albName change: validate report 1`] = `
+{
+  "attributedChanges": [],
+  "confidence": "approximate",
+  "drift": [],
+  "failures": [],
+  "intentChanges": [
+    {
+      "moduleId": "qa-api-alb-module",
+      "octoAction": "add",
+      "reason": undefined,
+      "resourceContext": "@octo/security-group=sec-grp-app-region-east-changed-qa-api-alb",
+      "resourceId": "sec-grp-app-region-east-changed-qa-api-alb",
+      "terraformChanges": [
+        {
+          "address": "aws_security_group.sec-grp-app-region-east-changed-qa-api-alb",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+        {
+          "address": "aws_vpc_security_group_ingress_rule.sec-grp-app-region-east-changed-qa-api-alb_ingress_0",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+        {
+          "address": "aws_vpc_security_group_egress_rule.sec-grp-app-region-east-changed-qa-api-alb_egress_0",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "qa-api-alb-module",
+      "octoAction": "add",
+      "reason": undefined,
+      "resourceContext": "@octo/alb=alb-app-region-east-changed-qa-api-alb",
+      "resourceId": "alb-app-region-east-changed-qa-api-alb",
+      "terraformChanges": [
+        {
+          "address": "aws_lb.alb-app-region-east-changed-qa-api-alb",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "qa-api-alb-module",
+      "octoAction": "add",
+      "reason": undefined,
+      "resourceContext": "@octo/alb-listener=alb-listener-changed-qa-api-alb",
+      "resourceId": "alb-listener-changed-qa-api-alb",
+      "terraformChanges": [
+        {
+          "address": "aws_lb_listener.alb-listener-changed-qa-api-alb",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "qa-api-alb-module",
+      "octoAction": "delete",
+      "reason": undefined,
+      "resourceContext": "@octo/security-group=sec-grp-app-region-east-qa-api-alb",
+      "resourceId": "sec-grp-app-region-east-qa-api-alb",
+      "terraformChanges": [
+        {
+          "address": "aws_security_group.sec-grp-app-region-east-qa-api-alb",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+        {
+          "address": "aws_vpc_security_group_ingress_rule.sec-grp-app-region-east-qa-api-alb_ingress_0",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+        {
+          "address": "aws_vpc_security_group_egress_rule.sec-grp-app-region-east-qa-api-alb_egress_0",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "qa-api-alb-module",
+      "octoAction": "delete",
+      "reason": undefined,
+      "resourceContext": "@octo/alb=alb-app-region-east-qa-api-alb",
+      "resourceId": "alb-app-region-east-qa-api-alb",
+      "terraformChanges": [
+        {
+          "address": "aws_lb.alb-app-region-east-qa-api-alb",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "qa-api-alb-module",
+      "octoAction": "delete",
+      "reason": undefined,
+      "resourceContext": "@octo/alb-listener=alb-listener-qa-api-alb",
+      "resourceId": "alb-listener-qa-api-alb",
+      "terraformChanges": [
+        {
+          "address": "aws_lb_listener.alb-listener-qa-api-alb",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+      ],
+    },
+  ],
+  "notes": [],
+  "uncertain": [],
+}
+`;
+
 exports[`Main E2E input changes AwsEcsAlbServiceModule should handle listeners Port change 1`] = `
 [
   "* @octo/alb-listener=alb-listener-qa-api-alb",
 ]
 `;
 
+exports[`Main E2E input changes AwsEcsAlbServiceModule should handle listeners Port change: validate report 1`] = `
+{
+  "attributedChanges": [],
+  "confidence": "approximate",
+  "drift": [],
+  "failures": [],
+  "intentChanges": [
+    {
+      "moduleId": "qa-api-alb-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/alb-listener=alb-listener-qa-api-alb",
+      "resourceId": "alb-listener-qa-api-alb",
+      "terraformChanges": [
+        {
+          "address": "aws_lb_listener.alb-listener-qa-api-alb",
+          "changedFields": [
+            "port",
+          ],
+          "tfActions": [
+            "update",
+          ],
+        },
+      ],
+    },
+  ],
+  "notes": [],
+  "uncertain": [],
+}
+`;
+
 exports[`Main E2E input changes AwsEcsAlbServiceModule should handle listeners rules change 1`] = `
 [
   "* @octo/alb-listener=alb-listener-qa-api-alb",
 ]
+`;
+
+exports[`Main E2E input changes AwsEcsAlbServiceModule should handle listeners rules change: validate report 1`] = `
+{
+  "attributedChanges": [],
+  "confidence": "approximate",
+  "drift": [],
+  "failures": [],
+  "intentChanges": [
+    {
+      "moduleId": "qa-api-alb-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/alb-listener=alb-listener-qa-api-alb",
+      "resourceId": "alb-listener-qa-api-alb",
+      "terraformChanges": [
+        {
+          "address": "aws_lb_listener_rule.alb-listener-qa-api-alb_rule_1",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+      ],
+    },
+  ],
+  "notes": [],
+  "uncertain": [],
+}
 `;
 
 exports[`Main E2E input changes AwsEcsAlbServiceModule should handle targets healthCheck change 1`] = `
@@ -31,6 +228,45 @@ exports[`Main E2E input changes AwsEcsAlbServiceModule should handle targets hea
 ]
 `;
 
+exports[`Main E2E input changes AwsEcsAlbServiceModule should handle targets healthCheck change: validate report 1`] = `
+{
+  "attributedChanges": [],
+  "confidence": "approximate",
+  "drift": [],
+  "failures": [],
+  "intentChanges": [
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/ecs-service=ecs-service-backend-v1-qa-execution",
+      "resourceId": "ecs-service-backend-v1-qa-execution",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "qa-api-alb-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/alb-target-group=alb-target-group-backend-v1-qa-execution",
+      "resourceId": "alb-target-group-backend-v1-qa-execution",
+      "terraformChanges": [
+        {
+          "address": "aws_lb_target_group.alb-target-group-backend-v1-qa-execution",
+          "changedFields": [
+            "health_check",
+          ],
+          "tfActions": [
+            "update",
+          ],
+        },
+      ],
+    },
+  ],
+  "notes": [],
+  "uncertain": [],
+}
+`;
+
 exports[`Main E2E input changes AwsEcsDeploymentModule should handle deploymentContainerProperties change 1`] = `
 [
   "* @octo/ecs-task-definition=ecs-task-definition-backend-v1-qa-execution",
@@ -38,11 +274,99 @@ exports[`Main E2E input changes AwsEcsDeploymentModule should handle deploymentC
 ]
 `;
 
+exports[`Main E2E input changes AwsEcsDeploymentModule should handle deploymentContainerProperties change: validate report 1`] = `
+{
+  "attributedChanges": [],
+  "confidence": "approximate",
+  "drift": [],
+  "failures": [],
+  "intentChanges": [
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/ecs-task-definition=ecs-task-definition-backend-v1-qa-execution",
+      "resourceId": "ecs-task-definition-backend-v1-qa-execution",
+      "terraformChanges": [
+        {
+          "address": "aws_ecs_task_definition.ecs-task-definition-backend-v1-qa-execution",
+          "changedFields": [
+            "arn",
+            "arn_without_revision",
+            "container_definitions",
+            "cpu",
+            "enable_fault_injection",
+            "id",
+            "ipc_mode",
+            "memory",
+            "pid_mode",
+            "revision",
+          ],
+          "tfActions": [
+            "delete",
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/ecs-service=ecs-service-backend-v1-qa-execution",
+      "resourceId": "ecs-service-backend-v1-qa-execution",
+      "terraformChanges": [
+        {
+          "address": "aws_ecs_service.ecs-service-backend-v1-qa-execution",
+          "changedFields": [
+            "task_definition",
+          ],
+          "tfActions": [
+            "update",
+          ],
+        },
+      ],
+    },
+  ],
+  "notes": [],
+  "uncertain": [],
+}
+`;
+
 exports[`Main E2E input changes AwsEcsDeploymentModule should handle deploymentTag change 1`] = `
 [
   "* @octo/ecs-task-definition=ecs-task-definition-backend-v1-qa-execution",
   "* @octo/ecs-service=ecs-service-backend-v1-qa-execution",
 ]
+`;
+
+exports[`Main E2E input changes AwsEcsDeploymentModule should handle deploymentTag change: validate report 1`] = `
+{
+  "attributedChanges": [],
+  "confidence": "approximate",
+  "drift": [],
+  "failures": [],
+  "intentChanges": [
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/ecs-task-definition=ecs-task-definition-backend-v1-qa-execution",
+      "resourceId": "ecs-task-definition-backend-v1-qa-execution",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/ecs-service=ecs-service-backend-v1-qa-execution",
+      "resourceId": "ecs-service-backend-v1-qa-execution",
+      "terraformChanges": [],
+    },
+  ],
+  "notes": [],
+  "uncertain": [],
+}
 `;
 
 exports[`Main E2E input changes AwsEcsEnvironmentModule should handle environmentName change 1`] = `
@@ -54,11 +378,170 @@ exports[`Main E2E input changes AwsEcsEnvironmentModule should handle environmen
 ]
 `;
 
+exports[`Main E2E input changes AwsEcsEnvironmentModule should handle environmentName change: validate report 1`] = `
+{
+  "attributedChanges": [],
+  "confidence": "approximate",
+  "drift": [],
+  "failures": [],
+  "intentChanges": [
+    {
+      "moduleId": "qa-environment-module",
+      "octoAction": "add",
+      "reason": undefined,
+      "resourceContext": "@octo/ecs-cluster=ecs-cluster-app-region-east-changed-qa",
+      "resourceId": "ecs-cluster-app-region-east-changed-qa",
+      "terraformChanges": [
+        {
+          "address": "aws_ecs_cluster.ecs-cluster-app-region-east-changed-qa",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "replace",
+      "reason": "family is force-new on aws_ecs_task_definition; a change recreates it",
+      "resourceContext": "@octo/ecs-task-definition=ecs-task-definition-backend-v1-qa-execution",
+      "resourceId": "ecs-task-definition-backend-v1-qa-execution",
+      "terraformChanges": [
+        {
+          "address": "aws_ecs_task_definition.ecs-task-definition-backend-v1-qa-execution",
+          "changedFields": [
+            "arn",
+            "arn_without_revision",
+            "container_definitions",
+            "enable_fault_injection",
+            "family",
+            "id",
+            "ipc_mode",
+            "pid_mode",
+            "revision",
+          ],
+          "tfActions": [
+            "delete",
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "replace",
+      "reason": "cluster is force-new on aws_ecs_service; moving the service recreates it",
+      "resourceContext": "@octo/ecs-service=ecs-service-backend-v1-qa-execution",
+      "resourceId": "ecs-service-backend-v1-qa-execution",
+      "terraformChanges": [
+        {
+          "address": "aws_ecs_service.ecs-service-backend-v1-qa-execution",
+          "changedFields": [
+            "arn",
+            "availability_zone_rebalancing",
+            "cluster",
+            "deployment_circuit_breaker",
+            "deployment_configuration",
+            "deployment_controller",
+            "health_check_grace_period_seconds",
+            "iam_role",
+            "id",
+            "platform_version",
+            "propagate_tags",
+            "task_definition",
+          ],
+          "tfActions": [
+            "delete",
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "qa-environment-module",
+      "octoAction": "delete",
+      "reason": undefined,
+      "resourceContext": "@octo/ecs-cluster=ecs-cluster-app-region-east-qa",
+      "resourceId": "ecs-cluster-app-region-east-qa",
+      "terraformChanges": [
+        {
+          "address": "aws_ecs_cluster.ecs-cluster-app-region-east-qa",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+      ],
+    },
+  ],
+  "notes": [],
+  "uncertain": [],
+}
+`;
+
 exports[`Main E2E input changes AwsEcsEnvironmentModule should handle environmentVariables change 1`] = `
 [
   "* @octo/ecs-task-definition=ecs-task-definition-backend-v1-qa-execution",
   "* @octo/ecs-service=ecs-service-backend-v1-qa-execution",
 ]
+`;
+
+exports[`Main E2E input changes AwsEcsEnvironmentModule should handle environmentVariables change: validate report 1`] = `
+{
+  "attributedChanges": [],
+  "confidence": "approximate",
+  "drift": [],
+  "failures": [],
+  "intentChanges": [
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/ecs-task-definition=ecs-task-definition-backend-v1-qa-execution",
+      "resourceId": "ecs-task-definition-backend-v1-qa-execution",
+      "terraformChanges": [
+        {
+          "address": "aws_ecs_task_definition.ecs-task-definition-backend-v1-qa-execution",
+          "changedFields": [
+            "arn",
+            "arn_without_revision",
+            "container_definitions",
+            "enable_fault_injection",
+            "id",
+            "ipc_mode",
+            "pid_mode",
+            "revision",
+          ],
+          "tfActions": [
+            "delete",
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/ecs-service=ecs-service-backend-v1-qa-execution",
+      "resourceId": "ecs-service-backend-v1-qa-execution",
+      "terraformChanges": [
+        {
+          "address": "aws_ecs_service.ecs-service-backend-v1-qa-execution",
+          "changedFields": [
+            "task_definition",
+          ],
+          "tfActions": [
+            "update",
+          ],
+        },
+      ],
+    },
+  ],
+  "notes": [],
+  "uncertain": [],
+}
 `;
 
 exports[`Main E2E input changes AwsEcsExecutionModule should handle deployments change 1`] = `
@@ -68,10 +551,99 @@ exports[`Main E2E input changes AwsEcsExecutionModule should handle deployments 
 ]
 `;
 
+exports[`Main E2E input changes AwsEcsExecutionModule should handle deployments change: validate report 1`] = `
+{
+  "attributedChanges": [],
+  "confidence": "approximate",
+  "drift": [],
+  "failures": [],
+  "intentChanges": [
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/ecs-task-definition=ecs-task-definition-backend-v1-qa-execution",
+      "resourceId": "ecs-task-definition-backend-v1-qa-execution",
+      "terraformChanges": [
+        {
+          "address": "aws_ecs_task_definition.ecs-task-definition-backend-v1-qa-execution",
+          "changedFields": [
+            "arn",
+            "arn_without_revision",
+            "container_definitions",
+            "enable_fault_injection",
+            "id",
+            "ipc_mode",
+            "pid_mode",
+            "revision",
+          ],
+          "tfActions": [
+            "delete",
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/ecs-service=ecs-service-backend-v1-qa-execution",
+      "resourceId": "ecs-service-backend-v1-qa-execution",
+      "terraformChanges": [
+        {
+          "address": "aws_ecs_service.ecs-service-backend-v1-qa-execution",
+          "changedFields": [
+            "load_balancer",
+            "task_definition",
+          ],
+          "tfActions": [
+            "update",
+          ],
+        },
+      ],
+    },
+  ],
+  "notes": [],
+  "uncertain": [],
+}
+`;
+
 exports[`Main E2E input changes AwsEcsExecutionModule should handle desiredCount change 1`] = `
 [
   "* @octo/ecs-service=ecs-service-backend-v1-qa-execution",
 ]
+`;
+
+exports[`Main E2E input changes AwsEcsExecutionModule should handle desiredCount change: validate report 1`] = `
+{
+  "attributedChanges": [],
+  "confidence": "approximate",
+  "drift": [],
+  "failures": [],
+  "intentChanges": [
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/ecs-service=ecs-service-backend-v1-qa-execution",
+      "resourceId": "ecs-service-backend-v1-qa-execution",
+      "terraformChanges": [
+        {
+          "address": "aws_ecs_service.ecs-service-backend-v1-qa-execution",
+          "changedFields": [
+            "desired_count",
+          ],
+          "tfActions": [
+            "update",
+          ],
+        },
+      ],
+    },
+  ],
+  "notes": [],
+  "uncertain": [],
+}
 `;
 
 exports[`Main E2E input changes AwsEcsExecutionModule should handle executionId change 1`] = `
@@ -87,11 +659,256 @@ exports[`Main E2E input changes AwsEcsExecutionModule should handle executionId 
 ]
 `;
 
+exports[`Main E2E input changes AwsEcsExecutionModule should handle executionId change: validate report 1`] = `
+{
+  "attributedChanges": [
+    {
+      "address": "aws_lb_listener.alb-listener-qa-api-alb",
+      "causeKind": "identity-changed",
+      "causeResourceId": "alb-target-group-changed-execution-id",
+      "moduleId": "qa-api-alb-module",
+      "tfActions": [
+        "update",
+      ],
+    },
+  ],
+  "confidence": "approximate",
+  "drift": [],
+  "failures": [],
+  "intentChanges": [
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "add",
+      "reason": undefined,
+      "resourceContext": "@octo/security-group=sec-grp-SecurityGroup-changed-execution-id",
+      "resourceId": "sec-grp-SecurityGroup-changed-execution-id",
+      "terraformChanges": [
+        {
+          "address": "aws_security_group.sec-grp-SecurityGroup-changed-execution-id",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+        {
+          "address": "aws_vpc_security_group_ingress_rule.sec-grp-SecurityGroup-changed-execution-id_ingress_0",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+        {
+          "address": "aws_vpc_security_group_egress_rule.sec-grp-SecurityGroup-changed-execution-id_egress_0",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+        {
+          "address": "aws_vpc_security_group_egress_rule.sec-grp-SecurityGroup-changed-execution-id_egress_1",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "add",
+      "reason": undefined,
+      "resourceContext": "@octo/ecs-task-definition=ecs-task-definition-changed-execution-id",
+      "resourceId": "ecs-task-definition-changed-execution-id",
+      "terraformChanges": [
+        {
+          "address": "aws_ecs_task_definition.ecs-task-definition-changed-execution-id",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "add",
+      "reason": undefined,
+      "resourceContext": "@octo/ecs-service=ecs-service-changed-execution-id",
+      "resourceId": "ecs-service-changed-execution-id",
+      "terraformChanges": [
+        {
+          "address": "aws_ecs_service.ecs-service-changed-execution-id",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "qa-api-alb-module",
+      "octoAction": "add",
+      "reason": undefined,
+      "resourceContext": "@octo/alb-target-group=alb-target-group-changed-execution-id",
+      "resourceId": "alb-target-group-changed-execution-id",
+      "terraformChanges": [
+        {
+          "address": "aws_lb_target_group.alb-target-group-changed-execution-id",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "delete",
+      "reason": undefined,
+      "resourceContext": "@octo/ecs-task-definition=ecs-task-definition-backend-v1-qa-execution",
+      "resourceId": "ecs-task-definition-backend-v1-qa-execution",
+      "terraformChanges": [
+        {
+          "address": "aws_ecs_task_definition.ecs-task-definition-backend-v1-qa-execution",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "qa-api-alb-module",
+      "octoAction": "delete",
+      "reason": undefined,
+      "resourceContext": "@octo/alb-target-group=alb-target-group-backend-v1-qa-execution",
+      "resourceId": "alb-target-group-backend-v1-qa-execution",
+      "terraformChanges": [
+        {
+          "address": "aws_lb_target_group.alb-target-group-backend-v1-qa-execution",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "delete",
+      "reason": undefined,
+      "resourceContext": "@octo/security-group=sec-grp-SecurityGroup-backend-v1-qa-execution",
+      "resourceId": "sec-grp-SecurityGroup-backend-v1-qa-execution",
+      "terraformChanges": [
+        {
+          "address": "aws_security_group.sec-grp-SecurityGroup-backend-v1-qa-execution",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+        {
+          "address": "aws_vpc_security_group_ingress_rule.sec-grp-SecurityGroup-backend-v1-qa-execution_ingress_0",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+        {
+          "address": "aws_vpc_security_group_egress_rule.sec-grp-SecurityGroup-backend-v1-qa-execution_egress_0",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+        {
+          "address": "aws_vpc_security_group_egress_rule.sec-grp-SecurityGroup-backend-v1-qa-execution_egress_1",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "delete",
+      "reason": undefined,
+      "resourceContext": "@octo/ecs-service=ecs-service-backend-v1-qa-execution",
+      "resourceId": "ecs-service-backend-v1-qa-execution",
+      "terraformChanges": [
+        {
+          "address": "aws_ecs_service.ecs-service-backend-v1-qa-execution",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+      ],
+    },
+  ],
+  "notes": [],
+  "uncertain": [],
+}
+`;
+
 exports[`Main E2E input changes AwsEcsExecutionModule should handle securityGroupRules change 1`] = `
 [
   "* @octo/security-group=sec-grp-SecurityGroup-backend-v1-qa-execution",
   "* @octo/ecs-service=ecs-service-backend-v1-qa-execution",
 ]
+`;
+
+exports[`Main E2E input changes AwsEcsExecutionModule should handle securityGroupRules change: validate report 1`] = `
+{
+  "attributedChanges": [
+    {
+      "address": "aws_vpc_security_group_egress_rule.sec-grp-SecurityGroup-backend-v1-qa-execution_egress_1",
+      "causeKind": "address-no-longer-rendered",
+      "causeResourceId": "sec-grp-SecurityGroup-backend-v1-qa-execution",
+      "moduleId": "backend-v1-qa-execution-module",
+      "tfActions": [
+        "delete",
+      ],
+    },
+  ],
+  "confidence": "approximate",
+  "drift": [],
+  "failures": [],
+  "intentChanges": [
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/security-group=sec-grp-SecurityGroup-backend-v1-qa-execution",
+      "resourceId": "sec-grp-SecurityGroup-backend-v1-qa-execution",
+      "terraformChanges": [
+        {
+          "address": "aws_vpc_security_group_egress_rule.sec-grp-SecurityGroup-backend-v1-qa-execution_egress_0",
+          "changedFields": [
+            "cidr_ipv4",
+            "description",
+            "from_port",
+            "to_port",
+          ],
+          "tfActions": [
+            "update",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/ecs-service=ecs-service-backend-v1-qa-execution",
+      "resourceId": "ecs-service-backend-v1-qa-execution",
+      "terraformChanges": [],
+    },
+  ],
+  "notes": [],
+  "uncertain": [],
+}
 `;
 
 exports[`Main E2E input changes AwsEcsServerModule should handle serverKey change 1`] = `
@@ -105,6 +922,145 @@ exports[`Main E2E input changes AwsEcsServerModule should handle serverKey chang
   "* @octo/iam-role=iam-role-ServerRole-changed-backend",
   "+ @octo/security-group=sec-grp-SecurityGroup-changed-backend",
 ]
+`;
+
+exports[`Main E2E input changes AwsEcsServerModule should handle serverKey change: validate report 1`] = `
+{
+  "attributedChanges": [],
+  "confidence": "approximate",
+  "drift": [],
+  "failures": [],
+  "intentChanges": [
+    {
+      "moduleId": "backend-server-module",
+      "octoAction": "add",
+      "reason": undefined,
+      "resourceContext": "@octo/iam-role=iam-role-ServerRole-changed-backend",
+      "resourceId": "iam-role-ServerRole-changed-backend",
+      "terraformChanges": [
+        {
+          "address": "aws_iam_role.iam-role-ServerRole-changed-backend",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+        {
+          "address": "aws_iam_role_policy_attachment.iam-role-ServerRole-changed-backend_AmazonECSTaskExecutionRolePolicy",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "add",
+      "reason": undefined,
+      "resourceContext": "@octo/security-group=sec-grp-SecurityGroup-changed-backend",
+      "resourceId": "sec-grp-SecurityGroup-changed-backend",
+      "terraformChanges": [
+        {
+          "address": "aws_security_group.sec-grp-SecurityGroup-changed-backend",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "replace",
+      "reason": "family is force-new on aws_ecs_task_definition; a change recreates it",
+      "resourceContext": "@octo/ecs-task-definition=ecs-task-definition-backend-v1-qa-execution",
+      "resourceId": "ecs-task-definition-backend-v1-qa-execution",
+      "terraformChanges": [
+        {
+          "address": "aws_ecs_task_definition.ecs-task-definition-backend-v1-qa-execution",
+          "changedFields": [
+            "arn",
+            "arn_without_revision",
+            "container_definitions",
+            "enable_fault_injection",
+            "execution_role_arn",
+            "family",
+            "id",
+            "ipc_mode",
+            "pid_mode",
+            "revision",
+            "task_role_arn",
+          ],
+          "tfActions": [
+            "delete",
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/ecs-service=ecs-service-backend-v1-qa-execution",
+      "resourceId": "ecs-service-backend-v1-qa-execution",
+      "terraformChanges": [
+        {
+          "address": "aws_ecs_service.ecs-service-backend-v1-qa-execution",
+          "changedFields": [
+            "network_configuration",
+            "task_definition",
+          ],
+          "tfActions": [
+            "update",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "backend-server-module",
+      "octoAction": "delete",
+      "reason": undefined,
+      "resourceContext": "@octo/iam-role=iam-role-ServerRole-backend",
+      "resourceId": "iam-role-ServerRole-backend",
+      "terraformChanges": [
+        {
+          "address": "aws_iam_role.iam-role-ServerRole-backend",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+        {
+          "address": "aws_iam_role_policy_attachment.iam-role-ServerRole-backend_AmazonECSTaskExecutionRolePolicy",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "delete",
+      "reason": undefined,
+      "resourceContext": "@octo/security-group=sec-grp-SecurityGroup-backend",
+      "resourceId": "sec-grp-SecurityGroup-backend",
+      "terraformChanges": [
+        {
+          "address": "aws_security_group.sec-grp-SecurityGroup-backend",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+      ],
+    },
+  ],
+  "notes": [],
+  "uncertain": [],
+}
 `;
 
 exports[`Main E2E input changes AwsIniAccountModule should handle accountId change 1`] = `
@@ -167,6 +1123,195 @@ exports[`Main E2E input changes AwsIniAccountModule should handle accountId chan
 ]
 `;
 
+exports[`Main E2E input changes AwsIniAccountModule should handle accountId change: validate report 1`] = `
+{
+  "attributedChanges": [],
+  "confidence": "approximate",
+  "drift": [],
+  "failures": [],
+  "intentChanges": [
+    {
+      "moduleId": "backend-server-module",
+      "octoAction": "replace",
+      "reason": "name is force-new on aws_iam_role; a change recreates the role",
+      "resourceContext": "@octo/iam-role=iam-role-ServerRole-backend",
+      "resourceId": "iam-role-ServerRole-backend",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "region-module",
+      "octoAction": "replace",
+      "reason": "cidr_block is force-new on aws_vpc; a change recreates the VPC",
+      "resourceContext": "@octo/vpc=vpc-app-region-east",
+      "resourceId": "vpc-app-region-east",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "region-module",
+      "octoAction": "replace",
+      "reason": "internet gateway properties are identity; a change recreates it",
+      "resourceContext": "@octo/internet-gateway=igw-app-region-east",
+      "resourceId": "igw-app-region-east",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "qa-environment-module",
+      "octoAction": "replace",
+      "reason": "name is force-new on aws_ecs_cluster; a change recreates it",
+      "resourceContext": "@octo/ecs-cluster=ecs-cluster-app-region-east-qa",
+      "resourceId": "ecs-cluster-app-region-east-qa",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "public-subnet-module",
+      "octoAction": "replace",
+      "reason": "availability_zone and cidr_block are force-new on aws_subnet; a change recreates the subnet",
+      "resourceContext": "@octo/subnet=subnet-app-region-east-public-subnet",
+      "resourceId": "subnet-app-region-east-public-subnet",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "public-subnet-module",
+      "octoAction": "replace",
+      "reason": "connectivity_type is force-new on aws_nat_gateway; a change recreates it",
+      "resourceContext": "@octo/nat-gateway=nat-gateway-app-region-east-public-subnet",
+      "resourceId": "nat-gateway-app-region-east-public-subnet",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "public-subnet-module",
+      "octoAction": "replace",
+      "reason": "route table routes update in place; non-route properties are identity",
+      "resourceContext": "@octo/route-table=rt-app-region-east-public-subnet",
+      "resourceId": "rt-app-region-east-public-subnet",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "public-subnet-module",
+      "octoAction": "replace",
+      "reason": "only network-acl entries update in place; other properties are identity",
+      "resourceContext": "@octo/network-acl=nacl-app-region-east-public-subnet",
+      "resourceId": "nacl-app-region-east-public-subnet",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "public-backup-subnet-module",
+      "octoAction": "replace",
+      "reason": "availability_zone and cidr_block are force-new on aws_subnet; a change recreates the subnet",
+      "resourceContext": "@octo/subnet=subnet-app-region-east-public-backup-subnet",
+      "resourceId": "subnet-app-region-east-public-backup-subnet",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "public-backup-subnet-module",
+      "octoAction": "replace",
+      "reason": "route table routes update in place; non-route properties are identity",
+      "resourceContext": "@octo/route-table=rt-app-region-east-public-backup-subnet",
+      "resourceId": "rt-app-region-east-public-backup-subnet",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "public-backup-subnet-module",
+      "octoAction": "replace",
+      "reason": "only network-acl entries update in place; other properties are identity",
+      "resourceContext": "@octo/network-acl=nacl-app-region-east-public-backup-subnet",
+      "resourceId": "nacl-app-region-east-public-backup-subnet",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "private-subnet-module",
+      "octoAction": "replace",
+      "reason": "availability_zone and cidr_block are force-new on aws_subnet; a change recreates the subnet",
+      "resourceContext": "@octo/subnet=subnet-app-region-east-private-subnet",
+      "resourceId": "subnet-app-region-east-private-subnet",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "private-subnet-module",
+      "octoAction": "replace",
+      "reason": "route table routes update in place; non-route properties are identity",
+      "resourceContext": "@octo/route-table=rt-app-region-east-private-subnet",
+      "resourceId": "rt-app-region-east-private-subnet",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "private-subnet-module",
+      "octoAction": "replace",
+      "reason": "only network-acl entries update in place; other properties are identity",
+      "resourceContext": "@octo/network-acl=nacl-app-region-east-private-subnet",
+      "resourceId": "nacl-app-region-east-private-subnet",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "qa-api-alb-module",
+      "octoAction": "replace",
+      "reason": "security group properties are identity; a change recreates it",
+      "resourceContext": "@octo/security-group=sec-grp-app-region-east-qa-api-alb",
+      "resourceId": "sec-grp-app-region-east-qa-api-alb",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "qa-api-alb-module",
+      "octoAction": "replace",
+      "reason": "name is force-new on aws_lb; a change recreates the load balancer",
+      "resourceContext": "@octo/alb=alb-app-region-east-qa-api-alb",
+      "resourceId": "alb-app-region-east-qa-api-alb",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "replace",
+      "reason": "security group properties are identity; a change recreates it",
+      "resourceContext": "@octo/security-group=sec-grp-SecurityGroup-backend",
+      "resourceId": "sec-grp-SecurityGroup-backend",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "replace",
+      "reason": "security group properties are identity; a change recreates it",
+      "resourceContext": "@octo/security-group=sec-grp-SecurityGroup-backend-v1-qa-execution",
+      "resourceId": "sec-grp-SecurityGroup-backend-v1-qa-execution",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "replace",
+      "reason": "family is force-new on aws_ecs_task_definition; a change recreates it",
+      "resourceContext": "@octo/ecs-task-definition=ecs-task-definition-backend-v1-qa-execution",
+      "resourceId": "ecs-task-definition-backend-v1-qa-execution",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "replace",
+      "reason": "name is force-new on aws_ecs_service; a change recreates the service",
+      "resourceContext": "@octo/ecs-service=ecs-service-backend-v1-qa-execution",
+      "resourceId": "ecs-service-backend-v1-qa-execution",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "qa-api-alb-module",
+      "octoAction": "replace",
+      "reason": "name/port/protocol/target_type are force-new on aws_lb_target_group; a change recreates it",
+      "resourceContext": "@octo/alb-target-group=alb-target-group-backend-v1-qa-execution",
+      "resourceId": "alb-target-group-backend-v1-qa-execution",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "qa-api-alb-module",
+      "octoAction": "replace",
+      "reason": "alb listener identity (account/region) changed; a change recreates it",
+      "resourceContext": "@octo/alb-listener=alb-listener-qa-api-alb",
+      "resourceId": "alb-listener-qa-api-alb",
+      "terraformChanges": [],
+    },
+  ],
+  "notes": [],
+  "uncertain": [],
+}
+`;
+
 exports[`Main E2E input changes AwsMultiAzRegionModule should handle name change 1`] = `
 [
   "- @octo/ecs-cluster=ecs-cluster-app-region-east-qa",
@@ -210,6 +1355,772 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle name change
 ]
 `;
 
+exports[`Main E2E input changes AwsMultiAzRegionModule should handle name change: validate report 1`] = `
+{
+  "attributedChanges": [
+    {
+      "address": "aws_lb_listener.alb-listener-qa-api-alb",
+      "causeKind": "identity-changed",
+      "causeResourceId": "alb-changed-region-name-qa-api-alb",
+      "moduleId": "qa-api-alb-module",
+      "tfActions": [
+        "delete",
+        "create",
+      ],
+    },
+  ],
+  "confidence": "approximate",
+  "drift": [],
+  "failures": [],
+  "intentChanges": [
+    {
+      "moduleId": "region-module",
+      "octoAction": "add",
+      "reason": undefined,
+      "resourceContext": "@octo/vpc=vpc-changed-region-name",
+      "resourceId": "vpc-changed-region-name",
+      "terraformChanges": [
+        {
+          "address": "aws_vpc.vpc-changed-region-name",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "region-module",
+      "octoAction": "add",
+      "reason": undefined,
+      "resourceContext": "@octo/internet-gateway=igw-changed-region-name",
+      "resourceId": "igw-changed-region-name",
+      "terraformChanges": [
+        {
+          "address": "aws_internet_gateway.igw-changed-region-name",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "qa-environment-module",
+      "octoAction": "add",
+      "reason": undefined,
+      "resourceContext": "@octo/ecs-cluster=ecs-cluster-changed-region-name-qa",
+      "resourceId": "ecs-cluster-changed-region-name-qa",
+      "terraformChanges": [
+        {
+          "address": "aws_ecs_cluster.ecs-cluster-changed-region-name-qa",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "public-subnet-module",
+      "octoAction": "add",
+      "reason": undefined,
+      "resourceContext": "@octo/subnet=subnet-changed-region-name-public-subnet",
+      "resourceId": "subnet-changed-region-name-public-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_subnet.subnet-changed-region-name-public-subnet",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "public-subnet-module",
+      "octoAction": "add",
+      "reason": undefined,
+      "resourceContext": "@octo/nat-gateway=nat-gateway-changed-region-name-public-subnet",
+      "resourceId": "nat-gateway-changed-region-name-public-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_eip.nat-gateway-changed-region-name-public-subnet_eip",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+        {
+          "address": "aws_nat_gateway.nat-gateway-changed-region-name-public-subnet",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "public-subnet-module",
+      "octoAction": "add",
+      "reason": undefined,
+      "resourceContext": "@octo/route-table=rt-changed-region-name-public-subnet",
+      "resourceId": "rt-changed-region-name-public-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_route_table.rt-changed-region-name-public-subnet",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+        {
+          "address": "aws_route_table_association.rt-changed-region-name-public-subnet_assoc",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "public-subnet-module",
+      "octoAction": "add",
+      "reason": undefined,
+      "resourceContext": "@octo/network-acl=nacl-changed-region-name-public-subnet",
+      "resourceId": "nacl-changed-region-name-public-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_network_acl.nacl-changed-region-name-public-subnet",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "public-backup-subnet-module",
+      "octoAction": "add",
+      "reason": undefined,
+      "resourceContext": "@octo/subnet=subnet-changed-region-name-public-backup-subnet",
+      "resourceId": "subnet-changed-region-name-public-backup-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_subnet.subnet-changed-region-name-public-backup-subnet",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "public-backup-subnet-module",
+      "octoAction": "add",
+      "reason": undefined,
+      "resourceContext": "@octo/route-table=rt-changed-region-name-public-backup-subnet",
+      "resourceId": "rt-changed-region-name-public-backup-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_route_table.rt-changed-region-name-public-backup-subnet",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+        {
+          "address": "aws_route_table_association.rt-changed-region-name-public-backup-subnet_assoc",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "public-backup-subnet-module",
+      "octoAction": "add",
+      "reason": undefined,
+      "resourceContext": "@octo/network-acl=nacl-changed-region-name-public-backup-subnet",
+      "resourceId": "nacl-changed-region-name-public-backup-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_network_acl.nacl-changed-region-name-public-backup-subnet",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "private-subnet-module",
+      "octoAction": "add",
+      "reason": undefined,
+      "resourceContext": "@octo/subnet=subnet-changed-region-name-private-subnet",
+      "resourceId": "subnet-changed-region-name-private-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_subnet.subnet-changed-region-name-private-subnet",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "private-subnet-module",
+      "octoAction": "add",
+      "reason": undefined,
+      "resourceContext": "@octo/route-table=rt-changed-region-name-private-subnet",
+      "resourceId": "rt-changed-region-name-private-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_route_table.rt-changed-region-name-private-subnet",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+        {
+          "address": "aws_route_table_association.rt-changed-region-name-private-subnet_assoc",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "private-subnet-module",
+      "octoAction": "add",
+      "reason": undefined,
+      "resourceContext": "@octo/network-acl=nacl-changed-region-name-private-subnet",
+      "resourceId": "nacl-changed-region-name-private-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_network_acl.nacl-changed-region-name-private-subnet",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "qa-api-alb-module",
+      "octoAction": "add",
+      "reason": undefined,
+      "resourceContext": "@octo/security-group=sec-grp-changed-region-name-qa-api-alb",
+      "resourceId": "sec-grp-changed-region-name-qa-api-alb",
+      "terraformChanges": [
+        {
+          "address": "aws_security_group.sec-grp-changed-region-name-qa-api-alb",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+        {
+          "address": "aws_vpc_security_group_ingress_rule.sec-grp-changed-region-name-qa-api-alb_ingress_0",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+        {
+          "address": "aws_vpc_security_group_egress_rule.sec-grp-changed-region-name-qa-api-alb_egress_0",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "qa-api-alb-module",
+      "octoAction": "add",
+      "reason": undefined,
+      "resourceContext": "@octo/alb=alb-changed-region-name-qa-api-alb",
+      "resourceId": "alb-changed-region-name-qa-api-alb",
+      "terraformChanges": [
+        {
+          "address": "aws_lb.alb-changed-region-name-qa-api-alb",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/security-group=sec-grp-SecurityGroup-backend",
+      "resourceId": "sec-grp-SecurityGroup-backend",
+      "terraformChanges": [
+        {
+          "address": "aws_security_group.sec-grp-SecurityGroup-backend",
+          "changedFields": [
+            "arn",
+            "egress",
+            "id",
+            "ingress",
+            "name",
+            "name_prefix",
+            "owner_id",
+            "vpc_id",
+          ],
+          "tfActions": [
+            "delete",
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/security-group=sec-grp-SecurityGroup-backend-v1-qa-execution",
+      "resourceId": "sec-grp-SecurityGroup-backend-v1-qa-execution",
+      "terraformChanges": [
+        {
+          "address": "aws_security_group.sec-grp-SecurityGroup-backend-v1-qa-execution",
+          "changedFields": [
+            "arn",
+            "egress",
+            "id",
+            "ingress",
+            "name",
+            "name_prefix",
+            "owner_id",
+            "vpc_id",
+          ],
+          "tfActions": [
+            "delete",
+            "create",
+          ],
+        },
+        {
+          "address": "aws_vpc_security_group_ingress_rule.sec-grp-SecurityGroup-backend-v1-qa-execution_ingress_0",
+          "changedFields": [
+            "arn",
+            "id",
+            "security_group_id",
+            "security_group_rule_id",
+          ],
+          "tfActions": [
+            "delete",
+            "create",
+          ],
+        },
+        {
+          "address": "aws_vpc_security_group_egress_rule.sec-grp-SecurityGroup-backend-v1-qa-execution_egress_0",
+          "changedFields": [
+            "arn",
+            "id",
+            "security_group_id",
+            "security_group_rule_id",
+          ],
+          "tfActions": [
+            "delete",
+            "create",
+          ],
+        },
+        {
+          "address": "aws_vpc_security_group_egress_rule.sec-grp-SecurityGroup-backend-v1-qa-execution_egress_1",
+          "changedFields": [
+            "arn",
+            "id",
+            "security_group_id",
+            "security_group_rule_id",
+          ],
+          "tfActions": [
+            "delete",
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "replace",
+      "reason": "family is force-new on aws_ecs_task_definition; a change recreates it",
+      "resourceContext": "@octo/ecs-task-definition=ecs-task-definition-backend-v1-qa-execution",
+      "resourceId": "ecs-task-definition-backend-v1-qa-execution",
+      "terraformChanges": [
+        {
+          "address": "aws_ecs_task_definition.ecs-task-definition-backend-v1-qa-execution",
+          "changedFields": [
+            "arn",
+            "arn_without_revision",
+            "container_definitions",
+            "enable_fault_injection",
+            "family",
+            "id",
+            "ipc_mode",
+            "pid_mode",
+            "revision",
+          ],
+          "tfActions": [
+            "delete",
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "replace",
+      "reason": "cluster is force-new on aws_ecs_service; moving the service recreates it",
+      "resourceContext": "@octo/ecs-service=ecs-service-backend-v1-qa-execution",
+      "resourceId": "ecs-service-backend-v1-qa-execution",
+      "terraformChanges": [
+        {
+          "address": "aws_ecs_service.ecs-service-backend-v1-qa-execution",
+          "changedFields": [
+            "arn",
+            "availability_zone_rebalancing",
+            "cluster",
+            "deployment_circuit_breaker",
+            "deployment_configuration",
+            "deployment_controller",
+            "health_check_grace_period_seconds",
+            "iam_role",
+            "id",
+            "network_configuration",
+            "platform_version",
+            "propagate_tags",
+          ],
+          "tfActions": [
+            "delete",
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "qa-api-alb-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/alb-target-group=alb-target-group-backend-v1-qa-execution",
+      "resourceId": "alb-target-group-backend-v1-qa-execution",
+      "terraformChanges": [
+        {
+          "address": "aws_lb_target_group.alb-target-group-backend-v1-qa-execution",
+          "changedFields": [
+            "arn",
+            "arn_suffix",
+            "connection_termination",
+            "id",
+            "load_balancer_arns",
+            "load_balancing_algorithm_type",
+            "load_balancing_anomaly_mitigation",
+            "load_balancing_cross_zone_enabled",
+            "name_prefix",
+            "preserve_client_ip",
+            "stickiness",
+            "target_control_port",
+          ],
+          "tfActions": [
+            "delete",
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "qa-environment-module",
+      "octoAction": "delete",
+      "reason": undefined,
+      "resourceContext": "@octo/ecs-cluster=ecs-cluster-app-region-east-qa",
+      "resourceId": "ecs-cluster-app-region-east-qa",
+      "terraformChanges": [
+        {
+          "address": "aws_ecs_cluster.ecs-cluster-app-region-east-qa",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "region-module",
+      "octoAction": "delete",
+      "reason": undefined,
+      "resourceContext": "@octo/vpc=vpc-app-region-east",
+      "resourceId": "vpc-app-region-east",
+      "terraformChanges": [
+        {
+          "address": "aws_vpc.vpc-app-region-east",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "region-module",
+      "octoAction": "delete",
+      "reason": undefined,
+      "resourceContext": "@octo/internet-gateway=igw-app-region-east",
+      "resourceId": "igw-app-region-east",
+      "terraformChanges": [
+        {
+          "address": "aws_internet_gateway.igw-app-region-east",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "qa-api-alb-module",
+      "octoAction": "delete",
+      "reason": undefined,
+      "resourceContext": "@octo/security-group=sec-grp-app-region-east-qa-api-alb",
+      "resourceId": "sec-grp-app-region-east-qa-api-alb",
+      "terraformChanges": [
+        {
+          "address": "aws_security_group.sec-grp-app-region-east-qa-api-alb",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+        {
+          "address": "aws_vpc_security_group_ingress_rule.sec-grp-app-region-east-qa-api-alb_ingress_0",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+        {
+          "address": "aws_vpc_security_group_egress_rule.sec-grp-app-region-east-qa-api-alb_egress_0",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "private-subnet-module",
+      "octoAction": "delete",
+      "reason": undefined,
+      "resourceContext": "@octo/subnet=subnet-app-region-east-private-subnet",
+      "resourceId": "subnet-app-region-east-private-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_subnet.subnet-app-region-east-private-subnet",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "public-backup-subnet-module",
+      "octoAction": "delete",
+      "reason": undefined,
+      "resourceContext": "@octo/subnet=subnet-app-region-east-public-backup-subnet",
+      "resourceId": "subnet-app-region-east-public-backup-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_subnet.subnet-app-region-east-public-backup-subnet",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "public-subnet-module",
+      "octoAction": "delete",
+      "reason": undefined,
+      "resourceContext": "@octo/subnet=subnet-app-region-east-public-subnet",
+      "resourceId": "subnet-app-region-east-public-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_subnet.subnet-app-region-east-public-subnet",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "private-subnet-module",
+      "octoAction": "delete",
+      "reason": undefined,
+      "resourceContext": "@octo/network-acl=nacl-app-region-east-private-subnet",
+      "resourceId": "nacl-app-region-east-private-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_network_acl.nacl-app-region-east-private-subnet",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "public-backup-subnet-module",
+      "octoAction": "delete",
+      "reason": undefined,
+      "resourceContext": "@octo/network-acl=nacl-app-region-east-public-backup-subnet",
+      "resourceId": "nacl-app-region-east-public-backup-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_network_acl.nacl-app-region-east-public-backup-subnet",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "public-backup-subnet-module",
+      "octoAction": "delete",
+      "reason": undefined,
+      "resourceContext": "@octo/route-table=rt-app-region-east-public-backup-subnet",
+      "resourceId": "rt-app-region-east-public-backup-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_route_table.rt-app-region-east-public-backup-subnet",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+        {
+          "address": "aws_route_table_association.rt-app-region-east-public-backup-subnet_assoc",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "qa-api-alb-module",
+      "octoAction": "delete",
+      "reason": undefined,
+      "resourceContext": "@octo/alb=alb-app-region-east-qa-api-alb",
+      "resourceId": "alb-app-region-east-qa-api-alb",
+      "terraformChanges": [
+        {
+          "address": "aws_lb.alb-app-region-east-qa-api-alb",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "public-subnet-module",
+      "octoAction": "delete",
+      "reason": undefined,
+      "resourceContext": "@octo/nat-gateway=nat-gateway-app-region-east-public-subnet",
+      "resourceId": "nat-gateway-app-region-east-public-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_eip.nat-gateway-app-region-east-public-subnet_eip",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+        {
+          "address": "aws_nat_gateway.nat-gateway-app-region-east-public-subnet",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "public-subnet-module",
+      "octoAction": "delete",
+      "reason": undefined,
+      "resourceContext": "@octo/network-acl=nacl-app-region-east-public-subnet",
+      "resourceId": "nacl-app-region-east-public-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_network_acl.nacl-app-region-east-public-subnet",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "public-subnet-module",
+      "octoAction": "delete",
+      "reason": undefined,
+      "resourceContext": "@octo/route-table=rt-app-region-east-public-subnet",
+      "resourceId": "rt-app-region-east-public-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_route_table.rt-app-region-east-public-subnet",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+        {
+          "address": "aws_route_table_association.rt-app-region-east-public-subnet_assoc",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "private-subnet-module",
+      "octoAction": "delete",
+      "reason": undefined,
+      "resourceContext": "@octo/route-table=rt-app-region-east-private-subnet",
+      "resourceId": "rt-app-region-east-private-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_route_table.rt-app-region-east-private-subnet",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+        {
+          "address": "aws_route_table_association.rt-app-region-east-private-subnet_assoc",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+      ],
+    },
+  ],
+  "notes": [],
+  "uncertain": [],
+}
+`;
+
 exports[`Main E2E input changes AwsMultiAzRegionModule should handle regionIds change 1`] = `
 [
   "* @octo/alb-target-group=alb-target-group-backend-v1-qa-execution",
@@ -228,6 +2139,139 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle regionIds c
   "* @octo/route-table=rt-app-region-east-public-subnet",
   "* @octo/route-table=rt-app-region-east-private-subnet",
 ]
+`;
+
+exports[`Main E2E input changes AwsMultiAzRegionModule should handle regionIds change: validate report 1`] = `
+{
+  "attributedChanges": [],
+  "confidence": "approximate",
+  "drift": [],
+  "failures": [],
+  "intentChanges": [
+    {
+      "moduleId": "region-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/internet-gateway=igw-app-region-east",
+      "resourceId": "igw-app-region-east",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "public-subnet-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/subnet=subnet-app-region-east-public-subnet",
+      "resourceId": "subnet-app-region-east-public-subnet",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "public-subnet-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/nat-gateway=nat-gateway-app-region-east-public-subnet",
+      "resourceId": "nat-gateway-app-region-east-public-subnet",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "public-subnet-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/route-table=rt-app-region-east-public-subnet",
+      "resourceId": "rt-app-region-east-public-subnet",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "public-subnet-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/network-acl=nacl-app-region-east-public-subnet",
+      "resourceId": "nacl-app-region-east-public-subnet",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "public-backup-subnet-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/subnet=subnet-app-region-east-public-backup-subnet",
+      "resourceId": "subnet-app-region-east-public-backup-subnet",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "public-backup-subnet-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/route-table=rt-app-region-east-public-backup-subnet",
+      "resourceId": "rt-app-region-east-public-backup-subnet",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "public-backup-subnet-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/network-acl=nacl-app-region-east-public-backup-subnet",
+      "resourceId": "nacl-app-region-east-public-backup-subnet",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "private-subnet-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/subnet=subnet-app-region-east-private-subnet",
+      "resourceId": "subnet-app-region-east-private-subnet",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "private-subnet-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/route-table=rt-app-region-east-private-subnet",
+      "resourceId": "rt-app-region-east-private-subnet",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "private-subnet-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/network-acl=nacl-app-region-east-private-subnet",
+      "resourceId": "nacl-app-region-east-private-subnet",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "qa-api-alb-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/security-group=sec-grp-app-region-east-qa-api-alb",
+      "resourceId": "sec-grp-app-region-east-qa-api-alb",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/security-group=sec-grp-SecurityGroup-backend",
+      "resourceId": "sec-grp-SecurityGroup-backend",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/security-group=sec-grp-SecurityGroup-backend-v1-qa-execution",
+      "resourceId": "sec-grp-SecurityGroup-backend-v1-qa-execution",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "qa-api-alb-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/alb-target-group=alb-target-group-backend-v1-qa-execution",
+      "resourceId": "alb-target-group-backend-v1-qa-execution",
+      "terraformChanges": [],
+    },
+  ],
+  "notes": [],
+  "uncertain": [],
+}
 `;
 
 exports[`Main E2E input changes AwsMultiAzRegionModule should handle vpcCidrBlock change 1`] = `
@@ -266,6 +2310,358 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle vpcCidrBloc
 ]
 `;
 
+exports[`Main E2E input changes AwsMultiAzRegionModule should handle vpcCidrBlock change: validate report 1`] = `
+{
+  "attributedChanges": [],
+  "confidence": "approximate",
+  "drift": [],
+  "failures": [],
+  "intentChanges": [
+    {
+      "moduleId": "region-module",
+      "octoAction": "replace",
+      "reason": "cidr_block is force-new on aws_vpc; a change recreates the VPC",
+      "resourceContext": "@octo/vpc=vpc-app-region-east",
+      "resourceId": "vpc-app-region-east",
+      "terraformChanges": [
+        {
+          "address": "aws_vpc.vpc-app-region-east",
+          "changedFields": [
+            "arn",
+            "assign_generated_ipv6_cidr_block",
+            "cidr_block",
+            "default_network_acl_id",
+            "default_route_table_id",
+            "default_security_group_id",
+            "dhcp_options_id",
+            "enable_network_address_usage_metrics",
+            "id",
+            "ipv6_association_id",
+            "ipv6_cidr_block",
+            "ipv6_cidr_block_network_border_group",
+          ],
+          "tfActions": [
+            "delete",
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "region-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/internet-gateway=igw-app-region-east",
+      "resourceId": "igw-app-region-east",
+      "terraformChanges": [
+        {
+          "address": "aws_internet_gateway.igw-app-region-east",
+          "changedFields": [
+            "vpc_id",
+          ],
+          "tfActions": [
+            "update",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "public-subnet-module",
+      "octoAction": "replace",
+      "reason": "availability_zone and cidr_block are force-new on aws_subnet; a change recreates the subnet",
+      "resourceContext": "@octo/subnet=subnet-app-region-east-public-subnet",
+      "resourceId": "subnet-app-region-east-public-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_subnet.subnet-app-region-east-public-subnet",
+          "changedFields": [
+            "arn",
+            "availability_zone_id",
+            "cidr_block",
+            "customer_owned_ipv4_pool",
+            "enable_lni_at_device_index",
+            "id",
+            "ipv6_cidr_block",
+            "ipv6_cidr_block_association_id",
+            "map_customer_owned_ip_on_launch",
+            "outpost_arn",
+            "owner_id",
+            "private_dns_hostname_type_on_launch",
+          ],
+          "tfActions": [
+            "delete",
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "public-subnet-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/nat-gateway=nat-gateway-app-region-east-public-subnet",
+      "resourceId": "nat-gateway-app-region-east-public-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_nat_gateway.nat-gateway-app-region-east-public-subnet",
+          "changedFields": [
+            "association_id",
+            "auto_provision_zones",
+            "auto_scaling_ips",
+            "availability_mode",
+            "id",
+            "network_interface_id",
+            "private_ip",
+            "public_ip",
+            "regional_nat_gateway_address",
+            "regional_nat_gateway_auto_mode",
+            "route_table_id",
+            "secondary_allocation_ids",
+          ],
+          "tfActions": [
+            "delete",
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "public-subnet-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/route-table=rt-app-region-east-public-subnet",
+      "resourceId": "rt-app-region-east-public-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_route_table_association.rt-app-region-east-public-subnet_assoc",
+          "changedFields": [
+            "gateway_id",
+            "id",
+            "subnet_id",
+          ],
+          "tfActions": [
+            "delete",
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "public-subnet-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/network-acl=nacl-app-region-east-public-subnet",
+      "resourceId": "nacl-app-region-east-public-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_network_acl.nacl-app-region-east-public-subnet",
+          "changedFields": [
+            "egress",
+            "ingress",
+            "subnet_ids",
+          ],
+          "tfActions": [
+            "update",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "public-backup-subnet-module",
+      "octoAction": "replace",
+      "reason": "availability_zone and cidr_block are force-new on aws_subnet; a change recreates the subnet",
+      "resourceContext": "@octo/subnet=subnet-app-region-east-public-backup-subnet",
+      "resourceId": "subnet-app-region-east-public-backup-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_subnet.subnet-app-region-east-public-backup-subnet",
+          "changedFields": [
+            "arn",
+            "availability_zone_id",
+            "cidr_block",
+            "customer_owned_ipv4_pool",
+            "enable_lni_at_device_index",
+            "id",
+            "ipv6_cidr_block",
+            "ipv6_cidr_block_association_id",
+            "map_customer_owned_ip_on_launch",
+            "outpost_arn",
+            "owner_id",
+            "private_dns_hostname_type_on_launch",
+          ],
+          "tfActions": [
+            "delete",
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "public-backup-subnet-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/route-table=rt-app-region-east-public-backup-subnet",
+      "resourceId": "rt-app-region-east-public-backup-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_route_table_association.rt-app-region-east-public-backup-subnet_assoc",
+          "changedFields": [
+            "gateway_id",
+            "id",
+            "subnet_id",
+          ],
+          "tfActions": [
+            "delete",
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "public-backup-subnet-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/network-acl=nacl-app-region-east-public-backup-subnet",
+      "resourceId": "nacl-app-region-east-public-backup-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_network_acl.nacl-app-region-east-public-backup-subnet",
+          "changedFields": [
+            "egress",
+            "ingress",
+            "subnet_ids",
+          ],
+          "tfActions": [
+            "update",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "private-subnet-module",
+      "octoAction": "replace",
+      "reason": "availability_zone and cidr_block are force-new on aws_subnet; a change recreates the subnet",
+      "resourceContext": "@octo/subnet=subnet-app-region-east-private-subnet",
+      "resourceId": "subnet-app-region-east-private-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_subnet.subnet-app-region-east-private-subnet",
+          "changedFields": [
+            "arn",
+            "availability_zone_id",
+            "cidr_block",
+            "customer_owned_ipv4_pool",
+            "enable_lni_at_device_index",
+            "id",
+            "ipv6_cidr_block",
+            "ipv6_cidr_block_association_id",
+            "map_customer_owned_ip_on_launch",
+            "outpost_arn",
+            "owner_id",
+            "private_dns_hostname_type_on_launch",
+          ],
+          "tfActions": [
+            "delete",
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "private-subnet-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/route-table=rt-app-region-east-private-subnet",
+      "resourceId": "rt-app-region-east-private-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_route_table_association.rt-app-region-east-private-subnet_assoc",
+          "changedFields": [
+            "gateway_id",
+            "id",
+            "subnet_id",
+          ],
+          "tfActions": [
+            "delete",
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "private-subnet-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/network-acl=nacl-app-region-east-private-subnet",
+      "resourceId": "nacl-app-region-east-private-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_network_acl.nacl-app-region-east-private-subnet",
+          "changedFields": [
+            "egress",
+            "ingress",
+            "subnet_ids",
+          ],
+          "tfActions": [
+            "update",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "qa-api-alb-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/security-group=sec-grp-app-region-east-qa-api-alb",
+      "resourceId": "sec-grp-app-region-east-qa-api-alb",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "qa-api-alb-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/alb=alb-app-region-east-qa-api-alb",
+      "resourceId": "alb-app-region-east-qa-api-alb",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/security-group=sec-grp-SecurityGroup-backend",
+      "resourceId": "sec-grp-SecurityGroup-backend",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/security-group=sec-grp-SecurityGroup-backend-v1-qa-execution",
+      "resourceId": "sec-grp-SecurityGroup-backend-v1-qa-execution",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/ecs-service=ecs-service-backend-v1-qa-execution",
+      "resourceId": "ecs-service-backend-v1-qa-execution",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "qa-api-alb-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/alb-target-group=alb-target-group-backend-v1-qa-execution",
+      "resourceId": "alb-target-group-backend-v1-qa-execution",
+      "terraformChanges": [],
+    },
+  ],
+  "notes": [],
+  "uncertain": [],
+}
+`;
+
 exports[`Main E2E input changes AwsSimpleSubnetModule should handle subnetAvailabilityZone change on public-subnet-module 1`] = `
 [
   "^ @octo/subnet=subnet-app-region-east-public-subnet",
@@ -274,6 +2670,126 @@ exports[`Main E2E input changes AwsSimpleSubnetModule should handle subnetAvaila
   "* @octo/network-acl=nacl-app-region-east-public-subnet",
   "* @octo/route-table=rt-app-region-east-public-subnet",
 ]
+`;
+
+exports[`Main E2E input changes AwsSimpleSubnetModule should handle subnetAvailabilityZone change on public-subnet-module: validate report 1`] = `
+{
+  "attributedChanges": [],
+  "confidence": "approximate",
+  "drift": [],
+  "failures": [],
+  "intentChanges": [
+    {
+      "moduleId": "public-subnet-module",
+      "octoAction": "replace",
+      "reason": "availability_zone and cidr_block are force-new on aws_subnet; a change recreates the subnet",
+      "resourceContext": "@octo/subnet=subnet-app-region-east-public-subnet",
+      "resourceId": "subnet-app-region-east-public-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_subnet.subnet-app-region-east-public-subnet",
+          "changedFields": [
+            "arn",
+            "availability_zone",
+            "availability_zone_id",
+            "customer_owned_ipv4_pool",
+            "enable_lni_at_device_index",
+            "id",
+            "ipv6_cidr_block",
+            "ipv6_cidr_block_association_id",
+            "map_customer_owned_ip_on_launch",
+            "outpost_arn",
+            "owner_id",
+            "private_dns_hostname_type_on_launch",
+          ],
+          "tfActions": [
+            "delete",
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "public-subnet-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/nat-gateway=nat-gateway-app-region-east-public-subnet",
+      "resourceId": "nat-gateway-app-region-east-public-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_nat_gateway.nat-gateway-app-region-east-public-subnet",
+          "changedFields": [
+            "association_id",
+            "auto_provision_zones",
+            "auto_scaling_ips",
+            "availability_mode",
+            "id",
+            "network_interface_id",
+            "private_ip",
+            "public_ip",
+            "regional_nat_gateway_address",
+            "regional_nat_gateway_auto_mode",
+            "route_table_id",
+            "secondary_allocation_ids",
+          ],
+          "tfActions": [
+            "delete",
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "public-subnet-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/route-table=rt-app-region-east-public-subnet",
+      "resourceId": "rt-app-region-east-public-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_route_table_association.rt-app-region-east-public-subnet_assoc",
+          "changedFields": [
+            "gateway_id",
+            "id",
+            "subnet_id",
+          ],
+          "tfActions": [
+            "delete",
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "public-subnet-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/network-acl=nacl-app-region-east-public-subnet",
+      "resourceId": "nacl-app-region-east-public-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_network_acl.nacl-app-region-east-public-subnet",
+          "changedFields": [
+            "subnet_ids",
+          ],
+          "tfActions": [
+            "update",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "qa-api-alb-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/alb=alb-app-region-east-qa-api-alb",
+      "resourceId": "alb-app-region-east-qa-api-alb",
+      "terraformChanges": [],
+    },
+  ],
+  "notes": [],
+  "uncertain": [],
+}
 `;
 
 exports[`Main E2E input changes AwsSimpleSubnetModule should handle subnetCidrBlock change on public-subnet-module 1`] = `
@@ -286,6 +2802,147 @@ exports[`Main E2E input changes AwsSimpleSubnetModule should handle subnetCidrBl
   "* @octo/network-acl=nacl-app-region-east-public-subnet",
   "* @octo/route-table=rt-app-region-east-public-subnet",
 ]
+`;
+
+exports[`Main E2E input changes AwsSimpleSubnetModule should handle subnetCidrBlock change on public-subnet-module: validate report 1`] = `
+{
+  "attributedChanges": [],
+  "confidence": "approximate",
+  "drift": [],
+  "failures": [],
+  "intentChanges": [
+    {
+      "moduleId": "public-subnet-module",
+      "octoAction": "replace",
+      "reason": "availability_zone and cidr_block are force-new on aws_subnet; a change recreates the subnet",
+      "resourceContext": "@octo/subnet=subnet-app-region-east-public-subnet",
+      "resourceId": "subnet-app-region-east-public-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_subnet.subnet-app-region-east-public-subnet",
+          "changedFields": [
+            "arn",
+            "availability_zone_id",
+            "cidr_block",
+            "customer_owned_ipv4_pool",
+            "enable_lni_at_device_index",
+            "id",
+            "ipv6_cidr_block",
+            "ipv6_cidr_block_association_id",
+            "map_customer_owned_ip_on_launch",
+            "outpost_arn",
+            "owner_id",
+            "private_dns_hostname_type_on_launch",
+          ],
+          "tfActions": [
+            "delete",
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "public-subnet-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/nat-gateway=nat-gateway-app-region-east-public-subnet",
+      "resourceId": "nat-gateway-app-region-east-public-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_nat_gateway.nat-gateway-app-region-east-public-subnet",
+          "changedFields": [
+            "association_id",
+            "auto_provision_zones",
+            "auto_scaling_ips",
+            "availability_mode",
+            "id",
+            "network_interface_id",
+            "private_ip",
+            "public_ip",
+            "regional_nat_gateway_address",
+            "regional_nat_gateway_auto_mode",
+            "route_table_id",
+            "secondary_allocation_ids",
+          ],
+          "tfActions": [
+            "delete",
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "public-subnet-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/route-table=rt-app-region-east-public-subnet",
+      "resourceId": "rt-app-region-east-public-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_route_table_association.rt-app-region-east-public-subnet_assoc",
+          "changedFields": [
+            "gateway_id",
+            "id",
+            "subnet_id",
+          ],
+          "tfActions": [
+            "delete",
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "public-subnet-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/network-acl=nacl-app-region-east-public-subnet",
+      "resourceId": "nacl-app-region-east-public-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_network_acl.nacl-app-region-east-public-subnet",
+          "changedFields": [
+            "egress",
+            "ingress",
+            "subnet_ids",
+          ],
+          "tfActions": [
+            "update",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "private-subnet-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/network-acl=nacl-app-region-east-private-subnet",
+      "resourceId": "nacl-app-region-east-private-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_network_acl.nacl-app-region-east-private-subnet",
+          "changedFields": [
+            "egress",
+            "ingress",
+          ],
+          "tfActions": [
+            "update",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "qa-api-alb-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/alb=alb-app-region-east-qa-api-alb",
+      "resourceId": "alb-app-region-east-qa-api-alb",
+      "terraformChanges": [],
+    },
+  ],
+  "notes": [],
+  "uncertain": [],
+}
 `;
 
 exports[`Main E2E input changes AwsSimpleSubnetModule should handle subnetName change on public-subnet-module 1`] = `
@@ -304,11 +2961,260 @@ exports[`Main E2E input changes AwsSimpleSubnetModule should handle subnetName c
 ]
 `;
 
+exports[`Main E2E input changes AwsSimpleSubnetModule should handle subnetName change on public-subnet-module: validate report 1`] = `
+{
+  "attributedChanges": [],
+  "confidence": "approximate",
+  "drift": [],
+  "failures": [],
+  "intentChanges": [
+    {
+      "moduleId": "public-subnet-module",
+      "octoAction": "add",
+      "reason": undefined,
+      "resourceContext": "@octo/subnet=subnet-app-region-east-changed-public-subnet",
+      "resourceId": "subnet-app-region-east-changed-public-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_subnet.subnet-app-region-east-changed-public-subnet",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "public-subnet-module",
+      "octoAction": "add",
+      "reason": undefined,
+      "resourceContext": "@octo/nat-gateway=nat-gateway-app-region-east-changed-public-subnet",
+      "resourceId": "nat-gateway-app-region-east-changed-public-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_eip.nat-gateway-app-region-east-changed-public-subnet_eip",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+        {
+          "address": "aws_nat_gateway.nat-gateway-app-region-east-changed-public-subnet",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "public-subnet-module",
+      "octoAction": "add",
+      "reason": undefined,
+      "resourceContext": "@octo/route-table=rt-app-region-east-changed-public-subnet",
+      "resourceId": "rt-app-region-east-changed-public-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_route_table.rt-app-region-east-changed-public-subnet",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+        {
+          "address": "aws_route_table_association.rt-app-region-east-changed-public-subnet_assoc",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "public-subnet-module",
+      "octoAction": "add",
+      "reason": undefined,
+      "resourceContext": "@octo/network-acl=nacl-app-region-east-changed-public-subnet",
+      "resourceId": "nacl-app-region-east-changed-public-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_network_acl.nacl-app-region-east-changed-public-subnet",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "private-subnet-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/route-table=rt-app-region-east-private-subnet",
+      "resourceId": "rt-app-region-east-private-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_route_table.rt-app-region-east-private-subnet",
+          "changedFields": [
+            "route",
+          ],
+          "tfActions": [
+            "update",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "qa-api-alb-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/alb=alb-app-region-east-qa-api-alb",
+      "resourceId": "alb-app-region-east-qa-api-alb",
+      "terraformChanges": [
+        {
+          "address": "aws_lb.alb-app-region-east-qa-api-alb",
+          "changedFields": [
+            "subnet_mapping",
+            "subnets",
+          ],
+          "tfActions": [
+            "update",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "public-subnet-module",
+      "octoAction": "delete",
+      "reason": undefined,
+      "resourceContext": "@octo/subnet=subnet-app-region-east-public-subnet",
+      "resourceId": "subnet-app-region-east-public-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_subnet.subnet-app-region-east-public-subnet",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "public-subnet-module",
+      "octoAction": "delete",
+      "reason": undefined,
+      "resourceContext": "@octo/nat-gateway=nat-gateway-app-region-east-public-subnet",
+      "resourceId": "nat-gateway-app-region-east-public-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_eip.nat-gateway-app-region-east-public-subnet_eip",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+        {
+          "address": "aws_nat_gateway.nat-gateway-app-region-east-public-subnet",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "public-subnet-module",
+      "octoAction": "delete",
+      "reason": undefined,
+      "resourceContext": "@octo/network-acl=nacl-app-region-east-public-subnet",
+      "resourceId": "nacl-app-region-east-public-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_network_acl.nacl-app-region-east-public-subnet",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "public-subnet-module",
+      "octoAction": "delete",
+      "reason": undefined,
+      "resourceContext": "@octo/route-table=rt-app-region-east-public-subnet",
+      "resourceId": "rt-app-region-east-public-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_route_table.rt-app-region-east-public-subnet",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+        {
+          "address": "aws_route_table_association.rt-app-region-east-public-subnet_assoc",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+      ],
+    },
+  ],
+  "notes": [],
+  "uncertain": [],
+}
+`;
+
 exports[`Main E2E input changes AwsSimpleSubnetModule should handle subnetOptions change on public-subnet-module 1`] = `
 [
   "* @octo/network-acl=nacl-app-region-east-public-subnet",
 ]
 `;
 
+exports[`Main E2E input changes AwsSimpleSubnetModule should handle subnetOptions change on public-subnet-module: validate report 1`] = `
+{
+  "attributedChanges": [],
+  "confidence": "approximate",
+  "drift": [],
+  "failures": [],
+  "intentChanges": [
+    {
+      "moduleId": "public-subnet-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/network-acl=nacl-app-region-east-public-subnet",
+      "resourceId": "nacl-app-region-east-public-subnet",
+      "terraformChanges": [
+        {
+          "address": "aws_network_acl.nacl-app-region-east-public-subnet",
+          "changedFields": [
+            "egress",
+            "ingress",
+          ],
+          "tfActions": [
+            "update",
+          ],
+        },
+      ],
+    },
+  ],
+  "notes": [],
+  "uncertain": [],
+}
+`;
+
 exports[`Main E2E input changes SimpleAppModule should handle name change 1`] = `[]`;
 
+exports[`Main E2E input changes SimpleAppModule should handle name change: validate report 1`] = `
+{
+  "attributedChanges": [],
+  "confidence": "exact",
+  "drift": [],
+  "failures": [],
+  "intentChanges": [],
+  "notes": [],
+  "uncertain": [],
+}
+`;

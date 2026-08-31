@@ -128,12 +128,19 @@ describe('Main E2E', () => {
         // unused provider is never emitted, so this affects nothing else.
         //
         // Read the snapshot as octo's intent, not as a verified account migration: the accountId
-        // reaches terraform only as the provider *alias*, and this provider is registered with no
-        // spec, so both aliases resolve to the credentials this suite already runs under. Terraform
-        // therefore plans nothing, and the report says exactly that - every resource replaced, no
-        // terraform change. A real move needs `assume_role` or `profile` in the provider spec, and a
-        // second account to move into.
-        testModuleContainer.registerTerraformProvider('aws', 'changed-account-id', AWS_REGION_ID);
+        // reaches terraform only as the provider *alias*, and both aliases resolve to the credentials
+        // this suite already runs under. Terraform therefore plans nothing, and the report says
+        // exactly that - every resource replaced, no terraform change. A real move needs
+        // `assume_role` or `profile` in the provider spec, and a second account to move into.
+        //
+        // `allowed_account_ids` names the account the plan actually runs against, which is the one
+        // this suite holds credentials for. Left to itself the guard would write
+        // `allowed_account_ids = ["changed-account-id"]` and terraform would refuse to plan at all -
+        // correctly, since no such account is being reached. Stating it is what keeps the guard's
+        // check honest here rather than switching it off.
+        testModuleContainer.registerTerraformProvider('aws', 'changed-account-id', AWS_REGION_ID, {
+          allowed_account_ids: [config.AWS_ACCOUNT_ID],
+        });
 
         expect(
           await planDigest({ 'account-module': (i) => ({ ...i, accountId: 'changed-account-id' }) }),
