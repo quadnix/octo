@@ -407,15 +407,7 @@ class TerraformModule {
  * (`aws`, `google`, and the rest) are not listed: they keep the `region` they have always been
  * given, and anything unlisted that does not want one can pass `setRegionAttribute: false`.
  */
-const REGIONLESS_PROVIDER_TYPES = new Set([
-  'archive',
-  'external',
-  'local',
-  'null',
-  'random',
-  'template',
-  'time',
-]);
+const REGIONLESS_PROVIDER_TYPES = new Set(['archive', 'external', 'local', 'null', 'random', 'template', 'time']);
 
 /**
  * Collects what every resource emitted through {@link TerraformModuleScope}, wires the references

@@ -193,9 +193,7 @@ describe('commit()', () => {
       };
 
       const transaction = await applyModelTransaction(app);
-      await expect(commit({ outputs: testModes.outputs, transaction })).rejects.toThrow(
-        'the SDK refused to delete it',
-      );
+      await expect(commit({ outputs: testModes.outputs, transaction })).rejects.toThrow('the SDK refused to delete it');
 
       expect(
         testModes.resourceDataRepository.getActualResourcesByProperties().find((r) => r.resourceId === 'igw-1'),

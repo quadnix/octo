@@ -29,6 +29,7 @@ blockquote
 bool
 brk
 browserslist
+buildx
 cacheable
 cdk
 cfg
@@ -202,6 +203,7 @@ rolename
 rtb
 rtbassoc
 runbooks
+sbom
 scalable
 schemas
 sdk

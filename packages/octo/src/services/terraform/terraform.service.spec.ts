@@ -612,7 +612,9 @@ describe('TerraformService UT', () => {
         source: scope.raw(scope.localPath(join(process.cwd(), 'website', 'index.html'))),
       });
 
-      expect(service.renderAllModules().get('m1')!.variablesTf).toBe('variable "OCTO_PROJECT_ROOT" {\n  type = string\n}\n');
+      expect(service.renderAllModules().get('m1')!.variablesTf).toBe(
+        'variable "OCTO_PROJECT_ROOT" {\n  type = string\n}\n',
+      );
     });
 
     it('should declare the variable once for a folder naming several files', () => {

@@ -67,11 +67,11 @@ describe('StateManagementService UT', () => {
       await service.saveExternalResourceState('image-tag-family/image-0-0-1', {
         inputs: {},
         properties: {},
-        response: { digest: 'sha256:abc' },
+        response: { digest: 'sha256:ab1' },
       });
 
       await expect(service.getResourceResponse('image-tag-family/image-0-0-1')).resolves.toEqual({
-        digest: 'sha256:abc',
+        digest: 'sha256:ab1',
       });
     });
 
