@@ -115,14 +115,18 @@ modules:
   - moduleId: environment-module
     moduleClass: AwsEcsEnvironmentModule
     moduleInputs:
-      environmentName: qa
+      environmentName: ecr-qa
       region: "${{region-module.model.region}}"
 
+  # The names below are scoped to this template on purpose. An IAM role name is unique per account
+  # and an ECS cluster name is unique per region, so a stack naming them the way another template
+  # does cannot be torn down independently of it: a run of either that dies before its teardown
+  # leaves the name behind, and the next run of the *other* one is refused it.
   - moduleId: server-module
     moduleClass: AwsEcsServerModule
     moduleInputs:
       account: "${{account-module.model.account}}"
-      serverKey: backend
+      serverKey: ecr-backend
 
   - moduleId: deployment-module
     moduleClass: AwsEcsDeploymentModule
@@ -150,12 +154,12 @@ modules:
           containerProperties:
             image:
               essential: true
-              name: backend-v1
+              name: ecr-backend-v1
           deployment: "${{deployment-module.model.deployment}}"
         sidecars: []
       desiredCount: 1
       environment: "${{environment-module.model.environment}}"
-      executionId: backend-v1-qa
+      executionId: ecr-backend-v1-qa
       subnet: "${{subnet-module.model.subnet}}"
 
 tags:
