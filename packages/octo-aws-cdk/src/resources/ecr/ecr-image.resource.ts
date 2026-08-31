@@ -1,11 +1,4 @@
-import {
-  ATerraformResource,
-  Diff,
-  DiffAction,
-  DiffUtility,
-  Resource,
-  type TerraformModuleScope,
-} from '@quadnix/octo';
+import { ATerraformResource, Diff, DiffAction, DiffUtility, Resource, type TerraformModuleScope } from '@quadnix/octo';
 import { EcrImageSchema } from './index.schema.js';
 
 /**

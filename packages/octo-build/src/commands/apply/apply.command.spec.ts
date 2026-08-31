@@ -59,7 +59,9 @@ describe('applyCommand UT', () => {
         .fn<() => Promise<TerraformPlanResult>>()
         .mockResolvedValue({ errors: new Map(), plans: new Map([['module-a', { resource_changes: [] }]]) }),
     };
-    stateManagementServiceMock = { isAppLocked: jest.fn<(lockId: string) => Promise<boolean>>().mockResolvedValue(true) };
+    stateManagementServiceMock = {
+      isAppLocked: jest.fn<(lockId: string) => Promise<boolean>>().mockResolvedValue(true),
+    };
     await TestContainer.create({
       mocks: [
         { type: StateManagementService, value: stateManagementServiceMock as unknown as StateManagementService },

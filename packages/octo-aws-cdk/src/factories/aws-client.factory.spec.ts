@@ -89,7 +89,6 @@ describe('AwsClientFactory UT', () => {
       );
     });
   });
-
 });
 
 describe('ECRClient factory registration UT', () => {

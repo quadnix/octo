@@ -371,7 +371,9 @@ describe('AwsEcrImageTagModule UT', () => {
             terraformTarget: 'skip',
           })
           .next(),
-      ).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "dockerfileDirectory" in schema could not be validated!"`);
+      ).rejects.toThrowErrorMatchingInlineSnapshot(
+        `"Property "dockerfileDirectory" in schema could not be validated!"`,
+      );
     });
 
     it('should validate imageTag is not empty', async () => {

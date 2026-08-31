@@ -145,6 +145,7 @@ len
 linkcode
 linkplain
 loadbalancer
+localhost
 localstack
 loglayer
 lsi

@@ -15,7 +15,7 @@ export const createOverlayCommand = {
         demandOption: true,
         description:
           'Name of the MODULE this overlay belongs to - the overlay is written inside it. ' +
-          'Should be in kebab-case (e.g., my-awesome-region). The overlay\'s own name is --overlay.',
+          "Should be in kebab-case (e.g., my-awesome-region). The overlay's own name is --overlay.",
         type: 'string',
       })
       .option('type', {

@@ -1,4 +1,9 @@
-import { BatchDeleteImageCommand, DescribeImagesCommand, ECRClient, GetAuthorizationTokenCommand } from '@aws-sdk/client-ecr';
+import {
+  BatchDeleteImageCommand,
+  DescribeImagesCommand,
+  ECRClient,
+  GetAuthorizationTokenCommand,
+} from '@aws-sdk/client-ecr';
 import { jest } from '@jest/globals';
 import { type Container, Diff, DiffAction, MatchingResource, TestContainer } from '@quadnix/octo';
 import { DockerService } from '../../services/docker/docker.service.js';
@@ -54,7 +59,10 @@ describe('EcrImageTag UT', () => {
       if (command instanceof GetAuthorizationTokenCommand) {
         return {
           authorizationData: [
-            { authorizationToken: AUTHORIZATION_TOKEN, proxyEndpoint: 'https://123456789012.dkr.ecr.us-east-1.amazonaws.com' },
+            {
+              authorizationToken: AUTHORIZATION_TOKEN,
+              proxyEndpoint: 'https://123456789012.dkr.ecr.us-east-1.amazonaws.com',
+            },
           ],
         };
       }
@@ -231,7 +239,6 @@ describe('EcrImageTag UT', () => {
       }
     });
   });
-
 
   describe('DeleteEcrImageTagResourceAction', () => {
     it('should only handle the delete of its own resource', async () => {

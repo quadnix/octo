@@ -120,11 +120,7 @@ export class ECRClientFactory extends AwsClientFactory {
   /**
    * @internal
    */
-  static override createInstance(
-    awsRegionId: string,
-    credentials: AwsClientCredentials,
-    endpoint?: string,
-  ): ECRClient {
+  static override createInstance(awsRegionId: string, credentials: AwsClientCredentials, endpoint?: string): ECRClient {
     return new ECRClient({ credentials, endpoint, region: awsRegionId });
   }
 }

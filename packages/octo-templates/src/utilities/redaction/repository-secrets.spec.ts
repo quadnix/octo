@@ -11,6 +11,7 @@ import { RedactionUtility } from './redaction.utility.js';
  * CI runs this on its own through `test:secrets`, after the install a rule import needs.
  */
 
+// eslint-disable-next-line spellcheck/spell-checker
 const REPOSITORY_ROOT = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
 
 /**
