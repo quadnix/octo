@@ -224,6 +224,21 @@ resource](/docs/building-modules/create-an-external-resource) and could not find
 lifecycle through the npm scripts, which put `node_modules/.bin` on `PATH` for child processes. The
 same callback happens during a validate, where it is `octo get-response` and the same fix applies.
 
+**One folder failed and the others did not**
+
+Expected, and the state it leaves you in is a safe one. Terragrunt applies folders in dependency
+order and stops at a failure: the folders that depend on the failed one are skipped, and the folders
+that do not still apply. A failed image build leaves the repository created and the service that
+would run the image untouched, rather than both half done. The failed folder itself may have applied
+part of what it holds, which is Terraform's own state to reconcile.
+
+Run `octo commit --partial` to record what did apply. It names every module it left out. Then fix
+the failure and run again: the folders that already applied come back as no-ops, the failed one
+finishes, and the skipped ones run for the first time.
+
+A `validate` in that state exits zero, because a skipped folder plans against `mock_outputs` rather
+than against nothing. Read it as approximate until a run completes.
+
 **`Could not run "docker build"!` or `"docker build" exited with 1!`, from inside an apply**
 
 Publishing a container image is an external resource, and its action runs the local `docker` CLI on
