@@ -161,6 +161,22 @@ the tag is part of the ID. Two ways out:
   `resource-state-<resource ID>.json` in the state directory, with the ID URL-encoded, and with
   `.enc` on the end if you use `LocalEncryptionStateProvider`.
 
+**A plan that fails on the account the credentials belong to**
+
+Octo writes `allowed_account_ids` onto every generated `aws` provider block, from the `accountId` in
+your definition file. The provider compares it against the account your credentials actually resolve
+to and refuses at plan when they differ, so nothing has been created or changed when this fires.
+
+It means the definition and the environment disagree: an `AWS_PROFILE` naming another account, a
+stale SSO session, a CI job that assumed the wrong role, or an `accountId` read from one environment
+variable while the credentials come from another. Fix whichever of the two is wrong and run again.
+There is nothing to clean up.
+
+The guard is left off in three cases. When the provider is registered with an `accountName`, because
+that exists to keep the account id out of committed Terraform and the guard is the id. When your
+provider spec already sets `allowed_account_ids`, which wins. And when it sets
+`skip_requesting_account_id`, which stops the provider learning the account there would be to check.
+
 **Everything reads `(known after apply)` on the first plan**
 
 Expected. A folder planned before its dependency exists is planned against Terragrunt's

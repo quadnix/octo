@@ -36,6 +36,7 @@ terraform {
 provider "aws" {
   alias = "_123-us-east-1"
   region = "us-east-1"
+  allowed_account_ids = ["123"]
 }
 
 resource "aws_dynamodb_table" "dynamodb-test-table" {
@@ -139,6 +140,7 @@ terraform {
 provider "aws" {
   alias = "_123-us-east-1"
   region = "us-east-1"
+  allowed_account_ids = ["123"]
 }
 
 resource "aws_dynamodb_table" "dynamodb-test-table" {
@@ -267,6 +269,7 @@ exports[`AwsDynamoDBServiceModule UT should CUD 4`] = `
 provider "aws" {
   alias = "_123-us-east-1"
   region = "us-east-1"
+  allowed_account_ids = ["123"]
 }
 
 - service/main.tf
@@ -343,6 +346,7 @@ exports[`AwsDynamoDBServiceModule UT should handle moduleId change 1`] = `
 provider "aws" {
   alias = "_123-us-east-1"
   region = "us-east-1"
+  allowed_account_ids = ["123"]
 }
 
 - service-1/main.tf
@@ -398,6 +402,7 @@ remote_state {
 provider "aws" {
   alias = "_123-us-east-1"
   region = "us-east-1"
+  allowed_account_ids = ["123"]
 }
 
 + service-2/main.tf

@@ -62,6 +62,7 @@ describe('AwsSingleAzRegionModule UT', () => {
      provider "aws" {
        alias = "_123-us-east-1"
        region = "us-east-1"
+       allowed_account_ids = ["123"]
      }
 
      resource "aws_vpc" "vpc-test-region" {

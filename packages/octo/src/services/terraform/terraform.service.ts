@@ -410,6 +410,13 @@ class TerraformModule {
 const REGIONLESS_PROVIDER_TYPES = new Set(['archive', 'external', 'local', 'null', 'random', 'template', 'time']);
 
 /**
+ * Provider types that can be told which account they are allowed to authenticate as. Only `aws`
+ * spells it `allowed_account_ids`; the equivalent everywhere else is a different word for a
+ * different thing - google scopes to a project, azure to a subscription - so nothing else is listed.
+ */
+const ACCOUNT_GUARDED_PROVIDER_TYPES = new Set(['aws']);
+
+/**
  * Collects what every resource emitted through {@link TerraformModuleScope}, wires the references
  * between module folders, and renders the terragrunt files {@link Octo.generate} writes.
  *
@@ -460,6 +467,12 @@ export class TerraformService {
   /**
    * Registers a Terraform provider block for the given provider type, account, and region.
    *
+   * An `aws` provider is also given `allowed_account_ids = [accountId]`, so terraform refuses at plan
+   * when the credentials it resolves belong to another account. It is omitted when `accountName` is
+   * set (the repository has asked for the id not to appear in committed terraform), when `spec`
+   * already carries `allowed_account_ids`, and when `spec` sets `skip_requesting_account_id`, which
+   * stops the provider learning the account there is to check.
+   *
    * @param providerType - The terraform provider type, e.g. `aws`, `google`.
    * @param accountId - The account/project/subscription ID.
    * @param regionId - The region ID.
@@ -471,7 +484,8 @@ export class TerraformService {
    *   - options.accountName - What to call the account in the provider alias, in place of its id.
    *   `prod` renders `aws.prod-us-east-1` where the id renders `aws._123456789012-us-east-1`. Two
    *   accounts may not share a name within one provider type and region, and the generated terraform
-   *   is committed, so a name is also how a repository keeps its account number out of it.
+   *   is committed, so a name is also how a repository keeps its account number out of it. It also
+   *   drops the `allowed_account_ids` guard above, which would put that id straight back.
    *   - options.setRegionAttribute - Whether to write `region = <regionId>` onto the provider block.
    *   Defaults to true, except for the utility providers in {@link REGIONLESS_PROVIDER_TYPES}, which
    *   accept no arguments at all and fail the plan outright with
@@ -512,6 +526,20 @@ export class TerraformService {
       if (setRegionAttribute ?? !REGIONLESS_PROVIDER_TYPES.has(providerType)) {
         block.attribute('region', regionId);
       }
+
+      // Bind the provider to the account the definition names. `accountId` is otherwise only a label
+      // octo builds the alias from: terraform authenticates from the ambient credential chain, so a
+      // profile naming another account plans green and applies into it. This is the one form of the
+      // check that runs on the chain terraform applies with, and it fails at plan.
+      if (
+        ACCOUNT_GUARDED_PROVIDER_TYPES.has(providerType) &&
+        accountName === undefined &&
+        !('allowed_account_ids' in spec) &&
+        !spec['skip_requesting_account_id']
+      ) {
+        block.attribute('allowed_account_ids', [accountId]);
+      }
+
       addTerraformResourceSpec(block, spec);
       this.providers.set(key, { accountId, alias, block, providerType, regionId });
     }

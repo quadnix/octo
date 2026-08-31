@@ -77,6 +77,7 @@ exports[`AwsMultiAzRegionModule UT should CUD 1`] = `
 provider "aws" {
   alias = "_123-us-east-1"
   region = "us-east-1"
+  allowed_account_ids = ["123"]
 }
 
 - region/main.tf
@@ -184,6 +185,7 @@ exports[`AwsMultiAzRegionModule UT should handle moduleId change 1`] = `
 provider "aws" {
   alias = "_123-us-east-1"
   region = "us-east-1"
+  allowed_account_ids = ["123"]
 }
 
 - region-1/main.tf
@@ -251,6 +253,7 @@ remote_state {
 provider "aws" {
   alias = "_123-us-east-1"
   region = "us-east-1"
+  allowed_account_ids = ["123"]
 }
 
 + region-2/main.tf

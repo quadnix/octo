@@ -99,6 +99,7 @@ exports[`TerraformService UT addTerraformProvider() should render multiple provi
 provider "aws" {
   alias = "_111111111-us-east-1"
   region = "us-east-1"
+  allowed_account_ids = ["111111111"]
 }
 
 provider "google" {

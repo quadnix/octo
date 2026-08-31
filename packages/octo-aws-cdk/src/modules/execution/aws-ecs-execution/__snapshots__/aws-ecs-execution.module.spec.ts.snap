@@ -263,6 +263,7 @@ depends_on = [aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-priv
 provider "aws" {
   alias = "_123-us-east-1"
   region = "us-east-1"
+  allowed_account_ids = ["123"]
 }
 
 - execution/main.tf
@@ -528,6 +529,7 @@ exports[`AwsEcsExecutionModule UT should handle moduleId change 1`] = `
 provider "aws" {
   alias = "_123-us-east-1"
   region = "us-east-1"
+  allowed_account_ids = ["123"]
 }
 
 - execution-1/main.tf
@@ -692,6 +694,7 @@ variable "vpc_region" {
 provider "aws" {
   alias = "_123-us-east-1"
   region = "us-east-1"
+  allowed_account_ids = ["123"]
 }
 
 + execution-2/main.tf

@@ -70,6 +70,59 @@ describe('TerraformService UT', () => {
       expect(mainTf).toContain('region = "us-east-1"');
     });
 
+    // The rendered provider block of a module holding one resource pinned to that provider.
+    const renderProviderBlock = (accountId: string, providerType: string = 'aws'): string => {
+      const scope = service.scope('m1');
+      const vpc = new TestTerraformResource('vpc-1', {});
+      scope
+        .addOctoTerraformResource(vpc, { provider: { accountId, regionId: 'us-east-1' } })
+        .addTerraformResource(`${providerType}_vpc`, 'vpc-1', {});
+
+      return service.renderAllModules().get('m1')!.mainTf;
+    };
+
+    it('should bind an aws provider to the account the definition names', () => {
+      service.addTerraformConfig({ providers: { aws: { source: 'hashicorp/aws' } } });
+      service.addTerraformProvider('aws', '111111111', 'us-east-1');
+
+      expect(renderProviderBlock('111111111')).toContain('allowed_account_ids = ["111111111"]');
+    });
+
+    // Only the aws provider spells the guard this way, so anything else must be left alone.
+    it('should not bind a provider type that has no account guard', () => {
+      service.addTerraformConfig({ providers: { google: { source: 'hashicorp/google' } } });
+      service.addTerraformProvider('google', 'my-project', 'us-east-1');
+
+      expect(renderProviderBlock('my-project', 'google')).not.toContain('allowed_account_ids');
+    });
+
+    // accountName exists to keep the account id out of committed terraform, and the guard is the id.
+    it('should not bind when accountName keeps the account id out of the generated terraform', () => {
+      service.addTerraformConfig({ providers: { aws: { source: 'hashicorp/aws' } } });
+      service.addTerraformProvider('aws', '111111111', 'us-east-1', {}, { accountName: 'prod' });
+
+      expect(renderProviderBlock('111111111')).not.toContain('allowed_account_ids');
+    });
+
+    // Without the account id lookup the provider never learns what it would be checking.
+    it('should not bind when the spec skips requesting the account id', () => {
+      service.addTerraformConfig({ providers: { aws: { source: 'hashicorp/aws' } } });
+      service.addTerraformProvider('aws', '111111111', 'us-east-1', { skip_requesting_account_id: true });
+
+      expect(renderProviderBlock('111111111')).not.toContain('allowed_account_ids = ["111111111"]');
+    });
+
+    it('should leave an allowed_account_ids the spec already carries alone', () => {
+      service.addTerraformConfig({ providers: { aws: { source: 'hashicorp/aws' } } });
+      service.addTerraformProvider('aws', '111111111', 'us-east-1', {
+        allowed_account_ids: ['111111111', '222222222'],
+      });
+
+      const mainTf = renderProviderBlock('111111111');
+      expect(mainTf).toContain('allowed_account_ids = ["111111111", "222222222"]');
+      expect(mainTf).not.toContain('allowed_account_ids = ["111111111"]');
+    });
+
     it('should throw error when two accounts share an accountName in one region', () => {
       service.addTerraformConfig({ providers: { aws: { source: 'hashicorp/aws' } } });
       service.addTerraformProvider('aws', '111111111', 'us-east-1', {}, { accountName: 'prod' });

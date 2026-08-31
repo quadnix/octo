@@ -451,6 +451,7 @@ depends_on = [aws_vpc_security_group_ingress_rule.sec-grp-region-test-alb_ingres
 provider "aws" {
   alias = "_123-us-east-1"
   region = "us-east-1"
+  allowed_account_ids = ["123"]
 }
 
 - alb-module/main.tf
@@ -765,6 +766,7 @@ depends_on = [aws_vpc_security_group_ingress_rule.sec-grp-region-test-alb_ingres
 provider "aws" {
   alias = "_123-us-east-1"
   region = "us-east-1"
+  allowed_account_ids = ["123"]
 }
 
 - alb-module-1/main.tf
@@ -945,6 +947,7 @@ depends_on = [aws_vpc_security_group_ingress_rule.sec-grp-region-test-alb_ingres
 provider "aws" {
   alias = "_123-us-east-1"
   region = "us-east-1"
+  allowed_account_ids = ["123"]
 }
 
 + alb-module-2/main.tf
