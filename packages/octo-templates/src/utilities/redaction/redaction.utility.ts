@@ -9,9 +9,9 @@ import {
 /**
  * One kind of value that must never reach a committed file, and what stands in for it.
  *
- * A rule carrying a `token` is substituted wherever it matches. A rule carrying `null` names its
- * value from the context it sits in instead, which only
- * [ResourceAliasUtility](./resource-alias.utility.ts) can do, so this file only detects those.
+ * A rule carrying a `token` is substituted wherever it matches. A rule carrying `null` matches a
+ * value no fixed token can stand in for - two subnets collapsed to one token would read as the same
+ * subnet - so this file only detects those, and the caller decides what to do about a match.
  */
 export interface IRedactionRule {
   /**
@@ -73,7 +73,10 @@ export class RedactionUtility {
   }
 
   /**
-   * The rules whose values are named from their context rather than replaced by a token.
+   * The rules whose values cannot be replaced by a token, and so are detected rather than
+   * substituted. Nothing under `packages/` captures one today: a snapshot of a live validate report
+   * holds only what octo decides. `apps/octo-docs` keeps captured identifiers on purpose - see
+   * `docs/DOCUMENTATION-STANDARDS.md`.
    */
   static identifierRules(): IRedactionRule[] {
     return ALL_RULES.filter((rule) => rule.token === null);

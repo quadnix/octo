@@ -49,9 +49,10 @@ describe('Repository secrets UT', () => {
     expect(trackedFiles().length).toBeGreaterThan(100);
   });
 
-  // Only the rules carrying a token are enforced here. An identifier rule is enforced where the
-  // context to name it exists, by ResourceAliasUtility, and "apps/octo-docs" keeps captured
-  // identifiers deliberately — see "docs/DOCUMENTATION-STANDARDS.md".
+  // Only the rules carrying a token are enforced here. An identifier rule has no fixed replacement
+  // to assert against, and nothing under "packages/" captures one: a snapshot of a live validate
+  // report holds only what octo decides. "apps/octo-docs" keeps captured identifiers deliberately —
+  // see "docs/DOCUMENTATION-STANDARDS.md".
   it('should not hold a value a redaction rule forbids, in any tracked file', () => {
     expect(trackedFiles().flatMap(violationsIn)).toEqual([]);
   });

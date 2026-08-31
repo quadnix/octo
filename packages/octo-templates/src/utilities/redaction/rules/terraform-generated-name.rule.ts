@@ -5,7 +5,7 @@ import type { IRedactionRule } from '../redaction.utility.js';
  * `terraform-1928412261f614d06a14a8017f`.
  *
  * The suffix is terraform's own unique id, minted per apply, so it names a different string every
- * time the resource is recreated. Named from its context rather than replaced, for the reason
+ * time the resource is recreated. Detected rather than replaced, for the reason
  * [AWS_RESOURCE_ID_RULE](./aws-resource-id.rule.ts) gives.
  */
 export const TERRAFORM_GENERATED_NAME_RULE: IRedactionRule = {

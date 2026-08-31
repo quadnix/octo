@@ -18,7 +18,7 @@ import axiosRetry from 'axios-retry';
 import { AwsEcsUtility } from '../utilities/aws/ecs/aws-ecs.utility.js';
 import { AwsLiveResourcesUtility } from '../utilities/aws/live-resources/aws-live-resources.utility.js';
 import { AwsTagsUtility } from '../utilities/aws/tags/aws-tags.utility.js';
-import { ResourceAliasUtility } from '../utilities/redaction/resource-alias.utility.js';
+import { ValidateReportUtility } from '../utilities/report/validate-report.utility.js';
 import { config } from './app.config.js';
 import { ModuleDefinitions } from './module-definitions.js';
 
@@ -81,9 +81,9 @@ describe('Main E2E', () => {
     ).value!;
 
     // Hinted, because each case snapshots this and its diff digest, and the two are only told apart
-    // in the snapshot file by their name. Aliased, because the report names live infrastructure,
-    // which is new on every run.
-    expect(ResourceAliasUtility.alias(validateReport!)).toMatchSnapshot('validate report');
+    // in the snapshot file by their name. Summarized, because the values inside a live report are
+    // whatever AWS handed out on the run, and only what octo decides is under test here.
+    expect(ValidateReportUtility.summarize(validateReport!)).toMatchSnapshot('validate report');
 
     return testModuleContainer.digestDiffs(resourceDiffs);
   };
