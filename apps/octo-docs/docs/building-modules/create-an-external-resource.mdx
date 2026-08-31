@@ -80,7 +80,10 @@ export class AddShopCatalogEntryResourceAction extends ANodeAction implements IR
 ```
 
 What `handle()` returns becomes the resource's response, and Octo records it at commit. An action
-with nothing to report, such as a delete, returns nothing.
+with nothing to report, such as a delete, returns nothing. Between the action and that commit the
+response is held under the resource's ID, so a run that stops in between leaves a record that
+[`octo validate` reports](/docs/using-octo/reading-a-validate-report#notes) until a commit picks it
+up.
 
 An action gets 90 seconds by default. Set `actionTimeoutInMs` on the class if the thing you are
 calling is slower than that.

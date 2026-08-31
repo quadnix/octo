@@ -137,6 +137,30 @@ plan Terraform does not ask, because it can see the resource is about to change.
 resource is settled, so this usually means state that was restored, moved, or partly lost. Applying
 and committing puts the response back.
 
+**`External resource "..." is published but not recorded in octo state`**
+
+An [external resource](/docs/building-modules/create-an-external-resource) is published by an action
+that runs in the middle of an apply, and Octo records what that action produced separately until
+`octo commit` folds it into the resource graph. This note says a record is still sitting there, so
+a run stopped somewhere between the two.
+
+How the sentence ends decides whether you do anything. Ending in `the next successful commit records
+it` means the resource is still declared, so running the lifecycle again is the whole fix: the
+commit adopts the record, and your action is not called a second time, so nothing is published
+twice.
+
+Ending in `so octo will never delete it` means the record has been orphaned, and something exists in
+your cloud account that no future run will remove. Octo deletes only what it has recorded, and this
+was never recorded. It happens when the resource left the definition file, or when its resource ID
+changed, before any commit saw the first version - bumping an image tag does exactly that, because
+the tag is part of the ID. Two ways out:
+
+- Put the resource back in the definition file as it was and run the lifecycle. The commit adopts
+  the record, and removing it after that deletes it properly.
+- Delete the published thing yourself, then delete its record. The record is
+  `resource-state-<resource ID>.json` in the state directory, with the ID URL-encoded, and with
+  `.enc` on the end if you use `LocalEncryptionStateProvider`.
+
 **Everything reads `(known after apply)` on the first plan**
 
 Expected. A folder planned before its dependency exists is planned against Terragrunt's

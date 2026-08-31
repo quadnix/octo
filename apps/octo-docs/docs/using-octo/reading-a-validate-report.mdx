@@ -223,8 +223,35 @@ something it could not read, so the whole report is incomplete rather than only 
 Everything else, drift included, exits zero. A report is a report, not a gate. What you build on top
 of it is your pipeline's decision.
 
-Notes are the opposite end: observations that judge nothing, such as a folder in the output
-directory that Octo does not track.
+## Notes
+
+```text
+NOTES
+```
+
+The opposite end from failures: observations that judge nothing, such as a folder in the output
+directory that Octo does not track, or a delete it cannot line up with a Terraform address. Read
+them and carry on.
+
+One kind names something that already exists in your cloud account. An external resource is
+published by an action that runs in the middle of an apply, and Octo records what it produced
+separately until `octo commit` folds it into the resource graph. A run that stopped before its
+commit leaves that record behind, and validate names it:
+
+```text
+NOTES
+  External resource "ecr-image-tag-eu-west-1-shop/checkout-0-0-2" is published but not recorded in octo state; the next successful commit records it.
+```
+
+Nothing to do. Run the lifecycle again and the commit picks it up, without publishing anything a
+second time.
+
+The same note ends differently when the record has been orphaned, with `and neither intent nor the
+committed graph declares it any more, so octo will never delete it`. Something is then in your cloud
+account that no run will remove, because Octo deletes only what it has recorded. That happens when
+the resource left your definition file, or when its resource ID changed, before any commit recorded
+the first version.
+[Troubleshooting](/docs/using-octo/troubleshooting) has the two ways out.
 
 ## The HTML report
 
