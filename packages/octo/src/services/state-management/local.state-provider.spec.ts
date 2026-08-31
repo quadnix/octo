@@ -1,4 +1,4 @@
-import { mkdtemp, rm, unlink } from 'fs/promises';
+import { mkdtemp, rm, unlink, writeFile } from 'fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
@@ -47,7 +47,29 @@ describe('LocalStateProvider UT', () => {
     it('should throw error naming the holder when locking an app that is already locked', async () => {
       const { lockId } = await localStateProvider.lockApp();
 
-      await expect(localStateProvider.lockApp()).rejects.toThrow(`App already locked with lock ID "${lockId}"!`);
+      await expect(localStateProvider.lockApp()).rejects.toThrow(
+        `App already locked with lock ID "${lockId}", held for 0s!`,
+      );
+    });
+
+    // How long it has been held is what says whether the holder is still working, which is the one
+    // question a person answers before reaching for `unlock --force`.
+    it('should report how long the lock has been held', async () => {
+      const startedAt = new Date(Date.now() - (4 * 60 * 60 * 1000 + 12 * 60 * 1000)).toISOString();
+      await writeFile(join(__dirname, 'local-state.lock'), JSON.stringify({ lockId: 'a-held-lock-id', startedAt }));
+
+      await expect(localStateProvider.lockApp()).rejects.toThrow(
+        'App already locked with lock ID "a-held-lock-id", held for 4h 12m!',
+      );
+    });
+
+    // A lock file written before the record carried a time still names its holder.
+    it('should report a lock holding nothing but an ID', async () => {
+      await writeFile(join(__dirname, 'local-state.lock'), 'a-lock-id-from-an-older-run');
+
+      await expect(localStateProvider.lockApp()).rejects.toThrow(
+        'App already locked with lock ID "a-lock-id-from-an-older-run"!',
+      );
     });
 
     it('should throw error when checking a lock ID that is not the one held', async () => {

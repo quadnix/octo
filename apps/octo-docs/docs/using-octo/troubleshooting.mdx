@@ -185,12 +185,15 @@ again; the second report is exact.
 
 ## While taking the lock
 
-**`App already locked with lock ID "..."`**
+**`App already locked with lock ID "...", held for 4h 12m`**
 
-Another run holds the lock, and the message names it. Wait for that run to finish. If it is gone,
-`octo unlock --force` releases it, but do that only after looking at what the dead run actually
-did, because Octo cannot tell whether it applied nothing, everything, or half of it. That is exactly
-why the lock does not expire on its own.
+Another run holds the lock. The message names it and says how long it has been held, which is what
+separates a run still working from one that died: seconds mean wait, hours on a job that takes
+minutes mean nobody is coming.
+
+Once you are sure it is gone, `octo unlock --force` releases it. Do that only after looking at what
+the dead run actually did, because Octo cannot tell whether it applied nothing, everything, or half
+of it. That is exactly why the lock does not expire on its own.
 
 **`App is not locked!`**
 

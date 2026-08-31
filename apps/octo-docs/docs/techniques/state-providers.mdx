@@ -71,12 +71,15 @@ that holds it, before it reads state or plans anything.
 The two local providers keep the lock as a file beside the state, `local-state.lock`, created
 exclusively so that of two runs racing for it exactly one wins. The ID is what proves ownership:
 every check compares against the ID that was handed out, so one run can never release another's
-lock, and a caller holding a stale ID is told it is stale rather than told the app is free.
+lock, and a caller holding a stale ID is told it is stale rather than told the app is free. The file
+also records when the lock was taken, and a run that finds it held is told how long that has been.
 
 There is deliberately no timeout. A lock that expires mid-apply would let a second apply start while
 the first might still be running, and from outside you cannot tell whether a dead run applied
 nothing, everything, or half of it. A stuck lock is the correct outcome, and `octo unlock --force`
-is the way out once a human has looked.
+is the way out once a human has looked. How long it has been held is the first thing to look at: a
+lock a few seconds old belongs to a run still going, and one older than any run you have ever had
+belongs to a runner that died.
 
 ## It holds Terraform's state too
 
