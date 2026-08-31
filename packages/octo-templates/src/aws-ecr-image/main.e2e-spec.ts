@@ -3,6 +3,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { jest } from '@jest/globals';
 import { dump, load } from 'js-yaml';
+import { AwsEcsUtility } from '../utilities/aws/ecs/aws-ecs.utility.js';
+import { AwsLiveResourcesUtility } from '../utilities/aws/live-resources/aws-live-resources.utility.js';
 import { AwsTagsUtility } from '../utilities/aws/tags/aws-tags.utility.js';
 import { OctoCliUtility } from '../utilities/octo/octo-cli.utility.js';
 import { config } from './app.config.js';
@@ -455,7 +457,21 @@ describe('Main E2E', () => {
     expect(await imageRepository.hasRepository(REPOSITORY_NAME)).toBe(false);
     expect(await imageRepository.hasRepository(OTHER_REPOSITORY_NAME)).toBe(false);
 
-    const awsTagsUtility = new AwsTagsUtility(AWS_REGION_ID);
-    expect(await awsTagsUtility.getResourceArnsByTags(E2E_TAGS)).toEqual([]);
+    const taggedArns = await new AwsTagsUtility(AWS_REGION_ID).getResourceArnsByTags(E2E_TAGS);
+
+    // Destroying an `aws_ecs_task_definition` only retires the revision to INACTIVE, so reclaim the
+    // retired revisions. Cleanup only: the delete is asynchronous and the revisions stay visible to
+    // the tagging API well after this returns.
+    const taskDefinitionArns = taggedArns.filter((arn) => arn.includes(':task-definition/'));
+    if (taskDefinitionArns.length > 0) {
+      const failures = await new AwsEcsUtility(AWS_REGION_ID).deleteTaskDefinitions(taskDefinitionArns);
+      expect(failures).toEqual([]);
+    }
+
+    // Assert on what is still live: the tagging API keeps returning the ECS cluster, service and task
+    // definition the consumer case registers, all of them destroyed, for far longer than a teardown
+    // can wait.
+    const liveArns = await new AwsLiveResourcesUtility(AWS_REGION_ID).filterLiveArns(taggedArns);
+    expect(liveArns).toEqual([]);
   });
 });
