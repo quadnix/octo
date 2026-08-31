@@ -329,6 +329,29 @@ export class TestModes {
   }
 
   /**
+   * The same two folders as {@link createResourceGraph}, with the security group reading
+   * the vpc across the folder boundary instead of the (external) internet gateway. That is the one
+   * shape the standard graph cannot make: a terraform resource whose dependency output terragrunt
+   * can mock.
+   *
+   * @internal
+   */
+  async createCrossModuleResourceGraph(options?: {
+    save?: boolean;
+  }): Promise<{ app: App; sg: TfSgResource; vpc: TfVpcResource }> {
+    const {
+      app: [app],
+    } = await this.testModuleContainer.createTestModels('app-module', { app: ['test-app'] });
+
+    const vpc = new TfVpcResource('vpc-1', { CidrBlock: '10.0.0.0/16' });
+    const sg = new TfSgResource('sg-1', {}, [vpc]);
+    await this.testModuleContainer.createResources('region-module', [vpc], options);
+    await this.testModuleContainer.createResources('sg-module', [sg], options);
+
+    return { app: app as App, sg, vpc };
+  }
+
+  /**
    * @internal
    */
   async createProviderBoundResourceGraph(provider: { accountId: string; regionId?: string }): Promise<{

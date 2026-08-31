@@ -375,6 +375,61 @@ describe('validate()', () => {
       ]);
     });
 
+    // sg-1 reads vpc-1 across a folder boundary, so vpc-1's declared outputs are the ones terragrunt
+    // would mock. The committed response is what says which of them were in state at the last apply.
+    const stageCrossModuleGraph = async (committedResponse: Record<string, string>): Promise<App> => {
+      const { app, vpc } = await testModes.createCrossModuleResourceGraph({ save: true });
+      // On both graphs the last commit wrote, so the run being validated sees no response move.
+      Object.assign(vpc.response, { ...committedResponse });
+      Object.assign(testModes.resourceDataRepository.getActualResourceByContext(vpc.getContext())!.response, {
+        ...committedResponse,
+      });
+      await commitResources({ skipAddActualResource: true });
+
+      // The re-created producer carries the response the last commit left on it, the way a boot from
+      // state would, so nothing here diffs and both resources reach the report unexplained.
+      const vpc2 = new TfVpcResource('vpc-1', { CidrBlock: '10.0.0.0/16' });
+      Object.assign(vpc2.response, { ...committedResponse });
+      const secGroup2 = new TfSgResource('sg-1', {}, [vpc2]);
+      testModes.resourceDataRepository.addNewResource(vpc2);
+      testModes.resourceDataRepository.addNewResource(secGroup2);
+
+      testModes.writePlan('region-module', [{ actions: ['no-op'], address: 'aws_vpc.vpc-1' }]);
+      testModes.writePlan('sg-module', [{ actions: ['update'], address: 'aws_security_group.sg-1' }]);
+
+      return app;
+    };
+
+    // The producer has been applied, so it is in the persisted mapping, but it declares an output the
+    // last commit never recorded a value for. That output name is absent from the producer folder's
+    // state, so terragrunt mocks it exactly as it does for a producer that never applied.
+    it('downgrades a consumer of a producer that gained an output to uncertain', async () => {
+      const app = await stageCrossModuleGraph({});
+
+      const report = await runValidate(app, { persistedMappings: persistedGraph(), plans: testModes.plans });
+
+      expect(report.drift).toEqual([]);
+      expect(report.uncertain).toEqual([
+        {
+          address: 'aws_security_group.sg-1',
+          moduleId: 'sg-module',
+          reason: expect.stringContaining('gained an output since it was last applied'),
+          tfActions: ['update'],
+        },
+      ]);
+    });
+
+    it('reports drift when every output the producer declares is already in state', async () => {
+      const app = await stageCrossModuleGraph({ VpcId: 'vpc-0123456789abcdef0' });
+
+      const report = await runValidate(app, { persistedMappings: persistedGraph(), plans: testModes.plans });
+
+      expect(report.uncertain).toEqual([]);
+      expect(report.drift).toEqual([
+        { address: 'aws_security_group.sg-1', moduleId: 'sg-module', tfActions: ['update'] },
+      ]);
+    });
+
     it('still reports drift on a resource fed only by applied producers', async () => {
       const { app } = await testModes.createResourceGraph({ save: true });
       await commitResources({ skipAddActualResource: true });

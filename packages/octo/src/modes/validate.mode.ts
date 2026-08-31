@@ -131,6 +131,20 @@ export interface TerraformPlan {
 }
 
 /**
+ * One resource's octo→terraform mapping, as {@link TerraformService.getOctoTerraformResourceMappings}
+ * reports it.
+ */
+type ResourceMapping = ReturnType<TerraformService['getOctoTerraformResourceMappings']>[number];
+
+/**
+ * Why a resource's plan may have read a `mock_outputs` placeholder, and which producer supplied it.
+ */
+interface MockCause {
+  kind: 'never-applied' | 'new-output';
+  resourceId: string;
+}
+
+/**
  * One address's plan entry, reduced to what the report needs.
  */
 interface PlanChange {
@@ -436,32 +450,60 @@ export async function validate({
   }
 
   // Resources that may have been planned against a `mock_outputs` placeholder rather than a real
-  // value. Terragrunt substitutes a mock when a producer folder's state lacks the requested output
-  // name, and since that name embeds the producer's resourceId, the case is exactly a producer absent
-  // from the last commit's mapping. Same-module references use no dependency block and cannot be
-  // mocked.
+  // value. Terragrunt substitutes a mock for any output name the producer folder's state lacks, and
+  // that happens two ways: the producer has never been applied, so it has no outputs at all; or it
+  // has been applied and now declares an output it did not declare then, because its response gained
+  // a key. Same-module references use no dependency block and cannot be mocked.
   //
-  // Known gap: a producer that survives but gains a new response key has a new output name that is
-  // also absent from state, which nothing here detects.
-  const mockFedCauseByResourceId = new Map<string, string>();
+  // The second case is read off the committed graph rather than the persisted mapping, which records
+  // addresses and not output names. A commit demands every declared output resolve before it records
+  // a resource, so a key the committed response does not hold is an output that was not there.
+  const mockFedCauseByResourceId = new Map<string, MockCause>();
   const mockQueue: string[] = [];
-  const markMockFed = (resourceId: string, cause: string): void => {
+  const markMockFed = (resourceId: string, cause: MockCause): void => {
     if (!mockFedCauseByResourceId.has(resourceId)) {
       mockFedCauseByResourceId.set(resourceId, cause);
       mockQueue.push(resourceId);
     }
   };
 
+  /**
+   * Why a producer's outputs would be mocked, or `undefined` when every one of them is in state.
+   */
+  const describeProducerMocking = (referent: ResourceMapping): MockCause['kind'] | undefined => {
+    if (!persistedMappings.has(referent.resourceContext)) {
+      return 'never-applied';
+    }
+
+    // An external resource publishes its whole response under one output name, so a response that
+    // gained a key adds no output name for terragrunt to miss.
+    if (referent.entireResponseOutput !== undefined) {
+      return undefined;
+    }
+
+    const committed = resourceDataRepository.getActualResourceByContext(referent.resourceContext);
+    if (!committed) {
+      return 'never-applied';
+    }
+
+    return referent.outputMappings.some(({ key }) => !(key in committed.response)) ? 'new-output' : undefined;
+  };
+
   for (const [referentId, referrerIds] of referrers.entries()) {
     const referent = mappingByResourceId.get(referentId);
-    if (!referent || persistedMappings.has(referent.resourceContext)) {
+    if (!referent) {
+      continue;
+    }
+
+    const kind = describeProducerMocking(referent);
+    if (!kind) {
       continue;
     }
 
     for (const referrerId of referrerIds) {
       const referrer = mappingByResourceId.get(referrerId);
       if (referrer && referrer.moduleId !== referent.moduleId) {
-        markMockFed(referrerId, referentId);
+        markMockFed(referrerId, { kind, resourceId: referentId });
       }
     }
   }
@@ -482,9 +524,10 @@ export async function validate({
       .filter((moduleId): moduleId is string => moduleId !== undefined),
   );
 
-  const describeMockCause = (cause: string): string =>
-    `planned against a "mock_outputs" placeholder: it consumes an output of "${cause}", which has never been ` +
-    'applied, so the value terraform compared against is not the value it will get';
+  const describeMockCause = (cause: MockCause): string =>
+    `planned against a "mock_outputs" placeholder: it consumes an output of "${cause.resourceId}", which has ` +
+    (cause.kind === 'never-applied' ? 'never been applied' : 'gained an output since it was last applied') +
+    ', so the value terraform compared against is not the value it will get';
 
   /**
    * Classifies a terraform change on a resource octo did not flag: attributed if octo explains it,
