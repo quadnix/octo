@@ -1,4 +1,5 @@
-import { unlink } from 'fs/promises';
+import { mkdtemp, rm, unlink } from 'fs/promises';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import type { Container } from '../../functions/container/container.js';
@@ -230,6 +231,56 @@ describe('LocalStateProvider UT', () => {
         "key2": "value2",
       }
     `);
+    });
+  });
+
+  describe('listStates()', () => {
+    // Its own directory: this is the one method that reads whatever else the directory holds.
+    let localStateProvider: LocalStateProvider;
+    let stateDirectoryPath: string;
+
+    beforeEach(async () => {
+      stateDirectoryPath = await mkdtemp(join(tmpdir(), 'octo-local-state-'));
+      localStateProvider = new LocalStateProvider(stateDirectoryPath);
+    });
+
+    afterEach(async () => {
+      await rm(stateDirectoryPath, { force: true, recursive: true });
+    });
+
+    it('should return nothing when the directory does not exist yet', async () => {
+      await rm(stateDirectoryPath, { force: true, recursive: true });
+
+      await expect(localStateProvider.listStates('resource-state-')).resolves.toEqual([]);
+    });
+
+    it('should return nothing when nothing matches the prefix', async () => {
+      await localStateProvider.saveState('models.json', Buffer.from('saved'));
+
+      await expect(localStateProvider.listStates('resource-state-')).resolves.toEqual([]);
+    });
+
+    it('should return only the state files matching the prefix', async () => {
+      await localStateProvider.saveState('models.json', Buffer.from('saved'));
+      await localStateProvider.saveState('resource-state-igw-1.json', Buffer.from('saved'));
+      await localStateProvider.saveState('resource-state-igw-2.json', Buffer.from('saved'));
+
+      const stateFileNames = await localStateProvider.listStates('resource-state-');
+      expect(stateFileNames.sort()).toEqual(['resource-state-igw-1.json', 'resource-state-igw-2.json']);
+    });
+
+    it('should return a name the state can be read back by', async () => {
+      await localStateProvider.saveState('resource-state-igw-1.json', Buffer.from('published'));
+
+      const [stateFileName] = await localStateProvider.listStates('resource-state-');
+      await expect(localStateProvider.getState(stateFileName)).resolves.toEqual(Buffer.from('published'));
+    });
+
+    it('should not return a deleted state file', async () => {
+      await localStateProvider.saveState('resource-state-igw-1.json', Buffer.from('saved'));
+      await localStateProvider.deleteState('resource-state-igw-1.json');
+
+      await expect(localStateProvider.listStates('resource-state-')).resolves.toEqual([]);
     });
   });
 });

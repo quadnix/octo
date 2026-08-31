@@ -1,4 +1,4 @@
-import { readFile, rm, writeFile } from 'fs/promises';
+import { readFile, readdir, rm, writeFile } from 'fs/promises';
 import { join, resolve } from 'path';
 import { TransactionError } from '../../errors/index.js';
 import { FileUtility } from '../../utilities/file/file.utility.js';
@@ -70,6 +70,23 @@ export class LocalStateProvider implements IStateProvider {
    */
   async isAppLocked(lockId: string): Promise<boolean> {
     return FileAppLockUtility.isAppLocked(this.lockFilePath, lockId);
+  }
+
+  /**
+   * The names of the state files whose name starts with `prefix`.
+   */
+  async listStates(prefix: string): Promise<string[]> {
+    let entries: string[];
+    try {
+      entries = await readdir(this.localStateDirectoryPath);
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        return [];
+      }
+      throw error;
+    }
+
+    return entries.filter((entry) => entry.startsWith(prefix));
   }
 
   /**

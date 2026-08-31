@@ -77,6 +77,8 @@ export class StateManagementService {
    */
   readonly oldResourceStateFileName: string = 'resources-old.json';
 
+  private readonly externalResourceStateFileNamePrefix: string = 'resource-state-';
+
   private readonly stateProvider: IStateProvider;
 
   /**
@@ -230,6 +232,25 @@ export class StateManagementService {
   }
 
   /**
+   * The resource id of every external resource record a `commit` has not folded into the resource
+   * graph yet.
+   *
+   * A record is written the moment an action succeeds and cleared by the commit that records it, so
+   * one still here belongs to a run that did not finish.
+   *
+   * @internal
+   */
+  async listExternalResourceStateIds(): Promise<string[]> {
+    const stateFileNames = await this.stateProvider.listStates(this.externalResourceStateFileNamePrefix);
+
+    return stateFileNames
+      .filter((stateFileName) => stateFileName.endsWith('.json'))
+      .map((stateFileName) =>
+        decodeURIComponent(stateFileName.slice(this.externalResourceStateFileNamePrefix.length, -'.json'.length)),
+      );
+  }
+
+  /**
    * Takes the app lock and returns its id.
    *
    * @throws {@link TransactionError} When a lock is held, naming the id that holds it.
@@ -291,7 +312,7 @@ export class StateManagementService {
    */
   private externalResourceStateFileName(resourceId: string): string {
     // A resource id is not a file name - it carries `/` where a resource is named after a path.
-    return `resource-state-${encodeURIComponent(resourceId)}.json`;
+    return `${this.externalResourceStateFileNamePrefix}${encodeURIComponent(resourceId)}.json`;
   }
 }
 

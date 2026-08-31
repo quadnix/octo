@@ -546,6 +546,108 @@ describe('validate()', () => {
     });
   });
 
+  describe('external resources published but not recorded', () => {
+    // The plans of the standard graph, so the report is about the records and nothing else.
+    const writeFreshPlans = (): void => {
+      testModes.writePlan('region-module', [
+        { actions: ['create'], address: 'aws_vpc.vpc-1' },
+        { actions: ['create'], address: 'null_resource.igw-1' },
+      ]);
+      testModes.writePlan('sg-module', [{ actions: ['create'], address: 'aws_security_group.sg-1' }]);
+    };
+
+    it('notes nothing when no record is outstanding', async () => {
+      const { app } = await testModes.createResourceGraph();
+      writeFreshPlans();
+
+      const report = await runValidate(app, { persistedMappings: noPersisted(), plans: testModes.plans });
+
+      expect(report.notes).toEqual([]);
+    });
+
+    it('notes that the next commit records a published resource intent still declares', async () => {
+      const { app } = await testModes.createResourceGraph();
+      writeFreshPlans();
+
+      const report = await runValidate(app, {
+        externalResourceStateIds: ['igw-1'],
+        persistedMappings: noPersisted(),
+        plans: testModes.plans,
+      });
+
+      expect(report.notes).toEqual([
+        {
+          message:
+            'External resource "igw-1" is published and octo state has not recorded it; the next successful ' +
+            'commit records it.',
+        },
+      ]);
+    });
+
+    // The resource is being deleted, so it is gone from intent but the committed graph still holds
+    // it - which is what the commit computes its deletion from.
+    it('notes that the next commit records a published resource only the committed graph holds', async () => {
+      const { app, persisted } = await stageDeletedIgwAndSg();
+
+      testModes.writePlan('region-module', [
+        { actions: ['no-op'], address: 'aws_vpc.vpc-1' },
+        { actions: ['delete'], address: 'null_resource.igw-1' },
+      ]);
+      testModes.writePlan('sg-module', [{ actions: ['delete'], address: 'aws_security_group.sg-1' }]);
+
+      const report = await runValidate(app, {
+        externalResourceStateIds: ['igw-1'],
+        persistedMappings: persisted,
+        plans: testModes.plans,
+      });
+
+      // Emptied folders note things of their own, so this asserts the record's note among them.
+      expect(report.notes).toContainEqual({
+        message:
+          'External resource "igw-1" is published and octo state has not recorded it; the next successful ' +
+          'commit records it.',
+      });
+    });
+
+    it('notes that octo never deletes a published resource neither graph declares', async () => {
+      const { app } = await testModes.createResourceGraph();
+      writeFreshPlans();
+
+      const report = await runValidate(app, {
+        externalResourceStateIds: ['igw-0abandoned'],
+        persistedMappings: noPersisted(),
+        plans: testModes.plans,
+      });
+
+      expect(report.notes).toEqual([
+        {
+          message:
+            'External resource "igw-0abandoned" is published and octo state has not recorded it, and neither ' +
+            'intent nor the committed graph declares it any more. Octo never deletes it, because it never entered ' +
+            'the committed graph. Declare it again to let the next commit adopt it, or delete it yourself and ' +
+            'clear its record from octo state.',
+        },
+      ]);
+    });
+
+    it('notes every outstanding record, by resource id', async () => {
+      const { app } = await testModes.createResourceGraph();
+      writeFreshPlans();
+
+      const report = await runValidate(app, {
+        externalResourceStateIds: ['igw-2abandoned', 'igw-1', 'igw-0abandoned'],
+        persistedMappings: noPersisted(),
+        plans: testModes.plans,
+      });
+
+      expect(report.notes.map((note) => note.message.split('"')[1])).toEqual([
+        'igw-0abandoned',
+        'igw-1',
+        'igw-2abandoned',
+      ]);
+    });
+  });
+
   describe('folders octo cannot report on', () => {
     it("fails with terraform's own message when a folder could not be planned", async () => {
       const { app } = await testModes.createResourceGraph();

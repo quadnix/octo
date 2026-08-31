@@ -5,6 +5,7 @@ import {
   aggregateResourceActions,
 } from '../functions/diff/aggregate-resource-actions.js';
 import { DiffAction } from '../functions/diff/diff.js';
+import { ResourceDataRepository } from '../resources/resource-data.repository.js';
 import { TerraformService } from '../services/terraform/terraform.service.js';
 import type { ModelTransactionResult } from './apply-transaction.js';
 
@@ -265,24 +266,34 @@ function describeFieldChanges(
  * **not** track is noted and excluded from all correlation, and re-declaring its module in intent
  * re-adopts it.
  *
+ * `externalResourceStateIds` names every external resource a `run-action` published and no commit
+ * has recorded yet, from `StateManagementService.listExternalResourceStateIds()`. Each one is
+ * reported as a note.
+ *
  * By-design limit: correlation is resource-level, not field-level.
  *
  * @internal
  */
 export async function validate({
+  externalResourceStateIds = [],
   persistedMappings,
   planErrors = new Map(),
   plans,
   previousFolders = [],
   transaction,
 }: {
+  externalResourceStateIds?: string[];
   persistedMappings: Map<string, TerraformResourceOutput>;
   planErrors?: Map<string, string>;
   plans: Map<string, TerraformPlan>;
   previousFolders?: TerraformFolderOutput[];
   transaction: ModelTransactionResult;
 }): Promise<ValidateReport> {
-  const terraformService = await Container.getInstance().get(TerraformService);
+  const container = Container.getInstance();
+  const [resourceDataRepository, terraformService] = await Promise.all([
+    container.get(ResourceDataRepository),
+    container.get(TerraformService),
+  ]);
 
   const allDiffs = transaction.resourceDiffs.flat();
   const mappings = terraformService.getOctoTerraformResourceMappings();
@@ -296,6 +307,31 @@ export async function validate({
     notes: [],
     uncertain: [],
   };
+
+  // Report what an external resource published and no commit has recorded. Octo reaches that record
+  // only by the resource id terraform asks for, so one whose resource has left both graphs is
+  // published infrastructure nothing will ever ask about again - the only place a user can be told
+  // is here.
+  if (externalResourceStateIds.length > 0) {
+    const heldResourceIds = new Set(
+      [
+        ...resourceDataRepository.getNewResourcesByProperties(),
+        ...resourceDataRepository.getActualResourcesByProperties(),
+      ].map((resource) => resource.resourceId),
+    );
+
+    for (const resourceId of [...externalResourceStateIds].sort()) {
+      report.notes.push({
+        message: heldResourceIds.has(resourceId)
+          ? `External resource "${resourceId}" is published and octo state has not recorded it; the next successful ` +
+            'commit records it.'
+          : `External resource "${resourceId}" is published and octo state has not recorded it, and neither intent ` +
+            'nor the committed graph declares it any more. Octo never deletes it, because it never entered the ' +
+            'committed graph. Declare it again to let the next commit adopt it, or delete it yourself and clear ' +
+            'its record from octo state.',
+      });
+    }
+  }
 
   // Aggregate octo diffs to one action per resource.
   const octoActions = aggregateResourceActions(allDiffs);

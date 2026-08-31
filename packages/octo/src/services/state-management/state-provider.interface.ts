@@ -40,6 +40,16 @@ export interface IStateProvider {
   isAppLocked(lockId: string): Promise<boolean>;
 
   /**
+   * The names of the state files whose name starts with `prefix`, named as
+   * {@link IStateProvider.getState} would be given them.
+   *
+   * Octo reads state by name everywhere else, so this is the only way it can discover a file it was
+   * not told about - a record an interrupted run left behind. Returns an empty list when the store
+   * holds nothing matching, including when it does not exist yet.
+   */
+  listStates(prefix: string): Promise<string[]>;
+
+  /**
    * Takes the app lock and returns its id, which `apply` and `commit` must then present.
    *
    * The lock is taken atomically, so of two callers racing for it exactly one wins.

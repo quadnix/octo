@@ -87,4 +87,49 @@ describe('StateManagementService UT', () => {
       await expect(service.getResourceResponse('igw-1')).resolves.toEqual({ igwId: 'igw-0committed' });
     });
   });
+
+  describe('listExternalResourceStateIds()', () => {
+    it('should return nothing when no action has recorded anything', async () => {
+      await expect(service.listExternalResourceStateIds()).resolves.toEqual([]);
+    });
+
+    it('should return the resource id of every record', async () => {
+      await service.saveExternalResourceState('igw-1', { inputs: {}, properties: {}, response: {} });
+      await service.saveExternalResourceState('igw-2', { inputs: {}, properties: {}, response: {} });
+
+      await expect(service.listExternalResourceStateIds()).resolves.toEqual(['igw-1', 'igw-2']);
+    });
+
+    // The record of a resource whose id is not a legal file name is stored under an encoded name.
+    it('should return a resource id the file name encoded', async () => {
+      await service.saveExternalResourceState('image-tag-family/image-0-0-1', {
+        inputs: {},
+        properties: {},
+        response: {},
+      });
+
+      await expect(service.listExternalResourceStateIds()).resolves.toEqual(['image-tag-family/image-0-0-1']);
+    });
+
+    it('should not return a record a commit cleared', async () => {
+      await service.saveExternalResourceState('igw-1', { inputs: {}, properties: {}, response: {} });
+      await service.saveExternalResourceState('igw-2', { inputs: {}, properties: {}, response: {} });
+      await service.deleteExternalResourceState('igw-1');
+
+      await expect(service.listExternalResourceStateIds()).resolves.toEqual(['igw-2']);
+    });
+
+    // The records sit beside the graph state files, which are not records of anything published.
+    it('should not return the graph state files', async () => {
+      await service.saveResourceState(service.actualResourceStateFileName, { dependencies: [], resources: {} }, {});
+      await service.saveModelState(
+        service.modelStateFileName,
+        { anchors: [], dependencies: [], models: {}, overlays: [] },
+        {},
+      );
+      await service.saveExternalResourceState('igw-1', { inputs: {}, properties: {}, response: {} });
+
+      await expect(service.listExternalResourceStateIds()).resolves.toEqual(['igw-1']);
+    });
+  });
 });

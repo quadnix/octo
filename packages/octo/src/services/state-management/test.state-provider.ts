@@ -57,6 +57,13 @@ export class TestStateProvider implements IStateProvider {
   }
 
   /**
+   * The names of the state files whose name starts with `prefix`.
+   */
+  async listStates(prefix: string): Promise<string[]> {
+    return Object.keys(this.localState).filter((stateFileName) => stateFileName.startsWith(prefix));
+  }
+
+  /**
    * Takes the app lock.
    *
    * @throws {@link TransactionError} When a lock is held, naming the id that holds it.

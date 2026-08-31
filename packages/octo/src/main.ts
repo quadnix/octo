@@ -426,7 +426,8 @@ export class Octo {
    *    outside Octo. Read `confidence` first: drift is only reliable when intent itself is unchanged.
    *
    * The report fails only when terraform could not plan a folder Octo generated. Folders Octo does
-   * not track are excluded, and noted.
+   * not track are excluded, and noted. So is every external resource a previous run published and no
+   * commit has recorded, which is the only step that reads those records back for a user.
    *
    * @param app The root model, from {@link Octo.getRootModel}.
    * @param plans The whole result of `TerraformUtility.plan(dir, { json: true })`. Its `errors` map
@@ -450,9 +451,12 @@ export class Octo {
         persistedMappings.set(mapping.resourceContext, mapping);
       }
 
+      const externalResourceStateIds = await this.stateManagementService.listExternalResourceStateIds();
+
       // Build the transaction unless a single-process driver already built it and passed it in.
       const resolvedTransaction = transaction ?? (await applyModelTransaction(app));
       const report = await runValidate({
+        externalResourceStateIds,
         persistedMappings,
         planErrors,
         plans,
