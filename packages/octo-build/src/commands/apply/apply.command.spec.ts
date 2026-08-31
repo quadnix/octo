@@ -180,6 +180,26 @@ describe('applyCommand UT', () => {
     expect(processExitSpy).toHaveBeenCalledWith(1);
   });
 
+  // The apply is the one step whose next move is not obvious, and the only one that knows it failed.
+  it('names the commit that records what a failed apply built', async () => {
+    terraformUtilityMock.apply.mockRejectedValue(new Error('boom'));
+
+    await applyCommand.handler(argv);
+
+    expect(consoleErrorSpy.mock.calls.flat().join('\n')).toContain(
+      `octo commit --partial --terragruntDir ${terragruntDir} --lockId ${lockId}`,
+    );
+  });
+
+  // Nothing was applied, so there is nothing to record and no advice to give about recording it.
+  it('does not name that commit when the run failed before applying anything', async () => {
+    stateManagementServiceMock.isAppLocked.mockResolvedValue(false);
+
+    await applyCommand.handler(argv);
+
+    expect(consoleErrorSpy.mock.calls.flat().join('\n')).not.toContain('--partial');
+  });
+
   it('forwards --terraformBinary/--terragruntBinary/--timeoutInMs overrides to the container, with forceNew: true', async () => {
     // TestContainer's mock (above) uses registerValue, which ignores any `args` passed to
     // container.get() — this test bypasses it with a direct spy to assert what the command

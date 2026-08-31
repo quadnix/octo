@@ -134,15 +134,30 @@ export const applyCommand = {
         // Streamed, not printed at the end: an ECS apply runs for tens of minutes, and terragrunt's
         // own progress is the only sign it is alive. `apply` boots no octo and so has no listeners,
         // which makes this the only writer here - nothing to interleave with.
-        await terraformUtility.apply(resolvedDir, {
-          onOutput: (chunk, stream): void => {
-            if (stream === 'stdout') {
-              process.stdout.write(chunk);
-            } else {
-              process.stderr.write(chunk);
-            }
-          },
-        });
+        try {
+          await terraformUtility.apply(resolvedDir, {
+            onOutput: (chunk, stream): void => {
+              if (stream === 'stdout') {
+                process.stdout.write(chunk);
+              } else {
+                process.stderr.write(chunk);
+              }
+            },
+          });
+        } catch (error) {
+          // An apply that got this far may have built some of what was asked for, and only a commit
+          // records that. The rule belongs here rather than in every pipeline that calls this: the
+          // apply is what knows it failed, and it is the one step after which the choice is not
+          // obvious.
+          console.error(
+            chalk.red(
+              `\nThis apply may have built part of what you asked for. Run "octo commit --partial ` +
+                `--terragruntDir ${terragruntDir} --lockId ${lockId}" to record that and release the lock, then fix ` +
+                'what failed and run again.',
+            ),
+          );
+          throw error;
+        }
 
         console.log(chalk.green('==== Apply complete ===='));
       }

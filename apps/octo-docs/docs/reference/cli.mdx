@@ -92,6 +92,10 @@ release the lock, because the apply is the middle of a run and `commit` is the e
 
 Plans first and refuses if anything would be destroyed, or if a folder could not be planned.
 
+An apply that fails part way prints the `octo commit --partial` that records what it did build,
+with this run's directory and lock ID already in it. A run that fails before applying anything does
+not, because there is nothing to record.
+
 ```bash
 npm run octo:apply -- --auto-approve
 ```
