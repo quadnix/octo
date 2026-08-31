@@ -71,3 +71,17 @@ Octo's docs grow with its feature set.
 - `packages` use JSDoc for behavior, parameters, and examples.
 - `apps/octo-docs` holds the high-level feature docs; `@apps/octo-docs/package.json` runs
   `plugin:pre-script`, `plugin:build`, and `plugin:post-script` to generate API docs from JSDoc.
+
+## Releasing
+
+`@nx.json` maps the commit *type* to the semver bump: `chore` releases nothing, and `patch`,
+`minor`, and `major` bump as named. The scope is the category;
+`@.github/jobs/validate-pr-title.job.sh` holds the matrix of which categories may carry which bump.
+
+NX picks the project to bump from the files a commit touches, not from the package named in the
+subject. A scoped commit touching only root files is ignored; an unscoped commit touching a root
+file counts for every project.
+
+The highest bump among the commits since a package's last tag wins. The `Manual Release` workflow
+versions, tags, writes the changelog, and publishes; dependents' version ranges are rewritten for
+you.
