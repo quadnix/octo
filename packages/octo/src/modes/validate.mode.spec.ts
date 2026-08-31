@@ -578,7 +578,7 @@ describe('validate()', () => {
       expect(report.notes).toEqual([
         {
           message:
-            'External resource "igw-1" is published and octo state has not recorded it; the next successful ' +
+            'External resource "igw-1" is published but not recorded in octo state; the next successful ' +
             'commit records it.',
         },
       ]);
@@ -604,7 +604,7 @@ describe('validate()', () => {
       // Emptied folders note things of their own, so this asserts the record's note among them.
       expect(report.notes).toContainEqual({
         message:
-          'External resource "igw-1" is published and octo state has not recorded it; the next successful ' +
+          'External resource "igw-1" is published but not recorded in octo state; the next successful ' +
           'commit records it.',
       });
     });
@@ -622,10 +622,8 @@ describe('validate()', () => {
       expect(report.notes).toEqual([
         {
           message:
-            'External resource "igw-0abandoned" is published and octo state has not recorded it, and neither ' +
-            'intent nor the committed graph declares it any more. Octo never deletes it, because it never entered ' +
-            'the committed graph. Declare it again to let the next commit adopt it, or delete it yourself and ' +
-            'clear its record from octo state.',
+            'External resource "igw-0abandoned" is published but not recorded in octo state, and neither intent ' +
+            'nor the committed graph declares it any more, so octo will never delete it.',
         },
       ]);
     });

@@ -323,12 +323,10 @@ export async function validate({
     for (const resourceId of [...externalResourceStateIds].sort()) {
       report.notes.push({
         message: heldResourceIds.has(resourceId)
-          ? `External resource "${resourceId}" is published and octo state has not recorded it; the next successful ` +
+          ? `External resource "${resourceId}" is published but not recorded in octo state; the next successful ` +
             'commit records it.'
-          : `External resource "${resourceId}" is published and octo state has not recorded it, and neither intent ` +
-            'nor the committed graph declares it any more. Octo never deletes it, because it never entered the ' +
-            'committed graph. Declare it again to let the next commit adopt it, or delete it yourself and clear ' +
-            'its record from octo state.',
+          : `External resource "${resourceId}" is published but not recorded in octo state, and neither intent nor ` +
+            'the committed graph declares it any more, so octo will never delete it.',
       });
     }
   }
