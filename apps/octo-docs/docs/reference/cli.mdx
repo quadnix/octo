@@ -85,7 +85,7 @@ into around the apply.
 | `--auto-approve`     |          | Skip the destroy check. Required to destroy anything. |
 | `--terraformBinary`  |          | Override the binary Terragrunt invokes.               |
 | `--terragruntBinary` |          | Override the Terragrunt binary.                       |
-| `--timeoutInMs`      |          | Per-command timeout. Default 60 minutes.              |
+| `--timeoutInMs`      |          | Give the apply a time limit. None by default.         |
 
 Verifies the lock before planning, so a run without it fails having done nothing. It does not
 release the lock, because the apply is the middle of a run and `commit` is the end of it.
@@ -95,6 +95,12 @@ Plans first and refuses if anything would be destroyed, or if a folder could not
 An apply that fails part way prints the `octo commit --partial` that records what it did build,
 with this run's directory and lock ID already in it. A run that fails before applying anything does
 not, because there is nothing to record.
+
+It runs without a time limit unless `--timeoutInMs` gives it one. How long a stack legitimately
+takes is a fact about that stack, and a limit that fires part way through leaves infrastructure
+half changed, which is worse than an apply that took longer than you expected. The limits that
+belong here are your CI job's own, and the terminal you can interrupt. `validate` and `commit` only
+read, so both keep the sixty-minute default that ends a hang.
 
 ```bash
 npm run octo:apply -- --auto-approve

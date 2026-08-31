@@ -14,6 +14,12 @@ import { TerraformStateService } from '../../services/state-management/terraform
 import { PROJECT_ROOT_VARIABLE_NAME } from '../../services/terraform/terraform.type.js';
 
 const DEFAULT_TIMEOUT_IN_MS = 60 * 60 * 1000; // 60 minutes.
+
+/**
+ * The commands that change infrastructure, and so are left unbounded unless the caller asks for a
+ * bound. Everything else only reads, where a timeout costs nothing and catches a hang.
+ */
+const MUTATING_COMMANDS = new Set(['apply', 'destroy']);
 const MAX_BUFFER = 256 * 1024 * 1024; // 256 KB.
 
 interface TerraformRawResult {
@@ -65,10 +71,23 @@ export class TerraformUtility {
   };
 
   /**
+   * The timeout the caller asked for, or undefined when they asked for none. A command that changes
+   * infrastructure is bounded only by this, never by the default.
+   */
+  private readonly requestedTimeoutInMs: number | undefined;
+
+  /**
    * @param options Overrides for the binaries invoked and the per-command timeout. `terragruntBinary`
-   * defaults to `terragrunt`, and `timeoutInMs` to 60 minutes.
+   * defaults to `terragrunt`.
+   *
+   * `timeoutInMs` defaults to 60 minutes for the commands that only read - `plan`, `output`, `show`.
+   * `apply` and `destroy` run unbounded unless it is given: a timeout there turns a slow apply into
+   * one killed part way through a mutation, and how long a stack legitimately takes is a fact about
+   * that stack rather than something a default can know. What bounds them instead is the caller -
+   * a CI job's own timeout, or a person at a terminal.
    */
   constructor(options: { terraformBinary?: string; terragruntBinary?: string; timeoutInMs?: number } = {}) {
+    this.requestedTimeoutInMs = options.timeoutInMs;
     this.options = {
       terraformBinary: options.terraformBinary,
       terragruntBinary: options.terragruntBinary ?? 'terragrunt',
@@ -382,7 +401,7 @@ export class TerraformUtility {
         {
           env: this.buildEnv(),
           maxBuffer: MAX_BUFFER,
-          timeout: this.options.timeoutInMs,
+          timeout: MUTATING_COMMANDS.has(command) ? this.requestedTimeoutInMs : this.options.timeoutInMs,
         },
         onOutput,
       );

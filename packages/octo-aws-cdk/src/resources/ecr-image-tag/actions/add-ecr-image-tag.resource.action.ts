@@ -29,10 +29,11 @@ import type { EcrImageTagSchema } from '../index.schema.js';
 @Action(EcrImageTag)
 export class AddEcrImageTagResourceAction extends ANodeAction implements IResourceAction<EcrImageTag> {
   /**
-   * A docker build pulls base layers and a push uploads them, both over the network, so the default
-   * ninety seconds is not a useful bound on this.
+   * An hour. This action builds the image as well as pushing it, so how long it takes is a fact
+   * about the caller's Dockerfile and their link, and nothing a user of this module can raise. The
+   * bound is here to end a hang, not to say how long a build ought to take.
    */
-  readonly actionTimeoutInMs: number = 900_000;
+  readonly actionTimeoutInMs: number = 3_600_000;
 
   /**
    * @internal

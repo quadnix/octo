@@ -391,6 +391,22 @@ describe('TerraformUtility UT', () => {
       await withCustom.validate(terragruntDir);
       expect(withCustom.execFileAsyncMock.mock.calls[0][2].timeout).toBe(1000);
     });
+
+    // Killing a command part way through a mutation is worse than letting a slow one finish, and no
+    // default knows how long a given stack takes.
+    it.each(['apply', 'destroy'] as const)('leaves %s unbounded when no timeout was asked for', async (command) => {
+      await terraform[command](terragruntDir);
+
+      expect(terraform.execFileAsyncMock.mock.calls[0][2].timeout).toBeUndefined();
+    });
+
+    it.each(['apply', 'destroy'] as const)('bounds %s by the timeout the caller asked for', async (command) => {
+      const withCustom = new TestableTerraformUtility({ timeoutInMs: 1000 });
+
+      await withCustom[command](terragruntDir);
+
+      expect(withCustom.execFileAsyncMock.mock.calls[0][2].timeout).toBe(1000);
+    });
   });
 
   describe('errors', () => {
