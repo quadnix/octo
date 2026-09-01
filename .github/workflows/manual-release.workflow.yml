@@ -68,4 +68,4 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
         name: Release
         run: |
-          ./node_modules/.bin/nx release publish
+          ./node_modules/.bin/nx release publish --verbose
