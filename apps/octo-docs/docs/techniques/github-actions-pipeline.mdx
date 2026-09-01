@@ -308,6 +308,11 @@ jobs:
         run: exit 1
 ```
 
+The `--` in front of `--lockId` is npm's, and belongs only to npm. `pnpm run` hands it to the script
+instead of consuming it, and it then terminates the CLI's own options, so the flag behind it is
+parsed as a positional and silently ignored: `octo apply` fails asking for the lock id it was just
+given. On pnpm the separator comes out — `pnpm run octo:apply --lockId "$LOCK_ID"`.
+
 Generate runs again here, instead of the pull request's folders being carried over, because this is
 the first time the definition file as merged has been on disk anywhere. Generate is deterministic
 and takes milliseconds, and running it again is what guarantees the folders match what landed.

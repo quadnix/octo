@@ -13,6 +13,18 @@ env:
     kind: string
     value: encryption-key
 
+terraform:
+  requiredVersion: "1.6.0"
+  requiredProviders:
+    aws:
+      source: hashicorp/aws
+      minVersion: "5.0.0"
+  providers:
+    - providerType: aws
+      accountId: "${env.AWS_ACCOUNT_ID}"
+      accountName: quadnix
+      regionId: us-east-1
+
 settings:
   listeners:
     - type: HtmlReportEventListener

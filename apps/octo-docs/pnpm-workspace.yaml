@@ -3,6 +3,8 @@ allowBuilds:
   core-js: true
   core-js-pure: true
 autoInstallPeers: true
+minimumReleaseAgeExclude:
+  - '@quadnix/*' # Released from this repository, so no release-age soak applies.
 nodeLinker: hoisted
 overrides:
   webpack: 5.99.9 # Pinned to an older version until docusaurus is updated to use latest webpack.
