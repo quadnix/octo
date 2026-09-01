@@ -1,23 +1,21 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
-import {
-  type AwsEcsClusterAnchorSchema,
-  AwsEcsExecutionModule,
-  type AwsEcsTaskDefinitionAnchorSchema,
-  type AwsEfsAnchorSchema,
-  type AwsIamRoleAnchorSchema,
-  type AwsRegionAnchorSchema,
-  type AwsSecurityGroupAnchorSchema,
-  type AwsSubnetAnchorSchema,
-  type AwsSubnetLocalFilesystemMountAnchorSchema,
-  EcsClusterSchema,
-  EfsMountTargetSchema,
-  EfsSchema,
-  IamRoleSchema,
-  SubnetSchema,
-  VpcSchema,
-} from '../../../../src/index.js';
+import type { AwsEcsClusterAnchorSchema } from '../../../../src/anchors/aws-ecs/aws-ecs-cluster.anchor.schema.js';
+import type { AwsEcsTaskDefinitionAnchorSchema } from '../../../../src/anchors/aws-ecs/aws-ecs-task-definition.anchor.schema.js';
+import type { AwsEfsAnchorSchema } from '../../../../src/anchors/aws-efs/aws-efs.anchor.schema.js';
+import type { AwsIamRoleAnchorSchema } from '../../../../src/anchors/aws-iam/aws-iam-role.anchor.schema.js';
+import type { AwsRegionAnchorSchema } from '../../../../src/anchors/aws-region/aws-region.anchor.schema.js';
+import type { AwsSecurityGroupAnchorSchema } from '../../../../src/anchors/aws-security-group/aws-security-group.anchor.schema.js';
+import type { AwsSubnetLocalFilesystemMountAnchorSchema } from '../../../../src/anchors/aws-subnet/aws-subnet-local-filesystem-mount.anchor.schema.js';
+import type { AwsSubnetAnchorSchema } from '../../../../src/anchors/aws-subnet/aws-subnet.anchor.schema.js';
+import { AwsEcsExecutionModule } from '../../../../src/modules/execution/aws-ecs-execution/index.js';
+import { EcsClusterSchema } from '../../../../src/resources/ecs-cluster/index.schema.js';
+import { EfsSchema } from '../../../../src/resources/efs/index.schema.js';
+import { EfsMountTargetSchema } from '../../../../src/resources/efs-mount-target/index.schema.js';
+import { IamRoleSchema } from '../../../../src/resources/iam-role/index.schema.js';
+import { SubnetSchema } from '../../../../src/resources/subnet/index.schema.js';
+import { VpcSchema } from '../../../../src/resources/vpc/index.schema.js';
 import { config } from '../../../test.config.js';
 import { TerragruntUtility } from '../../../utilities/terragrunt/terragrunt.utility.js';
 

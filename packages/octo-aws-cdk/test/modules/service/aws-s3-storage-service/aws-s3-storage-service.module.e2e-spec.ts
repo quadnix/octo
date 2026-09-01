@@ -1,7 +1,8 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
-import { type AwsRegionAnchorSchema, AwsS3StorageServiceModule } from '../../../../src/index.js';
+import type { AwsRegionAnchorSchema } from '../../../../src/anchors/aws-region/aws-region.anchor.schema.js';
+import { AwsS3StorageServiceModule } from '../../../../src/modules/service/aws-s3-storage-service/index.js';
 import { config } from '../../../test.config.js';
 import { TerragruntUtility } from '../../../utilities/terragrunt/terragrunt.utility.js';
 

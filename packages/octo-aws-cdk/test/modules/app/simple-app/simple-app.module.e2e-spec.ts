@@ -1,7 +1,7 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { TestContainer, TestModuleContainer } from '@quadnix/octo';
-import { SimpleAppModule } from '../../../../src/index.js';
+import { SimpleAppModule } from '../../../../src/modules/app/simple-app/index.js';
 import { config } from '../../../test.config.js';
 import { TerragruntUtility } from '../../../utilities/terragrunt/terragrunt.utility.js';
 
