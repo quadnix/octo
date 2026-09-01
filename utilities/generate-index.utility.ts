@@ -31,10 +31,12 @@ if (shouldRemove) {
     ignore: ['**/*.d.ts', '**/*.spec.ts', '**/index.ts'],
   });
 
-  const exportLines = tsFiles.map((file) => {
-    const withoutExt = file.replace(/\.ts$/, '');
-    return `export * from './${withoutExt}.js';`;
-  });
+  const exportLines = tsFiles
+    .map((file) => {
+      const withoutExt = file.replace(/\.ts$/, '');
+      return `export * from './${withoutExt}.js';`;
+    })
+    .sort();
 
   writeFileSync(indexPath, exportLines.join('\n') + '\n');
 }
