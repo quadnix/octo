@@ -30,9 +30,7 @@ jobs:
           git config --local user.name "github-actions[bot]"
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-      - env:
-          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
-        name: Setup NPM
+      - name: Setup NPM
         uses: actions/setup-node@v4
         with:
           cache: 'pnpm'
