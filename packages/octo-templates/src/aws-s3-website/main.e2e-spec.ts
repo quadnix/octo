@@ -73,6 +73,7 @@ describe('Main E2E', () => {
     expect(responses[`@octo/s3-website=bucket-${bucketNameNormalized}`]).toEqual({
       Arn: `arn:aws:s3:::${bucketName}`,
       awsRegionId: AWS_REGION_ID,
+      RegionalDomainName: `${bucketName}.s3.${AWS_REGION_ID}.amazonaws.com`,
     });
 
     const indexContent = await axios.get(`http://${bucketName}.s3-website-${AWS_REGION_ID}.amazonaws.com/index.html`);
