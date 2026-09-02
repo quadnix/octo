@@ -162,7 +162,7 @@ const config: Config = {
   themes: ['@docusaurus/theme-mermaid'],
   title: 'Quadnix Octo',
   // Set the production url of your site here
-  url: 'https://your-docusaurus-site.example.com',
+  url: 'https://octo.quadnix.com',
 };
 
 export default config;
