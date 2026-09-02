@@ -192,7 +192,7 @@ You added service=octo-hello-website-s3-static-website. That creates 6 new thing
 WHAT WILL CHANGE
   + added service=octo-hello-website-s3-static-website  [service=octo-hello-website-s3-static-website,app=aws-s3-website | s3-website-service-module | +6]
       + bucket-octo-hello-website
-          + aws_s3_bucket_policy.bucket-octo-hello-website_website_bucket_public_read_policy
+          + aws_s3_bucket_policy.bucket-octo-hello-website_website_bucket_policy
           + aws_s3_bucket_public_access_block.bucket-octo-hello-website_website_bucket_public_access
           + aws_s3_bucket_website_configuration.bucket-octo-hello-website_website_bucket_config
           + aws_s3_bucket.bucket-octo-hello-website_website_bucket
@@ -298,7 +298,9 @@ changed the form and kept the old one working for the regions that had it. The b
 tab in the S3 console prints the exact endpoint.
 
 This endpoint is HTTP only. S3 website hosting does not terminate TLS, so a real site needs
-CloudFront in front of it and a certificate, neither of which this module creates.
+CloudFront in front of it. The module puts one there, and closes the bucket behind it, when you give
+it a `cloudFront` input, which the [AWS Module Catalog](/docs/reference/aws-module-catalog)
+describes. The certificate it serves is still yours to create.
 
 ## When it fails
 
@@ -387,7 +389,7 @@ it was about to do:
 
 ```text
 This apply would DESTROY:
-  [s3-website-service-module] aws_s3_bucket_policy.bucket-octo-hello-website_website_bucket_public_read_policy (delete)
+  [s3-website-service-module] aws_s3_bucket_policy.bucket-octo-hello-website_website_bucket_policy (delete)
   [s3-website-service-module] aws_s3_bucket_public_access_block.bucket-octo-hello-website_website_bucket_public_access (delete)
   [s3-website-service-module] aws_s3_bucket_website_configuration.bucket-octo-hello-website_website_bucket_config (delete)
   [s3-website-service-module] aws_s3_bucket.bucket-octo-hello-website_website_bucket (delete)
