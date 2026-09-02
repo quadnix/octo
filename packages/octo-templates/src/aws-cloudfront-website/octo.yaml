@@ -1,0 +1,74 @@
+# yaml-language-server: $schema=../../../octo-build/src/resources/octo-v1.schema.json
+
+version: 1
+
+env:
+  - key: AWS_ACCOUNT_ID
+    kind: string
+    value: "123456789123"
+  - key: AWS_CLOUDFRONT_WEBSITE_BUCKET_NAME
+    kind: string
+    value: "my-website-unique-bucket"
+
+settings:
+  listeners:
+    - type: LoggingEventListener
+      level: info
+
+  stateProvider:
+    type: LocalStateProvider
+    statePath: .octo/state
+
+imports:
+  - className: SimpleAppModule
+    importPath: "@quadnix/octo-aws-cdk/modules/app/simple-app"
+  - className: AwsIniAccountModule
+    importPath: "@quadnix/octo-aws-cdk/modules/account/aws-ini-account"
+  - className: AwsS3StaticWebsiteServiceModule
+    importPath: "@quadnix/octo-aws-cdk/modules/service/aws-s3-static-website-service"
+
+modules:
+  - moduleId: app-module
+    moduleClass: SimpleAppModule
+    moduleInputs:
+      name: aws-cloudfront-website
+
+  - moduleId: account-module
+    moduleClass: AwsIniAccountModule
+    moduleInputs:
+      accountId: "${env.AWS_ACCOUNT_ID}"
+      app: "${{app-module.model.app}}"
+      iniProfile: default
+
+  # The website. Declaring `cloudFront` closes the bucket: the distribution becomes the only way in,
+  # and a deploy drops what the edge locations are holding.
+  #
+  # The bucket name carries no dot, because the distribution reaches the bucket over HTTPS at
+  # `<bucket>.s3.<region>.amazonaws.com` and AWS's certificate covers one label there.
+  - moduleId: website-service-module
+    moduleClass: AwsS3StaticWebsiteServiceModule
+    moduleInputs:
+      account: "${{account-module.model.account}}"
+      awsRegionId: us-east-1
+      bucketName: "${env.AWS_CLOUDFRONT_WEBSITE_BUCKET_NAME}"
+      cloudFront:
+        notFoundBehavior: error-document
+        priceClass: PriceClass_100
+      directoryPath: website
+
+tags:
+  - scope: {}
+    tags:
+      e2e-test: "true"
+      e2e-test-family: aws-cloudfront-website
+
+terraform:
+  requiredVersion: "1.6.0"
+  requiredProviders:
+    aws:
+      source: hashicorp/aws
+      minVersion: "5.0.0"
+  providers:
+    - providerType: aws
+      accountId: "${env.AWS_ACCOUNT_ID}"
+      regionId: us-east-1
