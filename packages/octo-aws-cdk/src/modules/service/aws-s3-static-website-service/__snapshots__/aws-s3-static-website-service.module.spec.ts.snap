@@ -2,11 +2,11 @@
 
 exports[`AwsS3StaticWebsiteServiceModule UT input changes should handle bucketName change 1`] = `
 "+ service/main.tf
-depends_on = [aws_s3_bucket_policy.bucket-changed-bucket_website_bucket_public_read_policy]
+depends_on = [aws_s3_bucket_policy.bucket-changed-bucket_website_bucket_policy]
 }
 
 - service/main.tf
-depends_on = [aws_s3_bucket_policy.bucket-test-bucket_website_bucket_public_read_policy]
+depends_on = [aws_s3_bucket_policy.bucket-test-bucket_website_bucket_policy]
 }
 
 + service/main.tf
@@ -50,7 +50,7 @@ depends_on = [aws_s3_object.bucket-test-bucket_file_indexhtml]
 }
 
 + service/main.tf
-resource "aws_s3_bucket_policy" "bucket-changed-bucket_website_bucket_public_read_policy" {
+resource "aws_s3_bucket_policy" "bucket-changed-bucket_website_bucket_policy" {
   provider = aws._123-us-east-1
   bucket = aws_s3_bucket.bucket-changed-bucket_website_bucket.id
   policy = jsonencode({
@@ -65,7 +65,7 @@ resource "aws_s3_bucket_policy" "bucket-changed-bucket_website_bucket_public_rea
   })
 
 - service/main.tf
-resource "aws_s3_bucket_policy" "bucket-test-bucket_website_bucket_public_read_policy" {
+resource "aws_s3_bucket_policy" "bucket-test-bucket_website_bucket_policy" {
   provider = aws._123-us-east-1
   bucket = aws_s3_bucket.bucket-test-bucket_website_bucket.id
   policy = jsonencode({
@@ -195,6 +195,11 @@ output "bucket-changed-bucket-awsRegionId" {
   value = "us-east-1"
 }
 
++ service/outputs.tf
+output "bucket-changed-bucket-RegionalDomainName" {
+  value = aws_s3_bucket.bucket-changed-bucket_website_bucket.bucket_regional_domain_name
+}
+
 - service/outputs.tf
 output "bucket-test-bucket-Arn" {
   value = aws_s3_bucket.bucket-test-bucket_website_bucket.arn
@@ -203,6 +208,186 @@ output "bucket-test-bucket-Arn" {
 - service/outputs.tf
 output "bucket-test-bucket-awsRegionId" {
   value = "us-east-1"
+}
+
+- service/outputs.tf
+output "bucket-test-bucket-RegionalDomainName" {
+  value = aws_s3_bucket.bucket-test-bucket_website_bucket.bucket_regional_domain_name
+}"
+`;
+
+exports[`AwsS3StaticWebsiteServiceModule UT input changes should handle cloudFront change 1`] = `
+"+ service/main.tf
+data "aws_cloudfront_cache_policy" "cloudfront-test-bucket_managed_cache_ManagedCachingOptimized" {
+  name = "Managed-CachingOptimized"
+  provider = aws._123-us-east-1
+}
+
++ service/main.tf
+data "external" "cloudfront-invalidation-test-bucket" {
+  program = ["octo", "get-response", "--resourceId=cloudfront-invalidation-test-bucket"]
+  depends_on = [null_resource.cloudfront-invalidation-test-bucket]
+}
+
++ service/main.tf
+depends_on = [aws_cloudfront_origin_access_control.cloudfront-test-bucket_origin_access_control_testbucketorigin, aws_cloudfront_distribution.cloudfront-test-bucket_distribution]
+}
+
++ service/main.tf
+depends_on = [aws_cloudfront_origin_access_control.cloudfront-test-bucket_origin_access_control_testbucketorigin]
+}
+
+- service/main.tf
+depends_on = [aws_s3_bucket_website_configuration.bucket-test-bucket_website_bucket_config]
+}
+
++ service/main.tf
+resource "aws_cloudfront_distribution" "cloudfront-test-bucket_distribution" {
+  provider = aws._123-us-east-1
+  comment = "test-bucket"
+  custom_error_response {
+    error_caching_min_ttl = 10
+    error_code = 403
+    response_code = 404
+    response_page_path = "/error.html"
+  }
+  custom_error_response {
+    error_caching_min_ttl = 10
+    error_code = 404
+    response_code = 404
+    response_page_path = "/error.html"
+  }
+  default_cache_behavior {
+    allowed_methods = ["GET", "HEAD"]
+    cache_policy_id = data.aws_cloudfront_cache_policy.cloudfront-test-bucket_managed_cache_ManagedCachingOptimized.id
+    cached_methods = ["GET", "HEAD"]
+    compress = true
+    target_origin_id = "test-bucket-origin"
+    viewer_protocol_policy = "redirect-to-https"
+  }
+  default_root_object = "index.html"
+  enabled = true
+  http_version = "http2and3"
+  is_ipv6_enabled = true
+  origin {
+    connection_attempts = 3
+    connection_timeout = 10
+    origin_access_control_id = aws_cloudfront_origin_access_control.cloudfront-test-bucket_origin_access_control_testbucketorigin.id
+    domain_name = "test-bucket.s3.us-east-1.amazonaws.com"
+    origin_id = "test-bucket-origin"
+  }
+  price_class = "PriceClass_All"
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+  viewer_certificate {
+    cloudfront_default_certificate = true
+  }
+
++ service/main.tf
+resource "aws_cloudfront_origin_access_control" "cloudfront-test-bucket_origin_access_control_testbucketorigin" {
+  provider = aws._123-us-east-1
+  name = "cloudfront-test-bucket-test-bucket-origin"
+  origin_access_control_origin_type = "s3"
+  signing_behavior = "always"
+  signing_protocol = "sigv4"
+}
+
+~ service/main.tf resource "aws_s3_bucket_policy" "bucket-test-bucket_website_bucket_policy" {
+@@ -6,6 +6,13 @@
+          Action = ["s3:GetObject"]
++         Condition = {
++           StringEquals = {
++             "AWS:SourceArn" = aws_cloudfront_distribution.cloudfront-test-bucket_distribution.arn
++           }
++         }
+          Effect = "Allow"
+-         Principal = "*"
++         Principal = {
++           Service = "cloudfront.amazonaws.com"
++         }
+          Resource = ["\${aws_s3_bucket.bucket-test-bucket_website_bucket.arn}/*"]
+-         Sid = "PublicReadGetObject"
++         Sid = "AllowCloudFrontReadcloudfronttestbucket"
+        }]
+
+~ service/main.tf resource "aws_s3_bucket_public_access_block" "bucket-test-bucket_website_bucket_public_access" {
+@@ -2,6 +2,6 @@
+    provider = aws._123-us-east-1
+-   block_public_acls = false
+-   block_public_policy = false
++   block_public_acls = true
++   block_public_policy = true
+    bucket = aws_s3_bucket.bucket-test-bucket_website_bucket.id
+-   ignore_public_acls = false
+-   restrict_public_buckets = false
++   ignore_public_acls = true
++   restrict_public_buckets = true
+
+- service/main.tf
+resource "aws_s3_bucket_website_configuration" "bucket-test-bucket_website_bucket_config" {
+  provider = aws._123-us-east-1
+  bucket = aws_s3_bucket.bucket-test-bucket_website_bucket.id
+  error_document {
+    key = "error.html"
+  }
+  index_document {
+    suffix = "index.html"
+  }
+
++ service/main.tf
+resource "null_resource" "cloudfront-invalidation-test-bucket" {
+  triggers = {
+    octo_properties_hash = "ae45c2b008a50fe1"
+    input_cloudfront_test_bucket_Arn = "\${aws_cloudfront_distribution.cloudfront-test-bucket_distribution.arn}"
+    input_cloudfront_test_bucket_DistributionId = "\${aws_cloudfront_distribution.cloudfront-test-bucket_distribution.id}"
+    input_cloudfront_test_bucket_DomainName = "\${aws_cloudfront_distribution.cloudfront-test-bucket_distribution.domain_name}"
+    input_cloudfront_test_bucket_HostedZoneId = "\${aws_cloudfront_distribution.cloudfront-test-bucket_distribution.hosted_zone_id}"
+  }
+  provisioner "local-exec" {
+    command = "octo run-action --resourceId=cloudfront-invalidation-test-bucket --input cloudfront-test-bucket.Arn=\${aws_cloudfront_distribution.cloudfront-test-bucket_distribution.arn} --input cloudfront-test-bucket.DistributionId=\${aws_cloudfront_distribution.cloudfront-test-bucket_distribution.id} --input cloudfront-test-bucket.DomainName=\${aws_cloudfront_distribution.cloudfront-test-bucket_distribution.domain_name} --input cloudfront-test-bucket.HostedZoneId=\${aws_cloudfront_distribution.cloudfront-test-bucket_distribution.hosted_zone_id}"
+  }
+  provisioner "local-exec" {
+    when = destroy
+    command = "octo run-action --resourceId=cloudfront-invalidation-test-bucket --input cloudfront-test-bucket.Arn=\${self.triggers.input_cloudfront_test_bucket_Arn} --input cloudfront-test-bucket.DistributionId=\${self.triggers.input_cloudfront_test_bucket_DistributionId} --input cloudfront-test-bucket.DomainName=\${self.triggers.input_cloudfront_test_bucket_DomainName} --input cloudfront-test-bucket.HostedZoneId=\${self.triggers.input_cloudfront_test_bucket_HostedZoneId}"
+  }
+
+~ service/main.tf terraform {
+@@ -7,2 +7,8 @@
+      }
++     external = {
++       source = "hashicorp/external"
++     }
++     null = {
++       source = "hashicorp/null"
++     }
+    }
+
++ service/outputs.tf
+output "cloudfront-invalidation-test-bucket" {
+  value = data.external.cloudfront-invalidation-test-bucket.result
+}
+
++ service/outputs.tf
+output "cloudfront-test-bucket-Arn" {
+  value = aws_cloudfront_distribution.cloudfront-test-bucket_distribution.arn
+}
+
++ service/outputs.tf
+output "cloudfront-test-bucket-DistributionId" {
+  value = aws_cloudfront_distribution.cloudfront-test-bucket_distribution.id
+}
+
++ service/outputs.tf
+output "cloudfront-test-bucket-DomainName" {
+  value = aws_cloudfront_distribution.cloudfront-test-bucket_distribution.domain_name
+}
+
++ service/outputs.tf
+output "cloudfront-test-bucket-HostedZoneId" {
+  value = aws_cloudfront_distribution.cloudfront-test-bucket_distribution.hosted_zone_id
 }"
 `;
 
@@ -234,11 +419,29 @@ resource "aws_s3_object" "bucket-test-bucket_file_page1html" {
   source = "\${var.OCTO_PROJECT_ROOT}/resources/s3-static-website/page-1.html""
 `;
 
+exports[`AwsS3StaticWebsiteServiceModule UT input changes should handle notFoundBehavior change 1`] = `
+"~ service/main.tf resource "aws_cloudfront_distribution" "cloudfront-test-bucket_distribution" {
+@@ -6,4 +6,4 @@
+      error_code = 403
+-     response_code = 404
+-     response_page_path = "/error.html"
++     response_code = 200
++     response_page_path = "/index.html"
+    }
+@@ -12,4 +12,4 @@
+      error_code = 404
+-     response_code = 404
+-     response_page_path = "/error.html"
++     response_code = 200
++     response_page_path = "/index.html"
+    }"
+`;
+
 exports[`AwsS3StaticWebsiteServiceModule UT should CUD 2`] = `"<no changes>"`;
 
 exports[`AwsS3StaticWebsiteServiceModule UT should CUD 4`] = `
 "- service/main.tf
-depends_on = [aws_s3_bucket_policy.bucket-test-bucket_website_bucket_public_read_policy]
+depends_on = [aws_s3_bucket_policy.bucket-test-bucket_website_bucket_policy]
 }
 
 - service/main.tf
@@ -269,7 +472,7 @@ provider "aws" {
 }
 
 - service/main.tf
-resource "aws_s3_bucket_policy" "bucket-test-bucket_website_bucket_public_read_policy" {
+resource "aws_s3_bucket_policy" "bucket-test-bucket_website_bucket_policy" {
   provider = aws._123-us-east-1
   bucket = aws_s3_bucket.bucket-test-bucket_website_bucket.id
   policy = jsonencode({
@@ -355,6 +558,11 @@ output "bucket-test-bucket-Arn" {
 - service/outputs.tf
 output "bucket-test-bucket-awsRegionId" {
   value = "us-east-1"
+}
+
+- service/outputs.tf
+output "bucket-test-bucket-RegionalDomainName" {
+  value = aws_s3_bucket.bucket-test-bucket_website_bucket.bucket_regional_domain_name
 }
 
 - service/terragrunt.hcl
@@ -398,7 +606,7 @@ exports[`AwsS3StaticWebsiteServiceModule UT should CUD tags 4`] = `
 
 exports[`AwsS3StaticWebsiteServiceModule UT should handle moduleId change 1`] = `
 "- service-1/main.tf
-depends_on = [aws_s3_bucket_policy.bucket-test-bucket_website_bucket_public_read_policy]
+depends_on = [aws_s3_bucket_policy.bucket-test-bucket_website_bucket_policy]
 }
 
 - service-1/main.tf
@@ -429,7 +637,7 @@ provider "aws" {
 }
 
 - service-1/main.tf
-resource "aws_s3_bucket_policy" "bucket-test-bucket_website_bucket_public_read_policy" {
+resource "aws_s3_bucket_policy" "bucket-test-bucket_website_bucket_policy" {
   provider = aws._123-us-east-1
   bucket = aws_s3_bucket.bucket-test-bucket_website_bucket.id
   policy = jsonencode({
@@ -515,6 +723,11 @@ output "bucket-test-bucket-Arn" {
 - service-1/outputs.tf
 output "bucket-test-bucket-awsRegionId" {
   value = "us-east-1"
+}
+
+- service-1/outputs.tf
+output "bucket-test-bucket-RegionalDomainName" {
+  value = aws_s3_bucket.bucket-test-bucket_website_bucket.bucket_regional_domain_name
 }
 
 - service-1/terragrunt.hcl
@@ -535,7 +748,7 @@ variable "OCTO_PROJECT_ROOT" {
 }
 
 + service-2/main.tf
-depends_on = [aws_s3_bucket_policy.bucket-test-bucket_website_bucket_public_read_policy]
+depends_on = [aws_s3_bucket_policy.bucket-test-bucket_website_bucket_policy]
 }
 
 + service-2/main.tf
@@ -566,7 +779,7 @@ provider "aws" {
 }
 
 + service-2/main.tf
-resource "aws_s3_bucket_policy" "bucket-test-bucket_website_bucket_public_read_policy" {
+resource "aws_s3_bucket_policy" "bucket-test-bucket_website_bucket_policy" {
   provider = aws._123-us-east-1
   bucket = aws_s3_bucket.bucket-test-bucket_website_bucket.id
   policy = jsonencode({
@@ -652,6 +865,11 @@ output "bucket-test-bucket-Arn" {
 + service-2/outputs.tf
 output "bucket-test-bucket-awsRegionId" {
   value = "us-east-1"
+}
+
++ service-2/outputs.tf
+output "bucket-test-bucket-RegionalDomainName" {
+  value = aws_s3_bucket.bucket-test-bucket_website_bucket.bucket_regional_domain_name
 }
 
 + service-2/terragrunt.hcl

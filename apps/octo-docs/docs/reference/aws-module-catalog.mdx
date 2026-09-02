@@ -86,10 +86,36 @@ directories the server may access with `READ`, `WRITE`, or `READ_WRITE`. That pr
 | Module                            | Inputs                                                                                                                                                                         | Creates                                                                                    |
 |-----------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------|
 | `AwsS3StorageServiceModule`       | `region`, `bucketName`, `remoteDirectoryPaths?`                                                                                                                                | S3 bucket, bucket policy                                                                   |
-| `AwsS3StaticWebsiteServiceModule` | `account`, `awsRegionId`, `bucketName`, `directoryPath`, `filter?`, `transform?`, `subDirectoryOrFilePath?`                                                                    | S3 bucket configured as a website, public access block, bucket policy, one object per file |
+| `AwsS3StaticWebsiteServiceModule` | `account`, `awsRegionId`, `bucketName`, `directoryPath`, `cloudFront?`, `filter?`, `transform?`, `subDirectoryOrFilePath?`                                                     | S3 bucket, public access block, bucket policy, one object per file, and with `cloudFront` a distribution, its origin access control, and an invalidation |
 | `AwsDynamoDBServiceModule`        | `region`, `TableName`, `KeySchema`, `AttributeDefinitions`, `billingMode`, `GlobalSecondaryIndexes?`, `LocalSecondaryIndexes?`, `StreamSpecification?`, `timeToLiveAttribute?` | DynamoDB table                                                                             |
 | `AwsDynamoDBGlobalServiceModule`  | `dynamoDBService`, `replicas`                                                                                                                                                  | DynamoDB global table replicas                                                             |
 | `AwsEcsAlbServiceModule`          | `region`, `albName`, `listeners`, `subnets`, `targets?`                                                                                                                        | application load balancer, listener, target group, security group                          |
+
+`AwsS3StaticWebsiteServiceModule` serves the bucket one of two ways, and `cloudFront` picks which.
+Without it the bucket is public and answers on its S3 website endpoint, over plain HTTP. With it the
+bucket is closed — every public access block on, no anonymous policy — and the distribution in front
+of it is the only way in, serving the site over HTTPS.
+
+Set `cloudFront.aliases` to answer on your own domains and `cloudFront.certificateArn` to a
+certificate covering them; CloudFront reads certificates from `us-east-1` alone, wherever the bucket
+lives. The DNS records pointing at the distribution are yours to create. `cloudFront.priceClass`
+decides which edge locations serve the site, and `cloudFront.webAclArn` puts a web ACL in front of
+it — the ACL itself is not created here, and CloudFront reads one from `us-east-1` alone.
+
+`cloudFront.notFoundBehavior` is the one input worth thinking about. A content site wants
+`error-document`, the default: a path the bucket has nothing at returns a real `404` carrying the
+error document. A single-page app wants `single-page-app`, which returns a `200` carrying the index
+document so the app's own router decides what the path means. A content site set to `single-page-app`
+reports every typo as a working page.
+
+With `cloudFront` set, a deploy also invalidates the edge caches. Without that, CloudFront would keep
+serving the previous version of a file for as long as its cache policy says, which is a day — the
+upload would succeed and the site would not change.
+
+The distribution this module builds is one opinion about serving a website out of a bucket. The
+resource underneath it takes several origins of mixed kinds, a routing table over them, and policies
+of its own; a module that needs any of that builds its own distribution rather than reaching for a
+wider input here.
 
 Two things about the DynamoDB module are worth knowing before you use it, and its generated
 definition file says both: a global secondary index can be added to or removed from a live table,
@@ -163,5 +189,5 @@ nothing downstream.
 
 ## Version
 
-These pages were written against `@quadnix/octo-aws-cdk` 0.0.19. The library is pre-1.0, and both
+These pages were written against `@quadnix/octo-aws-cdk` 0.1.0. The library is pre-1.0, and both
 module inputs and anchor shapes can still change between minor versions.

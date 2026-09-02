@@ -1,4 +1,4 @@
-import { AModule, type App, Module } from '@quadnix/octo';
+import { AModule, type App, Module, ModuleError } from '@quadnix/octo';
 import { AwsS3StaticWebsiteServiceModuleSchema } from './index.schema.js';
 import { AwsS3StaticWebsiteService } from './models/service/index.js';
 
@@ -20,6 +20,10 @@ import { AwsS3StaticWebsiteService } from './models/service/index.js';
  *   account: myAccount,
  *   awsRegionId: 'us-east-1',
  *   bucketName: 'my-static-website',
+ *   cloudFront: {
+ *     aliases: ['www.example.com'],
+ *     certificateArn: 'arn:aws:acm:us-east-1:123456789012:certificate/<id>',
+ *   },
  *   directoryPath: join(__dirname, 'website'),
  *   filter: (filePath) => !filePath.includes('.DS_Store'),
  *   subDirectoryOrFilePath: 'public',
@@ -29,6 +33,8 @@ import { AwsS3StaticWebsiteService } from './models/service/index.js';
  *
  * @group Modules/Service/AwsS3StaticWebsiteService
  *
+ * @reference Resources {@link CloudFrontDistributionSchema}
+ * @reference Resources {@link CloudFrontInvalidationSchema}
  * @reference Resources {@link S3WebsiteSchema}
  *
  * @see {@link AwsS3StaticWebsiteServiceModuleSchema} for the input schema.
@@ -45,6 +51,11 @@ export class AwsS3StaticWebsiteServiceModule extends AModule<
    */
   async onInit(inputs: AwsS3StaticWebsiteServiceModuleSchema): Promise<AwsS3StaticWebsiteService> {
     const { app } = await this.registerMetadata(inputs);
+
+    // Validate the distribution can serve the domains it answers on.
+    if (inputs.cloudFront?.aliases?.length && !inputs.cloudFront.certificateArn) {
+      throw new ModuleError('A CloudFront certificate is required to serve an alias!', this.constructor.name);
+    }
 
     // Create a new s3-website service.
     const s3StaticWebsiteService = new AwsS3StaticWebsiteService(inputs.bucketName);

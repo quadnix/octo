@@ -1,3 +1,4 @@
+import { CloudFrontClient } from '@aws-sdk/client-cloudfront';
 import { ECRClient } from '@aws-sdk/client-ecr';
 import { Container, ContainerResolutionError, Factory } from '@quadnix/octo';
 import type { AwsCredentialIdentity, AwsCredentialIdentityProvider } from '@smithy/types';
@@ -12,6 +13,9 @@ export type AwsClientCredentials = AwsCredentialIdentity | AwsCredentialIdentity
 
 /**
  * Serves the AWS SDK clients an external resource action needs, one per account and region.
+ *
+ * A global service - one whose endpoint is not a region a caller picks - overrides `create()` to
+ * supply the region itself, so its callers name the account alone.
  *
  * A resource terraform manages needs no client - the provider talks to AWS. Only an external
  * resource, whose lifecycle octo drives itself, resolves one of these, and it must authenticate as
@@ -122,5 +126,42 @@ export class ECRClientFactory extends AwsClientFactory {
    */
   static override createInstance(awsRegionId: string, credentials: AwsClientCredentials, endpoint?: string): ECRClient {
     return new ECRClient({ credentials, endpoint, region: awsRegionId });
+  }
+}
+
+/**
+ * CloudFront is one global service with one endpoint, so a caller names the account and nothing
+ * else. The region a global service is reached at is a fact about that service rather than
+ * something a caller chooses, so the factory supplies it - which is also what keeps the cache
+ * keyed the same way as every other client's.
+ *
+ * @internal
+ */
+@Factory<CloudFrontClient>(CloudFrontClient, { metadata: { package: '@octo' } })
+export class CloudFrontClientFactory extends AwsClientFactory {
+  protected static override readonly serviceName: string = 'cloudfront';
+
+  /**
+   * The region every CloudFront call is made to, whichever region the origins behind a distribution
+   * live in.
+   */
+  private static readonly awsRegionId: string = 'us-east-1';
+
+  /**
+   * @internal
+   */
+  static override async create(awsAccountId: string): Promise<CloudFrontClient> {
+    return super.create(awsAccountId, this.awsRegionId);
+  }
+
+  /**
+   * @internal
+   */
+  static override createInstance(
+    awsRegionId: string,
+    credentials: AwsClientCredentials,
+    endpoint?: string,
+  ): CloudFrontClient {
+    return new CloudFrontClient({ credentials, endpoint, region: awsRegionId });
   }
 }

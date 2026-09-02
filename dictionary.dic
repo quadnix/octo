@@ -3,6 +3,7 @@ abcdefghijklmnopqrstuvwxyz
 accessor
 acl
 acls
+acm
 aes
 ajv
 alb
@@ -28,6 +29,7 @@ balancers
 blockquote
 bool
 brk
+brotli
 browserslist
 buildx
 cacheable
@@ -41,6 +43,7 @@ cicd
 cidr
 cipheriv
 cjs
+cloudfront
 clsx
 codespan
 codicon
@@ -49,6 +52,7 @@ commonjs
 compatibilities
 constructable
 copyfiles
+cors
 cov
 cpu
 cpus
@@ -91,6 +95,7 @@ eslintrc
 esm
 esnext
 etag
+failover
 fallthrough
 fas
 favicon
@@ -110,12 +115,14 @@ frontmatter
 fs
 gcm
 gcp
+geo
 gfm
 gitignore
 gitkeep
 globals
 grp
 gsi
+gzip
 hashicorp
 hcl
 hideconstructor
@@ -140,6 +147,7 @@ jsdoc
 jsonc
 jsonencode
 jsx
+keepalive
 lang
 len
 linkcode
@@ -212,6 +220,7 @@ sep
 serializable
 sig
 sigs
+ssl
 ssr
 stderr
 stdin

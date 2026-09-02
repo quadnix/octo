@@ -73,7 +73,7 @@ describe('AwsS3StaticWebsiteServiceModule E2E', () => {
        "aws_s3_bucket.bucket-test-bucket_website_bucket",
        "aws_s3_bucket_website_configuration.bucket-test-bucket_website_bucket_config",
        "aws_s3_bucket_public_access_block.bucket-test-bucket_website_bucket_public_access",
-       "aws_s3_bucket_policy.bucket-test-bucket_website_bucket_public_read_policy",
+       "aws_s3_bucket_policy.bucket-test-bucket_website_bucket_policy",
        "aws_s3_object.bucket-test-bucket_file_errorhtml",
        "aws_s3_object.bucket-test-bucket_file_indexhtml",
        "aws_s3_object.bucket-test-bucket_file_page1html",

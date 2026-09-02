@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@aws-sdk/client-cloudfront": "~3.743.0",
     "@aws-sdk/client-ecr": "~3.743.0",
     "@aws-sdk/credential-provider-ini": "~3.743.0",
     "@quadnix/octo": "~0.1.0",
@@ -76,6 +77,8 @@
     "./resources/alb-listener/schema": "./dist/resources/alb-listener/index.schema.js",
     "./resources/alb-target-group/schema": "./dist/resources/alb-target-group/index.schema.js",
     "./resources/alb/schema": "./dist/resources/alb/index.schema.js",
+    "./resources/cloudfront-distribution/schema": "./dist/resources/cloudfront-distribution/index.schema.js",
+    "./resources/cloudfront-invalidation/schema": "./dist/resources/cloudfront-invalidation/index.schema.js",
     "./resources/dynamodb-global/schema": "./dist/resources/dynamodb-global/index.schema.js",
     "./resources/dynamodb/schema": "./dist/resources/dynamodb/index.schema.js",
     "./resources/ecr-image-tag/schema": "./dist/resources/ecr-image-tag/index.schema.js",

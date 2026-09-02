@@ -1,0 +1,289 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`CloudFrontDistribution UT toHCL() should render the whole surface 1`] = `
+[
+  {
+    "name": "cloudfront-test-distribution_cache_policy_languageaware",
+    "spec": {
+      "default_ttl": 3600,
+      "max_ttl": 86400,
+      "min_ttl": 0,
+      "name": "language-aware",
+      "parameters_in_cache_key_and_forwarded_to_origin": {
+        "cookies_config": {
+          "cookie_behavior": "none",
+        },
+        "enable_accept_encoding_brotli": true,
+        "enable_accept_encoding_gzip": true,
+        "headers_config": {
+          "header_behavior": "whitelist",
+          "headers": {
+            "items": [
+              "Accept-Language",
+            ],
+          },
+        },
+        "query_strings_config": {
+          "query_string_behavior": "none",
+        },
+      },
+    },
+    "type": "resource aws_cloudfront_cache_policy",
+  },
+  {
+    "name": "cloudfront-test-distribution_origin_request_policy_apiforwarding",
+    "spec": {
+      "cookies_config": {
+        "cookie_behavior": "all",
+      },
+      "headers_config": {
+        "header_behavior": "whitelist",
+        "headers": {
+          "items": [
+            "Authorization",
+          ],
+        },
+      },
+      "name": "api-forwarding",
+      "query_strings_config": {
+        "query_string_behavior": "all",
+      },
+    },
+    "type": "resource aws_cloudfront_origin_request_policy",
+  },
+  {
+    "name": "cloudfront-test-distribution_response_headers_policy_siteheaders",
+    "spec": {
+      "cors_config": {
+        "access_control_allow_credentials": false,
+        "access_control_allow_headers": {
+          "items": [
+            "*",
+          ],
+        },
+        "access_control_allow_methods": {
+          "items": [
+            "GET",
+            "HEAD",
+          ],
+        },
+        "access_control_allow_origins": {
+          "items": [
+            "https://www.example.com",
+          ],
+        },
+        "access_control_max_age_sec": 600,
+        "origin_override": true,
+      },
+      "name": "site-headers",
+      "security_headers_config": {
+        "content_security_policy": {
+          "content_security_policy": "default-src 'self'",
+          "override": true,
+        },
+        "content_type_options": {
+          "override": true,
+        },
+        "frame_options": {
+          "frame_option": "SAMEORIGIN",
+          "override": true,
+        },
+        "strict_transport_security": {
+          "access_control_max_age_sec": 31536000,
+          "include_subdomains": true,
+          "override": true,
+          "preload": false,
+        },
+      },
+    },
+    "type": "resource aws_cloudfront_response_headers_policy",
+  },
+  {
+    "name": "cloudfront-test-distribution_managed_cache_ManagedCachingOptimized",
+    "spec": {
+      "name": "Managed-CachingOptimized",
+      "provider": "aws.123",
+    },
+    "type": "data aws_cloudfront_cache_policy",
+  },
+  {
+    "name": "cloudfront-test-distribution_managed_cache_ManagedCachingDisabled",
+    "spec": {
+      "name": "Managed-CachingDisabled",
+      "provider": "aws.123",
+    },
+    "type": "data aws_cloudfront_cache_policy",
+  },
+  {
+    "name": "cloudfront-test-distribution_origin_access_control_website",
+    "spec": {
+      "name": "cloudfront-test-distribution-website",
+      "origin_access_control_origin_type": "s3",
+      "signing_behavior": "always",
+      "signing_protocol": "sigv4",
+    },
+    "type": "resource aws_cloudfront_origin_access_control",
+  },
+  {
+    "name": "cloudfront-test-distribution_distribution",
+    "spec": {
+      "aliases": [
+        "www.example.com",
+      ],
+      "comment": "test-distribution",
+      "custom_error_response": [
+        {
+          "error_caching_min_ttl": 10,
+          "error_code": 403,
+          "response_code": 200,
+          "response_page_path": "/index.html",
+        },
+      ],
+      "default_cache_behavior": {
+        "allowed_methods": [
+          "GET",
+          "HEAD",
+        ],
+        "cache_policy_id": "data.aws_cloudfront_cache_policy.cloudfront-test-distribution_managed_cache_ManagedCachingOptimized.id",
+        "cached_methods": [
+          "GET",
+          "HEAD",
+        ],
+        "compress": true,
+        "response_headers_policy_id": "aws_cloudfront_response_headers_policy.cloudfront-test-distribution_response_headers_policy_siteheaders.id",
+        "target_origin_id": "website",
+        "viewer_protocol_policy": "redirect-to-https",
+      },
+      "default_root_object": "index.html",
+      "enabled": true,
+      "http_version": "http2and3",
+      "is_ipv6_enabled": true,
+      "logging_config": {
+        "bucket": "logs.s3.amazonaws.com",
+        "include_cookies": false,
+        "prefix": "cloudfront/",
+      },
+      "ordered_cache_behavior": [
+        {
+          "allowed_methods": [
+            "GET",
+            "HEAD",
+            "OPTIONS",
+            "PUT",
+            "POST",
+            "PATCH",
+            "DELETE",
+          ],
+          "cache_policy_id": "data.aws_cloudfront_cache_policy.cloudfront-test-distribution_managed_cache_ManagedCachingDisabled.id",
+          "cached_methods": [
+            "GET",
+            "HEAD",
+          ],
+          "compress": true,
+          "function_association": [
+            {
+              "event_type": "viewer-request",
+              "function_arn": "arn:aws:cloudfront::123456789012:function/rewrite",
+            },
+          ],
+          "lambda_function_association": [
+            {
+              "event_type": "origin-request",
+              "lambda_arn": "arn:aws:lambda:us-east-1:123456789012:function:auth:1",
+            },
+          ],
+          "origin_request_policy_id": "aws_cloudfront_origin_request_policy.cloudfront-test-distribution_origin_request_policy_apiforwarding.id",
+          "path_pattern": "/api/*",
+          "target_origin_id": "api-group",
+          "viewer_protocol_policy": "https-only",
+        },
+        {
+          "allowed_methods": [
+            "GET",
+            "HEAD",
+          ],
+          "cache_policy_id": "aws_cloudfront_cache_policy.cloudfront-test-distribution_cache_policy_languageaware.id",
+          "cached_methods": [
+            "GET",
+            "HEAD",
+          ],
+          "compress": true,
+          "path_pattern": "/legacy/*",
+          "target_origin_id": "api",
+          "viewer_protocol_policy": "redirect-to-https",
+        },
+      ],
+      "origin": [
+        {
+          "connection_attempts": 3,
+          "connection_timeout": 10,
+          "domain_name": "test-bucket.s3.us-east-1.amazonaws.com",
+          "origin_access_control_id": "aws_cloudfront_origin_access_control.cloudfront-test-distribution_origin_access_control_website.id",
+          "origin_id": "website",
+        },
+        {
+          "connection_attempts": 3,
+          "connection_timeout": 10,
+          "custom_header": [
+            {
+              "name": "X-From-CloudFront",
+              "value": "yes",
+            },
+          ],
+          "custom_origin_config": {
+            "http_port": 80,
+            "https_port": 443,
+            "origin_keepalive_timeout": 5,
+            "origin_protocol_policy": "https-only",
+            "origin_read_timeout": 30,
+            "origin_ssl_protocols": [
+              "TLSv1.2",
+            ],
+          },
+          "domain_name": "api.example.com",
+          "origin_id": "api",
+          "origin_path": "/v1",
+        },
+      ],
+      "origin_group": [
+        {
+          "failover_criteria": {
+            "status_codes": [
+              500,
+              502,
+              503,
+              504,
+            ],
+          },
+          "member": [
+            {
+              "origin_id": "website",
+            },
+            {
+              "origin_id": "api",
+            },
+          ],
+          "origin_id": "api-group",
+        },
+      ],
+      "price_class": "PriceClass_100",
+      "restrictions": {
+        "geo_restriction": {
+          "locations": [
+            "CN",
+            "RU",
+          ],
+          "restriction_type": "blacklist",
+        },
+      },
+      "viewer_certificate": {
+        "acm_certificate_arn": "arn:aws:acm:us-east-1:123456789012:certificate/test-certificate",
+        "minimum_protocol_version": "TLSv1.2_2021",
+        "ssl_support_method": "sni-only",
+      },
+      "web_acl_id": "arn:aws:wafv2:us-east-1:123456789012:global/webacl/test/0000",
+    },
+    "type": "resource aws_cloudfront_distribution",
+  },
+]
+`;
