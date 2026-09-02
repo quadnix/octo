@@ -1,6 +1,6 @@
 import { lstat, readdir } from 'fs/promises';
-import { join, parse, resolve } from 'path';
-import { Diff, DiffAction, Model, ModelError, Service, Validate } from '@quadnix/octo';
+import { join, parse } from 'path';
+import { Diff, DiffAction, Model, ModelError, ProjectUtility, Service, Validate } from '@quadnix/octo';
 import { FileUtility } from '../../../../../utilities/file/file.utility.js';
 import { AwsS3StaticWebsiteServiceSchema } from './aws-s3-static-website-service.schema.js';
 
@@ -48,7 +48,10 @@ export class AwsS3StaticWebsiteService extends Service {
     filter?: (filePath: string) => boolean,
     transform?: (filePath: string) => string,
   ): Promise<void> {
-    directoryPath = resolve(directoryPath);
+    // Against the project root rather than the working directory. A module composes the graph in
+    // every mode, including the `octo run-action` callback terraform makes mid-apply, and terraform
+    // makes that call from a terragrunt cache directory.
+    directoryPath = ProjectUtility.resolveFromProjectRoot(directoryPath);
     if (!subDirectoryOrFilePath) {
       subDirectoryOrFilePath = '';
     }
