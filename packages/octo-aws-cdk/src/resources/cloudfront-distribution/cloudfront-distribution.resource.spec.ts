@@ -102,6 +102,21 @@ describe('CloudFrontDistribution UT', () => {
       ).toThrowErrorMatchingInlineSnapshot(`"CloudFront bucket "test-bucket" is claimed by more than one origin!"`);
     });
 
+    it('should reject an S3 origin whose bucket name holds a dot', () => {
+      expect(() =>
+        createDistribution({
+          origins: [
+            {
+              ...properties().origins[0],
+              kind: { bucketName: 'my-test.website.com', bucketRegion: 'us-east-1', kind: 's3' },
+            },
+          ],
+        }),
+      ).toThrowErrorMatchingInlineSnapshot(
+        `"CloudFront cannot reach an S3 origin whose bucket name holds a dot, "my-test.website.com"!"`,
+      );
+    });
+
     it('should reject an origin group naming an origin that is not there', () => {
       expect(() =>
         createDistribution({

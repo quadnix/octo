@@ -96,6 +96,11 @@ Without it the bucket is public and answers on its S3 website endpoint, over pla
 bucket is closed — every public access block on, no anonymous policy — and the distribution in front
 of it is the only way in, serving the site over HTTPS.
 
+A bucket served this way cannot have a dot in its name. The distribution reaches it at
+`<bucket>.s3.<region>.amazonaws.com` over HTTPS, and the certificate AWS serves there covers a single
+label, so a dotted name is refused when the modules are composed rather than answering `502` to every
+visitor later.
+
 Set `cloudFront.aliases` to answer on your own domains and `cloudFront.certificateArn` to a
 certificate covering them; CloudFront reads certificates from `us-east-1` alone, wherever the bucket
 lives. The DNS records pointing at the distribution are yours to create. `cloudFront.priceClass`

@@ -541,6 +541,14 @@ export class CloudFrontDistribution extends ATerraformResource<CloudFrontDistrib
       throw new Error(`CloudFront bucket "${duplicateBucketNames[0]}" is claimed by more than one origin!`);
     }
 
+    // An S3 origin is reached over HTTPS at `<bucket>.s3.<region>.amazonaws.com`, and the certificate
+    // AWS serves there covers one label in front of `s3`. A bucket named with a dot is accepted by
+    // every step up to the first request, which then fails the handshake and answers 502.
+    const dottedBucketName = s3BucketNames.find((name) => name.includes('.'));
+    if (dottedBucketName) {
+      throw new Error(`CloudFront cannot reach an S3 origin whose bucket name holds a dot, "${dottedBucketName}"!`);
+    }
+
     for (const originGroup of this.properties.originGroups) {
       for (const memberId of [originGroup.primaryOriginId, originGroup.failoverOriginId]) {
         if (!originIds.includes(memberId)) {
