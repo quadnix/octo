@@ -232,7 +232,7 @@ importers:
         specifier: ~0.1.0
         version: link:../octo
       '@quadnix/octo-aws-cdk':
-        specifier: ~0.1.0
+        specifier: ~0.2.0
         version: link:../octo-aws-cdk
       '@quadnix/octo-event-listeners':
         specifier: ~0.1.0
