@@ -346,9 +346,7 @@ export class CloudFrontDistribution extends ATerraformResource<CloudFrontDistrib
     return {
       connection_attempts: origin.connectionAttempts ?? RENDER_DEFAULTS.origin.connectionAttempts,
       connection_timeout: origin.connectionTimeout ?? RENDER_DEFAULTS.origin.connectionTimeout,
-      ...(customHeaders.length > 0
-        ? { custom_header: customHeaders.map(([name, value]) => ({ name, value })) }
-        : {}),
+      ...(customHeaders.length > 0 ? { custom_header: customHeaders.map(([name, value]) => ({ name, value })) } : {}),
       ...(origin.kind.kind === 'custom'
         ? {
             custom_origin_config: {
@@ -596,7 +594,10 @@ export class CloudFrontDistribution extends ATerraformResource<CloudFrontDistrib
     // CloudFront reads both of these from us-east-1 alone, wherever the origins live. Left to AWS,
     // this surfaces as a failed apply rather than as anything a caller can act on.
     const globalArns: [string, string | null][] = [
-      ['certificate', this.properties.viewerCertificate.kind === 'acm' ? this.properties.viewerCertificate.certificateArn : null],
+      [
+        'certificate',
+        this.properties.viewerCertificate.kind === 'acm' ? this.properties.viewerCertificate.certificateArn : null,
+      ],
       ['web ACL', this.properties.webAclArn],
     ];
     for (const [subject, arn] of globalArns) {
@@ -696,7 +697,11 @@ function renderResponseHeadersPolicy(policy: CloudFrontResponseHeadersPolicySche
     ...((policy.customHeaders ?? []).length > 0
       ? {
           custom_headers_config: {
-            items: (policy.customHeaders ?? []).map((h) => ({ header: h.header, override: h.override, value: h.value })),
+            items: (policy.customHeaders ?? []).map((h) => ({
+              header: h.header,
+              override: h.override,
+              value: h.value,
+            })),
           },
         }
       : {}),
@@ -715,7 +720,7 @@ function renderResponseHeadersPolicy(policy: CloudFrontResponseHeadersPolicySche
                   },
                 }
               : {}),
-            ...(securityHeaders.contentTypeOptions ?? RENDER_DEFAULTS.securityHeaders.contentTypeOptions
+            ...((securityHeaders.contentTypeOptions ?? RENDER_DEFAULTS.securityHeaders.contentTypeOptions)
               ? { content_type_options: { override: true } }
               : {}),
             ...(securityHeaders.frameOptions === null

@@ -231,9 +231,7 @@ export class S3Website extends ATerraformResource<S3WebsiteSchema, S3Website> {
           },
         ]
       : this.properties.distributionResourceIds.map((distributionResourceId) => {
-          const distribution = this.parents.find(
-            (p) => p.getActual().resourceId === distributionResourceId,
-          )!;
+          const distribution = this.parents.find((p) => p.getActual().resourceId === distributionResourceId)!;
 
           return {
             Action: ['s3:GetObject'],

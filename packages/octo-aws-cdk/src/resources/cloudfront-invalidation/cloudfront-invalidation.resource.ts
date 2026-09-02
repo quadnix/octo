@@ -86,5 +86,4 @@ export class CloudFrontInvalidation extends AResource<CloudFrontInvalidationSche
   override diffUnpack(diff: Diff): Diff[] {
     return diff.field === 'resourceId' || diff.field === 'update-content-version' ? [diff] : [];
   }
-
 }

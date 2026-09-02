@@ -1,13 +1,5 @@
 import { CloudFrontClient, CreateInvalidationCommand } from '@aws-sdk/client-cloudfront';
-import {
-  ANodeAction,
-  Action,
-  type Diff,
-  DiffAction,
-  Factory,
-  type IResourceAction,
-  hasNodeName,
-} from '@quadnix/octo';
+import { ANodeAction, Action, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import type { CloudFrontClientFactory } from '../../../factories/aws-client.factory.js';
 import { CloudFrontInvalidation } from '../cloudfront-invalidation.resource.js';
 import type { CloudFrontInvalidationSchema } from '../index.schema.js';

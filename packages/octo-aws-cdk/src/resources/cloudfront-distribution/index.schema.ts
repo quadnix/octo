@@ -48,11 +48,7 @@ export type ICloudFrontValueSelection =
  *
  * @group Resources/CloudFrontDistribution
  */
-export type ICloudFrontFunctionEventType =
-  | 'origin-request'
-  | 'origin-response'
-  | 'viewer-request'
-  | 'viewer-response';
+export type ICloudFrontFunctionEventType = 'origin-request' | 'origin-response' | 'viewer-request' | 'viewer-response';
 
 /**
  * One origin the distribution can serve from.
@@ -96,7 +92,9 @@ export class CloudFrontOriginSchema {
    */
   @Validate({
     destruct: (value: CloudFrontOriginSchema['kind']): string[] =>
-      value.kind === 's3' ? [value.bucketName, value.bucketRegion] : [value.originProtocolPolicy, ...value.sslProtocols],
+      value.kind === 's3'
+        ? [value.bucketName, value.bucketRegion]
+        : [value.originProtocolPolicy, ...value.sslProtocols],
     options: { minLength: 1 },
   })
   kind = Schema<
@@ -238,7 +236,8 @@ export class CloudFrontBehaviorSchema {
    * Edge functions to run for this behavior. See {@link CloudFrontFunctionAssociationSchema}.
    */
   @Validate({
-    destruct: (value: CloudFrontBehaviorSchema['functionAssociations']): CloudFrontFunctionAssociationSchema[] => value!,
+    destruct: (value: CloudFrontBehaviorSchema['functionAssociations']): CloudFrontFunctionAssociationSchema[] =>
+      value!,
     options: { isSchema: { schema: CloudFrontFunctionAssociationSchema } },
   })
   functionAssociations? = Schema<CloudFrontFunctionAssociationSchema[]>([]);
@@ -695,9 +694,7 @@ export class CloudFrontDistributionSchema extends BaseResourceSchema {
     origins: CloudFrontOriginSchema[];
     priceClass: 'PriceClass_100' | 'PriceClass_200' | 'PriceClass_All';
     responseHeadersPolicies: CloudFrontResponseHeadersPolicySchema[];
-    viewerCertificate:
-      | { certificateArn: string; kind: 'acm'; minimumProtocolVersion: string }
-      | { kind: 'default' };
+    viewerCertificate: { certificateArn: string; kind: 'acm'; minimumProtocolVersion: string } | { kind: 'default' };
     webAclArn: string | null;
   }>();
 
