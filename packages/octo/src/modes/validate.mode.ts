@@ -158,6 +158,36 @@ interface PlanChange {
   tfActions: string[];
 }
 
+/**
+ * Renders what terraform said when a folder could not be planned.
+ *
+ * The captured output is the whole terragrunt run, which is mostly provider initialization and
+ * carries the terminal's escape codes. The one line a reader needs is somewhere in the middle of
+ * it, so the error lines are lifted to the top and the full log is kept underneath.
+ */
+function renderPlanFailure(moduleId: string, cause: string): string {
+  // eslint-disable-next-line no-control-regex
+  const plain = cause.replace(/\u001B\[[0-9;]*m/g, '');
+  // Duplicates are dropped after normalizing, because terraform prints the same error once on
+  // stderr and again in its summary, behind different prefixes.
+  const errorLines = [
+    ...new Set(
+      plain
+        .split('\n')
+        .filter((line) => /\bError:/.test(line))
+        .map((line) => line.replace(/^.*?\bError:/, 'Error:').trim()),
+    ),
+  ];
+
+  // Only worth lifting when there is noise to lift them out of. A log that is already just the
+  // error reads worse repeated than it does left alone.
+  const isBuried = errorLines.length > 0 && plain.trim().split('\n').length > errorLines.length;
+
+  return isBuried
+    ? `Terraform failed to plan module "${moduleId}":\n${errorLines.join('\n')}\n\nThe full terraform output follows.\n${plain}`
+    : `Terraform failed to plan module "${moduleId}":\n${plain}`;
+}
+
 const MAX_RENDERED_VALUE_LENGTH = 80;
 const MAX_REPORTED_FIELDS = 12;
 
@@ -391,7 +421,7 @@ export async function validate({
       const cause = planErrors.get(moduleId);
       report.failures.push({
         message: cause
-          ? `Terraform failed to plan module "${moduleId}":\n${cause}`
+          ? renderPlanFailure(moduleId, cause)
           : `No terraform plan was supplied for module "${moduleId}", so octo cannot report on it.`,
         moduleId,
       });
