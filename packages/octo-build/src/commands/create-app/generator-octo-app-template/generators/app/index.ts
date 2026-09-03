@@ -1,7 +1,27 @@
+import { readFileSync } from 'fs';
 import { readdir, stat } from 'fs/promises';
 import type { Stats } from 'node:fs';
-import { join, resolve } from 'path';
+import { dirname, join, resolve } from 'path';
+import { fileURLToPath } from 'url';
 import Generator, { type BaseOptions } from 'yeoman-generator';
+
+/**
+ * `@quadnix/octo-aws-cdk` is versioned on its own and is not a dependency of this package, so its
+ * range cannot be derived. Bump it when octo-aws-cdk releases a minor.
+ *
+ * @internal
+ */
+const AWS_CDK_VERSION = '~0.2.0';
+
+/**
+ * @internal
+ */
+const octoBuildManifest: { dependencies: Record<string, string>; version: string } = JSON.parse(
+  readFileSync(
+    join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..', '..', '..', 'package.json'),
+    'utf8',
+  ),
+);
 
 /**
  * @internal
@@ -113,10 +133,12 @@ export default class extends Generator {
       version: '0.0.1',
     });
     await this.addDependencies({
-      '@quadnix/octo': '0.0.x',
-      '@quadnix/octo-aws-cdk': '0.0.x',
-      '@quadnix/octo-build': '0.0.x',
-      '@quadnix/octo-event-listeners': '0.0.x',
+      // Read from our own manifest rather than written out here, so a release of these packages
+      // cannot leave the scaffold pinned to a version that predates the docs.
+      '@quadnix/octo': octoBuildManifest.dependencies['@quadnix/octo'],
+      '@quadnix/octo-aws-cdk': AWS_CDK_VERSION,
+      '@quadnix/octo-build': `~${octoBuildManifest.version}`,
+      '@quadnix/octo-event-listeners': octoBuildManifest.dependencies['@quadnix/octo-event-listeners'],
     });
     await this.addDevDependencies({
       '@eslint/js': '^9.33.0',
