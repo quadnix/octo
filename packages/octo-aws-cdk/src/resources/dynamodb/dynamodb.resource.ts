@@ -231,22 +231,30 @@ export class DynamoDB extends ATerraformResource<DynamoDBSchema, DynamoDB> {
    * @internal
    */
   override async diffProperties(previous: DynamoDB): Promise<Diff[]> {
-    if (
-      !DiffUtility.isObjectDeepEquals(previous.properties, this.properties, [
-        'AttributeDefinitions',
-        'billingMode',
-        'GlobalSecondaryIndexes',
-        'StreamSpecification',
-        'timeToLiveAttribute',
-      ])
-    ) {
+    // Everything else on the table can be changed in place. A change to anything outside this set
+    // recreates it, and the reason names which one, because a table that is about to be destroyed
+    // is the moment a reader most needs to know why.
+    const changeableInPlace = [
+      'AttributeDefinitions',
+      'billingMode',
+      'GlobalSecondaryIndexes',
+      'StreamSpecification',
+      'timeToLiveAttribute',
+    ];
+    if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties, changeableInPlace)) {
+      const forceNewKeys = Object.keys(this.properties)
+        .filter((k) => !changeableInPlace.includes(k))
+        .filter((k) => !DiffUtility.isObjectDeepEquals({ k: previous.properties[k] }, { k: this.properties[k] }))
+        .sort();
+
       return [
         new Diff(
           this,
           DiffAction.REPLACE,
           'resourceId',
           this.getContext(),
-          'name is force-new on aws_dynamodb_table; a change recreates the table',
+          `${forceNewKeys.join(', ')} ${forceNewKeys.length === 1 ? 'is' : 'are'} force-new on ` +
+            'aws_dynamodb_table; a change recreates the table',
         ),
       ];
     }
