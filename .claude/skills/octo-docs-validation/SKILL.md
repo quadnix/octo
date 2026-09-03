@@ -108,3 +108,26 @@ starting a page group: these classes repeat, and knowing them is most of the ski
 
 `reference/coverage.md` tracks which pages have been run and which have not. Update it as part of
 the run. A page nobody has executed is worth more than a page executed twice.
+
+## What does not need running here
+
+The goal is that every surface is exercised somewhere, not that this skill exercises all of them.
+A page already covered by something that runs is covered; chasing it again costs a run and proves
+nothing new.
+
+- **`octo-templates` package tests.** They run the real lifecycle against a real account, including
+  drift and incremental cases. A claim those suites already assert does not need repeating.
+- **`using-octo/troubleshooting`.** Its messages surface on their own as infrastructure gets built,
+  and each one met that way is worth more than one forced. Check the entry for any message you
+  actually hit, and correct it then. Do not invent a scenario to trigger the rest.
+- **`techniques/github-actions-pipeline`.** Not to be exercised yet. `apps/octo-docs` releases
+  through a pipeline of the same shape, so the arrangement is not untried. What is worth checking
+  from here is the part that breaks silently: the field names its comment script reads out of the
+  report JSON.
+- **`building-modules/publishing-a-library`.** Needs a registry and a second consuming project.
+  Deferred until there is a real library to publish.
+- **Anything that bills by the hour** with no question attached to it. A NAT gateway or a load
+  balancer is worth creating to answer something, not to tick a page.
+
+Record these as covered elsewhere rather than as gaps, and say where. A page listed as open should
+be one nothing exercises, because that list is the reason to read this file.

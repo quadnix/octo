@@ -416,6 +416,17 @@ output to this repository, which is public, so the ciphertext is downloadable by
 is the whole of the defence. Every deployment before this one kept its state private, which is why
 none of the properties below has mattered yet.
 
+**0. The key was not the key (fixed, but the ciphertext is already published).**
+`settings.stateProvider.encryptionKey` was handed to the provider exactly as written in octo.yaml,
+with no environment resolution, so `apps/octo-docs`'s state was encrypted under the literal string
+`${env.OCTO_STATE_ENCRYPTION_KEY}` — printed three lines above it in the same public file. Every
+committed `.enc` under `apps/octo-docs/.octo/` opens with it: the model graph, the resource graph,
+and a 16 MB terraform state. What that discloses is the AWS account number and every ARN, not
+credentials; nothing scanned for an access key or a token found one. The resolution bug is fixed, so
+the next run re-encrypts under the real key, but published git history does not change and should be
+treated as read. Sequence this with the rotation command below, because rotating is what makes the
+published copy worthless.
+
 **What the docs promise.** `state-providers.mdx` says of the encrypting provider: "The point is that
 the result is safe to commit, which gives a small team shared state with nothing to run." Three
 properties of the implementation qualify that sentence, and none of them is written down anywhere a
@@ -469,6 +480,53 @@ threat model that "safe to commit" assumes.
 
 ---
 
+## IV.7 — A listener of your own cannot be registered from octo.yaml
+
+**Status:** open, and documented as a gap rather than as a feature.
+
+**What exists.** Octo narrates its whole run as events, and the stream is public: forty-five event
+classes in nine families, `@OnEvent` subscribes by class, and subscribing to a base class catches
+its subclasses. Two listeners ship, `LoggingEventListener` and `HtmlReportEventListener`, and
+`settings.listeners` names them by type.
+
+**What does not.** `settings.listeners` accepts those two types and nothing else. Registering a
+listener class of your own means `octo.initialize(stateProvider, [{ type: MyListener }])`, which is
+driving Octo from TypeScript, and there is no path from a definition file to that call.
+`techniques/events-and-listeners.mdx` says so plainly today rather than teaching the call, which is
+the right treatment for an unreachable extension point, and it leaves the three things the page
+suggests building (a pull request comment, an audit trail, a gate) reachable only by parsing the
+JSON the HTML listener writes.
+
+**Why it matters more than it looks.** The events stream is the seam the platform's own features are
+meant to ride on, and a seam nobody outside the framework can attach to is a seam in name only. It
+is also the second capability found in this shape: `registerSchemaTranslation` has exactly the same
+problem, exists on the `Octo` class, is called by nothing but its own unit test, and is now
+documented as a gap in `techniques/schema.mdx`. Two is a pattern worth deciding about once.
+
+**Design questions, all open:**
+
+- **How a class is named.** `imports` already binds a class name to a package for modules, and a
+  listener could reuse it. `hooks` takes a different shape, an `importPath` plus a `method`
+  returning what to register, which suits a listener less well because there is nothing to return.
+- **Whether the same key covers translations.** A schema translation is registered against the same
+  object at the same moment. One mechanism that registers whatever a project brings, listeners and
+  translations alike, is probably one key rather than two.
+- **What a listener may do.** A listener that throws is a hook by accident. The distinction the docs
+  draw, that a listener observes and a hook participates, has to survive contact with user code, so
+  decide whether an exception from a listener is swallowed or fatal.
+- **Ordering.** Two listeners on one event, and the built-ins among them: `LoggingEventListener`
+  owns stdout, so a user listener that prints has to be told to use stderr or be sequenced after it.
+
+**Relationship to the rest of this document.** No state rewrite, no migration, and no dependency on
+Part I. It is a definition-file surface addition, the same class of change as IV.2's adoption key,
+and worth doing at the same time as that one because both add a top-level concern to octo.yaml.
+
+**Exit criteria:** a project declares its own listener class in `octo.yaml`, the class receives the
+events it subscribed to on a real run, and `techniques/events-and-listeners.mdx` teaches the
+declaration instead of naming the gap.
+
+---
+
 # Sequencing summary
 
 1. **Part I vocabulary split** — inside the v2 serialization window (context-string migration).
@@ -491,10 +549,12 @@ threat model that "safe to commit" assumes.
 11. **IV.5** — before the first module that has a secret to declare, which is `aws-kms` or the
     secrets dependency behind Wave D at the latest. Cheap while nothing is marked; a migration once
     something is.
-12. **IV.6** — rotation first, and soon: `apps/octo-docs` is publishing encrypted state to a public
-    repository on every release, so the exposure grows with each commit and there is no way back from
-    a key that turns out to be weak. The KDF and IV fixes ride on the rotation command once it
+12. **IV.6** — rotation first, and now rather than soon: the published state was encrypted under a
+    placeholder that is printed beside it, so the exposure is already real rather than a question of
+    key strength. Rotation is what retires it; the KDF and IV fixes ride on that command once it
     exists. Answer it with IV.5's provider question rather than twice.
+13. **IV.7** — with IV.2, since both add a top-level key to octo.yaml and the shape of one informs
+    the other. No dependency on any wave.
 
 Every module lands with: schema-documented decision surface, anchors declared, actions
 single-responsibility, localstack/moto module tests + snapshots, and one end-to-end verification

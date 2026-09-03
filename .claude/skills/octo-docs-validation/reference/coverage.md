@@ -4,7 +4,10 @@ Which pages have been executed, not merely read. Update this as part of every ru
 
 Legend: **run** the page was carried out and its output compared; **read** its claims were checked
 against artifacts a run produced, but the page itself has no commands; **part** some of its surfaces
-were exercised and the notes say which were not; **open** neither.
+were exercised and the notes say which were not; **elsewhere** something outside this skill
+exercises it, named in the notes; **open** nothing exercises it.
+
+Only **open** is a gap.
 
 Last updated: 2026-09-03.
 
@@ -35,7 +38,7 @@ overlay's anchors and properties, and the dependency behaviours.
 | `reading-a-validate-report`            | run   | All four outcomes produced deliberately.                                          |
 | `tagging-resources`                    | run   | Both scopes, and all three documented tag errors.                                 |
 | `destroying-infrastructure`            | run   | Single-module removal and full teardown.                                          |
-| `troubleshooting`                      | open  | Read, never exercised message by message.                                         |
+| `troubleshooting`                      | elsewhere | Its messages surface on their own as infrastructure gets built. Correct the entry for any message a run actually hits; do not force the rest. |
 
 ## Building Modules
 
@@ -44,7 +47,8 @@ module, schema, model, model action, anchor, Terraform resource, overlay, overla
 unit test harness. `create-external-resource`'s scaffold was generated and compiled but not
 implemented; the external-resource machinery itself was exercised through `AwsEcrImageTagModule`.
 
-`publishing-a-library` is **open**: read, never carried out.
+`publishing-a-library` is **elsewhere**: it needs a registry and a second consuming project, and
+waits for a real library to publish.
 
 ## Techniques
 
@@ -55,17 +59,23 @@ implemented; the external-resource machinery itself was exercised through `AwsEc
 | `events-and-listeners`     | part  | The event count and families counted from source; both shipped listeners registered and their output checked. **Open:** a listener of your own, which the page itself says cannot be named from `octo.yaml`. |
 | `hooks`                    | run   | The page's own example, both `postModelActionHooks` and `preCommitHooks`, through a real apply and commit. |
 | `state-providers`          | run   | `LocalEncryptionStateProvider` end to end, the `.enc` suffix on every file, the key from the shell, the `.gitignore` re-inclusion, and the wrong-key path. |
-| `github-actions-pipeline`  | part  | The report JSON the comment script parses, field by field. **Open:** everything that needs a repository and a runner. |
+| `github-actions-pipeline`  | elsewhere | Not to be exercised from here yet. `apps/octo-docs` releases through a pipeline of this shape. The part worth checking from a run is the report JSON its comment script parses, which has been, field by field. |
 
 ## Reference
 
 | Page                            | State | Notes                                                                        |
 |---------------------------------|-------|-------------------------------------------------------------------------------|
 | `cli`                           | run   | Every command listed, plus lock semantics and flags. `commit --partial` open.  |
-| `aws-module-catalog`            | part  | App, account, both regions, subnet, environment, server, deployment, execution, image, S3 storage, S3 website, DynamoDB. **Open as applied infrastructure:** ALB, EFS, DynamoDB global; their inputs are written down but never created. |
-| `templates`                     | part  | All three scaffolded and their module lists checked. `aws-s3-website` and `aws-dynamodb-service` run end to end; `aws-ecs-server` not run, because it creates a NAT gateway and a load balancer that bill by the hour. |
+| `aws-module-catalog`            | part  | App, account, both regions, subnet, environment, server, deployment, execution, image, S3 storage, S3 website, DynamoDB applied from here. ALB, EFS and DynamoDB global are **elsewhere**: their inputs are written down, and `octo-templates` stands the ALB up. |
+| `templates`                     | part  | All three scaffolded and their module lists checked. `aws-s3-website` and `aws-dynamodb-service` run end to end. `aws-ecs-server` is **elsewhere**: the `octo-templates` package runs it, including its drift and incremental suites, and it bills by the hour to stand up here. |
 
 ## Contribution Guide
 
-`contributions/nx.contribution` and `contributions/tsconfig.contribution` are **open**. Generated
-pages with explicit slugs.
+`contributions/nx.contribution` and `contributions/tsconfig.contribution` are generated from the
+files they document, with explicit slugs. Nothing to run.
+
+## Still genuinely open
+
+Nothing. Every page is either run from here or exercised by something named above. The narrow
+surfaces still untried are listed in their rows: `commit --partial`, `setRegionAttribute`, the
+`resource` and `overlay` reference forms, and `octo build`.
