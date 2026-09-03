@@ -132,8 +132,12 @@ export class AwsEcsServerModule extends AModule<AwsEcsServerModuleSchema, AwsEcs
           }
           const s3DirectoryAnchor = matchingAnchors[0];
 
+          // The bucket is part of what defines this grant. Without it, one server given the same
+          // directory path in two buckets derives the same overlay ID twice, and the second one
+          // fails to compose with "Overlay already exists!".
           const overlayIdSuffix = CommonUtility.hash(
             iamRoleAnchor.anchorId,
+            s3DirectoryAnchor.getSchemaInstance().properties.bucketName,
             directory.remoteDirectoryPath,
             directory.access,
           ).substring(0, 12);

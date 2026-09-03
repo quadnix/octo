@@ -115,13 +115,13 @@ The grant itself is not on the server and not on the bucket. It is its own node:
         }
       }
     ],
-    "overlayId": "aws-ecs-server-s3-access-overlay-2bb8580c0e3c",
+    "overlayId": "aws-ecs-server-s3-access-overlay-937a53bb02a4",
     "properties": {
       "allowRead": true,
       "allowWrite": true,
       "bucketName": "shop-receipts",
       "iamRoleName": "ServerRole-checkout",
-      "iamRolePolicyId": "aws-ecs-server-s3-access-overlay-2bb8580c0e3c",
+      "iamRolePolicyId": "aws-ecs-server-s3-access-overlay-937a53bb02a4",
       "remoteDirectoryPath": "uploads"
     }
   }
@@ -246,9 +246,9 @@ Now the three levels of the validate report are the three artifacts above, stack
 ```text
   + added server=checkout  [server=checkout,app=shop | checkout-server-module | +4]
       + iam-role-ServerRole-checkout
-          + aws_iam_policy.iam-role-ServerRole-checkout_aws-ecs-server-s3-access-overlay-2bb8580c0e3c
+          + aws_iam_policy.iam-role-ServerRole-checkout_aws-ecs-server-s3-access-overlay-937a53bb02a4
           + aws_iam_role_policy_attachment.iam-role-ServerRole-checkout_AmazonECSTaskExecutionRolePolicy
-          + aws_iam_role_policy_attachment.iam-role-ServerRole-checkout_aws-ecs-server-s3-access-overlay-2bb8580c0e3c_attach
+          + aws_iam_role_policy_attachment.iam-role-ServerRole-checkout_aws-ecs-server-s3-access-overlay-937a53bb02a4_attach
           + aws_iam_role.iam-role-ServerRole-checkout
 ```
 
@@ -264,8 +264,8 @@ link between them is the mapping Octo records at commit:
   "terraformAddresses": [
     "aws_iam_role.iam-role-ServerRole-checkout",
     "aws_iam_role_policy_attachment.iam-role-ServerRole-checkout_AmazonECSTaskExecutionRolePolicy",
-    "aws_iam_policy.iam-role-ServerRole-checkout_aws-ecs-server-s3-access-overlay-2bb8580c0e3c",
-    "aws_iam_role_policy_attachment.iam-role-ServerRole-checkout_aws-ecs-server-s3-access-overlay-2bb8580c0e3c_attach"
+    "aws_iam_policy.iam-role-ServerRole-checkout_aws-ecs-server-s3-access-overlay-937a53bb02a4",
+    "aws_iam_role_policy_attachment.iam-role-ServerRole-checkout_aws-ecs-server-s3-access-overlay-937a53bb02a4_attach"
   ]
 }
 ```

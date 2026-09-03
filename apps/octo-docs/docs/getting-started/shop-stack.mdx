@@ -351,9 +351,9 @@ You added server=checkout (+1 other change). That creates 5 new things.
 WHAT WILL CHANGE
   + added server=checkout  [server=checkout,app=shop | checkout-server-module | +4]
       + iam-role-ServerRole-checkout
-          + aws_iam_policy.iam-role-ServerRole-checkout_aws-ecs-server-s3-access-overlay-2bb8580c0e3c
+          + aws_iam_policy.iam-role-ServerRole-checkout_aws-ecs-server-s3-access-overlay-937a53bb02a4
           + aws_iam_role_policy_attachment.iam-role-ServerRole-checkout_AmazonECSTaskExecutionRolePolicy
-          + aws_iam_role_policy_attachment.iam-role-ServerRole-checkout_aws-ecs-server-s3-access-overlay-2bb8580c0e3c_attach
+          + aws_iam_role_policy_attachment.iam-role-ServerRole-checkout_aws-ecs-server-s3-access-overlay-937a53bb02a4_attach
           + aws_iam_role.iam-role-ServerRole-checkout
   + added service=shop-receipts-s3-storage  [service=shop-receipts-s3-storage,app=shop | receipts-module | +1]
       + bucket-shop-receipts
@@ -378,9 +378,9 @@ graph LR
 The actions are in the generated file, if you want to see exactly what `READ_WRITE` bought:
 
 ```hcl title=".octo-tf/checkout-server-module/main.tf"
-resource "aws_iam_policy" "iam-role-ServerRole-checkout_aws-ecs-server-s3-access-overlay-2bb8580c0e3c" {
+resource "aws_iam_policy" "iam-role-ServerRole-checkout_aws-ecs-server-s3-access-overlay-937a53bb02a4" {
   provider = aws._123456789012-eu-west-1
-  name = "aws-ecs-server-s3-access-overlay-2bb8580c0e3c"
+  name = "aws-ecs-server-s3-access-overlay-937a53bb02a4"
   policy = jsonencode({
     Statement = [{
         Action = ["s3:GetObject", "s3:GetObjectAttributes", "s3:GetObjectTagging", "s3:GetObjectVersionAcl", "s3:GetObjectVersionAttributes", "s3:GetObjectVersionTagging"]

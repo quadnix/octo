@@ -103,8 +103,8 @@ describe('AwsEcsServerModule E2E', () => {
      [
        "aws_iam_role.iam-role-ServerRole-backend",
        "aws_iam_role_policy_attachment.iam-role-ServerRole-backend_AmazonECSTaskExecutionRolePolicy",
-       "aws_iam_policy.iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-e9dc96db328e",
-       "aws_iam_role_policy_attachment.iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-e9dc96db328e_attach",
+       "aws_iam_policy.iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-f5e52fdb60ea",
+       "aws_iam_role_policy_attachment.iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-f5e52fdb60ea_attach",
        "aws_s3_bucket.bucket-test-bucket",
        "aws_s3_bucket_policy.bucket-test-bucket-policy",
      ]

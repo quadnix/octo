@@ -126,9 +126,9 @@ describe('AwsEcsServerModule UT', () => {
        depends_on = [aws_iam_role.iam-role-ServerRole-backend]
      }
 
-     resource "aws_iam_policy" "iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-e9dc96db328e" {
+     resource "aws_iam_policy" "iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-f5e52fdb60ea" {
        provider = aws._123-us-east-1
-       name = "aws-ecs-server-s3-access-overlay-e9dc96db328e"
+       name = "aws-ecs-server-s3-access-overlay-f5e52fdb60ea"
        policy = jsonencode({
          Statement = [{
              Action = ["s3:GetObject", "s3:GetObjectAttributes", "s3:GetObjectTagging", "s3:GetObjectVersionAcl", "s3:GetObjectVersionAttributes", "s3:GetObjectVersionTagging"]
@@ -152,12 +152,12 @@ describe('AwsEcsServerModule UT', () => {
        depends_on = [aws_iam_role_policy_attachment.iam-role-ServerRole-backend_AmazonECSTaskExecutionRolePolicy]
      }
 
-     resource "aws_iam_role_policy_attachment" "iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-e9dc96db328e_attach" {
+     resource "aws_iam_role_policy_attachment" "iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-f5e52fdb60ea_attach" {
        provider = aws._123-us-east-1
-       policy_arn = aws_iam_policy.iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-e9dc96db328e.arn
+       policy_arn = aws_iam_policy.iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-f5e52fdb60ea.arn
        role = aws_iam_role.iam-role-ServerRole-backend.name
 
-       depends_on = [aws_iam_policy.iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-e9dc96db328e]
+       depends_on = [aws_iam_policy.iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-f5e52fdb60ea]
      }
 
      # server/outputs.tf
