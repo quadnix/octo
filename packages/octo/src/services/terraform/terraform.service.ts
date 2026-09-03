@@ -1276,7 +1276,7 @@ export class TerraformService {
 
   /**
    * Prints one folder's `terragrunt.hcl`: a `dependency` block per producer folder (with
-   * `mock_outputs`, shallow-merged over any applied state, so `run-all plan` works both before the
+   * `mock_outputs`, shallow-merged over any applied state, so `run --all -- plan` works both before the
    * first apply and when intent renames a producer resource), and the `inputs` map wiring each auto
    * variable to the producer's output.
    */
@@ -1305,7 +1305,7 @@ export class TerraformService {
       ].join('\n'),
     );
 
-    // Dependency blocks, with mock outputs so `run-all plan` works before first apply.
+    // Dependency blocks, with mock outputs so `run --all -- plan` works before first apply.
     for (const producerModuleId of [...moduleWiring.moduleDependencies.keys()].sort()) {
       const dependencyName = StringUtility.sanitizeForIdentifier(producerModuleId);
       // Map each consumed output name to its mock shape: a flat string for per-key scalar outputs,

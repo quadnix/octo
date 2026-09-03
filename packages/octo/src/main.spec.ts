@@ -58,7 +58,7 @@ describe('Main UT', () => {
     it('should record what applied and leave the rest uncommitted on a partial commit', async () => {
       const graph = await testModes.createResourceGraph();
       await testModes.generate(graph.app, { outputDir: testModes.outputDir });
-      // Only one of the two folders applied, which is what a failed `run-all apply` leaves behind.
+      // Only one of the two folders applied, which is what a failed `run --all -- apply` leaves behind.
       testModes.writeTfState('region-module', { 'igw-1': { igwId: 'igw-0real' }, 'vpc-1-VpcId': 'vpc-0real' });
 
       const { warnings } = await testModes.commit(graph.app, { outputs: testModes.outputs, partial: true });

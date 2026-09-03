@@ -96,7 +96,7 @@ export class TerraformUtility {
   }
 
   /**
-   * Runs `terragrunt run-all apply` over every generated module folder.
+   * Runs `terragrunt run --all -- apply` over every generated module folder.
    *
    * **This changes real infrastructure**, and runs with `-auto-approve`. Use
    * {@link TerraformUtility.findPlannedDestroys} beforehand if a destroy needs confirming.
@@ -113,7 +113,7 @@ export class TerraformUtility {
   }
 
   /**
-   * Runs `terragrunt run-all destroy` over every generated module folder.
+   * Runs `terragrunt run --all -- destroy` over every generated module folder.
    *
    * **This tears down real infrastructure**, and runs with `-auto-approve`.
    */
@@ -261,7 +261,7 @@ export class TerraformUtility {
     return this;
   }
   /**
-   * Runs `terragrunt run-all validate` over every generated module folder, checking the generated
+   * Runs `terragrunt run --all -- validate` over every generated module folder, checking the generated
    * HCL is well-formed. Unrelated to {@link Octo.validate}, which compares plans against intent.
    */
   async validate(terragruntDir: string): Promise<TerraformRawResult> {

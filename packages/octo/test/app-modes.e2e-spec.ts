@@ -427,7 +427,7 @@ describe('App Modes E2E Test', () => {
 
       // sg-module is emptied from the previous generate's memory (models.json): if the user had
       // applied it, the next apply destroys sg; if not, the apply is a no-op — either way a
-      // `run-all apply` can no longer redeploy the deleted module.
+      // `run --all -- apply` can no longer redeploy the deleted module.
       const sgMainTf = await readFile(join(testModes.outputDir, 'sg-module', 'main.tf'), 'utf-8');
       expect(sgMainTf).not.toContain('resource "');
       const sgTerragruntHcl = await readFile(join(testModes.outputDir, 'sg-module', 'terragrunt.hcl'), 'utf-8');
