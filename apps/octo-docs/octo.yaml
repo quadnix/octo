@@ -6,9 +6,12 @@ env:
   - key: AWS_ACCOUNT_ID
     kind: string
     value: "123456789123"
+  - key: AWS_CLOUDFRONT_CERTIFICATE_ARN
+    kind: string
+    value: "arn:aws:acm:us-east-1:123456789123:certificate/00000000-0000-0000-0000-000000000000"
   - key: AWS_S3_WEBSITE_BUCKET_NAME
     kind: string
-    value: octo.quadnix.com
+    value: octo-quadnix-com
   - key: OCTO_STATE_ENCRYPTION_KEY
     kind: string
     value: encryption-key
@@ -61,4 +64,15 @@ modules:
       account: "${{account-module.model.account}}"
       awsRegionId: us-east-1
       bucketName: "${env.AWS_S3_WEBSITE_BUCKET_NAME}"
+      cloudFront:
+        aliases:
+          - octo.quadnix.com
+        certificateArn: "${env.AWS_CLOUDFRONT_CERTIFICATE_ARN}"
+        notFoundBehavior: error-document
+        priceClass: PriceClass_100
       directoryPath: build
+
+tags:
+  - scope: {}
+    tags:
+      project: octo-docs
