@@ -661,59 +661,25 @@ export class TestModuleContainer {
 
     const inputService = await this.container.get(InputService);
 
-    for (const moduleId of filterByModuleIds) {
-      response.modelDiffs = response.modelDiffs
-        .map((i) =>
-          i.filter((j) => {
-            if (j.node instanceof AModel && !(j.node instanceof AOverlay)) {
-              return inputService.getModuleIdFromModel(j.node) === moduleId;
-            } else if (j.node instanceof AOverlay) {
-              return inputService.getModuleIdFromOverlay(j.node) === moduleId;
-            } else {
-              return false;
-            }
-          }),
-        )
-        .filter((i) => i.length);
+    if (filterByModuleIds.length > 0) {
+      const isFromModule = (node: DiffMetadata['node']): boolean => {
+        if (node instanceof AResource) {
+          return filterByModuleIds.includes(inputService.getModuleIdFromResource(node)!);
+        } else if (node instanceof AOverlay) {
+          return filterByModuleIds.includes(inputService.getModuleIdFromOverlay(node)!);
+        } else if (node instanceof AModel) {
+          return filterByModuleIds.includes(inputService.getModuleIdFromModel(node)!);
+        }
+        return false;
+      };
+      const keep = (diffs: DiffMetadata[][]): DiffMetadata[][] =>
+        diffs.map((i) => i.filter((j) => isFromModule(j.node))).filter((i) => i.length);
 
-      response.modelTransaction = response.modelTransaction
-        .map((i) =>
-          i.filter((j) => {
-            if (j.node instanceof AModel && !(j.node instanceof AOverlay)) {
-              return inputService.getModuleIdFromModel(j.node) === moduleId;
-            } else if (j.node instanceof AOverlay) {
-              return inputService.getModuleIdFromOverlay(j.node) === moduleId;
-            } else {
-              return false;
-            }
-          }),
-        )
-        .filter((i) => i.length);
-
-      response.resourceDiffs = response.resourceDiffs
-        .map((i) =>
-          i.filter((j) => {
-            if (j.node instanceof AResource) {
-              return inputService.getModuleIdFromResource(j.node) === moduleId;
-            } else {
-              return false;
-            }
-          }),
-        )
-        .filter((i) => i.length);
-
+      response.modelDiffs = keep(response.modelDiffs);
+      response.modelTransaction = keep(response.modelTransaction);
+      response.resourceDiffs = keep(response.resourceDiffs);
       if (!skipResourceTransaction) {
-        response.resourceTransaction = response.resourceTransaction
-          .map((i) =>
-            i.filter((j) => {
-              if (j.node instanceof AResource) {
-                return inputService.getModuleIdFromResource(j.node) === moduleId;
-              } else {
-                return false;
-              }
-            }),
-          )
-          .filter((i) => i.length);
+        response.resourceTransaction = keep(response.resourceTransaction);
       }
     }
 
