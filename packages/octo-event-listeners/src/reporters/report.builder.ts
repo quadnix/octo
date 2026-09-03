@@ -136,6 +136,7 @@ function attachTerraformChanges(
           address: change.address,
           changedFields: change.changedFields ?? [],
           kind: classifyTerraformActions(change.tfActions),
+          ...(change.omittedFieldCount ? { omittedFieldCount: change.omittedFieldCount } : {}),
         });
       }
     }

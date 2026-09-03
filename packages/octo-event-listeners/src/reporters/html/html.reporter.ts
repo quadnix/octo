@@ -89,7 +89,7 @@ function renderCounters(report: OctoReport): string {
  * Values are already rendered and truncated upstream — sensitive ones arrive as `(sensitive)`.
  */
 function renderChangedFields(row: ReportAddress): string {
-  if (row.changedFields.length === 0) {
+  if (row.changedFields.length === 0 && !row.omittedFieldCount) {
     return '';
   }
 
@@ -108,6 +108,9 @@ function renderChangedFields(row: ReportAddress): string {
           '</div>',
       )
       .join('') +
+    (row.omittedFieldCount
+      ? `<div class="field"><code class="field-name">... ${row.omittedFieldCount} more field(s) changed</code></div>`
+      : '') +
     '</div>'
   );
 }

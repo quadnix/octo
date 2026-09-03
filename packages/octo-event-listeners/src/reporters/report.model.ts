@@ -72,6 +72,11 @@ export interface ReportAddress {
   changedFields: { field: string; from?: string; to?: string }[];
   explanation?: string;
   kind: ChangeKind;
+  /**
+   * How many further arguments moved beyond the ones `changedFields` lists. Rendered so a capped
+   * list cannot be read as a complete one.
+   */
+  omittedFieldCount?: number;
 }
 
 /**

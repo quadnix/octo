@@ -61,9 +61,9 @@ This is the report the shop produced when checkout was given access to the recei
 WHAT WILL CHANGE
   + added server=checkout  [server=checkout,app=shop | checkout-server-module | +4]
       + iam-role-ServerRole-checkout
-          + aws_iam_policy.iam-role-ServerRole-checkout_aws-ecs-server-s3-access-overlay-2bb8580c0e3c
+          + aws_iam_policy.iam-role-ServerRole-checkout_aws-ecs-server-s3-access-overlay-937a53bb02a4
           + aws_iam_role_policy_attachment.iam-role-ServerRole-checkout_AmazonECSTaskExecutionRolePolicy
-          + aws_iam_role_policy_attachment.iam-role-ServerRole-checkout_aws-ecs-server-s3-access-overlay-2bb8580c0e3c_attach
+          + aws_iam_role_policy_attachment.iam-role-ServerRole-checkout_aws-ecs-server-s3-access-overlay-937a53bb02a4_attach
           + aws_iam_role.iam-role-ServerRole-checkout
   + added service=shop-receipts-s3-storage  [service=shop-receipts-s3-storage,app=shop | receipts-module | +1]
       + bucket-shop-receipts
@@ -107,13 +107,22 @@ WHAT WILL CHANGE
       ± vpc-eu-west-1
           why: cidr_block is force-new on aws_vpc; a change recreates the VPC
           ± aws_vpc.vpc-eu-west-1
+              arn: arn:aws:ec2:eu-west-1:123456789012:vpc/vpc-0d3099895f7b48db1 → (known after apply)
+              assign_generated_ipv6_cidr_block: false → (none)
               cidr_block: 10.0.0.0/16 → 10.1.0.0/16
-              id: vpc-01aab0789f6cac9e6 → (known after apply)
-              default_route_table_id: rtb-02b3d87f77dcd3cad → (known after apply)
-              ... 9 more attributes
+              default_network_acl_id: acl-088931691364d585e → (known after apply)
+              default_route_table_id: rtb-02ef2366b9195690b → (known after apply)
+              default_security_group_id: sg-050561d184c86b8b6 → (known after apply)
+              dhcp_options_id: dopt-cc920faa → (known after apply)
+              enable_network_address_usage_metrics: false → (known after apply)
+              id: vpc-0d3099895f7b48db1 → (known after apply)
+              ipv6_association_id:  → (known after apply)
+              ipv6_cidr_block:  → (known after apply)
+              ipv6_cidr_block_network_border_group:  → (known after apply)
+              ... 4 more field(s) changed
       ~ igw-eu-west-1
           ~ aws_internet_gateway.igw-eu-west-1
-              vpc_id: vpc-01aab0789f6cac9e6 → (known after apply)
+              vpc_id: vpc-0d3099895f7b48db1 → (known after apply)
 ```
 
 Three things in there a plan does not give you.
@@ -123,7 +132,8 @@ explain a recreate rather than only display one. Somebody knew that `cidr_block`
 this provider, wrote it down once, and every reader of every future report gets it.
 
 The field lines say which argument moved. On a replace, that is the whole question: `cidr_block` is
-the one that caused it, and everything else is a consequence.
+the one that caused it, and everything else is a consequence. A card lists twelve fields and then
+counts the rest, so a list ending without that last line is the complete one.
 
 And the internet gateway is in the report because the VPC's ID is about to change under it. Nothing
 in the definition file mentions the gateway; Octo attributes the change to the VPC whose identity

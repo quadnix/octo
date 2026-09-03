@@ -39,6 +39,11 @@ export interface ValidateTerraformChange {
    * Left empty on a plain create or delete, where the address and the action already say everything.
    */
   changedFields: ValidateFieldChange[];
+  /**
+   * How many further arguments moved that `changedFields` does not list. Absent means none were
+   * left out: a reader of a replace has to be able to tell a complete field list from a capped one.
+   */
+  omittedFieldCount?: number;
   tfActions: string[];
 }
 
@@ -149,6 +154,7 @@ interface MockCause {
  */
 interface PlanChange {
   changedFields: ValidateFieldChange[];
+  omittedFieldCount: number;
   tfActions: string[];
 }
 
@@ -226,22 +232,30 @@ function isMarked(marks: Record<string, unknown> | boolean | null | undefined, k
  */
 function describeFieldChanges(
   change: NonNullable<NonNullable<TerraformPlan['resource_changes']>[number]['change']>,
-): ValidateFieldChange[] {
+): { fields: ValidateFieldChange[]; omittedFieldCount: number } {
   const actions = new Set(change.actions ?? []);
   // A plain create or delete needs no field list: the address and the action are the whole story.
   const isUpdate = actions.has('update');
   const isReplace = actions.has('create') && actions.has('delete');
   if (!isUpdate && !isReplace) {
-    return [];
+    return { fields: [], omittedFieldCount: 0 };
   }
 
   const before = (change.before ?? {}) as Record<string, unknown>;
   const after = (change.after ?? {}) as Record<string, unknown>;
   const fields: ValidateFieldChange[] = [];
+  let omittedFieldCount = 0;
 
   for (const key of [...new Set([...Object.keys(before), ...Object.keys(after)])].sort()) {
     const unknownAfter = isMarked(change.after_unknown, key);
     if (!unknownAfter && JSON.stringify(before[key]) === JSON.stringify(after[key])) {
+      continue;
+    }
+
+    // Past the cap the field is still counted, so the report can say how many it left out rather
+    // than ending on a list the reader cannot tell is complete.
+    if (fields.length === MAX_REPORTED_FIELDS) {
+      omittedFieldCount++;
       continue;
     }
 
@@ -254,13 +268,9 @@ function describeFieldChanges(
           ? '(sensitive)'
           : renderPlanValue(after[key]),
     });
-
-    if (fields.length === MAX_REPORTED_FIELDS) {
-      break;
-    }
   }
 
-  return fields;
+  return { fields, omittedFieldCount };
 }
 
 /**
@@ -355,8 +365,12 @@ export async function validate({
       if (resourceChange.mode === 'data') {
         continue;
       }
+      const described = resourceChange.change
+        ? describeFieldChanges(resourceChange.change)
+        : { fields: [], omittedFieldCount: 0 };
       changes.set(resourceChange.address, {
-        changedFields: resourceChange.change ? describeFieldChanges(resourceChange.change) : [],
+        changedFields: described.fields,
+        omittedFieldCount: described.omittedFieldCount,
         tfActions: resourceChange.change?.actions ?? [],
       });
     }
@@ -367,7 +381,7 @@ export async function validate({
   const sweptModuleIds = new Set(terraformService.getModuleIds());
   const trackedModuleIds = new Set([...sweptModuleIds, ...previousFolders.map((folder) => folder.moduleId)]);
   const planChangesByModule = new Map<string, Map<string, PlanChange>>();
-  const NO_PLAN_CHANGE: PlanChange = { changedFields: [], tfActions: [] };
+  const NO_PLAN_CHANGE: PlanChange = { changedFields: [], omittedFieldCount: 0, tfActions: [] };
 
   // Every module the sweep filled must have a plan. `getModuleIds()` only lists modules that
   // contributed a resource, so a missing plan means terraform ran on a real folder and failed.
@@ -578,7 +592,14 @@ export async function validate({
     const addressActions = mapping.terraformAddresses.map((address) => {
       claim(mapping.moduleId, address);
       const planChange = planChanges.get(address) ?? NO_PLAN_CHANGE;
-      return { address, changedFields: planChange.changedFields, tfActions: planChange.tfActions };
+      return {
+        address,
+        changedFields: planChange.changedFields,
+        // Omitted entirely when nothing was left out, so a report payload only carries the key
+        // where it has something to say.
+        ...(planChange.omittedFieldCount ? { omittedFieldCount: planChange.omittedFieldCount } : {}),
+        tfActions: planChange.tfActions,
+      };
     });
 
     // A resource can render a variable number of addresses — one rule resource per security group
@@ -679,11 +700,16 @@ export async function validate({
     const terraformChanges: ValidateTerraformChange[] = [];
 
     for (const address of persisted.terraformAddresses) {
-      const { changedFields, tfActions } = planChanges.get(address) ?? NO_PLAN_CHANGE;
+      const { changedFields, omittedFieldCount, tfActions } = planChanges.get(address) ?? NO_PLAN_CHANGE;
       claim(persisted.moduleId, address);
 
       if (!isNoop(tfActions)) {
-        terraformChanges.push({ address, changedFields, tfActions });
+        terraformChanges.push({
+          address,
+          changedFields,
+          ...(omittedFieldCount ? { omittedFieldCount } : {}),
+          tfActions,
+        });
       }
     }
 

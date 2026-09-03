@@ -61,6 +61,9 @@ function resourceLines(resource: ReportResource, indent: string): string[] {
     for (const field of row.changedFields) {
       lines.push(`${inner}    ${field.field}: ${field.from ?? '-'} → ${field.to ?? '-'}`);
     }
+    if (row.omittedFieldCount) {
+      lines.push(`${inner}    ... ${row.omittedFieldCount} more field(s) changed`);
+    }
   }
 
   return lines;
