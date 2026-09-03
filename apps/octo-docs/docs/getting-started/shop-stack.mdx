@@ -383,10 +383,20 @@ resource "aws_iam_policy" "iam-role-ServerRole-checkout_aws-ecs-server-s3-access
   name = "aws-ecs-server-s3-access-overlay-2bb8580c0e3c"
   policy = jsonencode({
     Statement = [{
-        Action = ["s3:GetObject", "s3:GetObjectAttributes", "s3:GetObjectTagging", "s3:GetObjectVersionAcl", "s3:GetObjectVersionAttributes", "s3:GetObjectVersionTagging", "s3:ListBucket"]
+        Action = ["s3:GetObject", "s3:GetObjectAttributes", "s3:GetObjectTagging", "s3:GetObjectVersionAcl", "s3:GetObjectVersionAttributes", "s3:GetObjectVersionTagging"]
         Effect = "Allow"
         Resource = ["arn:aws:s3:::shop-receipts/uploads", "arn:aws:s3:::shop-receipts/uploads/*"]
         Sid = "Allowreadfrombucketshopreceipts"
+      }, {
+        Action = ["s3:ListBucket"]
+        Effect = "Allow"
+        Resource = ["arn:aws:s3:::shop-receipts"]
+        Sid = "Allowlistfrombucketshopreceipts"
+        Condition = {
+          StringLike = {
+            "s3:prefix" = ["uploads", "uploads/*"]
+          }
+        }
       }, {
         Action = ["s3:PutObject", "s3:DeleteObjectVersion", "s3:DeleteObject"]
         Effect = "Allow"
@@ -398,8 +408,10 @@ resource "aws_iam_policy" "iam-role-ServerRole-checkout_aws-ecs-server-s3-access
 }
 ```
 
-Seven actions for read, three for write, scoped to one directory. Somebody worked that out once,
-inside the server module, and every service that ever asks for `READ_WRITE` gets the same answer.
+Six actions for read, three for write, and listing on its own. Listing is separate because
+`s3:ListBucket` is answered against the bucket rather than against an object, so the directory it is
+confined to has to be written as a condition. Somebody worked that out once, inside the server
+module, and every service that ever asks for `READ_WRITE` gets the same answer.
 
 The two folders also have to be applied in a particular order, since the bucket policy names a role
 that does not exist yet. Nobody wrote that ordering down. Octo emitted it, into the receipts folder:

@@ -288,11 +288,28 @@ export class IamRole extends ATerraformResource<IamRoleSchema, IamRole> {
             's3:GetObjectVersionAcl',
             's3:GetObjectVersionAttributes',
             's3:GetObjectVersionTagging',
-            's3:ListBucket',
           ],
           Effect: 'Allow',
           Resource: bucketResources,
           Sid: PolicyUtility.getSafeSid(`Allow read from bucket ${s3Policy.bucketName}`),
+        });
+        // s3:ListBucket is a bucket-level action, so it is only ever evaluated against the bucket
+        // ARN. Granting it alongside the object actions above, whose Resource is a directory,
+        // silently grants nothing. The directory is expressed as an s3:prefix condition instead.
+        policyStatements.push({
+          Action: ['s3:ListBucket'],
+          Effect: 'Allow',
+          Resource: [`arn:aws:s3:::${s3Policy.bucketName}`],
+          Sid: PolicyUtility.getSafeSid(`Allow list from bucket ${s3Policy.bucketName}`),
+          ...(isRootPath
+            ? {}
+            : {
+                Condition: {
+                  StringLike: {
+                    's3:prefix': [s3Policy.remoteDirectoryPath, `${s3Policy.remoteDirectoryPath}/*`],
+                  },
+                },
+              }),
         });
       }
       if (s3Policy.allowWrite) {

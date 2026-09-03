@@ -131,10 +131,20 @@ describe('AwsEcsServerModule UT', () => {
        name = "aws-ecs-server-s3-access-overlay-e9dc96db328e"
        policy = jsonencode({
          Statement = [{
-             Action = ["s3:GetObject", "s3:GetObjectAttributes", "s3:GetObjectTagging", "s3:GetObjectVersionAcl", "s3:GetObjectVersionAttributes", "s3:GetObjectVersionTagging", "s3:ListBucket"]
+             Action = ["s3:GetObject", "s3:GetObjectAttributes", "s3:GetObjectTagging", "s3:GetObjectVersionAcl", "s3:GetObjectVersionAttributes", "s3:GetObjectVersionTagging"]
              Effect = "Allow"
              Resource = ["arn:aws:s3:::test-bucket/uploads", "arn:aws:s3:::test-bucket/uploads/*"]
              Sid = "Allowreadfrombuckettestbucket"
+           }, {
+             Action = ["s3:ListBucket"]
+             Effect = "Allow"
+             Resource = ["arn:aws:s3:::test-bucket"]
+             Sid = "Allowlistfrombuckettestbucket"
+             Condition = {
+               StringLike = {
+                 "s3:prefix" = ["uploads", "uploads/*"]
+               }
+             }
            }]
          Version = "2012-10-17"
        })
