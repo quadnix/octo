@@ -501,7 +501,7 @@ export class TerraformService {
   ): void {
     if (!(providerType in this.requiredProviders)) {
       throw new Error(
-        `Provider type "${providerType}" is not configured! Call registerTerraformConfig() with a "${providerType}" entry before registering providers.`,
+        `Provider type "${providerType}" is not configured! Declare it under "terraform.requiredProviders" in the definition file, or pass it to registerTerraformConfig(), before registering providers.`,
       );
     }
 

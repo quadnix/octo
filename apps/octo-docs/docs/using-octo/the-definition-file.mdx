@@ -167,6 +167,11 @@ the plan with `An argument named "region" is not expected here`. Octo knows thos
 provider it does not know that behaves the same way, `setRegionAttribute: false` on the entry turns
 the line off.
 
+Because a resource picks its provider by account and region alone, no two entries may share that
+pair, whatever their `providerType`. A second entry on the same pair stops generate with `Multiple
+providers registered for account ... Cannot derive a unique provider`, so a utility provider
+alongside an AWS one in the same region needs an `accountId` of its own.
+
 ## settings
 
 ```yaml

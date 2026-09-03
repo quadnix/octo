@@ -199,7 +199,7 @@ describe('TerraformService UT', () => {
 
     it('should throw when the provider type is not declared in addTerraformConfig', () => {
       expect(() => service.addTerraformProvider('aws', '111111111', 'us-east-1')).toThrow(
-        'Provider type "aws" is not configured! Call registerTerraformConfig() with a "aws" entry before registering providers.',
+        'Provider type "aws" is not configured! Declare it under "terraform.requiredProviders" in the definition file, or pass it to registerTerraformConfig(), before registering providers.',
       );
     });
 
