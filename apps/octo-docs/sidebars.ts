@@ -259,10 +259,17 @@ const sidebars: SidebarsConfig = {
           label: 'Templates',
           type: 'doc',
         },
+        {
+          id: 'reference/versioning',
+          label: 'Versioning',
+          type: 'doc',
+        },
       ],
       label: 'Reference',
       link: {
-        description: 'Every command, the AWS module catalog, and the templates to start from.',
+        description:
+          'Every command, the AWS module catalog, the templates to start from, and how the ' +
+          'packages are versioned.',
         type: 'generated-index',
       },
       type: 'category',

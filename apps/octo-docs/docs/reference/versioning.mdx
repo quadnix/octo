@@ -1,0 +1,50 @@
+---
+title: Versioning
+---
+
+Octo is not one package. The framework, the CLI, the listeners, and our AWS library are published
+separately, and they are versioned together on purpose: which combinations of them work is decided
+by their version numbers.
+
+## Families
+
+A version is `major.minor.patch`, and the major number names a family. Everything on `0.x.y` is one
+family, and a major release moves every `@quadnix` package into the next family at the same time.
+Packages from two families are not built against each other and are not meant to be installed side
+by side.
+
+## What is supported
+
+Inside a family, the supported combination is the latest release of every `@quadnix` package you
+have installed. Upgrade them in one step rather than one at a time:
+
+```bash
+npm install @quadnix/octo@latest @quadnix/octo-aws-cdk@latest @quadnix/octo-build@latest @quadnix/octo-event-listeners@latest
+```
+
+Where the major and minor numbers match across your `@quadnix` dependencies, the packages were
+released against each other, and the patch number is free to differ. That is the same rule the
+packages apply to themselves: `@quadnix/octo-aws-cdk`, `@quadnix/octo-build`, and
+`@quadnix/octo-event-listeners` each depend on `@quadnix/octo` through a tilde range on a major and
+a minor, so a patch release resolves and a minor release does not.
+
+An older package beside a newer one is the case to avoid. `@quadnix/octo-aws-cdk` builds on
+`@quadnix/octo`, and its modules, resources, and schemas are built against the framework of the day
+they shipped, so a mismatch arrives as an import that fails or a schema that no longer lines up,
+rather than as a version error.
+
+## One copy of the framework
+
+The upgrade is done in one step for a reason. When one package holds a range that the version at
+the top of your tree does not satisfy, npm installs a second copy of `@quadnix/octo` underneath it,
+and both copies run. Octo's container is a single global instance per copy, so constructs are
+registered in one and looked up in the other, with symptoms that look nothing like a version
+conflict.
+
+```bash
+npm ls @quadnix/octo
+```
+
+One copy at the top with everything below it marked `deduped` is what you want. More than one entry
+carrying a version is the problem, and moving every `@quadnix` package to its latest release is
+what resolves it.

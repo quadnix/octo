@@ -90,10 +90,11 @@ match.
 
 ## Depending on Octo
 
-List `@quadnix/octo` as a normal dependency, pinned to a narrow range, which is what
-`@quadnix/octo-aws-cdk` does. Octo's container is a single global instance, so a consumer resolving
-two different copies of the framework gets constructs registered in one and looked up in the other,
-with symptoms that look nothing like a version conflict.
+List `@quadnix/octo` as a normal dependency, through a tilde range on the major and minor you build
+against, which is what `@quadnix/octo-aws-cdk` does. Move it with each Octo release. A library that
+holds its consumers on an older release than the one their application installs is how a project
+ends up with two copies of the framework running at once, which
+[Versioning](/docs/reference/versioning#one-copy-of-the-framework) covers.
 
 If you build on top of another Octo library, for example your modules take a region from
 `@quadnix/octo-aws-cdk`, depend on it only for the anchor schema. Importing
