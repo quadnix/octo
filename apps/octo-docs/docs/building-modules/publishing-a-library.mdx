@@ -21,7 +21,7 @@ An Octo library is an ordinary npm package with one requirement and one strong c
     "package.json"
   ],
   "dependencies": {
-    "@quadnix/octo": "~0.0.30"
+    "@quadnix/octo": "~x.y.z"
   },
   "exports": {
     "./modules/service/shop-queue-service": "./dist/modules/service/shop-queue-service/index.js",
@@ -90,10 +90,10 @@ match.
 
 ## Depending on Octo
 
-List `@quadnix/octo` as a normal dependency, pinned to a minor range, which is what
-`@quadnix/octo-aws-cdk` does. Octo is pre-1.0 and its container is a single global instance, so a
-consumer resolving two different copies of the framework gets constructs registered in one and
-looked up in the other, with symptoms that look nothing like a version conflict.
+List `@quadnix/octo` as a normal dependency, pinned to a narrow range, which is what
+`@quadnix/octo-aws-cdk` does. Octo's container is a single global instance, so a consumer resolving
+two different copies of the framework gets constructs registered in one and looked up in the other,
+with symptoms that look nothing like a version conflict.
 
 If you build on top of another Octo library, for example your modules take a region from
 `@quadnix/octo-aws-cdk`, depend on it only for the anchor schema. Importing

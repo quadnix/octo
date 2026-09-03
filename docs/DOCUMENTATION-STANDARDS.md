@@ -440,6 +440,16 @@ For pages the reader runs, not only reads.
   gained an image publisher and dropped that response key. A library change that adds the first of
   something, or removes a response, is a prompt to grep the docs for the old fact rather than to
   update the catalog alone.
+- Never name a version of anything we publish. Releases are frequent, so `@quadnix/octo-aws-cdk`
+  0.2.0 in the catalog and `"@quadnix/octo": "~0.0.30"` in a `package.json` snippet were both stale
+  within a release, and no page is worth re-checking on every publish. Say what is true across
+  versions instead: "pinned to a narrow range" rather than the range, "the library is still
+  stabilizing" rather than "pre-1.0", and `~x.y.z` where a snippet needs the field filled in. The
+  same goes for "these pages were written against Node 22.18": provenance the reader cannot act on
+  ages on its own. A third-party version floor is the exception and stays, because it is a
+  requirement the reader has to meet and it comes from the code: Node 20 or newer, Terraform 1.6 or
+  newer from `terraform.requiredVersion`, Terragrunt 0.78 for `run --all`. Floors move rarely, and
+  when one does, `getting-started/installation` owns it.
 - Count before you write a number. "Ten modules", "seventy-seven exports", "around forty events"
   are claims, and three of them were wrong at once because each was written from memory of the
   source rather than from the source. `grep -c`, or count the keys, every time.
@@ -505,6 +515,9 @@ grep -n '—\|–' <page>
 
 # banned phrases
 grep -nE "load-bearing|under the hood|leverage|seamless|it's worth noting|simply|just " <page>
+
+# no version of anything we publish, and no "written against" provenance
+grep -rnE '@quadnix/[a-z-]+[`"]? *@?~?\^?[0-9]+\.[0-9]+|pre-1\.0|written against' apps/octo-docs/docs
 
 # no page-order references, and no calling the docs a book to the reader
 grep -rnE "next page|last page|previous page|next section|the book" apps/octo-docs/docs
