@@ -21,7 +21,7 @@ export function getSchemaInstance<S extends object>(schemaClass: Constructable<S
         instance[key] = t[key];
       }
     } catch (error) {
-      throw new SchemaError(`Property "${key}" in schema could not be validated!`, schemaClass.name);
+      throw new SchemaError(`Property "${key}" in schema could not be validated!`, schemaClass.name, error);
     }
 
     if (instance[key] === undefined) {
