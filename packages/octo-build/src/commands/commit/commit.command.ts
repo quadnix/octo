@@ -24,7 +24,7 @@ export const commitCommand = {
     return yargs
       .option('terragruntDir', {
         demandOption: true,
-        description: 'The generated Terragrunt directory, post apply (`terragrunt run-all apply`).',
+        description: 'The generated Terragrunt directory, post apply (`terragrunt run --all -- apply`).',
         type: 'string',
       })
       .option('lockId', {
