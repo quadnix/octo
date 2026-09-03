@@ -14,8 +14,10 @@ octo create-module -n shop-queue-service -t service --package @shop
 ```
 
 `-t service` is the [model type](/docs/fundamentals/models) this module builds. A queue is something
-managed outside your own infrastructure, so it is a service. The command writes the module, the
-model, and a model action, all under `src/modules/service/shop-queue-service/`.
+managed outside your own infrastructure, so it is a service. The command writes the module and its
+input schema under `src/modules/service/shop-queue-service/`, and adds the export to `src/index.ts`.
+The model comes from `octo create-model`, which [Create a
+Model](/docs/building-modules/create-a-model) runs.
 
 ## The schema
 
