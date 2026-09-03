@@ -285,7 +285,10 @@ export class YamlDefinitionUtility {
       return {
         type: new LocalEncryptionStateProvider(
           resolve(this.definitionDir, stateProvider.statePath),
-          stateProvider.encryptionKey,
+          // Resolved like any other value, because the whole point of the key is that it comes
+          // from the shell. Passed raw, `"${env.KEY}"` is itself the key: a constant, written in
+          // the definition file, and committed beside the state it encrypts.
+          this.resolveEnvironmentValue<string>(stateProvider.encryptionKey),
         ),
       };
     } else if (stateProvider.type === 'LocalStateProvider') {
