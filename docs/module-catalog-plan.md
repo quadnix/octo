@@ -498,18 +498,16 @@ suggests building (a pull request comment, an audit trail, a gate) reachable onl
 JSON the HTML listener writes.
 
 **Why it matters more than it looks.** The events stream is the seam the platform's own features are
-meant to ride on, and a seam nobody outside the framework can attach to is a seam in name only. It
-is also the second capability found in this shape: `registerSchemaTranslation` has exactly the same
-problem, exists on the `Octo` class, is called by nothing but its own unit test, and is now
-documented as a gap in `techniques/schema.mdx`. Two is a pattern worth deciding about once.
+meant to ride on, and a seam nobody outside the framework can attach to is a seam in name only.
+IV.8 is the same shape on a different method, and the two should be answered together.
 
 **Design questions, all open:**
 
 - **How a class is named.** `imports` already binds a class name to a package for modules, and a
   listener could reuse it. `hooks` takes a different shape, an `importPath` plus a `method`
   returning what to register, which suits a listener less well because there is nothing to return.
-- **Whether the same key covers translations.** A schema translation is registered against the same
-  object at the same moment. One mechanism that registers whatever a project brings, listeners and
+- **Whether the same key covers IV.8.** A schema translation is registered against the same object
+  at the same moment. One mechanism that registers whatever a project brings, listeners and
   translations alike, is probably one key rather than two.
 - **What a listener may do.** A listener that throws is a hook by accident. The distinction the docs
   draw, that a listener observes and a hook participates, has to survive contact with user code, so
@@ -523,6 +521,60 @@ and worth doing at the same time as that one because both add a top-level concer
 
 **Exit criteria:** a project declares its own listener class in `octo.yaml`, the class receives the
 events it subscribed to on a real run, and `techniques/events-and-listeners.mdx` teaches the
+declaration instead of naming the gap.
+
+---
+
+## IV.8 — A schema translation cannot be registered from octo.yaml
+
+**Status:** open, and documented as a gap rather than as a feature.
+
+**What it is for.** Matching on shape is what lets two modules from two libraries interoperate, and
+the cost of that is that changing an anchor's shape breaks every consumer matching on it. A
+translation is the escape hatch: register the schema consumers ask for, the schema producers now
+publish, and a function from the second to the first, and a lookup for the old shape finds anchors
+publishing the new one and translates them on the way out. Old consumers keep working while they
+migrate.
+
+**What exists.** `Octo.registerSchemaTranslation(from, to, translator)` delegating to
+`SchemaTranslationService`. Working, and reachable only from in-process TypeScript.
+
+**What does not.** Any way to call it. There is no `octo.yaml` key, `octo-build` never calls it, and
+a `hooks` export is invoked with no arguments, so nothing a project writes ever holds the `Octo`
+instance. Across `packages/` it is called exactly once, by `model.abstract.spec.ts`.
+`techniques/schema.mdx` and `fundamentals/anchors.mdx` used to teach the call and now name the gap,
+with the slower migration in its place: publish both shapes from your model for a release, and
+remove the old one once nothing matches it.
+
+**Why it is worth closing rather than deleting.** The two-shapes migration works when one team owns
+both the producer and the consumer, and that is the case the catalog will least often be in. The
+whole argument for anchors is that a module written elsewhere satisfies your contract; the day an
+anchor shape has to change is the day those consumers are the ones that cannot be edited. Publishing
+both shapes also has a ceiling: it needs the producer to be willing and able to publish a shape it
+no longer believes in, which a third-party module will not do.
+
+**Design questions, all open:**
+
+- **Where a translation is declared.** It is a property of a deployment, not of a module, in the
+  same way adoption is: this project's old consumers need this bridge. That argues for octo.yaml
+  and against a module-level API. It is also the argument for sharing one key with IV.7.
+- **Where the translator function lives.** Unlike a listener, a translation carries code that has to
+  be written somewhere, so the declaration needs an `importPath` and an export name the way `hooks`
+  does, rather than a bare class name.
+- **Scope.** The service registers one translation per source schema, globally for the run. Whether
+  that is right, or whether it should be per module instance, has never been exercised because
+  nothing outside a unit test has used it.
+- **Whether it survives a release.** A translation is by definition temporary. There is no mechanism
+  that says when one can be removed, and an unremoved one keeps two shapes agreeing by hand forever.
+  A warning when a translation matched nothing during a run would answer it cheaply.
+
+**Relationship to the rest of this document.** Same class of change as IV.7 and IV.2: a top-level
+addition to octo.yaml, no state rewrite, no dependency on any wave. It becomes load-bearing the
+moment Part I lands, because splitting `service` into `database`, `queue`, `storage` and the rest is
+precisely a breaking shape change across every consumer of the old vocabulary.
+
+**Exit criteria:** a project declares a translation in `octo.yaml`, a module asking for the old
+anchor schema receives an anchor publishing the new one, and `techniques/schema.mdx` teaches the
 declaration instead of naming the gap.
 
 ---
@@ -553,8 +605,9 @@ declaration instead of naming the gap.
     placeholder that is printed beside it, so the exposure is already real rather than a question of
     key strength. Rotation is what retires it; the KDF and IV fixes ride on that command once it
     exists. Answer it with IV.5's provider question rather than twice.
-13. **IV.7** — with IV.2, since both add a top-level key to octo.yaml and the shape of one informs
-    the other. No dependency on any wave.
+13. **IV.7** and **IV.8** — together, and with IV.2, since all three add a top-level key to
+    octo.yaml and the shape of one informs the others. No dependency on any wave, but IV.8 wants to
+    be in hand before Part I, whose vocabulary split is itself a breaking shape change.
 
 Every module lands with: schema-documented decision surface, anchors declared, actions
 single-responsibility, localstack/moto module tests + snapshots, and one end-to-end verification
