@@ -81,6 +81,55 @@ Stack](/docs/getting-started/shop-stack): a list of storage services and, per se
 directories the server may access with `READ`, `WRITE`, or `READ_WRITE`. That produces an
 [overlay](/docs/fundamentals/overlays), a policy on the role, and a statement on the bucket.
 
+Three of the inputs above are nested objects rather than scalars, and each one is a shape a
+definition file has to get right before anything is written. A deployment describes the container
+image the task definition registers:
+
+```yaml
+  - moduleId: checkout-deployment-v1-module
+    moduleClass: AwsEcsDeploymentModule
+    moduleInputs:
+      server: "${{checkout-server-module.model.server}}"
+      deploymentTag: 0-0-1
+      deploymentContainerProperties:
+        cpu: 256            # 256, 512, 1024, 2048, 4096, 8192, or 16384
+        memory: 512         # MiB
+        image:
+          command: /bin/sh
+          ports:
+            - containerPort: 80
+              protocol: tcp
+          uri: "${env.CHECKOUT_IMAGE_URI}"
+```
+
+`deploymentTag` is two to thirty-two characters of letters, numbers, hyphens, and underscores. A dot
+is not one of them, so a version reads as `0-0-1`.
+
+An execution names one main container and any sidecars, each pairing a deployment with the container
+properties that deployment runs under:
+
+```yaml
+  - moduleId: checkout-v1-staging-execution-module
+    moduleClass: AwsEcsExecutionModule
+    moduleInputs:
+      executionId: checkout-v1-staging
+      desiredCount: 1
+      environment: "${{staging-environment-module.model.environment}}"
+      subnet: "${{public-subnet-module.model.subnet}}"
+      deployments:
+        main:
+          containerProperties:
+            image:
+              command: /bin/sh
+              essential: true
+              name: checkout-v1
+              ports:
+                - containerPort: 80
+                  protocol: tcp
+          deployment: "${{checkout-deployment-v1-module.model.deployment}}"
+        sidecars: []
+```
+
 `securityGroupRules` is optional, and leaving it out gives the execution one egress rule allowing
 all outbound traffic, which is what AWS gives a security group you create by hand. A Fargate task
 has to reach ECR to pull the image it runs, so an execution that could reach nothing could never
@@ -96,6 +145,22 @@ this execution may reach:
           ToPort: 443
 ```
 
+The image URI in `deploymentContainerProperties` is written out rather than referenced. A task
+definition and the image module that publishes to it sit on either side of a reference Octo does not
+resolve, so the URI is assembled by hand from the account, the region, the repository, and the tag,
+and declared as one `env` key because a `${env.KEY}` reference resolves only as a whole value:
+
+```yaml
+env:
+  - key: CHECKOUT_IMAGE_URI
+    kind: string
+    value: "123456789012.dkr.ecr.eu-west-1.amazonaws.com/shop/checkout:0.0.1"
+```
+
+The repository is `<imageFamily>/<imageName>` from `AwsEcrImageModule`, and the tag is `imageTag`
+from `AwsEcrImageTagModule`. Declaring the version and the stack that runs it in one definition file
+means one apply publishes the image and registers the task definition that names it.
+
 ## Services
 
 | Module                            | Inputs                                                                                                                                                                         | Creates                                                                                    |
@@ -108,29 +173,29 @@ this execution may reach:
 
 `AwsS3StaticWebsiteServiceModule` serves the bucket one of two ways, and `cloudFront` picks which.
 Without it the bucket is public and answers on its S3 website endpoint, over plain HTTP. With it the
-bucket is closed — every public access block on, no anonymous policy — and the distribution in front
-of it is the only way in, serving the site over HTTPS.
+bucket is closed, every public access block on and no anonymous policy, and the distribution in
+front of it is the only way in, serving the site over HTTPS.
 
 A bucket served this way cannot have a dot in its name. The distribution reaches it at
-`<bucket>.s3.<region>.amazonaws.com` over HTTPS, and the certificate AWS serves there covers a single
-label, so a dotted name is refused when the modules are composed rather than answering `502` to every
-visitor later.
+`<bucket>.s3.<region>.amazonaws.com` over HTTPS, and the certificate AWS serves there covers a
+single label, so a dotted name is refused when the modules are composed rather than answering `502`
+to every visitor later.
 
 Set `cloudFront.aliases` to answer on your own domains and `cloudFront.certificateArn` to a
 certificate covering them; CloudFront reads certificates from `us-east-1` alone, wherever the bucket
 lives. The DNS records pointing at the distribution are yours to create. `cloudFront.priceClass`
 decides which edge locations serve the site, and `cloudFront.webAclArn` puts a web ACL in front of
-it — the ACL itself is not created here, and CloudFront reads one from `us-east-1` alone.
+it. The ACL itself is not created here, and CloudFront reads one from `us-east-1` alone.
 
 `cloudFront.notFoundBehavior` is the one input worth thinking about. A content site wants
 `error-document`, the default: a path the bucket has nothing at returns a real `404` carrying the
 error document. A single-page app wants `single-page-app`, which returns a `200` carrying the index
-document so the app's own router decides what the path means. A content site set to `single-page-app`
-reports every typo as a working page.
+document so the app's own router decides what the path means. A content site set to
+`single-page-app` reports every typo as a working page.
 
-With `cloudFront` set, a deploy also invalidates the edge caches. Without that, CloudFront would keep
-serving the previous version of a file for as long as its cache policy says, which is a day — the
-upload would succeed and the site would not change.
+With `cloudFront` set, a deploy also invalidates the edge caches. Without that, CloudFront would
+keep serving the previous version of a file for as long as its cache policy says, which is a day:
+the upload would succeed and the site would not change.
 
 The distribution this module builds is one opinion about serving a website out of a bucket. The
 resource underneath it takes several origins of mixed kinds, a routing table over them, and policies
@@ -209,5 +274,5 @@ nothing downstream.
 
 ## Version
 
-These pages were written against `@quadnix/octo-aws-cdk` 0.1.0. The library is pre-1.0, and both
+These pages were written against `@quadnix/octo-aws-cdk` 0.2.0. The library is pre-1.0, and both
 module inputs and anchor shapes can still change between minor versions.
