@@ -336,6 +336,16 @@ describe('AwsEcsExecutionModule UT', () => {
        vpc_id = var.vpc_region.VpcId
      }
 
+     resource "aws_vpc_security_group_egress_rule" "sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet_egress_0" {
+       provider = aws._123-us-east-1
+       cidr_ipv4 = "0.0.0.0/0"
+       description = "all traffic 0.0.0.0/0"
+       ip_protocol = "-1"
+       security_group_id = aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.id
+
+       depends_on = [aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet]
+     }
+
      resource "aws_ecs_task_definition" "ecs-task-definition-backend-v1-region-qa-private-subnet" {
        provider = aws._123-us-east-1
        container_definitions = jsonencode([

@@ -81,6 +81,21 @@ Stack](/docs/getting-started/shop-stack): a list of storage services and, per se
 directories the server may access with `READ`, `WRITE`, or `READ_WRITE`. That produces an
 [overlay](/docs/fundamentals/overlays), a policy on the role, and a statement on the bucket.
 
+`securityGroupRules` is optional, and leaving it out gives the execution one egress rule allowing
+all outbound traffic, which is what AWS gives a security group you create by hand. A Fargate task
+has to reach ECR to pull the image it runs, so an execution that could reach nothing could never
+start. Declare an egress rule of your own and that default is not added, because you have said what
+this execution may reach:
+
+```yaml
+      securityGroupRules:
+        - CidrBlock: 10.0.0.0/16
+          Egress: true
+          FromPort: 443
+          IpProtocol: tcp
+          ToPort: 443
+```
+
 ## Services
 
 | Module                            | Inputs                                                                                                                                                                         | Creates                                                                                    |

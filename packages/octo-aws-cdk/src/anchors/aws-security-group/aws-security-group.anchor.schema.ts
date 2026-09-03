@@ -29,10 +29,11 @@ export class AwsSecurityGroupAnchorRuleSchema {
   FromPort = Schema<number>();
 
   /**
-   * The IP protocol name.
+   * The IP protocol name. `-1` is every protocol on every port, and the port range is ignored for
+   * it, which is how the resource already renders one.
    */
   @Validate({ options: { minLength: 1 } })
-  IpProtocol = Schema<'tcp' | 'udp'>();
+  IpProtocol = Schema<'-1' | 'tcp' | 'udp'>();
 
   /**
    * The end of the port range.

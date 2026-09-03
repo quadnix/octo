@@ -259,6 +259,7 @@ describe('AwsEcsExecutionModule E2E', () => {
      [
        "aws_security_group.sec-grp-SecurityGroup-backend",
        "aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
+       "aws_vpc_security_group_egress_rule.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet_egress_0",
        "aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet",
        "aws_ecs_service.ecs-service-backend-v1-region-qa-private-subnet",
      ]

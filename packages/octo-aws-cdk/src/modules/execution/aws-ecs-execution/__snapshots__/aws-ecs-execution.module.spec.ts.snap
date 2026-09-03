@@ -20,6 +20,14 @@ exports[`AwsEcsExecutionModule UT input changes should handle desiredCount chang
 
 exports[`AwsEcsExecutionModule UT input changes should handle executionId change 1`] = `
 "- execution/main.tf
+depends_on = [aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet]
+}
+
++ execution/main.tf
+depends_on = [aws_security_group.sec-grp-SecurityGroup-changed-execution-id]
+}
+
+- execution/main.tf
 resource "aws_ecs_service" "ecs-service-backend-v1-region-qa-private-subnet" {
   provider = aws._123-us-east-1
   cluster = var.ecs_cluster_region_qa.clusterArn
@@ -120,6 +128,22 @@ resource "aws_security_group" "sec-grp-SecurityGroup-changed-execution-id" {
   provider = aws._123-us-east-1
   vpc_id = var.vpc_region.VpcId
 }
+
+- execution/main.tf
+resource "aws_vpc_security_group_egress_rule" "sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet_egress_0" {
+  provider = aws._123-us-east-1
+  cidr_ipv4 = "0.0.0.0/0"
+  description = "all traffic 0.0.0.0/0"
+  ip_protocol = "-1"
+  security_group_id = aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.id
+
++ execution/main.tf
+resource "aws_vpc_security_group_egress_rule" "sec-grp-SecurityGroup-changed-execution-id_egress_0" {
+  provider = aws._123-us-east-1
+  cidr_ipv4 = "0.0.0.0/0"
+  description = "all traffic 0.0.0.0/0"
+  ip_protocol = "-1"
+  security_group_id = aws_security_group.sec-grp-SecurityGroup-changed-execution-id.id
 
 - execution/outputs.tf
 output "ecs-service-backend-v1-region-qa-private-subnet-serviceArn" {
@@ -239,19 +263,18 @@ variable "efs_region_test_filesystem" {
 `;
 
 exports[`AwsEcsExecutionModule UT should CUD 10`] = `
-"+ execution/main.tf
-depends_on = [aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet]
-}
-
-+ execution/main.tf
-resource "aws_vpc_security_group_egress_rule" "sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet_egress_0" {
-  provider = aws._123-us-east-1
-  cidr_ipv4 = "10.0.0.0/8"
-  description = "tcp 8080-8080 10.0.0.0/8"
-  ip_protocol = "tcp"
-  security_group_id = aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.id
-  from_port = 8080
-  to_port = 8080"
+"~ execution/main.tf resource "aws_vpc_security_group_egress_rule" "sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet_egress_0" {
+@@ -2,5 +2,7 @@
+    provider = aws._123-us-east-1
+-   cidr_ipv4 = "0.0.0.0/0"
+-   description = "all traffic 0.0.0.0/0"
+-   ip_protocol = "-1"
++   cidr_ipv4 = "10.0.0.0/8"
++   description = "tcp 8080-8080 10.0.0.0/8"
++   ip_protocol = "tcp"
+    security_group_id = aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.id
++   from_port = 8080
++   to_port = 8080"
 `;
 
 exports[`AwsEcsExecutionModule UT should CUD 12`] = `
@@ -526,6 +549,10 @@ exports[`AwsEcsExecutionModule UT should CUD tags 4`] = `
 
 exports[`AwsEcsExecutionModule UT should handle moduleId change 1`] = `
 "- execution-1/main.tf
+depends_on = [aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet]
+}
+
+- execution-1/main.tf
 provider "aws" {
   alias = "_123-us-east-1"
   region = "us-east-1"
@@ -588,6 +615,14 @@ resource "aws_security_group" "sec-grp-SecurityGroup-backend" {
   provider = aws._123-us-east-1
   vpc_id = var.vpc_region.VpcId
 }
+
+- execution-1/main.tf
+resource "aws_vpc_security_group_egress_rule" "sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet_egress_0" {
+  provider = aws._123-us-east-1
+  cidr_ipv4 = "0.0.0.0/0"
+  description = "all traffic 0.0.0.0/0"
+  ip_protocol = "-1"
+  security_group_id = aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.id
 
 - execution-1/main.tf
 terraform {
@@ -691,6 +726,10 @@ variable "vpc_region" {
 }
 
 + execution-2/main.tf
+depends_on = [aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet]
+}
+
++ execution-2/main.tf
 provider "aws" {
   alias = "_123-us-east-1"
   region = "us-east-1"
@@ -753,6 +792,14 @@ resource "aws_security_group" "sec-grp-SecurityGroup-backend" {
   provider = aws._123-us-east-1
   vpc_id = var.vpc_region.VpcId
 }
+
++ execution-2/main.tf
+resource "aws_vpc_security_group_egress_rule" "sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet_egress_0" {
+  provider = aws._123-us-east-1
+  cidr_ipv4 = "0.0.0.0/0"
+  description = "all traffic 0.0.0.0/0"
+  ip_protocol = "-1"
+  security_group_id = aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.id
 
 + execution-2/main.tf
 terraform {

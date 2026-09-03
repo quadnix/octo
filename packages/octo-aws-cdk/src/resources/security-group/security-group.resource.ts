@@ -11,6 +11,18 @@ import type { VpcSchema } from '../vpc/index.schema.js';
 import { SecurityGroupSchema } from './index.schema.js';
 
 /**
+ * The description AWS shows against a rule in the console. `-1` is every protocol on every port, so
+ * naming a port range there would describe a narrower rule than the one being created.
+ *
+ * @internal
+ */
+function describeRule(rule: SecurityGroupSchema['properties']['rules'][0]): string {
+  return rule.IpProtocol === '-1'
+    ? `all traffic ${rule.CidrBlock}`
+    : `${rule.IpProtocol} ${rule.FromPort}-${rule.ToPort} ${rule.CidrBlock}`;
+}
+
+/**
  * @internal
  */
 @Resource<SecurityGroup>('@octo', 'security-group', SecurityGroupSchema)
@@ -72,7 +84,7 @@ export class SecurityGroup extends ATerraformResource<SecurityGroupSchema, Secur
       const r = ingressRules[i];
       const spec: Record<string, unknown> = {
         cidr_ipv4: r.CidrBlock,
-        description: `${r.IpProtocol} ${r.FromPort}-${r.ToPort} ${r.CidrBlock}`,
+        description: describeRule(r),
         ip_protocol: r.IpProtocol,
         security_group_id: terraform.raw(`${sgTFResource.address}.id`),
       };
@@ -91,7 +103,7 @@ export class SecurityGroup extends ATerraformResource<SecurityGroupSchema, Secur
       const r = egressRules[i];
       const spec: Record<string, unknown> = {
         cidr_ipv4: r.CidrBlock,
-        description: `${r.IpProtocol} ${r.FromPort}-${r.ToPort} ${r.CidrBlock}`,
+        description: describeRule(r),
         ip_protocol: r.IpProtocol,
         security_group_id: terraform.raw(`${sgTFResource.address}.id`),
       };
