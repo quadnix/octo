@@ -2,8 +2,8 @@
  * One clock for the whole report directory.
  *
  * Report file names are UTC (`20260815T023431`), and the index reads them straight out of the name.
- * The report page used to render `toLocaleString()` instead, which filed the same run under two
- * different dates — `2026-08-15 02:34` in the index, `8/14/2026, 10:34 PM` on the page it links to.
+ * Every timestamp a report page renders is UTC too, so one run reads as one date and one time
+ * wherever it is shown.
  */
 export function formatTimestamp(epochMs: number): string {
   return `${new Date(epochMs)

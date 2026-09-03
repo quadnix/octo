@@ -330,9 +330,8 @@ function buildHeadline(report: Omit<OctoReport, 'headline'>): string {
   const { totals } = report;
   const plural = (count: number, noun: string): string => `${count} ${noun}${count === 1 ? '' : 's'}`;
 
-  // Drift leads whenever it exists. It is the only finding nobody asked for, and it used to be
-  // headlined "Nothing to do" because drift produces no stories by definition — intent did not
-  // change, which is what makes it drift.
+  // Drift leads whenever it exists. It is the only finding nobody asked for, and it produces no
+  // stories by definition: intent did not change, which is what makes it drift.
   const drifted =
     report.drift.length > 0
       ? `${plural(report.drift.length, 'change')} to your infrastructure ` +
