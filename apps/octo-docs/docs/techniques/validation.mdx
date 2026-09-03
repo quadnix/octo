@@ -19,7 +19,7 @@ queueName = Schema<string>();
 
 | Constraint   | Passes when                                                                                                                |
 |--------------|----------------------------------------------------------------------------------------------------------------------------|
-| `minLength`  | A string or array is at least this long; a number is at least this value.                                                  |
+| `minLength`  | A string or array is at least this long; a number is at least this value. Not for booleans.                               |
 | `maxLength`  | The same, as an upper bound.                                                                                               |
 | `regex`      | A string matches the pattern.                                                                                              |
 | `isModel`    | The value is a model with the given `NODE_NAME`, and publishes the anchors you list.                                       |
@@ -28,9 +28,14 @@ queueName = Schema<string>();
 | `isSchema`   | The value's serialized form satisfies a schema.                                                                            |
 | `custom`     | Your own function returns true.                                                                                            |
 
-`minLength` and `maxLength` work on booleans and numbers as well as strings and arrays, which is why
-`minLength: 1` on a number reads oddly and means "at least 1". On a plain object they return false,
-always. That is not a bug to work around; it is why the `destruct` below exists.
+`minLength` and `maxLength` measure a string or an array by its length and a number by its value,
+which is why `minLength: 1` on a number reads oddly and means "at least 1". On a plain object they
+return false, always. That is not a bug to work around; it is why the `destruct` below exists.
+
+Neither belongs on a boolean. They measure the printed word, so `"true"` is 4 and `"false"` is 5,
+and `minLength: 1` accepts both and checks nothing. A boolean that must be supplied is already
+required by `Schema<boolean>()` with no default, and a missing one fails as `could not be resolved`
+before any rule runs.
 
 ## Checking a node, not a string
 
