@@ -206,6 +206,63 @@ Two things about the DynamoDB module are worth knowing before you use it, and it
 definition file says both: a global secondary index can be added to or removed from a live table,
 and a local secondary index cannot, so changing one recreates the table.
 
+`AwsDynamoDBGlobalServiceModule` takes the table's own service and a replica per further region,
+each one a region node and optional tags. A replica cannot name the region the table already lives
+in:
+
+```yaml
+  - moduleId: accounts-global-module
+    moduleClass: AwsDynamoDBGlobalServiceModule
+    moduleInputs:
+      dynamoDBService: "${{dynamodb-service-module.model.service}}"
+      replicas:
+        - region: "${{region-west-module.model.region}}"
+          tags:
+            Tier: data
+```
+
+`AwsEcsAlbServiceModule` has the deepest inputs in this catalog. `listeners` is a port and the
+actions taken on it; `targets` is one entry per container the listener forwards to, each naming an
+execution and how it is health checked. A target's `Name` is what a listener's `targetGroupName`
+refers to:
+
+```yaml
+  - moduleId: qa-api-alb-module
+    moduleClass: AwsEcsAlbServiceModule
+    moduleInputs:
+      albName: qa-api-alb
+      region: "${{region-module.model.region}}"
+      subnets:
+        - "${{public-subnet-module.model.subnet}}"
+        - "${{public-backup-subnet-module.model.subnet}}"
+      listeners:
+        - Port: 80
+          rules: []
+          DefaultActions:
+            - actionType: forward
+              action:
+                TargetGroups:
+                  - targetGroupName: backend-v1-80
+                    Weight: 100
+      targets:
+        - Name: backend-v1-80
+          containerName: backend-v1
+          containerPort: 80
+          execution: "${{backend-v1-qa-execution-module.model.execution}}"
+          healthCheck:
+            HealthCheckIntervalSeconds: 30
+            HealthCheckPath: /
+            HealthCheckPort: 80
+            HealthCheckProtocol: HTTP
+            HealthCheckTimeoutSeconds: 5
+            HealthyThresholdCount: 2
+            Matcher:
+              HttpCode: 200
+            UnhealthyThresholdCount: 2
+```
+
+A load balancer bills by the hour from the moment it exists, whether or not anything reaches it.
+
 ## Filesystems and images
 
 | Module                   | Inputs                                                        | Creates                            |
