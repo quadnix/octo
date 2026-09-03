@@ -10,7 +10,7 @@ that.
 The clearest way to learn one is to read a working one, so this page walks through
 `AwsEcsServerS3AccessOverlay` from `@quadnix/octo-aws-cdk`. It is the overlay behind the grant in
 [Shop Stack](/docs/getting-started/shop-stack), which gave checkout read and write access to the
-receipts bucket. A queue access overlay has exactly this shape.
+receipts bucket.
 
 ```bash
 octo create-overlay -n shop-queue-service --overlay shop-queue-access -t service --package @shop
@@ -61,11 +61,22 @@ export class AwsEcsServerS3AccessOverlay extends AOverlay<
   declare anchors: [AwsIamRoleAnchor, MatchingAnchor<AwsS3StorageServiceDirectoryAnchorSchema>];
   declare properties: AwsEcsServerS3AccessOverlaySchema['properties'];
 
+  constructor (
+    overlayId: string,
+    properties: AwsEcsServerS3AccessOverlaySchema['properties'],
+    anchors: [AwsIamRoleAnchor, MatchingAnchor<AwsS3StorageServiceDirectoryAnchorSchema>],
+  ) {
+    super(overlayId, properties, anchors);
+  }
+
   override async diffAnchors (): Promise<Diff[]> {
     return [];
   }
 }
 ```
+
+`AOverlay`'s constructor is protected, so the subclass declares a public one that does nothing but
+widen it. Without it the `new` below does not typecheck.
 
 The `anchors` declaration is the interesting line. This overlay joins exactly two, in a fixed order,
 and declaring them as a tuple is how the action can index into them safely.
@@ -170,6 +181,22 @@ resource without importing its classes.
 
 Both resources go into `actionOutputs`. That is what puts the bucket policy in the receipts folder
 and the IAM policy in the checkout folder, from one request.
+
+## Which side you may write on
+
+This overlay writes both halves because one library owns both: `IamRole` exposes
+`addS3BucketPolicy` because the same author wrote the storage module that needs it. A resource
+decides which grants it is willing to carry, and that decision belongs to whoever wrote it. So an
+overlay joining your model to somebody else's can only ask the other side for what its resource
+already offers.
+
+The shop's queue is the case. Nothing on `IamRole` says "may publish to a queue", so a queue access
+overlay cannot write the role half. It writes the grant on the queue instead, as a queue policy
+naming the role's ARN, which needs nothing from the role beyond an ARN it already publishes. That is
+the same shape as the bucket half above, and it is the half your own module owns.
+
+Reaching for a grant the other resource does not offer is a sign you are writing the wrong module.
+Either the resource's author adds it, or the thing you need is a resource of your own.
 
 ## Modifying rather than creating
 
