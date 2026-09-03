@@ -31,6 +31,7 @@ export class ShopQueueSchema extends BaseResourceSchema {
   override properties = Schema<{
     awsAccountId: string;
     awsRegionId: string;
+    fifoQueue: boolean;
     messageRetentionSeconds: number;
     queueName: string;
   }>();
@@ -92,6 +93,7 @@ export class ShopQueue extends ATerraformResource<ShopQueueSchema, ShopQueue> {
     });
 
     const queue = octoResource.addTerraformResource('aws_sqs_queue', this.resourceId, {
+      fifo_queue: this.properties.fifoQueue,
       message_retention_seconds: this.properties.messageRetentionSeconds,
       name: this.properties.queueName,
     });
@@ -113,6 +115,7 @@ Which produces exactly this:
 ```hcl title=".octo-tf/orders-queue-module/main.tf"
 resource "aws_sqs_queue" "queue-shop-orders" {
   provider = aws._123456789012-eu-west-1
+  fifo_queue = false
   message_retention_seconds = 86400
   name = "shop-orders"
 }
@@ -146,14 +149,14 @@ update, and `octo validate` would show the recreate with nothing to explain it.
 
 ```typescript
 override async diffProperties(previous: ShopQueue): Promise<Diff[]> {
-  if (previous.properties.queueName !== this.properties.queueName) {
+  if (previous.properties.fifoQueue !== this.properties.fifoQueue) {
     return [
       new Diff(
         this,
         DiffAction.REPLACE,
         'resourceId',
         this.getContext(),
-        'name is force-new on aws_sqs_queue; a change recreates the queue and loses its messages',
+        'fifo_queue is force-new on aws_sqs_queue; a change recreates the queue and loses its messages',
       ),
     ];
   }
@@ -166,9 +169,9 @@ override async diffProperties(previous: ShopQueue): Promise<Diff[]> {
 }
 ```
 
-Two comparisons, because two of these properties behave differently. Renaming the queue destroys it;
-changing the retention does not. Saying which is which is the whole job of this method, and the
-reason string is what a reviewer reads:
+Two comparisons, because two of these properties behave differently. Turning the queue into a FIFO
+one destroys it; changing the retention does not. Saying which is which is the whole job of this
+method, and the reason string is what a reviewer reads:
 
 ```text
       ± vpc-eu-west-1
@@ -177,6 +180,13 @@ reason string is what a reviewer reads:
 
 Go through the provider documentation for your resource type and list its force-new arguments. This
 is tedious and it is the single most valuable thing in the class.
+
+One of them will not belong here. `name` is force-new on `aws_sqs_queue` too, and comparing it in
+this method would be dead code: the resource ID is derived from the queue name, so a rename produces
+a different resource ID, and Octo reads that as one resource destroyed and another created without
+ever calling `diffProperties`. A force-new argument that the resource ID is derived from is already
+handled, and [Resources](/docs/fundamentals/resources) covers what that destroy costs. Compare the
+force-new arguments the ID does not carry.
 
 ## Referencing another resource
 

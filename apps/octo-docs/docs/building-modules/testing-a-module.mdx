@@ -151,6 +151,7 @@ provider "aws" {
 
 resource "aws_sqs_queue" "queue-shop-orders" {
   provider = aws._123-us-east-1
+  fifo_queue = false
   message_retention_seconds = 345600
   name = "shop-orders"
 }
