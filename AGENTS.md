@@ -61,6 +61,16 @@ note-taking space — add what you learn.
 5. **Submit.** Push the branch, open a PR titled per `@.github/jobs/validate-pr-title.job.sh`, with
    a description of what changed and how it was verified.
 
+## Skills
+
+`@.claude/skills` holds procedures an agent runs rather than reads. Claude Code discovers them
+automatically and picks one by its `description`; you can also invoke one by name, as
+`/<skill-name>`.
+
+- `octo-docs-validation` - build what every documentation page says, against real AWS, in
+  `../octo-examples`, and fix whatever disagrees. Its `reference/coverage.md` says which pages have
+  been run and which have not.
+
 ## Documentation
 
 Octo's docs grow with its feature set.
