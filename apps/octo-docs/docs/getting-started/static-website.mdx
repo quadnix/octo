@@ -189,6 +189,10 @@ aws-s3-website — octo validate — changes (approximate)
 You added service=octo-hello-website-s3-static-website. That creates 6 new things.
 - 0 destroy   ± 0 replace   + 6 create   ~ 0 update
 
+Your intent changed, so each folder was planned on its own against its dependencies' last
+applied outputs. A cross-folder consequence of this change is invisible until apply. This
+report can both understate what apply will do and overstate drift.
+
 WHAT WILL CHANGE
   + added service=octo-hello-website-s3-static-website  [service=octo-hello-website-s3-static-website,app=aws-s3-website | s3-website-service-module | +6]
       + bucket-octo-hello-website
@@ -275,11 +279,12 @@ nothing about Octo, so reading the results back is a step of its own. Skip it an
 WHAT OCTO RECORDED — values that moved
   @octo/s3-website=bucket-octo-hello-website Arn: - → arn:aws:s3:::octo-hello-website
   @octo/s3-website=bucket-octo-hello-website awsRegionId: - → us-east-1
+  @octo/s3-website=bucket-octo-hello-website RegionalDomainName: - → octo-hello-website.s3.us-east-1.amazonaws.com
 ```
 
 `@octo/s3-website` is the type of the resource and `bucket-octo-hello-website` is its ID, the same
-one the validate report grouped six Terraform resources under. Both values were unknown until AWS
-answered.
+one the validate report grouped six Terraform resources under. Every value there was unknown until
+AWS answered.
 
 ## Open it
 

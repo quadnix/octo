@@ -158,7 +158,8 @@ arrived.
 ## Taking everything down
 
 Comment out every module except the app and the account, which produce nothing in AWS themselves and
-are what the rest of the file hangs off:
+are what the rest of the file hangs off. A `tags` entry scoped to one of the modules you commented
+out goes with it, or generate stops with `Module not found!` and the ID that entry names:
 
 ```bash
 npm run octo:generate
