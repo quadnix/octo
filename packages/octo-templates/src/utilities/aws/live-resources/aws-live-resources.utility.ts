@@ -158,8 +158,13 @@ export class AwsLiveResourcesUtility {
         if (response.taskDefinition?.status !== 'ACTIVE') {
           dead.push(arn);
         }
-      } catch {
-        // Fully deleted revisions stop resolving entirely.
+      } catch (error) {
+        // Only a client fault proves the revision is gone: ECS refuses to describe one that has been
+        // deleted. A server fault, throttling, credentials or a network blip must not be read as
+        // "destroyed".
+        if (error.name !== 'ClientException' && error.name !== 'InvalidParameterException') {
+          throw error;
+        }
         dead.push(arn);
       }
     }
