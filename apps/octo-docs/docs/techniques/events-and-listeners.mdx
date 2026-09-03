@@ -43,7 +43,7 @@ needs a `@Factory` alongside it.
 
 ## The stream
 
-Forty-five event classes, in eight families. You rarely want a specific one; you want a family.
+Forty-five event classes, in nine families. You rarely want a specific one; you want a family.
 
 | Family               | Emitted when                                                                                                                       |
 |----------------------|------------------------------------------------------------------------------------------------------------------------------------|
@@ -55,6 +55,7 @@ Forty-five event classes, in eight families. You rarely want a specific one; you
 | `TerraformEvent`     | A Terraform command started or finished, and the folders were written.                                                             |
 | `HookEvent`          | A hook callback ran.                                                                                                               |
 | `ModuleEvent`        | A module's `onInit()` ran, carrying the module's name.                                                                             |
+| `ActionEvent`        | A resource action called `this.log()`, carrying its message and metadata.                                                          |
 
 Two are worth knowing by name. `ValidateModeCompletedEvent` carries the full validate report, which
 is what you want for posting a summary onto a pull request. `ModeFinishedEvent` carries the mode and
