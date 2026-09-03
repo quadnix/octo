@@ -107,6 +107,17 @@ example project rather than only in `packages/`.
 cd ../octo-examples/shop-example && npm test
 ```
 
+## Diagrams
+
+`DOCUMENTATION-STANDARDS.md` asks for every mermaid diagram to be parsed with the site's own
+mermaid under jsdom. **jsdom is not installed anywhere in this repository**, so that check cannot be
+run as written, and a docusaurus build does not stand in for it: mermaid renders in the browser, so
+a diagram that fails to parse still builds.
+
+Until it is installed, a diagram change is checked by reading it, and by checking what it claims
+against the modules. The introduction's subnet box listed a security group the subnet module only
+creates on its EFS path, which is a diagram bug no parser would have caught anyway.
+
 ## Errors
 
 Every documented error message is a claim. Make each one fire and read what a user sees, including

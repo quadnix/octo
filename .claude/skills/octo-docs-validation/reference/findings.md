@@ -69,13 +69,50 @@ Resource ids, overlay ids, and anchor ids are all derived.
 
 **How:** load every module twice, with inputs that differ only in the part you suspect is missing.
 
-## An error that names the wrong thing
+## A message that names the wrong thing
 
-Every documented message is a claim, and the ones that wrap another error are where the useful half
-gets dropped.
+Every documented message is a claim. Three ways they go wrong: one that wraps another error and
+drops the useful half; one that names an in-process API a reader driving octo from a definition file
+cannot call; and a `why:` reason hardcoded to a single argument while the check around it covers
+several, so the wrong field gets blamed for a destroy.
 
-**How:** break things on purpose and read what a user sees, including the fields after the message,
-not just the line the page quotes.
+**How:** break things on purpose and read what a user sees, including the fields after the message.
+For a reason string, trigger each branch and check it names the argument you actually changed.
+
+## A templated value that is never interpolated
+
+A key whose documented value is `"${env.SOMETHING}"` but which is read raw, so the placeholder text
+itself becomes the value. Nothing fails, and the shell variable the page tells you to set does
+nothing. Worst where the value is a secret, because the result looks encrypted and is not.
+
+**How:** for every key a page says accepts `${env.X}`, set X to two different values and confirm
+both reach the output. If the behaviour is identical either way, the reference is not being
+resolved.
+
+## A capability the definition file cannot reach
+
+An API the framework exposes, a page teaches, and no project can call: no key in `octo.yaml`, no
+argument handed to a hook, nothing in the CLI that reaches it.
+
+**How:** for every call a page tells you to make, trace a path from `octo.yaml` to the object it is
+made on. Where there is none, it is a gap to document, not a feature to teach. Grep the repository
+for the method: one that appears only in its own unit test is the signature.
+
+## A constraint that accepts everything
+
+A validator applied to a type it does not really handle, so the rule is decorative and the reader
+believes a value is checked when it is not.
+
+**How:** for each documented constraint, construct the value that ought to fail it. If nothing
+fails, the rule does nothing there.
+
+## A miscounted enumeration
+
+"Forty-five event classes", "eight families", "ten modules". Counts drift as the code grows, and a
+reader uses them to decide whether they have seen everything.
+
+**How:** count from the source every time, and count what the sentence actually claims: the number
+of classes and the number of base classes are different questions.
 
 ## A version claim with a shelf life
 
