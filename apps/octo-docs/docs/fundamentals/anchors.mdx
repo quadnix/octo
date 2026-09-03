@@ -61,10 +61,10 @@ classes are on either end.
 
 ## When the shape has to change
 
-A schema change breaks every consumer, and it is sometimes still the right thing to do. Octo has an
-escape hatch for the migration: register the shape you have, the shape your module expects, and a
-function between them, and lookups keep working while consumers catch up. [Translating between
-schemas](/docs/techniques/schema#translating-between-schemas) is how.
+A schema change breaks every consumer, and it is sometimes still the right thing to do. The way
+through is to publish both shapes from your model for a release, and to remove the old one once
+nothing matches it any more. [Schema](/docs/techniques/schema#when-a-shape-has-to-change) covers
+what that costs.
 
 Publishing and consuming anchors in code is [Create an
 Anchor](/docs/building-modules/create-an-anchor).

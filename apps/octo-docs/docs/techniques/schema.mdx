@@ -79,32 +79,24 @@ satisfy the schema is skipped rather than reported, so the result is a list of t
 modules that own the models it searched, so it returns another module's resources rather than every
 resource in the run.
 
-## Translating between schemas
+## When a shape has to change
 
 Matching on shape means a shape change breaks consumers. Sometimes that is the right change anyway,
-and you need the old consumers to keep working while they migrate.
+and the consumers cannot all move on the same day.
 
-```typescript
-octo.registerSchemaTranslation(
-  OldRegionAnchorSchema,
-  NewRegionAnchorSchema,
-  (newSynth) => ({
-    anchorId: newSynth.anchorId,
-    parent: newSynth.parent,
-    properties: {
-      awsRegionId: newSynth.properties.region,
-    },
-  }),
-);
-```
+Octo can translate between two schemas: given the shape consumers ask for, the shape producers now
+publish, and a function from the second to the first, a lookup for the old schema finds anchors
+publishing the new one and translates them on the way out. That keeps old consumers working while
+they catch up.
 
-Register the schema consumers ask for, the schema producers now publish, and a function from the new
-shape to the old one. After that, a lookup for `OldRegionAnchorSchema` finds anchors publishing
-`NewRegionAnchorSchema` and translates them on the way out.
+:::caution[Not reachable from a definition file yet]
+There is no way to register a translation from `octo.yaml`. It has no key for one, and a `hooks`
+export is called with no arguments, so nothing a project writes ever holds the object the
+translation would be registered on.
 
-This is a migration tool, not an architecture. It is global to the run, one translation per source
-schema, and every translation is a place where two shapes have to be kept agreeing by hand. Register
-it when you break a schema, remove it when the consumers have caught up.
+Until it has one, plan a schema change the slower way: publish both the old anchor and the new one
+from your model for a release, and remove the old one once nothing matches it.
+:::
 
 ## Where schemas show up
 
