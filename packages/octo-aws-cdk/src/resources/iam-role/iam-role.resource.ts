@@ -155,7 +155,19 @@ export class IamRole extends ATerraformResource<IamRoleSchema, IamRole> {
       }
     }
     for (const policy of this.properties.policies) {
-      if (!previous.properties.policies.find((p) => p.policyId === policy.policyId)) {
+      const previousPolicy = previous.properties.policies.find((p) => p.policyId === policy.policyId);
+      // A policy whose body moved under the same id is a delete and an add, because a policy is
+      // one terraform resource named by that id and there is no third action to edit it with.
+      if (previousPolicy && !DiffUtility.isObjectDeepEquals({ p: previousPolicy.policy }, { p: policy.policy })) {
+        diffs.push(
+          new Diff<any, IIamRoleDeletePolicyDiff>(this, DiffAction.UPDATE, policy.policyType, {
+            action: 'delete',
+            policyId: policy.policyType === 'aws-policy' ? (previousPolicy.policy as string) : policy.policyId,
+            policyType: policy.policyType,
+          }),
+        );
+      }
+      if (!previousPolicy || !DiffUtility.isObjectDeepEquals({ p: previousPolicy.policy }, { p: policy.policy })) {
         diffs.push(
           new Diff<any, IIamRoleAddPolicyDiff>(this, DiffAction.UPDATE, policy.policyType, {
             action: 'add',
