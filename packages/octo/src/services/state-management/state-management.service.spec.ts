@@ -111,6 +111,23 @@ describe('StateManagementService UT', () => {
       await expect(service.listExternalResourceStateIds()).resolves.toEqual(['image-tag-family/image-0-0-1']);
     });
 
+    // The name itself is a contract: a state provider that keeps state somewhere other than a
+    // directory hands it to a filesystem, an object store and a URL path segment in turn, and only a
+    // plain name survives all three.
+    it('should store a record under a name that needs no escaping', async () => {
+      await service.saveExternalResourceState('igw-1', { inputs: {}, properties: {}, response: {} });
+      await service.saveExternalResourceState('image-tag-family/image-0-0-1', {
+        inputs: {},
+        properties: {},
+        response: {},
+      });
+
+      await expect(stateProvider.listStates('resource-state-')).resolves.toEqual([
+        'resource-state-igw-1.json',
+        'resource-state-image-tag-family.image-0-0-1.json',
+      ]);
+    });
+
     it('should not return a record a commit cleared', async () => {
       await service.saveExternalResourceState('igw-1', { inputs: {}, properties: {}, response: {} });
       await service.saveExternalResourceState('igw-2', { inputs: {}, properties: {}, response: {} });

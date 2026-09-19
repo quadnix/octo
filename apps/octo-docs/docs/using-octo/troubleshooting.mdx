@@ -158,8 +158,8 @@ the tag is part of the ID. Two ways out:
 - Put the resource back in the definition file as it was and run the lifecycle. The commit adopts
   the record, and removing it after that deletes it properly.
 - Delete the published thing yourself, then delete its record. The record is
-  `resource-state-<resource ID>.json` in the state directory, with the ID URL-encoded, and with
-  `.enc` on the end if you use `LocalEncryptionStateProvider`.
+  `resource-state-<resource ID>.json` in the state directory, with `.enc` on the end if you use
+  `LocalEncryptionStateProvider`.
 
 **A plan that fails on the account the credentials belong to**
 

@@ -246,7 +246,9 @@ export class StateManagementService {
     return stateFileNames
       .filter((stateFileName) => stateFileName.endsWith('.json'))
       .map((stateFileName) =>
-        decodeURIComponent(stateFileName.slice(this.externalResourceStateFileNamePrefix.length, -'.json'.length)),
+        stateFileName
+          .slice(this.externalResourceStateFileNamePrefix.length, -'.json'.length)
+          .replace(/\./g, '/'),
       );
   }
 
@@ -311,8 +313,10 @@ export class StateManagementService {
    * @internal
    */
   private externalResourceStateFileName(resourceId: string): string {
-    // A resource id is not a file name - it carries `/` where a resource is named after a path.
-    return `${this.externalResourceStateFileNamePrefix}${encodeURIComponent(resourceId)}.json`;
+    // A resource id is not a file name - it carries `/` where a resource is named after a path, and
+    // a state file name is one thing in a directory, in an object store, and in a URL path segment.
+    // A resource id holds no `.`, so the separator stands in for the slash and reads back as one.
+    return `${this.externalResourceStateFileNamePrefix}${resourceId.replace(/\//g, '.')}.json`;
   }
 }
 
