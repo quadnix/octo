@@ -111,7 +111,7 @@ export const applyCommand = {
     prepareCallbackEnvironment();
 
     try {
-      await bootStateProvider();
+      const { stateCheckInIntervalInMs } = await bootStateProvider();
 
       // The lock is verified before anything is planned, so a run without it fails having done
       // nothing. It is released by `octo commit`, not here - the apply is the middle of a run.
@@ -121,7 +121,7 @@ export const applyCommand = {
       }
 
       const terraformUtility = await Container.getInstance().get<TerraformUtility, any>(TerraformUtility, {
-        args: [{ terraformBinary, terragruntBinary, timeoutInMs }, true],
+        args: [{ stateCheckInIntervalInMs, terraformBinary, terragruntBinary, timeoutInMs }, true],
       });
 
       // The underlying apply runs `-auto-approve` and validate is optional, so without an explicit

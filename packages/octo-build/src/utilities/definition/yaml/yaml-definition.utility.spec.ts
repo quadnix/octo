@@ -1,3 +1,5 @@
+import { mkdtemp, readFile, writeFile } from 'fs/promises';
+import { tmpdir } from 'os';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { jest } from '@jest/globals';
@@ -149,6 +151,38 @@ describe('YamlDefinitionUtility UT', () => {
       process.stdout.isTTY = true;
       const whenATerminal = await definition.resolveListeners();
       expect((whenATerminal[0].args![0] as { colorize: boolean }).colorize).toBe(true);
+    });
+  });
+
+  describe('resolveStateCheckInIntervalInMs()', () => {
+    it.each([
+      [4, 'must be >= 5'],
+      [61, 'must be <= 60'],
+    ])('should throw on an interval of %i seconds', async (seconds, failure) => {
+      const definitionFilePath = join(await mkdtemp(join(tmpdir(), 'octo-definition-')), 'octo.yml');
+      const definition = await readFile(fixture('remote-state-definition.yml'), 'utf-8');
+      await writeFile(
+        definitionFilePath,
+        definition.replace('checkInIntervalInSeconds: 30', `checkInIntervalInSeconds: ${seconds}`),
+      );
+
+      expect(() => new YamlDefinitionUtility(definitionFilePath)).toThrow(
+        expect.objectContaining({
+          failures: expect.arrayContaining([`  [/settings/stateProvider/checkInIntervalInSeconds] ${failure}`]),
+        }),
+      );
+    });
+
+    it('should return nothing when the definition sets no interval', () => {
+      const definition = new YamlDefinitionUtility(fixture('terraform-minimal-definition.yml'));
+
+      expect(definition.resolveStateCheckInIntervalInMs()).toBeUndefined();
+    });
+
+    it('should return the interval in milliseconds', () => {
+      const definition = new YamlDefinitionUtility(fixture('remote-state-definition.yml'));
+
+      expect(definition.resolveStateCheckInIntervalInMs()).toBe(30 * 1000);
     });
   });
 

@@ -26,19 +26,22 @@ function resolveDefinitionFilePath(): string {
 }
 
 /**
- * Boots only the state provider the definition names, without loading a single module.
+ * Boots only the state provider the definition names, without loading a single module, and returns
+ * how often terraform state is checked into it during a terraform command.
  *
  * `apply` is a terraform action rather than an octo mode, so it has no reason to compose a model
  * graph - but terraform state is checked out of the state provider and back into it around every
  * terraform command, so the provider still has to be there.
  */
-export async function bootStateProvider(): Promise<void> {
+export async function bootStateProvider(): Promise<{ stateCheckInIntervalInMs: number | undefined }> {
   const definition = new YamlDefinitionUtility(resolveDefinitionFilePath());
   const stateProvider = definition.resolveStateProvider();
 
   await Container.getInstance().get<StateManagementService, any>(StateManagementService, {
     args: [stateProvider.type],
   });
+
+  return { stateCheckInIntervalInMs: definition.resolveStateCheckInIntervalInMs() };
 }
 
 /**

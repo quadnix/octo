@@ -95,8 +95,8 @@ Octo cannot rebuild: lose it and Terraform plans to create infrastructure that i
 So it goes through the provider as well. Before any Terraform command, Octo writes each module's
 state from the provider into its folder; after the command returns, whether it succeeded or failed,
 it writes what the folder now holds back, under `<moduleId>.tfstate`. A long apply is also checked
-in on a timer, so a runner killed halfway through loses at most a minute of record rather than all
-of it.
+in every ten seconds, so a runner killed halfway through loses at most ten seconds of record rather
+than all of it.
 
 Three consequences worth knowing:
 
@@ -138,7 +138,10 @@ behind. `organizationId` and `appId` name the app the state belongs to. `session
 access token of the account every request is made as. It does not expire, and it is a credential,
 so declare it under `env` and let the shell supply it. `lockContext` is optional, and is what a
 blocked run is told about whoever holds the lock; it defaults to `octo on <hostname>`, and a
-pipeline can put its run URL there instead.
+pipeline can put its run URL there instead. `checkInIntervalInSeconds` is optional as well: how
+often, from 5 to 60 seconds, an apply uploads Terraform's state. It defaults to 10. Each upload is
+one request to the backend, and a check-in that finds nothing changed makes none, so a longer
+interval means fewer requests and more to lose when a run dies.
 
 `statePath` is a working copy rather than the store. Each command reads and writes the directory
 exactly as `LocalStateProvider` would, and the provider keeps the backend in step:
@@ -149,8 +152,8 @@ exactly as `LocalStateProvider` would, and the provider keeps the backend in ste
   refreshed!` when another run finished after your `generate`. Run `generate` again, then `lock`.
   So on this provider, `generate` comes before `lock`.
 - Every write the run makes reaches the backend before the command goes on, and Terraform's state
-  reaches it on the once-a-minute check-in described above. A run that dies has lost at most
-  that minute.
+  reaches it on the check-in described above, every `checkInIntervalInSeconds`. A run that dies has
+  lost at most that interval.
 - A commit that succeeds, or `octo unlock`, finishes the record. From then on it is the state the
   next `generate` reads.
 

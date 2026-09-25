@@ -49,6 +49,7 @@ interface IYamlDefinition {
       | { statePath: string; type: 'LocalStateProvider' }
       | {
           appId: string;
+          checkInIntervalInSeconds?: number;
           lockContext?: string;
           organizationId: string;
           sessionId: string;
@@ -278,6 +279,19 @@ export class YamlDefinitionUtility {
     }
 
     return modules;
+  }
+
+  /**
+   * How often terraform state is checked into the state provider while a terraform command runs, or
+   * `undefined` for the default. Only `RemoteStateProvider` sets it.
+   */
+  resolveStateCheckInIntervalInMs(): number | undefined {
+    const stateProvider = this.definition.settings.stateProvider;
+    if (stateProvider.type !== 'RemoteStateProvider' || stateProvider.checkInIntervalInSeconds === undefined) {
+      return undefined;
+    }
+
+    return stateProvider.checkInIntervalInSeconds * 1000;
   }
 
   /**

@@ -11,7 +11,9 @@ type TerraformPlanResult = {
   plans: Parameters<TerraformUtility['findPlannedDestroys']>[0];
 };
 
-const mockedBootStateProvider = jest.fn<() => Promise<void>>().mockResolvedValue();
+const mockedBootStateProvider = jest
+  .fn<() => Promise<{ stateCheckInIntervalInMs: number | undefined }>>()
+  .mockResolvedValue({ stateCheckInIntervalInMs: undefined });
 const mockedPrepareCallbackEnvironment = jest.fn<() => void>();
 const mockedReportError = jest.fn<(error: unknown) => void>();
 
@@ -222,7 +224,12 @@ describe('applyCommand UT', () => {
 
     expect(getSpy).toHaveBeenCalledWith(TerraformUtility, {
       args: [
-        { terraformBinary: '/opt/bin/terraform', terragruntBinary: '/opt/bin/terragrunt', timeoutInMs: 1000 },
+        {
+          stateCheckInIntervalInMs: undefined,
+          terraformBinary: '/opt/bin/terraform',
+          terragruntBinary: '/opt/bin/terragrunt',
+          timeoutInMs: 1000,
+        },
         true,
       ],
     });
@@ -238,7 +245,30 @@ describe('applyCommand UT', () => {
     await applyCommand.handler(argv);
 
     expect(getSpy).toHaveBeenCalledWith(TerraformUtility, {
-      args: [{ terraformBinary: undefined, terragruntBinary: undefined, timeoutInMs: undefined }, true],
+      args: [
+        {
+          stateCheckInIntervalInMs: undefined,
+          terraformBinary: undefined,
+          terragruntBinary: undefined,
+          timeoutInMs: undefined,
+        },
+        true,
+      ],
+    });
+  });
+
+  it("forwards the definition's state check-in interval to the container", async () => {
+    mockedBootStateProvider.mockResolvedValueOnce({ stateCheckInIntervalInMs: 30 * 1000 });
+    const getSpy = jest
+      .spyOn(Container.getInstance(), 'get')
+      .mockImplementation(async (type) =>
+        type === StateManagementService ? stateManagementServiceMock : terraformUtilityMock,
+      );
+
+    await applyCommand.handler(argv);
+
+    expect(getSpy).toHaveBeenCalledWith(TerraformUtility, {
+      args: [expect.objectContaining({ stateCheckInIntervalInMs: 30 * 1000 }), true],
     });
   });
 });

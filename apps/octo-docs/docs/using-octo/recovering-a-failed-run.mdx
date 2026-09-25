@@ -170,8 +170,8 @@ a laptop that was wiped, a container that was replaced. Anything it created afte
 that record exists in your cloud account and in no record, and the apply in step 4 tries to create
 it again. How much that is depends on where your state lives. With state kept in the repository,
 it is everything the run did, because the push that saves it is the run's last step. With
-[`RemoteStateProvider`](/docs/techniques/state-providers#remote-state), it is at most the last
-minute.
+[`RemoteStateProvider`](/docs/techniques/state-providers#remote-state), it is at most the last ten
+seconds, or the `checkInIntervalInSeconds` your `octo.yaml` sets.
 
 An object with a unique name makes that apply fail:
 

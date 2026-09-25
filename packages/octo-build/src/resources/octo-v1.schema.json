@@ -153,6 +153,11 @@
                 "appId": {
                   "type": "string"
                 },
+                "checkInIntervalInSeconds": {
+                  "maximum": 60,
+                  "minimum": 5,
+                  "type": "integer"
+                },
                 "lockContext": {
                   "type": "string"
                 },
