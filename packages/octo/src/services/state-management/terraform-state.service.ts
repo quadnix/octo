@@ -41,7 +41,9 @@ export class TerraformStateService {
    *
    * A folder holding no state file, or one recording no resources, has its state **deleted** rather
    * than written - that is a module terraform has destroyed, and a file recording nothing is a file
-   * worth nobody's history.
+   * worth nobody's history. A file that does not parse is left out, keeping the provider's copy:
+   * terraform rewrites the file in place, so a check-in during a command can read it empty or half
+   * written.
    *
    * Check-ins are serialized, so the one on a command's return never races the one on the timer.
    */
@@ -109,19 +111,6 @@ export class TerraformStateService {
   }
 
   /**
-   * Whether a terraform state file records nothing, which is what a destroyed module is left with.
-   * State that cannot be parsed is treated as holding resources, so an unreadable file is kept.
-   */
-  private holdsNoResources(data: Buffer): boolean {
-    try {
-      const state = JSON.parse(data.toString()) as { resources?: unknown[] };
-      return Array.isArray(state.resources) && state.resources.length === 0;
-    } catch {
-      return false;
-    }
-  }
-
-  /**
    * Whether the folder's terraform state is a later write of the same state the provider holds: the
    * same `lineage`, and a higher `serial`. State that cannot be read or parsed is never ahead.
    */
@@ -142,6 +131,17 @@ export class TerraformStateService {
   }
 
   /**
+   * A terraform state file's contents, or `undefined` when it does not parse.
+   */
+  private parseState(data: Buffer): { resources?: unknown[] } | undefined {
+    try {
+      return JSON.parse(data.toString());
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
    * The name one module's terraform state is stored under, alongside Octo's own state files.
    */
   private stateFileName(moduleId: string): string {
@@ -156,12 +156,24 @@ export class TerraformStateService {
 
     for (const moduleId of moduleIds) {
       const stateFilePath = join(terragruntDir, moduleId, TERRAFORM_STATE_FILE_NAME);
-      const data = existsSync(stateFilePath) ? await readFile(stateFilePath) : undefined;
+      const stateFileName = this.stateFileName(moduleId);
 
-      stateFiles.push({
-        data: data && !this.holdsNoResources(data) ? data : undefined,
-        stateFileName: this.stateFileName(moduleId),
-      });
+      // Delete the state of a module with no state file.
+      if (!existsSync(stateFilePath)) {
+        stateFiles.push({ data: undefined, stateFileName });
+        continue;
+      }
+
+      // Skip a file terraform is still writing.
+      const data = await readFile(stateFilePath);
+      const state = this.parseState(data);
+      if (!state) {
+        continue;
+      }
+
+      // Delete the state of a module recording no resources, and write every other.
+      const holdsNoResources = Array.isArray(state.resources) && state.resources.length === 0;
+      stateFiles.push({ data: holdsNoResources ? undefined : data, stateFileName });
     }
 
     await this.stateManagementService.saveStates(stateFiles);

@@ -65,12 +65,16 @@ describe('TerraformStateService UT', () => {
       );
     });
 
-    it('should keep a state file it cannot parse', async () => {
-      await createModuleFolder('module-a', 'not-json');
+    it.each([
+      ['an empty', ''],
+      ['a half-written', stateWithResources.slice(0, 20)],
+    ])('should leave the provider state alone when the folder holds %s state file', async (_, folderState) => {
+      await stateProvider.saveStates([{ data: Buffer.from(stateWithResources), stateFileName: 'module-a.tfstate' }]);
+      await createModuleFolder('module-a', folderState);
 
       await terraformStateService.checkIn(terragruntDir, ['module-a']);
 
-      expect((await stateProvider.getState('module-a.tfstate')).toString()).toBe('not-json');
+      expect((await stateProvider.getState('module-a.tfstate')).toString()).toBe(stateWithResources);
     });
 
     it('should write every module folder as one change', async () => {
