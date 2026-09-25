@@ -25,6 +25,8 @@ const TERRAFORM_STATE_FILE_NAME = 'terraform.tfstate';
 export class TerraformStateService {
   private checkInQueue: Promise<void> = Promise.resolve();
 
+  private isPeriodicCheckInRunning = false;
+
   private periodicCheckIn: NodeJS.Timeout | undefined;
 
   private readonly stateManagementService: StateManagementService;
@@ -94,9 +96,19 @@ export class TerraformStateService {
     }
 
     this.periodicCheckIn = setInterval(() => {
+      // Skip the tick while the last one is still checking in, rather than waiting behind it.
+      if (this.isPeriodicCheckInRunning) {
+        return;
+      }
+      this.isPeriodicCheckInRunning = true;
+
       // A tick that fails is not worth aborting the terraform command that is still running - the
       // check-in on its return reports the failure instead.
-      void this.checkIn(terragruntDir, moduleIds).catch(() => {});
+      void this.checkIn(terragruntDir, moduleIds)
+        .catch(() => {})
+        .finally(() => {
+          this.isPeriodicCheckInRunning = false;
+        });
     }, intervalInMs);
   }
 

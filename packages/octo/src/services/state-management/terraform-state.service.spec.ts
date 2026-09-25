@@ -175,6 +175,27 @@ describe('TerraformStateService UT', () => {
       expect(saveStates).not.toHaveBeenCalled();
     });
 
+    it('should skip a tick while the last one is still checking in', async () => {
+      let finishCheckIn: () => void = () => {};
+      const checkIn = jest.spyOn(terraformStateService, 'checkIn').mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            finishCheckIn = resolve;
+          }),
+      );
+      jest.useFakeTimers();
+
+      terraformStateService.startPeriodicCheckIn(terragruntDir, ['module-a'], 10 * 1000);
+      await jest.advanceTimersByTimeAsync(30 * 1000);
+      expect(checkIn).toHaveBeenCalledTimes(1);
+
+      finishCheckIn();
+      await jest.advanceTimersByTimeAsync(10 * 1000);
+      jest.useRealTimers();
+
+      expect(checkIn).toHaveBeenCalledTimes(2);
+    });
+
     it('should check state in while a command is still running', async () => {
       await createModuleFolder('module-a', stateWithResources);
       jest.useFakeTimers();
