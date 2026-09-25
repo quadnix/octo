@@ -38,6 +38,7 @@ overlay's anchors and properties, and the dependency behaviours.
 | `reading-a-validate-report`            | run   | All four outcomes produced deliberately.                                          |
 | `tagging-resources`                    | run   | Both scopes, and all three documented tag errors.                                 |
 | `destroying-infrastructure`            | run   | Single-module removal and full teardown.                                          |
+| `recovering-a-failed-run`              | part  | Run 2026-09-25 on `LocalStateProvider` against live AWS: a failed apply and `commit --partial`, a failed commit keeping its lock, the destroy refusal and `unlock`, an apply interrupted with Ctrl-C and resumed on the same machine, and a lost machine's leftovers (bucket, VPC, and an internet gateway still being created) found with the page's script and deleted; the `terragrunt import` path was run too. **Open:** the remote-state and CI sections. |
 | `troubleshooting`                      | elsewhere | Its messages surface on their own as infrastructure gets built. Correct the entry for any message a run actually hits; do not force the rest. |
 
 ## Building Modules

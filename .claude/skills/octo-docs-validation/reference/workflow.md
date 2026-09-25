@@ -66,7 +66,8 @@ refusal is a documented behaviour worth exercising, so hit it deliberately at le
 before passing the flag.
 
 `octo lock` prints the id on stdout and nothing else, so `$(...)` captures it. If a run dies holding
-the lock, `npm run octo:unlock -- --force`.
+the lock, follow `using-octo/recovering-a-failed-run` - running it for real is part of validating that
+page. A run you abandon before the apply is released with `npm run octo:unlock -- --lockId $LOCK_ID`.
 
 ## Cost discipline
 
