@@ -31,9 +31,8 @@ export class OctoCliUtility {
    * be incomplete. Defaulting to it would turn a successful apply that quietly produced nothing into
    * a warning nobody reads.
    *
-   * The lock is released by `commit`, however that ends, and by an explicit unlock when a step
-   * before the apply is what failed - a lock left behind blocks the next run, including the
-   * teardown.
+   * The lock is released by a `commit` that succeeds, and by an explicit unlock when any other step
+   * is what failed - a lock left behind blocks the next run, including the teardown.
    */
   static async lifecycle(
     projectDirectory: string,
@@ -42,16 +41,15 @@ export class OctoCliUtility {
   ): Promise<void> {
     const run = (args: string[]): Promise<string> =>
       OctoCliUtility.run(projectDirectory, definitionFilePath, args, environment);
-    const forceUnlock = (): Promise<unknown> => run(['unlock', '--force']).catch(() => undefined);
-
     const lockId = (await run(['lock'])).trim();
+    const unlock = (): Promise<unknown> => run(['unlock', '--lockId', lockId]).catch(() => undefined);
 
     // Nothing before the apply reaches infrastructure, so a failure here has nothing to record.
     try {
       await run(['generate', '--outputDir', OUTPUT_DIRECTORY]);
       await run(['validate', '--terragruntDir', OUTPUT_DIRECTORY]);
     } catch (error) {
-      await forceUnlock();
+      await unlock();
       throw error;
     }
 
@@ -66,8 +64,8 @@ export class OctoCliUtility {
     try {
       await run(applyError ? [...commitArguments, '--partial'] : commitArguments);
     } catch (error) {
-      // Commit releases the lock in a `finally`, but it can fail before ever reaching it.
-      await forceUnlock();
+      // Release the lock a failed commit keeps.
+      await unlock();
       throw applyError ?? error;
     }
 
