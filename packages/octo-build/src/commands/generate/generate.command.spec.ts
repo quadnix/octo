@@ -1,5 +1,6 @@
 import { resolve } from 'path';
 import { jest } from '@jest/globals';
+import { StateManagementService, TestContainer } from '@quadnix/octo';
 import type { ArgumentsCamelCase } from 'yargs';
 
 type GenerateArguments = { outputDir: string };
@@ -7,12 +8,14 @@ type GenerateArguments = { outputDir: string };
 const mockedReportError = jest.fn<(error: unknown) => void>();
 const mockedGenerate = jest.fn<(app: unknown, options: { outputDir: string }) => Promise<void>>();
 const mockedBootOcto = jest.fn<(options?: { quietStdout?: boolean }) => Promise<unknown>>();
+const mockedBootStateProvider = jest.fn<() => Promise<void>>().mockResolvedValue();
 
 // Real ESM (`--experimental-vm-modules`) doesn't support `jest.mock()`'s hoisted auto-mocking of
 // named function exports the way Jest's CJS mode does — `jest.unstable_mockModule` + a dynamic
 // `import()` of the module under test (below) is the mechanism that actually works here.
 jest.unstable_mockModule('../../utilities/octo/octo.utility.js', () => ({
   bootOcto: mockedBootOcto,
+  bootStateProvider: mockedBootStateProvider,
   reportError: mockedReportError,
 }));
 
@@ -25,8 +28,14 @@ describe('generateCommand UT', () => {
 
   let processExitSpy: jest.SpiedFunction<typeof process.exit>;
   let consoleLogSpy: jest.SpiedFunction<typeof console.log>;
+  let refreshStateMock: jest.Mock<() => Promise<void>>;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    refreshStateMock = jest.fn<() => Promise<void>>().mockResolvedValue();
+    await TestContainer.create({
+      mocks: [{ type: StateManagementService, value: { refreshState: refreshStateMock } as unknown as StateManagementService }],
+    });
+
     mockedGenerate.mockResolvedValue(undefined);
     mockedBootOcto.mockResolvedValue({ app: { name: 'test-app' }, octo: { generate: mockedGenerate } });
 
@@ -41,10 +50,26 @@ describe('generateCommand UT', () => {
     mockedBootOcto.mockReset();
   });
 
+  afterAll(async () => {
+    await TestContainer.reset();
+  });
+
   it('should generate into the output directory resolved against the cwd', async () => {
     await generateCommand.handler(argv);
 
     expect(mockedGenerate).toHaveBeenCalledWith(expect.anything(), { outputDir: resolvedOutputDir });
+    expect(processExitSpy).not.toHaveBeenCalled();
+  });
+
+  it('should refresh the state before octo boots and reads it', async () => {
+    mockedBootOcto.mockImplementation(async () => {
+      expect(refreshStateMock).toHaveBeenCalled();
+      return { app: { name: 'test-app' }, octo: { generate: mockedGenerate } };
+    });
+
+    await generateCommand.handler(argv);
+
+    expect(mockedBootOcto).toHaveBeenCalled();
     expect(processExitSpy).not.toHaveBeenCalled();
   });
 

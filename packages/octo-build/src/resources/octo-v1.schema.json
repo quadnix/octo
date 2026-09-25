@@ -150,6 +150,35 @@
             {
               "additionalProperties": false,
               "properties": {
+                "appId": {
+                  "type": "string"
+                },
+                "lockContext": {
+                  "type": "string"
+                },
+                "organizationId": {
+                  "type": "string"
+                },
+                "sessionId": {
+                  "type": "string"
+                },
+                "stateManagementServiceUrl": {
+                  "type": "string"
+                },
+                "statePath": {
+                  "type": "string"
+                },
+                "type": {
+                  "const": "RemoteStateProvider",
+                  "type": "string"
+                }
+              },
+              "required": ["appId", "organizationId", "sessionId", "stateManagementServiceUrl", "statePath", "type"],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
                 "type": {
                   "const": "TestStateProvider",
                   "type": "string"

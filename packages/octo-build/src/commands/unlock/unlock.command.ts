@@ -4,54 +4,40 @@ import type { ArgumentsCamelCase, Argv } from 'yargs';
 import { bootStateProvider, reportError } from '../../utilities/octo/octo.utility.js';
 
 type UnlockCommandArguments = {
-  force?: boolean;
-  lockId?: string;
+  lockId: string;
 };
 
 /**
- * Releases the app lock.
+ * Finishes a run as it stands and releases its lock.
  *
- * A run that finishes releases its own lock - `commit` always does, however it ends - so this is
- * either for a run that never reached its commit, or for `--force` after one died holding the lock.
+ * A successful `commit` releases its own lock, so this is for a run that will not reach one - a run
+ * that never applied, or one somebody finished by hand. With a remote state provider, releasing
+ * seals what the run wrote.
  */
 export const unlockCommand = {
   builder: (yargs: Argv): Argv => {
-    return yargs
-      .option('lockId', {
-        demandOption: false,
-        description: 'The lock ID to release, as printed by `octo lock`.',
-        type: 'string',
-      })
-      .option('force', {
-        default: false,
-        demandOption: false,
-        description: 'Release whatever lock is held, without knowing its ID. For a run that died holding one.',
-        type: 'boolean',
-      });
+    return yargs.option('lockId', {
+      demandOption: true,
+      description: 'The lock ID to release, as printed by `octo lock`.',
+      type: 'string',
+    });
   },
   command: 'unlock',
-  describe: 'Release the app state lock.',
+  describe: 'Finish a run as it stands, releasing its app state lock.',
   handler: async (argv: ArgumentsCamelCase<UnlockCommandArguments>): Promise<void> => {
-    const { force, lockId } = argv;
+    const { lockId } = argv;
 
     try {
-      if (!force && !lockId) {
-        throw new Error('Either --lockId or --force is required to unlock!');
-      }
-
       await bootStateProvider();
       const stateManagementService = await Container.getInstance().get(StateManagementService);
 
-      // Force reads the held lock and releases that, which is the only way through when the ID was
-      // lost with the run that took it.
-      const existingLockId = await stateManagementService.getAppLock();
-      if (!existingLockId) {
+      if (!(await stateManagementService.getAppLock())) {
         console.error(chalk.green('App is already unlocked.'));
         return;
       }
 
-      await stateManagementService.unlockApp(force ? existingLockId : lockId!);
-      console.error(chalk.green(`App was unlocked, releasing lock ID "${existingLockId}".`));
+      await stateManagementService.unlockApp(lockId);
+      console.error(chalk.green(`App was unlocked, releasing lock ID "${lockId}".`));
     } catch (error) {
       reportError(error);
       process.exit(1);

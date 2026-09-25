@@ -11,7 +11,6 @@ const mockedBootOcto =
   jest.fn<
     () => Promise<{ app: unknown; octo: { commit: jest.Mock<(...args: unknown[]) => Promise<CommitResult>> } }>
   >();
-const mockedBootStateProvider = jest.fn<() => Promise<void>>().mockResolvedValue();
 const mockedReportError = jest.fn<(error: unknown) => void>();
 
 // Real ESM (`--experimental-vm-modules`) doesn't support `jest.mock()`'s hoisted auto-mocking of
@@ -19,7 +18,6 @@ const mockedReportError = jest.fn<(error: unknown) => void>();
 // `import()` of the module under test (below) is the mechanism that actually works here.
 jest.unstable_mockModule('../../utilities/octo/octo.utility.js', () => ({
   bootOcto: mockedBootOcto,
-  bootStateProvider: mockedBootStateProvider,
   reportError: mockedReportError,
 }));
 
@@ -80,21 +78,21 @@ describe('commitCommand UT', () => {
     expect(processExitSpy).not.toHaveBeenCalled();
   });
 
-  it('releases the app lock even when the commit throws', async () => {
+  it('keeps the app lock when the commit throws', async () => {
     octoCommitMock.mockRejectedValue(new Error('missing terraform outputs'));
 
     await commitCommand.handler(argv);
 
-    expect(stateManagementServiceMock.unlockApp).toHaveBeenCalledWith(lockId);
+    expect(stateManagementServiceMock.unlockApp).not.toHaveBeenCalled();
     expect(processExitSpy).toHaveBeenCalledWith(1);
   });
 
-  it('releases the app lock even when octo fails to boot', async () => {
+  it('keeps the app lock when octo fails to boot', async () => {
     mockedBootOcto.mockRejectedValue(new Error('Definition file failed validation against schema!'));
 
     await commitCommand.handler(argv);
 
-    expect(stateManagementServiceMock.unlockApp).toHaveBeenCalledWith(lockId);
+    expect(stateManagementServiceMock.unlockApp).not.toHaveBeenCalled();
     expect(processExitSpy).toHaveBeenCalledWith(1);
   });
 

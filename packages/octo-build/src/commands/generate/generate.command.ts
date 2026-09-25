@@ -1,6 +1,7 @@
 import { resolve } from 'path';
+import { Container, StateManagementService } from '@quadnix/octo';
 import type { ArgumentsCamelCase, Argv } from 'yargs';
-import { bootOcto, reportError } from '../../utilities/octo/octo.utility.js';
+import { bootOcto, bootStateProvider, reportError } from '../../utilities/octo/octo.utility.js';
 
 type GenerateCommandArguments = {
   outputDir: string;
@@ -8,6 +9,8 @@ type GenerateCommandArguments = {
 
 /**
  * Step 1 of the octo lifecycle. See {@link Octo.generate}.
+ *
+ * The state is refreshed before octo boots, because booting is what reads it.
  */
 export const generateCommand = {
   builder: (yargs: Argv): Argv => {
@@ -26,6 +29,9 @@ export const generateCommand = {
     const { outputDir } = argv;
 
     try {
+      await bootStateProvider();
+      await (await Container.getInstance().get(StateManagementService)).refreshState();
+
       const { app, octo } = await bootOcto();
 
       const resolvedOutputDir = resolve(process.cwd(), outputDir);

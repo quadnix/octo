@@ -7,6 +7,7 @@ import {
   LocalEncryptionStateProvider,
   LocalStateProvider,
   type Octo,
+  RemoteStateProvider,
   TestStateProvider,
 } from '@quadnix/octo';
 import type { HtmlReportEventListener } from '@quadnix/octo-event-listeners/html-report';
@@ -46,6 +47,15 @@ interface IYamlDefinition {
     stateProvider:
       | { encryptionKey: string; statePath: string; type: 'LocalEncryptionStateProvider' }
       | { statePath: string; type: 'LocalStateProvider' }
+      | {
+          appId: string;
+          lockContext?: string;
+          organizationId: string;
+          sessionId: string;
+          stateManagementServiceUrl: string;
+          statePath: string;
+          type: 'RemoteStateProvider';
+        }
       | { type: 'TestStateProvider' };
   };
   tags: Array<{
@@ -276,6 +286,7 @@ export class YamlDefinitionUtility {
   resolveStateProvider():
     | { type: LocalEncryptionStateProvider }
     | { type: LocalStateProvider }
+    | { type: RemoteStateProvider }
     | { type: TestStateProvider } {
     const stateProvider = this.definition.settings.stateProvider;
     // Anchored to the definition file for the same reason imports are: `run-action` runs with
@@ -294,6 +305,22 @@ export class YamlDefinitionUtility {
     } else if (stateProvider.type === 'LocalStateProvider') {
       return {
         type: new LocalStateProvider(resolve(this.definitionDir, stateProvider.statePath)),
+      };
+    } else if (stateProvider.type === 'RemoteStateProvider') {
+      return {
+        type: new RemoteStateProvider({
+          appId: this.resolveEnvironmentValue<string>(stateProvider.appId),
+          localStateDirectoryPath: resolve(this.definitionDir, stateProvider.statePath),
+          lockContext: stateProvider.lockContext
+            ? this.resolveEnvironmentValue<string>(stateProvider.lockContext)
+            : undefined,
+          organizationId: this.resolveEnvironmentValue<string>(stateProvider.organizationId),
+          // Resolved like an encryption key, and for the same reason: a session is a credential, and
+          // a credential written into the definition file is a credential committed beside the state
+          // it reaches.
+          sessionId: this.resolveEnvironmentValue<string>(stateProvider.sessionId),
+          stateManagementServiceUrl: this.resolveEnvironmentValue<string>(stateProvider.stateManagementServiceUrl),
+        }),
       };
     } else if (stateProvider.type === 'TestStateProvider') {
       return {
