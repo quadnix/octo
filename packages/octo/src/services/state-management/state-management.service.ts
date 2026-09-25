@@ -246,9 +246,7 @@ export class StateManagementService {
     return stateFileNames
       .filter((stateFileName) => stateFileName.endsWith('.json'))
       .map((stateFileName) =>
-        stateFileName
-          .slice(this.externalResourceStateFileNamePrefix.length, -'.json'.length)
-          .replace(/\./g, '/'),
+        stateFileName.slice(this.externalResourceStateFileNamePrefix.length, -'.json'.length).replace(/\./g, '/'),
       );
   }
 

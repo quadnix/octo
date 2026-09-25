@@ -99,6 +99,7 @@ describe('AwsEcsServerModule E2E', () => {
       )
       .next();
 
+    // eslint-disable-next-line spellcheck/spell-checker
     expect(await TerragruntUtility.collectTerraformResources(OUTPUT_DIR)).toMatchInlineSnapshot(`
      [
        "aws_iam_role.iam-role-ServerRole-backend",

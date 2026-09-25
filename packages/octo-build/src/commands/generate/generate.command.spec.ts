@@ -33,7 +33,12 @@ describe('generateCommand UT', () => {
   beforeEach(async () => {
     refreshStateMock = jest.fn<() => Promise<void>>().mockResolvedValue();
     await TestContainer.create({
-      mocks: [{ type: StateManagementService, value: { refreshState: refreshStateMock } as unknown as StateManagementService }],
+      mocks: [
+        {
+          type: StateManagementService,
+          value: { refreshState: refreshStateMock } as unknown as StateManagementService,
+        },
+      ],
     });
 
     mockedGenerate.mockResolvedValue(undefined);

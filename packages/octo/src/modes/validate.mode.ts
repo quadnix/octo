@@ -260,9 +260,10 @@ function isMarked(marks: Record<string, unknown> | boolean | null | undefined, k
  * costs nothing but the comparison. Without it an added index and a removed index render as the
  * same sentence: "1 update".
  */
-function describeFieldChanges(
-  change: NonNullable<NonNullable<TerraformPlan['resource_changes']>[number]['change']>,
-): { fields: ValidateFieldChange[]; omittedFieldCount: number } {
+function describeFieldChanges(change: NonNullable<NonNullable<TerraformPlan['resource_changes']>[number]['change']>): {
+  fields: ValidateFieldChange[];
+  omittedFieldCount: number;
+} {
   const actions = new Set(change.actions ?? []);
   // A plain create or delete needs no field list: the address and the action are the whole story.
   const isUpdate = actions.has('update');

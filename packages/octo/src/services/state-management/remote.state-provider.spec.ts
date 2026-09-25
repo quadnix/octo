@@ -42,7 +42,8 @@ async function startBackend(backend: Backend): Promise<{ close: () => Promise<vo
       response.writeHead(status, { 'Content-Type': 'application/json' });
       response.end(payload === undefined ? undefined : JSON.stringify(payload));
     };
-    const refuse = (status: number, message: string): void => answer(status, { error: 'Error', message, statusCode: status });
+    const refuse = (status: number, message: string): void =>
+      answer(status, { error: 'Error', message, statusCode: status });
     const describe = (state: Backend['states'][0]): object => ({
       commitId: state.commitId,
       phase: state.phase,
@@ -70,7 +71,14 @@ async function startBackend(backend: Backend): Promise<{ close: () => Promise<vo
       } else if (backend.locks.length > 0) {
         refuse(409, `App lock conflicts on "app", held since ${new Date(0).toISOString()}!`);
       } else {
-        const lock = { commitId, context, lockId: `${'a'.repeat(63)}${backend.requests.length % 10}`, scope, takenAt: 0, takenBy: 'an-account' };
+        const lock = {
+          commitId,
+          context,
+          lockId: `${'a'.repeat(63)}${backend.requests.length % 10}`,
+          scope,
+          takenAt: 0,
+          takenBy: 'an-account',
+        };
         backend.locks.push(lock);
         answer(201, lock);
       }
@@ -100,7 +108,9 @@ async function startBackend(backend: Backend): Promise<{ close: () => Promise<vo
     }
 
     if (route === 'PUT /') {
-      const form = await new Response(body, { headers: { 'Content-Type': request.headers['content-type']! } }).formData();
+      const form = await new Response(body, {
+        headers: { 'Content-Type': request.headers['content-type']! },
+      }).formData();
       const lock = backend.locks.find((l) => l.lockId === form.get('lockId'));
       if (!lock) {
         refuse(404, 'Lock not found!');
@@ -138,9 +148,7 @@ async function startBackend(backend: Backend): Promise<{ close: () => Promise<vo
     }
 
     if (route === 'GET /latest') {
-      const latest = backend.states
-        .filter((s) => s.phase === 'commit')
-        .sort((a, b) => b.sealedAt! - a.sealedAt!)[0];
+      const latest = backend.states.filter((s) => s.phase === 'commit').sort((a, b) => b.sealedAt! - a.sealedAt!)[0];
       if (!latest) {
         refuse(404, 'State not found!');
         return;
@@ -350,7 +358,10 @@ describe('RemoteStateProvider UT', () => {
         await otherRemoteStateProvider.saveState('b.json', Buffer.from('{"b":1}'));
         await otherRemoteStateProvider.unlockApp(lockId);
 
-        expect(backend.states[0]).toMatchObject({ files: { 'a.json': '{"a":1}', 'b.json': '{"b":1}' }, phase: 'commit' });
+        expect(backend.states[0]).toMatchObject({
+          files: { 'a.json': '{"a":1}', 'b.json': '{"b":1}' },
+          phase: 'commit',
+        });
       });
 
       it('should start from the newest sealed state when the run wrote nothing', async () => {
