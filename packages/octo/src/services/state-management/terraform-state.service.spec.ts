@@ -108,6 +108,16 @@ describe('TerraformStateService UT', () => {
       );
     });
 
+    it('should write the state provider state over a module folder state of another lineage', async () => {
+      const providerState = JSON.stringify({ lineage: 'lineage-a', resources: [], serial: 1 });
+      await stateProvider.saveState('module-a.tfstate', Buffer.from(providerState));
+      await createModuleFolder('module-a', JSON.stringify({ lineage: 'lineage-b', resources: [], serial: 5 }));
+
+      await terraformStateService.checkOut(terragruntDir, ['module-a']);
+
+      expect((await readFile(join(terragruntDir, 'module-a', 'terraform.tfstate'))).toString()).toBe(providerState);
+    });
+
     it('should keep what the module folder holds when the provider holds nothing', async () => {
       await createModuleFolder('module-a', stateWithResources);
 
@@ -116,6 +126,19 @@ describe('TerraformStateService UT', () => {
       expect((await readFile(join(terragruntDir, 'module-a', 'terraform.tfstate'))).toString()).toBe(
         stateWithResources,
       );
+    });
+
+    it('should keep what the module folder holds when it is ahead of the provider', async () => {
+      const folderState = JSON.stringify({ lineage: 'lineage-a', resources: [], serial: 5 });
+      await stateProvider.saveState(
+        'module-a.tfstate',
+        Buffer.from(JSON.stringify({ lineage: 'lineage-a', resources: [], serial: 4 })),
+      );
+      await createModuleFolder('module-a', folderState);
+
+      await terraformStateService.checkOut(terragruntDir, ['module-a']);
+
+      expect((await readFile(join(terragruntDir, 'module-a', 'terraform.tfstate'))).toString()).toBe(folderState);
     });
   });
 

@@ -59,8 +59,9 @@ export class TerraformStateService {
    * Writes the state provider's terraform state into every module folder.
    *
    * A module the provider holds nothing for keeps whatever its folder already has, which is what
-   * adopts the state of a stack that ran with a local backend until now. The check-in that follows
-   * hands that state to the provider, and from then on the provider is the one that answers.
+   * adopts the state of a stack that ran with a local backend until now. A folder whose state is
+   * ahead of the provider's keeps it too, which is what a run killed before its last check-in
+   * leaves behind. The check-in that follows hands either to the provider.
    */
   async checkOut(terragruntDir: string, moduleIds: string[]): Promise<void> {
     for (const moduleId of moduleIds) {
@@ -74,7 +75,12 @@ export class TerraformStateService {
         throw error;
       }
 
-      await writeFile(join(terragruntDir, moduleId, TERRAFORM_STATE_FILE_NAME), data);
+      const stateFilePath = join(terragruntDir, moduleId, TERRAFORM_STATE_FILE_NAME);
+      if (await this.isFolderStateAhead(stateFilePath, data)) {
+        continue;
+      }
+
+      await writeFile(stateFilePath, data);
     }
   }
 
@@ -111,6 +117,26 @@ export class TerraformStateService {
     try {
       const state = JSON.parse(data.toString()) as { resources?: unknown[] };
       return Array.isArray(state.resources) && state.resources.length === 0;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Whether the folder's terraform state is a later write of the same state the provider holds: the
+   * same `lineage`, and a higher `serial`. State that cannot be read or parsed is never ahead.
+   */
+  private async isFolderStateAhead(stateFilePath: string, providerData: Buffer): Promise<boolean> {
+    try {
+      const folderState = JSON.parse(await readFile(stateFilePath, 'utf-8')) as { lineage?: string; serial?: number };
+      const providerState = JSON.parse(providerData.toString()) as { lineage?: string; serial?: number };
+
+      return (
+        typeof folderState.serial === 'number' &&
+        typeof providerState.serial === 'number' &&
+        folderState.lineage === providerState.lineage &&
+        folderState.serial > providerState.serial
+      );
     } catch {
       return false;
     }

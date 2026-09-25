@@ -97,7 +97,8 @@ export class Octo {
    * as warnings for you to surface.
    *
    * **Requires the lock**, and does not release it. Taking and releasing the lock belongs to whoever
-   * drives the lifecycle - the CLI's `octo commit` releases it once this returns, however it ended.
+   * drives the lifecycle - the CLI's `octo commit` releases it once this returns, and keeps it when this
+   * throws.
    *
    * @param app The root model, from {@link Octo.getRootModel}.
    * @param options `lockId` is the lock from `octo lock`. `outputs` is

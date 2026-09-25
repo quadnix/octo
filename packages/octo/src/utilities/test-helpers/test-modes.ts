@@ -308,7 +308,7 @@ export class TestModes {
 
   /**
    * Takes the app lock the CLI would have taken, unless the caller supplied one, and releases it
-   * afterwards the way `octo commit` does - however the commit turned out.
+   * afterwards however the commit turned out, so a test never leaves one behind.
    *
    * @internal
    */
