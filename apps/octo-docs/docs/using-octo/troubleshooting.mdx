@@ -216,6 +216,11 @@ up what it left.
 generated was planned against a state that is no longer the newest. The lock was released again
 before anything ran. Run `generate` again, then `lock`.
 
+If you generate from a branch, bring it up to date with `main` first. The other run's change is in
+`main`'s definition file and not in yours, so a plan from the old branch against the new state
+reads as destroying what that run built. In a pipeline, that is requiring a pull request to be up
+to date before it applies.
+
 **`App is not locked!`**
 
 `apply` and `commit` both require the lock. Take it with `octo lock` and pass the ID it prints to

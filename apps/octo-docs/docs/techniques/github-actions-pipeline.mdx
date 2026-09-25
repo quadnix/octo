@@ -2,92 +2,88 @@
 title: GitHub Actions Pipeline
 ---
 
-Octo keeps one record of what your infrastructure is, in the files under `.octo/`, and that record
-has room for one writer. On a laptop that is fine: there is one of you, and you are watching the
-terminal. In a repository several people work in, it is not. One person adds an order queue to the
-[shop](/docs/getting-started/shop-stack) while another changes its checkout server, the two applies
-overlap, and the record is left describing something the cloud no longer holds. Nothing warns anyone
-at the time. The next plan does, by offering to build things that already exist.
+Octo keeps one record of what your infrastructure is, and that record has room for one writer at a
+time. On a laptop that is fine: there is one of you, and you are watching the terminal. In a
+repository several people work in, it is not. One person adds an order queue to the
+[shop](/docs/getting-started/shop-stack) while another changes its checkout server, and whichever
+applies second is planning against a record the first has already moved.
 
-The pipeline below removes the overlap instead of detecting it: every apply happens in one place,
-one at a time.
+The pipeline below gives every change one path to the cloud: it is planned on its pull request,
+applied from that pull request when somebody asks, and merged only once the apply succeeded. So
+`main` never describes infrastructure that does not exist.
 
 ## The shape
 
 ```mermaid
 flowchart TD
-  PR["Pull request<br/>generate, validate, comment"]
-  Q["Merge queue<br/>rebases and tests one at a time"]
+  PR["Pull request<br/>generate, validate, comment the report"]
+  R["Review<br/>approve the change and its report"]
+  C["Comment<br/>/octo apply"]
+  A["Apply workflow<br/>check, generate, lock, apply, commit"]
   M["main"]
-  A["Merge workflow<br/>generate, lock, apply, commit"]
-  S["State commit<br/>.octo/ pushed back"]
-  PR --> Q
-  Q --> M
-  M --> A
-  A --> S
-  S -->|"skipped by the path filter"| M
+  PR --> R
+  R --> C
+  C --> A
+  A -->|"merged after a successful apply"| M
 ```
 
-Three parts, and each one has a job the other two cannot do.
+Two workflows, and each one has a job the other cannot do.
 
-The **pull request workflow** runs `generate` and `validate` and posts the result as a comment. It
-writes nothing anywhere, so it runs with credentials that can only read.
+The **plan workflow** runs `generate` and `validate` on every push to a pull request and posts the
+report as a comment. It writes nothing anywhere, so it runs with credentials that can only read.
 
-The **merge queue** is GitHub's own feature. You press "Merge when ready" and forget about it.
-GitHub puts your pull request in a line behind the ones already waiting, rebases it onto them, runs
-its checks again, and merges it when its turn arrives. Nobody has to click "Update branch" and wait
-for the checks a second time.
+The **apply workflow** runs when somebody comments `/octo apply` on an approved pull request. It
+checks the pull request is up to date with `main`, applies it, and merges it. A concurrency group
+keeps two of them from overlapping, and the app lock keeps anything else out while one runs.
 
-The **merge workflow** runs on `main` and does the work that changes things: generate, lock, apply,
-commit, then push the updated `.octo/` back. A concurrency group keeps two of them from overlapping.
+Applying before merging is what keeps `main` truthful. A change merged first and applied second
+leaves `main` describing infrastructure that may never have been built, and nothing points at the
+gap. Applying first has the opposite failure, a pull request that applied and then never merged,
+and that one shows up in the next report as changes nobody asked for.
 
-State lives in the repository, so it has to be encrypted. The project uses
-[`LocalEncryptionStateProvider`](/docs/techniques/state-providers), with the key in a repository
-secret named `OCTO_STATE_ENCRYPTION_KEY`, and both workflows hand it to every step:
+## State
+
+State lives in [remote state](/docs/techniques/state-providers#remote-state), where every runner
+reads the same record and takes the same lock, and a runner that dies leaves both behind for
+somebody to finish. Nothing is committed back to the repository, so add `.octo/` to `.gitignore`.
 
 ```yaml title="octo.yaml"
 env:
-  - key: OCTO_STATE_ENCRYPTION_KEY
+  - key: OCTO_SESSION
     kind: string
-    value: ""        # supplied by the shell, never written here
+    value: ""                          # a personal access token, supplied by the shell
+  - key: OCTO_LOCK_CONTEXT
+    kind: string
+    value: "octo, run by hand"         # the pipeline supplies its run's URL
 
 settings:
   stateProvider:
-    type: LocalEncryptionStateProvider
-    encryptionKey: "${env.OCTO_STATE_ENCRYPTION_KEY}"
+    type: RemoteStateProvider
+    stateManagementServiceUrl: https://state.example.com/state   # your backend's address
+    organizationId: shop-organization
+    appId: shop
+    sessionId: "${env.OCTO_SESSION}"
+    lockContext: "${env.OCTO_LOCK_CONTEXT}"
     statePath: .octo
 ```
 
-## Merge and forget
+Create a personal access token for the account the pipeline acts as, and store it as a repository
+secret named `OCTO_SESSION`. Both workflows hand it to every step. The apply workflow also sets
+`OCTO_LOCK_CONTEXT` to the URL of its own run, so a lock it holds names the run that took it.
 
-It is safe to walk away because nothing in the run replays a decision taken earlier. The merge
-workflow generates from the [definition file](/docs/using-octo/the-definition-file) at the commit it
-is sitting on, and applies the folders that came out of it. An apply started from the tip of `main`
-therefore covers everything merged up to that moment, including whatever landed while an earlier
-apply was still running. The end state follows `main`, whatever order things arrived in, so no merge
-order can leave you somewhere `main` does not describe.
+## 1. The rules
 
-One limit comes with that, and your team needs to know it. The report on a pull request is computed
-against `main` as the queue found it, which is before the previous merge's apply finished writing
-state, so on a busy day it can differ from what the merge workflow ends up doing. What actually
-happened is in the merge workflow's own report, which the same listener writes.
-
-## 1. The queue
-
-In the repository's **Settings**, under **Rules**, add a ruleset targeting `main` with four rules
-turned on:
+In the repository's **Settings**, under **Rules**, add a ruleset targeting `main` with these turned
+on:
 
 - **Restrict deletions** and **Block force pushes**.
-- **Require a pull request before merging.**
+- **Restrict updates**, so nothing reaches `main` except through the apply workflow. Add the
+  identity from step 4 to the ruleset's **Bypass list**.
+- **Require a pull request before merging**, with at least one approval, and with **Dismiss stale
+  pull request approvals when new commits are pushed** ticked. An approval is an approval of one
+  report, and a new push produces a new one.
 - **Require status checks to pass**, with `Generate & Validate` added. That is the job name from
   step 2.
-- **Require merge queue.** Set the merge method to squash, and set the maximum pull requests to
-  build to `1`, so the queue tests and merges one entry at a time.
-
-One detail decides whether the queue works at all. A queued pull request is tested on a branch
-GitHub builds for it, and that produces a `merge_group` event rather than a `pull_request` event. A
-required check that only triggers on `pull_request` is never reported for the merge group, and the
-entry sits in the queue until it times out. The workflow in step 2 triggers on both.
 
 ## 2. Pull requests
 
@@ -97,8 +93,6 @@ name: Octo Plan
 on:
   pull_request:
     branches: [ main ]
-  # Required. Without this the merge queue waits forever for the check below.
-  merge_group:
 
 jobs:
   plan:
@@ -110,7 +104,7 @@ jobs:
       pull-requests: write   # to comment the report
     env:
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-      OCTO_STATE_ENCRYPTION_KEY: ${{ secrets.OCTO_STATE_ENCRYPTION_KEY }}
+      OCTO_SESSION: ${{ secrets.OCTO_SESSION }}
     steps:
       - uses: actions/checkout@v4
 
@@ -145,7 +139,7 @@ jobs:
         run: npm run octo:validate
 
       - name: Comment the report
-        if: always() && github.event_name == 'pull_request'
+        if: always()
         uses: actions/github-script@v7
         with:
           script: |
@@ -183,57 +177,78 @@ JSON output from there.
 Credentials are needed even to plan. `octo validate` runs a real `terraform plan` against a real
 provider, so the job needs a role. Give it one that can only read.
 
-The comment step is guarded on the event. A merge group has no pull request attached, so
-`context.issue.number` is undefined there and the call would fail.
+`generate` reads the newest state the backend holds before it plans, so the report is against what
+exists now, not against whatever was on the branch when it was cut.
 
 The [HTML report listener](/docs/using-octo/reading-a-validate-report#the-html-report) is what
-writes the JSON the script reads. Register it in `octo.yaml` or there will be no
-`.octo/reports/` directory to look in.
+writes the JSON the script reads. Register it in `octo.yaml` or there will be no `.octo/reports/`
+directory to look in.
 
 Terragrunt is installed by hand because the action Gruntwork publishes for it runs in a container,
 which leaves nothing on the runner for the steps below to call. Expect a run to download a few
 hundred megabytes of tooling and cache none of it.
 
-## 3. Merges
+## 3. Applying
 
 ```yaml title=".github/workflows/octo-apply.yml"
 name: Octo Apply
 
 on:
-  push:
-    branches: [ main ]
-    # The state commit at the end of this workflow touches nothing but `.octo/`, so this filter is
-    # what stops that commit starting another run. Keep the commit to that one path.
-    paths-ignore: [ '.octo/**' ]
-  workflow_dispatch:
-    inputs:
-      autoApprove:
-        description: 'Allow this run to destroy resources'
-        default: false
-        type: boolean
+  issue_comment:
+    types: [ created ]
 
-# One apply at a time. `cancel-in-progress: false` lets a run finish rather than killing it. A run
-# still waiting when a newer one arrives is dropped, which costs nothing: the newer one generates
-# from the tip of `main` and covers the dropped change as well.
+# One apply at a time. `cancel-in-progress: false` lets a run finish rather than killing it.
 concurrency:
   group: octo-apply
   cancel-in-progress: false
 
 jobs:
   apply:
-    name: Apply & Commit
+    name: Apply & Merge
+    # A comment on a pull request, starting with the command, from somebody who can write here.
+    if: >-
+      github.event.issue.pull_request &&
+      startsWith(github.event.comment.body, '/octo apply') &&
+      contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association)
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
       id-token: write
+      pull-requests: write
     env:
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-      OCTO_STATE_ENCRYPTION_KEY: ${{ secrets.OCTO_STATE_ENCRYPTION_KEY }}
+      GH_TOKEN: ${{ github.token }}
+      OCTO_LOCK_CONTEXT: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      OCTO_SESSION: ${{ secrets.OCTO_SESSION }}
+      PR_NUMBER: ${{ github.event.issue.number }}
+      REPOSITORY: ${{ github.repository }}
     steps:
+      # Refuse a fork, an unapproved change, and a branch that is behind `main`.
+      - name: Check the pull request
+        id: pr
+        run: |
+          PR=$(gh api "repos/$REPOSITORY/pulls/$PR_NUMBER")
+          HEAD_SHA=$(echo "$PR" | jq -r .head.sha)
+
+          if [ "$(echo "$PR" | jq -r .head.repo.full_name)" != "$REPOSITORY" ]; then
+            echo "A pull request from a fork is never applied."
+            exit 1
+          fi
+          if [ "$(gh pr view "$PR_NUMBER" --repo "$REPOSITORY" --json reviewDecision --jq .reviewDecision)" != "APPROVED" ]; then
+            echo "The pull request is not approved."
+            exit 1
+          fi
+          BEHIND=$(gh api "repos/$REPOSITORY/compare/main...$HEAD_SHA" --jq .behind_by)
+          if [ "$BEHIND" != "0" ]; then
+            echo "The pull request is $BEHIND commit(s) behind main. Update it, and comment again once it is approved."
+            exit 1
+          fi
+
+          echo "head_sha=$HEAD_SHA" >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@v4
         with:
-          token: ${{ secrets.OCTO_PUSH_TOKEN }}   # see step 4
-          fetch-depth: 0                          # the rebase below needs real history
+          ref: ${{ steps.pr.outputs.head_sha }}
 
       - uses: actions/setup-node@v4
         with:
@@ -268,15 +283,15 @@ jobs:
           LOCK_ID=$(npm run --silent octo:lock)
           echo "LOCK_ID=$LOCK_ID" >> "$GITHUB_ENV"
 
-      # `continue-on-error` so the two steps after this one still run. The last step turns a failed
+      # `continue-on-error` so the steps after this one still run. The last step turns a failed
       # apply back into a failed job.
       - name: Apply
         id: apply
         continue-on-error: true
         env:
-          AUTO_APPROVE: ${{ github.event.inputs.autoApprove }}
+          COMMENT: ${{ github.event.comment.body }}
         run: |
-          if [ "$AUTO_APPROVE" = "true" ]; then
+          if [ "$(echo "$COMMENT" | head -n 1 | tr -d '\r')" = "/octo apply --auto-approve" ]; then
             npm run octo:apply -- --lockId "$LOCK_ID" --auto-approve
           else
             npm run octo:apply -- --lockId "$LOCK_ID"
@@ -285,6 +300,7 @@ jobs:
       # `--partial` records the resources that did apply and leaves the ones with missing outputs
       # alone, so a half-finished apply still leaves a usable record behind.
       - name: Commit
+        id: commit
         if: ${{ !cancelled() && steps.lock.outcome == 'success' }}
         run: |
           if [ "${{ steps.apply.outcome }}" = "success" ]; then
@@ -293,29 +309,30 @@ jobs:
             npm run octo:commit -- --lockId "$LOCK_ID" --partial
           fi
 
-      - name: Push the state commit
+      # A commit that fails keeps the lock. This runner cannot fix it, so finish the run as it
+      # stands: Terraform's record of what was built is already saved.
+      - name: Release the lock
+        if: ${{ !cancelled() && steps.commit.outcome == 'failure' }}
+        run: npm run octo:unlock -- --lockId "$LOCK_ID"
+
+      - name: Merge
+        id: merge
+        if: ${{ steps.apply.outcome == 'success' && steps.commit.outcome == 'success' }}
+        env:
+          GH_TOKEN: ${{ secrets.OCTO_MERGE_TOKEN }}   # see step 4
+        run: |
+          gh pr merge "$PR_NUMBER" --repo "$REPOSITORY" --squash \
+            --match-head-commit "${{ steps.pr.outputs.head_sha }}"
+
+      - name: Report back
         if: ${{ !cancelled() }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          if [ -z "$(git status --porcelain .octo)" ]; then
-            echo "No state changes to push."
-            exit 0
+          if [ "${{ steps.merge.outcome }}" = "success" ]; then
+            BODY="Applied and merged. $OCTO_LOCK_CONTEXT"
+          else
+            BODY="Not merged. The run says why: $OCTO_LOCK_CONTEXT"
           fi
-
-          git add .octo
-          git commit --no-verify -m "chore(infra): octo state"
-
-          # The queue can have merged something while this apply was running. The state commit
-          # touches only `.octo/`, which a merge never does, so the rebase replays it cleanly.
-          for attempt in 1 2 3; do
-            git pull --rebase origin main && git push origin HEAD:main && exit 0
-            echo "main moved while pushing, retry $attempt"
-          done
-
-          echo "Could not push the state commit."
-          exit 1
+          gh pr comment "$PR_NUMBER" --repo "$REPOSITORY" --body "$BODY"
 
       - name: Fail the run if apply failed
         if: steps.apply.outcome != 'success'
@@ -327,88 +344,79 @@ instead of consuming it, and it then terminates the CLI's own options, so the fl
 parsed as a positional and silently ignored: `octo apply` fails asking for the lock id it was just
 given. On pnpm the separator comes out: `pnpm run octo:apply --lockId "$LOCK_ID"`.
 
-Generate runs again here, instead of the pull request's folders being carried over, because this is
-the first time the definition file as merged has been on disk anywhere. Generate is deterministic
-and takes milliseconds, and running it again is what guarantees the folders match what landed.
+A comment workflow always runs the copy of itself that is on `main`, never the one on the branch it
+was asked to apply, so a pull request cannot change the checks it is about to go through. The checks
+are why it is safe to hand the branch's code credentials that can change your infrastructure: only
+somebody who can write to the repository can ask, a fork is never applied, and the change has been
+approved.
 
-Recording the result takes two steps, because they do different halves of the job. `octo commit`
-reads Terraform's outputs back and updates the files under `.octo/`. The git push is what carries
-those files to the next run, on a fresh runner that has none of this workspace. One git commit
-carries both records, Octo's and Terraform's, because Terraform's state lives under `.octo/` too.
+The branch has to be up to date with `main`, and the check refuses it otherwise. Another change may
+have been applied since this one was planned, and it is in `main`'s definition file and not in this
+branch's. A branch that is behind would plan against the new state without that change, and read
+it as something to destroy. Updating the branch runs the plan workflow again, which dismisses the
+old approval, so a reviewer approves the report as it now stands before anybody comments again.
 
-That commit adds `.octo/` and nothing else. The `.octo-tf/` folders are regenerated by every run and
-are already committed by whoever opened the pull request, so pushing them again would only break the
-path filter that keeps this workflow from starting itself.
+Generate runs again here, instead of trusting the folders committed on the branch, because the state
+may have moved since the pull request was planned. Generate is deterministic and takes
+milliseconds, and `octo lock` refuses outright if the state moves between the two.
 
-A commit that fails keeps its lock, and here the lock is a file on the runner, so it goes when the
-runner does. The push step runs anyway, which carries Terraform's record of what the apply built to
-`main` even when Octo's could not be written.
+Do not cancel a run of this workflow. The lock and everything the run saved are in the backend, so
+a cancelled run is recoverable, but it holds the lock until somebody finishes it, and until then no
+other change can apply.
 
-Do not cancel a run of this workflow. Octo writes Terraform's state back into `.octo/` after every
-Terraform command and on a timer during a long apply, but that write goes to the runner's workspace,
-and cancelling takes the workspace with it. Anything the run created is then real and unrecorded,
-and the next run tries to create it again. If a run is cancelled anyway, or its runner dies,
-[Recovering a Failed Run](/docs/using-octo/recovering-a-failed-run#in-ci-with-state-in-the-repository) has the
-steps, and the first of them is to stop the next run.
+## 4. The merge identity
 
-## 4. The push
-
-`main` is protected now, so a plain push from Actions is rejected. Give the workflow an identity
-that is allowed past the ruleset.
+`main` is closed to everything except the bypass list now, so the workflow needs an identity that
+is on it to merge.
 
 Create a fine-grained personal access token, or an installation token for a GitHub App you own, with
-**Contents: read and write** on the repository. Store it as the `OCTO_PUSH_TOKEN` secret, and add
-that identity to the **Bypass list** on the ruleset from step 1. Passing it to `actions/checkout`,
-as above, is what makes the later `git push` use it.
-
-Which token you pick does not decide whether the state commit starts the workflow again. The
-`paths-ignore` filter does that, and it holds for any token. It has two consequences to know about.
-A push that changes only `.octo/` never triggers an apply, so reverting a bad state commit by hand
-does nothing on its own, and running the workflow from the Actions tab is how you follow it up. And
-the filter holds only while this workflow's commit stays limited to `.octo/`. Add a second path to
-that commit and the push no longer matches the filter, and the workflow starts triggering itself.
-
-That is the piece worth proving before this pipeline points at anything you care about. On a
-throwaway repository and a throwaway account, merge two pull requests in quick succession and watch
-what the state commit does: one apply per merge, and no run started by the push at the end of one.
-
-## One writer
-
-`octo apply` and `octo commit` both require a lock id from `octo lock`. In CI that lock is a file on
-the runner, so a fresh runner always finds it free: the `concurrency` group above is what actually
-keeps two applies apart.
-
-What none of this covers is an apply run from somebody's laptop while the merge workflow is going.
-Their lock is a file on their disk, which the runner never sees. Apply only through this workflow.
+**Contents** and **Pull requests** read and write on the repository. Store it as the
+`OCTO_MERGE_TOKEN` secret, and add that identity to the **Bypass list** on the ruleset from step 1.
+Only the merge step uses it; every other step runs as the workflow's own token.
 
 ## When apply fails
 
-The merge workflow records what it managed to build, pushes it, and fails. The queue does not
-notice, and keeps merging pull requests onto infrastructure that is now part-built. Nothing in
-GitHub links the two.
+The run records what it managed to build, releases the lock, does not merge, and says so on the
+pull request. The pull request is now ahead of `main`: part of it exists in the cloud, and `main`
+does not describe it yet.
 
-Watch for it instead. Turn on notifications for the Octo Apply workflow failing, and when it does,
-remove the entries waiting in the queue and fix `main` before letting anything else through. The
-fix is a normal pull request: the next apply generates from the tip of `main` and reconciles
-whatever the failed one left behind.
+Finish it on the same pull request. Push the fix, wait for the new report, get it approved, and
+comment `/octo apply` again. The folders that applied come back with nothing to change, and the
+failed one runs again.
+
+If the change is abandoned instead, close the pull request. What it built stays until an apply
+removes it, and the next pull request's report shows those resources as destroys, so that apply
+needs `/octo apply --auto-approve` once somebody has read the list.
+
+## When a run dies
+
+A run cancelled part way, or on a runner that died, leaves its lock held in the backend, and the
+next `/octo apply` fails at the lock step, naming the run that holds it. Everything it saved is in
+the backend with the lock, so nothing it recorded is lost, but nobody can apply until the run is
+finished.
+
+[Recovering a Failed Run](/docs/using-octo/recovering-a-failed-run#with-remote-state) has the steps:
+from your own machine, at the pull request's head commit, as an organization administrator or with
+the pipeline's token, resume the lock and apply and commit through it. Then comment `/octo apply`
+on the pull request again. The apply finds nothing left to change, and the run merges it.
 
 ## Destroying
 
 `octo apply` refuses to run when the plan would
-[destroy](/docs/using-octo/destroying-infrastructure) anything, so a merge that removes a service
-fails the workflow and prints what would go. A destroy is the one change this pipeline does not make
-on its own.
+[destroy](/docs/using-octo/destroying-infrastructure) anything, so a pull request that removes a
+service fails its apply and prints what would go. A destroy is the one change this pipeline does
+not make on its own.
 
-Run it yourself from the **Actions** tab: pick **Octo Apply**, **Run workflow** on `main`, and tick
-**Allow this run to destroy resources**. That passes `--auto-approve`, which skips the destroy check
-for that run only.
+Read the list, and when it is what you meant, comment `/octo apply --auto-approve` instead. That
+passes `--auto-approve`, which skips the destroy check for that run only.
 
 ## Several deployments
 
-A deployment that must not share state with another is a separate definition file with its own
-`statePath`, its own output directory, its own concurrency group, and its own copy of the merge
-workflow. The `octo:*` scripts a new project ships with have `octo.yaml` and `.octo-tf` built into
-them, so a second deployment calls the CLI directly:
+A deployment that must not share state with another is a separate definition file naming its own
+app in the backend, with its own output directory, its own concurrency group, and its own copy of
+the apply workflow listening for its own command, such as `/octo apply prod`. The `octo:*` scripts
+a new project ships with have `octo.yaml` and `.octo-tf` built into them, so a second deployment
+calls the CLI directly:
 
 ```yaml
 concurrency:
@@ -425,7 +433,7 @@ concurrency:
           node_modules/.bin/octo generate -o .octo-tf-prod
           LOCK_ID=$(node_modules/.bin/octo lock)
 
-          # A run that reached the apply always ends in a commit, the same way the merge workflow
+          # A run that reached the apply always ends in a commit, the same way the apply workflow
           # above does. Testing the apply rather than letting it end the step is what makes that
           # possible in a single `run` block.
           if node_modules/.bin/octo apply --terragruntDir .octo-tf-prod --lockId "$LOCK_ID"; then
@@ -436,12 +444,8 @@ concurrency:
           fi
 ```
 
-Every deployment ends in a commit, whatever the apply did, because `commit` is what writes down
-what was built and what releases the lock. `--partial` is for the apply that failed: it drops the
-check that every declared output came back, which is safe only once the apply is already known to
-be incomplete. A successful apply commits without it, so an output that never arrived is still an
+Every deployment ends in a commit, whatever the apply did, because `commit` is what writes down what
+was built and what releases the lock. `--partial` is for the apply that failed: it drops the check
+that every declared output came back, which is safe only once the apply is already known to be
+incomplete. A successful apply commits without it, so an output that never arrived is still an
 error rather than a warning.
-
-The state commit and the path filter follow from that. This workflow pushes `.octo-prod/` where the
-default one pushes `.octo/`, and every copy has to ignore both paths, or one deployment's state
-commit starts the other deployment's apply.

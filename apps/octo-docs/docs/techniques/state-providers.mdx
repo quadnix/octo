@@ -59,8 +59,7 @@ first apply.
 [section of its own](#remote-state).
 
 Without a backend, the arrangement a team can share is `LocalEncryptionStateProvider` with the
-files committed to the repository, which is what the
-[GitHub Actions Pipeline](/docs/techniques/github-actions-pipeline) uses.
+files committed to the repository.
 
 ## It holds the lock
 
@@ -115,13 +114,8 @@ Three consequences worth knowing:
 State in a repository is shared, and still written by one machine at a time: the lock is a file on
 that machine, and what a run records reaches everybody else only when somebody pushes it. A run
 that dies takes both with it. `RemoteStateProvider` keeps the state and the lock in a backend every
-machine reaches, and writes to it as the run goes.
-
-:::caution[Not open yet]
-The backend this provider talks to is not open to sign-ups, and Octo has no command that creates an
-organization, an app, or a session. Until it is, this provider works only against a backend you have
-been given access to.
-:::
+machine reaches, and writes to it as the run goes. The
+[GitHub Actions Pipeline](/docs/techniques/github-actions-pipeline) runs on it.
 
 ```yaml title="octo.yaml"
 env:
@@ -140,10 +134,11 @@ settings:
 ```
 
 `stateManagementServiceUrl` is where the backend answers, including the prefix its routes sit
-behind. `organizationId` and `appId` name the app the state belongs to. `sessionId` is the session
-every request is made as, and it is a credential, so declare it under `env` and let the shell supply
-it. `lockContext` is optional, and is what a blocked run is told about whoever holds the lock; it
-defaults to `octo on <hostname>`, and a pipeline can put its run URL there instead.
+behind. `organizationId` and `appId` name the app the state belongs to. `sessionId` is the personal
+access token of the account every request is made as. It does not expire, and it is a credential,
+so declare it under `env` and let the shell supply it. `lockContext` is optional, and is what a
+blocked run is told about whoever holds the lock; it defaults to `octo on <hostname>`, and a
+pipeline can put its run URL there instead.
 
 `statePath` is a working copy rather than the store. Each command reads and writes the directory
 exactly as `LocalStateProvider` would, and the provider keeps the backend in step:

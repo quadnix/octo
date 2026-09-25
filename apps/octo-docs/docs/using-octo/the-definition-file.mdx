@@ -202,7 +202,7 @@ same files encrypted, and takes an `encryptionKey` alongside the path:
 ```
 
 `RemoteStateProvider` keeps state in a backend every machine reaches, and takes the app it belongs
-to, the session to act as, and a directory to work in:
+to, the token to act as, and a directory to work in:
 
 ```yaml
   stateProvider:
@@ -215,7 +215,7 @@ to, the session to act as, and a directory to work in:
 ```
 
 `lockContext` is optional. [State Providers](/docs/techniques/state-providers#remote-state) covers
-what each key means, and that the backend is not open to sign-ups yet.
+what each key means.
 
 `TestStateProvider` keeps state in memory and takes no path, which makes it useful only in tests.
 See [State](/docs/fundamentals/state).

@@ -153,14 +153,14 @@ freely while somebody else holds the lock.
 ## In a pipeline
 
 The split is what makes gating possible. A pull-request job runs the two read-only steps and
-publishes the report. A merge job, after somebody has read it, applies.
+publishes the report. An apply job, after somebody has read it, applies.
 
 ```yaml
 # On a pull request. No credentials that can change anything, and no lock.
 - run: npm run octo:generate
 - run: npm run octo:validate
 
-# On merge to main, after a human approved the report above.
+# Once a human has approved the report above.
 - run: npm run octo:generate
 - run: |
     LOCK_ID=$(npm run --silent octo:lock)
@@ -169,9 +169,9 @@ publishes the report. A merge job, after somebody has read it, applies.
 - run: npm run octo:commit -- --lockId $LOCK_ID
 ```
 
-Regenerate on the merge job rather than carrying the folders over from the pull-request job.
+Regenerate on the apply job rather than carrying the folders over from the pull-request job.
 Generate is deterministic and takes milliseconds, and doing it again guarantees the folders match
-the definition file that was actually merged. [GitHub Actions
+the state as it is when the apply starts, not as it was when the report was written. [GitHub Actions
 Pipeline](/docs/techniques/github-actions-pipeline) has the complete workflow, including where the
 state directory has to live for any of this to be safe.
 
