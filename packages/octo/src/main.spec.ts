@@ -377,7 +377,9 @@ describe('Main UT', () => {
     });
 
     it('should throw when models.json is corrupt rather than silently losing memory', async () => {
-      await testModes['stateManagementService'].saveState('models.json', Buffer.from('{ not json'));
+      await testModes['stateManagementService'].saveStates([
+        { data: Buffer.from('{ not json'), stateFileName: 'models.json' },
+      ]);
 
       const { app } = await testModes.createResourceGraph();
       await expect(testModes.generate(app, { outputDir: testModes.outputDir })).rejects.toThrow();

@@ -24,30 +24,38 @@ describe('LocalEncryptionStateProvider UT', () => {
     });
 
     it('should return nothing when nothing matches the prefix', async () => {
-      await localEncryptionStateProvider.saveState('models.json', Buffer.from('saved'));
+      await localEncryptionStateProvider.saveStates([{ data: Buffer.from('saved'), stateFileName: 'models.json' }]);
 
       await expect(localEncryptionStateProvider.listStates('resource-state-')).resolves.toEqual([]);
     });
 
     // Every file on disk carries an `.enc` suffix the caller never names.
     it('should return the state file names without the encryption suffix', async () => {
-      await localEncryptionStateProvider.saveState('resource-state-igw-1.json', Buffer.from('saved'));
-      await localEncryptionStateProvider.saveState('resource-state-igw-2.json', Buffer.from('saved'));
+      await localEncryptionStateProvider.saveStates([
+        { data: Buffer.from('saved'), stateFileName: 'resource-state-igw-1.json' },
+      ]);
+      await localEncryptionStateProvider.saveStates([
+        { data: Buffer.from('saved'), stateFileName: 'resource-state-igw-2.json' },
+      ]);
 
       const stateFileNames = await localEncryptionStateProvider.listStates('resource-state-');
       expect(stateFileNames.sort()).toEqual(['resource-state-igw-1.json', 'resource-state-igw-2.json']);
     });
 
     it('should return a name the state can be read back by', async () => {
-      await localEncryptionStateProvider.saveState('resource-state-igw-1.json', Buffer.from('published'));
+      await localEncryptionStateProvider.saveStates([
+        { data: Buffer.from('published'), stateFileName: 'resource-state-igw-1.json' },
+      ]);
 
       const [stateFileName] = await localEncryptionStateProvider.listStates('resource-state-');
       await expect(localEncryptionStateProvider.getState(stateFileName)).resolves.toEqual(Buffer.from('published'));
     });
 
     it('should not return a deleted state file', async () => {
-      await localEncryptionStateProvider.saveState('resource-state-igw-1.json', Buffer.from('saved'));
-      await localEncryptionStateProvider.deleteState('resource-state-igw-1.json');
+      await localEncryptionStateProvider.saveStates([
+        { data: Buffer.from('saved'), stateFileName: 'resource-state-igw-1.json' },
+      ]);
+      await localEncryptionStateProvider.saveStates([{ data: undefined, stateFileName: 'resource-state-igw-1.json' }]);
 
       await expect(localEncryptionStateProvider.listStates('resource-state-')).resolves.toEqual([]);
     });

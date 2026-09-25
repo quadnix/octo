@@ -38,7 +38,7 @@ export class TerraformStateService {
   }
 
   /**
-   * Writes every module folder's terraform state to the state provider.
+   * Writes every module folder's terraform state to the state provider, as one change.
    *
    * A folder holding no state file, or one recording no resources, has its state **deleted** rather
    * than written - that is a module terraform has destroyed, and a file recording nothing is a file
@@ -153,22 +153,19 @@ export class TerraformStateService {
    * The body of a check-in, run one at a time through {@link TerraformStateService.checkIn}.
    */
   private async writeStates(terragruntDir: string, moduleIds: string[]): Promise<void> {
+    const stateFiles: Parameters<StateManagementService['saveStates']>[0] = [];
+
     for (const moduleId of moduleIds) {
       const stateFilePath = join(terragruntDir, moduleId, TERRAFORM_STATE_FILE_NAME);
-      const stateFileName = this.stateFileName(moduleId);
+      const data = existsSync(stateFilePath) ? await readFile(stateFilePath) : undefined;
 
-      if (!existsSync(stateFilePath)) {
-        await this.stateManagementService.deleteState(stateFileName);
-        continue;
-      }
-
-      const data = await readFile(stateFilePath);
-      if (this.holdsNoResources(data)) {
-        await this.stateManagementService.deleteState(stateFileName);
-      } else {
-        await this.stateManagementService.saveState(stateFileName, data);
-      }
+      stateFiles.push({
+        data: data && !this.holdsNoResources(data) ? data : undefined,
+        stateFileName: this.stateFileName(moduleId),
+      });
     }
+
+    await this.stateManagementService.saveStates(stateFiles);
   }
 }
 

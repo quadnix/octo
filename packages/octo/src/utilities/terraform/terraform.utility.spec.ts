@@ -437,7 +437,7 @@ describe('TerraformUtility UT', () => {
   describe('terraform state', () => {
     it('should write the state provider state into each module folder before running', async () => {
       await createModuleFolder('module-a');
-      await stateProvider.saveState('module-a.tfstate', Buffer.from('{"resources":[{}]}'));
+      await stateProvider.saveStates([{ data: Buffer.from('{"resources":[{}]}'), stateFileName: 'module-a.tfstate' }]);
 
       await terraform.apply(terragruntDir);
 

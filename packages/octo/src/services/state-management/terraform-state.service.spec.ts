@@ -44,7 +44,7 @@ describe('TerraformStateService UT', () => {
     });
 
     it('should delete the state of a module folder holding no state file', async () => {
-      await stateProvider.saveState('module-a.tfstate', Buffer.from(stateWithResources));
+      await stateProvider.saveStates([{ data: Buffer.from(stateWithResources), stateFileName: 'module-a.tfstate' }]);
       await createModuleFolder('module-a');
 
       await terraformStateService.checkIn(terragruntDir, ['module-a']);
@@ -55,7 +55,7 @@ describe('TerraformStateService UT', () => {
     });
 
     it('should delete the state of a module terraform has destroyed', async () => {
-      await stateProvider.saveState('module-a.tfstate', Buffer.from(stateWithResources));
+      await stateProvider.saveStates([{ data: Buffer.from(stateWithResources), stateFileName: 'module-a.tfstate' }]);
       await createModuleFolder('module-a', JSON.stringify({ resources: [], serial: 2 }));
 
       await terraformStateService.checkIn(terragruntDir, ['module-a']);
@@ -73,13 +73,27 @@ describe('TerraformStateService UT', () => {
       expect((await stateProvider.getState('module-a.tfstate')).toString()).toBe('not-json');
     });
 
+    it('should write every module folder as one change', async () => {
+      await createModuleFolder('module-a', stateWithResources);
+      await createModuleFolder('module-b');
+      const saveStates = jest.spyOn(stateManagementService, 'saveStates');
+
+      await terraformStateService.checkIn(terragruntDir, ['module-a', 'module-b']);
+
+      expect(saveStates).toHaveBeenCalledTimes(1);
+      expect(saveStates.mock.calls[0][0].map((s) => [s.stateFileName, s.data?.toString()])).toEqual([
+        ['module-a.tfstate', stateWithResources],
+        ['module-b.tfstate', undefined],
+      ]);
+    });
+
     it('should run one check-in at a time', async () => {
       await createModuleFolder('module-a', stateWithResources);
       const order: string[] = [];
-      jest.spyOn(stateManagementService, 'saveState').mockImplementation(async (stateFileName) => {
-        order.push(`start ${stateFileName}`);
+      jest.spyOn(stateManagementService, 'saveStates').mockImplementation(async (stateFiles) => {
+        order.push(`start ${stateFiles[0].stateFileName}`);
         await new Promise((resolve) => setTimeout(resolve, 10));
-        order.push(`end ${stateFileName}`);
+        order.push(`end ${stateFiles[0].stateFileName}`);
       });
 
       await Promise.all([
@@ -98,7 +112,7 @@ describe('TerraformStateService UT', () => {
 
   describe('checkOut()', () => {
     it('should write the state provider state into the module folder', async () => {
-      await stateProvider.saveState('module-a.tfstate', Buffer.from(stateWithResources));
+      await stateProvider.saveStates([{ data: Buffer.from(stateWithResources), stateFileName: 'module-a.tfstate' }]);
       await createModuleFolder('module-a', 'stale');
 
       await terraformStateService.checkOut(terragruntDir, ['module-a']);
@@ -110,7 +124,7 @@ describe('TerraformStateService UT', () => {
 
     it('should write the state provider state over a module folder state of another lineage', async () => {
       const providerState = JSON.stringify({ lineage: 'lineage-a', resources: [], serial: 1 });
-      await stateProvider.saveState('module-a.tfstate', Buffer.from(providerState));
+      await stateProvider.saveStates([{ data: Buffer.from(providerState), stateFileName: 'module-a.tfstate' }]);
       await createModuleFolder('module-a', JSON.stringify({ lineage: 'lineage-b', resources: [], serial: 5 }));
 
       await terraformStateService.checkOut(terragruntDir, ['module-a']);
@@ -130,10 +144,12 @@ describe('TerraformStateService UT', () => {
 
     it('should keep what the module folder holds when it is ahead of the provider', async () => {
       const folderState = JSON.stringify({ lineage: 'lineage-a', resources: [], serial: 5 });
-      await stateProvider.saveState(
-        'module-a.tfstate',
-        Buffer.from(JSON.stringify({ lineage: 'lineage-a', resources: [], serial: 4 })),
-      );
+      await stateProvider.saveStates([
+        {
+          data: Buffer.from(JSON.stringify({ lineage: 'lineage-a', resources: [], serial: 4 })),
+          stateFileName: 'module-a.tfstate',
+        },
+      ]);
       await createModuleFolder('module-a', folderState);
 
       await terraformStateService.checkOut(terragruntDir, ['module-a']);

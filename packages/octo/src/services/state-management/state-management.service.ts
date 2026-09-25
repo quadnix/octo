@@ -94,14 +94,7 @@ export class StateManagementService {
    * @internal
    */
   async deleteExternalResourceState(resourceId: string): Promise<void> {
-    await this.deleteState(this.externalResourceStateFileName(resourceId));
-  }
-
-  /**
-   * Deletes a state file. Deleting one that is not there is not an error.
-   */
-  async deleteState(stateFileName: string): Promise<void> {
-    return this.stateProvider.deleteState(stateFileName);
+    await this.saveStates([{ data: undefined, stateFileName: this.externalResourceStateFileName(resourceId) }]);
   }
 
   /**
@@ -274,7 +267,9 @@ export class StateManagementService {
    * @internal
    */
   async saveExternalResourceState(resourceId: string, state: ExternalResourceState): Promise<void> {
-    await this.saveState(this.externalResourceStateFileName(resourceId), Buffer.from(JSON.stringify(state)));
+    await this.saveStates([
+      { data: Buffer.from(JSON.stringify(state)), stateFileName: this.externalResourceStateFileName(resourceId) },
+    ]);
   }
 
   /**
@@ -285,7 +280,7 @@ export class StateManagementService {
     data: ModelSerializedOutput,
     userData: ModelStateUserData,
   ): Promise<void> {
-    await this.saveState(stateFileName, serializeState(data, userData));
+    await this.saveStates([{ data: serializeState(data, userData), stateFileName }]);
   }
 
   /**
@@ -296,14 +291,14 @@ export class StateManagementService {
     data: ResourceSerializedOutput,
     userData: ResourceStateUserData,
   ): Promise<void> {
-    await this.saveState(stateFileName, serializeState(data, userData));
+    await this.saveStates([{ data: serializeState(data, userData), stateFileName }]);
   }
 
   /**
-   * Writes a state file as-is.
+   * Writes state files as-is and as one change, deleting each one given no `data`.
    */
-  async saveState(stateFileName: string, data: Buffer): Promise<void> {
-    return this.stateProvider.saveState(stateFileName, data);
+  async saveStates(stateFiles: { data: Buffer | undefined; stateFileName: string }[]): Promise<void> {
+    return this.stateProvider.saveStates(stateFiles);
   }
 
   /**

@@ -15,13 +15,6 @@ export class TestStateProvider implements IStateProvider {
   private lockId: string | undefined = undefined;
 
   /**
-   * Deletes a state file. Deleting one that is not there is not an error.
-   */
-  async deleteState(stateFileName: string): Promise<void> {
-    delete this.localState[stateFileName];
-  }
-
-  /**
    * The id of the lock currently held, or `undefined` when the app is unlocked.
    */
   async getAppLock(): Promise<string | undefined> {
@@ -92,10 +85,16 @@ export class TestStateProvider implements IStateProvider {
   }
 
   /**
-   * Writes a state file, overwriting whatever was there.
+   * Writes state files, overwriting whatever was there and deleting each one given no `data`.
    */
-  async saveState(stateFileName: string, data: Buffer): Promise<void> {
-    this.localState[stateFileName] = data;
+  async saveStates(stateFiles: { data: Buffer | undefined; stateFileName: string }[]): Promise<void> {
+    for (const { data, stateFileName } of stateFiles) {
+      if (data === undefined) {
+        delete this.localState[stateFileName];
+      } else {
+        this.localState[stateFileName] = data;
+      }
+    }
   }
 
   /**

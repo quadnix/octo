@@ -126,15 +126,6 @@ export class RemoteStateProvider implements IStateProvider {
   }
 
   /**
-   * Deletes a state file, and from the run's record when a run is open. Deleting one that is not
-   * there is not an error.
-   */
-  async deleteState(stateFileName: string): Promise<void> {
-    await this.localStateProvider.deleteState(stateFileName);
-    await this.pushRun();
-  }
-
-  /**
    * The id of the lock currently held, or `undefined` when the app is unlocked.
    */
   async getAppLock(): Promise<string | undefined> {
@@ -285,28 +276,50 @@ export class RemoteStateProvider implements IStateProvider {
   }
 
   /**
-   * Writes a state file, and into the run's record when a run is open.
+   * Writes state files, deleting each one given no `data`, and then writes the run's record once for
+   * all of them when a run is open.
    *
-   * @throws {@link TransactionError} When the backend would refuse the file: a name it does not
-   * accept, a file over 5MB, or one file more than the 200 a state may hold.
+   * @throws {@link TransactionError} When the backend would refuse a file: a name it does not accept,
+   * a file over 5MB, or one file more than the 200 a state may hold. Nothing is written then.
    */
-  async saveState(stateFileName: string, data: Buffer): Promise<void> {
+  async saveStates(stateFiles: { data: Buffer | undefined; stateFileName: string }[]): Promise<void> {
+    const existingStateFileNames = await this.stateFileNames();
+    const stateFileNames = new Set(existingStateFileNames);
+
+    // Refuse the whole change before any of it lands on disk.
+    for (const { data, stateFileName } of stateFiles) {
+      if (data === undefined) {
+        stateFileNames.delete(stateFileName);
+        continue;
+      }
+
+      if (
+        stateFileName.length > STATE_FILE_NAME_MAX_LENGTH ||
+        !STATE_FILE_NAME_PATTERN.test(stateFileName) ||
+        !STATE_FILE_EXTENSIONS.includes(extname(stateFileName))
+      ) {
+        throw new TransactionError(`State file name "${stateFileName}" is not accepted by the remote state!`);
+      }
+      if (data.length > MAXIMUM_STATE_FILE_SIZE_IN_BYTES) {
+        throw new TransactionError(`State file "${stateFileName}" is larger than 5MB!`);
+      }
+      stateFileNames.add(stateFileName);
+    }
     if (
-      stateFileName.length > STATE_FILE_NAME_MAX_LENGTH ||
-      !STATE_FILE_NAME_PATTERN.test(stateFileName) ||
-      !STATE_FILE_EXTENSIONS.includes(extname(stateFileName))
+      stateFileNames.size > MAXIMUM_STATE_FILES &&
+      [...stateFileNames].some((stateFileName) => !existingStateFileNames.includes(stateFileName))
     ) {
-      throw new TransactionError(`State file name "${stateFileName}" is not accepted by the remote state!`);
-    }
-    if (data.length > MAXIMUM_STATE_FILE_SIZE_IN_BYTES) {
-      throw new TransactionError(`State file "${stateFileName}" is larger than 5MB!`);
-    }
-    const stateFileNames = await this.stateFileNames();
-    if (!stateFileNames.includes(stateFileName) && stateFileNames.length >= MAXIMUM_STATE_FILES) {
       throw new TransactionError(`State cannot hold more than ${MAXIMUM_STATE_FILES} files!`);
     }
 
-    await this.writeStateFile(stateFileName, data);
+    // Write the directory, then the run's record once.
+    for (const { data, stateFileName } of stateFiles) {
+      if (data === undefined) {
+        await rm(join(this.localStateDirectoryPath, stateFileName), { force: true });
+      } else {
+        await this.writeStateFile(stateFileName, data);
+      }
+    }
     await this.pushRun();
   }
 
@@ -449,7 +462,7 @@ export class RemoteStateProvider implements IStateProvider {
 
     // Take the state the backend holds over whatever the directory held, file for file.
     for (const stateFileName of await this.stateFileNames()) {
-      await this.localStateProvider.deleteState(stateFileName);
+      await rm(join(this.localStateDirectoryPath, stateFileName), { force: true });
     }
     for (const stateFile of formData.getAll('stateFiles') as File[]) {
       await this.writeStateFile(stateFile.name, Buffer.from(await stateFile.arrayBuffer()));

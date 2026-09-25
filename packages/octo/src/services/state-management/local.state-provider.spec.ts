@@ -136,27 +136,6 @@ describe('LocalStateProvider UT', () => {
     });
   });
 
-  describe('deleteState()', () => {
-    it('should not throw when there is nothing to delete', async () => {
-      const localStateProvider = new LocalStateProvider(__dirname);
-      const stateManagementService = new StateManagementService(localStateProvider);
-
-      await expect(stateManagementService.deleteState('manifest3.json')).resolves.not.toThrow();
-    });
-
-    it('should delete the saved state', async () => {
-      const localStateProvider = new LocalStateProvider(__dirname);
-      const stateManagementService = new StateManagementService(localStateProvider);
-
-      await stateManagementService.saveState('manifest4.json', Buffer.from('saved'));
-      await stateManagementService.deleteState('manifest4.json');
-
-      await expect(stateManagementService.getState('manifest4.json')).rejects.toThrowErrorMatchingInlineSnapshot(
-        `"No state found!"`,
-      );
-    });
-  });
-
   describe('getModelState()', () => {
     it('should be able to get a default state', async () => {
       const localStateProvider = new LocalStateProvider(__dirname);
@@ -258,7 +237,7 @@ describe('LocalStateProvider UT', () => {
           key2: 'value2',
         }),
       );
-      await stateManagementService.saveState('manifest2.json', data);
+      await stateManagementService.saveStates([{ data: data, stateFileName: 'manifest2.json' }]);
 
       const manifestData = await stateManagementService.getState('manifest2.json');
       expect(JSON.parse(manifestData.toString())).toMatchInlineSnapshot(`
@@ -291,32 +270,57 @@ describe('LocalStateProvider UT', () => {
     });
 
     it('should return nothing when nothing matches the prefix', async () => {
-      await localStateProvider.saveState('models.json', Buffer.from('saved'));
+      await localStateProvider.saveStates([{ data: Buffer.from('saved'), stateFileName: 'models.json' }]);
 
       await expect(localStateProvider.listStates('resource-state-')).resolves.toEqual([]);
     });
 
     it('should return only the state files matching the prefix', async () => {
-      await localStateProvider.saveState('models.json', Buffer.from('saved'));
-      await localStateProvider.saveState('resource-state-igw-1.json', Buffer.from('saved'));
-      await localStateProvider.saveState('resource-state-igw-2.json', Buffer.from('saved'));
+      await localStateProvider.saveStates([{ data: Buffer.from('saved'), stateFileName: 'models.json' }]);
+      await localStateProvider.saveStates([{ data: Buffer.from('saved'), stateFileName: 'resource-state-igw-1.json' }]);
+      await localStateProvider.saveStates([{ data: Buffer.from('saved'), stateFileName: 'resource-state-igw-2.json' }]);
 
       const stateFileNames = await localStateProvider.listStates('resource-state-');
       expect(stateFileNames.sort()).toEqual(['resource-state-igw-1.json', 'resource-state-igw-2.json']);
     });
 
     it('should return a name the state can be read back by', async () => {
-      await localStateProvider.saveState('resource-state-igw-1.json', Buffer.from('published'));
+      await localStateProvider.saveStates([
+        { data: Buffer.from('published'), stateFileName: 'resource-state-igw-1.json' },
+      ]);
 
       const [stateFileName] = await localStateProvider.listStates('resource-state-');
       await expect(localStateProvider.getState(stateFileName)).resolves.toEqual(Buffer.from('published'));
     });
 
     it('should not return a deleted state file', async () => {
-      await localStateProvider.saveState('resource-state-igw-1.json', Buffer.from('saved'));
-      await localStateProvider.deleteState('resource-state-igw-1.json');
+      await localStateProvider.saveStates([{ data: Buffer.from('saved'), stateFileName: 'resource-state-igw-1.json' }]);
+      await localStateProvider.saveStates([{ data: undefined, stateFileName: 'resource-state-igw-1.json' }]);
 
       await expect(localStateProvider.listStates('resource-state-')).resolves.toEqual([]);
+    });
+  });
+
+  describe('saveStates()', () => {
+    it('should not throw when there is nothing to delete', async () => {
+      const localStateProvider = new LocalStateProvider(__dirname);
+      const stateManagementService = new StateManagementService(localStateProvider);
+
+      await expect(
+        stateManagementService.saveStates([{ data: undefined, stateFileName: 'manifest3.json' }]),
+      ).resolves.not.toThrow();
+    });
+
+    it('should delete the saved state', async () => {
+      const localStateProvider = new LocalStateProvider(__dirname);
+      const stateManagementService = new StateManagementService(localStateProvider);
+
+      await stateManagementService.saveStates([{ data: Buffer.from('saved'), stateFileName: 'manifest4.json' }]);
+      await stateManagementService.saveStates([{ data: undefined, stateFileName: 'manifest4.json' }]);
+
+      await expect(stateManagementService.getState('manifest4.json')).rejects.toThrowErrorMatchingInlineSnapshot(
+        `"No state found!"`,
+      );
     });
   });
 });

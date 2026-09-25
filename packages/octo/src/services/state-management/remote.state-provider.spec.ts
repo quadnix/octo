@@ -227,18 +227,6 @@ describe('RemoteStateProvider UT', () => {
     await rm(otherLocalStateDirectoryPath, { force: true, recursive: true });
   });
 
-  describe('deleteState()', () => {
-    it('should remove the file from the open run', async () => {
-      await remoteStateProvider.saveState('a.json', Buffer.from('{"a":1}'));
-      await remoteStateProvider.saveState('b.json', Buffer.from('{"b":1}'));
-      await remoteStateProvider.lockApp();
-
-      await remoteStateProvider.deleteState('b.json');
-
-      expect(backend.states[0].files).toEqual({ 'a.json': '{"a":1}' });
-    });
-  });
-
   describe('getAppLock()', () => {
     it('should return undefined when the app is unlocked', async () => {
       expect(await remoteStateProvider.getAppLock()).toBeUndefined();
@@ -320,7 +308,7 @@ describe('RemoteStateProvider UT', () => {
     it('should open the run with everything the directory holds', async () => {
       seal('commit-1', { 'a.json': '{"a":1}' });
       await remoteStateProvider.refreshState();
-      await remoteStateProvider.saveState('models.json', Buffer.from('{"generated":true}'));
+      await remoteStateProvider.saveStates([{ data: Buffer.from('{"generated":true}'), stateFileName: 'models.json' }]);
 
       await remoteStateProvider.lockApp();
 
@@ -339,7 +327,7 @@ describe('RemoteStateProvider UT', () => {
 
       it('should read what the run wrote into another state directory', async () => {
         const { lockId } = await remoteStateProvider.lockApp();
-        await remoteStateProvider.saveState('a.json', Buffer.from('{"a":1}'));
+        await remoteStateProvider.saveStates([{ data: Buffer.from('{"a":1}'), stateFileName: 'a.json' }]);
         await writeFile(join(otherLocalStateDirectoryPath, 'stale.json'), '{}');
 
         const otherRemoteStateProvider = build(otherLocalStateDirectoryPath);
@@ -351,11 +339,11 @@ describe('RemoteStateProvider UT', () => {
 
       it('should write through the same lock after resuming', async () => {
         const { lockId } = await remoteStateProvider.lockApp();
-        await remoteStateProvider.saveState('a.json', Buffer.from('{"a":1}'));
+        await remoteStateProvider.saveStates([{ data: Buffer.from('{"a":1}'), stateFileName: 'a.json' }]);
 
         const otherRemoteStateProvider = build(otherLocalStateDirectoryPath);
         await otherRemoteStateProvider.lockApp(lockId);
-        await otherRemoteStateProvider.saveState('b.json', Buffer.from('{"b":1}'));
+        await otherRemoteStateProvider.saveStates([{ data: Buffer.from('{"b":1}'), stateFileName: 'b.json' }]);
         await otherRemoteStateProvider.unlockApp(lockId);
 
         expect(backend.states[0]).toMatchObject({
@@ -400,7 +388,7 @@ describe('RemoteStateProvider UT', () => {
     it('should not download a state the directory already holds', async () => {
       seal('commit-1', { 'a.json': '{"a":1}' });
       await remoteStateProvider.refreshState();
-      await remoteStateProvider.saveState('models.json', Buffer.from('{}'));
+      await remoteStateProvider.saveStates([{ data: Buffer.from('{}'), stateFileName: 'models.json' }]);
 
       await remoteStateProvider.refreshState();
 
@@ -412,7 +400,7 @@ describe('RemoteStateProvider UT', () => {
       seal('commit-1', { 'a.json': '{"a":1}' });
       await remoteStateProvider.refreshState();
       await remoteStateProvider.lockApp();
-      await remoteStateProvider.saveState('b.json', Buffer.from('{}'));
+      await remoteStateProvider.saveStates([{ data: Buffer.from('{}'), stateFileName: 'b.json' }]);
 
       await remoteStateProvider.refreshState();
 
@@ -421,10 +409,10 @@ describe('RemoteStateProvider UT', () => {
 
     it('should read the newest sealed state once a run was finished elsewhere', async () => {
       const { lockId } = await remoteStateProvider.lockApp();
-      await remoteStateProvider.saveState('a.json', Buffer.from('{"a":1}'));
+      await remoteStateProvider.saveStates([{ data: Buffer.from('{"a":1}'), stateFileName: 'a.json' }]);
       const otherRemoteStateProvider = build(otherLocalStateDirectoryPath);
       await otherRemoteStateProvider.lockApp(lockId);
-      await otherRemoteStateProvider.saveState('b.json', Buffer.from('{"b":1}'));
+      await otherRemoteStateProvider.saveStates([{ data: Buffer.from('{"b":1}'), stateFileName: 'b.json' }]);
       await otherRemoteStateProvider.unlockApp(lockId);
 
       await remoteStateProvider.refreshState();
@@ -433,49 +421,106 @@ describe('RemoteStateProvider UT', () => {
     });
   });
 
-  describe('saveState()', () => {
+  describe('saveStates()', () => {
     it('should throw on a name the backend does not accept', async () => {
-      await expect(remoteStateProvider.saveState('a/b.json', Buffer.from('{}'))).rejects.toThrow(
-        'State file name "a/b.json" is not accepted by the remote state!',
-      );
-      await expect(remoteStateProvider.saveState('a.yaml', Buffer.from('{}'))).rejects.toThrow(
-        'State file name "a.yaml" is not accepted by the remote state!',
-      );
+      await expect(
+        remoteStateProvider.saveStates([{ data: Buffer.from('{}'), stateFileName: 'a/b.json' }]),
+      ).rejects.toThrow('State file name "a/b.json" is not accepted by the remote state!');
+      await expect(
+        remoteStateProvider.saveStates([{ data: Buffer.from('{}'), stateFileName: 'a.yaml' }]),
+      ).rejects.toThrow('State file name "a.yaml" is not accepted by the remote state!');
     });
 
     it('should throw on a file larger than 5MB', async () => {
-      await expect(remoteStateProvider.saveState('a.json', Buffer.alloc(5 * 1024 * 1024 + 1))).rejects.toThrow(
-        'State file "a.json" is larger than 5MB!',
-      );
+      await expect(
+        remoteStateProvider.saveStates([{ data: Buffer.alloc(5 * 1024 * 1024 + 1), stateFileName: 'a.json' }]),
+      ).rejects.toThrow('State file "a.json" is larger than 5MB!');
     });
 
-    it('should throw on the file past 200', async () => {
-      for (let i = 0; i < 200; i++) {
+    it('should throw having written nothing when the backend would refuse one file', async () => {
+      await expect(
+        remoteStateProvider.saveStates([
+          { data: Buffer.from('{"a":1}'), stateFileName: 'a.json' },
+          { data: Buffer.from('{}'), stateFileName: 'b.yaml' },
+        ]),
+      ).rejects.toThrow('State file name "b.yaml" is not accepted by the remote state!');
+
+      expect(await stateFileNames(localStateDirectoryPath)).toEqual([]);
+    });
+
+    it('should throw on the file past 200 across the whole change', async () => {
+      for (let i = 0; i < 199; i++) {
         await writeFile(join(localStateDirectoryPath, `${i}.json`), '{}');
       }
 
-      await expect(remoteStateProvider.saveState('a.json', Buffer.from('{}'))).rejects.toThrow(
-        'State cannot hold more than 200 files!',
-      );
-      await expect(remoteStateProvider.saveState('0.json', Buffer.from('{}'))).resolves.toBeUndefined();
+      await expect(
+        remoteStateProvider.saveStates([
+          { data: Buffer.from('{}'), stateFileName: 'a.json' },
+          { data: Buffer.from('{}'), stateFileName: 'b.json' },
+        ]),
+      ).rejects.toThrow('State cannot hold more than 200 files!');
+      await expect(
+        remoteStateProvider.saveStates([
+          { data: undefined, stateFileName: '0.json' },
+          { data: Buffer.from('{}'), stateFileName: 'a.json' },
+          { data: Buffer.from('{}'), stateFileName: 'b.json' },
+        ]),
+      ).resolves.toBeUndefined();
     });
 
     it('should write only to the directory when no run is open', async () => {
-      await remoteStateProvider.saveState('a.json', Buffer.from('{"a":1}'));
+      await remoteStateProvider.saveStates([{ data: Buffer.from('{"a":1}'), stateFileName: 'a.json' }]);
 
       expect(await readFile(join(localStateDirectoryPath, 'a.json'), 'utf-8')).toBe('{"a":1}');
       expect(backend.requests).toEqual([]);
     });
 
     it('should write into the open run, uploading only what changed', async () => {
-      await remoteStateProvider.saveState('a.json', Buffer.from('{"a":1}'));
+      await remoteStateProvider.saveStates([{ data: Buffer.from('{"a":1}'), stateFileName: 'a.json' }]);
       await remoteStateProvider.lockApp();
 
-      await remoteStateProvider.saveState('b.json', Buffer.from('{"b":1}'));
-      await remoteStateProvider.saveState('b.json', Buffer.from('{"b":1}'));
+      await remoteStateProvider.saveStates([{ data: Buffer.from('{"b":1}'), stateFileName: 'b.json' }]);
+      await remoteStateProvider.saveStates([{ data: Buffer.from('{"b":1}'), stateFileName: 'b.json' }]);
 
       expect(backend.states[0].files).toEqual({ 'a.json': '{"a":1}', 'b.json': '{"b":1}' });
       expect(backend.requests.filter((r) => r === 'PUT /')).toHaveLength(2);
+    });
+
+    it('should write and delete in one upload into the open run', async () => {
+      await remoteStateProvider.saveStates([{ data: Buffer.from('{"a":1}'), stateFileName: 'a.json' }]);
+      await remoteStateProvider.lockApp();
+
+      await remoteStateProvider.saveStates([
+        { data: undefined, stateFileName: 'a.json' },
+        { data: Buffer.from('{"b":1}'), stateFileName: 'b.tfstate' },
+        { data: Buffer.from('{"c":1}'), stateFileName: 'c.tfstate' },
+      ]);
+
+      expect(backend.states[0].files).toEqual({ 'b.tfstate': '{"b":1}', 'c.tfstate': '{"c":1}' });
+      expect(backend.requests.filter((r) => r === 'PUT /')).toHaveLength(2);
+    });
+
+    it('should remove the file from the open run', async () => {
+      await remoteStateProvider.saveStates([{ data: Buffer.from('{"a":1}'), stateFileName: 'a.json' }]);
+      await remoteStateProvider.saveStates([{ data: Buffer.from('{"b":1}'), stateFileName: 'b.json' }]);
+      await remoteStateProvider.lockApp();
+
+      await remoteStateProvider.saveStates([{ data: undefined, stateFileName: 'b.json' }]);
+
+      expect(backend.states[0].files).toEqual({ 'a.json': '{"a":1}' });
+    });
+
+    it('should not reach the backend when nothing changed', async () => {
+      await remoteStateProvider.saveStates([{ data: Buffer.from('{"a":1}'), stateFileName: 'a.tfstate' }]);
+      await remoteStateProvider.lockApp();
+      const requestCount = backend.requests.length;
+
+      await remoteStateProvider.saveStates([
+        { data: Buffer.from('{"a":1}'), stateFileName: 'a.tfstate' },
+        { data: undefined, stateFileName: 'b.tfstate' },
+      ]);
+
+      expect(backend.requests).toHaveLength(requestCount);
     });
 
     it('should keep every write of concurrent writers', async () => {
@@ -484,7 +529,9 @@ describe('RemoteStateProvider UT', () => {
 
       await Promise.all(
         Array.from({ length: 10 }, (_, i) =>
-          (i % 2 ? otherProcess : remoteStateProvider).saveState(`${i}.json`, Buffer.from(`{"i":${i}}`)),
+          (i % 2 ? otherProcess : remoteStateProvider).saveStates([
+            { data: Buffer.from(`{"i":${i}}`), stateFileName: `${i}.json` },
+          ]),
         ),
       );
 
@@ -505,7 +552,7 @@ describe('RemoteStateProvider UT', () => {
 
     it('should seal the run and release its lock', async () => {
       const { lockId } = await remoteStateProvider.lockApp();
-      await remoteStateProvider.saveState('a.json', Buffer.from('{"a":1}'));
+      await remoteStateProvider.saveStates([{ data: Buffer.from('{"a":1}'), stateFileName: 'a.json' }]);
 
       await remoteStateProvider.unlockApp(lockId);
 
@@ -514,7 +561,7 @@ describe('RemoteStateProvider UT', () => {
     });
 
     it('should leave neither lock file behind, and upload neither', async () => {
-      await remoteStateProvider.saveState('a.json', Buffer.from('{"a":1}'));
+      await remoteStateProvider.saveStates([{ data: Buffer.from('{"a":1}'), stateFileName: 'a.json' }]);
       await remoteStateProvider.refreshState();
       const { lockId } = await remoteStateProvider.lockApp();
       expect((await readdir(localStateDirectoryPath)).sort()).toEqual(['a.json', 'remote-state.lock']);
@@ -527,7 +574,7 @@ describe('RemoteStateProvider UT', () => {
 
     it('should require a refresh before the next run locks', async () => {
       const { lockId } = await remoteStateProvider.lockApp();
-      await remoteStateProvider.saveState('a.json', Buffer.from('{"a":1}'));
+      await remoteStateProvider.saveStates([{ data: Buffer.from('{"a":1}'), stateFileName: 'a.json' }]);
       await remoteStateProvider.unlockApp(lockId);
 
       await expect(remoteStateProvider.lockApp()).rejects.toThrow('App state moved since it was last refreshed!');
@@ -537,7 +584,7 @@ describe('RemoteStateProvider UT', () => {
 
     it('should seal the record as it stands from a directory the run was not taken in', async () => {
       const { lockId } = await remoteStateProvider.lockApp();
-      await remoteStateProvider.saveState('a.json', Buffer.from('{"a":1}'));
+      await remoteStateProvider.saveStates([{ data: Buffer.from('{"a":1}'), stateFileName: 'a.json' }]);
       await writeFile(join(otherLocalStateDirectoryPath, 'b.json'), '{}');
 
       await build(otherLocalStateDirectoryPath).unlockApp(lockId);

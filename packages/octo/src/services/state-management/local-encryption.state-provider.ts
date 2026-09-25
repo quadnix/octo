@@ -43,13 +43,6 @@ export class LocalEncryptionStateProvider implements IStateProvider {
   }
 
   /**
-   * Deletes a state file. Deleting one that is not there is not an error.
-   */
-  async deleteState(stateFileName: string): Promise<void> {
-    await rm(join(this.localStateDirectoryPath, stateFileName + '.enc'), { force: true });
-  }
-
-  /**
    * The id of the lock currently held, or `undefined` when the app is unlocked. The lock file is not
    * encrypted - a lock id identifies a run, and reveals nothing about the state it guards.
    */
@@ -136,15 +129,22 @@ export class LocalEncryptionStateProvider implements IStateProvider {
   }
 
   /**
-   * Writes a state file, overwriting whatever was there.
+   * Writes state files, overwriting whatever was there and deleting each one given no `data`.
    */
-  async saveState(stateFileName: string, data: Buffer): Promise<void> {
+  async saveStates(stateFiles: { data: Buffer | undefined; stateFileName: string }[]): Promise<void> {
     await FileUtility.ensureDirectory(this.localStateDirectoryPath);
-    await FileUtility.encryptBufferToFile(
-      data,
-      join(this.localStateDirectoryPath, stateFileName + '.enc'),
-      this.encryptionKey,
-    );
+
+    for (const { data, stateFileName } of stateFiles) {
+      if (data === undefined) {
+        await rm(join(this.localStateDirectoryPath, stateFileName + '.enc'), { force: true });
+      } else {
+        await FileUtility.encryptBufferToFile(
+          data,
+          join(this.localStateDirectoryPath, stateFileName + '.enc'),
+          this.encryptionKey,
+        );
+      }
+    }
   }
 
   /**

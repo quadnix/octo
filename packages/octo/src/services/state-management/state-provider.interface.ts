@@ -14,11 +14,6 @@
  */
 export interface IStateProvider {
   /**
-   * Deletes a state file. Deleting one that is not there is not an error.
-   */
-  deleteState(stateFileName: string): Promise<void>;
-
-  /**
    * The id of the lock currently held, or `undefined` when the app is unlocked.
    */
   getAppLock(): Promise<string | undefined>;
@@ -68,9 +63,12 @@ export interface IStateProvider {
   refreshState(): Promise<void>;
 
   /**
-   * Writes a state file, overwriting whatever was there.
+   * Writes state files as one change, overwriting whatever was there and deleting each one given no
+   * `data`. Deleting one that is not there is not an error.
+   *
+   * A provider that pays per write makes one write of the whole change rather than one per file.
    */
-  saveState(stateFileName: string, data: Buffer): Promise<void>;
+  saveStates(stateFiles: { data: Buffer | undefined; stateFileName: string }[]): Promise<void>;
 
   /**
    * Releases the app lock. Unlocking an app that is not locked is not an error.
