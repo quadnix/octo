@@ -53,7 +53,7 @@ describe('LocalStateProvider UT', () => {
     });
 
     // How long it has been held is what says whether the holder is still working, which is the one
-    // question a person answers before reaching for `unlock --force`.
+    // question a person answers before finishing the run through its lock.
     it('should report how long the lock has been held', async () => {
       const startedAt = new Date(Date.now() - (4 * 60 * 60 * 1000 + 12 * 60 * 1000)).toISOString();
       await writeFile(join(__dirname, 'local-state.lock'), JSON.stringify({ lockId: 'a-held-lock-id', startedAt }));
@@ -86,6 +86,20 @@ describe('LocalStateProvider UT', () => {
       await expect(localStateProvider.unlockApp('not-the-lock')).rejects.toThrowErrorMatchingInlineSnapshot(
         `"Invalid lock ID!"`,
       );
+    });
+
+    it('should throw error when resuming a lock ID that is not the one held', async () => {
+      await localStateProvider.lockApp();
+
+      await expect(localStateProvider.lockApp('not-the-lock')).rejects.toThrowErrorMatchingInlineSnapshot(
+        `"App is not locked with lock ID "not-the-lock"!"`,
+      );
+    });
+
+    it('should resume the lock held', async () => {
+      const { lockId } = await localStateProvider.lockApp();
+
+      expect(await localStateProvider.lockApp(lockId)).toEqual({ lockId });
     });
 
     it('should report an unlocked app', async () => {

@@ -64,17 +64,31 @@ export class TestStateProvider implements IStateProvider {
   }
 
   /**
-   * Takes the app lock.
+   * Takes the app lock. With `lockId`, resumes the run already holding it.
    *
-   * @throws {@link TransactionError} When a lock is held, naming the id that holds it.
+   * @throws {@link TransactionError} When a lock is held, naming the id that holds it. When `lockId`
+   * is given and is not the lock held.
    */
-  async lockApp(): Promise<{ lockId: string }> {
+  async lockApp(lockId?: string): Promise<{ lockId: string }> {
+    if (lockId) {
+      if (this.lockId !== lockId) {
+        throw new TransactionError(`App is not locked with lock ID "${lockId}"!`);
+      }
+      return { lockId };
+    }
     if (this.lockId) {
       throw new TransactionError(`App already locked with lock ID "${this.lockId}"!`);
     }
     this.lockId = randomUUID();
 
     return { lockId: this.lockId };
+  }
+
+  /**
+   * Does nothing: the state lives in this process alone, so it is always the newest.
+   */
+  async refreshState(): Promise<void> {
+    return;
   }
 
   /**

@@ -17,9 +17,9 @@ interface AppLockRecord {
  * processes racing for the same path, exactly one succeeds. Reading first and writing second would
  * let both believe they hold it.
  *
- * The lock never expires, so a run that died holding one leaves it held until a person releases it
- * with `octo unlock --force`. That decision turns on whether the holder is still working, so the
- * record carries the time it was taken and a blocked run is told how long it has been held.
+ * The lock never expires, so a run that died holding one leaves it held until a person finishes that
+ * run through its lock id. That decision turns on whether the holder is still working, so the record
+ * carries the time it was taken and a blocked run is told how long it has been held.
  *
  * @internal
  */
@@ -50,7 +50,15 @@ export class FileAppLockUtility {
   /**
    * @internal
    */
-  static async lockApp(lockFilePath: string): Promise<{ lockId: string }> {
+  static async lockApp(lockFilePath: string, resumeLockId?: string): Promise<{ lockId: string }> {
+    // Resume the run holding the lock, which on one machine holds nothing more to read.
+    if (resumeLockId) {
+      if ((await this.getAppLock(lockFilePath)) !== resumeLockId) {
+        throw new TransactionError(`App is not locked with lock ID "${resumeLockId}"!`);
+      }
+      return { lockId: resumeLockId };
+    }
+
     const lockId = randomUUID();
     const record: AppLockRecord = { lockId, startedAt: new Date().toISOString() };
 
@@ -58,7 +66,7 @@ export class FileAppLockUtility {
       await writeFile(lockFilePath, JSON.stringify(record), { flag: 'wx' });
     } catch (error) {
       if (error.code === 'EEXIST') {
-        // The holder is read back and reported, so a blocked run can be told what to break without a
+        // The holder is read back and reported, so a blocked run can be told what it waits on without a
         // separate command to ask, and how long it has been held without one either.
         const holder = await this.readLock(lockFilePath);
         const heldFor = holder?.startedAt ? this.describeAge(holder.startedAt) : undefined;

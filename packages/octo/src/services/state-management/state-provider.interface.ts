@@ -52,11 +52,20 @@ export interface IStateProvider {
   /**
    * Takes the app lock and returns its id, which `apply` and `commit` must then present.
    *
-   * The lock is taken atomically, so of two callers racing for it exactly one wins.
+   * The lock is taken atomically, so of two callers racing for it exactly one wins. With `lockId`,
+   * resumes the run already holding that lock instead, which is how a run that died is finished.
    *
-   * @throws {@link TransactionError} When a lock is held, naming the id that holds it.
+   * @throws {@link TransactionError} When a lock is held, naming the id that holds it. When `lockId`
+   * is given and is not the lock held.
    */
-  lockApp(): Promise<{ lockId: string }>;
+  lockApp(lockId?: string): Promise<{ lockId: string }>;
+
+  /**
+   * Brings the state up to the newest a run may plan against. `generate` calls it before reading any.
+   *
+   * A provider whose state is always the newest does nothing here.
+   */
+  refreshState(): Promise<void>;
 
   /**
    * Writes a state file, overwriting whatever was there.

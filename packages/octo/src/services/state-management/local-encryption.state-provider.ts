@@ -117,13 +117,22 @@ export class LocalEncryptionStateProvider implements IStateProvider {
   }
 
   /**
-   * Takes the app lock, writing its id into `local-state.lock` beside the state files.
+   * Takes the app lock, writing its id into `local-state.lock` beside the state files. With
+   * `lockId`, resumes the run already holding it.
    *
-   * @throws {@link TransactionError} When a lock is held, naming the id that holds it.
+   * @throws {@link TransactionError} When a lock is held, naming the id that holds it. When `lockId`
+   * is given and is not the lock held.
    */
-  async lockApp(): Promise<{ lockId: string }> {
+  async lockApp(lockId?: string): Promise<{ lockId: string }> {
     await FileUtility.ensureDirectory(this.localStateDirectoryPath);
-    return FileAppLockUtility.lockApp(this.lockFilePath);
+    return FileAppLockUtility.lockApp(this.lockFilePath, lockId);
+  }
+
+  /**
+   * Does nothing: the directory is the only copy of the state, so it is always the newest.
+   */
+  async refreshState(): Promise<void> {
+    return;
   }
 
   /**

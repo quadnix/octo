@@ -253,12 +253,20 @@ export class StateManagementService {
   }
 
   /**
-   * Takes the app lock and returns its id.
+   * Takes the app lock and returns its id. With `lockId`, resumes the run already holding it.
    *
-   * @throws {@link TransactionError} When a lock is held, naming the id that holds it.
+   * @throws {@link TransactionError} When a lock is held, naming the id that holds it. When `lockId`
+   * is given and is not the lock held.
    */
-  async lockApp(): Promise<{ lockId: string }> {
-    return this.stateProvider.lockApp();
+  async lockApp(lockId?: string): Promise<{ lockId: string }> {
+    return this.stateProvider.lockApp(lockId);
+  }
+
+  /**
+   * Brings the state up to the newest a run may plan against. See {@link IStateProvider.refreshState}.
+   */
+  async refreshState(): Promise<void> {
+    return this.stateProvider.refreshState();
   }
 
   /**

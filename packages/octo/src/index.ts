@@ -63,6 +63,7 @@ export { type IResourceAction } from './resources/resource-action.interface.js';
 export { ATerraformResource } from './resources/terraform-resource.abstract.js';
 
 export { LocalStateProvider } from './services/state-management/local.state-provider.js';
+export { RemoteStateProvider } from './services/state-management/remote.state-provider.js';
 export { LocalEncryptionStateProvider } from './services/state-management/local-encryption.state-provider.js';
 export { StateManagementService } from './services/state-management/state-management.service.js';
 export { type IStateProvider } from './services/state-management/state-provider.interface.js';
