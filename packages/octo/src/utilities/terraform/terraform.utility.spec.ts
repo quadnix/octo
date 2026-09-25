@@ -9,6 +9,7 @@ import {
   StateManagementService,
   type StateManagementServiceFactory,
 } from '../../services/state-management/state-management.service.js';
+import { TerraformStateService } from '../../services/state-management/terraform-state.service.js';
 import { TestStateProvider } from '../../services/state-management/test.state-provider.js';
 import { TerraformUtility } from './terraform.utility.js';
 
@@ -406,6 +407,16 @@ describe('TerraformUtility UT', () => {
       await withCustom[command](terragruntDir);
 
       expect(withCustom.execFileAsyncMock.mock.calls[0][2].timeout).toBe(1000);
+    });
+
+    it('checks terraform state in every stateCheckInIntervalInMs, defaulting to 10 seconds', async () => {
+      const startPeriodicCheckIn = jest.spyOn(TerraformStateService.prototype, 'startPeriodicCheckIn');
+
+      await terraform.apply(terragruntDir);
+      await new TestableTerraformUtility({ stateCheckInIntervalInMs: 30 * 1000 }).apply(terragruntDir);
+
+      expect(startPeriodicCheckIn.mock.calls.map((call) => call[2])).toEqual([10 * 1000, 30 * 1000]);
+      startPeriodicCheckIn.mockRestore();
     });
   });
 

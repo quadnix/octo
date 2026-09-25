@@ -13,6 +13,7 @@ import { EventService } from '../../services/event/event.service.js';
 import { TerraformStateService } from '../../services/state-management/terraform-state.service.js';
 import { PROJECT_ROOT_VARIABLE_NAME } from '../../services/terraform/terraform.type.js';
 
+const DEFAULT_STATE_CHECK_IN_INTERVAL_IN_MS = 10 * 1000;
 const DEFAULT_TIMEOUT_IN_MS = 60 * 60 * 1000; // 60 minutes.
 
 /**
@@ -65,6 +66,7 @@ export class TerraformUtility {
   private onceArgs: string[] | undefined;
 
   private readonly options: {
+    stateCheckInIntervalInMs: number;
     terraformBinary?: string;
     terragruntBinary: string;
     timeoutInMs: number;
@@ -77,18 +79,29 @@ export class TerraformUtility {
   private readonly requestedTimeoutInMs: number | undefined;
 
   /**
-   * @param options Overrides for the binaries invoked and the per-command timeout. `terragruntBinary`
-   * defaults to `terragrunt`.
+   * @param options Overrides for the binaries invoked, the per-command timeout, and the state
+   * check-in interval. `terragruntBinary` defaults to `terragrunt`.
    *
    * `timeoutInMs` defaults to 60 minutes for the commands that only read - `plan`, `output`, `show`.
    * `apply` and `destroy` run unbounded unless it is given: a timeout there turns a slow apply into
    * one killed part way through a mutation, and how long a stack legitimately takes is a fact about
    * that stack rather than something a default can know. What bounds them instead is the caller -
    * a CI job's own timeout, or a person at a terminal.
+   *
+   * `stateCheckInIntervalInMs` is how often terraform state is checked into the state provider while
+   * a command runs, 10 seconds by default. Terraform rewrites it as each resource completes.
    */
-  constructor(options: { terraformBinary?: string; terragruntBinary?: string; timeoutInMs?: number } = {}) {
+  constructor(
+    options: {
+      stateCheckInIntervalInMs?: number;
+      terraformBinary?: string;
+      terragruntBinary?: string;
+      timeoutInMs?: number;
+    } = {},
+  ) {
     this.requestedTimeoutInMs = options.timeoutInMs;
     this.options = {
+      stateCheckInIntervalInMs: options.stateCheckInIntervalInMs ?? DEFAULT_STATE_CHECK_IN_INTERVAL_IN_MS,
       terraformBinary: options.terraformBinary,
       terragruntBinary: options.terragruntBinary ?? 'terragrunt',
       timeoutInMs: options.timeoutInMs ?? DEFAULT_TIMEOUT_IN_MS,
@@ -532,7 +545,7 @@ export class TerraformUtility {
     const moduleIds = await this.listModuleFolders(terragruntDir);
 
     await terraformStateService.checkOut(terragruntDir, moduleIds);
-    terraformStateService.startPeriodicCheckIn(terragruntDir, moduleIds);
+    terraformStateService.startPeriodicCheckIn(terragruntDir, moduleIds, this.options.stateCheckInIntervalInMs);
 
     try {
       return await body(moduleIds);

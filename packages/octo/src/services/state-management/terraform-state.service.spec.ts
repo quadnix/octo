@@ -159,12 +159,24 @@ describe('TerraformStateService UT', () => {
   });
 
   describe('startPeriodicCheckIn()', () => {
+    it('should not check state in before the interval', async () => {
+      await createModuleFolder('module-a', stateWithResources);
+      const saveStates = jest.spyOn(stateManagementService, 'saveStates');
+      jest.useFakeTimers();
+
+      terraformStateService.startPeriodicCheckIn(terragruntDir, ['module-a'], 10 * 1000);
+      jest.advanceTimersByTime(10 * 1000 - 1);
+      jest.useRealTimers();
+
+      expect(saveStates).not.toHaveBeenCalled();
+    });
+
     it('should check state in while a command is still running', async () => {
       await createModuleFolder('module-a', stateWithResources);
       jest.useFakeTimers();
 
-      terraformStateService.startPeriodicCheckIn(terragruntDir, ['module-a']);
-      jest.advanceTimersByTime(60 * 1000);
+      terraformStateService.startPeriodicCheckIn(terragruntDir, ['module-a'], 10 * 1000);
+      jest.advanceTimersByTime(10 * 1000);
       jest.useRealTimers();
 
       // Chains onto the queue the tick is already on, and checks in nothing of its own, so awaiting

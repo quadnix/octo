@@ -5,7 +5,6 @@ import { Factory } from '../../decorators/factory.decorator.js';
 import { Container } from '../../functions/container/container.js';
 import { StateManagementService } from './state-management.service.js';
 
-const CHECK_IN_INTERVAL_IN_MS = 60 * 1000;
 const TERRAFORM_STATE_FILE_NAME = 'terraform.tfstate';
 
 /**
@@ -85,9 +84,9 @@ export class TerraformStateService {
   }
 
   /**
-   * Starts checking state in on a timer, bounding what a killed runner loses to one interval.
+   * Starts checking state in every `intervalInMs`, bounding what a killed runner loses to one interval.
    */
-  startPeriodicCheckIn(terragruntDir: string, moduleIds: string[]): void {
+  startPeriodicCheckIn(terragruntDir: string, moduleIds: string[], intervalInMs: number): void {
     if (this.periodicCheckIn) {
       return;
     }
@@ -96,7 +95,7 @@ export class TerraformStateService {
       // A tick that fails is not worth aborting the terraform command that is still running - the
       // check-in on its return reports the failure instead.
       void this.checkIn(terragruntDir, moduleIds).catch(() => {});
-    }, CHECK_IN_INTERVAL_IN_MS);
+    }, intervalInMs);
   }
 
   /**
