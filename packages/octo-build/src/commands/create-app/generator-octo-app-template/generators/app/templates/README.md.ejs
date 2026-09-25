@@ -19,8 +19,7 @@ It contains all the modules you want to run,
 which will create your infrastructure resources as per the module's instructions.
 
 Octo generates Terragrunt module folders from your definition; Terraform/Tofu (via Terragrunt) is the
-executor. The flow has three steps — generate, apply, then commit the results back into Octo. An
-optional validate step compares the Terraform plan against Octo's own diff.
+executor. The flow has four steps: generate, validate, apply, then commit the results back into Octo.
 
 Each step is a script, so there is nothing to set up first:
 
@@ -28,30 +27,34 @@ Each step is a script, so there is nothing to set up first:
 # 1. Generate the Terragrunt module folders into ./.octo-tf (folders are overwritten in place; state and unrelated folders survive).
 npm run octo:generate
 
-# 2. (optional) Plan every module folder and validate the plans against Octo's resource diff.
+# 2. (optional) Plan every module folder and report the plans against your intent.
 #    `validate` runs the plan itself; there is nothing to run beforehand.
 npm run octo:validate
 
 # 3. Take the app lock. Apply and commit both require it, so that only one run writes state at a time.
 LOCK_ID=$(npm run --silent octo:lock)
 
-# 4. Apply, then record the applied outputs into Octo. The commit releases the lock.
+# 4. Apply, then record the applied outputs into Octo. A commit that succeeds releases the lock.
 npm run octo:apply -- --lockId $LOCK_ID
 npm run octo:commit -- --lockId $LOCK_ID
 ```
 
-Generate and validate need no lock — neither writes shared state. Apply and commit do, and refuse to
-run without one. The commit releases it however it ends, so a normal run leaves nothing behind. If a
-run dies between the lock and the commit, `npm run octo:unlock -- --force` releases it.
+Generate and validate need no lock, because neither writes shared state. Apply and commit do, and
+refuse to run without one.
 
-If the apply fails partway, `npm run octo:commit -- --lockId $LOCK_ID --partial` records what did
-apply instead of rejecting the whole commit, leaving the resources it could not confirm out of Octo's
-state so the next run creates them again.
+If the apply fails partway, it prints the command that records what did apply and releases the
+lock: `npm run octo:commit -- --lockId $LOCK_ID --partial`. Then fix what failed and run the four
+steps again. If a commit fails, it keeps the lock: fix what it reported and run the same commit
+again. A run that died holding the lock is finished through it, not released:
+[Recovering a Failed Run](https://octo.quadnix.com/docs/using-octo/recovering-a-failed-run) has the
+steps for every case.
 
 `octo apply` plans first and refuses to proceed if the apply would destroy anything, printing what
 would be destroyed. Run `npm run octo:validate` to see why each one is being destroyed, then re-run
-the apply with `--auto-approve` to go ahead — `npm run octo:apply -- --auto-approve`. That flag is
-required for every destroy, including the teardown flow below.
+the apply with `--auto-approve` and the same lock ID to go ahead:
+`npm run octo:apply -- --lockId $LOCK_ID --auto-approve`. That flag is required for every destroy,
+including the teardown flow below. If you decide not to go ahead, release the lock with
+`npm run octo:unlock -- --lockId $LOCK_ID`.
 
 Each script sets `OCTO_DEFINITION_FILE_PATH=octo.yaml` and points at `.octo-tf` for you. Edit the
 scripts in `package.json` if your definition file or output directory is named differently. Running

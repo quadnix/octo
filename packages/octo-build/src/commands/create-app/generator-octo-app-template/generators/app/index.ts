@@ -72,8 +72,9 @@ export default class extends Generator {
     // on PATH - which is what the `octo run-action` callback terraform makes mid-apply needs.
     this.log('   npm run octo:generate');
     this.log('   npm run octo:validate   # optional');
-    this.log('   npm run octo:apply');
-    this.log('   npm run octo:commit');
+    this.log('   LOCK_ID=$(npm run --silent octo:lock)');
+    this.log('   npm run octo:apply -- --lockId $LOCK_ID');
+    this.log('   npm run octo:commit -- --lockId $LOCK_ID');
     this.log('   See README.md for the full flow.');
   }
 
