@@ -109,7 +109,7 @@ what made the apply incomplete.
 ## Where it is kept
 
 A **state provider** decides where these files live, and holds the lock that stops two runs writing
-at once. Three ship with Octo, chosen in the definition file:
+at once. Four ship with Octo, chosen in the definition file:
 
 ```yaml
 settings:
@@ -119,8 +119,8 @@ settings:
 ```
 
 `LocalStateProvider` writes plain JSON to a directory, which is what the shop uses. [State
-Providers](/docs/techniques/state-providers) covers the other two, and how far each one carries as a
-team grows.
+Providers](/docs/techniques/state-providers) covers the other three, and how far each one carries as
+a team grows.
 
 ## Losing it
 
@@ -129,7 +129,8 @@ about it, because both records are in there. The next `octo generate` finds no p
 the run as a first run, and proposes creating your entire infrastructure again. Terraform, with no
 state of its own left to object, agrees.
 
-The apply that follows does not quietly recreate anything. It fails on whatever is unique: a bucket
-name already taken, a role that already exists, an address already in use. Recovering means
-restoring the files, which is the argument for keeping them in version control rather than for
-having a recovery procedure.
+The apply that follows fails on whatever is unique: a bucket name already taken, a role that
+already exists. Whatever is not unique it builds a second time without complaint, so the shop would
+gain a second VPC in the same apply that failed on its bucket. Recovering means restoring the files
+before anything applies, which is the argument for keeping them somewhere they cannot be lost
+rather than for having a recovery procedure.

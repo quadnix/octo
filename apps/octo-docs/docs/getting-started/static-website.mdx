@@ -268,7 +268,8 @@ What scrolls past is Terragrunt's own output, resource by resource, and the comm
 `==== Apply complete ====`; this stack takes under a minute, where one with a load balancer in it
 takes several. The one time apply stops is when something would be destroyed, which is Octo's check
 rather than Terraform's, and the teardown at the end of this page runs into it. If an apply stops
-part way, fix what it complained about and run it again.
+part way, fix what it complained about and run it again with the same lock;
+[Recovering a Failed Run](/docs/using-octo/recovering-a-failed-run) covers the rest.
 
 `commit` reads the outputs Terraform recorded and writes them into `.octo/`, where Octo keeps its
 picture of your infrastructure. It is a separate command because apply is pure Terragrunt and knows

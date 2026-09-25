@@ -201,6 +201,22 @@ same files encrypted, and takes an `encryptionKey` alongside the path:
     encryptionKey: "${env.OCTO_STATE_KEY}"
 ```
 
+`RemoteStateProvider` keeps state in a backend every machine reaches, and takes the app it belongs
+to, the session to act as, and a directory to work in:
+
+```yaml
+  stateProvider:
+    type: RemoteStateProvider
+    stateManagementServiceUrl: https://state.example.com/state
+    organizationId: shop-organization
+    appId: shop
+    sessionId: "${env.OCTO_SESSION}"
+    statePath: .octo
+```
+
+`lockContext` is optional. [State Providers](/docs/techniques/state-providers#remote-state) covers
+what each key means, and that the backend is not open to sign-ups yet.
+
 `TestStateProvider` keeps state in memory and takes no path, which makes it useful only in tests.
 See [State](/docs/fundamentals/state).
 

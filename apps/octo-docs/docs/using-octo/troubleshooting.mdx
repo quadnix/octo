@@ -158,8 +158,8 @@ the tag is part of the ID. Two ways out:
 - Put the resource back in the definition file as it was and run the lifecycle. The commit adopts
   the record, and removing it after that deletes it properly.
 - Delete the published thing yourself, then delete its record. The record is
-  `resource-state-<resource ID>.json` in the state directory, with `.enc` on the end if you use
-  `LocalEncryptionStateProvider`.
+  `resource-state-<resource ID>.json` in the state directory, with any `/` in the ID written as `.`,
+  and with `.enc` on the end if you use `LocalEncryptionStateProvider`.
 
 **A plan that fails on the account the credentials belong to**
 
@@ -199,11 +199,22 @@ what is on disk, and it works again as soon as the right key is supplied.
 
 Another run holds the lock. The message names it and says how long it has been held, which is what
 separates a run still working from one that died: seconds mean wait, hours on a job that takes
-minutes mean nobody is coming.
+minutes mean nobody is coming. With `RemoteStateProvider` the message says who took it and when
+instead, as `taken by "octo on ci-runner" since ...`.
 
-Once you are sure it is gone, `octo unlock --force` releases it. Do that only after looking at what
-the dead run actually did, because Octo cannot tell whether it applied nothing, everything, or half
-of it. That is exactly why the lock does not expire on its own.
+A run that died is finished through its lock, never released:
+[Recovering a Failed Run](/docs/using-octo/recovering-a-failed-run#the-run-died) has the steps.
+
+**`App is not locked with lock ID "..."!`**
+
+The lock you tried to resume is not held. Somebody already finished that run; `octo generate` picks
+up what it left.
+
+**`App state moved since it was last refreshed! Run "octo generate" again.`**
+
+`RemoteStateProvider` only. Another run finished after your `generate`, so the Terraform you
+generated was planned against a state that is no longer the newest. The lock was released again
+before anything ran. Run `generate` again, then `lock`.
 
 **`App is not locked!`**
 
@@ -213,14 +224,27 @@ both. Apply adds `Run "octo lock" first.` to the same message.
 **`Invalid lock ID!`**
 
 A lock is held, but not the one you passed. Usually a stale `LOCK_ID` from a previous run still in
-the shell. Take a fresh one.
+the shell. Run `octo lock` to see which ID holds it.
+
+**`Invalid lock ID! Lock "..." was not taken in this state directory. Resume it here first.`**
+
+`RemoteStateProvider` only. The lock is held, and was taken on another machine or in another
+checkout, so this directory holds none of what that run wrote. Resume it here with
+`octo lock --lockId` first.
+
+**`State file "..." is larger than 5MB!`**, **`State cannot hold more than 200 files!`**
+
+`RemoteStateProvider` only, refused before anything was written. These are the backend's limits on
+one app's state, and nothing on the Octo side raises them.
 
 ## While applying
 
 **`This apply would DESTROY: ...`**
 
 Working as intended. `octo apply` plans first and refuses when anything would be destroyed. Read the
-list, run `octo validate` for the reason behind each one, then re-run with `--auto-approve`.
+list, run `octo validate` for the reason behind each one, then re-run with `--auto-approve` and the
+same lock ID. The lock is still held, so if you are not going ahead, release it with
+`octo unlock --lockId`.
 
 **`Cannot check this apply for destroys because the folders above would not plan.`**
 
@@ -259,25 +283,22 @@ into it with nothing to repair by hand.
 
 ## While committing
 
+Every commit that fails keeps the lock and leaves Octo state unchanged, so the fix is followed by
+the same commit with the same `--lockId`. [Recovering a Failed
+Run](/docs/using-octo/recovering-a-failed-run#the-commit-failed) walks through each case.
+
 **`Cannot commit: missing terraform outputs (partial apply?)`**
 
-The apply did not finish, so some folders never produced their outputs. Octo state is unchanged, and
-the message says so. Fix whatever stopped the apply, run it again, then commit; a re-run is safe.
-
-If you would rather not lose what the apply did build, `octo commit --partial` records every
-resource whose outputs all resolved and leaves the rest out, reporting what it skipped. The next run
-plans to create those again, which Terraform reconciles against its own state as a no-op if they
-exist.
+Some folders never produced their outputs. Usually the apply did not finish: `octo commit --partial`
+records every resource whose outputs all resolved and leaves the rest out, reporting what it
+skipped. The next run plans to create those again, which Terraform reconciles against its own state
+as a no-op if they exist. If the lines above the error say `Could not read terraform outputs`, the
+apply was fine and the commit could not reach a folder, usually for want of credentials.
 
 **`Cannot commit: null terraform outputs (broken apply?)`**
 
 A declared output exists but carries no value, which normally means the resource behind it did not
-come up. Same handling: state is untouched, fix and re-run.
-
-**A commit that failed, and a lock that is gone**
-
-Expected. `octo commit` releases the lock however it ends, including when it throws, because it is
-the step that ends a run. Take a fresh lock before retrying.
+come up. Apply again with the same lock, then commit.
 
 **`Partial commit: N external resource(s) were not deleted because this apply was not confirmed
 everywhere`**
@@ -307,18 +328,21 @@ Report](/docs/using-octo/reading-a-validate-report) covers what to do when it do
 
 **Octo wants to create everything, and it all already exists**
 
-`.octo/` is missing or was not committed. Octo has no record, so it treats the run as a first run.
-Terraform will not actually recreate anything, because its own state is separate, but the report is
-meaningless until you restore the state files. See [State](/docs/fundamentals/state).
+`.octo/` is missing or was not committed. Terraform's state lives in there too, so neither Octo nor
+Terraform has a record, and an apply now would build a second copy of everything that has no unique
+name, such as a VPC, and fail on everything that has one. Do not apply. Restore the state files,
+from version control or wherever your state provider keeps them, and validate again. See
+[State](/docs/fundamentals/state#losing-it).
 
 **Two people ran it at once**
 
 `apply` and `commit` require the app lock, so a second run on the same machine fails while taking
-it. Two machines are a different matter: the bundled providers keep that lock as a file beside the
+it. Two machines are a different matter: the local providers keep that lock as a file beside the
 state, and each machine has its own. `generate` takes no lock at all, so two of those overwrite each
 other's model state with no error either way.
 
 Treat the state as suspect: restore it from version control, then run generate, apply, and commit
-once from one place. Running the lifecycle from a pipeline is what stops it recurring, and a [state
-provider](/docs/techniques/state-providers) whose lock is a conditional write against a store both
-machines reach is what removes the possibility.
+once from one place. Running the lifecycle from a
+[pipeline](/docs/techniques/github-actions-pipeline) is what stops it recurring, and
+[remote state](/docs/techniques/state-providers#remote-state), whose lock every machine shares, is
+what removes the possibility.

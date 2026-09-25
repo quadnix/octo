@@ -253,8 +253,9 @@ NOTES
   External resource "ecr-image-tag-eu-west-1-shop/checkout-0-0-2" is published but not recorded in octo state; the next successful commit records it.
 ```
 
-Nothing to do. Run the lifecycle again and the commit picks it up, without publishing anything a
-second time.
+Nothing to do beyond finishing the run that stopped, which [Recovering a Failed
+Run](/docs/using-octo/recovering-a-failed-run) covers: its commit picks the record up, without
+publishing anything a second time.
 
 The same note ends differently when the record has been orphaned, with `and neither intent nor the
 committed graph declares it any more, so octo will never delete it`. Something is then in your cloud

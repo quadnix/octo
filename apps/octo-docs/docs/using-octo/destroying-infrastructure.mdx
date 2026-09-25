@@ -108,7 +108,8 @@ npm run octo:apply -- --lockId $LOCK_ID --auto-approve
 ```
 
 That flag is required for every destroy, including one you fully intended. It is not a `--force`; it
-is an acknowledgement that you have read the list above.
+is an acknowledgement that you have read the list above. The refusal leaves the lock held, so if
+the list tells you not to go ahead, release it with `npm run octo:unlock -- --lockId $LOCK_ID`.
 
 ## Committing the removal
 

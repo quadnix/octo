@@ -7,10 +7,10 @@ and where they live decides who can run your infrastructure. On a laptop, one pe
 repository, whoever has the repository can, as long as they take the lock.
 
 A **state provider** is what makes that choice. It holds the files, it holds Terraform's own state,
-and it holds the lock that keeps two runs from writing at once. Three ship with Octo, and
+and it holds the lock that keeps two runs from writing at once. Four ship with Octo, and
 `settings.stateProvider` picks one.
 
-## The three that ship
+## The four that ship
 
 ```yaml title="octo.yaml"
 settings:
@@ -55,31 +55,37 @@ first apply.
 
 `TestStateProvider` keeps everything in memory, and is what the test harness uses.
 
-Where a team needs state somewhere neither local provider reaches, the arrangement that works today
-is `LocalStateProvider` with the state directory on shared storage, or
-`LocalEncryptionStateProvider` with the files committed to the repository.
+`RemoteStateProvider` keeps state in a backend a whole team reaches, and has a
+[section of its own](#remote-state).
+
+Without a backend, the arrangement a team can share is `LocalEncryptionStateProvider` with the
+files committed to the repository, which is what the
+[GitHub Actions Pipeline](/docs/techniques/github-actions-pipeline) uses.
 
 ## It holds the lock
 
 Octo's state has one writer at a time, and the provider is what enforces it.
 
 `octo lock` takes the lock and prints an ID. `octo apply` and `octo commit` each present that ID,
-and the commit releases it. `generate` and `validate` never touch any of this, because neither
-writes shared state. A second run that tries to take a held lock fails immediately, naming the ID
-that holds it, before it reads state or plans anything.
+and a commit that succeeds releases it. `generate` and `validate` never touch any of this, because
+neither writes shared state. A second run that tries to take a held lock fails immediately, naming
+the ID that holds it, before it reads state or plans anything.
 
 The two local providers keep the lock as a file beside the state, `local-state.lock`, created
 exclusively so that of two runs racing for it exactly one wins. The ID is what proves ownership:
 every check compares against the ID that was handed out, so one run can never release another's
 lock, and a caller holding a stale ID is told it is stale rather than told the app is free. The file
 also records when the lock was taken, and a run that finds it held is told how long that has been.
+It is a file on one disk, so it keeps apart two runs on one machine and nothing more.
+`RemoteStateProvider` keeps the lock in its backend instead, where it keeps apart runs on any
+machines.
 
-There is deliberately no timeout. A lock that expires mid-apply would let a second apply start while
-the first might still be running, and from outside you cannot tell whether a dead run applied
-nothing, everything, or half of it. A stuck lock is the correct outcome, and `octo unlock --force`
-is the way out once a human has looked. How long it has been held is the first thing to look at: a
-lock a few seconds old belongs to a run still going, and one older than any run you have ever had
-belongs to a runner that died.
+No lock has a timeout. A lock that expires mid-apply would let a second apply start while the first
+might still be running, and from outside you cannot tell whether a dead run applied nothing,
+everything, or half of it. A run that died is finished through its own lock rather than released:
+[Recovering a Failed Run](/docs/using-octo/recovering-a-failed-run) has the steps. How long the lock
+has been held is the first thing to look at: a lock a few seconds old belongs to a run still going,
+and one older than any run you have ever had belongs to a runner that died.
 
 ## It holds Terraform's state too
 
@@ -93,19 +99,90 @@ it writes what the folder now holds back, under `<moduleId>.tfstate`. A long app
 in on a timer, so a runner killed halfway through loses at most a minute of record rather than all
 of it.
 
-Two consequences worth knowing:
+Three consequences worth knowing:
 
 - A module whose folder holds no state, or state recording no resources, is **deleted** from the
   provider rather than written. That is a module Terraform has destroyed.
 - A module the provider holds nothing for keeps whatever its folder already has. That is what adopts
   the state of a stack which has been running with a local backend until now: the first check-in
   hands it over, and from then on the provider is the one that answers.
+- A folder whose state is a later version of the provider's copy keeps it too. That is what a run
+  killed before its last check-in leaves behind, and it is why the machine a run died on can finish
+  it without losing anything the run built.
 
-Point `remote_state` at a backend of your own and Terraform stops writing the file Octo checks in,
-which is fine, because the two arrangements are alternatives, not layers.
+## Remote state
+
+State in a repository is shared, and still written by one machine at a time: the lock is a file on
+that machine, and what a run records reaches everybody else only when somebody pushes it. A run
+that dies takes both with it. `RemoteStateProvider` keeps the state and the lock in a backend every
+machine reaches, and writes to it as the run goes.
+
+:::caution[Not open yet]
+The backend this provider talks to is not open to sign-ups, and Octo has no command that creates an
+organization, an app, or a session. Until it is, this provider works only against a backend you have
+been given access to.
+:::
+
+```yaml title="octo.yaml"
+env:
+  - key: OCTO_SESSION
+    kind: string
+    value: ""
+
+settings:
+  stateProvider:
+    type: RemoteStateProvider
+    stateManagementServiceUrl: https://state.example.com/state   # the address you were given
+    organizationId: shop-organization                            # your organization's ID
+    appId: shop                                                  # the app's ID in the backend
+    sessionId: "${env.OCTO_SESSION}"
+    statePath: .octo
+```
+
+`stateManagementServiceUrl` is where the backend answers, including the prefix its routes sit
+behind. `organizationId` and `appId` name the app the state belongs to. `sessionId` is the session
+every request is made as, and it is a credential, so declare it under `env` and let the shell supply
+it. `lockContext` is optional, and is what a blocked run is told about whoever holds the lock; it
+defaults to `octo on <hostname>`, and a pipeline can put its run URL there instead.
+
+`statePath` is a working copy rather than the store. Each command reads and writes the directory
+exactly as `LocalStateProvider` would, and the provider keeps the backend in step:
+
+- `octo generate` first replaces what the directory holds with the newest state a finished run left
+  in the backend, and plans against that.
+- `octo lock` opens a record for the run, and refuses with `App state moved since it was last
+  refreshed!` when another run finished after your `generate`. Run `generate` again, then `lock`.
+  So on this provider, `generate` comes before `lock`.
+- Every write the run makes reaches the backend before the command goes on, and Terraform's state
+  reaches it on the once-a-minute check-in described above. A run that dies has lost at most
+  that minute.
+- A commit that succeeds, or `octo unlock`, finishes the record. From then on it is the state the
+  next `generate` reads.
+
+The backend keeps the finished record of every run, and never reads an unfinished one back into a
+plan. A run that died leaves its record unfinished and its lock held, so everybody else plans
+against the last finished run and cannot take the lock until somebody finishes that one. Any
+machine can, as the account that took the lock or as an organization administrator:
+[Recovering a Failed Run](/docs/using-octo/recovering-a-failed-run#with-remote-state) has the steps.
+
+Everything in the directory is uploaded, so the provider holds it to what the backend accepts, and
+refuses a write before it lands on disk: a file of at most 5 MB, at most 200 files, and names
+made of letters, digits, `_`, `-`, and `.`, ending in `.json` or `.tfstate`.
+
+The directory is scratch space, and the backend is the copy that counts, so add `.octo/` to your
+`.gitignore`. Two files of the provider's own live there beside the state, `remote-state.lock` and
+`remote-state-upload.lock`, and neither is uploaded.
+
+To move a project on `LocalStateProvider` onto this provider, change `settings.stateProvider` and
+run the lifecycle as usual. While the backend holds nothing for the app, `generate` leaves the
+directory alone, and the lock uploads what it holds as the run's starting point.
 
 ## What a provider does not do
 
-**It does not version anything.** Octo writes each file whole, every time, and keeps no history.
-Being able to go back has to come from wherever the files live: a repository's history for state you
-commit, or versioning on the storage the directory sits on.
+**It does not give you a way back.** Octo writes each file whole, every time, and has no command
+that restores an earlier version. The local providers keep no history at all, so going back has to
+come from wherever the files live: a repository's history for state you commit, or versioning on the
+storage the directory sits on. The backend behind `RemoteStateProvider` keeps the record of every
+finished run, but nothing in Octo reads an old one back. Restoring old state does not undo
+infrastructure either. It makes Terraform forget what exists, and the next apply tries to build it
+again.

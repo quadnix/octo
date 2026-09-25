@@ -135,6 +135,11 @@ const sidebars: SidebarsConfig = {
           type: 'doc',
         },
         {
+          id: 'using-octo/recovering-a-failed-run',
+          label: 'Recovering a Failed Run',
+          type: 'doc',
+        },
+        {
           id: 'using-octo/troubleshooting',
           label: 'Troubleshooting',
           type: 'doc',

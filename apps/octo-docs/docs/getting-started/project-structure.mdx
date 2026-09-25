@@ -79,7 +79,7 @@ Octo's memory of what your infrastructure is.
 | `resources-old.json`               | The previous resource graph, kept so a re-run can tell a settled state from a pending one.                                      |
 | `<moduleId>.tfstate`               | One module's Terraform state, checked out into its folder before a Terraform command and back in after.                         |
 | `resource-state-<resourceId>.json` | What an external resource's action produced, from the moment it ran until the commit that records it.                           |
-| `local-state.lock`                 | The app lock, present only while a run holds it. `apply` and `commit` require it; `commit` releases it.                         |
+| `local-state.lock`                 | The app lock, present only while a run holds it. `apply` and `commit` require it; a commit that succeeds releases it.           |
 | `reports/`                         | HTML and JSON from each validate and commit. Generated output, not state, and gitignored.                                       |
 
 Where it lives comes from `settings.stateProvider.statePath`, resolved against the definition file
@@ -137,8 +137,9 @@ its resources.
 :::note[The `terraform.tfstate` in here is a working copy]
 Terraform state is kept under `.octo/`, and Octo copies it into the folder before each Terraform
 command and back out afterwards. The copy left behind in `.octo-tf/` is gitignored, and deleting it
-costs nothing. [State Providers](/docs/techniques/state-providers#it-holds-terraforms-state-too)
-covers pointing Terraform at a backend of your own instead.
+costs nothing once the run that wrote it has finished.
+[State Providers](/docs/techniques/state-providers#it-holds-terraforms-state-too) covers how the two
+copies are kept in step.
 :::
 
 ## A project that has outgrown one file

@@ -41,6 +41,23 @@ for the checks a second time.
 The **merge workflow** runs on `main` and does the work that changes things: generate, lock, apply,
 commit, then push the updated `.octo/` back. A concurrency group keeps two of them from overlapping.
 
+State lives in the repository, so it has to be encrypted. The project uses
+[`LocalEncryptionStateProvider`](/docs/techniques/state-providers), with the key in a repository
+secret named `OCTO_STATE_ENCRYPTION_KEY`, and both workflows hand it to every step:
+
+```yaml title="octo.yaml"
+env:
+  - key: OCTO_STATE_ENCRYPTION_KEY
+    kind: string
+    value: ""        # supplied by the shell, never written here
+
+settings:
+  stateProvider:
+    type: LocalEncryptionStateProvider
+    encryptionKey: "${env.OCTO_STATE_ENCRYPTION_KEY}"
+    statePath: .octo
+```
+
 ## Merge and forget
 
 It is safe to walk away because nothing in the run replays a decision taken earlier. The merge
@@ -91,6 +108,9 @@ jobs:
       contents: read
       id-token: write        # for OIDC role assumption
       pull-requests: write   # to comment the report
+    env:
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+      OCTO_STATE_ENCRYPTION_KEY: ${{ secrets.OCTO_STATE_ENCRYPTION_KEY }}
     steps:
       - uses: actions/checkout@v4
 
@@ -119,13 +139,9 @@ jobs:
       - run: npm run build            # only if the project holds modules of its own
 
       - name: Generate
-        env:
-          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
         run: npm run octo:generate
 
       - name: Validate
-        env:
-          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
         run: npm run octo:validate
 
       - name: Comment the report
@@ -210,6 +226,9 @@ jobs:
     permissions:
       contents: write
       id-token: write
+    env:
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+      OCTO_STATE_ENCRYPTION_KEY: ${{ secrets.OCTO_STATE_ENCRYPTION_KEY }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -241,8 +260,6 @@ jobs:
       - run: npm run build            # only if the project holds modules of its own
 
       - name: Generate
-        env:
-          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
         run: npm run octo:generate
 
       - name: Lock
@@ -257,7 +274,6 @@ jobs:
         id: apply
         continue-on-error: true
         env:
-          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
           AUTO_APPROVE: ${{ github.event.inputs.autoApprove }}
         run: |
           if [ "$AUTO_APPROVE" = "true" ]; then
@@ -270,8 +286,6 @@ jobs:
       # alone, so a half-finished apply still leaves a usable record behind.
       - name: Commit
         if: ${{ !cancelled() && steps.lock.outcome == 'success' }}
-        env:
-          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
         run: |
           if [ "${{ steps.apply.outcome }}" = "success" ]; then
             npm run octo:commit -- --lockId "$LOCK_ID"
@@ -311,7 +325,7 @@ jobs:
 The `--` in front of `--lockId` is npm's, and belongs only to npm. `pnpm run` hands it to the script
 instead of consuming it, and it then terminates the CLI's own options, so the flag behind it is
 parsed as a positional and silently ignored: `octo apply` fails asking for the lock id it was just
-given. On pnpm the separator comes out — `pnpm run octo:apply --lockId "$LOCK_ID"`.
+given. On pnpm the separator comes out: `pnpm run octo:apply --lockId "$LOCK_ID"`.
 
 Generate runs again here, instead of the pull request's folders being carried over, because this is
 the first time the definition file as merged has been on disk anywhere. Generate is deterministic
@@ -326,10 +340,16 @@ That commit adds `.octo/` and nothing else. The `.octo-tf/` folders are regenera
 are already committed by whoever opened the pull request, so pushing them again would only break the
 path filter that keeps this workflow from starting itself.
 
+A commit that fails keeps its lock, and here the lock is a file on the runner, so it goes when the
+runner does. The push step runs anyway, which carries Terraform's record of what the apply built to
+`main` even when Octo's could not be written.
+
 Do not cancel a run of this workflow. Octo writes Terraform's state back into `.octo/` after every
 Terraform command and on a timer during a long apply, but that write goes to the runner's workspace,
-and cancelling takes the workspace with it. Anything created since the last write is then real and
-unrecorded.
+and cancelling takes the workspace with it. Anything the run created is then real and unrecorded,
+and the next run tries to create it again. If a run is cancelled anyway, or its runner dies,
+[Recovering a Failed Run](/docs/using-octo/recovering-a-failed-run#in-ci-with-state-in-the-repository) has the
+steps, and the first of them is to stop the next run.
 
 ## 4. The push
 
@@ -355,13 +375,11 @@ what the state commit does: one apply per merge, and no run started by the push 
 ## One writer
 
 `octo apply` and `octo commit` both require a lock id from `octo lock`. In CI that lock is a file on
-the runner, so a fresh runner always finds it free and a dead run leaves nothing to clear: the
-`concurrency` group above is what actually keeps two applies apart.
+the runner, so a fresh runner always finds it free: the `concurrency` group above is what actually
+keeps two applies apart.
 
 What none of this covers is an apply run from somebody's laptop while the merge workflow is going.
-If that matters to you, the durable answer is a [state
-provider](/docs/techniques/state-providers) whose lock is a conditional write against a store both
-can reach.
+Their lock is a file on their disk, which the runner never sees. Apply only through this workflow.
 
 ## When apply fails
 

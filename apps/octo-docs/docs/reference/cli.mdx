@@ -51,6 +51,9 @@ octo generate -o .octo-tf
 
 A successful generate prints only what the listeners report. Silence is success.
 
+With [`RemoteStateProvider`](/docs/techniques/state-providers#remote-state), generate first brings
+the state directory up to the newest state a finished run left in the backend.
+
 ### validate
 
 Runs `terraform plan` on every folder and correlates the plans with Octo's own diff. Creates
@@ -103,7 +106,7 @@ belong here are your CI job's own, and the terminal you can interrupt. `validate
 read, so both keep the sixty-minute default that ends a hang.
 
 ```bash
-npm run octo:apply -- --auto-approve
+npm run octo:apply -- --lockId $LOCK_ID --auto-approve
 ```
 
 `octo apply --help` prints the flag as `--autoApprove`, which is the same flag. Yargs accepts either
@@ -117,14 +120,15 @@ or null output throws before any state is written.
 | Flag                 |          |                                                                        |
 |----------------------|----------|------------------------------------------------------------------------|
 | `--terragruntDir`    | required | The generated directory, after an apply.                               |
-| `--lockId`           | required | The app lock ID from `octo lock`. Released when this command finishes. |
+| `--lockId`           | required | The app lock ID from `octo lock`. Released when the commit succeeds.   |
 | `--partial`          |          | Record what did apply, after an apply that failed.                     |
 | `--terraformBinary`  |          | Override the binary Terragrunt invokes.                                |
 | `--terragruntBinary` |          | Override the Terragrunt binary.                                        |
 | `--timeoutInMs`      |          | Per-command timeout. Default 60 minutes.                               |
 
-This is the command that ends a run, so it **releases the lock however it finishes**, on a clean
-commit and on one that throws. A normal run never leaves a lock behind.
+This is the command that ends a run, so a commit that succeeds **releases the lock**. A commit that
+throws keeps it: fix what it reported and run `commit` again with the same `--lockId`. A normal run
+never leaves a lock behind.
 
 `--partial` is for after an apply that failed. Instead of rejecting the whole commit over the
 outputs a half-finished apply could not produce, it records every resource whose outputs did all
@@ -146,28 +150,44 @@ LOCK_ID=$(npm run --silent octo:lock)
 ```
 
 Fails if a lock is already held, naming the ID that holds it. Nothing else runs, so a second runner
-stops before it reads state or plans anything.
+stops before it reads state or plans anything. With
+[`RemoteStateProvider`](/docs/techniques/state-providers#remote-state) it also fails when another
+run finished after your `generate`, so there `generate` comes first.
 
-### unlock
-
-Releases the lock.
-
-| Flag       |                                                                               |
-|------------|-------------------------------------------------------------------------------|
-| `--lockId` | The ID to release.                                                            |
-| `--force`  | Release whatever is held, without knowing its ID. One of the two is required. |
-
-A finished run releases its own lock in `commit`, so this is for a run that never reached its
-commit. If a runner died holding one, `--force` is the way out:
-
-```bash
-npm run octo:unlock -- --force
-```
+| Flag       |                                                               |
+|------------|---------------------------------------------------------------|
+| `--lockId` | Resume the run holding this lock instead of taking a new one. |
 
 There is no timeout on a lock. An expiring one would let a second apply start while the first might
 still be running, and from outside you cannot tell whether a dead run applied nothing, everything,
-or half of it. A stuck lock is the correct outcome: look at what actually happened before anything
-else touches it.
+or half of it. A run that died is finished rather than released: stop its process if it is still
+there, resume it with the ID the error named, here in `HELD_LOCK_ID`, then generate, apply and
+commit as usual. [Recovering a Failed Run](/docs/using-octo/recovering-a-failed-run#the-run-died)
+covers what to check before the apply.
+
+```bash
+LOCK_ID=$(npm run --silent octo:lock -- --lockId "$HELD_LOCK_ID")
+npm run octo:generate
+npm run octo:apply -- --lockId $LOCK_ID
+npm run octo:commit -- --lockId $LOCK_ID
+```
+
+With a remote state provider, the run can be resumed from any machine, by the account that took the
+lock or by an organization administrator, and resuming reads everything the dead run had written.
+Stop the dead run's process first: its lock is still good, so a process that wakes up keeps writing
+into the same state.
+
+### unlock
+
+Finishes a run as it stands and releases its lock.
+
+| Flag       |          |                                               |
+|------------|----------|-----------------------------------------------|
+| `--lockId` | required | The ID to release, as `octo lock` printed it. |
+
+A successful `commit` releases its own lock, so this is for a run that will not reach one: a run
+that never applied, or one somebody finished by hand. With a remote state provider, unlocking makes
+what the run wrote the newest state, which the next `generate` plans against.
 
 ## Scaffolding
 

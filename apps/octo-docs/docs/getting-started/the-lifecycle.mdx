@@ -22,9 +22,9 @@ Nothing reaches the cloud before step 3, the first two need no permission to cha
 pipeline can put a human between any two of them.
 
 Steps 3 and 4 are the two that write shared state, so both require the **app lock**, which keeps
-two runs from writing at once. The commit releases it however it ends, so a run that completes
-leaves nothing behind. [The app lock](/docs/reference/cli#the-app-lock) covers taking it, and
-breaking one a dead run left behind.
+two runs from writing at once. A commit that succeeds releases it, so a run that completes leaves
+nothing behind. [The app lock](/docs/reference/cli#the-app-lock) covers taking it, and finishing a
+run that died holding one.
 
 ```mermaid
 graph LR
@@ -111,7 +111,8 @@ Refusing to apply. Run "octo validate" to see why each of these is being destroy
 
 `--auto-approve` skips that check, and it is required for every destroy, including one you meant. If
 a folder cannot be planned at all, apply also refuses, because it cannot say whether that folder
-would destroy something and will not guess.
+would destroy something and will not guess. Either way the lock stays held: re-run the apply with
+the same lock ID, or release it with `octo unlock --lockId $LOCK_ID` if you are not going ahead.
 
 [CLI](/docs/reference/cli#apply) lists every flag it takes.
 
@@ -122,13 +123,15 @@ octo commit --terragruntDir .octo-tf --lockId $LOCK_ID
 ```
 
 Commit reads what the apply produced, the ARNs and IDs and endpoints the provider handed back, and
-records them as [state](/docs/fundamentals/state). It is also the step that ends a run, so it
-releases the app lock, on a clean commit and on one that throws.
+records them as [state](/docs/fundamentals/state). It is also the step that ends a run, so a commit
+that succeeds releases the app lock.
 
 It is all or nothing. If an expected output is missing, which is what a partial apply looks like,
-commit throws before touching state rather than writing half a record, and re-running it once you
-have fixed the apply is safe. After an apply that failed and is not going to succeed as it stands,
-`--partial` records the half that was built and reports what it skipped.
+commit throws before touching state rather than writing half a record, and keeps the lock, so
+running it again once you have fixed the apply is safe. After an apply that failed and is not going
+to succeed as it stands, `--partial` records the half that was built and reports what it skipped.
+[Recovering a Failed Run](/docs/using-octo/recovering-a-failed-run) covers every way a run can stop
+short of its commit.
 
 :::warning[Do not skip it]
 Without a commit, the next run has no record that any of this exists and proposes creating all of it

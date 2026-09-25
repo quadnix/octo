@@ -1,0 +1,248 @@
+---
+title: Recovering a Failed Run
+---
+
+A run is four commands, and only the last one writes down what the other three did. When a run
+stops before its commit, part of your infrastructure may have changed while Octo's record of it has
+not, and the app lock the run took is still held, so the next run cannot start either. Nothing
+clears that on its own, because Octo cannot tell a run that died from one that is still working.
+
+What to do depends on where the run stopped, and the terminal tells you which:
+
+| What you see                                                                                          | Section                                                   |
+|-------------------------------------------------------------------------------------------------------|-----------------------------------------------------------|
+| `octo apply` ended with an error from Terraform                                                       | [The apply failed](#the-apply-failed)                     |
+| `octo apply` printed `This apply would DESTROY`                                                       | [The apply refused](#the-apply-refused)                   |
+| `octo commit` ended with an error                                                                     | [The commit failed](#the-commit-failed)                   |
+| No error at all: the terminal closed, you pressed Ctrl-C, the machine restarted, a CI job was cancelled | [The run died](#the-run-died)                             |
+
+The examples use the [shop](/docs/getting-started/shop-stack): a region, and a receipts bucket in
+it.
+
+## The lock ID
+
+Every section needs the ID of the lock the run took, in `LOCK_ID`. If the shell that took it is
+gone, `octo lock` names it in the error it prints:
+
+```bash
+npm run --silent octo:lock
+```
+
+```text
+Error: App already locked with lock ID "d42f403d-7807-41c0-a6c7-b9ca2835ee06", held for 31s!
+```
+
+```bash
+LOCK_ID=d42f403d-7807-41c0-a6c7-b9ca2835ee06
+```
+
+If it prints an ID instead of an error, no lock was held, and you now hold a new one. Use that.
+
+## The apply failed
+
+Terragrunt applies each module's folder on its own, so one folder failing does not stop the others.
+Give the receipts bucket a name somebody else already owns, such as `test`, and the region is built
+while the bucket is refused:
+
+```text
+[receipts-module] terraform: Error: creating S3 Bucket (test): operation error S3: CreateBucket, https response error StatusCode: 409, RequestID: KG8ZEP2JMEPH61CZ, HostID: gshq34f7zJtvC9KI1vXQqweBcwUiUWOsnpBGb9DN4j3pGkpMOrDxbd6qMgmJVpfxlH6uJmAExc0=, BucketAlreadyExists: The requested bucket name is not available. The bucket namespace is shared by all users of the system. Please select a different name and try again.
+[region-module] terraform: Apply complete! Resources: 2 added, 0 changed, 0 destroyed.
+
+This apply may have built part of what you asked for. Run "octo commit --partial --terragruntDir .octo-tf --lockId d42f403d-7807-41c0-a6c7-b9ca2835ee06" to record that and release the lock, then fix what failed and run again.
+```
+
+Terraform's own record of the region's VPC and internet gateway is already saved, because Octo
+copies it into state after every Terraform command, including one that failed. What is missing is
+Octo's record.
+
+1. Record what was built, and release the lock:
+
+   ```bash
+   npm run octo:commit -- --lockId $LOCK_ID --partial
+   ```
+
+   ```text
+   NOTES
+     Partial commit: 1 resource(s) left uncommitted because their terraform outputs are missing or null: @octo/s3-storage=bucket-test. The next run plans to create them again, which terraform reconciles against its own state.
+   ```
+
+2. Fix what the error names. Here that is a `RECEIPTS_BUCKET_NAME` of your own in `octo.yaml`.
+3. Run the lifecycle again from `generate`, with a new lock. The folders that applied come back with
+   nothing to change, and the failed one runs again.
+
+## The apply refused
+
+Nothing changed: `octo apply` planned, found something it would destroy, and stopped. The lock is
+still held. Read [Destroying Infrastructure](/docs/using-octo/destroying-infrastructure) if the list
+surprised you, then either go ahead with the same lock:
+
+```bash
+npm run octo:apply -- --lockId $LOCK_ID --auto-approve
+npm run octo:commit -- --lockId $LOCK_ID
+```
+
+or release it and walk away:
+
+```bash
+npm run octo:unlock -- --lockId $LOCK_ID
+```
+
+```text
+App was unlocked, releasing lock ID "d4936e93-30a6-4849-bcf5-2c87292c7b9d".
+```
+
+## The commit failed
+
+A commit that fails has written nothing, and keeps the lock so you can run it again.
+
+```text
+Cannot commit: missing terraform outputs (partial apply?): receipts-module/bucket-test-Arn! Octo state is unchanged. Re-run with a partial commit to record what did apply.
+```
+
+That one has two causes, and the lines above it say which. If they include
+`WARN [receipts-module] Could not read terraform outputs`, the commit could not reach a folder's
+outputs, usually for want of credentials: fix that and run the same commit again. Otherwise the
+apply before it did not finish: run the same commit again with `--partial`, and carry on from step 2
+of [The apply failed](#the-apply-failed).
+
+Any other error names what stopped it: a null output from a resource that did not come up, or the
+delete action of an [external resource](/docs/building-modules/create-an-external-resource) that
+the cloud refused. Fix that, then run the same commit again with the same lock ID:
+
+```bash
+npm run octo:commit -- --lockId $LOCK_ID
+```
+
+If it cannot be made to succeed, `npm run octo:unlock -- --lockId $LOCK_ID` releases the lock and
+leaves Octo's record as it was before the run. Terraform's record was saved by the apply, so the
+next run plans against what really exists and finishes the job.
+
+## The run died
+
+A run that died holds its lock forever. You finish it through that lock rather than releasing it,
+because the apply that finishes it is what brings your infrastructure and Octo's record back
+together.
+
+1. Make sure it is dead. On your own machine, nothing from that run is still running:
+
+   ```bash
+   ps -ef | grep -E "[t]erragrunt|[t]erraform|[o]cto (apply|commit)"
+   ```
+
+   In CI, the job shows as cancelled or failed. A run that was only slow keeps its lock as valid as
+   yours, and if it wakes up after you resume it, the two of you write into the same state.
+
+2. Resume the run through its lock:
+
+   ```bash
+   LOCK_ID=$(npm run --silent octo:lock -- --lockId $LOCK_ID)
+   ```
+
+   ```text
+   App lock is resumed.
+   ```
+
+3. Generate and validate, and read the report. It is the list of what the dead run did not get to:
+
+   ```bash
+   npm run octo:generate
+   npm run octo:validate
+   ```
+
+4. Apply and commit with the same lock:
+
+   ```bash
+   npm run octo:apply -- --lockId $LOCK_ID
+   npm run octo:commit -- --lockId $LOCK_ID
+   ```
+
+On the machine the run died on, that is all. Terraform writes its record into the module folders as
+it goes, and Octo keeps a folder's record over its own copy whenever the folder's is the newer of
+the two, so everything the dead run built is known to the apply that finishes it.
+
+### When the machine is gone
+
+A run that died on a machine you no longer have took Terraform's newest record with it: a CI runner,
+a laptop that was wiped, a container that was replaced. Anything it created after Octo last saved
+that record exists in your cloud account and in no record, and the apply in step 4 tries to create
+it again. How much that is depends on where your state lives. With state kept in the repository,
+it is everything the run did, because the push that saves it is the run's last step. With
+[`RemoteStateProvider`](/docs/techniques/state-providers#remote-state), it is at most the last
+minute.
+
+An object with a unique name makes that apply fail:
+
+```text
+[receipts-module] terraform: Error: creating S3 Bucket (shop-receipts): operation error S3: CreateBucket, https response error StatusCode: 409, RequestID: Z7FRD48KSNAQYNPZ, HostID: /92xfXx2xj45KXc4IWoUXbNBDpjAgVMRqcXLWSAmpLl1g8mq5Aqq+E22eCRPkQSnfvSaohCd3B08/OnDJOT5yfgxq2JW2Z1I, BucketAlreadyOwnedByYou: Your previous request to create the named bucket succeeded and you already own it.
+```
+
+An object without one, such as a VPC, is created a second time without complaint. So find them
+before step 4, from the dead run's log. Terraform prints a line when it starts creating an object,
+and another ending in the object's ID when it has:
+
+```text
+[receipts-module] terraform: aws_s3_bucket.bucket-shop-receipts: Creation complete after 3s [id=shop-receipts]
+[region-module] terraform: aws_vpc.vpc-eu-west-1: Creation complete after 3s [id=vpc-091fcfba54591cdea]
+[region-module] terraform: aws_internet_gateway.igw-eu-west-1: Creating...
+```
+
+After step 3, every module folder holds the newest record Octo has, so an ID that appears in none
+of them belongs to an object nothing knows about. Save the dead run's log as `dead-run.log` and
+list them:
+
+```bash
+grep -h "Creation complete" dead-run.log | sed -E 's/.*\[id=([^]]+)\].*/\1/' | while read -r id; do
+  grep -rqs --include=terraform.tfstate "\"$id\"" .octo-tf || echo "unrecorded: $id"
+done
+```
+
+```text
+unrecorded: shop-receipts
+unrecorded: vpc-091fcfba54591cdea
+```
+
+That misses the last line of the log. An object the run was still creating when it died has no ID
+in the log, and may exist all the same: the internet gateway above did, unattached to anything.
+Look for each `Creating...` with no `Creation complete` after it in the AWS console, by the kind of
+object its address names.
+
+Delete everything you found, in the AWS console or with the AWS CLI, then carry on with step 4. The
+dead run created it minutes before it died, so it holds nothing you had before that run.
+
+To keep one instead, import it into Terraform's state from its module's folder, still after step 3.
+Terraform's [import documentation](https://developer.hashicorp.com/terraform/cli/commands/import)
+covers the command, and the address is the part of the log line before the colon:
+
+```bash
+cd .octo-tf/receipts-module
+terragrunt import aws_s3_bucket.bucket-shop-receipts shop-receipts
+```
+
+A folder whose Terraform reads files from your project also needs `TF_VAR_OCTO_PROJECT_ROOT` set to
+the project's root directory for that command. The next Octo command finds the folder's record
+newer than its own, keeps it, and saves it.
+
+### In CI with state in the repository
+
+The [GitHub Actions Pipeline](/docs/techniques/github-actions-pipeline) keeps the lock on the
+runner, so a runner that dies takes its lock with it, and there is nothing to resume. The next merge
+starts a fresh run on its own, and that run is the step 4 above, without the check that comes before
+it.
+
+1. Stop it from happening: in **Actions**, open **Octo Apply**, and choose **Disable workflow** from
+   its menu.
+2. On your own machine, at the tip of `main`, with credentials that can read your AWS account,
+   follow step 3 and [When the machine is gone](#when-the-machine-is-gone), using the log of the
+   job that died. Neither `generate` nor `validate` needs the lock.
+3. Enable the workflow again, and run it from the **Actions** tab with **Run workflow**. It
+   generates from `main`, applies, and pushes the state as usual.
+
+### With remote state
+
+With [`RemoteStateProvider`](/docs/techniques/state-providers#remote-state), the lock and everything
+the run saved are in the backend, so any machine can finish the run. The account that took the lock
+can resume it, and so can an administrator of your organization. The error that names the lock
+also says which machine took it and when, from the `lockContext` it was taken with.
+
+Resuming downloads what the dead run saved into your state directory, and steps 3 and 4 finish from
+there. If the run died because its session expired, supply a new session to `sessionId` and resume.
