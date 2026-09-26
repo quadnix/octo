@@ -19,7 +19,12 @@ export enum ServiceType {
   DATABASE = 'database',
 
   /**
-   * Where traffic comes in, such as a load balancer or an API gateway.
+   * A global entry point that serves what is connected behind it, such as a CDN or an API gateway.
+   */
+  GATEWAY = 'gateway',
+
+  /**
+   * Spreads traffic across servers, such as an application load balancer.
    */
   LOAD_BALANCER = 'load-balancer',
 
