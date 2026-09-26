@@ -12,13 +12,14 @@ import { AwsDynamoDBService } from './models/service/index.js';
  * @example
  * TypeScript
  * ```ts
+ * import { type Region, stub } from '@quadnix/octo';
  * import { AwsDynamoDBServiceModule } from '@quadnix/octo-aws-cdk/modules/service/aws-dynamodb-service';
  *
  * octo.loadModule(AwsDynamoDBServiceModule, 'my-table-module', {
  *   AttributeDefinitions: [{ AttributeName: 'AccountId', AttributeType: 'S' }],
  *   billingMode: { settings: {}, type: 'PAY_PER_REQUEST' },
  *   KeySchema: [{ AttributeName: 'AccountId', KeyType: 'HASH' }],
- *   region: myRegion,
+ *   region: stub<Region>('${{my-region-module.model.region}}'),
  *   TableName: 'my-table',
  * });
  * ```

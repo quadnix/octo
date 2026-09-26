@@ -14,11 +14,12 @@ import { AwsEfsFilesystem } from './models/filesystem/index.js';
  * @example
  * TypeScript
  * ```ts
+ * import { type Region, stub } from '@quadnix/octo';
  * import { AwsEfsFilesystemModule } from '@quadnix/octo-aws-cdk/modules/filesystem/aws-efs-filesystem';
  *
  * octo.loadModule(AwsEfsFilesystemModule, 'my-filesystem-module', {
  *   filesystemName: 'shared-data',
- *   region: myRegion
+ *   region: stub<Region>('${{my-region-module.model.region}}')
  * });
  * ```
  *

@@ -14,10 +14,12 @@ import { AwsSingleAzRegion } from './models/region/index.js';
  * @example
  * TypeScript
  * ```ts
+ * import { type Account, stub } from '@quadnix/octo';
  * import { AwsSingleAzRegionModule } from '@quadnix/octo-aws-cdk/modules/region/aws-single-az-region';
+ * import { AwsSingleAzRegionId } from '@quadnix/octo-aws-cdk/modules/region/aws-single-az-region/schema';
  *
  * octo.loadModule(AwsSingleAzRegionModule, 'my-region-module', {
- *   account: myAccount,
+ *   account: stub<Account>('${{my-account-module.model.account}}'),
  *   name: 'my-region',
  *   regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
  *   vpcCidrBlock: '10.0.0.0/16',

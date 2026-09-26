@@ -11,11 +11,12 @@ import { AwsDynamoDBGlobalService } from './models/service/index.js';
  * @example
  * TypeScript
  * ```ts
+ * import { type Region, type Service, stub } from '@quadnix/octo';
  * import { AwsDynamoDBGlobalServiceModule } from '@quadnix/octo-aws-cdk/modules/service/aws-dynamodb-global-service';
  *
  * octo.loadModule(AwsDynamoDBGlobalServiceModule, 'my-global-table-module', {
- *   dynamoDBService: myDynamoDBService,
- *   replicas: [{ region: myRegion, tags: { key1: 'value1' }],
+ *   dynamoDBService: stub<Service>('${{my-dynamodb-module.model.service}}'),
+ *   replicas: [{ region: stub<Region>('${{my-replica-region-module.model.region}}'), tags: { key1: 'value1' } }],
  * });
  * ```
  *

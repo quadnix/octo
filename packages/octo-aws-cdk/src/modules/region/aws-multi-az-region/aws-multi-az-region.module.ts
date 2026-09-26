@@ -14,10 +14,12 @@ import { AwsMultiAzRegion } from './models/region/index.js';
  * @example
  * TypeScript
  * ```ts
+ * import { type Account, stub } from '@quadnix/octo';
  * import { AwsMultiAzRegionModule } from '@quadnix/octo-aws-cdk/modules/region/aws-multi-az-region';
+ * import { AwsMultiAzRegionId } from '@quadnix/octo-aws-cdk/modules/region/aws-multi-az-region/schema';
  *
  * octo.loadModule(AwsMultiAzRegionModule, 'my-region-module', {
- *   account: myAccount,
+ *   account: stub<Account>('${{my-account-module.model.account}}'),
  *   name: 'my-region',
  *   regionIds: [AwsMultiAzRegionId.AWS_US_EAST_1A, AwsMultiAzRegionId.AWS_US_EAST_1B],
  *   vpcCidrBlock: '10.0.0.0/16',

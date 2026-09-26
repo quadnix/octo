@@ -13,11 +13,12 @@ import { AwsS3StorageService } from './models/service/index.js';
  * @example
  * TypeScript
  * ```ts
+ * import { type Region, stub } from '@quadnix/octo';
  * import { AwsS3StorageServiceModule } from '@quadnix/octo-aws-cdk/modules/service/aws-s3-storage-service';
  *
  * octo.loadModule(AwsS3StorageServiceModule, 'my-storage-module', {
  *   bucketName: 'my-app-storage',
- *   region: myRegion,
+ *   region: stub<Region>('${{my-region-module.model.region}}'),
  *   remoteDirectoryPaths: ['uploads', 'documents', 'images']
  * });
  * ```

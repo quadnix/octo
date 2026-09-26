@@ -12,10 +12,11 @@ import { AwsLocalstackAccount } from './models/account/index.js';
  * @example
  * TypeScript
  * ```ts
+ * import { type App, stub } from '@quadnix/octo';
  * import { AwsLocalstackAccountModule } from '@quadnix/octo-aws-cdk/modules/account/aws-localstack-account';
  *
  * octo.loadModule(AwsLocalstackAccountModule, 'my-account-module', {
- *   app: myApp,
+ *   app: stub<App>('${{my-app-module.model.app}}'),
  *   endpoints: { s3: 'http://localhost:4566', sts: 'http://localhost:4566' },
  * });
  * ```

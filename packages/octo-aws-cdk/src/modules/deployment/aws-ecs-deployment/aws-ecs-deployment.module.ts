@@ -12,6 +12,7 @@ import { AwsEcsDeployment } from './models/deployment/index.js';
  * @example
  * TypeScript
  * ```ts
+ * import { type Server, stub } from '@quadnix/octo';
  * import { AwsEcsDeploymentModule } from '@quadnix/octo-aws-cdk/modules/deployment/aws-ecs-deployment';
  *
  * octo.loadModule(AwsEcsDeploymentModule, 'my-deployment-module', {
@@ -25,7 +26,7 @@ import { AwsEcsDeployment } from './models/deployment/index.js';
  *     memory: 512,
  *   },
  *   deploymentTag: 'v1.0.0',
- *   server: myServer,
+ *   server: stub<Server>('${{my-server-module.model.server}}'),
  * });
  * ```
  *

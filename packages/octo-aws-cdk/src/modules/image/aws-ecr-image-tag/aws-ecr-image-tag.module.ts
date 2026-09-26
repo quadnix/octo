@@ -17,12 +17,13 @@ import { AwsEcrImageTagOverlay } from './overlays/aws-ecr-image-tag/index.js';
  * @example
  * TypeScript
  * ```ts
+ * import { type Image, stub } from '@quadnix/octo';
  * import { AwsEcrImageTagModule } from '@quadnix/octo-aws-cdk/modules/image/aws-ecr-image-tag';
  *
  * octo.loadModule(AwsEcrImageTagModule, 'my-image-tag-module', {
  *   dockerfileDirectory: 'images/nginx',
  *   dockerfileName: 'Dockerfile',
- *   image: myImage,
+ *   image: stub<Image>('${{my-image-module.model.image}}'),
  *   imageTag: '0.0.1'
  * });
  * ```

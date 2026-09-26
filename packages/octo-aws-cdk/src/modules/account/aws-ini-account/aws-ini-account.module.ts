@@ -12,11 +12,12 @@ import { AwsIniAccount } from './models/account/index.js';
  * @example
  * TypeScript
  * ```ts
+ * import { type App, stub } from '@quadnix/octo';
  * import { AwsIniAccountModule } from '@quadnix/octo-aws-cdk/modules/account/aws-ini-account';
  *
  * octo.loadModule(AwsIniAccountModule, 'my-account-module', {
  *   accountId: '123456789012',
- *   app: myApp,
+ *   app: stub<App>('${{my-app-module.model.app}}'),
  *   iniProfile: 'development' // Optional, defaults to 'default'
  * });
  * ```

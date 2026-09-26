@@ -18,16 +18,18 @@ import { AwsEcsServerS3AccessOverlay } from './overlays/aws-ecs-server-s3-access
  * @example
  * TypeScript
  * ```ts
+ * import { type Account, type Service, stub } from '@quadnix/octo';
  * import { AwsEcsServerModule } from '@quadnix/octo-aws-cdk/modules/server/aws-ecs-server';
+ * import { AwsEcsServerS3AccessDirectoryPermission } from '@quadnix/octo-aws-cdk/modules/server/aws-ecs-server/schema';
  *
  * octo.loadModule(AwsEcsServerModule, 'my-server-module', {
- *   account: myAccount,
+ *   account: stub<Account>('${{my-account-module.model.account}}'),
  *   s3: [{
  *     directories: [{
- *       access: S3StorageAccess.READ_WRITE,
+ *       access: AwsEcsServerS3AccessDirectoryPermission.READ_WRITE,
  *       remoteDirectoryPath: 'uploads',
  *     }],
- *     service: myS3Service,
+ *     service: stub<Service>('${{my-storage-module.model.service}}'),
  *   }],
  *   securityGroupRules: [{
  *     CidrBlock: '0.0.0.0/0',

@@ -24,6 +24,7 @@ import { AwsEcsAlbServiceOverlay } from './overlays/aws-ecs-alb-service/index.js
  * @example
  * TypeScript
  * ```ts
+ * import { type Execution, type Region, type Subnet, stub } from '@quadnix/octo';
  * import { AwsEcsAlbServiceModule } from '@quadnix/octo-aws-cdk/modules/service/aws-ecs-alb-service';
  *
  * octo.loadModule(AwsEcsAlbServiceModule, 'my-alb-module', {
@@ -31,22 +32,32 @@ import { AwsEcsAlbServiceOverlay } from './overlays/aws-ecs-alb-service/index.js
  *   listeners: [{
  *     DefaultActions: [{
  *       action: {
- *         targetGroups: [{ targetGroupName: 'my-target-group' }]
+ *         TargetGroups: [{ targetGroupName: 'my-target-group', Weight: 100 }],
  *       },
  *       actionType: 'forward',
  *     }],
- *     Port: 443,
- *     rules: []
+ *     Port: 80,
+ *     rules: [],
  *   }],
- *   region: myRegion,
+ *   region: stub<Region>('${{my-region-module.model.region}}'),
  *   subnets: [
- *     { subnetCidrBlock: '10.0.1.0/24', subnetName: 'public-subnet-1' },
+ *     stub<Subnet>('${{my-public-subnet-1-module.model.subnet}}'),
+ *     stub<Subnet>('${{my-public-subnet-2-module.model.subnet}}'),
  *   ],
  *   targets: [{
  *     containerName: 'web',
  *     containerPort: 3000,
- *     execution: myExecution,
- *     healthCheck: { ... },
+ *     execution: stub<Execution>('${{my-execution-module.model.execution}}'),
+ *     healthCheck: {
+ *       HealthCheckIntervalSeconds: 30,
+ *       HealthCheckPath: '/health',
+ *       HealthCheckPort: 3000,
+ *       HealthCheckProtocol: 'HTTP',
+ *       HealthCheckTimeoutSeconds: 5,
+ *       HealthyThresholdCount: 3,
+ *       Matcher: { HttpCode: 200 },
+ *       UnhealthyThresholdCount: 3,
+ *     },
  *     Name: 'my-target-group',
  *   }]
  * });

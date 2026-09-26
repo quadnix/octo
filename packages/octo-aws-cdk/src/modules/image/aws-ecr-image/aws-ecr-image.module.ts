@@ -13,12 +13,16 @@ import { AwsEcrImage } from './models/image/index.js';
  * @example
  * TypeScript
  * ```ts
+ * import { type Region, stub } from '@quadnix/octo';
  * import { AwsEcrImageModule } from '@quadnix/octo-aws-cdk/modules/image/aws-ecr-image';
  *
  * octo.loadModule(AwsEcrImageModule, 'my-image-module', {
  *   imageFamily: 'quadnix',
  *   imageName: 'nginx',
- *   regions: [myRegion1, myRegion2]
+ *   regions: [
+ *     stub<Region>('${{my-region-1-module.model.region}}'),
+ *     stub<Region>('${{my-region-2-module.model.region}}'),
+ *   ],
  * });
  * ```
  *

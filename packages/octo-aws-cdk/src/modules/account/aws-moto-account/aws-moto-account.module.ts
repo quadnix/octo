@@ -11,10 +11,11 @@ import { AwsMotoAccount } from './models/account/index.js';
  * @example
  * TypeScript
  * ```ts
+ * import { type App, stub } from '@quadnix/octo';
  * import { AwsMotoAccountModule } from '@quadnix/octo-aws-cdk/modules/account/aws-moto-account';
  *
  * octo.loadModule(AwsMotoAccountModule, 'my-account-module', {
- *   app: myApp,
+ *   app: stub<App>('${{my-app-module.model.app}}'),
  *   endpoints: { s3: 'http://localhost:5000', sts: 'http://localhost:5000' },
  * });
  * ```

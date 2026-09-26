@@ -31,9 +31,10 @@ import { AwsEcsExecutionServerSecurityGroupOverlay } from './overlays/aws-ecs-ex
  * @example
  * TypeScript
  * ```ts
- * import { AwsEcsExecutionModule } from '@quadnix/octo-aws-cdk/modules/aws-ecs-execution';
+ * import { type Deployment, type Environment, type Filesystem, type Subnet, stub } from '@quadnix/octo';
+ * import { AwsEcsExecutionModule } from '@quadnix/octo-aws-cdk/modules/execution/aws-ecs-execution';
  *
- * octo.loadModule(AwsExecutionModule, 'my-execution-module', {
+ * octo.loadModule(AwsEcsExecutionModule, 'my-execution-module', {
  *   deployments: {
  *     main: {
  *       containerProperties: {
@@ -45,17 +46,17 @@ import { AwsEcsExecutionServerSecurityGroupOverlay } from './overlays/aws-ecs-ex
  *         },
  *         memory: 1024,
  *       },
- *       deployment: myMainDeployment,
+ *       deployment: stub<Deployment>('${{my-deployment-module.model.deployment}}'),
  *     },
  *     sidecars: []
  *   },
  *   desiredCount: 2,
- *   environment: myEnvironment,
+ *   environment: stub<Environment>('${{my-environment-module.model.environment}}'),
  *   environmentVariables: {
  *     LOG_LEVEL: 'info'
  *   },
  *   executionId: 'my-app-execution',
- *   filesystems: [myFilesystem],
+ *   filesystems: [stub<Filesystem>('${{my-filesystem-module.model.filesystem}}')],
  *   securityGroupRules: [{
  *     CidrBlock: '0.0.0.0/0',
  *     Egress: false,
@@ -63,7 +64,7 @@ import { AwsEcsExecutionServerSecurityGroupOverlay } from './overlays/aws-ecs-ex
  *     IpProtocol: 'tcp',
  *     ToPort: 3000,
  *   }],
- *   subnet: mySubnet,
+ *   subnet: stub<Subnet>('${{my-subnet-module.model.subnet}}'),
  * });
  * ```
  *

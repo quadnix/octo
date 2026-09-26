@@ -12,22 +12,21 @@ import { AwsS3StaticWebsiteService } from './models/service/index.js';
  * @example
  * TypeScript
  * ```ts
+ * import { type Account, stub } from '@quadnix/octo';
  * import {
  *   AwsS3StaticWebsiteServiceModule
  * } from '@quadnix/octo-aws-cdk/modules/service/aws-s3-static-website-service';
  *
  * octo.loadModule(AwsS3StaticWebsiteServiceModule, 'my-website-module', {
- *   account: myAccount,
+ *   account: stub<Account>('${{my-account-module.model.account}}'),
  *   awsRegionId: 'us-east-1',
  *   bucketName: 'my-static-website',
  *   cloudFront: {
  *     aliases: ['www.example.com'],
- *     certificateArn: 'arn:aws:acm:us-east-1:123456789012:certificate/<id>',
+ *     certificateArn: 'arn:aws:acm:us-east-1:123456789012:certificate/0a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d',
  *   },
- *   directoryPath: join(__dirname, 'website'),
+ *   directoryPath: 'website',
  *   filter: (filePath) => !filePath.includes('.DS_Store'),
- *   subDirectoryOrFilePath: 'public',
- *   transform: (filePath) => `public/${filePath}`,
  * });
  * ```
  *

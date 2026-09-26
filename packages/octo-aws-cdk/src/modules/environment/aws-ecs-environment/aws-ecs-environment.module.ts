@@ -13,6 +13,7 @@ import { AwsEcsEnvironment } from './models/environment/index.js';
  * @example
  * TypeScript
  * ```ts
+ * import { type Region, stub } from '@quadnix/octo';
  * import { AwsEcsEnvironmentModule } from '@quadnix/octo-aws-cdk/modules/environment/aws-ecs-environment';
  *
  * octo.loadModule(AwsEcsEnvironmentModule, 'my-environment-module', {
@@ -21,7 +22,7 @@ import { AwsEcsEnvironment } from './models/environment/index.js';
  *     NODE_ENV: 'production',
  *     API_URL: 'https://api.example.com'
  *   },
- *   region: myRegion,
+ *   region: stub<Region>('${{my-region-module.model.region}}'),
  * });
  * ```
  *

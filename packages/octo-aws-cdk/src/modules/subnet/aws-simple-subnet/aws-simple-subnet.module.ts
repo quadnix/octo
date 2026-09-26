@@ -17,11 +17,12 @@ import { AwsSimpleSubnetLocalFilesystemMountOverlay } from './overlays/aws-simpl
  * @example
  * TypeScript
  * ```ts
+ * import { type Filesystem, type Region, type Subnet, SubnetType, stub } from '@quadnix/octo';
  * import { AwsSimpleSubnetModule } from '@quadnix/octo-aws-cdk/modules/subnet/aws-simple-subnet';
  *
  * octo.loadModule(AwsSimpleSubnetModule, 'my-subnet-module', {
- *   localFilesystems: [myEfsFilesystem],
- *   region: myRegion,
+ *   localFilesystems: [stub<Filesystem>('${{my-filesystem-module.model.filesystem}}')],
+ *   region: stub<Region>('${{my-region-module.model.region}}'),
  *   subnetAvailabilityZone: 'us-east-1a',
  *   subnetCidrBlock: '10.0.1.0/24',
  *   subnetName: 'private-subnet-1',
@@ -32,7 +33,7 @@ import { AwsSimpleSubnetLocalFilesystemMountOverlay } from './overlays/aws-simpl
  *   },
  *   subnetSiblings: [{
  *     attachToNatGateway: true,
- *     subnet: mySiblingSubnet,
+ *     subnet: stub<Subnet>('${{my-sibling-subnet-module.model.subnet}}'),
  *   }],
  * });
  * ```

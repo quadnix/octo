@@ -13,11 +13,12 @@ import { AwsCredentialsAccount } from './models/account/index.js';
  * @example
  * TypeScript
  * ```ts
+ * import { type App, stub } from '@quadnix/octo';
  * import { AwsCredentialsAccountModule } from '@quadnix/octo-aws-cdk/modules/account/aws-credentials-account';
  *
  * octo.loadModule(AwsCredentialsAccountModule, 'my-account-module', {
  *   accountId: '123456789012',
- *   app: myApp,
+ *   app: stub<App>('${{my-app-module.model.app}}'),
  *   credentials: {
  *     accessKeyId: 'EXAMPLE_KEY',
  *     secretAccessKey: 'EXAMPLE_SECRET'
