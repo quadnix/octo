@@ -7,7 +7,6 @@ import { Image } from '../image/image.model.js';
 import { AModel } from '../model.abstract.js';
 import { Pipeline } from '../pipeline/pipeline.model.js';
 import { Server } from '../server/server.model.js';
-import { Service } from '../service/service.model.js';
 import { AppSchema } from './app.schema.js';
 
 /**
@@ -105,21 +104,6 @@ export class App extends AModel<AppSchema, App> {
       throw new ModelError('Server already exists!', this);
     }
     this.addChild('name', server, 'serverKey');
-  }
-
-  /**
-   * To add a {@link Service}.
-   */
-  addService(service: Service): void {
-    const childrenDependencies = this.getChildren('service');
-    if (!childrenDependencies['service']) childrenDependencies['service'] = [];
-
-    // Check for duplicates.
-    const services = childrenDependencies['service'].map((d) => d.to);
-    if (services.find((s: Service) => s.serviceId === service.serviceId)) {
-      throw new ModelError('Service already exists!', this);
-    }
-    this.addChild('name', service, 'serviceId');
   }
 
   /**

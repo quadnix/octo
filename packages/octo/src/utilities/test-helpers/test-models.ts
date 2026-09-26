@@ -22,7 +22,7 @@ import { RegionSchema } from '../../models/region/region.schema.js';
 import { Server } from '../../models/server/server.model.js';
 import { ServerSchema } from '../../models/server/server.schema.js';
 import { Service } from '../../models/service/service.model.js';
-import { ServiceSchema } from '../../models/service/service.schema.js';
+import { ServiceSchema, ServiceType } from '../../models/service/service.schema.js';
 import { Subnet } from '../../models/subnet/subnet.model.js';
 import { SubnetSchema } from '../../models/subnet/subnet.schema.js';
 import { ModelSerializationService } from '../../services/serialization/model/model-serialization.service.js';
@@ -256,10 +256,7 @@ export function create({
     const [entry, serviceProperties] = serviceEntry;
     const [id, i] = splitEntry(entry, index);
     const TestServiceClass = createTestServiceModel(id, serviceProperties || {});
-    const service = new TestServiceClass();
-
-    const app = result.app[i];
-    app.addService(service);
+    const service = new TestServiceClass([result.app[i]], ServiceType.OTHER, id);
 
     getSchemaInstance(ServiceSchema, service.synth());
     result.service[index] = service;
@@ -284,13 +281,16 @@ export function create({
 /**
  * @internal
  */
-function createTestServiceModel(serviceId: string, properties: Record<string, unknown>): Constructable<Service> {
+function createTestServiceModel(
+  serviceId: string,
+  properties: Record<string, unknown>,
+): new (parents: UnknownModel[], type: ServiceType, label: string) => Service {
   const TestServiceClass = class extends Service {
     /**
      * @internal
      */
-    constructor() {
-      super(serviceId);
+    constructor(parents: UnknownModel[], type: ServiceType, label: string) {
+      super(serviceId, parents, type, label);
 
       for (const key of Object.keys(properties)) {
         this[key] = properties[key];
@@ -303,12 +303,16 @@ function createTestServiceModel(serviceId: string, properties: Record<string, un
     override synth(): ServiceSchema {
       return {
         ...properties,
-        serviceId: this.serviceId,
+        ...super.synth(),
       };
     }
   };
-  TestServiceClass['unSynth'] = async (): Promise<Service> => {
-    return new TestServiceClass();
+  TestServiceClass['unSynth'] = async (
+    service: ServiceSchema,
+    deReferenceContext: (context: string) => Promise<UnknownModel>,
+  ): Promise<Service> => {
+    const parents = await Promise.all(service.parents.map((p) => deReferenceContext(p.context)));
+    return new TestServiceClass(parents, service.type, service.label);
   };
   return TestServiceClass;
 }

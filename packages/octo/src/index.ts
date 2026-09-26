@@ -41,7 +41,7 @@ export { RegionSchema } from './models/region/region.schema.js';
 export { Server } from './models/server/server.model.js';
 export { ServerSchema } from './models/server/server.schema.js';
 export { Service } from './models/service/service.model.js';
-export { ServiceSchema } from './models/service/service.schema.js';
+export { ServiceSchema, ServiceType } from './models/service/service.schema.js';
 export { Subnet } from './models/subnet/subnet.model.js';
 export { SubnetSchema, SubnetType } from './models/subnet/subnet.schema.js';
 
