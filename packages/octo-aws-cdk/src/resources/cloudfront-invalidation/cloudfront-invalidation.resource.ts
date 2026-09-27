@@ -1,4 +1,5 @@
 import { AResource, Diff, DiffAction, DiffUtility, type MatchingResource, Resource } from '@quadnix/octo';
+import type { S3StaticContentSchema } from '../s3-static-content/index.schema.js';
 import { CloudFrontInvalidationSchema, type InvalidationDistributionSchema } from './index.schema.js';
 
 /**
@@ -13,11 +14,14 @@ import { CloudFrontInvalidationSchema, type InvalidationDistributionSchema } fro
  * sees as replacing the shell around it: the delete half has nothing to undo, and the add half
  * issues a fresh invalidation.
  *
+ * Its second parent is the bucket whose files it drops. It reads nothing from it; the reference is
+ * what makes terraform issue the invalidation after the files are uploaded.
+ *
  * @internal
  */
 @Resource<CloudFrontInvalidation>('@octo', 'cloudfront-invalidation', CloudFrontInvalidationSchema)
 export class CloudFrontInvalidation extends AResource<CloudFrontInvalidationSchema, CloudFrontInvalidation> {
-  declare parents: [MatchingResource<InvalidationDistributionSchema>];
+  declare parents: [MatchingResource<InvalidationDistributionSchema>, MatchingResource<S3StaticContentSchema>];
   declare properties: CloudFrontInvalidationSchema['properties'];
   declare response: CloudFrontInvalidationSchema['response'];
 
@@ -27,7 +31,7 @@ export class CloudFrontInvalidation extends AResource<CloudFrontInvalidationSche
   constructor(
     resourceId: string,
     properties: CloudFrontInvalidationSchema['properties'],
-    parents: [MatchingResource<InvalidationDistributionSchema>],
+    parents: [MatchingResource<InvalidationDistributionSchema>, MatchingResource<S3StaticContentSchema>],
   ) {
     super(resourceId, properties, parents);
   }

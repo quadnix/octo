@@ -42,12 +42,15 @@ export class InvalidationDistributionSchema extends BaseResourceSchema {
  *
  * @hideconstructor
  *
- * @overrideProperty parents - The distribution whose edge caches are dropped.
+ * @overrideProperty parents - The distribution whose edge caches are dropped, and the bucket whose
+ * files they hold, so the invalidation runs after the upload.
  * ```mermaid
  * graph TD;
  *   cloudfront_distribution((CloudFront<br>Distribution)) --> cloudfront_invalidation((CloudFront<br>Invalidation))
+ *   s3_static_content((S3<br>Static<br>Content)) --> cloudfront_invalidation
  * ```
- * @overrideProperty resourceId - The resource id is of format `cloudfront-invalidation-<distribution-name>`.
+ * @overrideProperty resourceId - The resource id is of format
+ * `cloudfront-invalidation-<distribution-name>-<bucket-name>`.
  */
 export class CloudFrontInvalidationSchema extends BaseResourceSchema {
   /**
