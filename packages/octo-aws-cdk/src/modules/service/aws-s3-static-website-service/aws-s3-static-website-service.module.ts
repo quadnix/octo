@@ -1,4 +1,5 @@
-import { AModule, type App, Module, ModuleError } from '@quadnix/octo';
+import { AModule, type Account, Module } from '@quadnix/octo';
+import { AwsServerlessRegionAnchorSchema } from '../../../anchors/aws-region/aws-serverless-region.anchor.schema.js';
 import { AwsS3StaticWebsiteServiceModuleSchema } from './index.schema.js';
 import { AwsS3StaticWebsiteService } from './models/service/index.js';
 
@@ -9,31 +10,28 @@ import { AwsS3StaticWebsiteService } from './models/service/index.js';
  * filtering, and transformation capabilities.
  * It manages the deployment of static websites from local directories to S3.
  *
+ * The bucket is public and served over plain HTTP on its S3 website endpoint. It lives in a region
+ * created by `AwsServerlessRegionModule`. To serve files through CloudFront instead, use
+ * `AwsS3StorageServiceModule`, whose bucket is closed and fronted by `AwsCloudFrontServiceModule`.
+ *
  * @example
  * TypeScript
  * ```ts
- * import { type Account, stub } from '@quadnix/octo';
+ * import { type Region, stub } from '@quadnix/octo';
  * import {
  *   AwsS3StaticWebsiteServiceModule
  * } from '@quadnix/octo-aws-cdk/modules/service/aws-s3-static-website-service';
  *
  * octo.loadModule(AwsS3StaticWebsiteServiceModule, 'my-website-module', {
- *   account: stub<Account>('${{my-account-module.model.account}}'),
- *   awsRegionId: 'us-east-1',
  *   bucketName: 'my-static-website',
- *   cloudFront: {
- *     aliases: ['www.example.com'],
- *     certificateArn: 'arn:aws:acm:us-east-1:123456789012:certificate/0a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d',
- *   },
  *   directoryPath: 'website',
  *   filter: (filePath) => !filePath.includes('.DS_Store'),
+ *   region: stub<Region>('${{my-region-module.model.region}}'),
  * });
  * ```
  *
  * @group Modules/Service/AwsS3StaticWebsiteService
  *
- * @reference Resources {@link CloudFrontDistributionSchema}
- * @reference Resources {@link CloudFrontInvalidationSchema}
  * @reference Resources {@link S3WebsiteSchema}
  *
  * @see {@link AwsS3StaticWebsiteServiceModuleSchema} for the input schema.
@@ -49,16 +47,8 @@ export class AwsS3StaticWebsiteServiceModule extends AModule<
    * Creates the bucket service, and registers the local directory whose files it serves.
    */
   async onInit(inputs: AwsS3StaticWebsiteServiceModuleSchema): Promise<AwsS3StaticWebsiteService> {
-    const { app } = await this.registerMetadata(inputs);
-
-    // Validate the distribution can serve the domains it answers on.
-    if (inputs.cloudFront?.aliases?.length && !inputs.cloudFront.certificateArn) {
-      throw new ModuleError('A CloudFront certificate is required to serve an alias!', this.constructor.name);
-    }
-
     // Create a new s3-website service.
-    const s3StaticWebsiteService = new AwsS3StaticWebsiteService(inputs.bucketName);
-    app.addService(s3StaticWebsiteService);
+    const s3StaticWebsiteService = new AwsS3StaticWebsiteService(inputs.bucketName, inputs.region);
 
     // Add website source.
     await s3StaticWebsiteService.addSource(
@@ -72,18 +62,23 @@ export class AwsS3StaticWebsiteServiceModule extends AModule<
   }
 
   /**
-   * Resolves the app, account, and region this bucket is created in.
+   * Resolves the account and region this bucket is created in.
    */
   override async registerMetadata(
     inputs: AwsS3StaticWebsiteServiceModuleSchema,
-  ): Promise<{ app: App; awsAccountId: string; awsRegionId: string }> {
-    const account = inputs.account;
-    const app = account.getParents()['app'][0].to as App;
+  ): Promise<{ awsAccountId: string; awsRegionId: string }> {
+    const region = inputs.region;
+    const account = region.getParents()['account'][0].to as Account;
+
+    // Get AWS Region ID.
+    const [matchingAnchor] = await region.getAnchorsMatchingSchema(AwsServerlessRegionAnchorSchema, [], {
+      searchBoundaryMembers: false,
+    });
+    const awsRegionId = matchingAnchor.getSchemaInstance().properties.awsRegionId;
 
     return {
-      app,
       awsAccountId: account.accountId,
-      awsRegionId: inputs.awsRegionId,
+      awsRegionId,
     };
   }
 }

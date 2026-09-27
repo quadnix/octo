@@ -1,4 +1,3 @@
-import { createHash } from 'crypto';
 import {
   Action,
   type ActionOutputs,
@@ -9,10 +8,10 @@ import {
   type IModelAction,
   hasNodeName,
 } from '@quadnix/octo';
-import type { CloudFrontInvalidation } from '../../../../../../resources/cloudfront-invalidation/index.js';
 import type { S3Website } from '../../../../../../resources/s3-website/index.js';
+import type { IManifest } from '../../../../../../utilities/s3-file-source/s3-file-source.utility.js';
 import type { AwsS3StaticWebsiteServiceModule } from '../../../aws-s3-static-website-service.module.js';
-import { AwsS3StaticWebsiteService, type IManifest } from '../aws-s3-static-website-service.model.js';
+import { AwsS3StaticWebsiteService } from '../aws-s3-static-website-service.model.js';
 
 /**
  * @internal
@@ -48,26 +47,6 @@ export class UpdateAwsS3StaticWebsiteServiceSourcePathsModelAction
     s3Website.updateManifest(diff.value);
 
     actionOutputs[s3Website.resourceId] = s3Website;
-
-    // What the distribution is serving has moved, so the edges have to be told. The version is a
-    // digest over the manifest rather than the manifest itself: it only ever has to differ from the
-    // last one, and an invalidation that named every file would be billed per path.
-    const cloudFrontInvalidation = actionInputs.resources[`cloudfront-invalidation-${sanitizedBucketName}`] as
-      | CloudFrontInvalidation
-      | undefined;
-    if (cloudFrontInvalidation) {
-      const manifestDigest = createHash('sha1')
-        .update(
-          Object.keys(diff.value)
-            .sort()
-            .map((remotePath) => `${remotePath}:${diff.value[remotePath].digest}`)
-            .join('\n'),
-        )
-        .digest('hex');
-      cloudFrontInvalidation.properties.contentVersion = manifestDigest;
-
-      actionOutputs[cloudFrontInvalidation.resourceId] = cloudFrontInvalidation;
-    }
 
     return actionOutputs;
   }

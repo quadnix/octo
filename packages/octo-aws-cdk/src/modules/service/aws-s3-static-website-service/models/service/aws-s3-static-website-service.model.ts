@@ -1,10 +1,21 @@
-import { lstat, readdir } from 'fs/promises';
-import { join, parse } from 'path';
-import { Diff, DiffAction, Model, ModelError, ProjectUtility, Service, Validate } from '@quadnix/octo';
-import { FileUtility } from '../../../../../utilities/file/file.utility.js';
+import {
+  type AModel,
+  Diff,
+  DiffAction,
+  Model,
+  ModelError,
+  type Region,
+  Service,
+  ServiceType,
+  Validate,
+} from '@quadnix/octo';
+import {
+  type IManifest,
+  type IS3FileExcludePath,
+  type IS3FileSourcePath,
+  S3FileSourceUtility,
+} from '../../../../../utilities/s3-file-source/s3-file-source.utility.js';
 import { AwsS3StaticWebsiteServiceSchema } from './aws-s3-static-website-service.schema.js';
-
-export type IManifest = { [key: string]: { algorithm: 'sha1'; digest: string | 'deleted'; filePath: string } };
 
 /**
  * @internal
@@ -14,20 +25,15 @@ export class AwsS3StaticWebsiteService extends Service {
   @Validate({ options: { maxLength: 128, minLength: 2, regex: /^[a-zA-Z0-9][\w.-]*[a-zA-Z0-9]$/ } })
   readonly bucketName: string;
 
-  readonly excludePaths: { directoryPath: string; subDirectoryOrFilePath: string }[] = [];
+  readonly excludePaths: IS3FileExcludePath[] = [];
 
-  readonly sourcePaths: {
-    directoryPath: string;
-    isDirectory: boolean;
-    remotePath: string;
-    subDirectoryOrFilePath: string;
-  }[] = [];
+  readonly sourcePaths: IS3FileSourcePath[] = [];
 
   /**
    * @internal
    */
-  constructor(bucketName: AwsS3StaticWebsiteServiceSchema['bucketName']) {
-    super(`${bucketName}-s3-static-website`);
+  constructor(bucketName: AwsS3StaticWebsiteServiceSchema['bucketName'], region: Region) {
+    super(`${bucketName}-s3-static-website`, [region], ServiceType.STORAGE, 's3-static-website');
 
     this.bucketName = bucketName;
   }
@@ -35,8 +41,12 @@ export class AwsS3StaticWebsiteService extends Service {
   /**
    * @internal
    */
-  static override async unSynth(service: AwsS3StaticWebsiteServiceSchema): Promise<AwsS3StaticWebsiteService> {
-    return new AwsS3StaticWebsiteService(service.bucketName);
+  static override async unSynth(
+    service: AwsS3StaticWebsiteServiceSchema,
+    deReferenceContext: (context: string) => Promise<AModel<any, any>>,
+  ): Promise<AwsS3StaticWebsiteService> {
+    const region = (await deReferenceContext(service.parents[0].context)) as Region;
+    return new AwsS3StaticWebsiteService(service.bucketName, region);
   }
 
   /**
@@ -48,58 +58,14 @@ export class AwsS3StaticWebsiteService extends Service {
     filter?: (filePath: string) => boolean,
     transform?: (filePath: string) => string,
   ): Promise<void> {
-    // Against the project root rather than the working directory. A module composes the graph in
-    // every mode, including the `octo run-action` callback terraform makes mid-apply, and terraform
-    // makes that call from a terragrunt cache directory.
-    directoryPath = ProjectUtility.resolveFromProjectRoot(directoryPath);
-    if (!subDirectoryOrFilePath) {
-      subDirectoryOrFilePath = '';
-    }
-
-    // Remove leading slashes.
-    subDirectoryOrFilePath = subDirectoryOrFilePath.replace(/^\/+/g, '');
-
-    // Ensure subDirectoryOrFilePath exists, and is readable.
-    const relativeSubDirectoryOrFilePath = join(directoryPath, subDirectoryOrFilePath);
-    const stats = await lstat(relativeSubDirectoryOrFilePath);
-
-    if (stats.isFile()) {
-      if (!subDirectoryOrFilePath) {
-        const { base, dir } = parse(directoryPath);
-        directoryPath = dir;
-        subDirectoryOrFilePath = base;
-      }
-
-      const shouldInclude = filter ? filter(subDirectoryOrFilePath) : true;
-      if (shouldInclude) {
-        this.sourcePaths.push({
-          directoryPath,
-          isDirectory: false,
-          remotePath: transform ? transform(subDirectoryOrFilePath) : subDirectoryOrFilePath,
-          subDirectoryOrFilePath,
-        });
-      }
-    } else {
-      this.sourcePaths.push({
-        directoryPath,
-        isDirectory: true,
-        remotePath: transform ? transform(subDirectoryOrFilePath) : subDirectoryOrFilePath,
-        subDirectoryOrFilePath,
-      });
-
-      const filePaths = await readdir(relativeSubDirectoryOrFilePath, { recursive: true });
-      for (let filePath of filePaths) {
-        filePath = join(subDirectoryOrFilePath, filePath);
-
-        const shouldInclude = filter ? filter(filePath) : true;
-        if (!shouldInclude) {
-          this.excludePaths.push({
-            directoryPath,
-            subDirectoryOrFilePath: filePath,
-          });
-        }
-      }
-    }
+    await S3FileSourceUtility.addSource(
+      this.sourcePaths,
+      this.excludePaths,
+      directoryPath,
+      subDirectoryOrFilePath,
+      filter,
+      transform,
+    );
   }
 
   /**
@@ -107,7 +73,7 @@ export class AwsS3StaticWebsiteService extends Service {
    */
   override async diffProperties(): Promise<Diff[]> {
     // Generate new manifest.
-    const newManifestData: IManifest = await this.generateSourceManifest();
+    const newManifestData: IManifest = await S3FileSourceUtility.generateManifest(this.sourcePaths, this.excludePaths);
 
     // Ensure index.html exists.
     if (this.sourcePaths.length > 0 && !(newManifestData['error.html'] || newManifestData['index.html'])) {
@@ -131,42 +97,8 @@ export class AwsS3StaticWebsiteService extends Service {
    */
   override synth(): AwsS3StaticWebsiteServiceSchema {
     return {
+      ...super.synth(),
       bucketName: this.bucketName,
-      serviceId: this.serviceId,
     };
-  }
-
-  /**
-   * @internal
-   */
-  private async generateSourceManifest(): Promise<IManifest> {
-    const manifest: IManifest = {};
-    const sourcePaths = [...this.sourcePaths];
-
-    for (const sourcePath of sourcePaths) {
-      if (!sourcePath.isDirectory) {
-        const filePath = join(sourcePath.directoryPath, sourcePath.subDirectoryOrFilePath);
-        const digest = await FileUtility.hash(filePath);
-        manifest[sourcePath.remotePath] = { algorithm: 'sha1', digest, filePath };
-      } else {
-        const directoryPath = join(sourcePath.directoryPath, sourcePath.subDirectoryOrFilePath);
-        const directoryFilePaths = await readdir(directoryPath, { recursive: true });
-        for (const directoryFilePath of directoryFilePaths) {
-          const filePath = join(directoryPath, directoryFilePath);
-          const stats = await lstat(filePath);
-          if (stats.isDirectory()) {
-            continue;
-          }
-
-          if (this.excludePaths.findIndex((p) => join(p.directoryPath, p.subDirectoryOrFilePath) === filePath) === -1) {
-            const remotePath = join(sourcePath.remotePath, directoryFilePath);
-            const digest = await FileUtility.hash(filePath);
-            manifest[remotePath] = { algorithm: 'sha1', digest, filePath };
-          }
-        }
-      }
-    }
-
-    return manifest;
   }
 }
