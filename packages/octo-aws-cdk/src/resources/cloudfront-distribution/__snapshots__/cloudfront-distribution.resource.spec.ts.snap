@@ -158,11 +158,6 @@ exports[`CloudFrontDistribution UT toHCL() should render the whole surface 1`] =
       "enabled": true,
       "http_version": "http2and3",
       "is_ipv6_enabled": true,
-      "logging_config": {
-        "bucket": "logs.s3.amazonaws.com",
-        "include_cookies": false,
-        "prefix": "cloudfront/",
-      },
       "ordered_cache_behavior": [
         {
           "allowed_methods": [
@@ -281,7 +276,6 @@ exports[`CloudFrontDistribution UT toHCL() should render the whole surface 1`] =
         "minimum_protocol_version": "TLSv1.2_2021",
         "ssl_support_method": "sni-only",
       },
-      "web_acl_id": "arn:aws:wafv2:us-east-1:123456789012:global/webacl/test/0000",
     },
     "type": "resource aws_cloudfront_distribution",
   },

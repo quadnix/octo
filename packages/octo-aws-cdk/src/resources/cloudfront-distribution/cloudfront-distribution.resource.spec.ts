@@ -1,7 +1,7 @@
 import { MatchingResource } from '@quadnix/octo';
 import { S3Website } from '../s3-website/index.js';
 import { CloudFrontDistribution } from './cloudfront-distribution.resource.js';
-import type { CloudFrontDistributionSchema } from './index.schema.js';
+import { CloudFrontDistributionSchema } from './index.schema.js';
 
 type Properties = CloudFrontDistributionSchema['properties'];
 
@@ -37,8 +37,6 @@ function properties(overrides: Partial<Properties> = {}): Properties {
     enabled: true,
     geoRestriction: { kind: 'none' },
     httpVersion: 'http2and3',
-    isIpv6Enabled: true,
-    logging: null,
     originGroups: [],
     originRequestPolicies: [],
     origins: [
@@ -54,7 +52,6 @@ function properties(overrides: Partial<Properties> = {}): Properties {
     priceClass: 'PriceClass_All',
     responseHeadersPolicies: [],
     viewerCertificate: { kind: 'default' },
-    webAclArn: null,
     ...overrides,
   };
 }
@@ -64,6 +61,45 @@ function createDistribution(overrides: Partial<Properties> = {}): CloudFrontDist
 }
 
 describe('CloudFrontDistribution UT', () => {
+  describe('schema', () => {
+    const cases: [string, Partial<Properties>][] = [
+      ['an alias that is not a host name', { aliases: ['not a host'] }],
+      ['a comment longer than 128 characters', { comment: 'x'.repeat(129) }],
+      ['a default root object starting with a slash', { defaultRootObject: '/index.html' }],
+      ['a lowercase country code', { geoRestriction: { countries: ['de'], kind: 'block' } }],
+      ['a geo restriction naming no country', { geoRestriction: { countries: [], kind: 'allow' } }],
+      ['an unknown HTTP version', { httpVersion: 'http4' as any }],
+      ['an unknown price class', { priceClass: 'PriceClass_50' as any }],
+      [
+        'an unknown minimum protocol version',
+        {
+          // eslint-disable-next-line spellcheck/spell-checker
+          viewerCertificate: { certificateArn: CERTIFICATE_ARN, kind: 'acm', minimumProtocolVersion: 'SSLv3' as any },
+        },
+      ],
+      ['a flag that is not a boolean', { enabled: 'true' as any }],
+    ];
+
+    it('should accept a legal distribution', () => {
+      expect(() => {
+        new CloudFrontDistributionSchema().properties = properties({
+          aliases: ['www.example.com', '*.example.com'],
+          geoRestriction: { countries: ['DE', 'FR'], kind: 'allow' },
+          // eslint-disable-next-line spellcheck/spell-checker
+          viewerCertificate: { certificateArn: CERTIFICATE_ARN, kind: 'acm', minimumProtocolVersion: 'TLSv1.2_2021' },
+        });
+      }).not.toThrow();
+    });
+
+    for (const [name, overrides] of cases) {
+      it(`should reject ${name}`, () => {
+        expect(() => {
+          new CloudFrontDistributionSchema().properties = properties(overrides);
+        }).toThrow('Validation error!');
+      });
+    }
+  });
+
   describe('validation', () => {
     it('should reject two origins sharing an id', () => {
       expect(() =>
@@ -193,15 +229,6 @@ describe('CloudFrontDistribution UT', () => {
           },
         }),
       ).toThrowErrorMatchingInlineSnapshot(`"CloudFront only reads a certificate from "us-east-1"!"`);
-    });
-
-    it('should reject a web ACL CloudFront cannot read', () => {
-      expect(() =>
-        createDistribution({
-          // eslint-disable-next-line spellcheck/spell-checker
-          webAclArn: 'arn:aws:wafv2:eu-west-1:123456789012:global/webacl/test/0000',
-        }),
-      ).toThrowErrorMatchingInlineSnapshot(`"CloudFront only reads a web ACL from "us-east-1"!"`);
     });
 
     it('should reject a CloudFront Function bound to an origin event', () => {
@@ -419,7 +446,6 @@ describe('CloudFrontDistribution UT', () => {
           awsAccountId: '123',
           awsRegionId: 'us-east-1',
           Bucket: 'assets-bucket',
-          distributionResourceIds: [],
           ErrorDocument: 'error.html',
           IndexDocument: 'index.html',
         }),
@@ -462,8 +488,7 @@ describe('CloudFrontDistribution UT', () => {
     /**
      * Everything the resource can express at once, none of which any module asks for today: a
      * private bucket next to a custom origin, a fail-over pair over them, a routing table with two
-     * ordered behaviors, all three kinds of custom policy, an edge function, geo blocking, logging,
-     * and a web ACL.
+     * ordered behaviors, all three kinds of custom policy, an edge function, and geo blocking.
      */
     it('should render the whole surface', async () => {
       const distribution = createDistribution({
@@ -513,7 +538,6 @@ describe('CloudFrontDistribution UT', () => {
           { errorCachingMinTtl: 10, errorCode: 403, responseCode: 200, responsePagePath: '/index.html' },
         ],
         geoRestriction: { countries: ['CN', 'RU'], kind: 'block' },
-        logging: { bucketDomainName: 'logs.s3.amazonaws.com', includeCookies: false, prefix: 'cloudfront/' },
         originGroups: [
           {
             failoverOriginId: 'api',
@@ -571,8 +595,6 @@ describe('CloudFrontDistribution UT', () => {
           // eslint-disable-next-line spellcheck/spell-checker
           minimumProtocolVersion: 'TLSv1.2_2021',
         },
-        // eslint-disable-next-line spellcheck/spell-checker
-        webAclArn: 'arn:aws:wafv2:us-east-1:123456789012:global/webacl/test/0000',
       });
 
       const { emitted, terraform } = createRecordingScope();

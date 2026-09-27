@@ -27,8 +27,8 @@ import {
 type OctoScope = ReturnType<TerraformModuleScope['addOctoTerraformResource']>;
 
 /**
- * The only region CloudFront reads a certificate or a web ACL from, whichever region the origins
- * behind it live in. AWS rejects anything else at apply, so it is worth catching here.
+ * The only region CloudFront reads a certificate from, whichever region the origins behind it live
+ * in. AWS rejects anything else at apply, so it is worth catching here.
  *
  * @internal
  */
@@ -176,16 +176,7 @@ export class CloudFrontDistribution extends ATerraformResource<CloudFrontDistrib
         ...(this.properties.defaultRootObject ? { default_root_object: this.properties.defaultRootObject } : {}),
         enabled: this.properties.enabled,
         http_version: this.properties.httpVersion,
-        is_ipv6_enabled: this.properties.isIpv6Enabled,
-        ...(this.properties.logging
-          ? {
-              logging_config: {
-                bucket: this.properties.logging.bucketDomainName,
-                include_cookies: this.properties.logging.includeCookies,
-                prefix: this.properties.logging.prefix,
-              },
-            }
-          : {}),
+        is_ipv6_enabled: true,
         ...(this.getOrderedBehaviors().length > 0
           ? {
               ordered_cache_behavior: this.getOrderedBehaviors().map((behavior) => ({
@@ -225,7 +216,6 @@ export class CloudFrontDistribution extends ATerraformResource<CloudFrontDistrib
                 ssl_support_method: 'sni-only',
               }
             : { cloudfront_default_certificate: true },
-        ...(this.properties.webAclArn ? { web_acl_id: this.properties.webAclArn } : {}),
       },
     );
 
@@ -517,8 +507,8 @@ export class CloudFrontDistribution extends ATerraformResource<CloudFrontDistrib
    * would accept and then serve wrongly.
    *
    * @internal
-   * @throws If ids collide or do not resolve, if an alias has no certificate to serve it, if a
-   * certificate or web ACL is not one CloudFront can read, or if a CloudFront Function is bound to
+   * @throws If ids collide or do not resolve, if an alias has no certificate to serve it, if the
+   * certificate is not one CloudFront can read, or if a CloudFront Function is bound to
    * an event it cannot run on.
    */
   private validateReferences(): void {
@@ -599,19 +589,13 @@ export class CloudFrontDistribution extends ATerraformResource<CloudFrontDistrib
       throw new Error('A CloudFront alias needs a certificate covering it!');
     }
 
-    // CloudFront reads both of these from us-east-1 alone, wherever the origins live. Left to AWS,
+    // CloudFront reads a certificate from us-east-1 alone, wherever the origins live. Left to AWS,
     // this surfaces as a failed apply rather than as anything a caller can act on.
-    const globalArns: [string, string | null][] = [
-      [
-        'certificate',
-        this.properties.viewerCertificate.kind === 'acm' ? this.properties.viewerCertificate.certificateArn : null,
-      ],
-      ['web ACL', this.properties.webAclArn],
-    ];
-    for (const [subject, arn] of globalArns) {
-      if (arn && arn.split(':')[3] !== CLOUD_FRONT_GLOBAL_REGION) {
-        throw new Error(`CloudFront only reads a ${subject} from "${CLOUD_FRONT_GLOBAL_REGION}"!`);
-      }
+    if (
+      this.properties.viewerCertificate.kind === 'acm' &&
+      this.properties.viewerCertificate.certificateArn.split(':')[3] !== CLOUD_FRONT_GLOBAL_REGION
+    ) {
+      throw new Error(`CloudFront only reads a certificate from "${CLOUD_FRONT_GLOBAL_REGION}"!`);
     }
   }
 }

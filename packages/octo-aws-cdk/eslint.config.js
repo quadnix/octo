@@ -138,8 +138,12 @@ export default [
               from: ['resource-index'],
             },
             {
-              allow: [],
+              allow: [['resource-schemas', { family: '${from.family}' }]],
               from: ['resource-schema-index'],
+            },
+            {
+              allow: [['resource-schemas', { family: '${from.family}' }]],
+              from: ['resource-schemas'],
             },
 
             // Utility rules.
@@ -238,6 +242,12 @@ export default [
           mode: 'file',
           pattern: 'src/resources/*/index.schema.ts',
           type: `resource-schema-index`,
+        },
+        {
+          capture: ['family'],
+          mode: 'file',
+          pattern: 'src/resources/*/*.schema.ts',
+          type: `resource-schemas`,
         },
 
         // Utility patterns.

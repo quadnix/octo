@@ -204,6 +204,7 @@ readme
 readmes
 readonly
 redis
+referer
 referrerpolicy
 rehype
 renderer
@@ -218,6 +219,7 @@ schemas
 sdk
 sep
 serializable
+serverless
 sig
 sigs
 ssl
