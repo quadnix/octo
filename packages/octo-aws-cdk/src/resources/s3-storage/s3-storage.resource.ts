@@ -1,26 +1,20 @@
 import {
   AResource,
   ATerraformResource,
+  type BaseResourceSchema,
   DependencyRelationship,
   Diff,
   DiffAction,
   DiffUtility,
-  type DiffValueTypeTagUpdate,
   MatchingResource,
   Resource,
+  ResourceError,
   type TerraformModuleScope,
 } from '@quadnix/octo';
+import mime from 'mime';
 import { PolicyUtility } from '../../utilities/policy/policy.utility.js';
-import { type PrincipalResourceSchema, S3StorageSchema } from './index.schema.js';
-
-/**
- * @internal
- */
-export type S3StorageManifestDiff = {
-  [key: string]: {
-    [key: string]: 'addDirectoryPermissions' | 'deleteDirectoryPermissions' | 'updateDirectoryPermissions';
-  };
-};
+import type { IManifest } from '../../utilities/s3-file-source/s3-file-source.utility.js';
+import { type IS3StoragePrincipalType, type PrincipalResourceSchema, S3StorageSchema } from './index.schema.js';
 
 /**
  * @internal
@@ -30,6 +24,9 @@ export class S3Storage extends ATerraformResource<S3StorageSchema, S3Storage> {
   declare parents: MatchingResource<PrincipalResourceSchema>[];
   declare properties: S3StorageSchema['properties'];
   declare response: S3StorageSchema['response'];
+  private readonly manifest: IManifest = {};
+
+  private sourcePathDigests: S3StorageSchema['sourcePathDigests'] = {};
 
   /**
    * @internal
@@ -37,21 +34,46 @@ export class S3Storage extends ATerraformResource<S3StorageSchema, S3Storage> {
   constructor(
     resourceId: string,
     properties: S3StorageSchema['properties'],
-    parents?: MatchingResource<PrincipalResourceSchema>[],
+    parents: (MatchingResource<PrincipalResourceSchema> | AResource<BaseResourceSchema, any>)[] = [],
   ) {
-    super(resourceId, properties, parents || []);
+    super(resourceId, properties, parents);
 
-    this.updatePrincipalResourceDependencyBehaviors((parents || []).map((p) => p.getActual()));
+    this.updatePrincipalResourceDependencyBehaviors(
+      parents.map((p) => (p instanceof MatchingResource ? p.getActual() : p)),
+    );
   }
 
   /**
    * @internal
    */
+  static override async unSynth<S extends BaseResourceSchema, T>(
+    deserializationClass: any,
+    resource: S,
+    deReferenceResource: (context: string) => Promise<AResource<BaseResourceSchema, any>>,
+  ): Promise<T> {
+    const s3Storage = (await super.unSynth(deserializationClass, resource, deReferenceResource)) as S3Storage;
+    const digests = (resource as unknown as S3StorageSchema).sourcePathDigests;
+    s3Storage.sourcePathDigests = digests ? { ...digests } : {};
+    return s3Storage as T;
+  }
+
+  /**
+   * Admits one principal to a directory of this bucket, as statements of the bucket's policy.
+   *
+   * A principal already admitted to the directory has its read and write replaced. A `cloudfront`
+   * principal may only read.
+   *
+   * @internal
+   */
   addPermission(
     principal: MatchingResource<PrincipalResourceSchema>,
     remoteDirectoryPath: string,
-    options: { allowRead: boolean; allowWrite: boolean },
+    options: { allowRead: boolean; allowWrite: boolean; principalType: IS3StoragePrincipalType },
   ): void {
+    if (options.principalType === 'cloudfront' && options.allowWrite) {
+      throw new ResourceError('A CloudFront distribution cannot write to a bucket!', this);
+    }
+
     const principalResourceId = principal.getActual().resourceId;
 
     const existingPermission = this.properties.permissions.find(
@@ -60,25 +82,28 @@ export class S3Storage extends ATerraformResource<S3StorageSchema, S3Storage> {
     if (existingPermission) {
       existingPermission.allowRead = options.allowRead;
       existingPermission.allowWrite = options.allowWrite;
-    } else {
-      const { childToParentDependency, parentToChildDependency } = principal.addChild('resourceId', this, 'resourceId');
-      childToParentDependency.addBehavior('update-permissions', DiffAction.UPDATE, 'resourceId', DiffAction.ADD);
-      parentToChildDependency.addBehavior('resourceId', DiffAction.DELETE, 'update-permissions', DiffAction.UPDATE);
-
-      this.properties.permissions.push({
-        allowRead: options.allowRead,
-        allowWrite: options.allowWrite,
-        principalResourceId,
-        remoteDirectoryPath,
-      });
+      return;
     }
+
+    if (!this.properties.permissions.some((p) => p.principalResourceId === principalResourceId)) {
+      principal.addChild('resourceId', this, 'resourceId');
+      this.updatePrincipalResourceDependencyBehaviors([principal.getActual()]);
+    }
+
+    this.properties.permissions.push({
+      allowRead: options.allowRead,
+      allowWrite: options.allowWrite,
+      principalResourceId,
+      principalType: options.principalType,
+      remoteDirectoryPath,
+    });
   }
 
   /**
    * @internal
    */
   override async diffProperties(previous: S3Storage): Promise<Diff[]> {
-    if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties, ['permissions'])) {
+    if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties, ['blockPublicAccess', 'permissions'])) {
       return [
         new Diff(
           this,
@@ -91,65 +116,45 @@ export class S3Storage extends ATerraformResource<S3StorageSchema, S3Storage> {
     }
 
     const diffs: Diff[] = [];
-    const manifestDiff: S3StorageManifestDiff = {};
 
-    for (const previousPermission of previous.properties.permissions) {
-      const currentPermission = this.properties.permissions.find(
-        (p) =>
-          p.principalResourceId === previousPermission.principalResourceId &&
-          p.remoteDirectoryPath === previousPermission.remoteDirectoryPath,
-      );
-      if (currentPermission) {
-        if (
-          currentPermission.allowRead !== previousPermission.allowRead ||
-          currentPermission.allowWrite !== previousPermission.allowWrite
-        ) {
-          if (previousPermission.remoteDirectoryPath in manifestDiff) {
-            manifestDiff[previousPermission.remoteDirectoryPath][previousPermission.principalResourceId] =
-              'updateDirectoryPermissions';
-          } else {
-            manifestDiff[previousPermission.remoteDirectoryPath] = {
-              [previousPermission.principalResourceId]: 'updateDirectoryPermissions',
-            };
-          }
-        }
-      } else {
-        if (previousPermission.remoteDirectoryPath in manifestDiff) {
-          manifestDiff[previousPermission.remoteDirectoryPath][previousPermission.principalResourceId] =
-            'deleteDirectoryPermissions';
-        } else {
-          manifestDiff[previousPermission.remoteDirectoryPath] = {
-            [previousPermission.principalResourceId]: 'deleteDirectoryPermissions',
-          };
-        }
-      }
+    // Propose a public access update when the block is turned on or off.
+    if (previous.properties.blockPublicAccess !== this.properties.blockPublicAccess) {
+      diffs.push(new Diff(this, DiffAction.UPDATE, 'blockPublicAccess', this.properties.blockPublicAccess));
     }
 
-    for (const currentPermission of this.properties.permissions) {
-      const previousPermission = previous.properties.permissions.find(
-        (p) =>
-          p.principalResourceId === currentPermission.principalResourceId &&
-          p.remoteDirectoryPath === currentPermission.remoteDirectoryPath,
+    // Propose a policy update when the permissions change.
+    const sortPermissions = (
+      permissions: S3StorageSchema['properties']['permissions'],
+    ): S3StorageSchema['properties']['permissions'] =>
+      [...permissions].sort((a, b) =>
+        `${a.principalResourceId}/${a.remoteDirectoryPath}`.localeCompare(
+          `${b.principalResourceId}/${b.remoteDirectoryPath}`,
+        ),
       );
-      if (!previousPermission) {
-        if (currentPermission.remoteDirectoryPath in manifestDiff) {
-          manifestDiff[currentPermission.remoteDirectoryPath][currentPermission.principalResourceId] =
-            'addDirectoryPermissions';
-        } else {
-          manifestDiff[currentPermission.remoteDirectoryPath] = {
-            [currentPermission.principalResourceId]: 'addDirectoryPermissions',
-          };
-        }
-      }
-    }
-
-    if (Object.keys(manifestDiff).length > 0) {
+    if (
+      !DiffUtility.isObjectDeepEquals(
+        { permissions: sortPermissions(previous.properties.permissions) },
+        { permissions: sortPermissions(this.properties.permissions) },
+      )
+    ) {
       diffs.push(
-        new Diff<any, S3StorageManifestDiff>(
+        new Diff(
           this,
           DiffAction.UPDATE,
           'update-permissions',
-          JSON.parse(JSON.stringify(manifestDiff)),
+          JSON.parse(JSON.stringify(this.properties.permissions)),
+        ),
+      );
+    }
+
+    // Only propose a content update when the digests differ from what was last committed.
+    if (!DiffUtility.isObjectDeepEquals(previous.sourcePathDigests, this.sourcePathDigests)) {
+      diffs.push(
+        new Diff<any, IManifest>(
+          this,
+          DiffAction.UPDATE,
+          'update-source-paths',
+          JSON.parse(JSON.stringify(this.manifest)),
         ),
       );
     }
@@ -163,36 +168,26 @@ export class S3Storage extends ATerraformResource<S3StorageSchema, S3Storage> {
   override diffUnpack(diff: Diff): Diff[] {
     if (diff.action === DiffAction.ADD && diff.field === 'resourceId') {
       const diffs: Diff[] = [diff];
-      const manifestDiff: S3StorageManifestDiff = {};
 
-      for (const permission of this.properties.permissions) {
-        if (permission.remoteDirectoryPath in manifestDiff) {
-          manifestDiff[permission.remoteDirectoryPath][permission.principalResourceId] = 'addDirectoryPermissions';
-        } else {
-          manifestDiff[permission.remoteDirectoryPath] = {
-            [permission.principalResourceId]: 'addDirectoryPermissions',
-          };
-        }
-      }
-
-      if (Object.keys(manifestDiff).length > 0) {
+      if (this.properties.permissions.length > 0) {
         diffs.push(
-          new Diff<any, S3StorageManifestDiff>(
+          new Diff(
             this,
             DiffAction.UPDATE,
             'update-permissions',
-            JSON.parse(JSON.stringify(manifestDiff)),
+            JSON.parse(JSON.stringify(this.properties.permissions)),
           ),
         );
       }
 
-      if (this.tags && Object.keys(this.tags).length > 0) {
+      if (Object.keys(this.manifest).length > 0) {
         diffs.push(
-          new Diff<any, DiffValueTypeTagUpdate>(this, DiffAction.UPDATE, 'tags', {
-            add: JSON.parse(JSON.stringify(this.tags)),
-            delete: [],
-            update: {},
-          }),
+          new Diff<any, IManifest>(
+            this,
+            DiffAction.UPDATE,
+            'update-source-paths',
+            JSON.parse(JSON.stringify(this.manifest)),
+          ),
         );
       }
 
@@ -200,6 +195,16 @@ export class S3Storage extends ATerraformResource<S3StorageSchema, S3Storage> {
     } else {
       return [diff];
     }
+  }
+
+  /**
+   * @internal
+   */
+  override synth(): S3StorageSchema {
+    return {
+      ...super.synth(),
+      sourcePathDigests: JSON.parse(JSON.stringify(this.sourcePathDigests)),
+    };
   }
 
   /**
@@ -215,49 +220,105 @@ export class S3Storage extends ATerraformResource<S3StorageSchema, S3Storage> {
     });
     s3StorageOctoResource.output({
       Arn: terraform.raw(`${s3StorageTFResource.address}.arn`),
+      awsRegionId: this.properties.awsRegionId,
+      Bucket: terraform.raw(`${s3StorageTFResource.address}.id`),
+      RegionalDomainName: terraform.raw(`${s3StorageTFResource.address}.bucket_regional_domain_name`),
     });
 
-    if (this.properties.permissions.length > 0) {
-      const statements: object[] = [];
+    // Close the bucket to the public.
+    if (this.properties.blockPublicAccess) {
+      s3StorageOctoResource.addTerraformResource(
+        'aws_s3_bucket_public_access_block',
+        `${this.resourceId}-public-access`,
+        {
+          block_public_acls: true,
+          block_public_policy: true,
+          bucket: terraform.raw(`${s3StorageTFResource.address}.id`),
+          ignore_public_acls: true,
+          restrict_public_buckets: true,
+        },
+      );
+    }
 
-      for (const permission of this.properties.permissions) {
-        const principalParent = this.parents.find((p) => p.getActual().resourceId === permission.principalResourceId)!;
-        const principalArn = terraform.getRef(principalParent, 'Arn');
-        const resources = [
-          `arn:aws:s3:::${this.properties.Bucket}/${permission.remoteDirectoryPath}`,
-          `arn:aws:s3:::${this.properties.Bucket}/${permission.remoteDirectoryPath}/*`,
-        ];
+    // Admit each principal to its directory, one statement per principal and verb.
+    const statements: object[] = [];
+    for (const permission of this.properties.permissions) {
+      const principalParent = this.parents.find((p) => p.getActual().resourceId === permission.principalResourceId)!;
+      const principalArn = terraform.getRef(principalParent, 'Arn');
+      const resources =
+        permission.remoteDirectoryPath === ''
+          ? [terraform.raw(`"\${${s3StorageTFResource.address}.arn}/*"`)]
+          : [
+              terraform.raw(`"\${${s3StorageTFResource.address}.arn}/${permission.remoteDirectoryPath}"`),
+              terraform.raw(`"\${${s3StorageTFResource.address}.arn}/${permission.remoteDirectoryPath}/*"`),
+            ];
 
+      if (permission.principalType === 'cloudfront') {
         if (permission.allowRead) {
           statements.push({
             Action: ['s3:GetObject'],
+            Condition: { StringEquals: { 'AWS:SourceArn': principalArn } },
             Effect: 'Allow',
-            Principal: { AWS: [principalArn] },
+            Principal: { Service: 'cloudfront.amazonaws.com' },
             Resource: resources,
-            Sid: PolicyUtility.getSafeSid(`${permission.principalResourceId}-ReadPermission`),
+            Sid: PolicyUtility.getSafeSid(`${permission.principalResourceId}-CloudFrontReadPermission`),
           });
         }
-
-        if (permission.allowWrite) {
-          statements.push({
-            Action: ['s3:PutObject'],
-            Effect: 'Allow',
-            Principal: { AWS: [principalArn] },
-            Resource: resources,
-            Sid: PolicyUtility.getSafeSid(`${permission.principalResourceId}-WritePermission`),
-          });
-        }
+        continue;
       }
 
-      if (statements.length > 0) {
-        s3StorageOctoResource.addTerraformResource('aws_s3_bucket_policy', `${this.resourceId}-policy`, {
-          bucket: terraform.raw(`${s3StorageTFResource.address}.id`),
-          policy: terraform.jsonencode({
-            Statement: statements,
-            Version: '2012-10-17',
-          }),
+      if (permission.allowRead) {
+        statements.push({
+          Action: ['s3:GetObject'],
+          Effect: 'Allow',
+          Principal: { AWS: [principalArn] },
+          Resource: resources,
+          Sid: PolicyUtility.getSafeSid(`${permission.principalResourceId}-ReadPermission`),
         });
       }
+
+      if (permission.allowWrite) {
+        statements.push({
+          Action: ['s3:PutObject'],
+          Effect: 'Allow',
+          Principal: { AWS: [principalArn] },
+          Resource: resources,
+          Sid: PolicyUtility.getSafeSid(`${permission.principalResourceId}-WritePermission`),
+        });
+      }
+    }
+    if (statements.length > 0) {
+      s3StorageOctoResource.addTerraformResource('aws_s3_bucket_policy', `${this.resourceId}-policy`, {
+        bucket: terraform.raw(`${s3StorageTFResource.address}.id`),
+        policy: terraform.jsonencode({
+          Statement: statements,
+          Version: '2012-10-17',
+        }),
+      });
+    }
+
+    // Upload each file.
+    for (const [remotePath, { digest, filePath }] of Object.entries(this.manifest)) {
+      if (digest === 'deleted') {
+        continue;
+      }
+
+      const safeLabel = PolicyUtility.getSafeSid(remotePath);
+      const contentType = mime.getType(remotePath) ?? 'application/octet-stream';
+      const sourceHcl = terraform.localPath(filePath);
+      // Files upload in parallel: each waits only on the bucket it names.
+      s3StorageOctoResource.addTerraformResource(
+        'aws_s3_object',
+        `${this.resourceId}_file_${safeLabel}`,
+        {
+          bucket: terraform.raw(`${s3StorageTFResource.address}.id`),
+          content_type: contentType,
+          etag: terraform.raw(`filemd5(${sourceHcl})`),
+          key: remotePath,
+          source: terraform.raw(sourceHcl),
+        },
+        { chain: false },
+      );
     }
 
     if (Object.keys(this.tags).length > 0) {
@@ -268,10 +329,23 @@ export class S3Storage extends ATerraformResource<S3StorageSchema, S3Storage> {
   /**
    * @internal
    */
-  private updatePrincipalResourceDependencyBehaviors(
-    principalResourceParents: AResource<PrincipalResourceSchema, any>[],
-  ): void {
-    for (const principal of principalResourceParents) {
+  updateManifest(manifestDiff: IManifest): void {
+    for (const key of Object.keys(manifestDiff)) {
+      this.manifest[key] = { ...manifestDiff[key] };
+
+      if (manifestDiff[key].digest === 'deleted') {
+        delete this.sourcePathDigests[key];
+      } else {
+        this.sourcePathDigests[key] = manifestDiff[key].digest;
+      }
+    }
+  }
+
+  /**
+   * @internal
+   */
+  private updatePrincipalResourceDependencyBehaviors(principals: AResource<BaseResourceSchema, any>[]): void {
+    for (const principal of principals) {
       const s3StorageToPrincipalResourceDep = this.getDependency(principal, DependencyRelationship.CHILD)!;
       const principalResourceToS3StorageDep = principal.getDependency(this, DependencyRelationship.PARENT)!;
 

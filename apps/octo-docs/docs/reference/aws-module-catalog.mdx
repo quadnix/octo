@@ -127,7 +127,7 @@ properties that deployment runs under:
                 - containerPort: 80
                   protocol: tcp
           deployment: "${{checkout-deployment-v1-module.model.deployment}}"
-        sidecars: []
+        sidecars: [ ]
 ```
 
 `securityGroupRules` is optional, and leaving it out gives the execution one egress rule allowing
@@ -163,13 +163,13 @@ means one apply publishes the image and registers the task definition that names
 
 ## Services
 
-| Module                            | Inputs                                                                                                                                                                         | Creates                                                                                    |
-|-----------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------|
-| `AwsS3StorageServiceModule`       | `region`, `bucketName`, `remoteDirectoryPaths?`                                                                                                                                | S3 bucket, bucket policy                                                                   |
+| Module                            | Inputs                                                                                                                                                                         | Creates                                                                                                                                                  |
+|-----------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `AwsS3StorageServiceModule`       | `region`, `bucketName`, `remoteDirectoryPaths?`, `blockPublicAccess?`                                                                                                          | S3 bucket, public access block, bucket policy                                                                                                            |
 | `AwsS3StaticWebsiteServiceModule` | `account`, `awsRegionId`, `bucketName`, `directoryPath`, `cloudFront?`, `filter?`, `transform?`, `subDirectoryOrFilePath?`                                                     | S3 bucket, public access block, bucket policy, one object per file, and with `cloudFront` a distribution, its origin access control, and an invalidation |
-| `AwsDynamoDBServiceModule`        | `region`, `TableName`, `KeySchema`, `AttributeDefinitions`, `billingMode`, `GlobalSecondaryIndexes?`, `LocalSecondaryIndexes?`, `StreamSpecification?`, `timeToLiveAttribute?` | DynamoDB table                                                                             |
-| `AwsDynamoDBGlobalServiceModule`  | `dynamoDBService`, `replicas`                                                                                                                                                  | DynamoDB global table replicas                                                             |
-| `AwsEcsAlbServiceModule`          | `region`, `albName`, `listeners`, `subnets`, `targets?`                                                                                                                        | application load balancer, listener, target group, security group                          |
+| `AwsDynamoDBServiceModule`        | `region`, `TableName`, `KeySchema`, `AttributeDefinitions`, `billingMode`, `GlobalSecondaryIndexes?`, `LocalSecondaryIndexes?`, `StreamSpecification?`, `timeToLiveAttribute?` | DynamoDB table                                                                                                                                           |
+| `AwsDynamoDBGlobalServiceModule`  | `dynamoDBService`, `replicas`                                                                                                                                                  | DynamoDB global table replicas                                                                                                                           |
+| `AwsEcsAlbServiceModule`          | `region`, `albName`, `listeners`, `subnets`, `targets?`                                                                                                                        | application load balancer, listener, target group, security group                                                                                        |
 
 `AwsS3StaticWebsiteServiceModule` serves the bucket one of two ways, and `cloudFront` picks which.
 Without it the bucket is public and answers on its S3 website endpoint, over plain HTTP. With it the
@@ -237,7 +237,7 @@ refers to:
         - "${{public-backup-subnet-module.model.subnet}}"
       listeners:
         - Port: 80
-          rules: []
+          rules: [ ]
           DefaultActions:
             - actionType: forward
               action:

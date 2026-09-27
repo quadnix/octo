@@ -1,5 +1,5 @@
 import { AResource, Diff, DiffAction, DiffUtility, type MatchingResource, Resource } from '@quadnix/octo';
-import type { S3StaticContentSchema } from '../s3-static-content/index.schema.js';
+import type { S3StorageSchema } from '../s3-storage/index.schema.js';
 import { CloudFrontInvalidationSchema, type InvalidationDistributionSchema } from './index.schema.js';
 
 /**
@@ -21,7 +21,7 @@ import { CloudFrontInvalidationSchema, type InvalidationDistributionSchema } fro
  */
 @Resource<CloudFrontInvalidation>('@octo', 'cloudfront-invalidation', CloudFrontInvalidationSchema)
 export class CloudFrontInvalidation extends AResource<CloudFrontInvalidationSchema, CloudFrontInvalidation> {
-  declare parents: [MatchingResource<InvalidationDistributionSchema>, MatchingResource<S3StaticContentSchema>];
+  declare parents: [MatchingResource<InvalidationDistributionSchema>, MatchingResource<S3StorageSchema>];
   declare properties: CloudFrontInvalidationSchema['properties'];
   declare response: CloudFrontInvalidationSchema['response'];
 
@@ -31,7 +31,7 @@ export class CloudFrontInvalidation extends AResource<CloudFrontInvalidationSche
   constructor(
     resourceId: string,
     properties: CloudFrontInvalidationSchema['properties'],
-    parents: [MatchingResource<InvalidationDistributionSchema>, MatchingResource<S3StaticContentSchema>],
+    parents: [MatchingResource<InvalidationDistributionSchema>, MatchingResource<S3StorageSchema>],
   ) {
     super(resourceId, properties, parents);
   }
