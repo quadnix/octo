@@ -88,8 +88,18 @@ export interface OctoTerraformResourceScope<
    * Emits one `resource "<type>" "<name>"` block for this octo resource.
    * Multiple calls chain via `depends_on` in call order.
    * The provider alias is applied automatically when the resource was registered with a provider context.
+   *
+   * Pass `options.chain: false` to keep a block out of the chain: it depends on neither the block
+   * before it nor is depended on by the block after it, and waits only on what its attributes
+   * reference. Use it for a block emitted once per item, like a file upload, where a chain would run
+   * the items one at a time and store every earlier address in each item's terraform state.
    */
-  addTerraformResource(type: string, name: string, spec?: Record<string, unknown>): TerraformResource;
+  addTerraformResource(
+    type: string,
+    name: string,
+    spec?: Record<string, unknown>,
+    options?: { chain?: boolean },
+  ): TerraformResource;
 
   /**
    * Declares the outputs for this resource — one entry per response key.
@@ -320,6 +330,7 @@ class OctoTerraformResource<TResponse extends BaseResourceSchema['response'] = B
 {
   readonly outputs: Map<string, { name: string; sensitive: boolean; value: HclExpression }> = new Map();
   readonly terraformResources: TerraformResource[] = [];
+  private lastChainedAddress?: string; // Address of the last block emitted with `chain`, which the next chained block depends on.
 
   /**
    * @internal
@@ -343,15 +354,23 @@ class OctoTerraformResource<TResponse extends BaseResourceSchema['response'] = B
     }
   }
 
-  addTerraformResource(type: string, name: string, spec: Record<string, unknown> = {}): TerraformResource {
-    const intraResourceDependencies =
-      this.terraformResources.length === 0 ? [] : [this.terraformResources[this.terraformResources.length - 1].address];
+  addTerraformResource(
+    type: string,
+    name: string,
+    spec: Record<string, unknown> = {},
+    options: { chain?: boolean } = {},
+  ): TerraformResource {
+    const chain = options.chain ?? true;
+    const intraResourceDependencies = chain && this.lastChainedAddress ? [this.lastChainedAddress] : [];
 
     const terraformResource = new TerraformResource(
       type,
       StringUtility.sanitizeForIdentifier(name),
       intraResourceDependencies,
     );
+    if (chain) {
+      this.lastChainedAddress = terraformResource.address;
+    }
     if (this.providerRef && !('provider' in spec)) {
       terraformResource.attribute('provider', new ExpressionHclNode(this.providerRef));
     }

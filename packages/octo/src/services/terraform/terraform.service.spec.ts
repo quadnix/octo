@@ -863,6 +863,21 @@ describe('TerraformService UT', () => {
         expect(service.renderAllModules().get('m1')!.mainTf).toMatchSnapshot();
       });
 
+      it('should keep a block emitted with chain false out of the chain', () => {
+        const scope = service.scope('m1');
+        const bucket = new TestTerraformResource('bucket-1', {});
+        const bucketTf = scope.addOctoTerraformResource(bucket);
+        bucketTf.addTerraformResource('aws_s3_bucket', 'bucket-1', {});
+        bucketTf.addTerraformResource('aws_s3_object', 'bucket-1-file-1', {}, { chain: false });
+        bucketTf.addTerraformResource('aws_s3_object', 'bucket-1-file-2', {}, { chain: false });
+        bucketTf.addTerraformResource('aws_s3_bucket_policy', 'bucket-1-policy', {});
+
+        const mainTf = service.renderAllModules().get('m1')!.mainTf;
+        expect(mainTf).not.toContain('depends_on = [aws_s3_object');
+        expect(mainTf.match(/depends_on/g)).toHaveLength(1);
+        expect(mainTf).toContain('depends_on = [aws_s3_bucket.bucket-1]');
+      });
+
       it('should merge intra-resource and explicit-parent depends_on into a single list', () => {
         const scope = service.scope('m1');
 

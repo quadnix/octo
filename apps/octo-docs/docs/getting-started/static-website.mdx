@@ -244,16 +244,14 @@ resource "aws_s3_object" "bucket-octo-hello-website_file_indexhtml" {
   etag = filemd5("${var.OCTO_PROJECT_ROOT}/website/index.html")
   key = "index.html"
   source = "${var.OCTO_PROJECT_ROOT}/website/index.html"
-
-  depends_on = [aws_s3_object.bucket-octo-hello-website_file_errorhtml]
 }
 ```
 
 The `provider` line names the provider from your `terraform` block, one per account and region, and
 Octo writes it on every resource it generates. Terraform resources belonging to the same Octo
-resource are chained with `depends_on` in the order the module declared them. For the bucket and its
-settings that order is the required one; for the two files it only means one upload waits for the
-other.
+resource are chained with `depends_on` in the order the module declared them, which is the order the
+bucket and its settings require. The files stay out of that chain: each one waits only on the bucket
+it names, so they upload in parallel.
 
 Those two files are the last two resources in the report, one `aws_s3_object` each, with
 `content_type` looked up from the extension and `etag` a checksum of the file on disk. Add a

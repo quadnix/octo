@@ -178,12 +178,6 @@ confirm the new modules load from `octo.yaml` in `../octo-examples`.
 
 These do not wait on step 1. Do them whenever there is room.
 
-- **Terraform chains every block to the one before it.** `TerraformService` makes each block depend on
-  the previous block of the same resource
-  (`packages/octo/src/services/terraform/terraform.service.ts:346-348`). The S3 website emits one block
-  per file, so octo-docs' state is 16.9 MB, 13.6 MB of it dependency lists: too large for the remote
-  state service's 5 MB cap, and uploads run one at a time. The options (opt-out per block, chain only
-  leading blocks, or no implicit chain) still need Rahul's pick.
 - **Docker build options.** `docker.service.ts:30` runs a plain `docker build`. The backend images
   need a BuildKit secret (the private package token), a `NODE_ENV` build arg, and a fixed platform.
   Secrets never enter octo's state, HCL or logs: octo stores only the environment variable's name.
