@@ -9,7 +9,7 @@ that form, an unexpected run is hard to argue with, because there is nothing to 
 
 This page opens the shop's artifacts and finds each idea inside them: the state files, the generated
 Terraform, and the report. The stack, once more: an app called `shop`, an AWS account, a region in
-`eu-west-1`, a receipts bucket with an `uploads` directory, and a checkout server allowed to read
+`eu-west-1`, a receipts bucket with an `uploads` access prefix, and a checkout server allowed to read
 and write it. It was built in [Shop Stack](/docs/getting-started/shop-stack).
 
 ## What you wrote
@@ -38,14 +38,15 @@ holds the result, keyed by context:
 "models": {
   "app=shop": {...},
   "server=checkout,app=shop": {...},
-  "service=shop-receipts-s3-storage,app=shop": {...},
+  "service=shop-receipts-s3-storage,region=eu-west-1,account=123456789012,app=shop": {...},
   "account=123456789012,app=shop": {...},
   "region=eu-west-1,account=123456789012,app=shop": {...}
 }
 ```
 
 Five models, and their contexts are the shape of the graph read as paths. The region's context
-carries the account and the app because a region lives under an account. The server's carries only
+carries the account and the app because a region lives under an account, and the bucket's carries
+the region because the bucket lives in it. The server's carries only
 the app, because checkout is a service in the shop's architecture and not a thing in a region.
 Wherever it eventually runs is an execution, and this stack has none yet.
 
@@ -59,29 +60,29 @@ out by matching on anchors, and `models.json` has the ones each model published:
 
 ```json title=".octo/models.json"
 {
-  "anchorId": "AwsS3StorageServiceDirectoryAnchor-fb611de45b88",
+  "anchorId": "AwsS3StorageServiceAccessPrefixAnchor-fb611de45b88",
   "parent": {
-    "context": "service=shop-receipts-s3-storage,app=shop",
+    "context": "service=shop-receipts-s3-storage,region=eu-west-1,account=123456789012,app=shop",
     "type": "model"
   },
   "properties": {
-    "bucketName": "shop-receipts",
-    "remoteDirectoryPath": "uploads"
+    "accessPrefix": "uploads",
+    "bucketName": "shop-receipts"
   },
-  "className": "@octo/AwsS3StorageServiceDirectoryAnchor",
+  "className": "@octo/AwsS3StorageServiceAccessPrefixAnchor",
   "location": {
-    "context": "service=shop-receipts-s3-storage,app=shop",
+    "context": "service=shop-receipts-s3-storage,region=eu-west-1,account=123456789012,app=shop",
     "type": "model"
   }
 }
 ```
 
-That anchor exists because you wrote `remoteDirectoryPaths: [uploads]`. Its suffix is a hash of
-`uploads`, which is what makes the ID stable and lets one bucket carry several directories.
+That anchor exists because you wrote `accessPrefixes: [uploads]`. Its suffix is a hash of
+`uploads`, which is what makes the ID stable and lets one bucket carry several access prefixes.
 
-When you added checkout with `remoteDirectoryPath: uploads`, its module searched the receipts
-service for a directory anchor with that path, found this one, and would have thrown a `ModuleError`
-during compose if it had not. Ask for a directory the bucket does not have and the run stops before
+When you added checkout with `accessPrefix: uploads`, its module searched the receipts
+service for an access prefix anchor with that prefix, found this one, and would have thrown a `ModuleError`
+during compose if it had not. Ask for a prefix the bucket does not have and the run stops before
 anything is written.
 
 ## The overlay that appeared
@@ -104,25 +105,25 @@ The grant itself is not on the server and not on the bucket. It is its own node:
         }
       },
       {
-        "anchorId": "AwsS3StorageServiceDirectoryAnchor-fb611de45b88",
+        "anchorId": "AwsS3StorageServiceAccessPrefixAnchor-fb611de45b88",
         "parent": {
-          "context": "service=shop-receipts-s3-storage,app=shop",
+          "context": "service=shop-receipts-s3-storage,region=eu-west-1,account=123456789012,app=shop",
           "type": "model"
         },
         "properties": {
-          "bucketName": "shop-receipts",
-          "remoteDirectoryPath": "uploads"
+          "accessPrefix": "uploads",
+          "bucketName": "shop-receipts"
         }
       }
     ],
     "overlayId": "aws-ecs-server-s3-access-overlay-937a53bb02a4",
     "properties": {
+      "accessPrefix": "uploads",
       "allowRead": true,
       "allowWrite": true,
       "bucketName": "shop-receipts",
       "iamRoleName": "ServerRole-checkout",
       "iamRolePolicyId": "aws-ecs-server-s3-access-overlay-937a53bb02a4",
-      "remoteDirectoryPath": "uploads"
     }
   }
 }
@@ -158,10 +159,10 @@ receipts bucket.
   "Bucket": "shop-receipts",
   "permissions": [
     {
+      "accessPrefix": "uploads",
       "allowRead": true,
       "allowWrite": true,
       "principalResourceId": "iam-role-ServerRole-checkout",
-      "remoteDirectoryPath": "uploads"
     }
   ]
 }

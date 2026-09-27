@@ -89,11 +89,11 @@ The first argument is the anchor's ID, unique within its parent. Naming it after
 convention, and it is right whenever a model carries one of them.
 
 When a model can carry several of the same kind, the ID has to tell them apart, and it has to be
-stable across runs. Our S3 storage model derives one per directory:
+stable across runs. Our S3 storage model derives one per access prefix:
 
 ```typescript
-const remoteDirectoryPathHash = CommonUtility.hash(remoteDirectoryPath).substring(0, 12);
-const directoryAnchorName = `AwsS3StorageServiceDirectoryAnchor-${remoteDirectoryPathHash}`;
+const accessPrefixHash = CommonUtility.hash(accessPrefix).substring(0, 12);
+const accessPrefixAnchorName = `AwsS3StorageServiceAccessPrefixAnchor-${accessPrefixHash}`;
 ```
 
 A hash of the thing that makes it distinct. An index, or anything ordering-dependent, would change
@@ -116,8 +116,8 @@ Filters narrow by property value, which is what a model carrying several anchors
 
 ```typescript
 const matching = await service.getAnchorsMatchingSchema(
-  AwsS3StorageServiceDirectoryAnchorSchema,
-  [{ key: 'remoteDirectoryPath', value: 'uploads' }],
+  AwsS3StorageServiceAccessPrefixAnchorSchema,
+  [{ key: 'accessPrefix', value: 'uploads' }],
   { searchBoundaryMembers: false },
 );
 ```

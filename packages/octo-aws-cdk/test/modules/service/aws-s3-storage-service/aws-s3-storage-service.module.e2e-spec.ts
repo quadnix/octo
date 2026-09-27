@@ -60,9 +60,9 @@ describe('AwsS3StorageServiceModule E2E', () => {
       .runModules<AwsS3StorageServiceModule>(
         {
           inputs: {
+            accessPrefixes: ['uploads'],
             bucketName: 'test-bucket',
             region: stub('${{testModule.model.region}}'),
-            remoteDirectoryPaths: ['uploads'],
           },
           moduleId: 'service',
           type: AwsS3StorageServiceModule,
@@ -74,6 +74,7 @@ describe('AwsS3StorageServiceModule E2E', () => {
     expect(await TerragruntUtility.collectTerraformResources(OUTPUT_DIR)).toMatchInlineSnapshot(`
      [
        "aws_s3_bucket.bucket-test-bucket",
+       "aws_s3_bucket_public_access_block.bucket-test-bucket-public-access",
      ]
     `);
   }, 300_000);

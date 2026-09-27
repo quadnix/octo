@@ -37,16 +37,16 @@ export class IamUser extends ATerraformResource<IamUserSchema, IamUser> {
   addS3BucketPolicy(
     policyId: string,
     bucketName: string,
-    remoteDirectoryPath: string,
+    accessPrefix: string,
     options: { allowRead: boolean; allowWrite: boolean },
   ): void {
     const index = this.properties.policies.findIndex((p) => p.policyId === policyId);
     if (index === -1) {
       const policy: IIamUserS3BucketPolicy = {
+        accessPrefix,
         allowRead: options.allowRead,
         allowWrite: options.allowWrite,
         bucketName,
-        remoteDirectoryPath,
       };
       this.properties.policies.push({
         policy,
@@ -55,10 +55,10 @@ export class IamUser extends ATerraformResource<IamUserSchema, IamUser> {
       });
     } else {
       this.properties.policies[index].policy = {
+        accessPrefix,
         allowRead: options.allowRead,
         allowWrite: options.allowWrite,
         bucketName,
-        remoteDirectoryPath,
       };
     }
   }
@@ -177,16 +177,16 @@ export class IamUser extends ATerraformResource<IamUserSchema, IamUser> {
     const s3Policies = this.properties.policies.filter((p) => p.policyType === 's3-storage-access-policy');
     for (const policy of s3Policies) {
       const s3Policy = policy.policy as IIamUserS3BucketPolicy;
-      const isRootPath = s3Policy.remoteDirectoryPath === '' || s3Policy.remoteDirectoryPath === '/';
+      const isRootPath = s3Policy.accessPrefix === '' || s3Policy.accessPrefix === '/';
       const bucketReadResources = isRootPath
         ? [`arn:aws:s3:::${s3Policy.bucketName}`, `arn:aws:s3:::${s3Policy.bucketName}/*`]
         : [
-            `arn:aws:s3:::${s3Policy.bucketName}/${s3Policy.remoteDirectoryPath}`,
-            `arn:aws:s3:::${s3Policy.bucketName}/${s3Policy.remoteDirectoryPath}/*`,
+            `arn:aws:s3:::${s3Policy.bucketName}/${s3Policy.accessPrefix}`,
+            `arn:aws:s3:::${s3Policy.bucketName}/${s3Policy.accessPrefix}/*`,
           ];
       const bucketWriteResources = isRootPath
         ? [`arn:aws:s3:::${s3Policy.bucketName}`, `arn:aws:s3:::${s3Policy.bucketName}/*`]
-        : [`arn:aws:s3:::${s3Policy.bucketName}/${s3Policy.remoteDirectoryPath}/*`];
+        : [`arn:aws:s3:::${s3Policy.bucketName}/${s3Policy.accessPrefix}/*`];
 
       const policyStatements: object[] = [];
       if (s3Policy.allowRead) {
@@ -204,8 +204,8 @@ export class IamUser extends ATerraformResource<IamUserSchema, IamUser> {
           Sid: PolicyUtility.getSafeSid(`Allow read from bucket ${s3Policy.bucketName}`),
         });
         // s3:ListBucket is a bucket-level action, so it is only ever evaluated against the bucket
-        // ARN. Granting it alongside the object actions above, whose Resource is a directory,
-        // silently grants nothing. The directory is expressed as an s3:prefix condition instead.
+        // ARN. Granting it alongside the object actions above, whose Resource is a prefix,
+        // silently grants nothing. The prefix is expressed as an s3:prefix condition instead.
         policyStatements.push({
           Action: ['s3:ListBucket'],
           Effect: 'Allow',
@@ -216,7 +216,7 @@ export class IamUser extends ATerraformResource<IamUserSchema, IamUser> {
             : {
                 Condition: {
                   StringLike: {
-                    's3:prefix': [s3Policy.remoteDirectoryPath, `${s3Policy.remoteDirectoryPath}/*`],
+                    's3:prefix': [s3Policy.accessPrefix, `${s3Policy.accessPrefix}/*`],
                   },
                 },
               }),

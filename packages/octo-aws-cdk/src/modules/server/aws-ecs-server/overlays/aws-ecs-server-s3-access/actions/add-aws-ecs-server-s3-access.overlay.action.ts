@@ -46,13 +46,13 @@ export class AddAwsEcsServerS3AccessOverlayAction implements IModelAction<AwsEcs
     const properties = serverS3AccessOverlay.properties;
 
     const iamRole = actionInputs.resources[`iam-role-${properties.iamRoleName}`] as IamRole;
-    iamRole.addS3BucketPolicy(properties.iamRolePolicyId, properties.bucketName, properties.remoteDirectoryPath, {
+    iamRole.addS3BucketPolicy(properties.iamRolePolicyId, properties.bucketName, properties.accessPrefix, {
       allowRead: properties.allowRead,
       allowWrite: properties.allowWrite,
     });
 
-    const s3DirectoryAnchor = serverS3AccessOverlay.anchors[1];
-    const s3StorageService = s3DirectoryAnchor.getActual().getParent() as AModel<any, any>;
+    const s3AccessPrefixAnchor = serverS3AccessOverlay.anchors[1];
+    const s3StorageService = s3AccessPrefixAnchor.getActual().getParent() as AModel<any, any>;
     const [matchingS3StorageResource] = await s3StorageService.getResourcesMatchingSchema(S3StorageSchema, [], [], {
       searchBoundaryMembers: false,
     });
@@ -66,10 +66,11 @@ export class AddAwsEcsServerS3AccessOverlayAction implements IModelAction<AwsEcs
 
     (matchingS3StorageResource.getActual() as S3Storage).addPermission(
       new MatchingResource(iamRole),
-      properties.remoteDirectoryPath,
+      properties.accessPrefix,
       {
         allowRead: properties.allowRead,
         allowWrite: properties.allowWrite,
+        principalType: 'aws',
       },
     );
 

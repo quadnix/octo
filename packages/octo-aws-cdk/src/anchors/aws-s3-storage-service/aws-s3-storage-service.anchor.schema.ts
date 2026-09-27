@@ -21,12 +21,15 @@ export class AwsS3StorageServiceAnchorSchema extends BaseAnchorSchema {
    * * `properties.awsAccountId` - AWS account ID.
    * * `properties.awsRegionId` - AWS region ID.
    * * `properties.bucketName` - S3 bucket name.
+   * * `properties.contentDigest` - A digest of every file the bucket uploads, read from the local
+   * files. It changes whenever any of them does, which is what an invalidation keys on.
    */
   @Validate({
     destruct: (value: AwsS3StorageServiceAnchorSchema['properties']): string[] => [
       value.awsAccountId,
       value.awsRegionId,
       value.bucketName,
+      value.contentDigest,
     ],
     options: { minLength: 1 },
   })
@@ -34,5 +37,6 @@ export class AwsS3StorageServiceAnchorSchema extends BaseAnchorSchema {
     awsAccountId: string;
     awsRegionId: string;
     bucketName: string;
+    contentDigest: string;
   }>();
 }

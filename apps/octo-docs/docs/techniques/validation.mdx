@@ -90,17 +90,17 @@ For a list of nested objects, destruct to the list and check each against a sche
 
 ```typescript
 @Validate({
-  destruct: (value: AwsEcsServerModuleSchema['s3']): AwsEcsServerS3AccessDirectorySchema[] =>
-    value!.map((v) => v.directories).flat(),
-  options: { isSchema: { schema: AwsEcsServerS3AccessDirectorySchema } },
+  destruct: (value: AwsEcsServerModuleSchema['s3']): AwsEcsServerS3AccessPrefixSchema[] =>
+    value!.map((v) => v.accessPrefixes).flat(),
+  options: { isSchema: { schema: AwsEcsServerS3AccessPrefixSchema } },
 })
-s3 ? = Schema<{ directories: AwsEcsServerS3AccessDirectorySchema[]; service: Service }[]>([]);
+s3 ? = Schema<{ accessPrefixes: AwsEcsServerS3AccessPrefixSchema[]; service: Service }[]>([]);
 ```
 
 ## Several rules on one property
 
 Pass an array, and every rule has to pass. They can use different `destruct` functions, which is how
-the `s3` input above checks the directories, the services, and the services' serialized forms in
+the `s3` input above checks the access prefix grants, the services, and the services' serialized forms in
 three separate passes over the same value.
 
 ## Transforming before checking

@@ -2,10 +2,10 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsAccountAnchorSchema } from '../../../../src/anchors/aws-account/aws-account.anchor.schema.js';
-import type { AwsS3StorageServiceDirectoryAnchorSchema } from '../../../../src/anchors/aws-s3-storage-service/aws-s3-storage-service-directory.anchor.schema.js';
+import type { AwsS3StorageServiceAccessPrefixAnchorSchema } from '../../../../src/anchors/aws-s3-storage-service/aws-s3-storage-service-access-prefix.anchor.schema.js';
 import type { AwsS3StorageServiceAnchorSchema } from '../../../../src/anchors/aws-s3-storage-service/aws-s3-storage-service.anchor.schema.js';
 import { AwsEcsServerModule } from '../../../../src/modules/server/aws-ecs-server/index.js';
-import { AwsEcsServerS3AccessDirectoryPermission } from '../../../../src/modules/server/aws-ecs-server/index.schema.js';
+import { AwsEcsServerS3AccessPrefixPermission } from '../../../../src/modules/server/aws-ecs-server/index.schema.js';
 import { S3Storage } from '../../../../src/resources/s3-storage/index.js';
 import { config } from '../../../test.config.js';
 import { TerragruntUtility } from '../../../utilities/terragrunt/terragrunt.utility.js';
@@ -34,16 +34,16 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
   );
 
   service.addAnchor(
-    testModuleContainer.createTestAnchor<AwsS3StorageServiceDirectoryAnchorSchema>(
-      'AwsS3StorageServiceDirectoryAnchor-1234',
-      { bucketName: 'test-bucket', remoteDirectoryPath: 'uploads' },
+    testModuleContainer.createTestAnchor<AwsS3StorageServiceAccessPrefixAnchorSchema>(
+      'AwsS3StorageServiceAccessPrefixAnchor-1234',
+      { accessPrefix: 'uploads', bucketName: 'test-bucket' },
       service,
     ),
   );
   service.addAnchor(
     testModuleContainer.createTestAnchor<AwsS3StorageServiceAnchorSchema>(
       'AwsS3StorageServiceAnchor',
-      { awsAccountId: AWS_ACCOUNT_ID, awsRegionId: AWS_REGION_ID, bucketName: 'test-bucket' },
+      { awsAccountId: AWS_ACCOUNT_ID, awsRegionId: AWS_REGION_ID, bucketName: 'test-bucket', contentDigest: 'digest' },
       service,
     ),
   );
@@ -51,6 +51,7 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
   const s3Storage = new S3Storage('bucket-test-bucket', {
     awsAccountId: AWS_ACCOUNT_ID,
     awsRegionId: AWS_REGION_ID,
+    blockPublicAccess: true,
     Bucket: 'test-bucket',
     permissions: [],
   });
@@ -86,7 +87,7 @@ describe('AwsEcsServerModule E2E', () => {
             account: stub('${{testModule.model.account}}'),
             s3: [
               {
-                directories: [{ access: AwsEcsServerS3AccessDirectoryPermission.READ, remoteDirectoryPath: 'uploads' }],
+                accessPrefixes: [{ access: AwsEcsServerS3AccessPrefixPermission.READ, accessPrefix: 'uploads' }],
                 service: stub('${{testModule.model.service}}'),
               },
             ],
@@ -107,6 +108,7 @@ describe('AwsEcsServerModule E2E', () => {
        "aws_iam_policy.iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-f5e52fdb60ea",
        "aws_iam_role_policy_attachment.iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-f5e52fdb60ea_attach",
        "aws_s3_bucket.bucket-test-bucket",
+       "aws_s3_bucket_public_access_block.bucket-test-bucket-public-access",
        "aws_s3_bucket_policy.bucket-test-bucket-policy",
      ]
     `);

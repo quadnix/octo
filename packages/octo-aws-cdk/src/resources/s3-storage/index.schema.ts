@@ -21,6 +21,13 @@ export type IS3StoragePrincipalType = (typeof S3_STORAGE_PRINCIPAL_TYPES)[number
  */
 export class S3StoragePermissionSchema {
   /**
+   * The key prefix within the bucket this permission is for, e.g. `uploads`.
+   * If you want to allow access to the entire bucket, use empty string `''`.
+   */
+  @Validate({ options: { custom: (value: string): boolean => typeof value === 'string' } })
+  accessPrefix = Schema<string>();
+
+  /**
    * Allow read.
    */
   @Validate({ options: { minLength: 1 } })
@@ -45,13 +52,6 @@ export class S3StoragePermissionSchema {
     options: { custom: (value: string): boolean => (S3_STORAGE_PRINCIPAL_TYPES as readonly string[]).includes(value) },
   })
   principalType = Schema<IS3StoragePrincipalType>();
-
-  /**
-   * The path within the bucket this permission is for.
-   * If you want to allow access to the entire bucket, use empty string `''`.
-   */
-  @Validate({ options: { custom: (value: string): boolean => typeof value === 'string' } })
-  remoteDirectoryPath = Schema<string>();
 }
 
 /**

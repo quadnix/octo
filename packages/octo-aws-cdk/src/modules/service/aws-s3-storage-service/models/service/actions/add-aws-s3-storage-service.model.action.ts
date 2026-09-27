@@ -39,12 +39,14 @@ export class AddAwsS3StorageServiceModelAction implements IModelAction<AwsS3Stor
   ): Promise<ActionOutputs> {
     const { bucketName } = diff.node;
 
+    const { blockPublicAccess } = actionInputs.inputs;
     const { awsAccountId, awsRegionId } = actionInputs.metadata;
 
     // Create S3 Bucket.
     const s3Storage = new S3Storage(`bucket-${bucketName.replace(/[^\w-]/g, '-')}`, {
       awsAccountId,
       awsRegionId,
+      blockPublicAccess: blockPublicAccess ?? true,
       Bucket: bucketName,
       permissions: [],
     });

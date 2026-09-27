@@ -25,22 +25,22 @@ to a module because a module is what builds them.
 export class AwsEcsServerS3AccessOverlaySchema extends BaseOverlaySchema {
   @Validate({
     destruct: (value: AwsEcsServerS3AccessOverlaySchema['properties']): string[] => [
+      value.accessPrefix,
       String(value.allowRead),
       String(value.allowWrite),
       value.bucketName,
       value.iamRoleName,
       value.iamRolePolicyId,
-      value.remoteDirectoryPath,
     ],
     options: { minLength: 1 },
   })
   override properties = Schema<{
+    accessPrefix: string;
     allowRead: boolean;
     allowWrite: boolean;
     bucketName: string;
     iamRoleName: string;
     iamRolePolicyId: string;
-    remoteDirectoryPath: string;
   }>();
 }
 ```
@@ -58,13 +58,13 @@ export class AwsEcsServerS3AccessOverlay extends AOverlay<
   AwsEcsServerS3AccessOverlaySchema,
   AwsEcsServerS3AccessOverlay
 > {
-  declare anchors: [AwsIamRoleAnchor, MatchingAnchor<AwsS3StorageServiceDirectoryAnchorSchema>];
+  declare anchors: [AwsIamRoleAnchor, MatchingAnchor<AwsS3StorageServiceAccessPrefixAnchorSchema>];
   declare properties: AwsEcsServerS3AccessOverlaySchema['properties'];
 
   constructor (
     overlayId: string,
     properties: AwsEcsServerS3AccessOverlaySchema['properties'],
-    anchors: [AwsIamRoleAnchor, MatchingAnchor<AwsS3StorageServiceDirectoryAnchorSchema>],
+    anchors: [AwsIamRoleAnchor, MatchingAnchor<AwsS3StorageServiceAccessPrefixAnchorSchema>],
   ) {
     super(overlayId, properties, anchors);
   }
@@ -93,22 +93,22 @@ In the module, once both anchors are in hand:
 ```typescript
 const overlayIdSuffix = CommonUtility.hash(
   iamRoleAnchor.anchorId,
-  directory.remoteDirectoryPath,
-  directory.access,
+  grant.accessPrefix,
+  grant.access,
 ).substring(0, 12);
 const overlayId = `aws-ecs-server-s3-access-overlay-${overlayIdSuffix}`;
 
 const serverS3AccessOverlay = new AwsEcsServerS3AccessOverlay(
   overlayId,
   {
+    accessPrefix: grant.accessPrefix,
     allowRead,
     allowWrite,
-    bucketName: s3DirectoryAnchor.getSchemaInstance().properties.bucketName,
+    bucketName: s3AccessPrefixAnchor.getSchemaInstance().properties.bucketName,
     iamRoleName: iamRoleAnchor.properties.iamRoleName,
     iamRolePolicyId: overlayId,
-    remoteDirectoryPath: directory.remoteDirectoryPath,
   },
-  [iamRoleAnchor, s3DirectoryAnchor],
+  [iamRoleAnchor, s3AccessPrefixAnchor],
 );
 ```
 
@@ -147,11 +147,11 @@ export class AddAwsEcsServerS3AccessOverlayAction implements IModelAction<AwsEcs
 
     const iamRole = actionInputs.resources[`iam-role-${properties.iamRoleName}`] as IamRole;
     iamRole.addS3BucketPolicy(properties.iamRolePolicyId, properties.bucketName,
-      properties.remoteDirectoryPath,
+      properties.accessPrefix,
       { allowRead: properties.allowRead, allowWrite: properties.allowWrite });
 
-    const s3DirectoryAnchor = diff.node.anchors[1];
-    const s3StorageService = s3DirectoryAnchor.getActual().getParent();
+    const s3AccessPrefixAnchor = diff.node.anchors[1];
+    const s3StorageService = s3AccessPrefixAnchor.getActual().getParent();
     const [matchingS3StorageResource] = await s3StorageService.getResourcesMatchingSchema(
       S3StorageSchema, [], [], { searchBoundaryMembers: false },
     );
@@ -162,7 +162,7 @@ export class AddAwsEcsServerS3AccessOverlayAction implements IModelAction<AwsEcs
     }
 
     (matchingS3StorageResource.getActual() as S3Storage).addPermission(
-      new MatchingResource(iamRole), properties.remoteDirectoryPath,
+      new MatchingResource(iamRole), properties.accessPrefix,
       { allowRead: properties.allowRead, allowWrite: properties.allowWrite },
     );
 

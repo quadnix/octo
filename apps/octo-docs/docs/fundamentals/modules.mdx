@@ -23,7 +23,7 @@ modules:
     moduleInputs:
       region: "${{region-module.model.region}}"
       bucketName: "${env.RECEIPTS_BUCKET_NAME}"
-      remoteDirectoryPaths:
+      accessPrefixes:
         - uploads
 ```
 
@@ -41,7 +41,7 @@ author can put on an input, and [The Definition File](/docs/using-octo/the-defin
 writing the YAML.
 
 A module that cannot satisfy what it was asked for stops there too. Ask the shop's server module for
-access to a directory the receipts bucket does not have, and it says so before anything exists. The
+access to a prefix the receipts bucket does not have, and it says so before anything exists. The
 alternative is finding out partway through an apply with half a stack standing.
 
 ## Order

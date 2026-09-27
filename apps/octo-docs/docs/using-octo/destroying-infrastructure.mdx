@@ -23,9 +23,9 @@ out its module:
 #      serverKey: checkout
 #      s3:
 #        - service: "${{receipts-module.model.service}}"
-#          directories:
+#          accessPrefixes:
 #            - access: READ_WRITE
-#              remoteDirectoryPath: uploads
+#              accessPrefix: uploads
 ```
 
 Then generate:

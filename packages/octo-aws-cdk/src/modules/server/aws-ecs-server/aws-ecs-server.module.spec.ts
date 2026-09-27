@@ -1,9 +1,9 @@
 import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsAccountAnchorSchema } from '../../../anchors/aws-account/aws-account.anchor.schema.js';
-import type { AwsS3StorageServiceDirectoryAnchorSchema } from '../../../anchors/aws-s3-storage-service/aws-s3-storage-service-directory.anchor.schema.js';
+import type { AwsS3StorageServiceAccessPrefixAnchorSchema } from '../../../anchors/aws-s3-storage-service/aws-s3-storage-service-access-prefix.anchor.schema.js';
 import type { AwsS3StorageServiceAnchorSchema } from '../../../anchors/aws-s3-storage-service/aws-s3-storage-service.anchor.schema.js';
 import { S3Storage } from '../../../resources/s3-storage/index.js';
-import { AwsEcsServerS3AccessDirectoryPermission } from './index.schema.js';
+import { AwsEcsServerS3AccessPrefixPermission } from './index.schema.js';
 import { AwsEcsServerModule } from './index.js';
 
 async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
@@ -21,16 +21,16 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
   );
 
   service.addAnchor(
-    testModuleContainer.createTestAnchor<AwsS3StorageServiceDirectoryAnchorSchema>(
-      'AwsS3StorageServiceDirectoryAnchor-1234',
-      { bucketName: 'test-bucket', remoteDirectoryPath: 'uploads' },
+    testModuleContainer.createTestAnchor<AwsS3StorageServiceAccessPrefixAnchorSchema>(
+      'AwsS3StorageServiceAccessPrefixAnchor-1234',
+      { accessPrefix: 'uploads', bucketName: 'test-bucket' },
       service,
     ),
   );
   service.addAnchor(
     testModuleContainer.createTestAnchor<AwsS3StorageServiceAnchorSchema>(
       'AwsS3StorageServiceAnchor',
-      { awsAccountId: '123', awsRegionId: 'us-east-1', bucketName: 'test-bucket' },
+      { awsAccountId: '123', awsRegionId: 'us-east-1', bucketName: 'test-bucket', contentDigest: 'digest' },
       service,
     ),
   );
@@ -38,6 +38,7 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
   const s3Storage = new S3Storage('bucket-test-bucket', {
     awsAccountId: '123',
     awsRegionId: 'us-east-1',
+    blockPublicAccess: true,
     Bucket: 'test-bucket',
     permissions: [],
   });
@@ -72,7 +73,7 @@ describe('AwsEcsServerModule UT', () => {
           account: stub('${{testModule.model.account}}'),
           s3: [
             {
-              directories: [{ access: AwsEcsServerS3AccessDirectoryPermission.READ, remoteDirectoryPath: 'uploads' }],
+              accessPrefixes: [{ access: AwsEcsServerS3AccessPrefixPermission.READ, accessPrefix: 'uploads' }],
               service: stub('${{testModule.model.service}}'),
             },
           ],
@@ -210,6 +211,17 @@ describe('AwsEcsServerModule UT', () => {
        bucket = "test-bucket"
      }
 
+     resource "aws_s3_bucket_public_access_block" "bucket-test-bucket-public-access" {
+       provider = aws._123-us-east-1
+       block_public_acls = true
+       block_public_policy = true
+       bucket = aws_s3_bucket.bucket-test-bucket.id
+       ignore_public_acls = true
+       restrict_public_buckets = true
+
+       depends_on = [aws_s3_bucket.bucket-test-bucket]
+     }
+
      resource "aws_s3_bucket_policy" "bucket-test-bucket-policy" {
        provider = aws._123-us-east-1
        bucket = aws_s3_bucket.bucket-test-bucket.id
@@ -220,18 +232,30 @@ describe('AwsEcsServerModule UT', () => {
              Principal = {
                AWS = [var.iam_role_ServerRole_backend_Arn]
              }
-             Resource = ["arn:aws:s3:::test-bucket/uploads", "arn:aws:s3:::test-bucket/uploads/*"]
+             Resource = ["\${aws_s3_bucket.bucket-test-bucket.arn}/uploads", "\${aws_s3_bucket.bucket-test-bucket.arn}/uploads/*"]
              Sid = "iamroleServerRolebackendReadPermission"
            }]
          Version = "2012-10-17"
        })
 
-       depends_on = [aws_s3_bucket.bucket-test-bucket]
+       depends_on = [aws_s3_bucket_public_access_block.bucket-test-bucket-public-access]
      }
 
      # testModule/outputs.tf
      output "bucket-test-bucket-Arn" {
        value = aws_s3_bucket.bucket-test-bucket.arn
+     }
+
+     output "bucket-test-bucket-awsRegionId" {
+       value = "us-east-1"
+     }
+
+     output "bucket-test-bucket-Bucket" {
+       value = aws_s3_bucket.bucket-test-bucket.id
+     }
+
+     output "bucket-test-bucket-RegionalDomainName" {
+       value = aws_s3_bucket.bucket-test-bucket.bucket_regional_domain_name
      }
 
      # testModule/terragrunt.hcl
@@ -345,8 +369,8 @@ describe('AwsEcsServerModule UT', () => {
               account: stub('${{testModule.model.account}}'),
               s3: [
                 {
-                  directories: [
-                    { access: AwsEcsServerS3AccessDirectoryPermission.READ, remoteDirectoryPath: 'uploads' },
+                  accessPrefixes: [
+                    { access: AwsEcsServerS3AccessPrefixPermission.READ, accessPrefix: 'uploads' },
                   ],
                   service: stub('${{testModule.model.service}}'),
                 },
@@ -388,8 +412,8 @@ describe('AwsEcsServerModule UT', () => {
               account: stub('${{testModule.model.account}}'),
               s3: [
                 {
-                  directories: [
-                    { access: AwsEcsServerS3AccessDirectoryPermission.READ, remoteDirectoryPath: 'uploads' },
+                  accessPrefixes: [
+                    { access: AwsEcsServerS3AccessPrefixPermission.READ, accessPrefix: 'uploads' },
                   ],
                   service: stub('${{testModule.model.service}}'),
                 },

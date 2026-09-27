@@ -98,30 +98,30 @@ configuration, or anything looked up from the cloud is not.
 
 A model can do more than hold fields. Adding a method that maintains an invariant is often better
 than making the module do it, because the model is the thing that gets deserialized and the module
-is not. Our S3 storage model does this for directories:
+is not. Our S3 storage model does this for access prefixes:
 
 ```typescript
-addDirectory(remoteDirectoryPath: string): void {
-  if (this.directories.find((d) => d.remoteDirectoryPath === remoteDirectoryPath)) {
-    throw new ModelError('Remote directory already added in S3 bucket!', this);
+addAccessPrefix(accessPrefix: string): void {
+  if (this.accessPrefixes.find((d) => d.accessPrefix === accessPrefix)) {
+    throw new ModelError('Access prefix already added in S3 bucket!', this);
   }
 
-  const remoteDirectoryPathHash = CommonUtility.hash(remoteDirectoryPath).substring(0, 12);
-  const directoryAnchorName = `AwsS3StorageServiceDirectoryAnchor-${remoteDirectoryPathHash}`;
+  const accessPrefixHash = CommonUtility.hash(accessPrefix).substring(0, 12);
+  const accessPrefixAnchorName = `AwsS3StorageServiceAccessPrefixAnchor-${accessPrefixHash}`;
   this.addAnchor(
-    new AwsS3StorageServiceDirectoryAnchor(
-      directoryAnchorName,
-      { bucketName: this.bucketName, remoteDirectoryPath },
+    new AwsS3StorageServiceAccessPrefixAnchor(
+      accessPrefixAnchorName,
+      { accessPrefix, bucketName: this.bucketName },
       this,
     ),
   );
 
-  this.directories.push({ directoryAnchorName, remoteDirectoryPath });
+  this.accessPrefixes.push({ accessPrefix, accessPrefixAnchorName });
 }
 ```
 
 One call, and the model stays consistent: the list and the anchor cannot disagree, and adding the
-same directory twice is an error rather than a silent duplicate.
+same prefix twice is an error rather than a silent duplicate.
 
 ## Where it attaches
 

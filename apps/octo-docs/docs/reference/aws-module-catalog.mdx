@@ -78,7 +78,7 @@ what actually runs.
 
 `AwsEcsServerModule`'s `s3` input is the shop's receipts grant from [Shop
 Stack](/docs/getting-started/shop-stack): a list of storage services and, per service, the
-directories the server may access with `READ`, `WRITE`, or `READ_WRITE`. That produces an
+access prefixes the server may access with `READ`, `WRITE`, or `READ_WRITE`. That produces an
 [overlay](/docs/fundamentals/overlays), a policy on the role, and a statement on the bucket.
 
 Three of the inputs above are nested objects rather than scalars, and each one is a shape a
@@ -165,7 +165,7 @@ means one apply publishes the image and registers the task definition that names
 
 | Module                            | Inputs                                                                                                                                                                         | Creates                                                                                                                                                  |
 |-----------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `AwsS3StorageServiceModule`       | `region`, `bucketName`, `remoteDirectoryPaths?`, `blockPublicAccess?`                                                                                                          | S3 bucket, public access block, bucket policy                                                                                                            |
+| `AwsS3StorageServiceModule`       | `region`, `bucketName`, `accessPrefixes?`, `blockPublicAccess?`, `directoryPath?`, `filter?`, `transform?`, `subDirectoryOrFilePath?`                                     | S3 bucket, public access block, bucket policy, and with `directoryPath` one object per file                                                               |
 | `AwsS3StaticWebsiteServiceModule` | `account`, `awsRegionId`, `bucketName`, `directoryPath`, `cloudFront?`, `filter?`, `transform?`, `subDirectoryOrFilePath?`                                                     | S3 bucket, public access block, bucket policy, one object per file, and with `cloudFront` a distribution, its origin access control, and an invalidation |
 | `AwsDynamoDBServiceModule`        | `region`, `TableName`, `KeySchema`, `AttributeDefinitions`, `billingMode`, `GlobalSecondaryIndexes?`, `LocalSecondaryIndexes?`, `StreamSpecification?`, `timeToLiveAttribute?` | DynamoDB table                                                                                                                                           |
 | `AwsDynamoDBGlobalServiceModule`  | `dynamoDBService`, `replicas`                                                                                                                                                  | DynamoDB global table replicas                                                                                                                           |
@@ -300,26 +300,26 @@ needs to match to interoperate. Import a schema from `@quadnix/octo-aws-cdk/anch
 where `<name>` is the anchor's own name rather than the directory it sits in:
 `anchors/aws-iam-role/schema`, not `anchors/aws-iam/schema`.
 
-| Anchor                                      | On                | Publishes                                                                    |
-|---------------------------------------------|-------------------|------------------------------------------------------------------------------|
-| `AwsAccountAnchorSchema`                    | account           | `awsAccountId`                                                               |
-| `AwsRegionAnchorSchema`                     | region            | `awsRegionId`, `awsRegionAZs`, `regionId`, `vpcCidrBlock`                    |
-| `AwsSubnetAnchorSchema`                     | subnet            | `subnetName`, `CidrBlock`, `AvailabilityZone`, `awsAccountId`, `awsRegionId` |
-| `AwsSubnetLocalFilesystemMountAnchorSchema` | overlay           | `subnetName`, `filesystemName`, `awsAccountId`, `awsRegionId`                |
-| `AwsEcsServerAnchorSchema`                  | server            | `serverKey`, `deploymentType`                                                |
-| `AwsIamRoleAnchorSchema`                    | server            | `iamRoleName`                                                                |
-| `AwsSecurityGroupAnchorSchema`              | server, execution | `securityGroupName`, `rules`                                                 |
-| `AwsS3StorageServiceAnchorSchema`           | service           | `bucketName`, `awsAccountId`, `awsRegionId`                                  |
-| `AwsS3StorageServiceDirectoryAnchorSchema`  | service           | `bucketName`, `remoteDirectoryPath`                                          |
-| `AwsEcsClusterAnchorSchema`                 | environment       | `clusterName`, `environmentVariables`                                        |
-| `AwsEcsExecutionAnchorSchema`               | execution         | `desiredCount`, `environmentVariables`                                       |
-| `AwsEcsServiceAnchorSchema`                 | overlay           | `executionId`                                                                |
-| `AwsEcsTaskDefinitionAnchorSchema`          | deployment        | `cpu`, `memory`, `image`                                                     |
-| `AwsEcrImageAnchorSchema`                   | image             | `imageId`                                                                    |
-| `AwsEcsAlbAnchorSchema`                     | service           | `albName`                                                                    |
-| `AwsDynamoDBAnchorSchema`                   | service           | `TableName`                                                                  |
-| `AwsDynamoDBGlobalAnchorSchema`             | service           | `TableName`                                                                  |
-| `AwsEfsAnchorSchema`                        | filesystem        | `filesystemName`                                                             |
+| Anchor                                        | On                | Publishes                                                                    |
+|-----------------------------------------------|-------------------|------------------------------------------------------------------------------|
+| `AwsAccountAnchorSchema`                      | account           | `awsAccountId`                                                               |
+| `AwsRegionAnchorSchema`                       | region            | `awsRegionId`, `awsRegionAZs`, `regionId`, `vpcCidrBlock`                    |
+| `AwsSubnetAnchorSchema`                       | subnet            | `subnetName`, `CidrBlock`, `AvailabilityZone`, `awsAccountId`, `awsRegionId` |
+| `AwsSubnetLocalFilesystemMountAnchorSchema`   | overlay           | `subnetName`, `filesystemName`, `awsAccountId`, `awsRegionId`                |
+| `AwsEcsServerAnchorSchema`                    | server            | `serverKey`, `deploymentType`                                                |
+| `AwsIamRoleAnchorSchema`                      | server            | `iamRoleName`                                                                |
+| `AwsSecurityGroupAnchorSchema`                | server, execution | `securityGroupName`, `rules`                                                 |
+| `AwsS3StorageServiceAnchorSchema`             | service           | `bucketName`, `awsAccountId`, `awsRegionId`, `contentDigest`                 |
+| `AwsS3StorageServiceAccessPrefixAnchorSchema` | service           | `accessPrefix`, `bucketName`                                                 |
+| `AwsEcsClusterAnchorSchema`                   | environment       | `clusterName`, `environmentVariables`                                        |
+| `AwsEcsExecutionAnchorSchema`                 | execution         | `desiredCount`, `environmentVariables`                                       |
+| `AwsEcsServiceAnchorSchema`                   | overlay           | `executionId`                                                                |
+| `AwsEcsTaskDefinitionAnchorSchema`            | deployment        | `cpu`, `memory`, `image`                                                     |
+| `AwsEcrImageAnchorSchema`                     | image             | `imageId`                                                                    |
+| `AwsEcsAlbAnchorSchema`                       | service           | `albName`                                                                    |
+| `AwsDynamoDBAnchorSchema`                     | service           | `TableName`                                                                  |
+| `AwsDynamoDBGlobalAnchorSchema`               | service           | `TableName`                                                                  |
+| `AwsEfsAnchorSchema`                          | filesystem        | `filesystemName`                                                             |
 
 Two of them sit on an overlay rather than on a model, because what they describe is a relationship:
 a filesystem mounted into a subnet, and an execution's ECS service.

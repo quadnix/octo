@@ -82,7 +82,7 @@ modules:
     moduleInputs:
       region: "${{region-module.model.region}}"
       bucketName: "${env.RECEIPTS_BUCKET_NAME}"
-      remoteDirectoryPaths:
+      accessPrefixes:
         - uploads
 ```
 

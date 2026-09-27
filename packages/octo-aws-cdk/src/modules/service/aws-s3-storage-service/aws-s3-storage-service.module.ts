@@ -1,5 +1,6 @@
-import { AModule, type Account, type App, Module } from '@quadnix/octo';
+import { AModule, type Account, Module, ModuleError } from '@quadnix/octo';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
+import { AwsServerlessRegionAnchorSchema } from '../../../anchors/aws-region/aws-serverless-region.anchor.schema.js';
 import { AwsS3StorageServiceAnchor } from '../../../anchors/aws-s3-storage-service/aws-s3-storage-service.anchor.js';
 import { AwsS3StorageServiceModuleSchema } from './index.schema.js';
 import { AwsS3StorageService } from './models/service/index.js';
@@ -7,8 +8,13 @@ import { AwsS3StorageService } from './models/service/index.js';
 /**
  * `AwsS3StorageServiceModule` is an S3-based AWS storage service module
  * that provides an implementation for the `Service` model.
- * This module creates S3 buckets for object storage with support for directory organization and remote file management.
- * It provides scalable, durable storage for applications with configurable directory structures.
+ * This module creates an S3 bucket for object storage, declares the key prefixes in it that other
+ * modules may be granted access to, and optionally uploads the files of a local directory into it.
+ *
+ * The bucket is closed to the public by default. To serve its files, pass it as an origin to
+ * `AwsCloudFrontServiceModule`, which grants its distribution access. For a bucket that serves a
+ * website on its own, use `AwsS3StaticWebsiteServiceModule`.
+ * The bucket lives in a region created by any of the AWS region modules.
  *
  * @example
  * TypeScript
@@ -17,9 +23,11 @@ import { AwsS3StorageService } from './models/service/index.js';
  * import { AwsS3StorageServiceModule } from '@quadnix/octo-aws-cdk/modules/service/aws-s3-storage-service';
  *
  * octo.loadModule(AwsS3StorageServiceModule, 'my-storage-module', {
+ *   accessPrefixes: ['uploads', 'documents', 'images'],
  *   bucketName: 'my-app-storage',
- *   region: stub<Region>('${{my-region-module.model.region}}'),
- *   remoteDirectoryPaths: ['uploads', 'documents', 'images']
+ *   directoryPath: 'website',
+ *   filter: (filePath) => !filePath.includes('.DS_Store'),
+ *   region: stub<Region>('${{my-region-module.model.region}}')
  * });
  * ```
  *
@@ -34,49 +42,68 @@ import { AwsS3StorageService } from './models/service/index.js';
 @Module<AwsS3StorageServiceModule>('@octo', AwsS3StorageServiceModuleSchema)
 export class AwsS3StorageServiceModule extends AModule<AwsS3StorageServiceModuleSchema, AwsS3StorageService> {
   /**
-   * Creates the bucket service, and registers each directory in it along with who may read or write it.
+   * Creates the bucket service, registers the local files it uploads, and registers each access
+   * prefix in it that other modules may be granted access to.
    */
   async onInit(inputs: AwsS3StorageServiceModuleSchema): Promise<AwsS3StorageService> {
-    const { app, awsAccountId, awsRegionId } = await this.registerMetadata(inputs);
+    const { awsAccountId, awsRegionId } = await this.registerMetadata(inputs);
 
-    // Create a new service service.
-    const s3StorageService = new AwsS3StorageService(inputs.bucketName);
-    app.addService(s3StorageService);
+    // Create a new s3-storage service.
+    const s3StorageService = new AwsS3StorageService(inputs.bucketName, inputs.region);
+
+    // Add source files.
+    if (inputs.directoryPath) {
+      await s3StorageService.addSource(
+        inputs.directoryPath,
+        inputs.subDirectoryOrFilePath || undefined,
+        inputs.filter || undefined,
+        inputs.transform || undefined,
+      );
+    }
 
     // Add anchors.
     s3StorageService.addAnchor(
       new AwsS3StorageServiceAnchor(
         'AwsS3StorageServiceAnchor',
-        { awsAccountId, awsRegionId, bucketName: inputs.bucketName },
+        {
+          awsAccountId,
+          awsRegionId,
+          bucketName: inputs.bucketName,
+          contentDigest: await s3StorageService.getContentDigest(),
+        },
         s3StorageService,
       ),
     );
-    // Add S3 directories.
-    for (const remoteDirectoryPath of inputs.remoteDirectoryPaths || []) {
-      s3StorageService.addDirectory(remoteDirectoryPath);
+    // Add access prefixes.
+    for (const accessPrefix of inputs.accessPrefixes || []) {
+      s3StorageService.addAccessPrefix(accessPrefix);
     }
 
     return s3StorageService;
   }
 
   /**
-   * Resolves the app, account, and region this bucket is created in.
+   * Resolves the account and region this bucket is created in.
+   * The region may be networked or serverless; the bucket only needs its AWS region ID.
    */
   override async registerMetadata(
     inputs: AwsS3StorageServiceModuleSchema,
-  ): Promise<{ app: App; awsAccountId: string; awsRegionId: string }> {
+  ): Promise<{ awsAccountId: string; awsRegionId: string }> {
     const region = inputs.region;
     const account = region.getParents()['account'][0].to as Account;
-    const app = account.getParents()['app'][0].to as App;
 
     // Get AWS Region ID.
-    const [matchingAnchor] = await region.getAnchorsMatchingSchema(AwsRegionAnchorSchema, [], {
-      searchBoundaryMembers: false,
-    });
+    const [[matchingRegionAnchor], [matchingServerlessRegionAnchor]] = await Promise.all([
+      region.getAnchorsMatchingSchema(AwsRegionAnchorSchema, [], { searchBoundaryMembers: false }),
+      region.getAnchorsMatchingSchema(AwsServerlessRegionAnchorSchema, [], { searchBoundaryMembers: false }),
+    ]);
+    const matchingAnchor = matchingRegionAnchor || matchingServerlessRegionAnchor;
+    if (!matchingAnchor) {
+      throw new ModuleError('Region is not an AWS region!', this.constructor.name);
+    }
     const awsRegionId = matchingAnchor.getSchemaInstance().properties.awsRegionId;
 
     return {
-      app,
       awsAccountId: account.accountId,
       awsRegionId,
     };

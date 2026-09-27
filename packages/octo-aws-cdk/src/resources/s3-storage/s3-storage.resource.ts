@@ -58,16 +58,16 @@ export class S3Storage extends ATerraformResource<S3StorageSchema, S3Storage> {
   }
 
   /**
-   * Admits one principal to a directory of this bucket, as statements of the bucket's policy.
+   * Admits one principal to an access prefix of this bucket, as statements of the bucket's policy.
    *
-   * A principal already admitted to the directory has its read and write replaced. A `cloudfront`
+   * A principal already admitted to the prefix has its read and write replaced. A `cloudfront`
    * principal may only read.
    *
    * @internal
    */
   addPermission(
     principal: MatchingResource<PrincipalResourceSchema>,
-    remoteDirectoryPath: string,
+    accessPrefix: string,
     options: { allowRead: boolean; allowWrite: boolean; principalType: IS3StoragePrincipalType },
   ): void {
     if (options.principalType === 'cloudfront' && options.allowWrite) {
@@ -77,7 +77,7 @@ export class S3Storage extends ATerraformResource<S3StorageSchema, S3Storage> {
     const principalResourceId = principal.getActual().resourceId;
 
     const existingPermission = this.properties.permissions.find(
-      (p) => p.principalResourceId === principalResourceId && p.remoteDirectoryPath === remoteDirectoryPath,
+      (p) => p.principalResourceId === principalResourceId && p.accessPrefix === accessPrefix,
     );
     if (existingPermission) {
       existingPermission.allowRead = options.allowRead;
@@ -91,11 +91,11 @@ export class S3Storage extends ATerraformResource<S3StorageSchema, S3Storage> {
     }
 
     this.properties.permissions.push({
+      accessPrefix,
       allowRead: options.allowRead,
       allowWrite: options.allowWrite,
       principalResourceId,
       principalType: options.principalType,
-      remoteDirectoryPath,
     });
   }
 
@@ -127,8 +127,8 @@ export class S3Storage extends ATerraformResource<S3StorageSchema, S3Storage> {
       permissions: S3StorageSchema['properties']['permissions'],
     ): S3StorageSchema['properties']['permissions'] =>
       [...permissions].sort((a, b) =>
-        `${a.principalResourceId}/${a.remoteDirectoryPath}`.localeCompare(
-          `${b.principalResourceId}/${b.remoteDirectoryPath}`,
+        `${a.principalResourceId}/${a.accessPrefix}`.localeCompare(
+          `${b.principalResourceId}/${b.accessPrefix}`,
         ),
       );
     if (
@@ -240,17 +240,17 @@ export class S3Storage extends ATerraformResource<S3StorageSchema, S3Storage> {
       );
     }
 
-    // Admit each principal to its directory, one statement per principal and verb.
+    // Admit each principal to its access prefix, one statement per principal and verb.
     const statements: object[] = [];
     for (const permission of this.properties.permissions) {
       const principalParent = this.parents.find((p) => p.getActual().resourceId === permission.principalResourceId)!;
       const principalArn = terraform.getRef(principalParent, 'Arn');
       const resources =
-        permission.remoteDirectoryPath === ''
+        permission.accessPrefix === ''
           ? [terraform.raw(`"\${${s3StorageTFResource.address}.arn}/*"`)]
           : [
-              terraform.raw(`"\${${s3StorageTFResource.address}.arn}/${permission.remoteDirectoryPath}"`),
-              terraform.raw(`"\${${s3StorageTFResource.address}.arn}/${permission.remoteDirectoryPath}/*"`),
+              terraform.raw(`"\${${s3StorageTFResource.address}.arn}/${permission.accessPrefix}"`),
+              terraform.raw(`"\${${s3StorageTFResource.address}.arn}/${permission.accessPrefix}/*"`),
             ];
 
       if (permission.principalType === 'cloudfront') {

@@ -11,16 +11,16 @@ export class AwsEcsServerS3AccessOverlaySchema extends BaseOverlaySchema {
       value.bucketName,
       value.iamRoleName,
       value.iamRolePolicyId,
-      value.remoteDirectoryPath,
+      value.accessPrefix,
     ],
     options: { minLength: 1 },
   })
   override properties = Schema<{
+    accessPrefix: string;
     allowRead: boolean;
     allowWrite: boolean;
     bucketName: string;
     iamRoleName: string;
     iamRolePolicyId: string;
-    remoteDirectoryPath: string;
   }>();
 }

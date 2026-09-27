@@ -42,6 +42,12 @@ export type IIamRolePolicyTypes = {
  */
 export interface IIamRoleS3BucketPolicy {
   /**
+   * The key prefix within the bucket this policy is for, e.g. `uploads`.
+   * If you want to allow access to the entire bucket, use empty string `''`.
+   */
+  accessPrefix: string;
+
+  /**
    * Allows read access to the bucket prefix.
    */
   allowRead: boolean;
@@ -55,12 +61,6 @@ export interface IIamRoleS3BucketPolicy {
    * The name of the bucket.
    */
   bucketName: string;
-
-  /**
-   * The path within the bucket this policy is for.
-   * If you want to allow access to the entire bucket, use empty string `''`.
-   */
-  remoteDirectoryPath: string;
 }
 
 /**

@@ -108,7 +108,7 @@ modules:
     moduleInputs:
       region: "${{region-module.model.region}}"
       bucketName: "${env.RECEIPTS_BUCKET_NAME}"
-      remoteDirectoryPaths:
+      accessPrefixes:
         - uploads
 ```
 
@@ -233,7 +233,7 @@ WHAT WILL CHANGE
           + aws_vpc.vpc-eu-west-1
       + igw-eu-west-1
           + aws_internet_gateway.igw-eu-west-1
-  + added service=shop-receipts-s3-storage  [service=shop-receipts-s3-storage,app=shop | receipts-module | +1]
+  + added service=shop-receipts-s3-storage  [service=shop-receipts-s3-storage,region=eu-west-1,account=123456789012,app=shop | receipts-module | +1]
       + bucket-shop-receipts
           + aws_s3_bucket.bucket-shop-receipts
 ```
@@ -287,7 +287,7 @@ WHAT CHANGED
           + aws_vpc.vpc-eu-west-1
       + igw-eu-west-1
           + aws_internet_gateway.igw-eu-west-1
-  + added service=shop-receipts-s3-storage  [service=shop-receipts-s3-storage,app=shop | receipts-module | +1]
+  + added service=shop-receipts-s3-storage  [service=shop-receipts-s3-storage,region=eu-west-1,account=123456789012,app=shop | receipts-module | +1]
       + bucket-shop-receipts
           + aws_s3_bucket.bucket-shop-receipts
 
@@ -313,7 +313,7 @@ aws s3 ls | grep shop-receipts
 
 ## Give checkout access to it
 
-Checkout needs to read and write the `uploads` directory in the receipts bucket. Add the server to
+Checkout needs to read and write the `uploads` prefix in the receipts bucket. Add the server to
 `octo.yaml`, under `imports`:
 
 ```yaml title="octo.yaml"
@@ -331,13 +331,13 @@ and at the end of `modules`:
       serverKey: checkout
       s3:
         - service: "${{receipts-module.model.service}}"
-          directories:
+          accessPrefixes:
             - access: READ_WRITE
-              remoteDirectoryPath: uploads
+              accessPrefix: uploads
 ```
 
 There is no policy document in there, and no ARN. The server module is handed the receipts service
-itself, and `READ_WRITE` on a directory in it. Which S3 actions that means is the server module's
+itself, and `READ_WRITE` on a prefix in it. Which S3 actions that means is the server module's
 business.
 
 ```bash
@@ -355,7 +355,7 @@ WHAT WILL CHANGE
           + aws_iam_role_policy_attachment.iam-role-ServerRole-checkout_AmazonECSTaskExecutionRolePolicy
           + aws_iam_role_policy_attachment.iam-role-ServerRole-checkout_aws-ecs-server-s3-access-overlay-937a53bb02a4_attach
           + aws_iam_role.iam-role-ServerRole-checkout
-  + added service=shop-receipts-s3-storage  [service=shop-receipts-s3-storage,app=shop | receipts-module | +1]
+  + added service=shop-receipts-s3-storage  [service=shop-receipts-s3-storage,region=eu-west-1,account=123456789012,app=shop | receipts-module | +1]
       ~ bucket-shop-receipts
           + aws_s3_bucket_policy.bucket-shop-receipts-policy
 ```
@@ -409,7 +409,7 @@ resource "aws_iam_policy" "iam-role-ServerRole-checkout_aws-ecs-server-s3-access
 ```
 
 Six actions for read, three for write, and listing on its own. Listing is separate because
-`s3:ListBucket` is answered against the bucket rather than against an object, so the directory it is
+`s3:ListBucket` is answered against the bucket rather than against an object, so the prefix it is
 confined to has to be written as a condition. Somebody worked that out once, inside the server
 module, and every service that ever asks for `READ_WRITE` gets the same answer.
 

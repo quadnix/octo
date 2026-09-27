@@ -4,12 +4,12 @@ import { AwsS3StorageServiceAnchorSchema } from '../../../anchors/aws-s3-storage
 import { AwsSecurityGroupAnchorRuleSchema } from '../../../anchors/aws-security-group/aws-security-group.anchor.schema.js';
 
 /**
- * S3 directory access permissions for server modules.
- * This enum defines the level of access a server has in a S3 storage directory.
+ * S3 access prefix permissions for server modules.
+ * This enum defines the level of access a server has to the objects under an S3 storage access prefix.
  *
  * @group Modules/Server/AwsEcsServer
  */
-export enum AwsEcsServerS3AccessDirectoryPermission {
+export enum AwsEcsServerS3AccessPrefixPermission {
   /**
    * Read-only access to S3 storage
    */
@@ -27,28 +27,28 @@ export enum AwsEcsServerS3AccessDirectoryPermission {
 }
 
 /**
- * Schema for S3 storage service directory access configuration.
- * This defines the access permissions for specific directories in S3 storage services.
+ * Schema for granting a server access to one access prefix of an S3 storage service.
+ * The prefix must be one the storage service declared in its `accessPrefixes`.
  *
  * @group Modules/Server/AwsEcsServer
  *
  * @hideconstructor
  */
-export class AwsEcsServerS3AccessDirectorySchema {
+export class AwsEcsServerS3AccessPrefixSchema {
   /**
-   * The type of access granted to the directory.
+   * The type of access granted to the objects under the prefix.
    * This determines whether the server can read, write, or both.
-   * See {@link AwsEcsServerS3AccessDirectoryPermission} for options.
+   * See {@link AwsEcsServerS3AccessPrefixPermission} for options.
    */
   @Validate({ options: { minLength: 1 } })
-  access = Schema<AwsEcsServerS3AccessDirectoryPermission>();
+  access = Schema<AwsEcsServerS3AccessPrefixPermission>();
 
   /**
-   * The path to the directory within the S3 bucket.
-   * This specifies which directory the server will have access to.
+   * The key prefix within the S3 bucket, e.g. `uploads`.
+   * This specifies which objects the server will have access to.
    */
   @Validate({ options: { minLength: 1 } })
-  remoteDirectoryPath = Schema<string>();
+  accessPrefix = Schema<string>();
 }
 
 /**
@@ -84,16 +84,16 @@ export class AwsEcsServerModuleSchema {
 
   /**
    * Optional S3 storage access configuration.
-   * This defines which S3 storage and directories the server can access and with what permissions.
-   * * `s3.directories`: An array of S3 storage directory access configurations.
-   * See {@link AwsEcsServerS3AccessDirectorySchema} for options.
+   * This defines which S3 storage and access prefixes the server can access and with what permissions.
+   * * `s3.accessPrefixes`: An array of access prefix grants.
+   * See {@link AwsEcsServerS3AccessPrefixSchema} for options.
    * * `s3.service`: The S3 storage service the server can access.
    */
   @Validate<unknown>([
     {
-      destruct: (value: AwsEcsServerModuleSchema['s3']): AwsEcsServerS3AccessDirectorySchema[] =>
-        value!.map((v) => v.directories).flat(),
-      options: { isSchema: { schema: AwsEcsServerS3AccessDirectorySchema } },
+      destruct: (value: AwsEcsServerModuleSchema['s3']): AwsEcsServerS3AccessPrefixSchema[] =>
+        value!.map((v) => v.accessPrefixes).flat(),
+      options: { isSchema: { schema: AwsEcsServerS3AccessPrefixSchema } },
     },
     {
       destruct: (value: AwsEcsServerModuleSchema['s3']): Service[] => value!.map((v) => v.service),
@@ -108,7 +108,7 @@ export class AwsEcsServerModuleSchema {
       },
     },
   ])
-  s3? = Schema<{ directories: AwsEcsServerS3AccessDirectorySchema[]; service: Service }[]>([]);
+  s3? = Schema<{ accessPrefixes: AwsEcsServerS3AccessPrefixSchema[]; service: Service }[]>([]);
 
   /**
    * Security group rules to apply to the server.

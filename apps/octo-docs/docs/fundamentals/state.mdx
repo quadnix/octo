@@ -23,8 +23,8 @@ Commit them. This is not a cache.
 ```
 
 **`models.json`** is the [model](/docs/fundamentals/models) graph: every model, anchor, overlay, and
-edge between them. The shop's receipts service is in there as a service belonging to the app, with
-the bucket name somebody typed and the directory it was told to create.
+edge between them. The shop's receipts service is in there as a service in the region, with the
+bucket name somebody typed and the access prefix it was told to declare.
 
 **`resources-actual.json`** is what Octo believes exists. Here is the receipts bucket, after an
 apply and a commit:
@@ -44,10 +44,10 @@ apply and a commit:
       "Bucket": "shop-receipts",
       "permissions": [
         {
+          "accessPrefix": "uploads",
           "allowRead": true,
           "allowWrite": true,
           "principalResourceId": "iam-role-ServerRole-checkout",
-          "remoteDirectoryPath": "uploads"
         }
       ]
     },

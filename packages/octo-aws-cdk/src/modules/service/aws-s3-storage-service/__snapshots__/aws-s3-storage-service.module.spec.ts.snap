@@ -2,6 +2,32 @@
 
 exports[`AwsS3StorageServiceModule UT input changes should handle bucketName change 1`] = `
 "+ service/main.tf
+depends_on = [aws_s3_bucket.bucket-changed-bucket]
+}
+
+- service/main.tf
+depends_on = [aws_s3_bucket.bucket-test-bucket]
+}
+
++ service/main.tf
+resource "aws_s3_bucket_public_access_block" "bucket-changed-bucket-public-access" {
+  provider = aws._123-us-east-1
+  block_public_acls = true
+  block_public_policy = true
+  bucket = aws_s3_bucket.bucket-changed-bucket.id
+  ignore_public_acls = true
+  restrict_public_buckets = true
+
+- service/main.tf
+resource "aws_s3_bucket_public_access_block" "bucket-test-bucket-public-access" {
+  provider = aws._123-us-east-1
+  block_public_acls = true
+  block_public_policy = true
+  bucket = aws_s3_bucket.bucket-test-bucket.id
+  ignore_public_acls = true
+  restrict_public_buckets = true
+
++ service/main.tf
 resource "aws_s3_bucket" "bucket-changed-bucket" {
   provider = aws._123-us-east-1
   bucket = "changed-bucket"
@@ -18,9 +44,39 @@ output "bucket-changed-bucket-Arn" {
   value = aws_s3_bucket.bucket-changed-bucket.arn
 }
 
++ service/outputs.tf
+output "bucket-changed-bucket-awsRegionId" {
+  value = "us-east-1"
+}
+
++ service/outputs.tf
+output "bucket-changed-bucket-Bucket" {
+  value = aws_s3_bucket.bucket-changed-bucket.id
+}
+
++ service/outputs.tf
+output "bucket-changed-bucket-RegionalDomainName" {
+  value = aws_s3_bucket.bucket-changed-bucket.bucket_regional_domain_name
+}
+
 - service/outputs.tf
 output "bucket-test-bucket-Arn" {
   value = aws_s3_bucket.bucket-test-bucket.arn
+}
+
+- service/outputs.tf
+output "bucket-test-bucket-awsRegionId" {
+  value = "us-east-1"
+}
+
+- service/outputs.tf
+output "bucket-test-bucket-Bucket" {
+  value = aws_s3_bucket.bucket-test-bucket.id
+}
+
+- service/outputs.tf
+output "bucket-test-bucket-RegionalDomainName" {
+  value = aws_s3_bucket.bucket-test-bucket.bucket_regional_domain_name
 }"
 `;
 
@@ -28,11 +84,24 @@ exports[`AwsS3StorageServiceModule UT should CUD 2`] = `"<no changes>"`;
 
 exports[`AwsS3StorageServiceModule UT should CUD 4`] = `
 "- service/main.tf
+depends_on = [aws_s3_bucket.bucket-test-bucket]
+}
+
+- service/main.tf
 provider "aws" {
   alias = "_123-us-east-1"
   region = "us-east-1"
   allowed_account_ids = ["123"]
 }
+
+- service/main.tf
+resource "aws_s3_bucket_public_access_block" "bucket-test-bucket-public-access" {
+  provider = aws._123-us-east-1
+  block_public_acls = true
+  block_public_policy = true
+  bucket = aws_s3_bucket.bucket-test-bucket.id
+  ignore_public_acls = true
+  restrict_public_buckets = true
 
 - service/main.tf
 resource "aws_s3_bucket" "bucket-test-bucket" {
@@ -54,6 +123,21 @@ terraform {
 - service/outputs.tf
 output "bucket-test-bucket-Arn" {
   value = aws_s3_bucket.bucket-test-bucket.arn
+}
+
+- service/outputs.tf
+output "bucket-test-bucket-awsRegionId" {
+  value = "us-east-1"
+}
+
+- service/outputs.tf
+output "bucket-test-bucket-Bucket" {
+  value = aws_s3_bucket.bucket-test-bucket.id
+}
+
+- service/outputs.tf
+output "bucket-test-bucket-RegionalDomainName" {
+  value = aws_s3_bucket.bucket-test-bucket.bucket_regional_domain_name
 }
 
 - service/terragrunt.hcl
@@ -95,11 +179,24 @@ exports[`AwsS3StorageServiceModule UT should CUD tags 4`] = `
 
 exports[`AwsS3StorageServiceModule UT should handle moduleId change 1`] = `
 "- service-1/main.tf
+depends_on = [aws_s3_bucket.bucket-test-bucket]
+}
+
+- service-1/main.tf
 provider "aws" {
   alias = "_123-us-east-1"
   region = "us-east-1"
   allowed_account_ids = ["123"]
 }
+
+- service-1/main.tf
+resource "aws_s3_bucket_public_access_block" "bucket-test-bucket-public-access" {
+  provider = aws._123-us-east-1
+  block_public_acls = true
+  block_public_policy = true
+  bucket = aws_s3_bucket.bucket-test-bucket.id
+  ignore_public_acls = true
+  restrict_public_buckets = true
 
 - service-1/main.tf
 resource "aws_s3_bucket" "bucket-test-bucket" {
@@ -123,6 +220,21 @@ output "bucket-test-bucket-Arn" {
   value = aws_s3_bucket.bucket-test-bucket.arn
 }
 
+- service-1/outputs.tf
+output "bucket-test-bucket-awsRegionId" {
+  value = "us-east-1"
+}
+
+- service-1/outputs.tf
+output "bucket-test-bucket-Bucket" {
+  value = aws_s3_bucket.bucket-test-bucket.id
+}
+
+- service-1/outputs.tf
+output "bucket-test-bucket-RegionalDomainName" {
+  value = aws_s3_bucket.bucket-test-bucket.bucket_regional_domain_name
+}
+
 - service-1/terragrunt.hcl
 remote_state {
   backend = "local"
@@ -139,11 +251,24 @@ remote_state {
 <empty>
 
 + service-2/main.tf
+depends_on = [aws_s3_bucket.bucket-test-bucket]
+}
+
++ service-2/main.tf
 provider "aws" {
   alias = "_123-us-east-1"
   region = "us-east-1"
   allowed_account_ids = ["123"]
 }
+
++ service-2/main.tf
+resource "aws_s3_bucket_public_access_block" "bucket-test-bucket-public-access" {
+  provider = aws._123-us-east-1
+  block_public_acls = true
+  block_public_policy = true
+  bucket = aws_s3_bucket.bucket-test-bucket.id
+  ignore_public_acls = true
+  restrict_public_buckets = true
 
 + service-2/main.tf
 resource "aws_s3_bucket" "bucket-test-bucket" {
@@ -167,6 +292,21 @@ output "bucket-test-bucket-Arn" {
   value = aws_s3_bucket.bucket-test-bucket.arn
 }
 
++ service-2/outputs.tf
+output "bucket-test-bucket-awsRegionId" {
+  value = "us-east-1"
+}
+
++ service-2/outputs.tf
+output "bucket-test-bucket-Bucket" {
+  value = aws_s3_bucket.bucket-test-bucket.id
+}
+
++ service-2/outputs.tf
+output "bucket-test-bucket-RegionalDomainName" {
+  value = aws_s3_bucket.bucket-test-bucket.bucket_regional_domain_name
+}
+
 + service-2/terragrunt.hcl
 remote_state {
   backend = "local"
@@ -181,4 +321,134 @@ remote_state {
 
 + service-2/variables.tf
 <empty>"
+`;
+
+exports[`AwsS3StorageServiceModule UT uploads should CUD 2`] = `"<no changes>"`;
+
+exports[`AwsS3StorageServiceModule UT uploads should CUD 4`] = `
+"- service/main.tf
+depends_on = [aws_s3_bucket.bucket-test-bucket]
+}
+
+- service/main.tf
+provider "aws" {
+  alias = "_123-us-east-1"
+  region = "us-east-1"
+  allowed_account_ids = ["123"]
+}
+
+- service/main.tf
+resource "aws_s3_bucket_public_access_block" "bucket-test-bucket-public-access" {
+  provider = aws._123-us-east-1
+  block_public_acls = true
+  block_public_policy = true
+  bucket = aws_s3_bucket.bucket-test-bucket.id
+  ignore_public_acls = true
+  restrict_public_buckets = true
+
+- service/main.tf
+resource "aws_s3_bucket" "bucket-test-bucket" {
+  provider = aws._123-us-east-1
+  bucket = "test-bucket"
+}
+
+- service/main.tf
+resource "aws_s3_object" "bucket-test-bucket_file_errorhtml" {
+  provider = aws._123-us-east-1
+  bucket = aws_s3_bucket.bucket-test-bucket.id
+  content_type = "text/html"
+  etag = filemd5("\${var.OCTO_PROJECT_ROOT}/resources/s3-static-website/error.html")
+  key = "error.html"
+  source = "\${var.OCTO_PROJECT_ROOT}/resources/s3-static-website/error.html"
+}
+
+- service/main.tf
+resource "aws_s3_object" "bucket-test-bucket_file_indexhtml" {
+  provider = aws._123-us-east-1
+  bucket = aws_s3_bucket.bucket-test-bucket.id
+  content_type = "text/html"
+  etag = filemd5("\${var.OCTO_PROJECT_ROOT}/resources/s3-static-website/index.html")
+  key = "index.html"
+  source = "\${var.OCTO_PROJECT_ROOT}/resources/s3-static-website/index.html"
+}
+
+- service/main.tf
+resource "aws_s3_object" "bucket-test-bucket_file_page1html" {
+  provider = aws._123-us-east-1
+  bucket = aws_s3_bucket.bucket-test-bucket.id
+  content_type = "text/html"
+  etag = filemd5("\${var.OCTO_PROJECT_ROOT}/resources/s3-static-website/page-1.html")
+  key = "page-1.html"
+  source = "\${var.OCTO_PROJECT_ROOT}/resources/s3-static-website/page-1.html"
+}
+
+- service/main.tf
+terraform {
+  required_version = ">= 1.6.0"
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = ">= 5.49"
+    }
+  }
+}
+
+- service/outputs.tf
+output "bucket-test-bucket-Arn" {
+  value = aws_s3_bucket.bucket-test-bucket.arn
+}
+
+- service/outputs.tf
+output "bucket-test-bucket-awsRegionId" {
+  value = "us-east-1"
+}
+
+- service/outputs.tf
+output "bucket-test-bucket-Bucket" {
+  value = aws_s3_bucket.bucket-test-bucket.id
+}
+
+- service/outputs.tf
+output "bucket-test-bucket-RegionalDomainName" {
+  value = aws_s3_bucket.bucket-test-bucket.bucket_regional_domain_name
+}
+
+- service/terragrunt.hcl
+remote_state {
+  backend = "local"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite_terragrunt"
+  }
+  config = {
+    path = "\${get_terragrunt_dir()}/terraform.tfstate"
+  }
+}
+
+- service/variables.tf
+variable "OCTO_PROJECT_ROOT" {
+  type = string
+}"
+`;
+
+exports[`AwsS3StorageServiceModule UT uploads should handle directoryPath change 1`] = `
+"- service/main.tf
+resource "aws_s3_object" "bucket-test-bucket_file_errorhtml" {
+  provider = aws._123-us-east-1
+  bucket = aws_s3_bucket.bucket-test-bucket.id
+  content_type = "text/html"
+  etag = filemd5("\${var.OCTO_PROJECT_ROOT}/resources/s3-static-website/error.html")
+  key = "error.html"
+  source = "\${var.OCTO_PROJECT_ROOT}/resources/s3-static-website/error.html"
+}
+
+- service/main.tf
+resource "aws_s3_object" "bucket-test-bucket_file_page1html" {
+  provider = aws._123-us-east-1
+  bucket = aws_s3_bucket.bucket-test-bucket.id
+  content_type = "text/html"
+  etag = filemd5("\${var.OCTO_PROJECT_ROOT}/resources/s3-static-website/page-1.html")
+  key = "page-1.html"
+  source = "\${var.OCTO_PROJECT_ROOT}/resources/s3-static-website/page-1.html"
+}"
 `;

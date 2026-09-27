@@ -1,11 +1,11 @@
 import { AModule, type Account, AccountType, type App, Module, ModuleError } from '@quadnix/octo';
 import { AwsEcsServerAnchor } from '../../../anchors/aws-ecs/aws-ecs-server.anchor.js';
 import { AwsIamRoleAnchor } from '../../../anchors/aws-iam/aws-iam-role.anchor.js';
-import { AwsS3StorageServiceDirectoryAnchorSchema } from '../../../anchors/aws-s3-storage-service/aws-s3-storage-service-directory.anchor.schema.js';
+import { AwsS3StorageServiceAccessPrefixAnchorSchema } from '../../../anchors/aws-s3-storage-service/aws-s3-storage-service-access-prefix.anchor.schema.js';
 import { AwsS3StorageServiceAnchorSchema } from '../../../anchors/aws-s3-storage-service/aws-s3-storage-service.anchor.schema.js';
 import { AwsSecurityGroupAnchor } from '../../../anchors/aws-security-group/aws-security-group.anchor.js';
 import { CommonUtility } from '../../../utilities/common/common.utility.js';
-import { AwsEcsServerModuleSchema, AwsEcsServerS3AccessDirectoryPermission } from './index.schema.js';
+import { AwsEcsServerModuleSchema, AwsEcsServerS3AccessPrefixPermission } from './index.schema.js';
 import { AwsEcsServer } from './models/server/index.js';
 import { AwsEcsServerS3AccessOverlay } from './overlays/aws-ecs-server-s3-access/index.js';
 
@@ -20,14 +20,14 @@ import { AwsEcsServerS3AccessOverlay } from './overlays/aws-ecs-server-s3-access
  * ```ts
  * import { type Account, type Service, stub } from '@quadnix/octo';
  * import { AwsEcsServerModule } from '@quadnix/octo-aws-cdk/modules/server/aws-ecs-server';
- * import { AwsEcsServerS3AccessDirectoryPermission } from '@quadnix/octo-aws-cdk/modules/server/aws-ecs-server/schema';
+ * import { AwsEcsServerS3AccessPrefixPermission } from '@quadnix/octo-aws-cdk/modules/server/aws-ecs-server/schema';
  *
  * octo.loadModule(AwsEcsServerModule, 'my-server-module', {
  *   account: stub<Account>('${{my-account-module.model.account}}'),
  *   s3: [{
- *     directories: [{
- *       access: AwsEcsServerS3AccessDirectoryPermission.READ_WRITE,
- *       remoteDirectoryPath: 'uploads',
+ *     accessPrefixes: [{
+ *       access: AwsEcsServerS3AccessPrefixPermission.READ_WRITE,
+ *       accessPrefix: 'uploads',
  *     }],
  *     service: stub<Service>('${{my-storage-module.model.service}}'),
  *   }],
@@ -113,48 +113,48 @@ export class AwsEcsServerModule extends AModule<AwsEcsServerModuleSchema, AwsEcs
           awsRegionIds.push(awsRegionId);
         }
 
-        for (const directory of s3.directories) {
+        for (const grant of s3.accessPrefixes) {
           const allowRead =
-            directory.access === AwsEcsServerS3AccessDirectoryPermission.READ ||
-            directory.access === AwsEcsServerS3AccessDirectoryPermission.READ_WRITE;
+            grant.access === AwsEcsServerS3AccessPrefixPermission.READ ||
+            grant.access === AwsEcsServerS3AccessPrefixPermission.READ_WRITE;
           const allowWrite =
-            directory.access === AwsEcsServerS3AccessDirectoryPermission.WRITE ||
-            directory.access === AwsEcsServerS3AccessDirectoryPermission.READ_WRITE;
+            grant.access === AwsEcsServerS3AccessPrefixPermission.WRITE ||
+            grant.access === AwsEcsServerS3AccessPrefixPermission.READ_WRITE;
           if (!allowRead && !allowWrite) {
             continue;
           }
 
           const matchingAnchors = await service.getAnchorsMatchingSchema(
-            AwsS3StorageServiceDirectoryAnchorSchema,
-            [{ key: 'remoteDirectoryPath', value: directory.remoteDirectoryPath }],
+            AwsS3StorageServiceAccessPrefixAnchorSchema,
+            [{ key: 'accessPrefix', value: grant.accessPrefix }],
             { searchBoundaryMembers: false },
           );
           if (matchingAnchors.length !== 1) {
-            throw new ModuleError('Cannot find remote directory in S3Storage service!', this.constructor.name);
+            throw new ModuleError('Cannot find access prefix in S3Storage service!', this.constructor.name);
           }
-          const s3DirectoryAnchor = matchingAnchors[0];
+          const s3AccessPrefixAnchor = matchingAnchors[0];
 
           // The bucket is part of what defines this grant. Without it, one server given the same
-          // directory path in two buckets derives the same overlay ID twice, and the second one
+          // access prefix in two buckets derives the same overlay ID twice, and the second one
           // fails to compose with "Overlay already exists!".
           const overlayIdSuffix = CommonUtility.hash(
             iamRoleAnchor.anchorId,
-            s3DirectoryAnchor.getSchemaInstance().properties.bucketName,
-            directory.remoteDirectoryPath,
-            directory.access,
+            s3AccessPrefixAnchor.getSchemaInstance().properties.bucketName,
+            grant.accessPrefix,
+            grant.access,
           ).substring(0, 12);
           const overlayId = `aws-ecs-server-s3-access-overlay-${overlayIdSuffix}`;
           const serverS3AccessOverlay = new AwsEcsServerS3AccessOverlay(
             overlayId,
             {
+              accessPrefix: grant.accessPrefix,
               allowRead,
               allowWrite,
-              bucketName: s3DirectoryAnchor.getSchemaInstance().properties.bucketName,
+              bucketName: s3AccessPrefixAnchor.getSchemaInstance().properties.bucketName,
               iamRoleName: iamRoleAnchor.properties.iamRoleName,
               iamRolePolicyId: overlayId,
-              remoteDirectoryPath: directory.remoteDirectoryPath,
             },
-            [iamRoleAnchor, s3DirectoryAnchor],
+            [iamRoleAnchor, s3AccessPrefixAnchor],
           );
           models.push(serverS3AccessOverlay);
         }
