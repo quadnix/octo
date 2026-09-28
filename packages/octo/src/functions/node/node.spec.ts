@@ -2,8 +2,6 @@ import { MatchingResource, type UnknownNode } from '../../app.type.js';
 import { Account } from '../../models/account/account.model.js';
 import { AccountType } from '../../models/account/account.schema.js';
 import { App } from '../../models/app/app.model.js';
-import { Service } from '../../models/service/service.model.js';
-import { ServiceType } from '../../models/service/service.schema.js';
 import { TestAnchor } from '../../utilities/test-helpers/test-classes.js';
 import { create } from '../../utilities/test-helpers/test-models.js';
 import { createOverlay } from '../../utilities/test-helpers/test-overlays.js';
@@ -378,7 +376,9 @@ describe('Node UT', () => {
         region: ['region-a', 'region-b:-1'],
         subnet: ['subnet-a', 'subnet-b'],
       });
-      const service = new Service('service', [regionA], ServiceType.OTHER, 'test');
+      const {
+        service: [service],
+      } = create({ service: [['service', {}, [regionA]]] });
       service.addRelationship(regionB);
 
       expect(
@@ -404,7 +404,9 @@ describe('Node UT', () => {
         app: ['app'],
         region: ['region-a', 'region-b:-1'],
       });
-      const service = new Service('service', [regionA], ServiceType.OTHER, 'test');
+      const {
+        service: [service],
+      } = create({ service: [['service', {}, [regionA]]] });
       service.addRelationship(regionB);
 
       expect(
@@ -425,9 +427,15 @@ describe('Node UT', () => {
         region: ['region-a', 'region-b:-1'],
         subnet: ['subnet-a', 'subnet-b'],
       });
-      const serviceA = new Service('service-a', [regionA], ServiceType.OTHER, 'test');
+      const {
+        service: [serviceA, serviceB],
+      } = create({
+        service: [
+          ['service-a', {}, [regionA]],
+          ['service-b', {}, [regionB]],
+        ],
+      });
       serviceA.addRelationship(regionB);
-      const serviceB = new Service('service-b', [regionB], ServiceType.OTHER, 'test');
       serviceB.addRelationship(regionA);
 
       expect(

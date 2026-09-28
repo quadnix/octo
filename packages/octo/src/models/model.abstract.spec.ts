@@ -9,6 +9,10 @@ import { SchemaTranslationService } from '../services/schema-translation/schema-
 import { create } from '../utilities/test-helpers/test-models.js';
 import { createAnchor, createTestOverlays } from '../utilities/test-helpers/test-overlays.js';
 import { createTestResources } from '../utilities/test-helpers/test-resources.js';
+import { Account } from './account/account.model.js';
+import { AccountType } from './account/account.schema.js';
+import { App } from './app/app.model.js';
+import { Region } from './region/region.model.js';
 
 const TestAnchor = createAnchor().setClassName('TestAnchor');
 
@@ -58,6 +62,60 @@ describe('Model UT', () => {
       } = create({ account: ['aws,account'], app: ['test'] });
 
       expect(app.deriveDependencyField()).toBe('name');
+    });
+
+    it('should derive the field of a model from the edge to its parent', async () => {
+      const {
+        region: [region],
+      } = create({ account: ['aws,account'], app: ['test'], region: ['region'] });
+
+      expect(region.deriveDependencyField()).toBe('regionId');
+    });
+
+    it('should derive its own field when its first edge is to a child', async () => {
+      const app = new App('test');
+      const account = new Account(AccountType.AWS, 'account');
+      account.addChild('accountId', new Region('region'), 'regionId');
+      app.addChild('name', account, 'accountId');
+
+      expect(account.deriveDependencyField()).toBe('accountId');
+    });
+
+    it('should skip a sibling edge that comes first', async () => {
+      const {
+        account: [account],
+        region: [otherRegion],
+      } = create({ account: ['aws,account'], app: ['test'], region: ['other-region'] });
+      const region = new Region('region');
+      region.addRelationship(otherRegion);
+      account.addRegion(region);
+
+      expect(region.deriveDependencyField()).toBe('regionId');
+    });
+
+    it('should derive the field of a service with several parents', async () => {
+      const {
+        region: [region1, region2],
+      } = create({ account: ['aws,account'], app: ['test'], region: ['region-1', 'region-2:-1'] });
+      const {
+        service: [service],
+      } = create({ service: [['service', {}, [region1, region2]]] });
+
+      expect(service.deriveDependencyField()).toBe('serviceId');
+    });
+
+    it('should derive the field of an overlay', async () => {
+      const {
+        app: [app],
+      } = create({ app: ['test'] });
+      const anchor1 = new TestAnchor('anchor-1', {}, app);
+      app.addAnchor(anchor1);
+
+      const { '@octo/test-overlay=overlay-1': overlay } = await createTestOverlays([
+        { anchors: [anchor1], context: '@octo/test-overlay=overlay-1' },
+      ]);
+
+      expect(overlay.deriveDependencyField()).toBe('overlayId');
     });
   });
 

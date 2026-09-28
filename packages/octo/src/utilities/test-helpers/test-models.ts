@@ -62,7 +62,7 @@ export function create({
   pipeline?: (string | Pipeline)[];
   region?: (string | Region)[];
   server?: (string | Server)[];
-  service?: ([string, Record<string, unknown>?] | Service)[];
+  service?: ([string, Record<string, unknown>?, UnknownModel[]?] | Service)[];
   subnet?: (string | Subnet)[];
 }): {
   account: Account[];
@@ -253,10 +253,10 @@ export function create({
       result.service[index] = serviceEntry;
       continue;
     }
-    const [entry, serviceProperties] = serviceEntry;
+    const [entry, serviceProperties, parents] = serviceEntry;
     const [id, i] = splitEntry(entry, index);
     const TestServiceClass = createTestServiceModel(id, serviceProperties || {});
-    const service = new TestServiceClass([result.app[i]], ServiceType.OTHER, id);
+    const service = new TestServiceClass(parents ?? [result.app[i]], ServiceType.OTHER, id);
 
     getSchemaInstance(ServiceSchema, service.synth());
     result.service[index] = service;
