@@ -1,4 +1,4 @@
-import { AModule, type App, Module } from '@quadnix/octo';
+import { AModule, Module } from '@quadnix/octo';
 import { AwsDynamoDBGlobalAnchor } from '../../../anchors/aws-dynamodb/aws-dynamodb-global.anchor.js';
 import { AwsDynamoDBAnchorSchema } from '../../../anchors/aws-dynamodb/aws-dynamodb.anchor.schema.js';
 import { AwsDynamoDBGlobalServiceModuleSchema } from './index.schema.js';
@@ -6,7 +6,8 @@ import { AwsDynamoDBGlobalService } from './models/service/index.js';
 
 /**
  * `AwsDynamoDBGlobalServiceModule` is a global DynamoDB AWS service module that provides an implementation
- * for the `Service` model. It manages replicas of a global DynamoDB table.
+ * for the `Service` model. It manages replicas of a global DynamoDB table. The global table sits under
+ * the table it replicates, with an edge to each region it is replicated into.
  *
  * @example
  * TypeScript
@@ -37,11 +38,13 @@ export class AwsDynamoDBGlobalServiceModule extends AModule<
    * Creates the global table service over an existing DynamoDB table, and anchors it for its replicas.
    */
   async onInit(inputs: AwsDynamoDBGlobalServiceModuleSchema): Promise<AwsDynamoDBGlobalService> {
-    const { app, tableName } = await this.registerMetadata(inputs);
+    const { tableName } = await this.registerMetadata(inputs);
 
     // Create a new global DynamoDB.
-    const service = new AwsDynamoDBGlobalService(tableName);
-    app.addService(service);
+    const service = new AwsDynamoDBGlobalService(tableName, inputs.dynamoDBService);
+    for (const { region } of inputs.replicas) {
+      service.addReplicaRegion(region);
+    }
 
     // Add anchors.
     const dynamoDBGlobalAnchor = new AwsDynamoDBGlobalAnchor(
@@ -55,13 +58,10 @@ export class AwsDynamoDBGlobalServiceModule extends AModule<
   }
 
   /**
-   * Resolves the app, and the name of the table being replicated.
+   * Resolves the name of the table being replicated.
    */
-  override async registerMetadata(
-    inputs: AwsDynamoDBGlobalServiceModuleSchema,
-  ): Promise<{ app: App; tableName: string }> {
+  override async registerMetadata(inputs: AwsDynamoDBGlobalServiceModuleSchema): Promise<{ tableName: string }> {
     const dynamoDBService = inputs.dynamoDBService;
-    const app = dynamoDBService.getParents()['app'][0].to as App;
 
     // Get AWS DynamoDB table name.
     const [matchingAnchor] = await dynamoDBService.getAnchorsMatchingSchema(AwsDynamoDBAnchorSchema, [], {
@@ -70,7 +70,6 @@ export class AwsDynamoDBGlobalServiceModule extends AModule<
     const tableName = matchingAnchor.getSchemaInstance().properties.TableName;
 
     return {
-      app,
       tableName,
     };
   }

@@ -1,6 +1,6 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import { Service, ServiceType, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsDynamoDBAnchorSchema } from '../../../../src/anchors/aws-dynamodb/aws-dynamodb.anchor.schema.js';
 import type { AwsRegionAnchorSchema } from '../../../../src/anchors/aws-region/aws-region.anchor.schema.js';
 import { AwsDynamoDBGlobalServiceModule } from '../../../../src/modules/service/aws-dynamodb-global-service/index.js';
@@ -16,11 +16,9 @@ const OUTPUT_DIR = join(__dirname, 'generated');
 async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
   const {
     account: [account],
-    service: [service],
   } = await testModuleContainer.createTestModels('testModule', {
     account: [`aws,${AWS_ACCOUNT_ID}`],
     app: ['test-app'],
-    service: [['dynamodb-service', { tableName: 'test-table' }]],
   });
 
   const {
@@ -61,6 +59,11 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
     ),
   );
 
+  const {
+    service: [service],
+  } = await testModuleContainer.createTestModels('testModule', {
+    service: [new Service('test-table-dynamodb', [region1], ServiceType.DATABASE, 'dynamodb')],
+  });
   service.addAnchor(
     testModuleContainer.createTestAnchor<AwsDynamoDBAnchorSchema>(
       'AwsDynamoDBAnchor',

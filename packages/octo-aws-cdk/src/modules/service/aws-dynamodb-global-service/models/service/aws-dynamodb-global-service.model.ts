@@ -1,4 +1,4 @@
-import { Model, Service, Validate } from '@quadnix/octo';
+import { type AModel, Model, type Region, Service, ServiceType, Validate } from '@quadnix/octo';
 import { AwsDynamoDBGlobalServiceSchema } from './aws-dynamodb-global-service.schema.js';
 
 /**
@@ -12,8 +12,8 @@ export class AwsDynamoDBGlobalService extends Service {
   /**
    * @internal
    */
-  constructor(tableName: AwsDynamoDBGlobalServiceSchema['tableName']) {
-    super(`${tableName}-global-dynamodb`);
+  constructor(tableName: AwsDynamoDBGlobalServiceSchema['tableName'], dynamoDBService: Service) {
+    super(`${tableName}-global-dynamodb`, [dynamoDBService], ServiceType.DATABASE, 'dynamodb-global-table');
 
     this.tableName = tableName;
   }
@@ -21,8 +21,19 @@ export class AwsDynamoDBGlobalService extends Service {
   /**
    * @internal
    */
-  static override async unSynth(service: AwsDynamoDBGlobalServiceSchema): Promise<AwsDynamoDBGlobalService> {
-    return new AwsDynamoDBGlobalService(service.tableName);
+  static override async unSynth(
+    service: AwsDynamoDBGlobalServiceSchema,
+    deReferenceContext: (context: string) => Promise<AModel<any, any>>,
+  ): Promise<AwsDynamoDBGlobalService> {
+    const dynamoDBService = (await deReferenceContext(service.parents[0].context)) as Service;
+    return new AwsDynamoDBGlobalService(service.tableName, dynamoDBService);
+  }
+
+  /**
+   * Draws an edge to a region this table is replicated into.
+   */
+  addReplicaRegion(region: Region): void {
+    this.addRelationship(region);
   }
 
   /**
@@ -30,7 +41,7 @@ export class AwsDynamoDBGlobalService extends Service {
    */
   override synth(): AwsDynamoDBGlobalServiceSchema {
     return {
-      serviceId: this.serviceId,
+      ...super.synth(),
       tableName: this.tableName,
     };
   }

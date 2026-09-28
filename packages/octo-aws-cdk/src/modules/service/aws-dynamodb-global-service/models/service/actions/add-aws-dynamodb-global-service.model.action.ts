@@ -44,9 +44,12 @@ export class AddAwsDynamoDBGlobalServiceModelAction implements IModelAction<AwsD
     const { tableName } = diff.node;
     const { dynamoDBService: service, replicas } = actionInputs.inputs;
 
-    const [matchingDynamoDBResource] = await service.getResourcesMatchingSchema(DynamoDBSchema, [
-      { key: 'TableName', value: tableName },
-    ]);
+    const [matchingDynamoDBResource] = await service.getResourcesMatchingSchema(
+      DynamoDBSchema,
+      [{ key: 'TableName', value: tableName }],
+      [],
+      { searchBoundaryMembers: false },
+    );
 
     const globalReplicas: DynamoDBGlobalReplicaSchema[] = [];
     for (const replica of replicas) {

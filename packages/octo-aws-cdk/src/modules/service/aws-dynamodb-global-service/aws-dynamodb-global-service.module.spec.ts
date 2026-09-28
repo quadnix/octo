@@ -1,4 +1,12 @@
-import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import {
+  type Dependency,
+  type DiffMetadata,
+  Service,
+  ServiceType,
+  TestContainer,
+  TestModuleContainer,
+  stub,
+} from '@quadnix/octo';
 import type { AwsDynamoDBAnchorSchema } from '../../../anchors/aws-dynamodb/aws-dynamodb.anchor.schema.js';
 import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import type { DynamoDBSchema } from '../../../resources/dynamodb/index.schema.js';
@@ -7,11 +15,9 @@ import { AwsDynamoDBGlobalServiceModule } from './index.js';
 async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
   const {
     account: [account],
-    service: [service],
   } = await testModuleContainer.createTestModels('testModule', {
     account: ['aws,123'],
     app: ['test-app'],
-    service: [['dynamodb-service', { tableName: 'test-table' }]],
   });
 
   const {
@@ -52,6 +58,11 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
     ),
   );
 
+  const {
+    service: [service],
+  } = await testModuleContainer.createTestModels('testModule', {
+    service: [new Service('test-table-dynamodb', [region1], ServiceType.DATABASE, 'dynamodb')],
+  });
   service.addAnchor(
     testModuleContainer.createTestAnchor<AwsDynamoDBAnchorSchema>(
       'AwsDynamoDBAnchor',
@@ -212,6 +223,9 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
     `);
     expect(testModuleContainer.mapTransactionActions(modelTransaction)).toMatchInlineSnapshot(`
      [
+       [
+         "AddAwsDynamoDBGlobalServiceReplicaRegionModelAction",
+       ],
        [
          "AddAwsDynamoDBGlobalServiceModelAction",
        ],
@@ -457,6 +471,23 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
       expect(testModuleContainer.digestDiffs(addReplica.resourceDiffs)).toMatchInlineSnapshot(`
        [
          "* @octo/dynamodb-global=dynamodb-global-test-table",
+       ]
+      `);
+
+      const globalService = addReplica.modelTransaction
+        .flat()
+        .find((d: DiffMetadata) => d.node.getContext().startsWith('service=test-table-global-dynamodb'))!.node;
+      expect(globalService.getContext()).toMatchInlineSnapshot(
+        `"service=test-table-global-dynamodb,service=test-table-dynamodb,region=region-1,account=123,app=test-app"`,
+      );
+      expect(
+        Object.values(globalService.getSiblings())
+          .flat()
+          .map((d: Dependency) => d.to.getContext()),
+      ).toMatchInlineSnapshot(`
+       [
+         "region=region-1,account=123,app=test-app",
+         "region=region-2,account=123,app=test-app",
        ]
       `);
     });
