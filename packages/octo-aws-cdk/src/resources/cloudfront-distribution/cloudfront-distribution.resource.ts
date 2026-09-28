@@ -508,8 +508,8 @@ export class CloudFrontDistribution extends ATerraformResource<CloudFrontDistrib
    *
    * @internal
    * @throws If ids collide or do not resolve, if an alias has no certificate to serve it, if the
-   * certificate is not one CloudFront can read, or if a CloudFront Function is bound to
-   * an event it cannot run on.
+   * certificate is not one CloudFront can read, if a behavior caches a method it does not allow, or if
+   * a CloudFront Function is bound to an event it cannot run on.
    */
   private validateReferences(): void {
     const originIds = this.properties.origins.map((origin) => origin.originId);
@@ -571,6 +571,12 @@ export class CloudFrontDistribution extends ATerraformResource<CloudFrontDistrib
         if (reference?.kind === 'custom' && !customPolicyNames[slot].includes(reference.name)) {
           throw new Error(`CloudFront behavior names unknown custom policy "${reference.name}"!`);
         }
+      }
+
+      const allowedMethods: readonly string[] = behavior.allowedMethods ?? RENDER_DEFAULTS.behavior.allowedMethods;
+      const cachedMethods: readonly string[] = behavior.cachedMethods ?? RENDER_DEFAULTS.behavior.cachedMethods;
+      if (!cachedMethods.every((method) => allowedMethods.includes(method))) {
+        throw new Error('CloudFront cannot cache a method it does not allow!');
       }
 
       for (const functionAssociation of behavior.functionAssociations ?? []) {

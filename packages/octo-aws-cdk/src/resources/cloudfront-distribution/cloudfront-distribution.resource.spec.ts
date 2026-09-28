@@ -78,6 +78,40 @@ describe('CloudFrontDistribution UT', () => {
         },
       ],
       ['a flag that is not a boolean', { enabled: 'true' as any }],
+      [
+        'a set of allowed methods CloudFront does not accept',
+        { behaviors: [{ ...properties().behaviors[0], allowedMethods: ['GET', 'POST'] as any }] },
+      ],
+      [
+        'a set of cached methods CloudFront does not accept',
+        { behaviors: [{ ...properties().behaviors[0], cachedMethods: ['GET'] as any }] },
+      ],
+      [
+        'an unknown viewer protocol policy',
+        { behaviors: [{ ...properties().behaviors[0], viewerProtocolPolicy: 'https' as any }] },
+      ],
+      [
+        'an unknown edge function kind',
+        {
+          behaviors: [
+            {
+              ...properties().behaviors[0],
+              functionAssociations: [{ arn: 'arn', eventType: 'viewer-request', kind: 'lambda' as any }],
+            },
+          ],
+        },
+      ],
+      [
+        'an unknown edge function event type',
+        {
+          behaviors: [
+            {
+              ...properties().behaviors[0],
+              functionAssociations: [{ arn: 'arn', eventType: 'viewer' as any, kind: 'lambda-edge' }],
+            },
+          ],
+        },
+      ],
     ];
 
     it('should accept a legal distribution', () => {
@@ -87,6 +121,14 @@ describe('CloudFrontDistribution UT', () => {
           geoRestriction: { countries: ['DE', 'FR'], kind: 'allow' },
           // eslint-disable-next-line spellcheck/spell-checker
           viewerCertificate: { certificateArn: CERTIFICATE_ARN, kind: 'acm', minimumProtocolVersion: 'TLSv1.2_2021' },
+        });
+      }).not.toThrow();
+    });
+
+    it('should accept allowed methods in any order', () => {
+      expect(() => {
+        new CloudFrontDistributionSchema().properties = properties({
+          behaviors: [{ ...properties().behaviors[0], allowedMethods: ['OPTIONS', 'HEAD', 'GET'] as any }],
         });
       }).not.toThrow();
     });
@@ -192,6 +234,14 @@ describe('CloudFrontDistribution UT', () => {
           behaviors: [{ ...properties().behaviors[0], targetOriginId: 'nowhere' }],
         }),
       ).toThrowErrorMatchingInlineSnapshot(`"CloudFront behavior names unknown origin "nowhere"!"`);
+    });
+
+    it('should reject a behavior caching a method it does not allow', () => {
+      expect(() =>
+        createDistribution({
+          behaviors: [{ ...properties().behaviors[0], cachedMethods: ['GET', 'HEAD', 'OPTIONS'] }],
+        }),
+      ).toThrowErrorMatchingInlineSnapshot(`"CloudFront cannot cache a method it does not allow!"`);
     });
 
     it('should reject a behavior naming a custom policy that is not declared', () => {

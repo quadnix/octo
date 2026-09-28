@@ -1,8 +1,15 @@
 import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 import {
+  CLOUDFRONT_ALLOWED_METHODS,
+  CLOUDFRONT_CACHED_METHODS,
+  CLOUDFRONT_VIEWER_PROTOCOL_POLICIES,
   CloudFrontBehaviorSchema,
   CloudFrontFunctionAssociationSchema,
+  type ICloudFrontAllowedMethods,
+  type ICloudFrontCachedMethods,
   type ICloudFrontFunctionEventType,
+  type ICloudFrontFunctionKind,
+  type ICloudFrontViewerProtocolPolicy,
 } from './cloudfront-behavior.schema.js';
 import {
   CloudFrontOriginGroupSchema,
@@ -31,9 +38,12 @@ import {
 import { CloudFrontCustomErrorResponseSchema } from './cloudfront-response.schema.js';
 
 export {
+  CLOUDFRONT_ALLOWED_METHODS,
+  CLOUDFRONT_CACHED_METHODS,
   CLOUDFRONT_MANAGED_CACHE_POLICIES,
   CLOUDFRONT_MANAGED_ORIGIN_REQUEST_POLICIES,
   CLOUDFRONT_MANAGED_RESPONSE_HEADERS_POLICIES,
+  CLOUDFRONT_VIEWER_PROTOCOL_POLICIES,
   CloudFrontBehaviorSchema,
   CloudFrontCachePolicySchema,
   CloudFrontCorsSchema,
@@ -47,9 +57,12 @@ export {
   CloudFrontSecurityHeadersSchema,
 };
 export type {
+  ICloudFrontAllowedMethods,
+  ICloudFrontCachedMethods,
   ICloudFrontCorsMethod,
   ICloudFrontFrameOption,
   ICloudFrontFunctionEventType,
+  ICloudFrontFunctionKind,
   ICloudFrontManagedCachePolicy,
   ICloudFrontManagedOriginRequestPolicy,
   ICloudFrontManagedResponseHeadersPolicy,
@@ -57,6 +70,7 @@ export type {
   ICloudFrontPolicyReference,
   ICloudFrontReferrerPolicy,
   ICloudFrontValueSelection,
+  ICloudFrontViewerProtocolPolicy,
 };
 
 const CLOUDFRONT_HTTP_VERSIONS = ['http1.1', 'http2', 'http2and3'] as const;
@@ -92,7 +106,10 @@ const CLOUDFRONT_MINIMUM_PROTOCOL_VERSIONS = [
  */
 export type ICloudFrontMinimumProtocolVersion = (typeof CLOUDFRONT_MINIMUM_PROTOCOL_VERSIONS)[number];
 
-const CLOUDFRONT_PRICE_CLASSES = ['PriceClass_100', 'PriceClass_200', 'PriceClass_All'] as const;
+/**
+ * @internal
+ */
+export const CLOUDFRONT_PRICE_CLASSES = ['PriceClass_100', 'PriceClass_200', 'PriceClass_All'] as const;
 /**
  * Which edge locations serve the distribution, which sets what it costs. A viewer outside the chosen
  * locations is served from the nearest one inside them, more slowly.

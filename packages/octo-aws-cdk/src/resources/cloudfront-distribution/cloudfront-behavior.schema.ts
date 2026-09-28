@@ -10,12 +10,76 @@ import {
 } from './cloudfront-policy.schema.js';
 
 /**
+ * @internal
+ */
+export const CLOUDFRONT_ALLOWED_METHODS = [
+  ['GET', 'HEAD'],
+  ['GET', 'HEAD', 'OPTIONS'],
+  ['GET', 'HEAD', 'OPTIONS', 'PUT', 'POST', 'PATCH', 'DELETE'],
+] as const;
+/**
+ * The HTTP methods CloudFront forwards to the origin. CloudFront accepts these three sets alone. The
+ * type lists each in the order AWS does; validation accepts any order.
+ * * `['GET', 'HEAD']` - A CDN of static files.
+ * * `['GET', 'HEAD', 'OPTIONS']` - Static files, plus CORS preflight requests.
+ * * `['GET', 'HEAD', 'OPTIONS', 'PUT', 'POST', 'PATCH', 'DELETE']` - A reverse proxy in front of an API.
+ *
+ * @group Resources/CloudFrontDistribution
+ */
+export type ICloudFrontAllowedMethods = (typeof CLOUDFRONT_ALLOWED_METHODS)[number];
+
+/**
+ * @internal
+ */
+export const CLOUDFRONT_CACHED_METHODS = [
+  ['GET', 'HEAD'],
+  ['GET', 'HEAD', 'OPTIONS'],
+] as const;
+/**
+ * The HTTP methods whose responses CloudFront caches. CloudFront accepts these two sets alone, and
+ * the set must be within the allowed methods. Validation accepts any order.
+ *
+ * @group Resources/CloudFrontDistribution
+ */
+export type ICloudFrontCachedMethods = (typeof CLOUDFRONT_CACHED_METHODS)[number];
+
+const CLOUDFRONT_FUNCTION_EVENT_TYPES = [
+  'origin-request',
+  'origin-response',
+  'viewer-request',
+  'viewer-response',
+] as const;
+/**
  * Which event in the request lifecycle an edge function runs on.
  * CloudFront Functions may only run on a viewer event; Lambda@Edge may run on any of the four.
  *
  * @group Resources/CloudFrontDistribution
  */
-export type ICloudFrontFunctionEventType = 'origin-request' | 'origin-response' | 'viewer-request' | 'viewer-response';
+export type ICloudFrontFunctionEventType = (typeof CLOUDFRONT_FUNCTION_EVENT_TYPES)[number];
+
+const CLOUDFRONT_FUNCTION_KINDS = ['cloudfront-function', 'lambda-edge'] as const;
+/**
+ * Which engine runs an edge function.
+ * * `cloudfront-function` - JavaScript at the edge. It may only bind to a viewer event.
+ * * `lambda-edge` - Lambda@Edge. It may bind to any of the four events.
+ *
+ * @group Resources/CloudFrontDistribution
+ */
+export type ICloudFrontFunctionKind = (typeof CLOUDFRONT_FUNCTION_KINDS)[number];
+
+/**
+ * @internal
+ */
+export const CLOUDFRONT_VIEWER_PROTOCOL_POLICIES = ['allow-all', 'https-only', 'redirect-to-https'] as const;
+/**
+ * What CloudFront does with a plain HTTP request.
+ * * `allow-all` - Serves it over HTTP.
+ * * `https-only` - Refuses it with a `403`.
+ * * `redirect-to-https` - Redirects it to HTTPS with a `301`.
+ *
+ * @group Resources/CloudFrontDistribution
+ */
+export type ICloudFrontViewerProtocolPolicy = (typeof CLOUDFRONT_VIEWER_PROTOCOL_POLICIES)[number];
 
 /**
  * An edge function CloudFront runs for a behavior. The function itself is not created here - pass
@@ -35,15 +99,20 @@ export class CloudFrontFunctionAssociationSchema {
   /**
    * Which lifecycle event the function runs on. See {@link ICloudFrontFunctionEventType}.
    */
-  @Validate({ options: { minLength: 1 } })
+  @Validate({
+    options: {
+      custom: (value: string): boolean => (CLOUDFRONT_FUNCTION_EVENT_TYPES as readonly string[]).includes(value),
+    },
+  })
   eventType = Schema<ICloudFrontFunctionEventType>();
 
   /**
-   * Which engine runs it. A `cloudfront-function` is JavaScript at the edge and may only bind to a
-   * viewer event; `lambda-edge` may bind to any of the four.
+   * Which engine runs it. See {@link ICloudFrontFunctionKind}.
    */
-  @Validate({ options: { minLength: 1 } })
-  kind = Schema<'cloudfront-function' | 'lambda-edge'>();
+  @Validate({
+    options: { custom: (value: string): boolean => (CLOUDFRONT_FUNCTION_KINDS as readonly string[]).includes(value) },
+  })
+  kind = Schema<ICloudFrontFunctionKind>();
 }
 
 /**
@@ -56,23 +125,31 @@ export class CloudFrontFunctionAssociationSchema {
  */
 export class CloudFrontBehaviorSchema {
   /**
-   * The HTTP methods CloudFront forwards to the origin.
-   * `['GET', 'HEAD']` is a CDN; the full set makes the distribution a reverse proxy.
+   * The HTTP methods CloudFront forwards to the origin. See {@link ICloudFrontAllowedMethods}.
    */
   @Validate({
-    destruct: (value: CloudFrontBehaviorSchema['allowedMethods']): string[] => value!,
-    options: { minLength: 1 },
+    destruct: (value: CloudFrontBehaviorSchema['allowedMethods']): string[][] => [[...value!]],
+    options: {
+      custom: (value: string[]): boolean =>
+        CLOUDFRONT_ALLOWED_METHODS.some(
+          (m) => m.length === value.length && m.every((method) => value.includes(method)),
+        ),
+    },
   })
-  allowedMethods? = Schema<string[]>(['GET', 'HEAD']);
+  allowedMethods? = Schema<ICloudFrontAllowedMethods>(['GET', 'HEAD']);
 
   /**
-   * The subset of `allowedMethods` whose responses CloudFront caches.
+   * The subset of `allowedMethods` whose responses CloudFront caches. See
+   * {@link ICloudFrontCachedMethods}.
    */
   @Validate({
-    destruct: (value: CloudFrontBehaviorSchema['cachedMethods']): string[] => value!,
-    options: { minLength: 1 },
+    destruct: (value: CloudFrontBehaviorSchema['cachedMethods']): string[][] => [[...value!]],
+    options: {
+      custom: (value: string[]): boolean =>
+        CLOUDFRONT_CACHED_METHODS.some((m) => m.length === value.length && m.every((method) => value.includes(method))),
+    },
   })
-  cachedMethods? = Schema<string[]>(['GET', 'HEAD']);
+  cachedMethods? = Schema<ICloudFrontCachedMethods>(['GET', 'HEAD']);
 
   /**
    * Which policy decides the cache key and the TTLs. See {@link ICloudFrontPolicyReference}, and
@@ -154,8 +231,12 @@ export class CloudFrontBehaviorSchema {
   targetOriginId = Schema<string>();
 
   /**
-   * What CloudFront does with a plain HTTP request.
+   * What CloudFront does with a plain HTTP request. See {@link ICloudFrontViewerProtocolPolicy}.
    */
-  @Validate({ options: { minLength: 1 } })
-  viewerProtocolPolicy? = Schema<'allow-all' | 'https-only' | 'redirect-to-https'>('redirect-to-https');
+  @Validate({
+    options: {
+      custom: (value: string): boolean => (CLOUDFRONT_VIEWER_PROTOCOL_POLICIES as readonly string[]).includes(value),
+    },
+  })
+  viewerProtocolPolicy? = Schema<ICloudFrontViewerProtocolPolicy>('redirect-to-https');
 }
