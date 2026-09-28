@@ -72,7 +72,9 @@ reach, because the walk never goes sideways into a sibling's descendants. A modu
 cannot accidentally match something belonging to another.
 
 It is also why the server module can find the receipts bucket at all. Checkout was handed the
-receipts service directly, so there is an edge between them, and the search follows it.
+receipts service directly, so there is an edge between them, and the search follows it. The search
+reaches the receipts service and everything above it, but not what sits under it: being handed one
+thing does not hand over what that thing contains.
 
 ## What this buys you
 

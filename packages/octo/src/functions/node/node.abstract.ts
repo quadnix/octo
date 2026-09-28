@@ -241,20 +241,29 @@ export abstract class ANode<S, T> implements INode<S, T> {
    * @internal
    */
   getBoundaryMembers(): UnknownNode[] {
-    const extenders: UnknownNode[] = [this];
+    const extenders: { descend: boolean; node: UnknownNode }[] = [{ descend: true, node: this }];
     const members: UnknownNode[] = [];
     const parentOf: { [key: string]: string[] } = {};
+    // Walked nodes, and whether each was walked down to its children.
+    const walked: { [key: string]: boolean } = {};
 
-    const pushToExtenders = (nodes: UnknownNode[]): void => {
+    const pushToExtenders = (nodes: UnknownNode[], descend: boolean): void => {
       nodes.forEach((node) => {
-        if (!members.some((m) => m.getContext() === node.getContext())) {
-          extenders.push(node);
+        const context = node.getContext();
+        if ((descend && walked[context] === false) || !members.some((m) => m.getContext() === context)) {
+          extenders.push({ descend, node });
         }
       });
     };
 
     while (extenders.length > 0) {
-      const node = extenders.pop() as UnknownNode;
+      const { descend, node } = extenders.pop()!;
+      const nodeContext = node.getContext();
+      if (walked[nodeContext] === true || (walked[nodeContext] === false && !descend)) {
+        continue;
+      }
+      walked[nodeContext] = descend;
+
       const ancestors = node.getAncestors();
 
       for (const ancestor of ancestors) {
@@ -300,15 +309,21 @@ export abstract class ANode<S, T> implements INode<S, T> {
         }
       }
 
-      const children = node.getChildren();
-      for (const name in children) {
-        pushToExtenders(children[name].map((d) => d.to));
+      // Walk down only from a node reached through a child edge; a sibling's children stay out.
+      if (descend) {
+        const children = node.getChildren();
+        for (const name in children) {
+          pushToExtenders(
+            children[name].map((d) => d.to),
+            true,
+          );
+        }
       }
 
-      const dependents = node.dependencies
+      const siblings = node.dependencies
         .filter((d) => !d.isParentRelationship() && !d.isChildRelationship())
         .map((d) => d.to);
-      pushToExtenders(dependents);
+      pushToExtenders(siblings, false);
     }
 
     return members;

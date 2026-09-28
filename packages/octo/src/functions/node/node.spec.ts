@@ -1,7 +1,11 @@
-import { MatchingResource } from '../../app.type.js';
+import { MatchingResource, type UnknownNode } from '../../app.type.js';
 import { Account } from '../../models/account/account.model.js';
 import { AccountType } from '../../models/account/account.schema.js';
 import { App } from '../../models/app/app.model.js';
+import { Service } from '../../models/service/service.model.js';
+import { ServiceType } from '../../models/service/service.schema.js';
+import { TestAnchor } from '../../utilities/test-helpers/test-classes.js';
+import { create } from '../../utilities/test-helpers/test-models.js';
 import { createOverlay } from '../../utilities/test-helpers/test-overlays.js';
 import { createResource } from '../../utilities/test-helpers/test-resources.js';
 
@@ -217,6 +221,230 @@ describe('Node UT', () => {
       app1.addRelationship(account1);
 
       expect(app1.getDependencies().length).toBe(2);
+    });
+  });
+
+  describe('getBoundaryMembers()', () => {
+    const contextsOf = (node: UnknownNode): string[] =>
+      node
+        .getBoundaryMembers()
+        .map((m) => m.getContext())
+        .sort();
+
+    // app ── account ─┬─ region-a ─┬─ environment qa ─┐
+    //     └─ server   │            └─ subnet-a ───────┴─ execution (also under deployment v1 of server)
+    //                 └─ region-b ── subnet-b
+    const createGraph = (): ReturnType<typeof create> =>
+      create({
+        account: ['aws,account'],
+        app: ['app'],
+        deployment: ['v1'],
+        environment: ['qa'],
+        execution: [':0:0:0'],
+        region: ['region-a', 'region-b:-1'],
+        server: ['backend'],
+        subnet: ['subnet-a', 'subnet-b'],
+      });
+
+    it('should throw error if parents form a cycle', async () => {
+      const app1 = new App('app');
+      const account1 = new Account(AccountType.AWS, 'account');
+      app1.addChild('name', account1, 'accountId');
+      account1.addChild('accountId', app1, 'name');
+
+      expect(() => account1.getBoundaryMembers()).toThrow('Found circular dependencies!');
+    });
+
+    it('should include only itself when it has no edges', async () => {
+      const app1 = new App('app');
+
+      expect(contextsOf(app1)).toEqual(['app=app']);
+    });
+
+    it('should include its ancestors', async () => {
+      const {
+        subnet: [, subnetB],
+      } = createGraph();
+
+      expect(contextsOf(subnetB)).toMatchInlineSnapshot(`
+       [
+         "account=account,app=app",
+         "app=app",
+         "region=region-b,account=account,app=app",
+         "subnet=region-b-subnet-b,region=region-b,account=account,app=app",
+       ]
+      `);
+    });
+
+    it('should include its descendants, and the ancestors of each descendant', async () => {
+      const {
+        region: [regionA],
+      } = createGraph();
+
+      expect(contextsOf(regionA)).toMatchInlineSnapshot(`
+       [
+         "account=account,app=app",
+         "app=app",
+         "deployment=v1,server=backend,app=app",
+         "environment=qa,region=region-a,account=account,app=app",
+         "execution=backend-v1-region-a-qa-subnet-a,deployment=v1,server=backend,app=app,environment=qa,region=region-a,account=account,app=app,subnet=region-a-subnet-a,region=region-a,account=account,app=app",
+         "region=region-a,account=account,app=app",
+         "server=backend,app=app",
+         "subnet=region-a-subnet-a,region=region-a,account=account,app=app",
+       ]
+      `);
+    });
+
+    it("should not include a parent's other children", async () => {
+      const {
+        region: [, regionB],
+      } = createGraph();
+
+      expect(contextsOf(regionB)).toMatchInlineSnapshot(`
+       [
+         "account=account,app=app",
+         "app=app",
+         "region=region-b,account=account,app=app",
+         "subnet=region-b-subnet-b,region=region-b,account=account,app=app",
+       ]
+      `);
+    });
+
+    it('should include every node once', async () => {
+      const {
+        app: [app],
+      } = createGraph();
+
+      const contexts = contextsOf(app);
+
+      expect(new Set(contexts).size).toBe(contexts.length);
+      expect(contexts).toMatchInlineSnapshot(`
+       [
+         "account=account,app=app",
+         "app=app",
+         "deployment=v1,server=backend,app=app",
+         "environment=qa,region=region-a,account=account,app=app",
+         "execution=backend-v1-region-a-qa-subnet-a,deployment=v1,server=backend,app=app,environment=qa,region=region-a,account=account,app=app,subnet=region-a-subnet-a,region=region-a,account=account,app=app",
+         "region=region-a,account=account,app=app",
+         "region=region-b,account=account,app=app",
+         "server=backend,app=app",
+         "subnet=region-a-subnet-a,region=region-a,account=account,app=app",
+         "subnet=region-b-subnet-b,region=region-b,account=account,app=app",
+       ]
+      `);
+    });
+
+    it('should include an overlay, and every model it joins, but not their children', async () => {
+      const {
+        environment: [environment],
+        region: [, regionB],
+      } = createGraph();
+      const overlay = new TestOverlay('overlay-1', {}, []);
+      overlay.addAnchor(new TestAnchor('anchor-1', {}, environment));
+      overlay.addAnchor(new TestAnchor('anchor-2', {}, regionB));
+
+      expect(contextsOf(environment)).toMatchInlineSnapshot(`
+       [
+         "@octo/test-overlay=overlay-1",
+         "account=account,app=app",
+         "app=app",
+         "deployment=v1,server=backend,app=app",
+         "environment=qa,region=region-a,account=account,app=app",
+         "execution=backend-v1-region-a-qa-subnet-a,deployment=v1,server=backend,app=app,environment=qa,region=region-a,account=account,app=app,subnet=region-a-subnet-a,region=region-a,account=account,app=app",
+         "region=region-a,account=account,app=app",
+         "region=region-b,account=account,app=app",
+         "server=backend,app=app",
+         "subnet=region-a-subnet-a,region=region-a,account=account,app=app",
+       ]
+      `);
+      expect(contextsOf(overlay)).toMatchInlineSnapshot(`
+       [
+         "@octo/test-overlay=overlay-1",
+         "account=account,app=app",
+         "app=app",
+         "environment=qa,region=region-a,account=account,app=app",
+         "region=region-a,account=account,app=app",
+         "region=region-b,account=account,app=app",
+       ]
+      `);
+    });
+
+    it('should include a sibling and its ancestors, but not its children', async () => {
+      const {
+        region: [regionA, regionB],
+      } = create({
+        account: ['aws,account'],
+        app: ['app'],
+        region: ['region-a', 'region-b:-1'],
+        subnet: ['subnet-a', 'subnet-b'],
+      });
+      const service = new Service('service', [regionA], ServiceType.OTHER, 'test');
+      service.addRelationship(regionB);
+
+      expect(
+        regionA
+          .getBoundaryMembers()
+          .map((m) => m.getContext())
+          .sort(),
+      ).toEqual([
+        'account=account,app=app',
+        'app=app',
+        'region=region-a,account=account,app=app',
+        'region=region-b,account=account,app=app',
+        'service=service,region=region-a,account=account,app=app',
+        'subnet=region-a-subnet-a,region=region-a,account=account,app=app',
+      ]);
+    });
+
+    it('should not include a node whose sibling edge points at self', async () => {
+      const {
+        region: [regionA, regionB],
+      } = create({
+        account: ['aws,account'],
+        app: ['app'],
+        region: ['region-a', 'region-b:-1'],
+      });
+      const service = new Service('service', [regionA], ServiceType.OTHER, 'test');
+      service.addRelationship(regionB);
+
+      expect(
+        regionB
+          .getBoundaryMembers()
+          .map((m) => m.getContext())
+          .sort(),
+      ).toEqual(['account=account,app=app', 'app=app', 'region=region-b,account=account,app=app']);
+    });
+
+    it('should walk down a node reached across a sibling edge once it is reached as a child', async () => {
+      const {
+        app: [app],
+        region: [regionA, regionB],
+      } = create({
+        account: ['aws,account'],
+        app: ['app'],
+        region: ['region-a', 'region-b:-1'],
+        subnet: ['subnet-a', 'subnet-b'],
+      });
+      const serviceA = new Service('service-a', [regionA], ServiceType.OTHER, 'test');
+      serviceA.addRelationship(regionB);
+      const serviceB = new Service('service-b', [regionB], ServiceType.OTHER, 'test');
+      serviceB.addRelationship(regionA);
+
+      expect(
+        app
+          .getBoundaryMembers()
+          .map((m) => m.getContext())
+          .sort(),
+      ).toEqual([
+        'account=account,app=app',
+        'app=app',
+        'region=region-a,account=account,app=app',
+        'region=region-b,account=account,app=app',
+        'service=service-a,region=region-a,account=account,app=app',
+        'service=service-b,region=region-b,account=account,app=app',
+        'subnet=region-a-subnet-a,region=region-a,account=account,app=app',
+        'subnet=region-b-subnet-b,region=region-b,account=account,app=app',
+      ]);
     });
   });
 });

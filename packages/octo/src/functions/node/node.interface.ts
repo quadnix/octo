@@ -74,6 +74,7 @@ export interface INode<S, T> {
    * A boundary is a group of nodes that must belong together.
    * The boundary consists of all nodes associated with self,
    * which includes parents, grand parents, children, grand children, and siblings.
+   * A sibling brings its own ancestors and siblings into the boundary, never its children.
    */
   getBoundaryMembers(): UnknownNode[];
 
