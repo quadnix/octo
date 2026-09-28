@@ -207,8 +207,9 @@ definition file says both: a global secondary index can be added to or removed f
 and a local secondary index cannot, so changing one recreates the table.
 
 `AwsDynamoDBGlobalServiceModule` takes the table's own service and a replica per further region,
-each one a region node and optional tags. A replica cannot name the region the table already lives
-in:
+each one a region node and optional tags. A replica cannot name the region the table sits in.
+Regions that share an AWS region share one copy of the table, so they must give it the same tags,
+and a region in the table's own AWS region is served by the table itself:
 
 ```yaml
   - moduleId: accounts-global-module

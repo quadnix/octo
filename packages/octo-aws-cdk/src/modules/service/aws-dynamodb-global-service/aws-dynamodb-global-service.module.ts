@@ -1,6 +1,8 @@
-import { AModule, Module } from '@quadnix/octo';
+import { isDeepStrictEqual } from 'node:util';
+import { AModule, Module, ModuleError } from '@quadnix/octo';
 import { AwsDynamoDBGlobalAnchor } from '../../../anchors/aws-dynamodb/aws-dynamodb-global.anchor.js';
 import { AwsDynamoDBAnchorSchema } from '../../../anchors/aws-dynamodb/aws-dynamodb.anchor.schema.js';
+import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import { AwsDynamoDBGlobalServiceModuleSchema } from './index.schema.js';
 import { AwsDynamoDBGlobalService } from './models/service/index.js';
 
@@ -35,10 +37,35 @@ export class AwsDynamoDBGlobalServiceModule extends AModule<
   AwsDynamoDBGlobalService
 > {
   /**
-   * Creates the global table service over an existing DynamoDB table, and anchors it for its replicas.
+   * Validates the replica regions, creates the global table service over an existing DynamoDB table,
+   * and anchors it for its replicas.
    */
   async onInit(inputs: AwsDynamoDBGlobalServiceModuleSchema): Promise<AwsDynamoDBGlobalService> {
     const { tableName } = await this.registerMetadata(inputs);
+
+    // Validate replica regions.
+    const tableRegions = (inputs.dynamoDBService.getParents()['region'] || []).map((d) => d.to);
+    const replicaTagsByAwsRegionId: { [awsRegionId: string]: { [key: string]: string } } = {};
+    for (const { region, tags = {} } of inputs.replicas) {
+      if (tableRegions.includes(region)) {
+        throw new ModuleError(
+          `Replica region "${region.regionId}" is the region the table sits in!`,
+          this.constructor.name,
+        );
+      }
+
+      const [matchingAnchor] = await region.getAnchorsMatchingSchema(AwsRegionAnchorSchema, [], {
+        searchBoundaryMembers: false,
+      });
+      const awsRegionId = matchingAnchor.getSchemaInstance().properties.awsRegionId;
+      if (awsRegionId in replicaTagsByAwsRegionId && !isDeepStrictEqual(replicaTagsByAwsRegionId[awsRegionId], tags)) {
+        throw new ModuleError(
+          `Replicas in AWS region "${awsRegionId}" share one table, so they must have the same tags!`,
+          this.constructor.name,
+        );
+      }
+      replicaTagsByAwsRegionId[awsRegionId] = tags;
+    }
 
     // Create a new global DynamoDB.
     const service = new AwsDynamoDBGlobalService(tableName, inputs.dynamoDBService);

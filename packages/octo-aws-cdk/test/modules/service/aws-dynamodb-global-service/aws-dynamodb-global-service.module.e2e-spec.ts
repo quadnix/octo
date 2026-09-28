@@ -131,7 +131,7 @@ describe('AwsDynamoDBGlobalServiceModule E2E', () => {
         {
           inputs: {
             dynamoDBService: stub('${{testModule.model.service}}'),
-            replicas: [{ region: stub('${{testRegion1Module.model.region}}'), tags: { key1: 'value1' } }],
+            replicas: [{ region: stub('${{testRegion2Module.model.region}}'), tags: { key1: 'value1' } }],
           },
           moduleId: 'global-dynamodb-module',
           type: AwsDynamoDBGlobalServiceModule,
@@ -142,7 +142,7 @@ describe('AwsDynamoDBGlobalServiceModule E2E', () => {
 
     expect(await TerragruntUtility.collectTerraformResources(OUTPUT_DIR)).toMatchInlineSnapshot(`
      [
-       "aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1",
+       "aws_dynamodb_table_replica.dynamodb-global-test-table_us-west-2",
      ]
     `);
   }, 300_000);

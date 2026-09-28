@@ -11,7 +11,8 @@ import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.an
  */
 class DynamoDBGlobalReplicaSchema {
   /**
-   * The region this replica lives in. It must be a region other than the table's own.
+   * The region this replica lives in. It cannot be the region the table sits in. Regions in one AWS
+   * region share one replica, and a region in the table's own AWS region gets none.
    */
   @Validate([
     {
@@ -27,7 +28,7 @@ class DynamoDBGlobalReplicaSchema {
   region = Schema<Region>();
 
   /**
-   * Tags to apply to this replica.
+   * Tags to apply to this replica. Replicas in one AWS region must have the same tags.
    */
   @Validate({
     destruct: (value: DynamoDBGlobalReplicaSchema['tags']): string[] =>

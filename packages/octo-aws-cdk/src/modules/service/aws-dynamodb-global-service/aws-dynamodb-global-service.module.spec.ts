@@ -59,6 +59,63 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
   );
 
   const {
+    region: [region3],
+  } = await testModuleContainer.createTestModels('testRegion3Module', {
+    account: [account],
+    region: ['region-3'],
+  });
+  region3.addAnchor(
+    testModuleContainer.createTestAnchor<AwsRegionAnchorSchema>(
+      'AwsRegionAnchor',
+      {
+        awsRegionAZs: ['eu-west-1a'],
+        awsRegionId: 'eu-west-1',
+        regionId: 'aws-eu-west-1a',
+        vpcCidrBlock: '10.0.0.0/16',
+      },
+      region3,
+    ),
+  );
+
+  const {
+    region: [region4],
+  } = await testModuleContainer.createTestModels('testRegion4Module', {
+    account: [account],
+    region: ['region-4'],
+  });
+  region4.addAnchor(
+    testModuleContainer.createTestAnchor<AwsRegionAnchorSchema>(
+      'AwsRegionAnchor',
+      {
+        awsRegionAZs: ['us-west-2b'],
+        awsRegionId: 'us-west-2',
+        regionId: 'aws-us-west-2b',
+        vpcCidrBlock: '10.0.0.0/16',
+      },
+      region4,
+    ),
+  );
+
+  const {
+    region: [region5],
+  } = await testModuleContainer.createTestModels('testRegion5Module', {
+    account: [account],
+    region: ['region-5'],
+  });
+  region5.addAnchor(
+    testModuleContainer.createTestAnchor<AwsRegionAnchorSchema>(
+      'AwsRegionAnchor',
+      {
+        awsRegionAZs: ['us-east-1b'],
+        awsRegionId: 'us-east-1',
+        regionId: 'aws-us-east-1b',
+        vpcCidrBlock: '10.0.0.0/16',
+      },
+      region5,
+    ),
+  );
+
+  const {
     service: [service],
   } = await testModuleContainer.createTestModels('testModule', {
     service: [new Service('test-table-dynamodb', [region1], ServiceType.DATABASE, 'dynamodb')],
@@ -114,6 +171,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
     });
     testModuleContainer.registerTerraformProvider('aws', '123', 'us-east-1');
     testModuleContainer.registerTerraformProvider('aws', '123', 'us-west-2');
+    testModuleContainer.registerTerraformProvider('aws', '123', 'eu-west-1');
   });
 
   afterEach(async () => {
@@ -127,7 +185,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
       {
         inputs: {
           dynamoDBService: stub('${{testModule.model.service}}'),
-          replicas: [{ region: stub('${{testRegion1Module.model.region}}'), tags: { key1: 'value1' } }],
+          replicas: [{ region: stub('${{testRegion2Module.model.region}}'), tags: { key1: 'value1' } }],
         },
         moduleId: 'global-dynamodb-module',
         type: AwsDynamoDBGlobalServiceModule,
@@ -149,22 +207,22 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
      }
 
      provider "aws" {
-       alias = "_123-us-east-1"
-       region = "us-east-1"
+       alias = "_123-us-west-2"
+       region = "us-west-2"
        allowed_account_ids = ["123"]
      }
 
-     resource "aws_dynamodb_table_replica" "dynamodb-global-test-table_us-east-1" {
+     resource "aws_dynamodb_table_replica" "dynamodb-global-test-table_us-west-2" {
        global_table_arn = var.dynamodb_test_table_TableArn
-       provider = aws._123-us-east-1
+       provider = aws._123-us-west-2
        tags = {
          key1 = "value1"
        }
      }
 
      # global-dynamodb-module/outputs.tf
-     output "dynamodb-global-test-table-123_us-east-1_TableArn" {
-       value = aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1.arn
+     output "dynamodb-global-test-table-123_us-west-2_TableArn" {
+       value = aws_dynamodb_table_replica.dynamodb-global-test-table_us-west-2.arn
      }
 
      # global-dynamodb-module/terragrunt.hcl
@@ -246,7 +304,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
           {
             inputs: {
               dynamoDBService: stub('${{testModule.model.service}}'),
-              replicas: [{ region: stub('${{testRegion1Module.model.region}}'), tags: { key1: 'value1' } }],
+              replicas: [{ region: stub('${{testRegion2Module.model.region}}'), tags: { key1: 'value1' } }],
             },
             moduleId: 'global-dynamodb-module',
             type: AwsDynamoDBGlobalServiceModule,
@@ -268,7 +326,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
           {
             inputs: {
               dynamoDBService: stub('${{testModule.model.service}}'),
-              replicas: [{ region: stub('${{testRegion1Module.model.region}}'), tags: { key1: 'value1' } }],
+              replicas: [{ region: stub('${{testRegion2Module.model.region}}'), tags: { key1: 'value1' } }],
             },
             moduleId: 'global-dynamodb-module',
             type: AwsDynamoDBGlobalServiceModule,
@@ -288,8 +346,8 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
             inputs: {
               dynamoDBService: stub('${{testModule.model.service}}'),
               replicas: [
-                { region: stub('${{testRegion1Module.model.region}}'), tags: { key1: 'value1' } },
-                { region: stub('${{testRegion2Module.model.region}}'), tags: {} },
+                { region: stub('${{testRegion2Module.model.region}}'), tags: { key1: 'value1' } },
+                { region: stub('${{testRegion3Module.model.region}}'), tags: {} },
               ],
             },
             moduleId: 'global-dynamodb-module',
@@ -313,7 +371,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
           {
             inputs: {
               dynamoDBService: stub('${{testModule.model.service}}'),
-              replicas: [{ region: stub('${{testRegion1Module.model.region}}'), tags: { key1: 'value1' } }],
+              replicas: [{ region: stub('${{testRegion2Module.model.region}}'), tags: { key1: 'value1' } }],
             },
             moduleId: 'global-dynamodb-module',
             type: AwsDynamoDBGlobalServiceModule,
@@ -337,7 +395,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
             hidden: true,
             inputs: {
               dynamoDBService: stub('${{testModule.model.service}}'),
-              replicas: [{ region: stub('${{testRegion1Module.model.region}}'), tags: { key1: 'value1' } }],
+              replicas: [{ region: stub('${{testRegion2Module.model.region}}'), tags: { key1: 'value1' } }],
             },
             moduleId: 'global-dynamodb-module',
             type: AwsDynamoDBGlobalServiceModule,
@@ -366,7 +424,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
           {
             inputs: {
               dynamoDBService: stub('${{testModule.model.service}}'),
-              replicas: [{ region: stub('${{testRegion1Module.model.region}}') }],
+              replicas: [{ region: stub('${{testRegion2Module.model.region}}') }],
             },
             moduleId: 'global-dynamodb-module',
             type: AwsDynamoDBGlobalServiceModule,
@@ -390,7 +448,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
             inputs: {
               dynamoDBService: stub('${{testModule.model.service}}'),
               replicas: [
-                { region: stub('${{testRegion1Module.model.region}}'), tags: { tag1: 'value1_1', tag2: 'value2_1' } },
+                { region: stub('${{testRegion2Module.model.region}}'), tags: { tag1: 'value1_1', tag2: 'value2_1' } },
               ],
             },
             moduleId: 'global-dynamodb-module',
@@ -414,7 +472,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
           {
             inputs: {
               dynamoDBService: stub('${{testModule.model.service}}'),
-              replicas: [{ region: stub('${{testRegion1Module.model.region}}'), tags: {} }],
+              replicas: [{ region: stub('${{testRegion2Module.model.region}}'), tags: {} }],
             },
             moduleId: 'global-dynamodb-module',
             type: AwsDynamoDBGlobalServiceModule,
@@ -439,7 +497,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
           {
             inputs: {
               dynamoDBService: stub('${{testModule.model.service}}'),
-              replicas: [{ region: stub('${{testRegion1Module.model.region}}'), tags: {} }],
+              replicas: [{ region: stub('${{testRegion2Module.model.region}}'), tags: {} }],
             },
             moduleId: 'global-dynamodb-module',
             type: AwsDynamoDBGlobalServiceModule,
@@ -456,8 +514,8 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
               inputs: {
                 dynamoDBService: stub('${{testModule.model.service}}'),
                 replicas: [
-                  { region: stub('${{testRegion1Module.model.region}}'), tags: {} },
-                  { region: stub('${{testRegion2Module.model.region}}'), tags: { env: 'replica2' } },
+                  { region: stub('${{testRegion2Module.model.region}}'), tags: {} },
+                  { region: stub('${{testRegion3Module.model.region}}'), tags: { env: 'replica2' } },
                 ],
               },
               moduleId: 'global-dynamodb-module',
@@ -486,8 +544,8 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
           .map((d: Dependency) => d.to.getContext()),
       ).toMatchInlineSnapshot(`
        [
-         "region=region-1,account=123,app=test-app",
          "region=region-2,account=123,app=test-app",
+         "region=region-3,account=123,app=test-app",
        ]
       `);
     });
@@ -500,8 +558,8 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
             inputs: {
               dynamoDBService: stub('${{testModule.model.service}}'),
               replicas: [
-                { region: stub('${{testRegion1Module.model.region}}'), tags: {} },
                 { region: stub('${{testRegion2Module.model.region}}'), tags: {} },
+                { region: stub('${{testRegion3Module.model.region}}'), tags: {} },
               ],
             },
             moduleId: 'global-dynamodb-module',
@@ -518,7 +576,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
             {
               inputs: {
                 dynamoDBService: stub('${{testModule.model.service}}'),
-                replicas: [{ region: stub('${{testRegion1Module.model.region}}'), tags: {} }],
+                replicas: [{ region: stub('${{testRegion2Module.model.region}}'), tags: {} }],
               },
               moduleId: 'global-dynamodb-module',
               type: AwsDynamoDBGlobalServiceModule,
@@ -542,7 +600,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
           {
             inputs: {
               dynamoDBService: stub('${{testModule.model.service}}'),
-              replicas: [{ region: stub('${{testRegion1Module.model.region}}'), tags: { a: '1' } }],
+              replicas: [{ region: stub('${{testRegion2Module.model.region}}'), tags: { a: '1' } }],
             },
             moduleId: 'global-dynamodb-module',
             type: AwsDynamoDBGlobalServiceModule,
@@ -558,7 +616,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
             {
               inputs: {
                 dynamoDBService: stub('${{testModule.model.service}}'),
-                replicas: [{ region: stub('${{testRegion1Module.model.region}}'), tags: { a: '2', b: '3' } }],
+                replicas: [{ region: stub('${{testRegion2Module.model.region}}'), tags: { a: '2', b: '3' } }],
               },
               moduleId: 'global-dynamodb-module',
               type: AwsDynamoDBGlobalServiceModule,
@@ -583,7 +641,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
         {
           inputs: {
             dynamoDBService: stub('${{testModule.model.service}}'),
-            replicas: [{ region: stub('${{testRegion1Module.model.region}}'), tags: {} }],
+            replicas: [{ region: stub('${{testRegion2Module.model.region}}'), tags: {} }],
           },
           moduleId: 'global-dynamodb-module-1',
           type: AwsDynamoDBGlobalServiceModule,
@@ -599,7 +657,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
           {
             inputs: {
               dynamoDBService: stub('${{testModule.model.service}}'),
-              replicas: [{ region: stub('${{testRegion1Module.model.region}}'), tags: {} }],
+              replicas: [{ region: stub('${{testRegion2Module.model.region}}'), tags: {} }],
             },
             moduleId: 'global-dynamodb-module-2',
             type: AwsDynamoDBGlobalServiceModule,
@@ -612,7 +670,155 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
     expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`[]`);
   });
 
+  describe('replica regions', () => {
+    it('should create one replica for regions in the same AWS region', async () => {
+      await setup(testModuleContainer);
+      const result = (
+        await testModuleContainer
+          .runModules<AwsDynamoDBGlobalServiceModule>(
+            {
+              inputs: {
+                dynamoDBService: stub('${{testModule.model.service}}'),
+                replicas: [
+                  { region: stub('${{testRegion2Module.model.region}}'), tags: {} },
+                  { region: stub('${{testRegion4Module.model.region}}'), tags: {} },
+                ],
+              },
+              moduleId: 'global-dynamodb-module',
+              type: AwsDynamoDBGlobalServiceModule,
+            },
+            { terraformTarget: 'skip' },
+          )
+          .next()
+      ).value!;
+
+      const globalService = result.modelTransaction
+        .flat()
+        .find((d: DiffMetadata) => d.node.getContext().startsWith('service=test-table-global-dynamodb'))!.node;
+      expect(
+        Object.values(globalService.getSiblings())
+          .flat()
+          .map((d: Dependency) => d.to.getContext()),
+      ).toMatchInlineSnapshot(`
+       [
+         "region=region-2,account=123,app=test-app",
+         "region=region-4,account=123,app=test-app",
+       ]
+      `);
+      expect(result.hclRender.match(/resource "aws_dynamodb_table_replica" "[^"]+"/g)).toMatchInlineSnapshot(`
+       [
+         "resource "aws_dynamodb_table_replica" "dynamodb-global-test-table_us-west-2"",
+       ]
+      `);
+    });
+
+    it("should create no replica for a region in the table's AWS region", async () => {
+      await setup(testModuleContainer);
+      const result = (
+        await testModuleContainer
+          .runModules<AwsDynamoDBGlobalServiceModule>(
+            {
+              inputs: {
+                dynamoDBService: stub('${{testModule.model.service}}'),
+                replicas: [
+                  { region: stub('${{testRegion2Module.model.region}}'), tags: {} },
+                  { region: stub('${{testRegion5Module.model.region}}'), tags: {} },
+                ],
+              },
+              moduleId: 'global-dynamodb-module',
+              type: AwsDynamoDBGlobalServiceModule,
+            },
+            { terraformTarget: 'skip' },
+          )
+          .next()
+      ).value!;
+
+      const globalService = result.modelTransaction
+        .flat()
+        .find((d: DiffMetadata) => d.node.getContext().startsWith('service=test-table-global-dynamodb'))!.node;
+      expect(
+        Object.values(globalService.getSiblings())
+          .flat()
+          .map((d: Dependency) => d.to.getContext()),
+      ).toMatchInlineSnapshot(`
+       [
+         "region=region-2,account=123,app=test-app",
+         "region=region-5,account=123,app=test-app",
+       ]
+      `);
+      expect(result.hclRender.match(/resource "aws_dynamodb_table_replica" "[^"]+"/g)).toMatchInlineSnapshot(`
+       [
+         "resource "aws_dynamodb_table_replica" "dynamodb-global-test-table_us-west-2"",
+       ]
+      `);
+    });
+
+    it("should create no global table when every region is in the table's AWS region", async () => {
+      await setup(testModuleContainer);
+      const result = (
+        await testModuleContainer
+          .runModules<AwsDynamoDBGlobalServiceModule>(
+            {
+              inputs: {
+                dynamoDBService: stub('${{testModule.model.service}}'),
+                replicas: [{ region: stub('${{testRegion5Module.model.region}}'), tags: {} }],
+              },
+              moduleId: 'global-dynamodb-module',
+              type: AwsDynamoDBGlobalServiceModule,
+            },
+            { terraformTarget: 'skip' },
+          )
+          .next()
+      ).value!;
+
+      expect(testModuleContainer.digestDiffs(result.resourceDiffs)).toMatchInlineSnapshot(`[]`);
+    });
+  });
+
   describe('validation', () => {
+    it('should validate a replica region is not the region the table sits in', async () => {
+      await setup(testModuleContainer);
+      await expect(
+        testModuleContainer
+          .runModules<AwsDynamoDBGlobalServiceModule>(
+            {
+              inputs: {
+                dynamoDBService: stub('${{testModule.model.service}}'),
+                replicas: [{ region: stub('${{testRegion1Module.model.region}}'), tags: {} }],
+              },
+              moduleId: 'global-dynamodb-module',
+              type: AwsDynamoDBGlobalServiceModule,
+            },
+            { terraformTarget: 'skip' },
+          )
+          .next(),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`"Replica region "region-1" is the region the table sits in!"`);
+    });
+
+    it('should validate replicas in one AWS region have the same tags', async () => {
+      await setup(testModuleContainer);
+      await expect(
+        testModuleContainer
+          .runModules<AwsDynamoDBGlobalServiceModule>(
+            {
+              inputs: {
+                dynamoDBService: stub('${{testModule.model.service}}'),
+                replicas: [
+                  { region: stub('${{testRegion2Module.model.region}}'), tags: { a: '1' } },
+                  { region: stub('${{testRegion4Module.model.region}}'), tags: { a: '2' } },
+                ],
+              },
+              moduleId: 'global-dynamodb-module',
+              type: AwsDynamoDBGlobalServiceModule,
+            },
+            { terraformTarget: 'skip' },
+          )
+          .next(),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(
+        `"Replicas in AWS region "us-west-2" share one table, so they must have the same tags!"`,
+      );
+    });
+
     it('should validate replicas is not empty', async () => {
       await setup(testModuleContainer);
       await expect(
@@ -640,7 +846,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
             {
               inputs: {
                 dynamoDBService: stub('${{testModule.model.service}}'),
-                replicas: [{ region: stub('${{testRegion1Module.model.region}}'), tags: { '': 'value1' } }],
+                replicas: [{ region: stub('${{testRegion2Module.model.region}}'), tags: { '': 'value1' } }],
               },
               moduleId: 'global-dynamodb-module',
               type: AwsDynamoDBGlobalServiceModule,

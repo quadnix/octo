@@ -50,6 +50,8 @@ export class AddAwsDynamoDBGlobalServiceModelAction implements IModelAction<AwsD
       [],
       { searchBoundaryMembers: false },
     );
+    const { awsAccountId: tableAwsAccountId, awsRegionId: tableAwsRegionId } =
+      matchingDynamoDBResource.getSchemaInstance().properties;
 
     const globalReplicas: DynamoDBGlobalReplicaSchema[] = [];
     for (const replica of replicas) {
@@ -63,11 +65,23 @@ export class AddAwsDynamoDBGlobalServiceModelAction implements IModelAction<AwsD
       });
       const awsRegionId = matchingAnchor.getSchemaInstance().properties.awsRegionId;
 
+      // One replica per AWS region, and none where the table itself already is.
+      if (awsAccountId === tableAwsAccountId && awsRegionId === tableAwsRegionId) {
+        continue;
+      }
+      if (globalReplicas.some((r) => r.awsAccountId === awsAccountId && r.awsRegionId === awsRegionId)) {
+        continue;
+      }
+
       globalReplicas.push({
         awsAccountId,
         awsRegionId,
         tags: replica.tags || {},
       });
+    }
+
+    if (globalReplicas.length === 0) {
+      return actionOutputs;
     }
 
     const dynamoDbGlobal = new DynamoDBGlobal(
