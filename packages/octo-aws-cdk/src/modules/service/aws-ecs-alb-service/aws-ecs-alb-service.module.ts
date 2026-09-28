@@ -1,7 +1,6 @@
 import {
   AModule,
   type Account,
-  type App,
   type MatchingAnchor,
   Module,
   ModuleError,
@@ -82,7 +81,7 @@ export class AwsEcsAlbServiceModule extends AModule<AwsEcsAlbServiceModuleSchema
    */
   async onInit(inputs: AwsEcsAlbServiceModuleSchema): Promise<[AwsEcsAlbService, AwsEcsAlbServiceOverlay]> {
     const region = inputs.region;
-    const { app, subnets } = await this.registerMetadata(inputs);
+    const { subnets } = await this.registerMetadata(inputs);
 
     // Validate subnet.
     const associatedPublicSubnets: Subnet[] = [];
@@ -105,7 +104,6 @@ export class AwsEcsAlbServiceModule extends AModule<AwsEcsAlbServiceModuleSchema
 
     // Create a new ALB.
     const service = new AwsEcsAlbService(inputs.albName, associatedPublicSubnets);
-    app.addService(service);
 
     // Add anchors.
     const ecsAlbAnchor = new AwsEcsAlbAnchor('AwsEcsAlbAnchor', { albName: inputs.albName }, service);
@@ -134,10 +132,9 @@ export class AwsEcsAlbServiceModule extends AModule<AwsEcsAlbServiceModuleSchema
   }
 
   /**
-   * Resolves the app, account, region, availability zones, and the subnet models this load balancer sits in.
+   * Resolves the account, region, availability zones, and the subnet models this load balancer sits in.
    */
   override async registerMetadata(inputs: AwsEcsAlbServiceModuleSchema): Promise<{
-    app: App;
     awsAccountId: string;
     awsAvailabilityZones: string[];
     awsRegionId: string;
@@ -145,7 +142,6 @@ export class AwsEcsAlbServiceModule extends AModule<AwsEcsAlbServiceModuleSchema
   }> {
     const region = inputs.region;
     const account = region.getParents()['account'][0].to as Account;
-    const app = account.getParents()['app'][0].to as App;
     const subnets = (region.getChildren('subnet')['subnet'] || []).map((d) => d.to as Subnet);
 
     // Get AWS Region ID.
@@ -155,7 +151,6 @@ export class AwsEcsAlbServiceModule extends AModule<AwsEcsAlbServiceModuleSchema
     const { awsRegionAZs, awsRegionId } = matchingAnchor.getSchemaInstance().properties;
 
     return {
-      app,
       awsAccountId: account.accountId,
       awsAvailabilityZones: awsRegionAZs,
       awsRegionId,

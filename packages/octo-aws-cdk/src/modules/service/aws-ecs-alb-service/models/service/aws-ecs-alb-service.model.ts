@@ -1,4 +1,4 @@
-import { AModel, Model, Service, type Subnet, Validate } from '@quadnix/octo';
+import { type AModel, Model, Service, ServiceType, type Subnet, Validate } from '@quadnix/octo';
 import { AwsEcsAlbServiceSchema } from './aws-ecs-alb-service.schema.js';
 
 /**
@@ -13,13 +13,9 @@ export class AwsEcsAlbService extends Service {
    * @internal
    */
   constructor(albName: AwsEcsAlbServiceSchema['albName'], subnets: Subnet[]) {
-    super(`${albName}-alb`);
+    super(`${albName}-alb`, subnets, ServiceType.LOAD_BALANCER, 'alb');
 
     this.albName = albName;
-
-    for (const subnet of subnets) {
-      subnet.addChild('subnetId', this, 'serviceId');
-    }
   }
 
   /**
@@ -29,36 +25,17 @@ export class AwsEcsAlbService extends Service {
     service: AwsEcsAlbServiceSchema,
     deReferenceContext: (context: string) => Promise<AModel<any, any>>,
   ): Promise<AwsEcsAlbService> {
-    const subnets = (await Promise.all(service.subnets.map((s) => deReferenceContext(s.context)))) as Subnet[];
+    const subnets = (await Promise.all(service.parents.map((p) => deReferenceContext(p.context)))) as Subnet[];
     return new AwsEcsAlbService(service.albName, subnets);
   }
 
   /**
    * @internal
    */
-  override setContext(): string | undefined {
-    const parents = this.getParents();
-    const app = parents['app']?.[0]?.to;
-    const subnets = parents['subnet']?.map((d) => d.to as Subnet) || [];
-    if (!app || subnets.length === 0) {
-      return undefined;
-    }
-    return [`${Service.NODE_NAME}=${this.serviceId}`, ...subnets.map((s) => s.getContext()), app.getContext()].join(
-      ',',
-    );
-  }
-
-  /**
-   * @internal
-   */
   override synth(): AwsEcsAlbServiceSchema {
-    const parents = this.getParents();
-    const subnets = parents['subnet'].map((d) => d.to as Subnet);
-
     return {
+      ...super.synth(),
       albName: this.albName,
-      serviceId: this.serviceId,
-      subnets: subnets.map((s) => ({ context: s.getContext() })),
     };
   }
 }

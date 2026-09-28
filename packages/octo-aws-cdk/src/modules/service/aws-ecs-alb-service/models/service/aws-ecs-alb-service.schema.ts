@@ -1,4 +1,4 @@
-import { type IModelReference, Schema, ServiceSchema, Validate } from '@quadnix/octo';
+import { Schema, ServiceSchema, Validate } from '@quadnix/octo';
 
 /**
  * @internal
@@ -6,6 +6,4 @@ import { type IModelReference, Schema, ServiceSchema, Validate } from '@quadnix/
 export class AwsEcsAlbServiceSchema extends ServiceSchema {
   @Validate({ options: { minLength: 1 } })
   albName = Schema<string>();
-
-  subnets = Schema<IModelReference[]>();
 }

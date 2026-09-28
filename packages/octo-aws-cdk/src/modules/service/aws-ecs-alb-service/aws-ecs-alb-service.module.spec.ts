@@ -719,6 +719,10 @@ describe('AwsEcsAlbServiceModule UT', () => {
        ],
      ]
     `);
+    const albService = modelTransaction.flat().find((d) => d.node.getContext().startsWith('service='))!.node;
+    expect(albService.getContext()).toMatchInlineSnapshot(
+      `"service=test-alb-alb,subnet=region-public-subnet-1,region=region,account=123,app=test-app,subnet=region-public-subnet-2,region=region,account=123,app=test-app"`,
+    );
     expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
        "+ @octo/security-group=sec-grp-region-test-alb",
