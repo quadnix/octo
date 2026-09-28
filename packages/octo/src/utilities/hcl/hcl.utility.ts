@@ -13,7 +13,8 @@ import type { TerraformService } from '../../services/terraform/terraform.servic
 export class HclUtility {
   /**
    * Diffs two {@link serialize} renders at the block level. A block is identified by its header line,
-   * so a body change reads as `~` (a line-level {@link unifiedDiff} of what changed inside the block),
+   * and blocks sharing a header (one `provider "aws"` per alias) by their first body line too, so a
+   * body change reads as `~` (a line-level {@link unifiedDiff} of what changed inside the block),
    * not as an unrelated add + remove. An added block shows its full new body, a removed block its full
    * old body — symmetric, with nothing trimmed away. The `+`/`-`/`~` vocabulary mirrors the
    * `digestDiffs` digest, tagged with `moduleId/file`. Returns `'<no changes>'` when nothing moved.
@@ -29,8 +30,16 @@ export class HclUtility {
       a.localeCompare(b),
     );
     for (const key of keys) {
-      const previousBlocks = previousSections.get(key) ?? new Map<string, string>();
-      const currentBlocks = currentSections.get(key) ?? new Map<string, string>();
+      const previousTexts = previousSections.get(key) ?? [];
+      const currentTexts = currentSections.get(key) ?? [];
+
+      // A header repeated on either side is keyed with its first body line on both sides.
+      const repeatedHeaders = new Set([
+        ...HclUtility.repeatedHeaders(previousTexts),
+        ...HclUtility.repeatedHeaders(currentTexts),
+      ]);
+      const previousBlocks = HclUtility.keyBlocks(previousTexts, repeatedHeaders);
+      const currentBlocks = HclUtility.keyBlocks(currentTexts, repeatedHeaders);
       const headers = [...new Set([...previousBlocks.keys(), ...currentBlocks.keys()])].sort((a, b) =>
         a.localeCompare(b),
       );
@@ -201,14 +210,34 @@ export class HclUtility {
   }
 
   /**
-   * Splits a {@link serialize} render into top-level blocks, keyed by `moduleId/file` and then by the
-   * block's header line (e.g. `resource "aws_vpc" "vpc-x" {`). Relies on octo's regular render format —
-   * `# <moduleId>/<file>` section headers, blank-line-separated top-level blocks.
+   * Keys blocks by their header line (e.g. `resource "aws_vpc" "vpc-x" {`), adding the first body line
+   * for a header in `repeatedHeaders`, and an occurrence number for any key still taken.
    *
    * @internal
    */
-  private static parseBlocks(serialized: string): Map<string, Map<string, string>> {
-    const sections = new Map<string, Map<string, string>>();
+  private static keyBlocks(texts: string[], repeatedHeaders: Set<string>): Map<string, string> {
+    const blocks = new Map<string, string>();
+    for (const text of texts) {
+      const [header, firstBodyLine = ''] = text.split('\n');
+      const baseKey = repeatedHeaders.has(header) ? `${header} ${firstBodyLine.trim()}` : header;
+      let key = baseKey;
+      for (let occurrence = 2; blocks.has(key); occurrence++) {
+        key = `${baseKey} #${occurrence}`;
+      }
+      blocks.set(key, text);
+    }
+    return blocks;
+  }
+
+  /**
+   * Splits a {@link serialize} render into its top-level blocks, grouped by `moduleId/file`. Relies on
+   * octo's regular render format — `# <moduleId>/<file>` section headers, and a top-level block
+   * starting on an unindented line that is not a closing bracket.
+   *
+   * @internal
+   */
+  private static parseBlocks(serialized: string): Map<string, string[]> {
+    const sections = new Map<string, string[]>();
     if (!serialized) {
       return sections;
     }
@@ -219,14 +248,19 @@ export class HclUtility {
       if (currentKey === undefined) {
         return;
       }
-      const blocks = new Map<string, string>();
-      for (const block of buffer.join('\n').split(/\n\s*\n/)) {
-        const trimmed = block.trim();
-        if (trimmed) {
-          blocks.set(trimmed.split('\n')[0], trimmed);
+      // Split into top-level blocks; a blank line inside a block does not end it.
+      const units: string[][] = [];
+      for (const line of buffer) {
+        if (line.trim() && !/^[\s)\]}]/.test(line)) {
+          units.push([line]);
+        } else if (units.length > 0) {
+          units[units.length - 1].push(line);
         }
       }
-      sections.set(currentKey, blocks);
+      sections.set(
+        currentKey,
+        units.map((u) => u.join('\n').trim()),
+      );
       buffer = [];
     };
 
@@ -242,5 +276,15 @@ export class HclUtility {
     flush();
 
     return sections;
+  }
+
+  /**
+   * Returns the header lines that more than one of these blocks starts with.
+   *
+   * @internal
+   */
+  private static repeatedHeaders(texts: string[]): string[] {
+    const headers = texts.map((t) => t.split('\n')[0]);
+    return headers.filter((h, index) => headers.indexOf(h) !== index);
   }
 }

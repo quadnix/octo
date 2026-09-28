@@ -79,6 +79,45 @@ describe('HclUtility UT', () => {
          }"
       `);
     });
+
+    it('should keep a block with a blank line inside it whole', () => {
+      const before = '# region/main.tf\nresource "x" "a" {\n  v = 1\n\n  depends_on = [x.b]\n}';
+      const after = '# region/main.tf\nresource "x" "a" {\n  v = 2\n\n  depends_on = [x.b]\n}';
+      expect(HclUtility.diffBlocks(before, after)).toMatchInlineSnapshot(`
+       "~ region/main.tf resource "x" "a" {
+       @@ -1,3 +1,3 @@
+         resource "x" "a" {
+       -   v = 1
+       +   v = 2
+         "
+      `);
+    });
+
+    it('should show an added block that shares its header with another block', () => {
+      const before = '# region/main.tf\nprovider "aws" {\n  alias = "a"\n}';
+      const after = '# region/main.tf\nprovider "aws" {\n  alias = "a"\n}\n\nprovider "aws" {\n  alias = "b"\n}';
+      expect(HclUtility.diffBlocks(before, after)).toMatchInlineSnapshot(`
+       "+ region/main.tf
+       provider "aws" {
+         alias = "b"
+       }"
+      `);
+    });
+
+    it('should show a changed block that shares its header with another block', () => {
+      const before =
+        '# region/main.tf\nprovider "aws" {\n  alias = "a"\n  region = "r1"\n}\n\nprovider "aws" {\n  alias = "b"\n  region = "r1"\n}';
+      const after =
+        '# region/main.tf\nprovider "aws" {\n  alias = "a"\n  region = "r1"\n}\n\nprovider "aws" {\n  alias = "b"\n  region = "r2"\n}';
+      expect(HclUtility.diffBlocks(before, after)).toMatchInlineSnapshot(`
+       "~ region/main.tf provider "aws" { alias = "b"
+       @@ -2,3 +2,3 @@
+           alias = "b"
+       -   region = "r1"
+       +   region = "r2"
+         }"
+      `);
+    });
   });
 
   describe('unifiedDiff()', () => {
