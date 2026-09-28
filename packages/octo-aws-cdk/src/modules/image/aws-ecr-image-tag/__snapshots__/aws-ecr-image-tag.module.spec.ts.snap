@@ -49,16 +49,7 @@ output "ecr-image-tag-us-east-1-family_image-0-0-1" {
 dependency "testModule" {
   config_path = "../testModule"
 
-- image-tag/terragrunt.hcl
-inputs = {
-  ecr_us_east_1_family_image_registryId = dependency.testModule.outputs["ecr-us-east-1-family_image-registryId"]
-  ecr_us_east_1_family_image_repositoryArn = dependency.testModule.outputs["ecr-us-east-1-family_image-repositoryArn"]
-  ecr_us_east_1_family_image_repositoryName = dependency.testModule.outputs["ecr-us-east-1-family_image-repositoryName"]
-  ecr_us_east_1_family_image_repositoryUri = dependency.testModule.outputs["ecr-us-east-1-family_image-repositoryUri"]
-}
-
-- image-tag/terragrunt.hcl
-mock_outputs = {
+  mock_outputs = {
     "ecr-us-east-1-family_image-registryId" = "000000000000"
     "ecr-us-east-1-family_image-repositoryArn" = "arn:aws:ecr:us-east-1:000000000000:repository/mock-repository"
     "ecr-us-east-1-family_image-repositoryName" = "mock-repository"
@@ -66,6 +57,14 @@ mock_outputs = {
   }
   mock_outputs_allowed_terraform_commands = ["init", "plan", "show", "validate"]
   mock_outputs_merge_strategy_with_state = "shallow"
+}
+
+- image-tag/terragrunt.hcl
+inputs = {
+  ecr_us_east_1_family_image_registryId = dependency.testModule.outputs["ecr-us-east-1-family_image-registryId"]
+  ecr_us_east_1_family_image_repositoryArn = dependency.testModule.outputs["ecr-us-east-1-family_image-repositoryArn"]
+  ecr_us_east_1_family_image_repositoryName = dependency.testModule.outputs["ecr-us-east-1-family_image-repositoryName"]
+  ecr_us_east_1_family_image_repositoryUri = dependency.testModule.outputs["ecr-us-east-1-family_image-repositoryUri"]
 }
 
 - image-tag/terragrunt.hcl

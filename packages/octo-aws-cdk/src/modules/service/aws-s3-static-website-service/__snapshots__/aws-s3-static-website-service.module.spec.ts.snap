@@ -2,30 +2,6 @@
 
 exports[`AwsS3StaticWebsiteServiceModule UT input changes should handle bucketName change 1`] = `
 "+ service/main.tf
-depends_on = [aws_s3_bucket_public_access_block.bucket-changed-bucket_website_bucket_public_access]
-}
-
-- service/main.tf
-depends_on = [aws_s3_bucket_public_access_block.bucket-test-bucket_website_bucket_public_access]
-}
-
-+ service/main.tf
-depends_on = [aws_s3_bucket_website_configuration.bucket-changed-bucket_website_bucket_config]
-}
-
-- service/main.tf
-depends_on = [aws_s3_bucket_website_configuration.bucket-test-bucket_website_bucket_config]
-}
-
-+ service/main.tf
-depends_on = [aws_s3_bucket.bucket-changed-bucket_website_bucket]
-}
-
-- service/main.tf
-depends_on = [aws_s3_bucket.bucket-test-bucket_website_bucket]
-}
-
-+ service/main.tf
 resource "aws_s3_bucket_policy" "bucket-changed-bucket_website_bucket_policy" {
   provider = aws._123-us-east-1
   bucket = aws_s3_bucket.bucket-changed-bucket_website_bucket.id
@@ -39,6 +15,9 @@ resource "aws_s3_bucket_policy" "bucket-changed-bucket_website_bucket_policy" {
       }]
     Version = "2012-10-17"
   })
+
+  depends_on = [aws_s3_bucket_public_access_block.bucket-changed-bucket_website_bucket_public_access]
+}
 
 - service/main.tf
 resource "aws_s3_bucket_policy" "bucket-test-bucket_website_bucket_policy" {
@@ -55,6 +34,9 @@ resource "aws_s3_bucket_policy" "bucket-test-bucket_website_bucket_policy" {
     Version = "2012-10-17"
   })
 
+  depends_on = [aws_s3_bucket_public_access_block.bucket-test-bucket_website_bucket_public_access]
+}
+
 + service/main.tf
 resource "aws_s3_bucket_public_access_block" "bucket-changed-bucket_website_bucket_public_access" {
   provider = aws._123-us-east-1
@@ -64,6 +46,9 @@ resource "aws_s3_bucket_public_access_block" "bucket-changed-bucket_website_buck
   ignore_public_acls = false
   restrict_public_buckets = false
 
+  depends_on = [aws_s3_bucket_website_configuration.bucket-changed-bucket_website_bucket_config]
+}
+
 - service/main.tf
 resource "aws_s3_bucket_public_access_block" "bucket-test-bucket_website_bucket_public_access" {
   provider = aws._123-us-east-1
@@ -72,6 +57,9 @@ resource "aws_s3_bucket_public_access_block" "bucket-test-bucket_website_bucket_
   bucket = aws_s3_bucket.bucket-test-bucket_website_bucket.id
   ignore_public_acls = false
   restrict_public_buckets = false
+
+  depends_on = [aws_s3_bucket_website_configuration.bucket-test-bucket_website_bucket_config]
+}
 
 + service/main.tf
 resource "aws_s3_bucket_website_configuration" "bucket-changed-bucket_website_bucket_config" {
@@ -84,6 +72,9 @@ resource "aws_s3_bucket_website_configuration" "bucket-changed-bucket_website_bu
     suffix = "index.html"
   }
 
+  depends_on = [aws_s3_bucket.bucket-changed-bucket_website_bucket]
+}
+
 - service/main.tf
 resource "aws_s3_bucket_website_configuration" "bucket-test-bucket_website_bucket_config" {
   provider = aws._123-us-east-1
@@ -94,6 +85,9 @@ resource "aws_s3_bucket_website_configuration" "bucket-test-bucket_website_bucke
   index_document {
     suffix = "index.html"
   }
+
+  depends_on = [aws_s3_bucket.bucket-test-bucket_website_bucket]
+}
 
 + service/main.tf
 resource "aws_s3_bucket" "bucket-changed-bucket_website_bucket" {
@@ -224,18 +218,6 @@ exports[`AwsS3StaticWebsiteServiceModule UT should CUD 2`] = `"<no changes>"`;
 
 exports[`AwsS3StaticWebsiteServiceModule UT should CUD 4`] = `
 "- service/main.tf
-depends_on = [aws_s3_bucket_public_access_block.bucket-test-bucket_website_bucket_public_access]
-}
-
-- service/main.tf
-depends_on = [aws_s3_bucket_website_configuration.bucket-test-bucket_website_bucket_config]
-}
-
-- service/main.tf
-depends_on = [aws_s3_bucket.bucket-test-bucket_website_bucket]
-}
-
-- service/main.tf
 provider "aws" {
   alias = "_123-us-east-1"
   region = "us-east-1"
@@ -257,6 +239,9 @@ resource "aws_s3_bucket_policy" "bucket-test-bucket_website_bucket_policy" {
     Version = "2012-10-17"
   })
 
+  depends_on = [aws_s3_bucket_public_access_block.bucket-test-bucket_website_bucket_public_access]
+}
+
 - service/main.tf
 resource "aws_s3_bucket_public_access_block" "bucket-test-bucket_website_bucket_public_access" {
   provider = aws._123-us-east-1
@@ -265,6 +250,9 @@ resource "aws_s3_bucket_public_access_block" "bucket-test-bucket_website_bucket_
   bucket = aws_s3_bucket.bucket-test-bucket_website_bucket.id
   ignore_public_acls = false
   restrict_public_buckets = false
+
+  depends_on = [aws_s3_bucket_website_configuration.bucket-test-bucket_website_bucket_config]
+}
 
 - service/main.tf
 resource "aws_s3_bucket_website_configuration" "bucket-test-bucket_website_bucket_config" {
@@ -276,6 +264,9 @@ resource "aws_s3_bucket_website_configuration" "bucket-test-bucket_website_bucke
   index_document {
     suffix = "index.html"
   }
+
+  depends_on = [aws_s3_bucket.bucket-test-bucket_website_bucket]
+}
 
 - service/main.tf
 resource "aws_s3_bucket" "bucket-test-bucket_website_bucket" {
@@ -380,18 +371,6 @@ exports[`AwsS3StaticWebsiteServiceModule UT should CUD tags 4`] = `
 
 exports[`AwsS3StaticWebsiteServiceModule UT should handle moduleId change 1`] = `
 "- service-1/main.tf
-depends_on = [aws_s3_bucket_public_access_block.bucket-test-bucket_website_bucket_public_access]
-}
-
-- service-1/main.tf
-depends_on = [aws_s3_bucket_website_configuration.bucket-test-bucket_website_bucket_config]
-}
-
-- service-1/main.tf
-depends_on = [aws_s3_bucket.bucket-test-bucket_website_bucket]
-}
-
-- service-1/main.tf
 provider "aws" {
   alias = "_123-us-east-1"
   region = "us-east-1"
@@ -413,6 +392,9 @@ resource "aws_s3_bucket_policy" "bucket-test-bucket_website_bucket_policy" {
     Version = "2012-10-17"
   })
 
+  depends_on = [aws_s3_bucket_public_access_block.bucket-test-bucket_website_bucket_public_access]
+}
+
 - service-1/main.tf
 resource "aws_s3_bucket_public_access_block" "bucket-test-bucket_website_bucket_public_access" {
   provider = aws._123-us-east-1
@@ -421,6 +403,9 @@ resource "aws_s3_bucket_public_access_block" "bucket-test-bucket_website_bucket_
   bucket = aws_s3_bucket.bucket-test-bucket_website_bucket.id
   ignore_public_acls = false
   restrict_public_buckets = false
+
+  depends_on = [aws_s3_bucket_website_configuration.bucket-test-bucket_website_bucket_config]
+}
 
 - service-1/main.tf
 resource "aws_s3_bucket_website_configuration" "bucket-test-bucket_website_bucket_config" {
@@ -432,6 +417,9 @@ resource "aws_s3_bucket_website_configuration" "bucket-test-bucket_website_bucke
   index_document {
     suffix = "index.html"
   }
+
+  depends_on = [aws_s3_bucket.bucket-test-bucket_website_bucket]
+}
 
 - service-1/main.tf
 resource "aws_s3_bucket" "bucket-test-bucket_website_bucket" {
@@ -513,18 +501,6 @@ variable "OCTO_PROJECT_ROOT" {
 }
 
 + service-2/main.tf
-depends_on = [aws_s3_bucket_public_access_block.bucket-test-bucket_website_bucket_public_access]
-}
-
-+ service-2/main.tf
-depends_on = [aws_s3_bucket_website_configuration.bucket-test-bucket_website_bucket_config]
-}
-
-+ service-2/main.tf
-depends_on = [aws_s3_bucket.bucket-test-bucket_website_bucket]
-}
-
-+ service-2/main.tf
 provider "aws" {
   alias = "_123-us-east-1"
   region = "us-east-1"
@@ -546,6 +522,9 @@ resource "aws_s3_bucket_policy" "bucket-test-bucket_website_bucket_policy" {
     Version = "2012-10-17"
   })
 
+  depends_on = [aws_s3_bucket_public_access_block.bucket-test-bucket_website_bucket_public_access]
+}
+
 + service-2/main.tf
 resource "aws_s3_bucket_public_access_block" "bucket-test-bucket_website_bucket_public_access" {
   provider = aws._123-us-east-1
@@ -554,6 +533,9 @@ resource "aws_s3_bucket_public_access_block" "bucket-test-bucket_website_bucket_
   bucket = aws_s3_bucket.bucket-test-bucket_website_bucket.id
   ignore_public_acls = false
   restrict_public_buckets = false
+
+  depends_on = [aws_s3_bucket_website_configuration.bucket-test-bucket_website_bucket_config]
+}
 
 + service-2/main.tf
 resource "aws_s3_bucket_website_configuration" "bucket-test-bucket_website_bucket_config" {
@@ -565,6 +547,9 @@ resource "aws_s3_bucket_website_configuration" "bucket-test-bucket_website_bucke
   index_document {
     suffix = "index.html"
   }
+
+  depends_on = [aws_s3_bucket.bucket-test-bucket_website_bucket]
+}
 
 + service-2/main.tf
 resource "aws_s3_bucket" "bucket-test-bucket_website_bucket" {

@@ -2,24 +2,22 @@
 
 exports[`AwsEcsServerModule UT input changes should handle serverKey change 1`] = `
 "- server/main.tf
-depends_on = [aws_iam_role.iam-role-ServerRole-backend]
-}
-
-+ server/main.tf
-depends_on = [aws_iam_role.iam-role-ServerRole-changed-backend]
-}
-
-- server/main.tf
 resource "aws_iam_role_policy_attachment" "iam-role-ServerRole-backend_AmazonECSTaskExecutionRolePolicy" {
   provider = aws._123-us-east-1
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
   role = aws_iam_role.iam-role-ServerRole-backend.name
+
+  depends_on = [aws_iam_role.iam-role-ServerRole-backend]
+}
 
 + server/main.tf
 resource "aws_iam_role_policy_attachment" "iam-role-ServerRole-changed-backend_AmazonECSTaskExecutionRolePolicy" {
   provider = aws._123-us-east-1
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
   role = aws_iam_role.iam-role-ServerRole-changed-backend.name
+
+  depends_on = [aws_iam_role.iam-role-ServerRole-changed-backend]
+}
 
 - server/main.tf
 resource "aws_iam_role" "iam-role-ServerRole-backend" {
@@ -88,14 +86,6 @@ exports[`AwsEcsServerModule UT should CUD 2`] = `"<no changes>"`;
 
 exports[`AwsEcsServerModule UT should CUD 4`] = `
 "+ server/main.tf
-depends_on = [aws_iam_policy.iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-f5e52fdb60ea]
-}
-
-+ server/main.tf
-depends_on = [aws_iam_role_policy_attachment.iam-role-ServerRole-backend_AmazonECSTaskExecutionRolePolicy]
-}
-
-+ server/main.tf
 resource "aws_iam_policy" "iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-f5e52fdb60ea" {
   provider = aws._123-us-east-1
   name = "aws-ecs-server-s3-access-overlay-f5e52fdb60ea"
@@ -119,14 +109,16 @@ resource "aws_iam_policy" "iam-role-ServerRole-backend_aws-ecs-server-s3-access-
     Version = "2012-10-17"
   })
 
+  depends_on = [aws_iam_role_policy_attachment.iam-role-ServerRole-backend_AmazonECSTaskExecutionRolePolicy]
+}
+
 + server/main.tf
 resource "aws_iam_role_policy_attachment" "iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-f5e52fdb60ea_attach" {
   provider = aws._123-us-east-1
   policy_arn = aws_iam_policy.iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-f5e52fdb60ea.arn
   role = aws_iam_role.iam-role-ServerRole-backend.name
 
-+ testModule/main.tf
-depends_on = [aws_s3_bucket_public_access_block.bucket-test-bucket-public-access]
+  depends_on = [aws_iam_policy.iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-f5e52fdb60ea]
 }
 
 + testModule/main.tf
@@ -146,21 +138,23 @@ resource "aws_s3_bucket_policy" "bucket-test-bucket-policy" {
     Version = "2012-10-17"
   })
 
+  depends_on = [aws_s3_bucket_public_access_block.bucket-test-bucket-public-access]
+}
+
 + testModule/terragrunt.hcl
 dependency "server" {
   config_path = "../server"
 
-+ testModule/terragrunt.hcl
-inputs = {
-  iam_role_ServerRole_backend_Arn = dependency.server.outputs["iam-role-ServerRole-backend-Arn"]
-}
-
-+ testModule/terragrunt.hcl
-mock_outputs = {
+  mock_outputs = {
     "iam-role-ServerRole-backend-Arn" = "arn:aws:iam::000000000000:role/mock-role"
   }
   mock_outputs_allowed_terraform_commands = ["init", "plan", "show", "validate"]
   mock_outputs_merge_strategy_with_state = "shallow"
+}
+
++ testModule/terragrunt.hcl
+inputs = {
+  iam_role_ServerRole_backend_Arn = dependency.server.outputs["iam-role-ServerRole-backend-Arn"]
 }
 
 - testModule/variables.tf
@@ -172,18 +166,6 @@ variable "iam_role_ServerRole_backend_Arn" {}"
 
 exports[`AwsEcsServerModule UT should CUD 6`] = `
 "- server/main.tf
-depends_on = [aws_iam_policy.iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-f5e52fdb60ea]
-}
-
-- server/main.tf
-depends_on = [aws_iam_role_policy_attachment.iam-role-ServerRole-backend_AmazonECSTaskExecutionRolePolicy]
-}
-
-- server/main.tf
-depends_on = [aws_iam_role.iam-role-ServerRole-backend]
-}
-
-- server/main.tf
 provider "aws" {
   alias = "_123-us-east-1"
   region = "us-east-1"
@@ -214,17 +196,26 @@ resource "aws_iam_policy" "iam-role-ServerRole-backend_aws-ecs-server-s3-access-
     Version = "2012-10-17"
   })
 
+  depends_on = [aws_iam_role_policy_attachment.iam-role-ServerRole-backend_AmazonECSTaskExecutionRolePolicy]
+}
+
 - server/main.tf
 resource "aws_iam_role_policy_attachment" "iam-role-ServerRole-backend_AmazonECSTaskExecutionRolePolicy" {
   provider = aws._123-us-east-1
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
   role = aws_iam_role.iam-role-ServerRole-backend.name
 
+  depends_on = [aws_iam_role.iam-role-ServerRole-backend]
+}
+
 - server/main.tf
 resource "aws_iam_role_policy_attachment" "iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-f5e52fdb60ea_attach" {
   provider = aws._123-us-east-1
   policy_arn = aws_iam_policy.iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-f5e52fdb60ea.arn
   role = aws_iam_role.iam-role-ServerRole-backend.name
+
+  depends_on = [aws_iam_policy.iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-f5e52fdb60ea]
+}
 
 - server/main.tf
 resource "aws_iam_role" "iam-role-ServerRole-backend" {
@@ -284,10 +275,6 @@ remote_state {
 <empty>
 
 - testModule/main.tf
-depends_on = [aws_s3_bucket_public_access_block.bucket-test-bucket-public-access]
-}
-
-- testModule/main.tf
 resource "aws_s3_bucket_policy" "bucket-test-bucket-policy" {
   provider = aws._123-us-east-1
   bucket = aws_s3_bucket.bucket-test-bucket.id
@@ -304,21 +291,23 @@ resource "aws_s3_bucket_policy" "bucket-test-bucket-policy" {
     Version = "2012-10-17"
   })
 
+  depends_on = [aws_s3_bucket_public_access_block.bucket-test-bucket-public-access]
+}
+
 - testModule/terragrunt.hcl
 dependency "server" {
   config_path = "../server"
 
-- testModule/terragrunt.hcl
-inputs = {
-  iam_role_ServerRole_backend_Arn = dependency.server.outputs["iam-role-ServerRole-backend-Arn"]
-}
-
-- testModule/terragrunt.hcl
-mock_outputs = {
+  mock_outputs = {
     "iam-role-ServerRole-backend-Arn" = "arn:aws:iam::000000000000:role/mock-role"
   }
   mock_outputs_allowed_terraform_commands = ["init", "plan", "show", "validate"]
   mock_outputs_merge_strategy_with_state = "shallow"
+}
+
+- testModule/terragrunt.hcl
+inputs = {
+  iam_role_ServerRole_backend_Arn = dependency.server.outputs["iam-role-ServerRole-backend-Arn"]
 }
 
 + testModule/variables.tf
@@ -351,10 +340,6 @@ exports[`AwsEcsServerModule UT should CUD tags 4`] = `
 
 exports[`AwsEcsServerModule UT should handle moduleId change 1`] = `
 "- server-1/main.tf
-depends_on = [aws_iam_role.iam-role-ServerRole-backend]
-}
-
-- server-1/main.tf
 provider "aws" {
   alias = "_123-us-east-1"
   region = "us-east-1"
@@ -366,6 +351,9 @@ resource "aws_iam_role_policy_attachment" "iam-role-ServerRole-backend_AmazonECS
   provider = aws._123-us-east-1
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
   role = aws_iam_role.iam-role-ServerRole-backend.name
+
+  depends_on = [aws_iam_role.iam-role-ServerRole-backend]
+}
 
 - server-1/main.tf
 resource "aws_iam_role" "iam-role-ServerRole-backend" {
@@ -425,10 +413,6 @@ remote_state {
 <empty>
 
 + server-2/main.tf
-depends_on = [aws_iam_role.iam-role-ServerRole-backend]
-}
-
-+ server-2/main.tf
 provider "aws" {
   alias = "_123-us-east-1"
   region = "us-east-1"
@@ -440,6 +424,9 @@ resource "aws_iam_role_policy_attachment" "iam-role-ServerRole-backend_AmazonECS
   provider = aws._123-us-east-1
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
   role = aws_iam_role.iam-role-ServerRole-backend.name
+
+  depends_on = [aws_iam_role.iam-role-ServerRole-backend]
+}
 
 + server-2/main.tf
 resource "aws_iam_role" "iam-role-ServerRole-backend" {

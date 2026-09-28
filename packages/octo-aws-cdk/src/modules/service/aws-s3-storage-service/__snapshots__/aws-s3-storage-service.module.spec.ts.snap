@@ -2,14 +2,6 @@
 
 exports[`AwsS3StorageServiceModule UT input changes should handle bucketName change 1`] = `
 "+ service/main.tf
-depends_on = [aws_s3_bucket.bucket-changed-bucket]
-}
-
-- service/main.tf
-depends_on = [aws_s3_bucket.bucket-test-bucket]
-}
-
-+ service/main.tf
 resource "aws_s3_bucket_public_access_block" "bucket-changed-bucket-public-access" {
   provider = aws._123-us-east-1
   block_public_acls = true
@@ -17,6 +9,9 @@ resource "aws_s3_bucket_public_access_block" "bucket-changed-bucket-public-acces
   bucket = aws_s3_bucket.bucket-changed-bucket.id
   ignore_public_acls = true
   restrict_public_buckets = true
+
+  depends_on = [aws_s3_bucket.bucket-changed-bucket]
+}
 
 - service/main.tf
 resource "aws_s3_bucket_public_access_block" "bucket-test-bucket-public-access" {
@@ -26,6 +21,9 @@ resource "aws_s3_bucket_public_access_block" "bucket-test-bucket-public-access" 
   bucket = aws_s3_bucket.bucket-test-bucket.id
   ignore_public_acls = true
   restrict_public_buckets = true
+
+  depends_on = [aws_s3_bucket.bucket-test-bucket]
+}
 
 + service/main.tf
 resource "aws_s3_bucket" "bucket-changed-bucket" {
@@ -84,10 +82,6 @@ exports[`AwsS3StorageServiceModule UT should CUD 2`] = `"<no changes>"`;
 
 exports[`AwsS3StorageServiceModule UT should CUD 4`] = `
 "- service/main.tf
-depends_on = [aws_s3_bucket.bucket-test-bucket]
-}
-
-- service/main.tf
 provider "aws" {
   alias = "_123-us-east-1"
   region = "us-east-1"
@@ -102,6 +96,9 @@ resource "aws_s3_bucket_public_access_block" "bucket-test-bucket-public-access" 
   bucket = aws_s3_bucket.bucket-test-bucket.id
   ignore_public_acls = true
   restrict_public_buckets = true
+
+  depends_on = [aws_s3_bucket.bucket-test-bucket]
+}
 
 - service/main.tf
 resource "aws_s3_bucket" "bucket-test-bucket" {
@@ -179,10 +176,6 @@ exports[`AwsS3StorageServiceModule UT should CUD tags 4`] = `
 
 exports[`AwsS3StorageServiceModule UT should handle moduleId change 1`] = `
 "- service-1/main.tf
-depends_on = [aws_s3_bucket.bucket-test-bucket]
-}
-
-- service-1/main.tf
 provider "aws" {
   alias = "_123-us-east-1"
   region = "us-east-1"
@@ -197,6 +190,9 @@ resource "aws_s3_bucket_public_access_block" "bucket-test-bucket-public-access" 
   bucket = aws_s3_bucket.bucket-test-bucket.id
   ignore_public_acls = true
   restrict_public_buckets = true
+
+  depends_on = [aws_s3_bucket.bucket-test-bucket]
+}
 
 - service-1/main.tf
 resource "aws_s3_bucket" "bucket-test-bucket" {
@@ -251,10 +247,6 @@ remote_state {
 <empty>
 
 + service-2/main.tf
-depends_on = [aws_s3_bucket.bucket-test-bucket]
-}
-
-+ service-2/main.tf
 provider "aws" {
   alias = "_123-us-east-1"
   region = "us-east-1"
@@ -269,6 +261,9 @@ resource "aws_s3_bucket_public_access_block" "bucket-test-bucket-public-access" 
   bucket = aws_s3_bucket.bucket-test-bucket.id
   ignore_public_acls = true
   restrict_public_buckets = true
+
+  depends_on = [aws_s3_bucket.bucket-test-bucket]
+}
 
 + service-2/main.tf
 resource "aws_s3_bucket" "bucket-test-bucket" {
@@ -327,10 +322,6 @@ exports[`AwsS3StorageServiceModule UT uploads should CUD 2`] = `"<no changes>"`;
 
 exports[`AwsS3StorageServiceModule UT uploads should CUD 4`] = `
 "- service/main.tf
-depends_on = [aws_s3_bucket.bucket-test-bucket]
-}
-
-- service/main.tf
 provider "aws" {
   alias = "_123-us-east-1"
   region = "us-east-1"
@@ -345,6 +336,9 @@ resource "aws_s3_bucket_public_access_block" "bucket-test-bucket-public-access" 
   bucket = aws_s3_bucket.bucket-test-bucket.id
   ignore_public_acls = true
   restrict_public_buckets = true
+
+  depends_on = [aws_s3_bucket.bucket-test-bucket]
+}
 
 - service/main.tf
 resource "aws_s3_bucket" "bucket-test-bucket" {
