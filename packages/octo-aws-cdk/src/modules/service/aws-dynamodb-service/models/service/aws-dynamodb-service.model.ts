@@ -1,4 +1,4 @@
-import { Model, Service, Validate } from '@quadnix/octo';
+import { type AModel, Model, type Region, Service, ServiceType, Validate } from '@quadnix/octo';
 import { AwsDynamoDBServiceSchema } from './aws-dynamodb-service.schema.js';
 
 /**
@@ -12,8 +12,8 @@ export class AwsDynamoDBService extends Service {
   /**
    * @internal
    */
-  constructor(tableName: AwsDynamoDBServiceSchema['tableName']) {
-    super(`${tableName}-dynamodb`);
+  constructor(tableName: AwsDynamoDBServiceSchema['tableName'], region: Region) {
+    super(`${tableName}-dynamodb`, [region], ServiceType.DATABASE, 'dynamodb');
 
     this.tableName = tableName;
   }
@@ -21,8 +21,12 @@ export class AwsDynamoDBService extends Service {
   /**
    * @internal
    */
-  static override async unSynth(service: AwsDynamoDBServiceSchema): Promise<AwsDynamoDBService> {
-    return new AwsDynamoDBService(service.tableName);
+  static override async unSynth(
+    service: AwsDynamoDBServiceSchema,
+    deReferenceContext: (context: string) => Promise<AModel<any, any>>,
+  ): Promise<AwsDynamoDBService> {
+    const region = (await deReferenceContext(service.parents[0].context)) as Region;
+    return new AwsDynamoDBService(service.tableName, region);
   }
 
   /**
@@ -30,7 +34,7 @@ export class AwsDynamoDBService extends Service {
    */
   override synth(): AwsDynamoDBServiceSchema {
     return {
-      serviceId: this.serviceId,
+      ...super.synth(),
       tableName: this.tableName,
     };
   }

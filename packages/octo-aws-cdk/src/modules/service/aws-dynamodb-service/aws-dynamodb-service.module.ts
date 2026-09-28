@@ -1,4 +1,4 @@
-import { AModule, type Account, type App, Module } from '@quadnix/octo';
+import { AModule, type Account, Module } from '@quadnix/octo';
 import { AwsDynamoDBAnchor } from '../../../anchors/aws-dynamodb/aws-dynamodb.anchor.js';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import { AwsDynamoDBServiceModuleSchema } from './index.schema.js';
@@ -38,11 +38,8 @@ export class AwsDynamoDBServiceModule extends AModule<AwsDynamoDBServiceModuleSc
    * Creates the DynamoDB table service, and anchors its table name for other modules to find.
    */
   async onInit(inputs: AwsDynamoDBServiceModuleSchema): Promise<AwsDynamoDBService> {
-    const { app } = await this.registerMetadata(inputs);
-
     // Create a new DynamoDB.
-    const service = new AwsDynamoDBService(inputs.TableName);
-    app.addService(service);
+    const service = new AwsDynamoDBService(inputs.TableName, inputs.region);
 
     // Add anchors.
     const dynamoDBAnchor = new AwsDynamoDBAnchor('AwsDynamoDBAnchor', { TableName: inputs.TableName }, service);
@@ -52,14 +49,13 @@ export class AwsDynamoDBServiceModule extends AModule<AwsDynamoDBServiceModuleSc
   }
 
   /**
-   * Resolves the app, account, and region this table is created in.
+   * Resolves the account and region this table is created in.
    */
   override async registerMetadata(
     inputs: AwsDynamoDBServiceModuleSchema,
-  ): Promise<{ app: App; awsAccountId: string; awsRegionId: string }> {
+  ): Promise<{ awsAccountId: string; awsRegionId: string }> {
     const region = inputs.region;
     const account = region.getParents()['account'][0].to as Account;
-    const app = account.getParents()['app'][0].to as App;
 
     // Get AWS Region ID.
     const [matchingAnchor] = await region.getAnchorsMatchingSchema(AwsRegionAnchorSchema, [], {
@@ -68,7 +64,6 @@ export class AwsDynamoDBServiceModule extends AModule<AwsDynamoDBServiceModuleSc
     const awsRegionId = matchingAnchor.getSchemaInstance().properties.awsRegionId;
 
     return {
-      app,
       awsAccountId: account.accountId,
       awsRegionId,
     };
