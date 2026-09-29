@@ -16,7 +16,7 @@ import { AwsCloudFrontInvalidationOverlay } from './overlays/aws-cloudfront-inva
  * TypeScript
  * ```ts
  * import { type Service, stub } from '@quadnix/octo';
- * import { AwsCloudFrontInvalidationServiceModule } from '@quadnix/octo-aws-cdk/modules/service/aws-cloudfront-invalidation';
+ * import { AwsCloudFrontInvalidationServiceModule } from '@quadnix/octo-aws-cdk/modules/service/aws-cloudfront-invalidation-service';
  *
  * octo.loadModule(AwsCloudFrontInvalidationServiceModule, 'my-invalidation-module', {
  *   cloudFront: stub<Service>('${{my-distribution-module.model.service}}'),
