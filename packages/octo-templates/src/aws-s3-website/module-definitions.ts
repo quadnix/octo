@@ -7,10 +7,13 @@ import {
   type Constructable,
   Factory,
   type ModuleSchemaInputs,
+  type Region,
   stub,
 } from '@quadnix/octo';
 import { AwsIniAccountModule } from '@quadnix/octo-aws-cdk/modules/account/aws-ini-account';
 import { SimpleAppModule } from '@quadnix/octo-aws-cdk/modules/app/simple-app';
+import { AwsServerlessRegionModule } from '@quadnix/octo-aws-cdk/modules/region/aws-serverless-region';
+import { AwsServerlessRegionId } from '@quadnix/octo-aws-cdk/modules/region/aws-serverless-region/schema';
 import { AwsS3StaticWebsiteServiceModule } from '@quadnix/octo-aws-cdk/modules/service/aws-s3-static-website-service';
 import { config } from './app.config.js';
 
@@ -96,8 +99,8 @@ export class ModuleDefinitions {
   }
 
   /**
-   * Declares this template's infrastructure: an app, the AWS account hosting it, and an S3 bucket
-   * serving the website in `src/aws-s3-website/website` as a static site.
+   * Declares this template's infrastructure: an app, the AWS account hosting it, a serverless region,
+   * and an S3 bucket in it serving the website in `src/aws-s3-website/website` as a static site.
    */
   private init(): void {
     this.add(SimpleAppModule, 'app-module', { name: 'aws-s3-website' });
@@ -107,11 +110,16 @@ export class ModuleDefinitions {
       app: stub<App>('${{app-module.model.app}}'),
     });
 
-    this.add(AwsS3StaticWebsiteServiceModule, 's3-website-service-module', {
+    this.add(AwsServerlessRegionModule, 'region-module', {
       account: stub<Account>('${{account-module.model.account}}'),
-      awsRegionId: 'us-east-1',
+      name: 'aws-s3-website',
+      regionId: AwsServerlessRegionId.AWS_US_EAST_1,
+    });
+
+    this.add(AwsS3StaticWebsiteServiceModule, 's3-website-service-module', {
       bucketName: config.AWS_S3_WEBSITE_BUCKET_NAME,
       directoryPath: websiteSourcePath,
+      region: stub<Region>('${{region-module.model.region}}'),
     });
   }
 }

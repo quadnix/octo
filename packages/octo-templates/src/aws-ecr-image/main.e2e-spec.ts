@@ -187,9 +187,6 @@ describe('Main E2E', () => {
   beforeAll(async () => {
     imageRepository = new ImageRepository(AWS_REGION_ID);
     taskDefinitionRepository = new TaskDefinitionRepository(AWS_REGION_ID);
-
-    // A run killed mid-lifecycle leaves its lock behind, and every later run is refused it.
-    await OctoCliUtility.run(__dirname, 'octo.yaml', ['unlock', '--force'], environment);
   });
 
   it('should build the image and publish it into the repository it creates', async () => {

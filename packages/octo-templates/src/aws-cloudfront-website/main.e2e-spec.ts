@@ -121,19 +121,15 @@ describe('Main E2E', () => {
   let distributionDomainName: string;
   let distributionId: string;
 
-  beforeAll(async () => {
-    // A run killed mid-lifecycle leaves its lock behind, and every later run is refused it.
-    await OctoCliUtility.run(__dirname, 'octo.yaml', ['unlock', '--force'], environment);
-  });
-
   it('should serve the website through the distribution', async () => {
     await OctoCliUtility.lifecycle(__dirname, 'octo.yaml', environment);
 
     const responses = await readCommittedResponses();
 
-    expect(responses['@octo/s3-website']).toEqual({
+    expect(responses['@octo/s3-storage']).toEqual({
       Arn: `arn:aws:s3:::${BUCKET_NAME}`,
       awsRegionId: AWS_REGION_ID,
+      Bucket: BUCKET_NAME,
       RegionalDomainName: `${BUCKET_NAME}.s3.${AWS_REGION_ID}.amazonaws.com`,
     });
 
@@ -191,8 +187,8 @@ describe('Main E2E', () => {
     );
 
     const definitionFilePath = await writeDefinition('revised-content', (definition) => {
-      const websiteModule = definition.modules.find((m) => m.moduleId === 'website-service-module')!;
-      websiteModule.moduleInputs.directoryPath = REVISED_WEBSITE_DIRECTORY;
+      const storageModule = definition.modules.find((m) => m.moduleId === 'website-storage-module')!;
+      storageModule.moduleInputs.directoryPath = REVISED_WEBSITE_DIRECTORY;
     });
     await OctoCliUtility.lifecycle(__dirname, definitionFilePath, environment);
 
@@ -210,9 +206,10 @@ describe('Main E2E', () => {
 
   it('should edit the live distribution in place when its price class moves', async () => {
     const definitionFilePath = await writeDefinition('other-price-class', (definition) => {
-      const websiteModule = definition.modules.find((m) => m.moduleId === 'website-service-module')!;
-      websiteModule.moduleInputs.directoryPath = REVISED_WEBSITE_DIRECTORY;
-      (websiteModule.moduleInputs.cloudFront as { priceClass: string }).priceClass = 'PriceClass_200';
+      const storageModule = definition.modules.find((m) => m.moduleId === 'website-storage-module')!;
+      storageModule.moduleInputs.directoryPath = REVISED_WEBSITE_DIRECTORY;
+      const cloudFrontModule = definition.modules.find((m) => m.moduleId === 'website-cloudfront-module')!;
+      cloudFrontModule.moduleInputs.priceClass = 'PriceClass_200';
     });
     await OctoCliUtility.lifecycle(__dirname, definitionFilePath, environment);
 

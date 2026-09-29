@@ -24,8 +24,14 @@ imports:
     importPath: "@quadnix/octo-aws-cdk/modules/app/simple-app"
   - className: AwsIniAccountModule
     importPath: "@quadnix/octo-aws-cdk/modules/account/aws-ini-account"
-  - className: AwsS3StaticWebsiteServiceModule
-    importPath: "@quadnix/octo-aws-cdk/modules/service/aws-s3-static-website-service"
+  - className: AwsServerlessRegionModule
+    importPath: "@quadnix/octo-aws-cdk/modules/region/aws-serverless-region"
+  - className: AwsS3StorageServiceModule
+    importPath: "@quadnix/octo-aws-cdk/modules/service/aws-s3-storage-service"
+  - className: AwsCloudFrontServiceModule
+    importPath: "@quadnix/octo-aws-cdk/modules/service/aws-cloudfront-service"
+  - className: AwsCloudFrontInvalidationServiceModule
+    importPath: "@quadnix/octo-aws-cdk/modules/service/aws-cloudfront-invalidation-service"
 
 modules:
   - moduleId: app-module
@@ -40,21 +46,52 @@ modules:
       app: "${{app-module.model.app}}"
       iniProfile: default
 
-  # The website. Declaring `cloudFront` closes the bucket: the distribution becomes the only way in,
-  # and a deploy drops what the edge locations are holding.
+  - moduleId: region-module
+    moduleClass: AwsServerlessRegionModule
+    moduleInputs:
+      account: "${{account-module.model.account}}"
+      name: aws-cloudfront-website
+      regionId: aws-us-east-1
+
+  # The website's files, in a closed bucket: the distribution below is the only way in.
   #
   # The bucket name carries no dot, because the distribution reaches the bucket over HTTPS at
   # `<bucket>.s3.<region>.amazonaws.com` and AWS's certificate covers one label there.
-  - moduleId: website-service-module
-    moduleClass: AwsS3StaticWebsiteServiceModule
+  - moduleId: website-storage-module
+    moduleClass: AwsS3StorageServiceModule
+    moduleInputs:
+      bucketName: "${env.AWS_CLOUDFRONT_WEBSITE_BUCKET_NAME}"
+      directoryPath: website
+      region: "${{region-module.model.region}}"
+
+  # The distribution serving the bucket. A missing page answers a real 404 carrying the site's error
+  # document; the closed bucket reports a missing object as 403.
+  - moduleId: website-cloudfront-module
+    moduleClass: AwsCloudFrontServiceModule
     moduleInputs:
       account: "${{account-module.model.account}}"
-      awsRegionId: us-east-1
-      bucketName: "${env.AWS_CLOUDFRONT_WEBSITE_BUCKET_NAME}"
-      cloudFront:
-        notFoundBehavior: error-document
-        priceClass: PriceClass_100
-      directoryPath: website
+      defaultRootObject: index.html
+      distributionName: aws-cloudfront-website
+      errorResponses:
+        - errorCode: 403
+          responseCode: 404
+          responsePagePath: /error.html
+        - errorCode: 404
+          responseCode: 404
+          responsePagePath: /error.html
+      origins:
+        - originId: website
+          source: "${{website-storage-module.model.service}}"
+      priceClass: PriceClass_100
+      routes:
+        - originId: website
+
+  # Drops what the edge locations hold every time the bucket's files change.
+  - moduleId: website-invalidation-module
+    moduleClass: AwsCloudFrontInvalidationServiceModule
+    moduleInputs:
+      cloudFront: "${{website-cloudfront-module.model.service}}"
+      source: "${{website-storage-module.model.service}}"
 
 tags:
   - scope: {}
