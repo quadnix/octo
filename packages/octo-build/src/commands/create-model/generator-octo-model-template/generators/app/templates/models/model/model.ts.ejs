@@ -1,3 +1,40 @@
+<%# A service is built with its parents, type and label, and carries them through synth() and unSynth(). -%>
+<% if (modelType === 'service') { -%>
+import { type AModel, Model, Service, ServiceType } from '@quadnix/octo';
+import { <%= moduleNamePascal %>Schema } from './<%= moduleName %>.schema.js';
+
+@Model<<%= moduleNamePascal %>>('<%= packageName %>', 'service', <%= moduleNamePascal %>Schema)
+export class <%= moduleNamePascal %> extends Service {
+  // Fix me: Add properties specific to your module.
+  private readonly customProperty: string;
+
+  // Fix me: Update constructor to take properties as inputs.
+  constructor(customProperty: string, parents: AModel<any, any>[]) {
+    // Fix me: Initialize model with the correct ID, the nodes it sits under, its type and its label.
+    super(customProperty, parents, ServiceType.OTHER, '<%= moduleName %>');
+
+    // Fix me: Initialize module-specific properties.
+    this.customProperty = customProperty;
+  }
+
+  override synth(): <%= moduleNamePascal %>Schema {
+    // Fix me: Return serialized schema.
+    return {
+      ...super.synth(),
+      customProperty: this.customProperty,
+    };
+  }
+
+  static override async unSynth(
+    service: <%= moduleNamePascal %>Schema,
+    deReferenceContext: (context: string) => Promise<AModel<any, any>>,
+  ): Promise<<%= moduleNamePascal %>> {
+    // Fix me: Return unserialized instance of <%= moduleNamePascal %>.
+    const parents = await Promise.all(service.parents.map((p) => deReferenceContext(p.context)));
+    return new <%= moduleNamePascal %>(service.customProperty, parents);
+  }
+}
+<% } else { -%>
 <%# Sorted for the same reason as the schema's imports: `App` sorts before `Model`, `Service` after. -%>
 <% const modelImports = ['Model', modelTypePascal].sort().join(', '); -%>
 import { <%= modelImports %> } from '@quadnix/octo';
@@ -29,3 +66,4 @@ export class <%= moduleNamePascal %> extends <%= modelTypePascal %> {
     return new <%= moduleNamePascal %>(<%= modelType %>.customProperty);
   }
 }
+<% } -%>

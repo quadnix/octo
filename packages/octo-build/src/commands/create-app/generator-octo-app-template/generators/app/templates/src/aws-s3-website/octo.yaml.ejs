@@ -38,6 +38,8 @@ imports:
     importPath: "@quadnix/octo-aws-cdk/modules/app/simple-app"
   - className: AwsIniAccountModule
     importPath: "@quadnix/octo-aws-cdk/modules/account/aws-ini-account"
+  - className: AwsServerlessRegionModule
+    importPath: "@quadnix/octo-aws-cdk/modules/region/aws-serverless-region"
   - className: AwsS3StaticWebsiteServiceModule
     importPath: "@quadnix/octo-aws-cdk/modules/service/aws-s3-static-website-service"
 
@@ -53,10 +55,16 @@ modules:
       accountId: "${env.AWS_ACCOUNT_ID}"
       app: "${{app-module.model.app}}"
 
+  - moduleId: region-module
+    moduleClass: AwsServerlessRegionModule
+    moduleInputs:
+      account: "${{account-module.model.account}}"
+      name: aws-s3-website
+      regionId: aws-us-east-1
+
   - moduleId: s3-website-service-module
     moduleClass: AwsS3StaticWebsiteServiceModule
     moduleInputs:
-      account: "${{account-module.model.account}}"
-      awsRegionId: us-east-1
       bucketName: "${env.AWS_S3_WEBSITE_BUCKET_NAME}"
       directoryPath: website
+      region: "${{region-module.model.region}}"

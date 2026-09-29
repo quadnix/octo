@@ -88,8 +88,8 @@ delete it by hand.
 In `octo.yaml`, comment out all modules except the `app` and `account` modules.
 The app and account modules load AWS credentials to call AWS APIs, hence they remain uncommented.
 
-By commenting the `s3-website-service-module` module below,
-you are safely deleting the s3-website resources created by this module.
+By commenting the `region-module` and `s3-website-service-module` modules below,
+you are safely deleting the s3-website resources created by these modules.
 
 ```yaml
 modules:
@@ -104,13 +104,19 @@ modules:
       accountId: "${env.AWS_ACCOUNT_ID}"
       app: "${{app-module.model.app}}"
 
+  #- moduleId: region-module
+  #  moduleClass: AwsServerlessRegionModule
+  #  moduleInputs:
+  #    account: "${{account-module.model.account}}"
+  #    name: aws-s3-website
+  #    regionId: aws-us-east-1
+
   #- moduleId: s3-website-service-module
   #  moduleClass: AwsS3StaticWebsiteServiceModule
   #  moduleInputs:
-  #    account: "${{account-module.model.account}}"
-  #    awsRegionId: us-east-1
   #    bucketName: "${env.AWS_S3_WEBSITE_BUCKET_NAME}"
   #    directoryPath: website
+  #    region: "${{region-module.model.region}}"
 ```
 
 ### Step 2
