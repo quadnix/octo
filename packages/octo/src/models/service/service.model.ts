@@ -5,18 +5,21 @@ import { AModel } from '../model.abstract.js';
 import { ServiceSchema, type ServiceType } from './service.schema.js';
 
 /**
- * A Service model can be any third-party service that your application relies on.
- * What separates them from Server is that Services are hosted and managed outside of your infrastructure.
- * An external Redis server on the cloud, or a managed Kafka queue from AWS, are a few examples.
+ * A Service model is any piece of infrastructure your application uses that is not compute: a table,
+ * a bucket, a load balancer, a CDN. It sits under whichever nodes it belongs to - a region, a subnet,
+ * or another service - named when it is built, and carries a `type` and a free-text `label`.
  *
- * `Service` carries nothing but an ID, so it is only useful when extended - a subclass adds the fields
- * the third-party service actually needs, and overrides `synth()`. Calling `synth()` on `Service`
- * itself throws.
+ * `Service` is only useful when extended - a subclass adds the fields the service actually needs,
+ * spreads `super.synth()` into its own `synth()`, and rebuilds its parents in `unSynth()`.
  *
  * @example
  * ```ts
- * @Model<MyService>('@example', 'service', MyServiceSchema)
- * export class MyService extends Service { ... }
+ * @Model<MyQueue>('@example', 'service', MyQueueSchema)
+ * export class MyQueue extends Service {
+ *   constructor(queueName: string, region: Region) {
+ *     super(`${queueName}-queue`, [region], ServiceType.OTHER, 'sqs');
+ *   }
+ * }
  * ```
  *
  * @group Models/Service
