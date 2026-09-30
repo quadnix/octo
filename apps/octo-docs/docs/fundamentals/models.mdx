@@ -36,7 +36,7 @@ graph TD
     region --> subnet;
     app --> server;
     server --> deployment;
-    app --> service;
+    region --> service;
     deployment --> execution;
     environment --> execution;
     subnet --> execution;
@@ -49,26 +49,29 @@ architecture regardless of where it runs. What runs where is the execution, whic
 a deployment, an environment, and a subnet. An execution is the only model in the set that exists
 because three other things are true at once.
 
-The receipts service also hangs off the app rather than off the region it was created in. A service
-is something the shop depends on, and the module that created it recorded which region it sits in
-without changing where it belongs.
+The receipts service sits in the region its bucket was created in. A service is any piece of
+infrastructure that is not compute, such as a bucket, a table, or a load balancer, and it sits
+under whatever it belongs to: a region, a subnet, or another service. A load balancer spread over
+two subnets has both of them as parents. A service also records what kind of thing it is, as one
+of a short list of [types](/api/octo/enum/ServiceType), and a label naming what it actually is,
+such as `s3`.
 
 ## The models {#default-models}
 
-| Model         | What it is                                                                     | Parent    |
-|---------------|--------------------------------------------------------------------------------|-----------|
-| `App`         | The application. One per project, the root of everything.                      |           |
-| `Account`     | The cloud provider account this infrastructure is deployed into.               | `App`     |
-| `Region`      | A geographical area you deploy into.                                           | `Account` |
-| `Subnet`      | A sub-division of a region, typically to separate public from private.         | `Region`  |
-| `Environment` | A runtime stage inside a region: `qa`, `staging`, `prod`.                      | `Region`  |
-| `Filesystem`  | A network filesystem shared by the executions of a region.                     | `Region`  |
-| `Server`      | One logical microservice: `checkout`, `search`, `payments`.                    | `App`     |
-| `Deployment`  | One version of a server's code.                                                | `Server`  |
-| `Execution`   | A deployment running in an environment, in a subnet.                           | all three |
-| `Service`     | Something managed outside your own infrastructure: a bucket, a queue, a table. | `App`     |
-| `Image`       | A container image, available to any region.                                    | `App`     |
-| `Pipeline`    | A CI/CD pipeline. Not supported yet.                                           | `App`     |
+| Model         | What it is                                                             | Parent    |
+|---------------|------------------------------------------------------------------------|-----------|
+| `App`         | The application. One per project, the root of everything.              |           |
+| `Account`     | The cloud provider account this infrastructure is deployed into.       | `App`     |
+| `Region`      | A geographical area you deploy into.                                   | `Account` |
+| `Subnet`      | A sub-division of a region, typically to separate public from private. | `Region`  |
+| `Environment` | A runtime stage inside a region: `qa`, `staging`, `prod`.              | `Region`  |
+| `Filesystem`  | A network filesystem shared by the executions of a region.             | `Region`  |
+| `Server`      | One logical microservice: `checkout`, `search`, `payments`.            | `App`     |
+| `Deployment`  | One version of a server's code.                                        | `Server`  |
+| `Execution`   | A deployment running in an environment, in a subnet.                   | all three |
+| `Service`     | Infrastructure that is not compute: a bucket, a queue, a table.        | any       |
+| `Image`       | A container image, available to any region.                            | `App`     |
+| `Pipeline`    | A CI/CD pipeline. Not supported yet.                                   | `App`     |
 
 That set is fixed. You do not add a thirteenth, and the reason is the same reason the list is
 useful: a graph made of twelve known nouns can be read by a module that has never heard of your

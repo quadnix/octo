@@ -127,14 +127,16 @@ graph LR
     app --> server;
     server --> execution;
     environment --> execution;
+    region --> service;
     server -. " read and write /uploads " .-> service;
     classDef added stroke: #2f9e44, stroke-width: 3px;
     class service added;
-    linkStyle 5 stroke: #2f9e44, stroke-width: 3px;
+    linkStyle 5,6 stroke: #2f9e44, stroke-width: 3px;
 ```
 
-One node and one edge. The region, the environment, and the execution are untouched, and nothing
-about checkout itself changed except that it now reaches something new.
+One node and two edges: the bucket sits in the region, and checkout reaches it. The region, the
+environment, and the execution are untouched, and nothing about checkout itself changed except that
+it now reaches something new.
 
 The bucket, the policy document, the policy, and the attachment do not appear, because they are not
 part of what anyone asked for. They are what the server module does with the request. What you add
@@ -281,7 +283,7 @@ the files your team keeps them in. It will usually produce something that looks 
 back for review is the plan from earlier on this page, where the permission reads
 `(known after apply)`, so the plan does not show the permission the AI wrote.
 
-Hand it the same task in intent and the change is one node and one edge. A request the modules
+Hand it the same task in intent and the change is one node and two edges. A request the modules
 cannot satisfy, such as pointing checkout at something that is not storage, stops the run before
 anything exists. What comes back for review is the report, which says checkout changed and lists
 what changed underneath it.

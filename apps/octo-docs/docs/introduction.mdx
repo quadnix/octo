@@ -73,6 +73,7 @@ graph LR
         app --> server;
         server --> execution;
         environment --> execution;
+        region --> service;
         server -. " read and write /uploads " .-> service;
     end
 

@@ -17,7 +17,7 @@ graph TD
     checkout["server<br/>checkout"];
     app --> account;
     account --> region;
-    app --> receipts;
+    region --> receipts;
     app --> checkout;
     checkout -. " read and write /uploads " .-> receipts;
 ```

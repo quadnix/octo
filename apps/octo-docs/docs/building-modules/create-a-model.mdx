@@ -3,9 +3,9 @@ title: Create a Model
 ---
 
 Octo's [models](/docs/fundamentals/models) carry almost nothing. A `Region` holds a region ID and
-that is all; a `Service` holds a service ID and cannot even be used on its own, because calling
-`synth()` on a bare `Service` throws. That is deliberate. The base models fix the vocabulary, and
-what each word means in your company is yours to decide.
+that is all; a `Service` holds a service ID, the nodes it sits under, and a type and a label, and
+nothing about what the service actually is. That is deliberate. The base models fix the vocabulary,
+and what each word means in your company is yours to decide.
 
 Your model is a subclass. This page writes `ShopQueueService`, the node that appears in the shop's
 intent when the order queue exists.
@@ -41,27 +41,31 @@ it.
 ## The model
 
 ```typescript title="models/service/shop-queue-service.model.ts"
-import { Model, Service } from '@quadnix/octo';
+import { type AModel, Model, Service, ServiceType } from '@quadnix/octo';
 import { ShopQueueServiceSchema } from './shop-queue-service.schema.js';
 
 @Model<ShopQueueService>('@shop', 'service', ShopQueueServiceSchema)
 export class ShopQueueService extends Service {
   readonly queueName: string;
 
-  constructor (queueName: string) {
-    super(`${queueName}-queue`);
+  constructor (queueName: string, parents: AModel<any, any>[]) {
+    super(`${queueName}-queue`, parents, ServiceType.OTHER, 'sqs');
 
     this.queueName = queueName;
   }
 
-  static override async unSynth (service: ShopQueueServiceSchema): Promise<ShopQueueService> {
-    return new ShopQueueService(service.queueName);
+  static override async unSynth (
+    service: ShopQueueServiceSchema,
+    deReferenceContext: (context: string) => Promise<AModel<any, any>>,
+  ): Promise<ShopQueueService> {
+    const parents = await Promise.all(service.parents.map((p) => deReferenceContext(p.context)));
+    return new ShopQueueService(service.queueName, parents);
   }
 
   override synth (): ShopQueueServiceSchema {
     return {
+      ...super.synth(),
       queueName: this.queueName,
-      serviceId: this.serviceId,
     };
   }
 }
@@ -73,9 +77,11 @@ matches on, so an `AwsS3StorageService` and a `ShopQueueService` are both `servi
 wants one. Change it and you have invented a thirteenth model type that nothing knows how to handle.
 
 `synth()` and `unSynth()` are the two halves of serialization, and the rule is that
-`unSynth(synth(x))` has to give you back something equivalent to `x`. The constructor derives the
-service ID from the queue name, so `shop-orders` becomes `service=shop-orders-queue,app=shop`, and
-that is the context the reports print.
+`unSynth(synth(x))` has to give you back something equivalent to `x`. `super.synth()` writes what
+every service carries: its ID, its type and label, and the context of each parent. `unSynth()` gets
+each parent back from its context through `deReferenceContext`. The constructor derives the service
+ID from the queue name, so `shop-orders` under the app becomes `service=shop-orders-queue,app=shop`,
+and that is the context the reports print.
 
 Nothing here knows what SQS is. The model says a queue exists and what it is called; what that means
 in AWS is the [action's](/docs/fundamentals/actions) business.
@@ -86,7 +92,7 @@ The one decision on this page with lasting consequences. A model's context is de
 and its position in the graph, and Octo uses that context as identity everywhere.
 
 ```typescript
-super(`${queueName}-queue`);
+super(`${queueName}-queue`, parents, ServiceType.OTHER, 'sqs');
 ```
 
 Derive it from an input, so that two instances of the module do not collide. Derive it from an input
@@ -125,13 +131,16 @@ same prefix twice is an error rather than a silent duplicate.
 
 ## Where it attaches
 
-A model has to be attached to the graph, and where it can attach is fixed by the base model you
-extended. A service hangs off the app; a region off an account; a subnet off a region.
+A model has to be attached to the graph, and how is fixed by the base model you extended. A region
+is added to an account, and a subnet to a region. A service is given its parents when it is built,
+and they can be any nodes: the queue sits under the app, a bucket under its region, and a load
+balancer under both of its subnets.
 
 ```typescript
-app.addService(queueService);
+const queueService = new ShopQueueService(inputs.queueName, [app]);
 ```
 
-Get this from the parent, not by constructing edges by hand. `addService` creates the
-[dependency](/docs/fundamentals/dependencies) in both directions with the right ordering rules
-already on it.
+Get this from the constructor, not by constructing edges by hand. It creates the
+[dependency](/docs/fundamentals/dependencies) to each parent in both directions, with the right
+ordering rules already on it. A service's parents are fixed for its lifetime, because its context is
+built from theirs.

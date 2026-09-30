@@ -42,16 +42,22 @@ Every import path follows that shape: the package, then `modules/<model-type>/<m
 
 ## Regions and subnets
 
-| Module                    | Inputs                                                                                                                        | Creates                                                                         |
-|---------------------------|-------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------|
-| `AwsSingleAzRegionModule` | `account`, `name`, `regionId`, `vpcCidrBlock`                                                                                 | VPC, internet gateway                                                           |
-| `AwsMultiAzRegionModule`  | `account`, `name`, `regionIds`, `vpcCidrBlock`                                                                                | VPC, internet gateway                                                           |
-| `AwsSimpleSubnetModule`   | `region`, `subnetName`, `subnetCidrBlock`, `subnetAvailabilityZone`, `subnetOptions?`, `subnetSiblings?`, `localFilesystems?` | subnet, route table, network ACL, security group, NAT gateway, EFS mount target |
+| Module                      | Inputs                                                                                                                        | Creates                                                                         |
+|-----------------------------|-------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------|
+| `AwsSingleAzRegionModule`   | `account`, `name`, `regionId`, `vpcCidrBlock`                                                                                 | VPC, internet gateway                                                           |
+| `AwsMultiAzRegionModule`    | `account`, `name`, `regionIds`, `vpcCidrBlock`                                                                                | VPC, internet gateway                                                           |
+| `AwsServerlessRegionModule` | `account`, `name`, `regionId`                                                                                                 |                                                                                 |
+| `AwsSimpleSubnetModule`     | `region`, `subnetName`, `subnetCidrBlock`, `subnetAvailabilityZone`, `subnetOptions?`, `subnetSiblings?`, `localFilesystems?` | subnet, route table, network ACL, security group, NAT gateway, EFS mount target |
 
 Both region modules define a region as one VPC with an internet gateway. They differ in what the
 region publishes: a single-AZ region advertises one availability zone, a multi-AZ region advertises
 several, and that is what a subnet module reads when deciding where it can place itself. Their
 region IDs are Octo's own, `aws-eu-west-1a`, distinct from the AWS region.
+
+`AwsServerlessRegionModule` is a region with no network: it creates nothing, and says only which AWS
+region its services are created in, as `aws-us-east-1`. It publishes a different shape from the
+other two, so a subnet or anything else that needs a VPC refuses it when the modules are composed.
+The static website sits in one, and a storage bucket takes a region of any of the three kinds.
 
 The subnet module is where the network shape actually lives. `subnetOptions` carries
 `createNatGateway`, `disableSubnetIntraNetwork`, and `subnetType`; `subnetSiblings` is how a private
@@ -163,44 +169,79 @@ means one apply publishes the image and registers the task definition that names
 
 ## Services
 
-| Module                            | Inputs                                                                                                                                                                         | Creates                                                                                                                                                  |
-|-----------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `AwsS3StorageServiceModule`       | `region`, `bucketName`, `accessPrefixes?`, `blockPublicAccess?`, `directoryPath?`, `filter?`, `transform?`, `subDirectoryOrFilePath?`                                     | S3 bucket, public access block, bucket policy, and with `directoryPath` one object per file                                                               |
-| `AwsS3StaticWebsiteServiceModule` | `account`, `awsRegionId`, `bucketName`, `directoryPath`, `cloudFront?`, `filter?`, `transform?`, `subDirectoryOrFilePath?`                                                     | S3 bucket, public access block, bucket policy, one object per file, and with `cloudFront` a distribution, its origin access control, and an invalidation |
-| `AwsDynamoDBServiceModule`        | `region`, `TableName`, `KeySchema`, `AttributeDefinitions`, `billingMode`, `GlobalSecondaryIndexes?`, `LocalSecondaryIndexes?`, `StreamSpecification?`, `timeToLiveAttribute?` | DynamoDB table                                                                                                                                           |
-| `AwsDynamoDBGlobalServiceModule`  | `dynamoDBService`, `replicas`                                                                                                                                                  | DynamoDB global table replicas                                                                                                                           |
-| `AwsEcsAlbServiceModule`          | `region`, `albName`, `listeners`, `subnets`, `targets?`                                                                                                                        | application load balancer, listener, target group, security group                                                                                        |
+| Module                                   | Inputs                                                                                                                                                                                                            | Creates                                                                                                                                                  |
+|------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `AwsS3StorageServiceModule`              | `region`, `bucketName`, `accessPrefixes?`, `blockPublicAccess?`, `directoryPath?`, `filter?`, `transform?`, `subDirectoryOrFilePath?`                                                                             | S3 bucket, public access block, bucket policy, and with `directoryPath` one object per file                                                              |
+| `AwsS3StaticWebsiteServiceModule`        | `region`, `bucketName`, `directoryPath`, `filter?`, `transform?`, `subDirectoryOrFilePath?`                                                                                                                       | S3 bucket, public access block, bucket policy, website configuration, one object per file                                                                |
+| `AwsDynamoDBServiceModule`               | `region`, `TableName`, `KeySchema`, `AttributeDefinitions`, `billingMode`, `GlobalSecondaryIndexes?`, `LocalSecondaryIndexes?`, `StreamSpecification?`, `timeToLiveAttribute?`                                    | DynamoDB table                                                                                                                                           |
+| `AwsDynamoDBGlobalServiceModule`         | `dynamoDBService`, `replicas`                                                                                                                                                                                     | DynamoDB global table replicas                                                                                                                           |
+| `AwsEcsAlbServiceModule`                 | `region`, `albName`, `listeners`, `subnets`, `targets?`                                                                                                                                                           | application load balancer, listener, target group, security group                                                                                        |
+| `AwsCloudFrontServiceModule`             | `account`, `distributionName`, `origins`, `routes`, `aliases?`, `certificateArn?`, `defaultRootObject?`, `errorResponses?`, `priceClass?`, `cachePolicies?`, `originRequestPolicies?`, `responseHeadersPolicies?` | CloudFront distribution, an origin access control per bucket it serves, a statement in each of those buckets' policies, and the custom policies declared |
+| `AwsCloudFrontInvalidationServiceModule` | `cloudFront`, `source`                                                                                                                                                                                            | an invalidation of the distribution every time the bucket's files change                                                                                 |
 
-`AwsS3StaticWebsiteServiceModule` serves the bucket one of two ways, and `cloudFront` picks which.
-Without it the bucket is public and answers on its S3 website endpoint, over plain HTTP. With it the
-bucket is closed, every public access block on and no anonymous policy, and the distribution in
-front of it is the only way in, serving the site over HTTPS.
+`AwsS3StaticWebsiteServiceModule` makes a public bucket that answers on its S3 website endpoint,
+over plain HTTP. A site served over HTTPS from a closed bucket is two modules instead:
+`AwsS3StorageServiceModule` holds the files, and `AwsCloudFrontServiceModule` serves them. Which
+module you pick is what decides whether the bucket is public, so removing a distribution can never
+reopen a bucket behind it.
+
+`AwsCloudFrontServiceModule` sits under the account, because a distribution is not in any one
+region. `origins` names what it serves, each one an `originId` and a `source`; today a source is a
+bucket from `AwsS3StorageServiceModule`. `routes` sends requests to an origin by its `originId`. The
+route with no `pathPattern` is the default, and the others are matched in the order they are given.
+For every bucket it serves, the module adds a statement to that bucket's policy naming the
+distribution, so the bucket stays closed to everyone else.
+
+```yaml
+  - moduleId: website-storage-module
+    moduleClass: AwsS3StorageServiceModule
+    moduleInputs:
+      bucketName: my-website-bucket
+      directoryPath: website
+      region: "${{region-module.model.region}}"
+
+  - moduleId: website-cloudfront-module
+    moduleClass: AwsCloudFrontServiceModule
+    moduleInputs:
+      account: "${{account-module.model.account}}"
+      defaultRootObject: index.html
+      distributionName: my-website
+      errorResponses:
+        - errorCode: 403
+          responseCode: 404
+          responsePagePath: /error.html
+      origins:
+        - originId: website
+          source: "${{website-storage-module.model.service}}"
+      routes:
+        - originId: website
+
+  - moduleId: website-invalidation-module
+    moduleClass: AwsCloudFrontInvalidationServiceModule
+    moduleInputs:
+      cloudFront: "${{website-cloudfront-module.model.service}}"
+      source: "${{website-storage-module.model.service}}"
+```
 
 A bucket served this way cannot have a dot in its name. The distribution reaches it at
 `<bucket>.s3.<region>.amazonaws.com` over HTTPS, and the certificate AWS serves there covers a
 single label, so a dotted name is refused when the modules are composed rather than answering `502`
 to every visitor later.
 
-Set `cloudFront.aliases` to answer on your own domains and `cloudFront.certificateArn` to a
-certificate covering them; CloudFront reads certificates from `us-east-1` alone, wherever the bucket
-lives. The DNS records pointing at the distribution are yours to create. `cloudFront.priceClass`
-decides which edge locations serve the site, and `cloudFront.webAclArn` puts a web ACL in front of
-it. The ACL itself is not created here, and CloudFront reads one from `us-east-1` alone.
+Set `aliases` to answer on your own domains and `certificateArn` to a certificate covering them;
+CloudFront reads certificates from `us-east-1` alone, wherever the bucket lives. The DNS records
+pointing at the distribution are yours to create. `priceClass` decides which edge locations serve
+the site.
 
-`cloudFront.notFoundBehavior` is the one input worth thinking about. A content site wants
-`error-document`, the default: a path the bucket has nothing at returns a real `404` carrying the
-error document. A single-page app wants `single-page-app`, which returns a `200` carrying the index
-document so the app's own router decides what the path means. A content site set to
-`single-page-app` reports every typo as a working page.
+`errorResponses` decides what a missing path returns, and it applies to the whole distribution. A
+closed bucket reports a missing file as `403`, so a content site maps both `403` and `404` to a real
+`404` carrying its error page, as above.
 
-With `cloudFront` set, a deploy also invalidates the edge caches. Without that, CloudFront would
-keep serving the previous version of a file for as long as its cache policy says, which is a day:
-the upload would succeed and the site would not change.
-
-The distribution this module builds is one opinion about serving a website out of a bucket. The
-resource underneath it takes several origins of mixed kinds, a routing table over them, and policies
-of its own; a module that needs any of that builds its own distribution rather than reaching for a
-wider input here.
+`AwsCloudFrontInvalidationServiceModule` takes a distribution and one bucket it serves, and drops
+what the edge locations hold for that bucket every time its files change. Without it CloudFront
+keeps serving the previous version of a file for as long as its cache policy says, which is a day:
+the upload succeeds and the site does not change. It runs after the files are uploaded, because it
+waits for both the distribution and the bucket.
 
 Two things about the DynamoDB module are worth knowing before you use it, and its generated
 definition file says both: a global secondary index can be added to or removed from a live table,
@@ -287,8 +328,9 @@ removing one leaves the others alone.
 editing `dockerfileDirectory` or `dockerfileName` publishes nothing: new content is a new tag, which
 is a new module. Changing the tag publishes the new one and deletes the old.
 
-This is the library's one [external
-resource](/docs/building-modules/create-an-external-resource). Terraform has no resource that puts
+This is one of the library's two [external
+resources](/docs/building-modules/create-an-external-resource), the other being the CloudFront
+invalidation. Terraform has no resource that puts
 an image into a registry, so Octo runs the local `docker` CLI and the ECR API itself, which means
 the machine running the apply needs Docker. An execution whose deployment names an image URI Octo
 published is ordered behind it, so the same run can publish a version and start something that runs
@@ -305,6 +347,7 @@ where `<name>` is the anchor's own name rather than the directory it sits in:
 |-----------------------------------------------|-------------------|------------------------------------------------------------------------------|
 | `AwsAccountAnchorSchema`                      | account           | `awsAccountId`                                                               |
 | `AwsRegionAnchorSchema`                       | region            | `awsRegionId`, `awsRegionAZs`, `regionId`, `vpcCidrBlock`                    |
+| `AwsServerlessRegionAnchorSchema`             | region            | `awsRegionId`, `regionId`, `serverless`                                      |
 | `AwsSubnetAnchorSchema`                       | subnet            | `subnetName`, `CidrBlock`, `AvailabilityZone`, `awsAccountId`, `awsRegionId` |
 | `AwsSubnetLocalFilesystemMountAnchorSchema`   | overlay           | `subnetName`, `filesystemName`, `awsAccountId`, `awsRegionId`                |
 | `AwsEcsServerAnchorSchema`                    | server            | `serverKey`, `deploymentType`                                                |
@@ -318,6 +361,7 @@ where `<name>` is the anchor's own name rather than the directory it sits in:
 | `AwsEcsTaskDefinitionAnchorSchema`            | deployment        | `cpu`, `memory`, `image`                                                     |
 | `AwsEcrImageAnchorSchema`                     | image             | `imageId`                                                                    |
 | `AwsEcsAlbAnchorSchema`                       | service           | `albName`                                                                    |
+| `AwsCloudFrontAnchorSchema`                   | service           | `awsAccountId`, `distributionName`                                           |
 | `AwsDynamoDBAnchorSchema`                     | service           | `TableName`                                                                  |
 | `AwsDynamoDBGlobalAnchorSchema`               | service           | `TableName`                                                                  |
 | `AwsEfsAnchorSchema`                          | filesystem        | `filesystemName`                                                             |

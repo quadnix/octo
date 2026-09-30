@@ -38,17 +38,24 @@ modules:
       accountId: "${env.AWS_ACCOUNT_ID}"
       app: "${{app-module.model.app}}"
 
+  - moduleId: region-module
+    moduleClass: AwsServerlessRegionModule
+    moduleInputs:
+      account: "${{account-module.model.account}}"
+      name: aws-s3-website
+      regionId: aws-us-east-1
+
   - moduleId: s3-website-service-module
     moduleClass: AwsS3StaticWebsiteServiceModule
     moduleInputs:
-      account: "${{account-module.model.account}}"
-      awsRegionId: us-east-1
       bucketName: "${env.AWS_S3_WEBSITE_BUCKET_NAME}"
       directoryPath: website
+      region: "${{region-module.model.region}}"
 ```
 
-Three modules, and one of them produces the whole website: a bucket, its website configuration, a
-public access block, a bucket policy, and one object per file in `website/`. [Static
+Four modules, and one of them produces the whole website: a bucket, its website configuration, a
+public access block, a bucket policy, and one object per file in `website/`. The region before it
+creates nothing; it says which AWS region the bucket goes in. [Static
 Website](/docs/getting-started/static-website) runs this one end to end, from scaffold to a URL you
 can open.
 

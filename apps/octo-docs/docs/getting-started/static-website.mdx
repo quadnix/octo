@@ -5,22 +5,24 @@ title: Static Website
 This page builds a static website and puts it on the internet. By the end you will have two HTML
 pages served out of an S3 bucket, on a public URL you can open in a browser.
 
-Three modules describe it, a module being one of the building blocks the
+Four modules describe it, a module being one of the building blocks the
 [introduction](/docs/introduction#building-blocks) described, packaged so it can be named in a file
-and given inputs. These three:
+and given inputs. These four:
 
 ```mermaid
 graph TD
 ;
     app["app<br/>aws-s3-website"];
     account["account<br/>123456789012"];
+    region["region<br/>aws-s3-website"];
     website["service<br/>octo-hello-website"];
     app --> account;
-    app --> website;
+    account --> region;
+    region --> website;
 ```
 
-An app to hold the other two together, the AWS account everything is created in, and the website
-itself, which is a service.
+An app to hold the others together, the AWS account everything is created in, a region saying
+where in AWS the website goes, and the website itself, which is a service.
 
 :::info[Costs]
 A bucket holding two small HTML files costs a fraction of a cent per month, and nothing at all under
@@ -60,7 +62,7 @@ finds there, so anything you add to it ships on the next run.
 
 ## What to change
 
-Open `octo.yaml`. It is 60 lines, nearly all of them filled in by the template. Two values and a
+Open `octo.yaml`. It is 70 lines, nearly all of them filled in by the template. Two values and a
 profile are yours to set, and the rest of this section is what the template already wired up.
 
 The `env` block at the top holds values the rest of the file refers to. It ships with a placeholder
@@ -116,20 +118,27 @@ modules:
       accountId: "${env.AWS_ACCOUNT_ID}"
       app: "${{app-module.model.app}}"
 
+  - moduleId: region-module
+    moduleClass: AwsServerlessRegionModule
+    moduleInputs:
+      account: "${{account-module.model.account}}"
+      name: aws-s3-website
+      regionId: aws-us-east-1
+
   - moduleId: s3-website-service-module
     moduleClass: AwsS3StaticWebsiteServiceModule
     moduleInputs:
-      account: "${{account-module.model.account}}"
-      awsRegionId: us-east-1
       bucketName: "${env.AWS_S3_WEBSITE_BUCKET_NAME}"
       directoryPath: website
+      region: "${{region-module.model.region}}"
 ```
 
-The third module is where the work happens: `AwsS3StaticWebsiteServiceModule` produces every cloud
+The last module is where the work happens: `AwsS3StaticWebsiteServiceModule` produces every cloud
 resource on this page. The first two name the application, whose name is yours to pick, and the AWS
 account it deploys into, read from `~/.aws/credentials`, which is the `Ini` in the account module's
-name. Each module is given what an earlier one made, and `${{...}}` is how: two
-braces, a module ID, and what to take from it.
+name. The region creates nothing; it says which AWS region the bucket goes in. Each module is
+given what an earlier one made, and `${{...}}` is how: two braces, a module ID, and what to take
+from it.
 
 A `model` is an intent node, so that reference means
 the app node `app-module` created, the top box in the diagram. The list is flat, and those
@@ -139,13 +148,13 @@ File](/docs/using-octo/the-definition-file) has the full list of what can be ref
 The AWS words in this block belong to the modules rather than to the app, account, and service they
 produce, because a module is where a cloud gets chosen. A class name in `moduleClass` is bound to a
 package by the `imports` block further up the file,
-which the template filled in for these three. The [AWS Module
+which the template filled in for these four. The [AWS Module
 Catalog](/docs/reference/aws-module-catalog) lists the rest, and the inputs each one takes.
 `directoryPath: website` is relative to where you run the commands, which is the project root.
 
 To deploy somewhere other than `us-east-1`, change the region in two places, `regionId` in the
-provider and `awsRegionId` in the module, because the first says where Terraform authenticates and
-the second says where the bucket goes.
+provider and `regionId` in the region module, written there as `aws-us-east-1`, because the first
+says where Terraform authenticates and the second says where the bucket goes.
 
 ## The run
 
@@ -165,7 +174,7 @@ shared state, so both require it, which is what stops two runs writing at once. 
 it, so you take it once and never think about it again.
 
 `generate` reads the definition file and writes Terraform. It needs no credentials, and touches
-nothing outside your project. One folder comes out, because one of the three modules has cloud
+nothing outside your project. One folder comes out, because one of the four modules has cloud
 resources to create:
 
 ```text
@@ -174,7 +183,7 @@ INFO: Wrote 1 terragrunt folder(s) to ".octo-tf".
     written: [
       "s3-website-service-module"
     ]
-INFO: Finished "generate" in 6ms.
+INFO: Finished "generate" in 7ms.
 ```
 
 `validate` plans that folder and reports the plan back against your intent. This is the first
@@ -184,7 +193,7 @@ downloads the AWS provider before Terraform can plan.
 
 ```text
 aws-s3-website — octo validate — changes (approximate)
-2026-08-19 12:23:26 UTC · 3ms octo · 6.0s terraform
+2026-09-29 01:14:01 UTC · 4ms octo · 4.0s terraform
 
 You added service=octo-hello-website-s3-static-website. That creates 6 new things.
 - 0 destroy   ± 0 replace   + 6 create   ~ 0 update
@@ -194,7 +203,7 @@ applied outputs. A cross-folder consequence of this change is invisible until ap
 report can both understate what apply will do and overstate drift.
 
 WHAT WILL CHANGE
-  + added service=octo-hello-website-s3-static-website  [service=octo-hello-website-s3-static-website,app=aws-s3-website | s3-website-service-module | +6]
+  + added service=octo-hello-website-s3-static-website  [service=octo-hello-website-s3-static-website,region=aws-s3-website,account=123456789012,app=aws-s3-website | s3-website-service-module | +6]
       + bucket-octo-hello-website
           + aws_s3_bucket_policy.bucket-octo-hello-website_website_bucket_policy
           + aws_s3_bucket_public_access_block.bucket-octo-hello-website_website_bucket_public_access
@@ -302,9 +311,9 @@ changed the form and kept the old one working for the regions that had it. The b
 tab in the S3 console prints the exact endpoint.
 
 This endpoint is HTTP only. S3 website hosting does not terminate TLS, so a real site needs
-CloudFront in front of it. The module puts one there, and closes the bucket behind it, when you give
-it a `cloudFront` input, which the [AWS Module Catalog](/docs/reference/aws-module-catalog)
-describes. The certificate it serves is still yours to create.
+CloudFront in front of it. That is a different pair of modules, a closed bucket holding the files
+and a distribution serving them, which the [AWS Module Catalog](/docs/reference/aws-module-catalog)
+describes. The certificate the distribution serves is still yours to create.
 
 ## When it fails
 
@@ -340,7 +349,7 @@ You added service=octo-hello-website-s3-static-website. That updates 1 thing in 
 - 0 destroy   ± 0 replace   + 0 create   ~ 1 update
 
 WHAT WILL CHANGE
-  + added service=octo-hello-website-s3-static-website  [service=octo-hello-website-s3-static-website,app=aws-s3-website | s3-website-service-module | ~1]
+  + added service=octo-hello-website-s3-static-website  [service=octo-hello-website-s3-static-website,region=aws-s3-website,account=123456789012,app=aws-s3-website | s3-website-service-module | ~1]
       ~ bucket-octo-hello-website
           ~ aws_s3_object.bucket-octo-hello-website_file_indexhtml
               etag: 43d707bebe2010beda60ccf02d98b646 → 0115cb00cb5d5142657ee12ce20c0bad
@@ -365,17 +374,23 @@ Reload the page and the new line is there.
 
 ## Tear it down
 
-Removing infrastructure is the same cycle. Comment out the website module in `octo.yaml`, leaving
-the app and account modules:
+Removing infrastructure is the same cycle. Comment out the region and website modules in
+`octo.yaml`, leaving the app and account modules:
 
 ```yaml title="octo.yaml"
+  #- moduleId: region-module
+  #  moduleClass: AwsServerlessRegionModule
+  #  moduleInputs:
+  #    account: "${{account-module.model.account}}"
+  #    name: aws-s3-website
+  #    regionId: aws-us-east-1
+
   #- moduleId: s3-website-service-module
   #  moduleClass: AwsS3StaticWebsiteServiceModule
   #  moduleInputs:
-  #    account: "${{account-module.model.account}}"
-  #    awsRegionId: us-east-1
   #    bucketName: "${env.AWS_S3_WEBSITE_BUCKET_NAME}"
   #    directoryPath: website
+  #    region: "${{region-module.model.region}}"
 ```
 
 ```bash
