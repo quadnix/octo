@@ -1,15 +1,14 @@
 import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 
 /**
- * List of IAM entities regarding roles, policies, and permissions.
- * Possible values are,
- * * `ecs-tasks.amazonaws.com`: This is an AWS service principal for ECS tasks.
- * It is used in IAM trust policies to allow ECS tasks to assume a role.
- * You must add this to the set of policies if you are running ECS tasks in your cluster.
+ * The AWS service principal a role is assumed by. A role trusts one of these for every service that
+ * runs as it, and a service missing from the list cannot use the role at all.
+ * * `ecs-tasks.amazonaws.com`: an ECS task runs as the role.
+ * * `lambda.amazonaws.com`: a Lambda function runs as the role.
  *
  * @group Resources/IamRole
  */
-export type IIamRoleAssumeRolePolicy = 'ecs-tasks.amazonaws.com';
+export type IIamRoleAssumeRolePolicy = 'ecs-tasks.amazonaws.com' | 'lambda.amazonaws.com';
 
 /**
  * Defines the types of policies that can be attached to this IAM role.
@@ -30,10 +29,43 @@ export type IIamRolePolicyTypes = {
   'aws-policy': string;
 
   /**
+   * You can provide options to create a policy for accessing a DynamoDB table.
+   */
+  'dynamodb-table-access-policy': IIamRoleDynamoDBTablePolicy;
+
+  /**
    * You can provide options to create a policy for accessing a S3 bucket.
    */
   's3-storage-access-policy': IIamRoleS3BucketPolicy;
 };
+
+/**
+ * Defines the DynamoDB table access policy for an IAM role.
+ * Read covers the table and its indexes; write covers the table's items.
+ *
+ * @group Resources/IamRole
+ */
+export interface IIamRoleDynamoDBTablePolicy {
+  /**
+   * Allows reading items from the table and querying its indexes.
+   */
+  allowRead: boolean;
+
+  /**
+   * Allows writing and deleting items in the table.
+   */
+  allowWrite: boolean;
+
+  /**
+   * The AWS region the table is in. The table is in the role's own account.
+   */
+  awsRegionId: string;
+
+  /**
+   * The name of the table.
+   */
+  tableName: string;
+}
 
 /**
  * Defines the S3 storage access policy for an IAM role.

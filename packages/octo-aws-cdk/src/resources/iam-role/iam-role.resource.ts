@@ -3,13 +3,17 @@ import {
   Diff,
   DiffAction,
   DiffUtility,
+  type MatchingResource,
   Resource,
   ResourceError,
   type TerraformModuleScope,
 } from '@quadnix/octo';
 import { PolicyUtility } from '../../utilities/policy/policy.utility.js';
+import type { DynamoDBSchema } from '../dynamodb/index.schema.js';
+import type { S3StorageSchema } from '../s3-storage/index.schema.js';
 import {
   type IIamRoleAssumeRolePolicy,
+  type IIamRoleDynamoDBTablePolicy,
   type IIamRolePolicyTypes,
   type IIamRoleS3BucketPolicy,
   IamRoleSchema,
@@ -80,34 +84,76 @@ export class IamRole extends ATerraformResource<IamRoleSchema, IamRole> {
   }
 
   /**
+   * Grants this role read or write on a table in its own account.
+   *
+   * The table is not a parent: IAM accepts a policy naming a table that does not exist yet. It is
+   * passed in so its name and region are read off the table itself rather than handed over as strings.
+   *
+   * @internal
+   */
+  addDynamoDBTablePolicy(
+    policyId: string,
+    table: MatchingResource<DynamoDBSchema>,
+    options: { allowRead: boolean; allowWrite: boolean },
+  ): void {
+    const { awsAccountId, awsRegionId, TableName } = table.getSchemaInstance().properties;
+    if (awsAccountId !== this.properties.awsAccountId) {
+      throw new ResourceError(
+        `Table "${TableName}" is in account "${awsAccountId}", not in the role's account "${this.properties.awsAccountId}"!`,
+        this,
+      );
+    }
+
+    const policy: IIamRoleDynamoDBTablePolicy = {
+      allowRead: options.allowRead,
+      allowWrite: options.allowWrite,
+      awsRegionId,
+      tableName: TableName,
+    };
+
+    const index = this.properties.policies.findIndex((p) => p.policyId === policyId);
+    if (index === -1) {
+      this.properties.policies.push({ policy, policyId, policyType: 'dynamodb-table-access-policy' });
+    } else {
+      this.properties.policies[index].policy = policy;
+    }
+  }
+
+  /**
+   * Grants this role read or write on a prefix of a bucket in its own account.
+   *
+   * The bucket is not a parent: IAM accepts a policy naming a bucket that does not exist yet. It is
+   * passed in so its name is read off the bucket itself rather than handed over as a string, and so a
+   * bucket in another account is refused.
+   *
    * @internal
    */
   addS3BucketPolicy(
     policyId: string,
-    bucketName: string,
+    bucket: MatchingResource<S3StorageSchema>,
     accessPrefix: string,
     options: { allowRead: boolean; allowWrite: boolean },
   ): void {
+    const { awsAccountId, Bucket } = bucket.getSchemaInstance().properties;
+    if (awsAccountId !== this.properties.awsAccountId) {
+      throw new ResourceError(
+        `Bucket "${Bucket}" is in account "${awsAccountId}", not in the role's account "${this.properties.awsAccountId}"!`,
+        this,
+      );
+    }
+
+    const policy: IIamRoleS3BucketPolicy = {
+      accessPrefix,
+      allowRead: options.allowRead,
+      allowWrite: options.allowWrite,
+      bucketName: Bucket,
+    };
+
     const index = this.properties.policies.findIndex((p) => p.policyId === policyId);
     if (index === -1) {
-      const policy: IIamRoleS3BucketPolicy = {
-        accessPrefix,
-        allowRead: options.allowRead,
-        allowWrite: options.allowWrite,
-        bucketName,
-      };
-      this.properties.policies.push({
-        policy,
-        policyId,
-        policyType: 's3-storage-access-policy',
-      });
+      this.properties.policies.push({ policy, policyId, policyType: 's3-storage-access-policy' });
     } else {
-      this.properties.policies[index].policy = {
-        accessPrefix,
-        allowRead: options.allowRead,
-        allowWrite: options.allowWrite,
-        bucketName,
-      };
+      this.properties.policies[index].policy = policy;
     }
   }
 
@@ -234,18 +280,11 @@ export class IamRole extends ATerraformResource<IamRoleSchema, IamRole> {
    */
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {
     const assumeRolePolicies = this.properties.policies.filter((p) => p.policyType === 'assume-role-policy');
-    const policyStatement = assumeRolePolicies
-      .map((p) => {
-        if (p.policy === 'ecs-tasks.amazonaws.com') {
-          return {
-            Action: 'sts:AssumeRole',
-            Effect: 'Allow',
-            Principal: { Service: 'ecs-tasks.amazonaws.com' },
-          };
-        }
-        return null;
-      })
-      .filter(Boolean);
+    const policyStatement = assumeRolePolicies.map((p) => ({
+      Action: 'sts:AssumeRole',
+      Effect: 'Allow',
+      Principal: { Service: p.policy as IIamRoleAssumeRolePolicy },
+    }));
 
     const iamRoleOctoResource = terraform.addOctoTerraformResource(this as IamRole, {
       provider: { accountId: this.properties.awsAccountId },
@@ -271,6 +310,63 @@ export class IamRole extends ATerraformResource<IamRoleSchema, IamRole> {
         `${this.resourceId}_${policy.policyId}`,
         {
           policy_arn: policy.policy as string,
+          role: terraform.raw(`${iamRoleTFResource.address}.name`),
+        },
+      );
+    }
+
+    const dynamoDBPolicies = this.properties.policies.filter((p) => p.policyType === 'dynamodb-table-access-policy');
+    for (const policy of dynamoDBPolicies) {
+      const dynamoDBPolicy = policy.policy as IIamRoleDynamoDBTablePolicy;
+      const tableArn = [
+        'arn:aws:dynamodb',
+        dynamoDBPolicy.awsRegionId,
+        this.properties.awsAccountId,
+        `table/${dynamoDBPolicy.tableName}`,
+      ].join(':');
+
+      const policyStatements: object[] = [];
+      if (dynamoDBPolicy.allowRead) {
+        policyStatements.push({
+          Action: [
+            'dynamodb:BatchGetItem',
+            'dynamodb:ConditionCheckItem',
+            'dynamodb:DescribeTable',
+            'dynamodb:GetItem',
+            'dynamodb:Query',
+            'dynamodb:Scan',
+          ],
+          Effect: 'Allow',
+          Resource: [tableArn, `${tableArn}/index/*`],
+          Sid: PolicyUtility.getSafeSid(`Allow read from table ${dynamoDBPolicy.tableName}`),
+        });
+      }
+      if (dynamoDBPolicy.allowWrite) {
+        policyStatements.push({
+          Action: ['dynamodb:BatchWriteItem', 'dynamodb:DeleteItem', 'dynamodb:PutItem', 'dynamodb:UpdateItem'],
+          Effect: 'Allow',
+          Resource: [tableArn],
+          Sid: PolicyUtility.getSafeSid(`Allow write to table ${dynamoDBPolicy.tableName}`),
+        });
+      }
+
+      const iamPolicyTFResource = iamRoleOctoResource.addTerraformResource(
+        'aws_iam_policy',
+        `${this.resourceId}_${policy.policyId}`,
+        {
+          name: policy.policyId,
+          policy: terraform.jsonencode({
+            Statement: policyStatements,
+            Version: '2012-10-17',
+          }),
+        },
+      );
+
+      iamRoleOctoResource.addTerraformResource(
+        'aws_iam_role_policy_attachment',
+        `${this.resourceId}_${policy.policyId}_attach`,
+        {
+          policy_arn: terraform.raw(`${iamPolicyTFResource.address}.arn`),
           role: terraform.raw(`${iamRoleTFResource.address}.name`),
         },
       );

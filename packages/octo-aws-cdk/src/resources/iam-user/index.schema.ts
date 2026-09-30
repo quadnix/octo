@@ -7,10 +7,43 @@ import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
  */
 export type IIamUserPolicyTypes = {
   /**
+   * You can provide options to create a policy for accessing a DynamoDB table.
+   */
+  'dynamodb-table-access-policy': IIamUserDynamoDBTablePolicy;
+
+  /**
    * You can provide options to create a policy for accessing a S3 bucket.
    */
   's3-storage-access-policy': IIamUserS3BucketPolicy;
 };
+
+/**
+ * Defines the DynamoDB table access policy for an IAM user.
+ * Read covers the table and its indexes; write covers the table's items.
+ *
+ * @group Resources/IamUser
+ */
+export interface IIamUserDynamoDBTablePolicy {
+  /**
+   * Allows reading items from the table and querying its indexes.
+   */
+  allowRead: boolean;
+
+  /**
+   * Allows writing and deleting items in the table.
+   */
+  allowWrite: boolean;
+
+  /**
+   * The AWS region the table is in. The table is in the user's own account.
+   */
+  awsRegionId: string;
+
+  /**
+   * The name of the table.
+   */
+  tableName: string;
+}
 
 /**
  * Defines the S3 storage access policy for an IAM user.
