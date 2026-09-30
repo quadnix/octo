@@ -191,9 +191,10 @@ export class EcsTaskDefinition extends ATerraformResource<EcsTaskDefinitionSchem
   /**
    * Resolves what a container definition names its image by.
    *
-   * An image octo publishes is named through its resource, which is what tells terraform to push it
-   * before this task definition runs. An image from any other registry is named by its literal URI,
-   * because there is no resource to order against.
+   * An image octo publishes is a parent this task definition waits for, not one ECS requires: ECS
+   * registers a task definition whose image is missing, and its tasks fail to pull until the push
+   * lands. Naming the image through its resource makes terraform push it first. An image from any
+   * other registry is named by its literal URI, because there is no resource to wait for.
    *
    * @internal
    */
@@ -236,10 +237,12 @@ export class EcsTaskDefinition extends ATerraformResource<EcsTaskDefinitionSchem
   }
 
   /**
-   * Orders this task definition against the published images it runs.
+   * Orders this task definition against the published images it runs, in both directions.
    *
-   * A published image is deleted by octo at commit, outside terraform's own ordering, so nothing
-   * else holds it back until the task definition has stopped naming it.
+   * Neither is required by ECS; both are waits chosen so an image change never starts tasks that
+   * cannot pull. A new image is published before the task definition naming it is added or
+   * replaced. An old one is deleted by octo outside terraform's own ordering, so nothing else holds
+   * it back until the task definition has stopped naming it.
    *
    * @internal
    */
