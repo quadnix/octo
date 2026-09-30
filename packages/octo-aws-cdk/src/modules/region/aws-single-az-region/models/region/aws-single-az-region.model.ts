@@ -51,7 +51,7 @@ export class AwsSingleAzRegion extends Region {
    * @internal
    */
   static override async unSynth(region: AwsSingleAzRegionSchema): Promise<AwsSingleAzRegion> {
-    return new AwsSingleAzRegion(region.regionId, region.regionId as AwsSingleAzRegionId);
+    return new AwsSingleAzRegion(region.regionId, `aws-${region.awsRegionAZs[0]}` as AwsSingleAzRegionId);
   }
 
   /**
