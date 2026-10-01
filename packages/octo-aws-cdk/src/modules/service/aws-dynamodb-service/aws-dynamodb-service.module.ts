@@ -38,11 +38,17 @@ export class AwsDynamoDBServiceModule extends AModule<AwsDynamoDBServiceModuleSc
    * Creates the DynamoDB table service, and anchors its table name for other modules to find.
    */
   async onInit(inputs: AwsDynamoDBServiceModuleSchema): Promise<AwsDynamoDBService> {
+    const { awsAccountId } = await this.registerMetadata(inputs);
+
     // Create a new DynamoDB.
     const service = new AwsDynamoDBService(inputs.TableName, inputs.region);
 
     // Add anchors.
-    const dynamoDBAnchor = new AwsDynamoDBAnchor('AwsDynamoDBAnchor', { TableName: inputs.TableName }, service);
+    const dynamoDBAnchor = new AwsDynamoDBAnchor(
+      'AwsDynamoDBAnchor',
+      { awsAccountId, TableName: inputs.TableName },
+      service,
+    );
     service.addAnchor(dynamoDBAnchor);
 
     return service;

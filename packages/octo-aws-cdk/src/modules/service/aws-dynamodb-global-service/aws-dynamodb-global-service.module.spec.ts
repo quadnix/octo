@@ -124,6 +124,7 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
     testModuleContainer.createTestAnchor<AwsDynamoDBAnchorSchema>(
       'AwsDynamoDBAnchor',
       {
+        awsAccountId: '123',
         TableName: 'test-table',
       },
       service,
