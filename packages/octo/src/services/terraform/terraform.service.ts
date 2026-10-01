@@ -178,6 +178,20 @@ export interface TerraformModuleScope {
   getRef<T extends UnknownResource>(resource: T, key: keyof ResourceSchema<T>['response'] & string): HclExpression;
 
   getRef<S extends BaseResourceSchema>(resource: MatchingResource<S>, key: keyof S['response'] & string): HclExpression;
+
+  /**
+   * Joins text and references into one quoted terraform string, for when a value is another
+   * resource's output with text of this resource's own around it. Each reference resolves as
+   * {@link TerraformModuleScope.getRef} does, so a producer in another folder is still wired in.
+   *
+   * @example
+   * ```ts
+   * // "https://${var.distribution_DomainName}/api/orders"
+   * terraform.interpolate('https://', terraform.getRef(distribution, 'DomainName'), '/api/orders');
+   * ```
+   */
+  interpolate(...parts: (string | HclExpression)[]): HclExpression;
+
   /**
    * Wraps a value in a `jsonencode(...)` call.
    */
@@ -823,6 +837,7 @@ export class TerraformService {
       getProviderAliasRef: (accountId, regionId) => this.getProviderAliasRef(moduleId, accountId, regionId),
       getRef: ((resource: UnknownResource | MatchingResource<any>, key: string) =>
         this.getRef(resource as UnknownResource, key)) as TerraformModuleScope['getRef'],
+      interpolate: (...parts) => this.interpolate(parts),
       jsonencode: (subject) => this.jsonencode(subject),
       localPath: (filePath) => this.localPath(moduleId, filePath),
       mapAttr: (value) => this.mapAttr(value),
@@ -1213,6 +1228,13 @@ export class TerraformService {
         ? resource.getSchemaInstanceInResourceAction().resourceId
         : resource.resourceId;
     return new RefHclNode(resourceId, key);
+  }
+
+  /**
+   * @internal
+   */
+  private interpolate(parts: (string | HclExpression)[]): HclExpression {
+    return new InterpolatedStringHclNode(parts);
   }
 
   /**

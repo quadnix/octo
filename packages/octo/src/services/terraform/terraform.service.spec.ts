@@ -578,6 +578,50 @@ describe('TerraformService UT', () => {
     });
   });
 
+  describe('interpolate()', () => {
+    it('should join text and a same-module ref into one quoted string', () => {
+      const scope = service.scope('m1');
+
+      const distribution = new TestTerraformResource('distribution-1', {});
+      const distributionTf = scope.addOctoTerraformResource(distribution);
+      distributionTf.addTerraformResource('aws_cloudfront_distribution', 'distribution-1', {});
+      distributionTf.output({ DomainName: scope.raw('aws_cloudfront_distribution.distribution-1.domain_name') });
+
+      const lambda = new TestTerraformResource('lambda-1', {});
+      scope.addOctoTerraformResource(lambda).addTerraformResource('aws_lambda_function', 'lambda-1', {
+        orders_url: scope.interpolate('https://', scope.getRef(distribution, 'DomainName'), '/api/orders'),
+      });
+
+      expect(service.renderAllModules().get('m1')!.mainTf).toContain(
+        'orders_url = "https://${aws_cloudfront_distribution.distribution-1.domain_name}/api/orders"',
+      );
+    });
+
+    it('should wire a cross-module ref inside the string through terragrunt', () => {
+      const distributionScope = service.scope('distribution-module');
+      const distribution = new TestTerraformResource('distribution-1', {});
+      const distributionTf = distributionScope.addOctoTerraformResource(distribution);
+      distributionTf.addTerraformResource('aws_cloudfront_distribution', 'distribution-1', {});
+      distributionTf.output({
+        DomainName: distributionScope.raw('aws_cloudfront_distribution.distribution-1.domain_name'),
+      });
+
+      const lambdaScope = service.scope('lambda-module');
+      const lambda = new TestTerraformResource('lambda-1', {});
+      lambdaScope.addOctoTerraformResource(lambda).addTerraformResource('aws_lambda_function', 'lambda-1', {
+        orders_url: lambdaScope.interpolate('https://', lambdaScope.getRef(distribution, 'DomainName'), '/api/orders'),
+      });
+
+      const files = service.renderAllModules();
+      expect(files.get('lambda-module')!.mainTf).toContain(
+        'orders_url = "https://${var.distribution_1_DomainName}/api/orders"',
+      );
+      expect(files.get('lambda-module')!.variablesTf).toContain('variable "distribution_1_DomainName" {}');
+      expect(files.get('lambda-module')!.terragruntHcl).toContain('dependency "');
+      expect(files.get('distribution-module')!.outputsTf).toContain('output "distribution-1-DomainName"');
+    });
+  });
+
   describe('getProviderAliasRef()', () => {
     it('should register provider usage so the provider block renders in the module config', () => {
       service.addTerraformConfig({ providers: { aws: { source: 'hashicorp/aws' } } });
