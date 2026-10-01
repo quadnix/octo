@@ -11,11 +11,7 @@ import {
   type ICloudFrontFunctionKind,
   type ICloudFrontViewerProtocolPolicy,
 } from './cloudfront-behavior.schema.js';
-import {
-  CloudFrontOriginGroupSchema,
-  CloudFrontOriginSchema,
-  type ICloudFrontOriginSource,
-} from './cloudfront-origin.schema.js';
+import { CloudFrontOriginGroupSchema, CloudFrontOriginSchema } from './cloudfront-origin.schema.js';
 import {
   CLOUDFRONT_MANAGED_CACHE_POLICIES,
   CLOUDFRONT_MANAGED_ORIGIN_REQUEST_POLICIES,
@@ -66,7 +62,6 @@ export type {
   ICloudFrontManagedCachePolicy,
   ICloudFrontManagedOriginRequestPolicy,
   ICloudFrontManagedResponseHeadersPolicy,
-  ICloudFrontOriginSource,
   ICloudFrontPolicyReference,
   ICloudFrontReferrerPolicy,
   ICloudFrontValueSelection,
@@ -135,11 +130,13 @@ export type ICloudFrontPriceClass = (typeof CLOUDFRONT_PRICE_CLASSES)[number];
  *
  * @hideconstructor
  *
- * @overrideProperty parents - Every managed origin that is not an S3 bucket. An S3 bucket is a child
- * of the distribution instead.
+ * @overrideProperty parents - The Lambda functions and ALBs it serves, each attached after
+ * construction, with `addLambdaOrigin()` and `addAlbOrigin()`. An S3 bucket is a child of the
+ * distribution instead.
  * ```mermaid
  * graph TD;
- *   origin((Origin<br>Resource)) --> cloudfront_distribution((CloudFront<br>Distribution))
+ *   alb((ALB)) --> cloudfront_distribution((CloudFront<br>Distribution))
+ *   lambda((Lambda<br>Function)) --> cloudfront_distribution
  *   cloudfront_distribution --> s3_bucket((S3<br>Bucket))
  * ```
  * @overrideProperty resourceId - The resource id is of format `cloudfront-<distribution-name>`.

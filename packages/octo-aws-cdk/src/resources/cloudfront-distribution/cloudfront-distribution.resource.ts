@@ -1,15 +1,17 @@
 import {
   ATerraformResource,
-  type BaseResourceSchema,
   Diff,
   DiffAction,
   DiffUtility,
   type MatchingResource,
   Resource,
+  ResourceError,
   type TerraformModuleScope,
 } from '@quadnix/octo';
 import { CommonUtility } from '../../utilities/common/common.utility.js';
 import { PolicyUtility } from '../../utilities/policy/policy.utility.js';
+import type { AlbSchema } from '../alb/index.schema.js';
+import type { LambdaFunctionSchema } from '../lambda-function/index.schema.js';
 import {
   type CloudFrontBehaviorSchema,
   CloudFrontDistributionSchema,
@@ -59,11 +61,33 @@ const RENDER_DEFAULTS = {
     functionAssociations: [],
     viewerProtocolPolicy: 'redirect-to-https',
   },
-  cachePolicy: { defaultTtl: 86400, enableBrotli: true, enableGzip: true, maxTtl: 31536000, minTtl: 1 },
-  errorCachingMinTtl: 10,
-  origin: { connectionAttempts: 3, connectionTimeout: 10, customHeaders: {}, originPath: '' },
-  securityHeaders: { contentTypeOptions: true, frameOptions: 'SAMEORIGIN', strictTransportSecurityMaxAge: 31536000 },
-  valueSelection: { kind: 'none' } as ICloudFrontValueSelection,
+  customErrorResponse: { errorCachingMinTtl: 10 },
+  origins: {
+    alb: {
+      http_port: 80,
+      https_port: 443,
+      origin_keepalive_timeout: 5,
+      origin_protocol_policy: 'http-only',
+      origin_read_timeout: 30,
+      // eslint-disable-next-line spellcheck/spell-checker
+      origin_ssl_protocols: ['TLSv1.2'],
+    },
+    lambda: {
+      http_port: 80,
+      https_port: 443,
+      origin_keepalive_timeout: 5,
+      origin_protocol_policy: 'https-only',
+      origin_read_timeout: 60,
+      // eslint-disable-next-line spellcheck/spell-checker
+      origin_ssl_protocols: ['TLSv1.2'],
+    },
+    options: { connectionAttempts: 3, connectionTimeout: 10, customHeaders: {} },
+  },
+  policies: {
+    cache: { defaultTtl: 86400, enableBrotli: true, enableGzip: true, maxTtl: 31536000, minTtl: 1 },
+    securityHeaders: { contentTypeOptions: true, frameOptions: 'SAMEORIGIN', strictTransportSecurityMaxAge: 31536000 },
+    valueSelection: { kind: 'none' } as ICloudFrontValueSelection,
+  },
 } as const;
 
 /**
@@ -71,19 +95,18 @@ const RENDER_DEFAULTS = {
  */
 @Resource<CloudFrontDistribution>('@octo', 'cloudfront-distribution', CloudFrontDistributionSchema)
 export class CloudFrontDistribution extends ATerraformResource<CloudFrontDistributionSchema, CloudFrontDistribution> {
-  declare parents: MatchingResource<BaseResourceSchema>[];
+  declare parents: (MatchingResource<AlbSchema> | MatchingResource<LambdaFunctionSchema>)[];
   declare properties: CloudFrontDistributionSchema['properties'];
   declare response: CloudFrontDistributionSchema['response'];
 
   /**
+   * A distribution is built with no parents. The functions and ALBs it serves are attached later,
+   * with `addLambdaOrigin()` and `addAlbOrigin()`, by the actions that find them.
+   *
    * @internal
    */
-  constructor(
-    resourceId: string,
-    properties: CloudFrontDistributionSchema['properties'],
-    parents: MatchingResource<BaseResourceSchema>[] = [],
-  ) {
-    super(resourceId, properties, parents);
+  constructor(resourceId: string, properties: CloudFrontDistributionSchema['properties']) {
+    super(resourceId, properties, []);
 
     this.validateReferences();
   }
@@ -114,6 +137,45 @@ export class CloudFrontDistribution extends ATerraformResource<CloudFrontDistrib
    */
   private static policyKey(slot: string, reference: ICloudFrontPolicyReference): string {
     return `${slot}/${reference.kind}/${reference.name}`;
+  }
+
+  /**
+   * Attaches an ALB to the `alb` origin that names it, making the ALB a parent of this distribution.
+   * The origin reads its host name off the ALB, which AWS assigns when the ALB is created, so the ALB
+   * has to exist first.
+   *
+   * The origin itself is declared with the distribution, since behaviors name it from the start.
+   * This method only supplies the ALB behind it.
+   *
+   * @internal
+   */
+  addAlbOrigin(alb: MatchingResource<AlbSchema>): void {
+    this.attachOriginParent('alb', alb);
+  }
+
+  /**
+   * Attaches a Lambda function to the `lambda` origin that names it, making the function a parent of
+   * this distribution. The origin reads its host name off the function's URL, which AWS assigns when
+   * the URL is created, so the function has to exist first.
+   *
+   * The origin itself is declared with the distribution, since behaviors name it from the start.
+   * This method only supplies the function behind it.
+   *
+   * CloudFront waits 60 seconds for the function to answer, so a function allowed to run longer is
+   * refused: CloudFront would give up on a request the function is still serving.
+   *
+   * @internal
+   */
+  addLambdaOrigin(lambdaFunction: MatchingResource<LambdaFunctionSchema>): void {
+    const { functionName, timeoutInSeconds } = lambdaFunction.getSchemaInstanceInResourceAction().properties;
+    if (timeoutInSeconds > RENDER_DEFAULTS.origins.lambda.origin_read_timeout) {
+      throw new ResourceError(
+        `Lambda function "${functionName}" times out after ${timeoutInSeconds} seconds, but CloudFront waits ${RENDER_DEFAULTS.origins.lambda.origin_read_timeout}!`,
+        this,
+      );
+    }
+
+    this.attachOriginParent('lambda', lambdaFunction);
   }
 
   /**
@@ -165,7 +227,8 @@ export class CloudFrontDistribution extends ATerraformResource<CloudFrontDistrib
         ...(this.properties.customErrorResponses.length > 0
           ? {
               custom_error_response: this.properties.customErrorResponses.map((customErrorResponse) => ({
-                error_caching_min_ttl: customErrorResponse.errorCachingMinTtl ?? RENDER_DEFAULTS.errorCachingMinTtl,
+                error_caching_min_ttl:
+                  customErrorResponse.errorCachingMinTtl ?? RENDER_DEFAULTS.customErrorResponse.errorCachingMinTtl,
                 error_code: customErrorResponse.errorCode,
                 response_code: customErrorResponse.responseCode,
                 response_page_path: customErrorResponse.responsePagePath,
@@ -232,6 +295,28 @@ export class CloudFrontDistribution extends ATerraformResource<CloudFrontDistrib
   }
 
   /**
+   * Makes the resource behind an `alb` or `lambda` origin a parent of this distribution.
+   *
+   * @internal
+   */
+  private attachOriginParent(
+    kind: 'alb' | 'lambda',
+    parent: MatchingResource<AlbSchema> | MatchingResource<LambdaFunctionSchema>,
+  ): void {
+    const parentResourceId = parent.getActual().resourceId;
+
+    const origin = this.properties.origins.find((o) => o.kind.kind === kind && o.kind.resourceId === parentResourceId);
+    if (!origin) {
+      throw new ResourceError(`No ${kind} origin names "${parentResourceId}"!`, this);
+    }
+
+    if (this.parents.some((p) => p.getActual().resourceId === parentResourceId)) {
+      return;
+    }
+    parent.addChild('resourceId', this, 'resourceId');
+  }
+
+  /**
    * Every managed policy a behavior names, paired with the slot it fills.
    *
    * @internal
@@ -270,6 +355,22 @@ export class CloudFrontDistribution extends ATerraformResource<CloudFrontDistrib
    */
   private getOrderedBehaviors(): CloudFrontBehaviorSchema[] {
     return this.properties.behaviors.filter((behavior) => !!behavior.pathPattern);
+  }
+
+  /**
+   * The parent an origin reads its hostname from.
+   *
+   * @internal
+   */
+  private getOriginParent(resourceId: string): CloudFrontDistribution['parents'][number] {
+    const parent = this.parents.find((p) => p.getSchemaInstanceInResourceAction().resourceId === resourceId);
+    if (!parent) {
+      throw new ResourceError(
+        `CloudFront origin names "${resourceId}", which is not a parent of the distribution!`,
+        this,
+      );
+    }
+    return parent;
   }
 
   /**
@@ -331,48 +432,61 @@ export class CloudFrontDistribution extends ATerraformResource<CloudFrontDistrib
     origin: CloudFrontOriginSchema,
     originAccessControlIdByOriginId: Map<string, unknown>,
   ): Record<string, unknown> {
-    const customHeaders = Object.entries(origin.customHeaders ?? RENDER_DEFAULTS.origin.customHeaders);
+    const customHeaders = Object.entries(origin.customHeaders ?? RENDER_DEFAULTS.origins.options.customHeaders);
+    const kind = origin.kind;
 
-    return {
-      connection_attempts: origin.connectionAttempts ?? RENDER_DEFAULTS.origin.connectionAttempts,
-      connection_timeout: origin.connectionTimeout ?? RENDER_DEFAULTS.origin.connectionTimeout,
-      ...(customHeaders.length > 0 ? { custom_header: customHeaders.map(([name, value]) => ({ name, value })) } : {}),
-      ...(origin.kind.kind === 'custom'
-        ? {
-            custom_origin_config: {
-              http_port: origin.kind.httpPort,
-              https_port: origin.kind.httpsPort,
-              origin_keepalive_timeout: origin.kind.keepaliveTimeout,
-              origin_protocol_policy: origin.kind.originProtocolPolicy,
-              origin_read_timeout: origin.kind.readTimeout,
-              origin_ssl_protocols: origin.kind.sslProtocols,
-            },
-          }
-        : { origin_access_control_id: originAccessControlIdByOriginId.get(origin.originId) }),
+    let originSpec: Record<string, unknown>;
+    if (kind.kind === 's3') {
       // An S3 origin's hostname is written down rather than referenced, because the bucket's own
       // policy already references this distribution's ARN. Referencing it back would close a cycle
       // between the two folders, which terragrunt cannot order.
-      domain_name:
-        origin.kind.kind === 's3'
-          ? `${origin.kind.bucketName}.s3.${origin.kind.bucketRegion}.amazonaws.com`
-          : origin.kind.source.kind === 'literal'
-            ? origin.kind.source.domainName
-            : terraform.getRef(
-                this.parents.find(
-                  (p) =>
-                    p.getSchemaInstanceInResourceAction().resourceId ===
-                    (origin.kind as { source: { resourceId: string } }).source.resourceId,
-                )!,
-                origin.kind.source.responseKey,
-              ),
+      originSpec = {
+        domain_name: `${kind.bucketName}.s3.${kind.bucketRegion}.amazonaws.com`,
+        origin_access_control_id: originAccessControlIdByOriginId.get(origin.originId),
+      };
+    } else if (kind.kind === 'lambda') {
+      originSpec = {
+        custom_origin_config: RENDER_DEFAULTS.origins.lambda,
+        domain_name: terraform.getRef(
+          this.getOriginParent(kind.resourceId) as MatchingResource<LambdaFunctionSchema>,
+          'FunctionUrlDomainName',
+        ),
+        origin_access_control_id: originAccessControlIdByOriginId.get(origin.originId),
+      };
+    } else if (kind.kind === 'alb') {
+      originSpec = {
+        custom_origin_config: RENDER_DEFAULTS.origins.alb,
+        domain_name: terraform.getRef(this.getOriginParent(kind.resourceId) as MatchingResource<AlbSchema>, 'DNSName'),
+      };
+    } else {
+      originSpec = {
+        custom_origin_config: {
+          http_port: kind.httpPort,
+          https_port: kind.httpsPort,
+          origin_keepalive_timeout: kind.keepaliveTimeout,
+          origin_protocol_policy: kind.originProtocolPolicy,
+          origin_read_timeout: kind.readTimeout,
+          origin_ssl_protocols: kind.sslProtocols,
+        },
+        domain_name: kind.domainName,
+      };
+    }
+
+    return {
+      connection_attempts: origin.connectionAttempts ?? RENDER_DEFAULTS.origins.options.connectionAttempts,
+      connection_timeout: origin.connectionTimeout ?? RENDER_DEFAULTS.origins.options.connectionTimeout,
+      ...(customHeaders.length > 0 ? { custom_header: customHeaders.map(([name, value]) => ({ name, value })) } : {}),
+      ...(originSpec.custom_origin_config ? { custom_origin_config: originSpec.custom_origin_config } : {}),
+      ...(originSpec.origin_access_control_id ? { origin_access_control_id: originSpec.origin_access_control_id } : {}),
+      domain_name: originSpec.domain_name,
       origin_id: origin.originId,
       ...(origin.originPath ? { origin_path: origin.originPath } : {}),
     };
   }
 
   /**
-   * One origin access control per S3 origin. It is what lets the distribution sign its requests to
-   * a bucket that admits nothing else.
+   * One origin access control per S3 or Lambda origin. It is what lets the distribution sign its
+   * requests to a bucket or a function URL that admits nothing else.
    *
    * @internal
    */
@@ -383,7 +497,7 @@ export class CloudFrontDistribution extends ATerraformResource<CloudFrontDistrib
     const originAccessControlIdByOriginId = new Map<string, unknown>();
 
     for (const origin of this.properties.origins) {
-      if (origin.kind.kind !== 's3') {
+      if (origin.kind.kind !== 's3' && origin.kind.kind !== 'lambda') {
         continue;
       }
 
@@ -396,7 +510,7 @@ export class CloudFrontDistribution extends ATerraformResource<CloudFrontDistrib
             `${this.resourceId}-${origin.originId}`,
             ORIGIN_ACCESS_CONTROL_NAME_MAX_LENGTH,
           ),
-          origin_access_control_origin_type: 's3',
+          origin_access_control_origin_type: origin.kind.kind,
           signing_behavior: 'always',
           // eslint-disable-next-line spellcheck/spell-checker
           signing_protocol: 'sigv4',
@@ -432,14 +546,14 @@ export class CloudFrontDistribution extends ATerraformResource<CloudFrontDistrib
         'aws_cloudfront_cache_policy',
         `${this.resourceId}_cache_policy_${PolicyUtility.getSafeSid(cachePolicy.name)}`,
         {
-          default_ttl: cachePolicy.defaultTtl ?? RENDER_DEFAULTS.cachePolicy.defaultTtl,
-          max_ttl: cachePolicy.maxTtl ?? RENDER_DEFAULTS.cachePolicy.maxTtl,
-          min_ttl: cachePolicy.minTtl ?? RENDER_DEFAULTS.cachePolicy.minTtl,
+          default_ttl: cachePolicy.defaultTtl ?? RENDER_DEFAULTS.policies.cache.defaultTtl,
+          max_ttl: cachePolicy.maxTtl ?? RENDER_DEFAULTS.policies.cache.maxTtl,
+          min_ttl: cachePolicy.minTtl ?? RENDER_DEFAULTS.policies.cache.minTtl,
           name: cachePolicy.name,
           parameters_in_cache_key_and_forwarded_to_origin: {
             cookies_config: renderCookiesConfig(cachePolicy.cookies),
-            enable_accept_encoding_brotli: cachePolicy.enableBrotli ?? RENDER_DEFAULTS.cachePolicy.enableBrotli,
-            enable_accept_encoding_gzip: cachePolicy.enableGzip ?? RENDER_DEFAULTS.cachePolicy.enableGzip,
+            enable_accept_encoding_brotli: cachePolicy.enableBrotli ?? RENDER_DEFAULTS.policies.cache.enableBrotli,
+            enable_accept_encoding_gzip: cachePolicy.enableGzip ?? RENDER_DEFAULTS.policies.cache.enableGzip,
             headers_config: renderHeadersConfig(cachePolicy.headers),
             query_strings_config: renderQueryStringsConfig(cachePolicy.queryStrings),
           },
@@ -610,7 +724,7 @@ export class CloudFrontDistribution extends ATerraformResource<CloudFrontDistrib
  * @internal
  */
 function renderCookiesConfig(input?: ICloudFrontValueSelection): Record<string, unknown> {
-  const selection = input ?? RENDER_DEFAULTS.valueSelection;
+  const selection = input ?? RENDER_DEFAULTS.policies.valueSelection;
   return {
     cookie_behavior: cookieBehavior(selection),
     ...(selection.kind === 'allowList' ? { cookies: { items: selection.values } } : {}),
@@ -621,7 +735,7 @@ function renderCookiesConfig(input?: ICloudFrontValueSelection): Record<string, 
  * @internal
  */
 function renderHeadersConfig(input?: ICloudFrontValueSelection): Record<string, unknown> {
-  const selection = input ?? RENDER_DEFAULTS.valueSelection;
+  const selection = input ?? RENDER_DEFAULTS.policies.valueSelection;
   return {
     header_behavior: headerBehavior(selection),
     ...(selection.kind === 'allowList' ? { headers: { items: selection.values } } : {}),
@@ -632,7 +746,7 @@ function renderHeadersConfig(input?: ICloudFrontValueSelection): Record<string, 
  * @internal
  */
 function renderQueryStringsConfig(input?: ICloudFrontValueSelection): Record<string, unknown> {
-  const selection = input ?? RENDER_DEFAULTS.valueSelection;
+  const selection = input ?? RENDER_DEFAULTS.policies.valueSelection;
   return {
     query_string_behavior: cookieBehavior(selection),
     ...(selection.kind === 'allowList' ? { query_strings: { items: selection.values } } : {}),
@@ -718,14 +832,14 @@ function renderResponseHeadersPolicy(policy: CloudFrontResponseHeadersPolicySche
                   },
                 }
               : {}),
-            ...((securityHeaders.contentTypeOptions ?? RENDER_DEFAULTS.securityHeaders.contentTypeOptions)
+            ...((securityHeaders.contentTypeOptions ?? RENDER_DEFAULTS.policies.securityHeaders.contentTypeOptions)
               ? { content_type_options: { override: true } }
               : {}),
             ...(securityHeaders.frameOptions === null
               ? {}
               : {
                   frame_options: {
-                    frame_option: securityHeaders.frameOptions ?? RENDER_DEFAULTS.securityHeaders.frameOptions,
+                    frame_option: securityHeaders.frameOptions ?? RENDER_DEFAULTS.policies.securityHeaders.frameOptions,
                     override: true,
                   },
                 }),
@@ -737,7 +851,7 @@ function renderResponseHeadersPolicy(policy: CloudFrontResponseHeadersPolicySche
                   strict_transport_security: {
                     access_control_max_age_sec:
                       securityHeaders.strictTransportSecurityMaxAge ??
-                      RENDER_DEFAULTS.securityHeaders.strictTransportSecurityMaxAge,
+                      RENDER_DEFAULTS.policies.securityHeaders.strictTransportSecurityMaxAge,
                     // eslint-disable-next-line spellcheck/spell-checker
                     include_subdomains: true,
                     override: true,

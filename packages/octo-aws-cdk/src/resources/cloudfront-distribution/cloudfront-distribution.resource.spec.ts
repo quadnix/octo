@@ -1,5 +1,13 @@
 import { MatchingResource } from '@quadnix/octo';
-import { S3Website } from '../s3-website/index.js';
+import { Alb } from '../alb/index.js';
+import { EcrImage } from '../ecr/ecr-image.resource.js';
+import { EcrImageTag } from '../ecr-image-tag/ecr-image-tag.resource.js';
+import { IamRole } from '../iam-role/iam-role.resource.js';
+import { InternetGateway } from '../internet-gateway/index.js';
+import { LambdaFunction } from '../lambda-function/lambda-function.resource.js';
+import { SecurityGroup } from '../security-group/index.js';
+import { Subnet } from '../subnet/index.js';
+import { Vpc } from '../vpc/index.js';
 import { CloudFrontDistribution } from './cloudfront-distribution.resource.js';
 import { CloudFrontDistributionSchema } from './index.schema.js';
 
@@ -58,6 +66,154 @@ function properties(overrides: Partial<Properties> = {}): Properties {
 
 function createDistribution(overrides: Partial<Properties> = {}): CloudFrontDistribution {
   return new CloudFrontDistribution('cloudfront-test-distribution', properties(overrides));
+}
+
+/**
+ * A function serving behind a URL, with the role and image it needs, for a `lambda` origin to name.
+ */
+function createLambdaFunction({ timeoutInSeconds = 30 }: { timeoutInSeconds?: number } = {}): LambdaFunction {
+  const iamRole = new IamRole('iam-role-ExecutionRole-backend', {
+    awsAccountId: '123',
+    policies: [
+      { policy: 'lambda.amazonaws.com', policyId: 'LambdaAssumeRolePolicy', policyType: 'assume-role-policy' },
+    ],
+    rolename: 'ExecutionRole-backend',
+  });
+  const ecrImage = new EcrImage('ecr-us-east-1-family/image', {
+    awsAccountId: '123',
+    awsRegionId: 'us-east-1',
+    imageId: 'family/image',
+  });
+  const ecrImageTag = new EcrImageTag(
+    'ecr-image-tag-us-east-1-family/image-0-0-1',
+    {
+      architecture: 'arm64',
+      awsAccountId: '123',
+      awsRegionId: 'us-east-1',
+      dockerfileDirectory: 'images/backend',
+      dockerfileName: 'Dockerfile',
+      imageId: 'family/image',
+      imageTag: '0.0.1',
+    },
+    [new MatchingResource(ecrImage)],
+  );
+  const lambdaFunction = new LambdaFunction(
+    'lambda-function-backend',
+    {
+      allowCloudFrontOriginAccess: true,
+      architecture: 'arm64',
+      awsAccountId: '123',
+      awsRegionId: 'us-east-1',
+      environmentVariables: {},
+      functionName: 'backend',
+      imageCommand: [],
+      invokerAccountIds: [],
+      memoryInMegabytes: 512,
+      timeoutInSeconds,
+    },
+    [new MatchingResource(iamRole), new MatchingResource(ecrImageTag)],
+  );
+  return lambdaFunction;
+}
+
+/**
+ * A distribution whose one origin is the Lambda function from `createLambdaFunction()`, not yet
+ * attached to it.
+ */
+function createLambdaDistribution(): CloudFrontDistribution {
+  return new CloudFrontDistribution(
+    'cloudfront-test-distribution',
+    properties({
+      behaviors: [{ ...properties().behaviors[0], targetOriginId: 'api' }],
+      origins: [
+        {
+          connectionAttempts: 3,
+          connectionTimeout: 10,
+          customHeaders: {},
+          kind: { kind: 'lambda', resourceId: 'lambda-function-backend' },
+          originId: 'api',
+          originPath: '',
+        },
+      ],
+    }),
+  );
+}
+
+/**
+ * An internet-facing ALB, with the VPC, internet gateway, security group and subnet it sits on, for an
+ * `alb` origin to name.
+ */
+function createAlb(): Alb {
+  const vpc = new MatchingResource(
+    new Vpc('vpc-test', {
+      awsAccountId: '123',
+      awsAvailabilityZones: ['us-east-1a'],
+      awsRegionId: 'us-east-1',
+      CidrBlock: '10.0.0.0/16',
+      InstanceTenancy: 'default',
+    }),
+  );
+  const alb = new MatchingResource(
+    new Alb(
+      'alb-test',
+      {
+        awsAccountId: '123',
+        awsRegionId: 'us-east-1',
+        IpAddressType: 'ipv4',
+        Name: 'test',
+        Scheme: 'internet-facing',
+        Type: 'application',
+      },
+      [
+        new MatchingResource(
+          new InternetGateway(
+            'igw-test',
+            { awsAccountId: '123', awsRegionId: 'us-east-1', internetGatewayName: 'test' },
+            [vpc],
+          ),
+        ),
+        new MatchingResource(
+          new SecurityGroup('sec-grp-test', { awsAccountId: '123', awsRegionId: 'us-east-1', rules: [] }, [vpc]),
+        ),
+        new MatchingResource(
+          new Subnet(
+            'subnet-test',
+            {
+              AvailabilityZone: 'us-east-1a',
+              awsAccountId: '123',
+              awsRegionId: 'us-east-1',
+              CidrBlock: '10.0.0.0/24',
+              subnetName: 'test',
+            },
+            [vpc],
+          ),
+        ),
+      ],
+    ),
+  );
+  return alb.getActual() as Alb;
+}
+
+/**
+ * A distribution whose one origin is the ALB from `createAlb()`, not yet attached to it.
+ */
+function createAlbDistribution(): CloudFrontDistribution {
+  return new CloudFrontDistribution(
+    'cloudfront-test-distribution',
+    properties({
+      behaviors: [{ ...properties().behaviors[0], targetOriginId: 'web' }],
+      origins: [
+        {
+          connectionAttempts: 3,
+          connectionTimeout: 10,
+          customHeaders: {},
+          kind: { kind: 'alb', resourceId: 'alb-test' },
+          originId: 'web',
+          originPath: '',
+        },
+      ],
+    }),
+  );
 }
 
 describe('CloudFrontDistribution UT', () => {
@@ -322,6 +478,62 @@ describe('CloudFrontDistribution UT', () => {
     });
   });
 
+  describe('addLambdaOrigin()', () => {
+    it('should make the function a parent of the distribution', () => {
+      const distribution = createLambdaDistribution();
+      distribution.addLambdaOrigin(new MatchingResource(createLambdaFunction()));
+
+      expect(distribution.parents.map((p) => p.getActual().resourceId)).toEqual(['lambda-function-backend']);
+    });
+
+    it('should add the parent once when called twice', () => {
+      const distribution = createLambdaDistribution();
+      const lambdaFunction = new MatchingResource(createLambdaFunction());
+      distribution.addLambdaOrigin(lambdaFunction);
+      distribution.addLambdaOrigin(lambdaFunction);
+
+      expect(distribution.parents).toHaveLength(1);
+    });
+
+    it('should reject a function no Lambda origin names', () => {
+      expect(() => createDistribution().addLambdaOrigin(new MatchingResource(createLambdaFunction()))).toThrow(
+        'No lambda origin names "lambda-function-backend"!',
+      );
+    });
+  });
+
+  describe('addLambdaOrigin() timeout', () => {
+    it('should accept a function that answers within the 60 seconds CloudFront waits', () => {
+      const distribution = createLambdaDistribution();
+      distribution.addLambdaOrigin(new MatchingResource(createLambdaFunction({ timeoutInSeconds: 60 })));
+
+      expect(distribution.parents).toHaveLength(1);
+    });
+
+    it('should reject a function that runs longer than CloudFront waits', () => {
+      expect(() =>
+        createLambdaDistribution().addLambdaOrigin(
+          new MatchingResource(createLambdaFunction({ timeoutInSeconds: 61 })),
+        ),
+      ).toThrow('Lambda function "backend" times out after 61 seconds, but CloudFront waits 60!');
+    });
+  });
+
+  describe('addAlbOrigin()', () => {
+    it('should make the ALB a parent of the distribution', () => {
+      const distribution = createAlbDistribution();
+      distribution.addAlbOrigin(new MatchingResource(createAlb()));
+
+      expect(distribution.parents.map((p) => p.getActual().resourceId)).toEqual(['alb-test']);
+    });
+
+    it('should reject an ALB no ALB origin names', () => {
+      expect(() => createDistribution().addAlbOrigin(new MatchingResource(createAlb()))).toThrow(
+        'No alb origin names "alb-test"!',
+      );
+    });
+  });
+
   describe('diffProperties()', () => {
     it('should report nothing when nothing moved', async () => {
       const diffs = await createDistribution().diffProperties(createDistribution());
@@ -358,13 +570,13 @@ describe('CloudFrontDistribution UT', () => {
             connectionTimeout: 10,
             customHeaders: {},
             kind: {
+              domainName: 'api.example.com',
               httpPort: 80,
               httpsPort: 443,
               keepaliveTimeout: 5,
               kind: 'custom',
               originProtocolPolicy: 'https-only',
               readTimeout: 30,
-              source: { domainName: 'api.example.com', kind: 'literal' },
               // eslint-disable-next-line spellcheck/spell-checker
               sslProtocols: ['TLSv1.2'],
             },
@@ -490,49 +702,69 @@ describe('CloudFrontDistribution UT', () => {
       expect(distribution.origin[0].domain_name).toBe('test-bucket.s3.us-east-1.amazonaws.com');
     });
 
-    it("should reference a managed origin's hostname under the key the origin named", async () => {
-      const bucket = new MatchingResource(
-        new S3Website('bucket-assets-bucket', {
-          awsAccountId: '123',
-          awsRegionId: 'us-east-1',
-          Bucket: 'assets-bucket',
-          ErrorDocument: 'error.html',
-          IndexDocument: 'index.html',
-        }),
-      );
-      const distribution = new CloudFrontDistribution(
-        'cloudfront-test-distribution',
-        properties({
-          behaviors: [{ ...properties().behaviors[0], targetOriginId: 'legacy' }],
-          origins: [
-            {
-              connectionAttempts: 3,
-              connectionTimeout: 10,
-              customHeaders: {},
-              kind: {
-                httpPort: 80,
-                httpsPort: 443,
-                keepaliveTimeout: 5,
-                kind: 'custom',
-                originProtocolPolicy: 'https-only',
-                readTimeout: 30,
-                source: { kind: 'resource', resourceId: 'bucket-assets-bucket', responseKey: 'RegionalDomainName' },
-                // eslint-disable-next-line spellcheck/spell-checker
-                sslProtocols: ['TLSv1.2'],
-              },
-              originId: 'legacy',
-              originPath: '',
-            },
-          ],
-        }),
-        [bucket],
-      );
+    it('should reach an ALB origin through its DNS name, over HTTP', async () => {
+      const distribution = createAlbDistribution();
+      distribution.addAlbOrigin(new MatchingResource(createAlb()));
 
       const { emitted, terraform } = createRecordingScope();
       await distribution.toHCL(terraform);
 
+      expect(emitted.some((e) => e.type.endsWith('aws_cloudfront_origin_access_control'))).toBe(false);
       const rendered = emitted.find((e) => e.type.endsWith('aws_cloudfront_distribution'))!.spec as any;
-      expect(rendered.origin[0].domain_name).toMatchInlineSnapshot(`"ref(bucket-assets-bucket.RegionalDomainName)"`);
+      expect(rendered.origin[0]).toEqual({
+        connection_attempts: 3,
+        connection_timeout: 10,
+        custom_origin_config: {
+          http_port: 80,
+          https_port: 443,
+          origin_keepalive_timeout: 5,
+          origin_protocol_policy: 'http-only',
+          origin_read_timeout: 30,
+          // eslint-disable-next-line spellcheck/spell-checker
+          origin_ssl_protocols: ['TLSv1.2'],
+        },
+        domain_name: 'ref(alb-test.DNSName)',
+        origin_id: 'web',
+      });
+    });
+
+    it("should reach a Lambda origin through its URL's host name, signed by an origin access control", async () => {
+      const distribution = createLambdaDistribution();
+      distribution.addLambdaOrigin(new MatchingResource(createLambdaFunction()));
+
+      const { emitted, terraform } = createRecordingScope();
+      await distribution.toHCL(terraform);
+
+      const originAccessControl = emitted.find((e) => e.type.endsWith('aws_cloudfront_origin_access_control'))!;
+      expect((originAccessControl.spec as any).origin_access_control_origin_type).toBe('lambda');
+      const rendered = emitted.find((e) => e.type.endsWith('aws_cloudfront_distribution'))!.spec as any;
+      // eslint-disable-next-line spellcheck/spell-checker
+      expect(rendered.origin[0]).toMatchInlineSnapshot(`
+       {
+         "connection_attempts": 3,
+         "connection_timeout": 10,
+         "custom_origin_config": {
+           "http_port": 80,
+           "https_port": 443,
+           "origin_keepalive_timeout": 5,
+           "origin_protocol_policy": "https-only",
+           "origin_read_timeout": 60,
+           "origin_ssl_protocols": [
+             "TLSv1.2",
+           ],
+         },
+         "domain_name": "ref(lambda-function-backend.FunctionUrlDomainName)",
+         "origin_access_control_id": "aws_cloudfront_origin_access_control.cloudfront-test-distribution_origin_access_control_api.id",
+         "origin_id": "api",
+       }
+      `);
+    });
+
+    it('should reject rendering a Lambda origin whose function was never attached', async () => {
+      const { terraform } = createRecordingScope();
+      await expect(createLambdaDistribution().toHCL(terraform)).rejects.toThrow(
+        'CloudFront origin names "lambda-function-backend", which is not a parent of the distribution!',
+      );
     });
 
     /**
@@ -611,13 +843,13 @@ describe('CloudFrontDistribution UT', () => {
             connectionTimeout: 10,
             customHeaders: { 'X-From-CloudFront': 'yes' },
             kind: {
+              domainName: 'api.example.com',
               httpPort: 80,
               httpsPort: 443,
               keepaliveTimeout: 5,
               kind: 'custom',
               originProtocolPolicy: 'https-only',
               readTimeout: 30,
-              source: { domainName: 'api.example.com', kind: 'literal' },
               // eslint-disable-next-line spellcheck/spell-checker
               sslProtocols: ['TLSv1.2'],
             },

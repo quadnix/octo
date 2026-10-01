@@ -1,18 +1,6 @@
 import { Schema, Validate } from '@quadnix/octo';
 
 /**
- * Where an origin's hostname comes from.
- * * `resource` reads it out of another octo resource's response. `responseKey` names the key
- * holding the hostname, e.g. `DNSName` for an ALB, `RegionalDomainName` for an S3 website bucket.
- * * `literal` is a hostname octo does not manage - a legacy origin, or a third party.
- *
- * @group Resources/CloudFrontDistribution
- */
-export type ICloudFrontOriginSource =
-  | { domainName: string; kind: 'literal' }
-  | { kind: 'resource'; resourceId: string; responseKey: string };
-
-/**
  * One origin the distribution can serve from.
  *
  * @group Resources/CloudFrontDistribution
@@ -47,26 +35,34 @@ export class CloudFrontOriginSchema {
    *
    * * `s3` is a bucket reached privately, through an origin access control the distribution creates.
    * Read access on the bucket is granted by the bucket, not here.
-   * * `custom` is anything that speaks HTTP - a load balancer, an EC2 instance, an API, a third
-   * party, or an S3 website endpoint.
+   * * `lambda` is the URL of a Lambda function, reached over HTTPS through an origin access control the
+   * distribution creates. The function admits the distribution, not this origin. `resourceId` names
+   * the function, which `CloudFrontDistribution.addLambdaOrigin()` then attaches.
+   * * `alb` is an internet-facing ALB, reached over HTTP on port 80, the only listener octo's ALB
+   * has. `resourceId` names the ALB, which `CloudFrontDistribution.addAlbOrigin()` then attaches.
+   * * `custom` is a hostname octo does not manage - a legacy origin, or a third party.
    */
   @Validate({
     destruct: (value: CloudFrontOriginSchema['kind']): string[] =>
       value.kind === 's3'
         ? [value.bucketName, value.bucketRegion]
-        : [value.originProtocolPolicy, ...value.sslProtocols],
+        : value.kind === 'lambda' || value.kind === 'alb'
+          ? [value.resourceId]
+          : [value.domainName, value.originProtocolPolicy, ...value.sslProtocols],
     options: { minLength: 1 },
   })
   kind = Schema<
     | { bucketName: string; bucketRegion: string; kind: 's3' }
+    | { kind: 'lambda'; resourceId: string }
+    | { kind: 'alb'; resourceId: string }
     | {
+        domainName: string;
         httpPort: number;
         httpsPort: number;
         keepaliveTimeout: number;
         kind: 'custom';
         originProtocolPolicy: 'http-only' | 'https-only' | 'match-viewer';
         readTimeout: number;
-        source: ICloudFrontOriginSource;
         sslProtocols: string[];
       }
   >();
