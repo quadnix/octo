@@ -719,9 +719,7 @@ describe('AwsS3StorageServiceModule UT', () => {
             { terraformTarget: 'skip' },
           )
           .next(),
-      ).rejects.toThrowErrorMatchingInlineSnapshot(
-        `"Property "accessPrefixes" in schema could not be validated!"`,
-      );
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "accessPrefixes" in schema could not be validated!"`);
     });
 
     it('should validate directoryPath is not empty', async () => {

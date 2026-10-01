@@ -24,7 +24,7 @@ import { AwsS3StorageServiceSchema } from './aws-s3-storage-service.schema.js';
  */
 @Model<AwsS3StorageService>('@octo', 'service', AwsS3StorageServiceSchema)
 export class AwsS3StorageService extends Service {
-  readonly accessPrefixes: { accessPrefix: string; accessPrefixAnchorName: string; }[] = [];
+  readonly accessPrefixes: { accessPrefix: string; accessPrefixAnchorName: string }[] = [];
 
   @Validate({ options: { maxLength: 128, minLength: 2, regex: /^[a-zA-Z0-9][\w.-]*[a-zA-Z0-9]$/ } })
   readonly bucketName: string;

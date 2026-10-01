@@ -15,7 +15,7 @@ export class AwsS3StorageServiceModuleSchema {
   /**
    * Optional key prefixes within the S3 bucket, e.g. `uploads`, that other modules may be granted
    * read or write access to. A prefix creates nothing in the bucket; each one publishes an anchor
-   * that a module such as `AwsEcsServerModule` grants access through.
+   * that a module such as `AwsServerModule` grants access through.
    */
   @Validate({
     destruct: (value: AwsS3StorageServiceModuleSchema['accessPrefixes']): string[] => value!,

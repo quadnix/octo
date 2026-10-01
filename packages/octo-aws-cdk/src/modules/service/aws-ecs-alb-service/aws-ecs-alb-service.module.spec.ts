@@ -184,6 +184,7 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
     [
       {
         properties: {
+          architecture: 'x86_64',
           awsAccountId: '123',
           awsRegionId: 'us-east-1',
           cpu: 256,

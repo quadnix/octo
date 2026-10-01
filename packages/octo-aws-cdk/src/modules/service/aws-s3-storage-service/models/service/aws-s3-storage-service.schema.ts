@@ -9,7 +9,7 @@ export class AwsS3StorageServiceSchema extends ServiceSchema {
       value!.map((v) => [v.accessPrefixAnchorName, v.accessPrefix]).flat(),
     options: { minLength: 1 },
   })
-  accessPrefixes? = Schema<{ accessPrefix: string; accessPrefixAnchorName: string; }[]>([]);
+  accessPrefixes? = Schema<{ accessPrefix: string; accessPrefixAnchorName: string }[]>([]);
 
   @Validate({ options: { minLength: 1 } })
   bucketName = Schema<string>();
