@@ -71,7 +71,7 @@ export class EcsTaskDefinition extends ATerraformResource<EcsTaskDefinitionSchem
         shouldConsolidateDiffs = true;
         diffs.splice(i, 1);
       } else if (diffs[i].field === 'properties' && diffs[i].action === DiffAction.UPDATE) {
-        // Consolidate property diffs - cpu, environmentVariables, image, & memory.
+        // Consolidate property diffs - architecture, cpu, environmentVariables, image, & memory.
         shouldConsolidateDiffs = true;
         diffs.splice(i, 1);
       }
@@ -90,6 +90,7 @@ export class EcsTaskDefinition extends ATerraformResource<EcsTaskDefinitionSchem
   override async diffProperties(previous: EcsTaskDefinition): Promise<Diff[]> {
     if (
       !DiffUtility.isObjectDeepEquals(previous.properties, this.properties, [
+        'architecture',
         'cpu',
         'deploymentTag',
         'environmentVariables',
@@ -145,6 +146,10 @@ export class EcsTaskDefinition extends ATerraformResource<EcsTaskDefinitionSchem
       memory: String(this.properties.memory),
       network_mode: 'awsvpc',
       requires_compatibilities: ['FARGATE'],
+      runtime_platform: {
+        cpu_architecture: this.properties.architecture === 'arm64' ? 'ARM64' : 'X86_64',
+        operating_system_family: 'LINUX',
+      },
       task_role_arn: terraform.getRef(iamRoleParent, 'Arn'),
     };
 

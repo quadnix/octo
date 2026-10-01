@@ -110,6 +110,7 @@ export class EcsTaskDefinitionImageSchema {
 export class EcsTaskDefinitionSchema extends BaseResourceSchema {
   /**
    * Input properties.
+   * * `properties.architecture` - The processor the task runs on. Every image it runs must be built for it.
    * * `properties.awsAccountId` - The AWS account ID.
    * * `properties.awsRegionId` - The AWS region ID.
    * * `properties.cpu` - The number of CPU units to reserve for the containers.
@@ -130,6 +131,7 @@ export class EcsTaskDefinitionSchema extends BaseResourceSchema {
   @Validate<unknown>([
     {
       destruct: (value: EcsTaskDefinitionSchema['properties']): string[] => [
+        value.architecture,
         value.awsAccountId,
         value.awsRegionId,
         String(value.cpu),
@@ -138,6 +140,10 @@ export class EcsTaskDefinitionSchema extends BaseResourceSchema {
         String(value.memory),
       ],
       options: { minLength: 1 },
+    },
+    {
+      destruct: (value: EcsTaskDefinitionSchema['properties']): string[] => [value.architecture],
+      options: { regex: /^(arm64|x86_64)$/ },
     },
     {
       destruct: (value: EcsTaskDefinitionSchema['properties']): EcsTaskDefinitionEnvironmentVariableSchema[] =>
@@ -150,6 +156,7 @@ export class EcsTaskDefinitionSchema extends BaseResourceSchema {
     },
   ])
   override properties = Schema<{
+    architecture: 'arm64' | 'x86_64';
     awsAccountId: string;
     awsRegionId: string;
     cpu: number;

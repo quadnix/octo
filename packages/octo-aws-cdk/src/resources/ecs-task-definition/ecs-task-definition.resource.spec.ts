@@ -45,6 +45,7 @@ function createEcsTaskDefinition(
   return new EcsTaskDefinition(
     'ecs-task-definition-backend',
     {
+      architecture: 'x86_64',
       awsAccountId: '123456789012',
       awsRegionId: 'us-east-1',
       cpu: 256,
