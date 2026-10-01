@@ -1,6 +1,15 @@
-import { type Account, AccountSchema, Schema, type Service, ServiceSchema, Validate } from '@quadnix/octo';
+import {
+  type AModel,
+  type Account,
+  AccountSchema,
+  type Execution,
+  Schema,
+  type Service,
+  ServiceSchema,
+  Validate,
+} from '@quadnix/octo';
 import { AwsAccountAnchorSchema } from '../../../anchors/aws-account/aws-account.anchor.schema.js';
-import { AwsS3StorageServiceAnchorSchema } from '../../../anchors/aws-s3-storage-service/aws-s3-storage-service.anchor.schema.js';
+import { AwsLambdaFunctionAnchorSchema } from '../../../anchors/aws-lambda/aws-lambda-function.anchor.schema.js';
 import {
   CLOUDFRONT_ALLOWED_METHODS,
   CLOUDFRONT_CACHED_METHODS,
@@ -61,20 +70,38 @@ export class AwsCloudFrontServiceModuleOriginSchema {
   originPath? = Schema<string>('');
 
   /**
-   * The model to serve. Supported: a bucket produced by `AwsS3StorageServiceModule`.
+   * The model to serve. Supported: a bucket produced by `AwsS3StorageServiceModule`, an ALB produced
+   * by `AwsEcsAlbServiceModule`, served over HTTP, and a Lambda function produced by
+   * `AwsLambdaExecutionModule`, served through its URL. CloudFront waits 60 seconds for the function,
+   * so its timeout must be no longer.
    */
   @Validate<unknown>([
     {
       options: {
-        isModel: { anchors: [{ schema: AwsS3StorageServiceAnchorSchema }], NODE_NAME: 'service' },
+        custom: (value: AwsCloudFrontServiceModuleOriginSchema['source']): boolean =>
+          ['execution', 'service'].includes((value.constructor as typeof AModel).NODE_NAME),
       },
     },
     {
-      destruct: (value: AwsCloudFrontServiceModuleOriginSchema['source']): [ServiceSchema] => [value.synth()],
+      // A bucket or an ALB; which of the two is checked by the module, since a schema cannot say "either".
+      destruct: (value: AwsCloudFrontServiceModuleOriginSchema['source']): Service[] =>
+        (value.constructor as typeof AModel).NODE_NAME === 'service' ? [value as Service] : [],
+      options: { isModel: { NODE_NAME: 'service' } },
+    },
+    {
+      destruct: (value: AwsCloudFrontServiceModuleOriginSchema['source']): ServiceSchema[] =>
+        (value.constructor as typeof AModel).NODE_NAME === 'service' ? [(value as Service).synth()] : [],
       options: { isSchema: { schema: ServiceSchema } },
     },
+    {
+      destruct: (value: AwsCloudFrontServiceModuleOriginSchema['source']): Execution[] =>
+        (value.constructor as typeof AModel).NODE_NAME === 'execution' ? [value as Execution] : [],
+      options: {
+        isModel: { anchors: [{ schema: AwsLambdaFunctionAnchorSchema }], NODE_NAME: 'execution' },
+      },
+    },
   ])
-  source = Schema<Service>();
+  source = Schema<Execution | Service>();
 }
 
 /**

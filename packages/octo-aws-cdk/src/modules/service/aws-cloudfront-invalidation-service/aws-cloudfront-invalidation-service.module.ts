@@ -53,7 +53,7 @@ export class AwsCloudFrontInvalidationServiceModule extends AModule<
     const { bucketName, contentDigest } = matchingSourceAnchor.getSchemaInstance().properties;
 
     // Validate the distribution serves the bucket.
-    const originOverlays = (cloudFront.getSiblings()['aws-cloudfront-origin-overlay'] || []).map(
+    const originOverlays = (cloudFront.getSiblings()['aws-cloudfront-s3-origin-overlay'] || []).map(
       (d) => d.to as AOverlay<any, any>,
     );
     if (!originOverlays.some((o) => o.properties.bucketName === bucketName)) {

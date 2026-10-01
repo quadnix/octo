@@ -1,9 +1,13 @@
-import { AModule, AccountType, Module, ModuleError } from '@quadnix/octo';
+import { AModule, type Account, AccountType, Module, ModuleError, hasNodeName } from '@quadnix/octo';
 import { AwsCloudFrontAnchor } from '../../../anchors/aws-cloudfront/aws-cloudfront.anchor.js';
+import { AwsEcsAlbAnchorSchema } from '../../../anchors/aws-ecs/aws-ecs-alb.anchor.schema.js';
+import { AwsLambdaFunctionAnchorSchema } from '../../../anchors/aws-lambda/aws-lambda-function.anchor.schema.js';
 import { AwsS3StorageServiceAnchorSchema } from '../../../anchors/aws-s3-storage-service/aws-s3-storage-service.anchor.schema.js';
 import { type AwsCloudFrontServiceModuleRouteSchema, AwsCloudFrontServiceModuleSchema } from './index.schema.js';
 import { AwsCloudFrontService } from './models/service/index.js';
-import { AwsCloudFrontOriginOverlay } from './overlays/aws-cloudfront-origin/index.js';
+import { AwsCloudFrontAlbOriginOverlay } from './overlays/aws-cloudfront-alb-origin/index.js';
+import { AwsCloudFrontLambdaOriginOverlay } from './overlays/aws-cloudfront-lambda-origin/index.js';
+import { AwsCloudFrontS3OriginOverlay } from './overlays/aws-cloudfront-s3-origin/index.js';
 
 /**
  * `AwsCloudFrontServiceModule` is a CloudFront-based AWS gateway module that provides an implementation
@@ -11,9 +15,19 @@ import { AwsCloudFrontOriginOverlay } from './overlays/aws-cloudfront-origin/ind
  *
  * It is given its origins, the models it serves, and its routes, the paths that pick an origin, the
  * way CloudFront itself is configured. For each source it creates an overlay, and grants the
- * distribution access to it: for a bucket from `AwsS3StorageServiceModule`, an origin access
- * control and a statement in the bucket's policy. It sits under the account. To drop the edges' copies of a source's files when they change, add
- * `AwsCloudFrontInvalidationServiceModule`.
+ * distribution access to it through an origin access control: for a bucket from
+ * `AwsS3StorageServiceModule`, a statement in the bucket's policy; for a Lambda function from
+ * `AwsLambdaExecutionModule`, a permission on the function to be called through its URL, by the
+ * CloudFront distributions of its account. An ALB from `AwsEcsAlbServiceModule` is reached over HTTP
+ * through its DNS name, and is granted nothing: it still answers anyone who calls it directly. It sits
+ * under the account. To drop the edges' copies of a
+ * source's files when they change, add `AwsCloudFrontInvalidationServiceModule`.
+ *
+ * A route whose origin is a Lambda function or an ALB defaults to every method, no caching, and every
+ * viewer header but `Host`. Behind a Lambda function, a client sending a body - a `POST` or a `PUT` -
+ * must also send its SHA-256 in the `x-amz-content-sha256` header, because CloudFront signs the request
+ * it forwards to the function. CloudFront waits 60 seconds for the function, so a function with a
+ * longer timeout is rejected.
  *
  * @example
  * TypeScript
@@ -40,7 +54,9 @@ import { AwsCloudFrontOriginOverlay } from './overlays/aws-cloudfront-origin/ind
  *
  * @group Modules/Service/AwsCloudFrontService
  *
+ * @reference Resources {@link AlbSchema}
  * @reference Resources {@link CloudFrontDistributionSchema}
+ * @reference Resources {@link LambdaFunctionSchema}
  * @reference Resources {@link S3StorageSchema}
  *
  * @see {@link AwsCloudFrontServiceModuleSchema} for the input schema.
@@ -55,7 +71,12 @@ export class AwsCloudFrontServiceModule extends AModule<AwsCloudFrontServiceModu
    */
   async onInit(
     inputs: AwsCloudFrontServiceModuleSchema,
-  ): Promise<[AwsCloudFrontService, ...AwsCloudFrontOriginOverlay[]]> {
+  ): Promise<
+    [
+      AwsCloudFrontService,
+      ...(AwsCloudFrontAlbOriginOverlay | AwsCloudFrontLambdaOriginOverlay | AwsCloudFrontS3OriginOverlay)[],
+    ]
+  > {
     const account = inputs.account;
     if (account.accountType !== AccountType.AWS) {
       throw new ModuleError('Only AWS accounts are supported in this module!', this.constructor.name);
@@ -132,21 +153,99 @@ export class AwsCloudFrontServiceModule extends AModule<AwsCloudFrontServiceModu
     service.addAnchor(cloudFrontAnchor);
 
     // Add an overlay for each origin's source.
-    const overlays: AwsCloudFrontOriginOverlay[] = [];
+    const overlays: (
+      | AwsCloudFrontAlbOriginOverlay
+      | AwsCloudFrontLambdaOriginOverlay
+      | AwsCloudFrontS3OriginOverlay
+    )[] = [];
     for (const origin of inputs.origins) {
+      if (hasNodeName(origin.source, 'execution')) {
+        const [matchingLambdaFunctionAnchor] = await origin.source.getAnchorsMatchingSchema(
+          AwsLambdaFunctionAnchorSchema,
+          [],
+          { searchBoundaryMembers: false },
+        );
+        const { functionName } = matchingLambdaFunctionAnchor.getSchemaInstance().properties;
+
+        // Validate the function can be served, from this distribution's account.
+        const environment = origin.source.getParents()['environment'][0].to;
+        const region = environment.getParents()['region'][0].to;
+        if ((region.getParents()['account'][0].to as Account).accountId !== account.accountId) {
+          throw new ModuleError(
+            `Lambda function "${functionName}" is not in the distribution's account!`,
+            this.constructor.name,
+          );
+        }
+
+        // Validate a function is one origin of this distribution.
+        if (
+          overlays.some(
+            (o) => o instanceof AwsCloudFrontLambdaOriginOverlay && o.properties.functionName === functionName,
+          )
+        ) {
+          throw new ModuleError(
+            `Lambda function "${functionName}" is named by more than one origin!`,
+            this.constructor.name,
+          );
+        }
+
+        overlays.push(
+          new AwsCloudFrontLambdaOriginOverlay(
+            `aws-cloudfront-lambda-origin-overlay-${inputs.distributionName}-${functionName}`,
+            { functionName },
+            [cloudFrontAnchor, matchingLambdaFunctionAnchor],
+          ),
+        );
+        continue;
+      }
+
+      const [matchingAlbAnchor] = await origin.source.getAnchorsMatchingSchema(AwsEcsAlbAnchorSchema, [], {
+        searchBoundaryMembers: false,
+      });
+      if (matchingAlbAnchor) {
+        const { albName } = matchingAlbAnchor.getSchemaInstance().properties;
+
+        // Validate the ALB can be served, from this distribution's account.
+        const subnet = origin.source.getParents()['subnet'][0].to;
+        const region = subnet.getParents()['region'][0].to;
+        if ((region.getParents()['account'][0].to as Account).accountId !== account.accountId) {
+          throw new ModuleError(`ALB "${albName}" is not in the distribution's account!`, this.constructor.name);
+        }
+
+        // Validate an ALB is one origin of this distribution.
+        if (overlays.some((o) => o instanceof AwsCloudFrontAlbOriginOverlay && o.properties.albName === albName)) {
+          throw new ModuleError(`ALB "${albName}" is named by more than one origin!`, this.constructor.name);
+        }
+
+        overlays.push(
+          new AwsCloudFrontAlbOriginOverlay(
+            `aws-cloudfront-alb-origin-overlay-${inputs.distributionName}-${albName}`,
+            { albName },
+            [cloudFrontAnchor, matchingAlbAnchor],
+          ),
+        );
+        continue;
+      }
+
       const [matchingSourceAnchor] = await origin.source.getAnchorsMatchingSchema(AwsS3StorageServiceAnchorSchema, [], {
         searchBoundaryMembers: false,
       });
+      if (!matchingSourceAnchor) {
+        throw new ModuleError(
+          `Origin "${origin.originId}" is neither an S3 storage bucket nor an ALB!`,
+          this.constructor.name,
+        );
+      }
       const { bucketName } = matchingSourceAnchor.getSchemaInstance().properties;
 
       // Validate a bucket is one origin of this distribution.
-      if (overlays.some((o) => o.properties.bucketName === bucketName)) {
+      if (overlays.some((o) => o instanceof AwsCloudFrontS3OriginOverlay && o.properties.bucketName === bucketName)) {
         throw new ModuleError(`Bucket "${bucketName}" is named by more than one origin!`, this.constructor.name);
       }
 
       overlays.push(
-        new AwsCloudFrontOriginOverlay(
-          `aws-cloudfront-origin-overlay-${inputs.distributionName}-${bucketName}`,
+        new AwsCloudFrontS3OriginOverlay(
+          `aws-cloudfront-s3-origin-overlay-${inputs.distributionName}-${bucketName}`,
           { bucketName },
           [cloudFrontAnchor, matchingSourceAnchor],
         ),

@@ -15,21 +15,21 @@ import type { CloudFrontDistribution } from '../../../../../../resources/cloudfr
 import type { S3Storage } from '../../../../../../resources/s3-storage/index.js';
 import { S3StorageSchema } from '../../../../../../resources/s3-storage/index.schema.js';
 import type { AwsCloudFrontServiceModule } from '../../../aws-cloudfront-service.module.js';
-import { AwsCloudFrontOriginOverlay } from '../aws-cloudfront-origin.overlay.js';
+import { AwsCloudFrontS3OriginOverlay } from '../aws-cloudfront-s3-origin.overlay.js';
 
 /**
  * @internal
  */
-@Action(AwsCloudFrontOriginOverlay)
-export class AddAwsCloudFrontOriginOverlayAction implements IModelAction<AwsCloudFrontServiceModule> {
+@Action(AwsCloudFrontS3OriginOverlay)
+export class AddAwsCloudFrontS3OriginOverlayAction implements IModelAction<AwsCloudFrontServiceModule> {
   /**
    * @internal
    */
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
-      diff.node instanceof AwsCloudFrontOriginOverlay &&
-      hasNodeName(diff.node, 'aws-cloudfront-origin-overlay') &&
+      diff.node instanceof AwsCloudFrontS3OriginOverlay &&
+      hasNodeName(diff.node, 'aws-cloudfront-s3-origin-overlay') &&
       diff.field === 'overlayId'
     );
   }
@@ -38,7 +38,7 @@ export class AddAwsCloudFrontOriginOverlayAction implements IModelAction<AwsClou
    * @internal
    */
   async handle(
-    diff: Diff<AwsCloudFrontOriginOverlay>,
+    diff: Diff<AwsCloudFrontS3OriginOverlay>,
     actionInputs: EnhancedModuleSchema<AwsCloudFrontServiceModule>,
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
@@ -90,16 +90,16 @@ export class AddAwsCloudFrontOriginOverlayAction implements IModelAction<AwsClou
 /**
  * @internal
  */
-@Factory<AddAwsCloudFrontOriginOverlayAction>(AddAwsCloudFrontOriginOverlayAction)
-export class AddAwsCloudFrontOriginOverlayActionFactory {
-  private static instance: AddAwsCloudFrontOriginOverlayAction;
+@Factory<AddAwsCloudFrontS3OriginOverlayAction>(AddAwsCloudFrontS3OriginOverlayAction)
+export class AddAwsCloudFrontS3OriginOverlayActionFactory {
+  private static instance: AddAwsCloudFrontS3OriginOverlayAction;
 
   /**
    * @internal
    */
-  static async create(): Promise<AddAwsCloudFrontOriginOverlayAction> {
+  static async create(): Promise<AddAwsCloudFrontS3OriginOverlayAction> {
     if (!this.instance) {
-      this.instance = new AddAwsCloudFrontOriginOverlayAction();
+      this.instance = new AddAwsCloudFrontS3OriginOverlayAction();
     }
     return this.instance;
   }

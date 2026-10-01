@@ -66,7 +66,7 @@ async function setup(
   await testModuleContainer.createTestOverlays('distribution', [
     {
       anchors: [cloudFrontAnchor, contentAnchor],
-      context: `@octo/aws-cloudfront-origin-overlay=aws-cloudfront-origin-overlay-test-distribution-${servedBucketName}`,
+      context: `@octo/aws-cloudfront-s3-origin-overlay=aws-cloudfront-s3-origin-overlay-test-distribution-${servedBucketName}`,
       properties: { bucketName: servedBucketName },
     },
   ]);

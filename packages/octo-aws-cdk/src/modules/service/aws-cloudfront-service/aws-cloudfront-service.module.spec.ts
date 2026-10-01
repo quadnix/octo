@@ -1,13 +1,34 @@
-import { Service, ServiceType, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import {
+  type Account,
+  type App,
+  MatchingResource,
+  Service,
+  ServiceType,
+  TestContainer,
+  TestModuleContainer,
+  stub,
+} from '@quadnix/octo';
 import type { AwsAccountAnchorSchema } from '../../../anchors/aws-account/aws-account.anchor.schema.js';
+import type { AwsEcsAlbAnchorSchema } from '../../../anchors/aws-ecs/aws-ecs-alb.anchor.schema.js';
+import type { AwsLambdaFunctionAnchorSchema } from '../../../anchors/aws-lambda/aws-lambda-function.anchor.schema.js';
 import type { AwsS3StorageServiceAnchorSchema } from '../../../anchors/aws-s3-storage-service/aws-s3-storage-service.anchor.schema.js';
+import { Alb } from '../../../resources/alb/index.js';
+import { EcrImage } from '../../../resources/ecr/index.js';
+import { EcrImageTag } from '../../../resources/ecr-image-tag/index.js';
+import { IamRole } from '../../../resources/iam-role/index.js';
+import { InternetGateway } from '../../../resources/internet-gateway/index.js';
+import { LambdaFunction } from '../../../resources/lambda-function/index.js';
 import { S3Storage } from '../../../resources/s3-storage/index.js';
+import { SecurityGroup } from '../../../resources/security-group/index.js';
+import { Subnet } from '../../../resources/subnet/index.js';
+import { Vpc } from '../../../resources/vpc/index.js';
 import type { AwsCloudFrontServiceModuleSchema } from './index.schema.js';
 import { AwsCloudFrontServiceModule } from './index.js';
 
-async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
+async function setup(testModuleContainer: TestModuleContainer): Promise<{ account: Account; app: App }> {
   const {
     account: [account],
+    app: [app],
     region: [region],
   } = await testModuleContainer.createTestModels('testModule', {
     account: ['aws,123'],
@@ -39,6 +60,158 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
     permissions: [],
   });
   await testModuleContainer.createResources('testModule', [s3Storage], { save: true });
+
+  return { account, app };
+}
+
+/**
+ * A Lambda function with a URL, run by an execution in a serverless region, as `AwsLambdaExecutionModule`
+ * would have left it: the function anchored on the execution, and created by the execution's overlay.
+ */
+async function setupLambdaFunction(
+  testModuleContainer: TestModuleContainer,
+  { account, app }: { account: Account; app: App },
+  { timeoutInSeconds = 30 }: { timeoutInSeconds?: number } = {},
+): Promise<void> {
+  const {
+    execution: [execution],
+  } = await testModuleContainer.createTestModels('lambdaModule', {
+    account: [account],
+    app: [app],
+    deployment: ['v1'],
+    environment: ['qa'],
+    execution: [':0:0:0'],
+    region: ['serverless-region'],
+    server: ['backend'],
+    subnet: ['default'],
+  });
+
+  const lambdaExecutionOverlayContext = '@octo/aws-lambda-execution-overlay=aws-lambda-execution-overlay-backend';
+  const testOverlays = await testModuleContainer.createTestOverlays('lambdaModule', [
+    { anchors: [], context: lambdaExecutionOverlayContext },
+  ]);
+  execution.addAnchor(
+    testModuleContainer.createTestAnchor<AwsLambdaFunctionAnchorSchema>(
+      'AwsLambdaFunctionAnchor',
+      { functionName: 'backend', timeoutInSeconds },
+      testOverlays[lambdaExecutionOverlayContext],
+    ),
+  );
+
+  const iamRole = new IamRole('iam-role-ExecutionRole-backend', {
+    awsAccountId: '123',
+    policies: [
+      { policy: 'lambda.amazonaws.com', policyId: 'LambdaAssumeRolePolicy', policyType: 'assume-role-policy' },
+    ],
+    rolename: 'ExecutionRole-backend',
+  });
+  const ecrImage = new EcrImage('ecr-us-east-1-family/image', {
+    awsAccountId: '123',
+    awsRegionId: 'us-east-1',
+    imageId: 'family/image',
+  });
+  const ecrImageTag = new EcrImageTag(
+    'ecr-image-tag-us-east-1-family/image-0-0-1',
+    {
+      architecture: 'arm64',
+      awsAccountId: '123',
+      awsRegionId: 'us-east-1',
+      dockerfileDirectory: 'images/backend',
+      dockerfileName: 'Dockerfile',
+      imageId: 'family/image',
+      imageTag: '0.0.1',
+    },
+    [new MatchingResource(ecrImage)],
+  );
+  const lambdaFunction = new LambdaFunction(
+    'lambda-function-backend',
+    {
+      allowCloudFrontOriginAccess: false,
+      architecture: 'arm64',
+      awsAccountId: '123',
+      awsRegionId: 'us-east-1',
+      environmentVariables: {},
+      functionName: 'backend',
+      imageCommand: [],
+      invokerAccountIds: [],
+      memoryInMegabytes: 512,
+      timeoutInSeconds,
+    },
+    [new MatchingResource(iamRole), new MatchingResource(ecrImageTag)],
+  );
+  await testModuleContainer.createResources('lambdaModule', [iamRole, ecrImage, ecrImageTag, lambdaFunction], {
+    save: true,
+  });
+}
+
+/**
+ * An internet-facing ALB in a public subnet, as `AwsEcsAlbServiceModule` would have left it: the
+ * service anchored with the ALB's name, and the ALB with the network it sits on.
+ */
+async function setupAlb(
+  testModuleContainer: TestModuleContainer,
+  { account }: { account: Account; app: App },
+): Promise<void> {
+  const {
+    region: [region],
+    subnet: [subnet],
+  } = await testModuleContainer.createTestModels('albModule', {
+    account: [account],
+    region: ['alb-region'],
+    subnet: ['public'],
+  });
+  const {
+    service: [albService],
+  } = await testModuleContainer.createTestModels('albModule', {
+    service: [new Service('web-alb', [subnet], ServiceType.LOAD_BALANCER, 'alb')],
+  });
+  albService.addAnchor(
+    testModuleContainer.createTestAnchor<AwsEcsAlbAnchorSchema>('AwsEcsAlbAnchor', { albName: 'web' }, albService),
+  );
+
+  const vpc = new Vpc('vpc-test', {
+    awsAccountId: '123',
+    awsAvailabilityZones: ['us-east-1a'],
+    awsRegionId: 'us-east-1',
+    CidrBlock: '10.0.0.0/16',
+    InstanceTenancy: 'default',
+  });
+  const internetGateway = new InternetGateway(
+    'igw-test',
+    { awsAccountId: '123', awsRegionId: 'us-east-1', internetGatewayName: 'test' },
+    [new MatchingResource(vpc)],
+  );
+  const securityGroup = new SecurityGroup(
+    'sec-grp-test',
+    { awsAccountId: '123', awsRegionId: 'us-east-1', rules: [] },
+    [new MatchingResource(vpc)],
+  );
+  const subnetResource = new Subnet(
+    'subnet-test',
+    {
+      AvailabilityZone: 'us-east-1a',
+      awsAccountId: '123',
+      awsRegionId: 'us-east-1',
+      CidrBlock: '10.0.0.0/24',
+      subnetName: 'public',
+    },
+    [new MatchingResource(vpc)],
+  );
+  const alb = new Alb(
+    `alb-${region.regionId}-web`,
+    {
+      awsAccountId: '123',
+      awsRegionId: 'us-east-1',
+      IpAddressType: 'ipv4',
+      Name: 'web',
+      Scheme: 'internet-facing',
+      Type: 'application',
+    },
+    [new MatchingResource(internetGateway), new MatchingResource(securityGroup), new MatchingResource(subnetResource)],
+  );
+  await testModuleContainer.createResources('albModule', [vpc, internetGateway, securityGroup, subnetResource, alb], {
+    save: true,
+  });
 }
 
 function inputs(overrides: Partial<AwsCloudFrontServiceModuleSchema> = {}): any {
@@ -324,7 +497,7 @@ describe('AwsCloudFrontServiceModule UT', () => {
          "UniversalModelActionForService",
        ],
        [
-         "AddAwsCloudFrontOriginOverlayAction",
+         "AddAwsCloudFrontS3OriginOverlayAction",
        ],
      ]
     `);
@@ -364,6 +537,85 @@ describe('AwsCloudFrontServiceModule UT', () => {
        "* @octo/s3-storage=bucket-test-bucket",
      ]
     `);
+  });
+
+  it('should serve a Lambda function through its URL, and admit the distribution to it', async () => {
+    await setupLambdaFunction(testModuleContainer, await setup(testModuleContainer));
+    const { hclRender, modelTransaction } = (
+      await testModuleContainer
+        .runModules<AwsCloudFrontServiceModule>(
+          {
+            inputs: inputs({
+              origins: [
+                { originId: 'site', source: stub('${{testModule.model.service}}') },
+                { originId: 'api', source: stub('${{lambdaModule.model.execution}}') },
+              ],
+              routes: [{ originId: 'api', pathPattern: '/api/*' }, { originId: 'site' }],
+            }),
+            moduleId: 'distribution',
+            type: AwsCloudFrontServiceModule,
+          },
+          { filterByModuleIds: ['lambdaModule', 'distribution'], terraformTarget: 'skip' },
+        )
+        .next()
+    ).value!;
+
+    // The overlay creating the function runs before the overlay serving it.
+    const actions = testModuleContainer.mapTransactionActions(modelTransaction).flat();
+    // eslint-disable-next-line spellcheck/spell-checker
+    expect(actions.indexOf('UniversalModelActionForaws-lambda-execution-overlay')).toBeLessThan(
+      actions.indexOf('AddAwsCloudFrontLambdaOriginOverlayAction'),
+    );
+
+    // The distribution reads the function's host name, and the function admits CloudFront by account.
+    expect(hclRender).toContain('domain_name = var.lambda_function_backend_FunctionUrlDomainName');
+    expect(hclRender).toContain('origin_access_control_origin_type = "lambda"');
+    expect(hclRender).toContain('principal = "cloudfront.amazonaws.com"');
+    expect(hclRender).toContain('source_account = "123"');
+    expect(hclRender).toMatch(/allowed_methods = \["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"\]/);
+  });
+
+  it('should serve an ALB over HTTP through its DNS name', async () => {
+    await setupAlb(testModuleContainer, await setup(testModuleContainer));
+    const { hclRender } = (
+      await testModuleContainer
+        .runModules<AwsCloudFrontServiceModule>(
+          {
+            inputs: inputs({
+              origins: [
+                { originId: 'site', source: stub('${{testModule.model.service}}') },
+                { originId: 'web', source: stub('${{albModule.model.service}}') },
+              ],
+              routes: [{ originId: 'web', pathPattern: '/app/*' }, { originId: 'site' }],
+            }),
+            moduleId: 'distribution',
+            type: AwsCloudFrontServiceModule,
+          },
+          { filterByModuleIds: ['albModule', 'distribution'], terraformTarget: 'skip' },
+        )
+        .next()
+    ).value!;
+
+    expect(hclRender).toContain('domain_name = var.alb_alb_region_web_DNSName');
+    expect(hclRender).toContain('origin_protocol_policy = "http-only"');
+    expect(hclRender).toMatch(/allowed_methods = \["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"\]/);
+  });
+
+  it('should reject a Lambda function that runs longer than CloudFront waits', async () => {
+    await setupLambdaFunction(testModuleContainer, await setup(testModuleContainer), { timeoutInSeconds: 61 });
+
+    await expect(
+      testModuleContainer
+        .runModules<AwsCloudFrontServiceModule>({
+          inputs: inputs({
+            origins: [{ originId: 'api', source: stub('${{lambdaModule.model.execution}}') }],
+            routes: [{ originId: 'api' }],
+          }),
+          moduleId: 'distribution',
+          type: AwsCloudFrontServiceModule,
+        })
+        .next(),
+    ).rejects.toThrow('Lambda function "backend" times out after 61 seconds, but CloudFront waits 60!');
   });
 
   describe('input changes', () => {
