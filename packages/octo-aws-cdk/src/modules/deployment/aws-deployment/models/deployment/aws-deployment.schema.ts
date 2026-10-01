@@ -3,4 +3,4 @@ import { DeploymentSchema } from '@quadnix/octo';
 /**
  * @internal
  */
-export class AwsEcsDeploymentSchema extends DeploymentSchema {}
+export class AwsDeploymentSchema extends DeploymentSchema {}
