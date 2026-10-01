@@ -21,6 +21,7 @@ import { AwsEcrImageTagOverlay } from './overlays/aws-ecr-image-tag/index.js';
  * import { AwsEcrImageTagModule } from '@quadnix/octo-aws-cdk/modules/image/aws-ecr-image-tag';
  *
  * octo.loadModule(AwsEcrImageTagModule, 'my-image-tag-module', {
+ *   architecture: 'arm64',
  *   dockerfileDirectory: 'images/nginx',
  *   dockerfileName: 'Dockerfile',
  *   image: stub<Image>('${{my-image-module.model.image}}'),
@@ -61,6 +62,7 @@ export class AwsEcrImageTagModule extends AModule<AwsEcrImageTagModuleSchema, Aw
     return new AwsEcrImageTagOverlay(
       `aws-ecr-image-tag-overlay-${image.imageId}-${imageTagId}`,
       {
+        architecture: inputs.architecture,
         dockerfileDirectory: inputs.dockerfileDirectory,
         dockerfileName: inputs.dockerfileName!,
         imageId: image.imageId,

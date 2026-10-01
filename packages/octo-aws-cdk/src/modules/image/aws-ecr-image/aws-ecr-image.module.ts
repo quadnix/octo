@@ -1,6 +1,7 @@
-import { AModule, type Account, type App, Module } from '@quadnix/octo';
+import { AModule, type Account, type App, Module, ModuleError } from '@quadnix/octo';
 import { AwsEcrImageAnchor } from '../../../anchors/aws-ecr/aws-ecr-image.anchor.js';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
+import { AwsServerlessRegionAnchorSchema } from '../../../anchors/aws-region/aws-serverless-region.anchor.schema.js';
 import { AwsEcrImageModuleSchema } from './index.schema.js';
 import { AwsEcrImage } from './models/image/index.js';
 
@@ -69,11 +70,28 @@ export class AwsEcrImageModule extends AModule<AwsEcrImageModuleSchema, AwsEcrIm
         metadata.app = account.getParents()['app'][0].to as App;
       }
 
-      // Get AWS Region ID.
-      const [matchingAnchor] = await region.getAnchorsMatchingSchema(AwsRegionAnchorSchema, [], {
-        searchBoundaryMembers: false,
-      });
+      // Get AWS Region ID, of a region with a network or of a serverless one.
+      const [matchingAnchor] = [
+        ...(await region.getAnchorsMatchingSchema(AwsRegionAnchorSchema, [], { searchBoundaryMembers: false })),
+        ...(await region.getAnchorsMatchingSchema(AwsServerlessRegionAnchorSchema, [], {
+          searchBoundaryMembers: false,
+        })),
+      ];
+      if (!matchingAnchor) {
+        throw new ModuleError(`Region "${region.regionId}" is not an AWS region!`, this.constructor.name);
+      }
       const awsRegionId = matchingAnchor.getSchemaInstance().properties.awsRegionId;
+
+      // A repository is named by its image and region alone, so one region holds it for one account.
+      const sharedRegion = metadata.uniqueImageRepositories.find(
+        (r) => r.awsAccountId !== account.accountId && r.awsRegionId === awsRegionId,
+      );
+      if (sharedRegion) {
+        throw new ModuleError(
+          `Image cannot be held in "${awsRegionId}" by more than one account!`,
+          this.constructor.name,
+        );
+      }
 
       if (
         !metadata.uniqueImageRepositories.find(

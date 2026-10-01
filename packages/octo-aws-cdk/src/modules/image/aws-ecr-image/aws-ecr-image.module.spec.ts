@@ -1,5 +1,6 @@
 import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
+import type { AwsServerlessRegionAnchorSchema } from '../../../anchors/aws-region/aws-serverless-region.anchor.schema.js';
 import { AwsEcrImageModule } from './index.js';
 
 async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
@@ -141,6 +142,37 @@ describe('AwsEcrImageModule UT', () => {
        "+ @octo/ecr-image=ecr-us-east-1-family/image",
      ]
     `);
+  });
+
+  it('should create the repository in a serverless region', async () => {
+    const {
+      region: [region],
+    } = await testModuleContainer.createTestModels('testModule', {
+      account: ['aws,123'],
+      app: ['test-app'],
+      region: ['serverless-region'],
+    });
+    region.addAnchor(
+      testModuleContainer.createTestAnchor<AwsServerlessRegionAnchorSchema>(
+        'AwsServerlessRegionAnchor',
+        { awsRegionId: 'us-east-1', regionId: 'serverless-region', serverless: true },
+        region,
+      ),
+    );
+
+    const { resourceDiffs } = (
+      await testModuleContainer
+        .runModules<AwsEcrImageModule>(
+          {
+            inputs: { imageFamily: 'family', imageName: 'image', regions: [stub('${{testModule.model.region}}')] },
+            moduleId: 'image',
+            type: AwsEcrImageModule,
+          },
+          { filterByModuleIds: ['image'], terraformTarget: 'skip' },
+        )
+        .next()
+    ).value!;
+    expect(testModuleContainer.digestDiffs(resourceDiffs)).toEqual(['+ @octo/ecr-image=ecr-us-east-1-family/image']);
   });
 
   it('should CUD', async () => {
@@ -436,6 +468,50 @@ describe('AwsEcrImageModule UT', () => {
           )
           .next(),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "imageName" in schema could not be validated!"`);
+    });
+
+    it('should validate regions of different accounts do not share an AWS region', async () => {
+      const {
+        app: [app],
+        region: [qaRegion],
+      } = await testModuleContainer.createTestModels('qaRegionModule', {
+        account: ['aws,123'],
+        app: ['test-app'],
+        region: ['qa-region'],
+      });
+      const {
+        region: [productionRegion],
+      } = await testModuleContainer.createTestModels('productionRegionModule', {
+        account: ['aws,456'],
+        app: [app],
+        region: ['production-region'],
+      });
+      for (const region of [qaRegion, productionRegion]) {
+        region.addAnchor(
+          testModuleContainer.createTestAnchor<AwsServerlessRegionAnchorSchema>(
+            'AwsServerlessRegionAnchor',
+            { awsRegionId: 'us-east-1', regionId: region.regionId, serverless: true },
+            region,
+          ),
+        );
+      }
+
+      await expect(
+        testModuleContainer
+          .runModules<AwsEcrImageModule>(
+            {
+              inputs: {
+                imageFamily: 'family',
+                imageName: 'image',
+                regions: [stub('${{qaRegionModule.model.region}}'), stub('${{productionRegionModule.model.region}}')],
+              },
+              moduleId: 'image',
+              type: AwsEcrImageModule,
+            },
+            { terraformTarget: 'skip' },
+          )
+          .next(),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`"Image cannot be held in "us-east-1" by more than one account!"`);
     });
 
     it('should validate regions array is not empty', async () => {

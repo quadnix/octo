@@ -1,5 +1,4 @@
 import { type Region, RegionSchema, Schema, Validate } from '@quadnix/octo';
-import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 
 /**
  * `AwsEcrImageModuleSchema` is the input schema for the `AwsEcrImageModule` module.
@@ -30,7 +29,7 @@ export class AwsEcrImageModuleSchema {
   /**
    * The AWS regions where the ECR repositories will be created.
    * The image will be available in all specified regions for multi-region deployments.
-   * Each region must have AWS region anchors configured.
+   * Each region is one with a network or a serverless one.
    */
   @Validate([
     {
@@ -39,7 +38,7 @@ export class AwsEcrImageModuleSchema {
     {
       destruct: (value: AwsEcrImageModuleSchema['regions']): Region[] => value,
       options: {
-        isModel: { anchors: [{ schema: AwsRegionAnchorSchema }], NODE_NAME: 'region' },
+        isModel: { NODE_NAME: 'region' },
       },
     },
     {

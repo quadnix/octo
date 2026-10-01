@@ -33,7 +33,11 @@ export class AddAwsServerlessRegionModelAction implements IModelAction<AwsServer
   /**
    * @internal
    */
-  async handle(_diff: Diff<AwsServerlessRegion>, _actionInputs: EnhancedModuleSchema<AwsServerlessRegionModule>, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
+  async handle(
+    _diff: Diff<AwsServerlessRegion>,
+    _actionInputs: EnhancedModuleSchema<AwsServerlessRegionModule>,
+    actionOutputs: ActionOutputs,
+  ): Promise<ActionOutputs> {
     return actionOutputs;
   }
 }

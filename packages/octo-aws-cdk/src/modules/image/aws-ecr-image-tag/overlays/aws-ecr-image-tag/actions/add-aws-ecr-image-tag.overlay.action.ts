@@ -63,6 +63,7 @@ export class AddAwsEcrImageTagOverlayAction implements IModelAction<AwsEcrImageT
       const ecrImageTag = new EcrImageTag(
         resourceId,
         {
+          architecture: properties.architecture,
           awsAccountId,
           awsRegionId,
           dockerfileDirectory: properties.dockerfileDirectory,

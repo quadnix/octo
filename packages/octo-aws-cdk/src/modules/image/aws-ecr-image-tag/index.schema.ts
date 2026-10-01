@@ -14,6 +14,13 @@ import { AwsEcrImageAnchorSchema } from '../../../anchors/aws-ecr/aws-ecr-image.
  */
 export class AwsEcrImageTagModuleSchema {
   /**
+   * The processor the image is built for. A Lambda function or an ECS task running the image runs on it.
+   * Like `dockerfileDirectory`, editing it republishes nothing.
+   */
+  @Validate({ options: { regex: /^(arm64|x86_64)$/ } })
+  architecture = Schema<'arm64' | 'x86_64'>();
+
+  /**
    * The build context the image is built from, as a path relative to the octo project root.
    * It is relative because an absolute path differs on every machine, and this path is part of what
    * octo commits.

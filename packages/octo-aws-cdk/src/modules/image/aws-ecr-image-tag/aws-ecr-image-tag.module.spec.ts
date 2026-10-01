@@ -96,12 +96,12 @@ const imageTagModule = (
   }: { dockerfileDirectory?: string; hidden?: boolean; image?: string } = {},
 ): {
   hidden: boolean;
-  inputs: { dockerfileDirectory: string; image: Image; imageTag: string };
+  inputs: { architecture: 'arm64' | 'x86_64'; dockerfileDirectory: string; image: Image; imageTag: string };
   moduleId: string;
   type: typeof AwsEcrImageTagModule;
 } => ({
   hidden,
-  inputs: { dockerfileDirectory, image: stub<Image>(image), imageTag },
+  inputs: { architecture: 'arm64', dockerfileDirectory, image: stub<Image>(image), imageTag },
   moduleId,
   type: AwsEcrImageTagModule,
 });
@@ -160,6 +160,7 @@ describe('AwsEcrImageTagModule UT', () => {
     // The Dockerfile name defaults, so the build reaches for one named `Dockerfile` in the context.
     expect(dockerService.build).toHaveBeenCalledWith(
       expect.stringContaining(':0.0.1'),
+      'linux/arm64',
       expect.stringMatching(/images\/nginx\/Dockerfile$/),
       expect.stringMatching(/images\/nginx$/),
     );
