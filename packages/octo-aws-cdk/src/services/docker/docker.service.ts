@@ -17,7 +17,7 @@ export class DockerService {
   constructor(private readonly dockerBinary: string) {}
 
   /**
-   * Builds `imageReference` from the given build context, as a single manifest.
+   * Builds `imageReference` for a docker `platform` from the given build context, as a single manifest.
    *
    * Provenance and SBOM attestations are off because they turn the result into an image index, and
    * pushing an index writes its tag twice - once for the manifest and once for the index. A
@@ -27,9 +27,16 @@ export class DockerService {
    * @param dockerfilePath Absolute path of the Dockerfile.
    * @param contextDirectory Absolute path of the build context.
    */
-  async build(imageReference: string, dockerfilePath: string, contextDirectory: string): Promise<void> {
+  async build(
+    imageReference: string,
+    platform: 'linux/amd64' | 'linux/arm64',
+    dockerfilePath: string,
+    contextDirectory: string,
+  ): Promise<void> {
     await this.run([
       'build',
+      '--platform',
+      platform,
       '--provenance',
       'false',
       '--sbom',

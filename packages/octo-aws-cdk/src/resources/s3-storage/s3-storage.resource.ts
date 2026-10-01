@@ -127,9 +127,7 @@ export class S3Storage extends ATerraformResource<S3StorageSchema, S3Storage> {
       permissions: S3StorageSchema['properties']['permissions'],
     ): S3StorageSchema['properties']['permissions'] =>
       [...permissions].sort((a, b) =>
-        `${a.principalResourceId}/${a.accessPrefix}`.localeCompare(
-          `${b.principalResourceId}/${b.accessPrefix}`,
-        ),
+        `${a.principalResourceId}/${a.accessPrefix}`.localeCompare(`${b.principalResourceId}/${b.accessPrefix}`),
       );
     if (
       !DiffUtility.isObjectDeepEquals(

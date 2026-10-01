@@ -89,7 +89,8 @@ export class AddEcrImageTagResourceAction extends ANodeAction implements IResour
     // rather than the working directory: terraform runs this from a terragrunt cache directory.
     this.log(`Publishing "${properties.imageId}:${properties.imageTag}"`);
     const contextDirectory = ProjectUtility.resolveFromProjectRoot(properties.dockerfileDirectory);
-    await dockerService.build(imageUri, join(contextDirectory, properties.dockerfileName), contextDirectory);
+    const platform = properties.architecture === 'arm64' ? 'linux/arm64' : 'linux/amd64';
+    await dockerService.build(imageUri, platform, join(contextDirectory, properties.dockerfileName), contextDirectory);
     await dockerService.push(imageUri);
 
     // Read back the digest AWS assigned, which is the image's real identity.

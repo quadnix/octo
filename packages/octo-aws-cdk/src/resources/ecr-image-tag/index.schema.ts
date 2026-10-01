@@ -22,6 +22,9 @@ import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 export class EcrImageTagSchema extends BaseResourceSchema {
   /**
    * Input properties.
+   * * `properties.architecture` - The processor the image is built for. A runtime reads it to run the
+   * image on the same processor. Like the build context, changing it publishes nothing; publish a new
+   * tag instead.
    * * `properties.awsAccountId` - The AWS account ID.
    * * `properties.awsRegionId` - The AWS region ID.
    * * `properties.dockerfileDirectory` - The build context, as a path relative to the octo project
@@ -34,18 +37,26 @@ export class EcrImageTagSchema extends BaseResourceSchema {
    * * `properties.imageTag` - The tag to publish the image under. The repository's tags are
    * immutable, so new content is published under a new tag rather than over an existing one.
    */
-  @Validate({
-    destruct: (value: EcrImageTagSchema['properties']): string[] => [
-      value.awsAccountId,
-      value.awsRegionId,
-      value.dockerfileDirectory,
-      value.dockerfileName,
-      value.imageId,
-      value.imageTag,
-    ],
-    options: { minLength: 1 },
-  })
+  @Validate<unknown>([
+    {
+      destruct: (value: EcrImageTagSchema['properties']): string[] => [
+        value.architecture,
+        value.awsAccountId,
+        value.awsRegionId,
+        value.dockerfileDirectory,
+        value.dockerfileName,
+        value.imageId,
+        value.imageTag,
+      ],
+      options: { minLength: 1 },
+    },
+    {
+      destruct: (value: EcrImageTagSchema['properties']): string[] => [value.architecture],
+      options: { regex: /^(arm64|x86_64)$/ },
+    },
+  ])
   override properties = Schema<{
+    architecture: 'arm64' | 'x86_64';
     awsAccountId: string;
     awsRegionId: string;
     dockerfileDirectory: string;

@@ -37,6 +37,7 @@ function createEcrImageTag(imageTag: string = '0.0.1'): EcrImageTag {
   return new EcrImageTag(
     `ecr-image-tag-us-east-1-family/image-${imageTag.replace(/[^\w-]/g, '-')}`,
     {
+      architecture: 'arm64',
       awsAccountId: '123456789012',
       awsRegionId: 'us-east-1',
       dockerfileDirectory: 'images/nginx',
@@ -196,6 +197,7 @@ describe('EcrImageTag UT', () => {
       );
       expect(dockerService.build).toHaveBeenCalledWith(
         `${REPOSITORY_URI}:0.0.1`,
+        'linux/arm64',
         expect.stringMatching(/images\/nginx\/Dockerfile$/),
         expect.stringMatching(/images\/nginx$/),
       );
@@ -231,6 +233,7 @@ describe('EcrImageTag UT', () => {
 
         expect(dockerService.build).toHaveBeenCalledWith(
           `${REPOSITORY_URI}:0.0.1`,
+          'linux/arm64',
           '/octo-project/images/nginx/Dockerfile',
           '/octo-project/images/nginx',
         );

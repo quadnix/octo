@@ -26,10 +26,17 @@ describe('DockerService UT', () => {
     it('should build a single manifest, so a push writes its tag once', async () => {
       const { binaryPath, readArguments } = await createRecordingBinary();
 
-      await new DockerService(binaryPath).build('registry/repository:0.0.1', '/context/Dockerfile', '/context');
+      await new DockerService(binaryPath).build(
+        'registry/repository:0.0.1',
+        'linux/arm64',
+        '/context/Dockerfile',
+        '/context',
+      );
 
       expect(await readArguments()).toEqual([
         'build',
+        '--platform',
+        'linux/arm64',
         '--provenance',
         'false',
         '--sbom',
