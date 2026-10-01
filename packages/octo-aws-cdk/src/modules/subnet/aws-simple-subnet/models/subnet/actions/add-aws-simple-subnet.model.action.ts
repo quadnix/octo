@@ -98,7 +98,7 @@ export class AddAwsSimpleSubnetModelAction implements IModelAction<AwsSimpleSubn
           awsRegionId,
           ConnectivityType: 'public',
         },
-        [matchingVpcResource, matchingInternetGatewayResource, new MatchingResource(subnetSubnet)],
+        [matchingInternetGatewayResource, new MatchingResource(subnetSubnet)],
       );
     }
 
