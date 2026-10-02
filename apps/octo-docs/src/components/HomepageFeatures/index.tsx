@@ -166,7 +166,7 @@ export default function HomepageFeatures(): ReactElement {
           </div>
         </Reveal>
 
-        <div className={styles.bento}>
+        <div className={styles.featureGrid}>
           {FeatureList.map((props) => (
             <Reveal key={props.title} className={props.span === 'wide' ? styles.slotWide : styles.slotNarrow}>
               <Feature {...props} />

@@ -296,7 +296,7 @@ export class AlbListenerRuleHttpRequestMethodConditionSchema {
  * Matches on the value of the path in the HTTP request.
  * You must provide one or more paths to match on.
  *
- * For more information on use of wildcards, please refer to the AWS documentation.
+ * For more information on path patterns, please refer to the AWS documentation.
  *
  * @group Resources/AlbListener
  *

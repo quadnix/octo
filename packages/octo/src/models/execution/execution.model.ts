@@ -17,7 +17,7 @@ import { ExecutionSchema } from './execution.schema.js';
  * @example
  * ```ts
  * const deployment = new Deployment('v1');
- * const environment = new Environment('qa');
+ * const environment = new Environment('staging');
  * const subnet = new Subnet(region, 'private');
  * const execution = new Execution(deployment, environment, subnet);
  * ```

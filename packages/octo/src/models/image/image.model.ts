@@ -5,7 +5,7 @@ import { AModel } from '../model.abstract.js';
 import { ImageSchema } from './image.schema.js';
 
 /**
- * An Image model represents a Docker image, to either build, or run, your microservices.
+ * An Image model represents a Docker image, to either build, or run, your services.
  * Images belong to the {@link App} rather than to a region, so the same image can be deployed anywhere.
  *
  * @example

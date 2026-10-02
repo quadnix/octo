@@ -92,7 +92,6 @@ describe('AwsCloudFrontServiceModule E2E', () => {
       )
       .next();
 
-    /* eslint-disable spellcheck/spell-checker */
     expect(await TerragruntUtility.collectTerraformResources(OUTPUT_DIR)).toMatchInlineSnapshot(`
      [
        "aws_s3_bucket.bucket-test-static-content",
@@ -105,6 +104,5 @@ describe('AwsCloudFrontServiceModule E2E', () => {
        "aws_cloudfront_distribution.cloudfront-test-distribution_distribution",
      ]
     `);
-    /* eslint-enable */
   }, 300_000);
 });

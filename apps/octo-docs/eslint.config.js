@@ -47,6 +47,13 @@ export default [
     },
   },
   {
+    // The typedoc plugin is ported from docusaurus-plugin-typedoc-api and keeps its vocabulary.
+    files: ['plugins/typedoc-api/**'],
+    rules: {
+      'spellcheck/spell-checker': 'off',
+    },
+  },
+  {
     ignores: [
       'package-lock.json',
       '.docusaurus',

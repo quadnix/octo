@@ -19,6 +19,7 @@ export class CommonUtility {
    * @internal
    */
   static randomToken(size: number): string {
+    // eslint-disable-next-line spellcheck/spell-checker
     const possible = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let text = '';
 

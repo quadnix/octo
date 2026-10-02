@@ -94,7 +94,7 @@ List `@quadnix/octo` as a normal dependency, through a tilde range on the major 
 against, which is what `@quadnix/octo-aws-cdk` does. Move it with each Octo release. A library that
 holds its consumers on an older release than the one their application installs is how a project
 ends up with two copies of the framework running at once, which
-[Versioning](/docs/reference/versioning#one-copy-of-the-framework) covers.
+[Package Versions](/docs/reference/package-versions#one-copy-of-the-framework) covers.
 
 If you build on top of another Octo library, for example your modules take a region from
 `@quadnix/octo-aws-cdk`, depend on it only for the anchor schema. Importing

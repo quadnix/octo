@@ -34,7 +34,7 @@ const AI_TECHNICAL_WRITER_PROMPT = (nodeType: string, nodeName: string, nodeCode
 RULES:
 1. Do NOT include any JSDoc tags like @param, @returns, or @throws.
 2. Output ONLY the raw description text block.
-3. No conversational intros, notes, formatting blocks, or markdown backticks.
+3. No conversational intros, notes, formatting blocks, or markdown code formatting.
 
 ${nodeType} Name: ${nodeName}
 Source Code:
@@ -49,7 +49,6 @@ RULES:
 1. Do NOT output the name, type, tags, or code symbols.
 2. Output ONLY the raw descriptive fragment text.`;
 
-// eslint-disable-next-line spellcheck/spell-checker
 const MODEL_NAME = 'qwen2.5-coder:7b';
 const OLLAMA_API_URL = 'http://localhost:11434/api/generate';
 const DEFAULT_TEXT_LIMIT = 80;
@@ -423,7 +422,7 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
-  console.log(`🚀  Initializing modifications across ${filesToProcess.length} targeted workspace file(s)...`);
+  console.log(`🚀  Initializing modifications across ${filesToProcess.length} targeted file(s)...`);
 
   for (const filePath of filesToProcess) {
     console.log(`📂  Processing Source File: ${filePath}`);
@@ -482,7 +481,7 @@ async function main(): Promise<void> {
       execSync(`${prettierCommand} --write "${filePath}"`, { stdio: 'ignore' });
 
       const packageDirectory = derivePackageDir(filePath);
-      console.log(`📦  Rebuilding workspace package [${packageDirectory}]...`);
+      console.log(`📦  Rebuilding package [${packageDirectory}]...`);
       execSync(`npm run build --prefix "${packageDirectory}"`, { stdio: 'inherit' });
     } catch (postProcessingError: unknown) {
       const formattingError = postProcessingError as Error;

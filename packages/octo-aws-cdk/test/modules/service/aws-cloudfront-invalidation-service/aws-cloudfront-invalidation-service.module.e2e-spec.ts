@@ -119,7 +119,6 @@ describe('AwsCloudFrontInvalidationServiceModule E2E', () => {
       )
       .next();
 
-    /* eslint-disable spellcheck/spell-checker */
     expect(await TerragruntUtility.collectTerraformResources(OUTPUT_DIR)).toMatchInlineSnapshot(`
      [
        "aws_s3_bucket.bucket-test-invalidated-content",
@@ -133,6 +132,5 @@ describe('AwsCloudFrontInvalidationServiceModule E2E', () => {
        "null_resource.cloudfront-invalidation-test-invalidated-distribution-test-invalidated-content",
      ]
     `);
-    /* eslint-enable */
   }, 300_000);
 });

@@ -267,7 +267,6 @@ describe('S3FileSourceUtility UT', () => {
       await S3FileSourceUtility.addSource(sourcePaths, excludePaths, resourcesPath, 'index.html');
 
       const manifest = await S3FileSourceUtility.generateManifest(sourcePaths, excludePaths);
-      // eslint-disable-next-line spellcheck/spell-checker
       expect(manifest).toMatchInlineSnapshot(`
        {
          "index.html": {
@@ -291,7 +290,6 @@ describe('S3FileSourceUtility UT', () => {
       );
 
       const manifest = await S3FileSourceUtility.generateManifest(sourcePaths, excludePaths);
-      // eslint-disable-next-line spellcheck/spell-checker
       expect(manifest).toMatchInlineSnapshot(`
        {
          "s3-static-website/index.html": {
@@ -309,7 +307,6 @@ describe('S3FileSourceUtility UT', () => {
       });
 
       const manifest = await S3FileSourceUtility.generateManifest(sourcePaths, excludePaths);
-      // eslint-disable-next-line spellcheck/spell-checker
       expect(manifest).toMatchInlineSnapshot(`
        {
          "s3-static-website/index.html": {
@@ -327,7 +324,6 @@ describe('S3FileSourceUtility UT', () => {
       });
 
       const manifest = await S3FileSourceUtility.generateManifest(sourcePaths, excludePaths);
-      // eslint-disable-next-line spellcheck/spell-checker
       expect(manifest).toMatchInlineSnapshot(`
        {
          "index.html": {

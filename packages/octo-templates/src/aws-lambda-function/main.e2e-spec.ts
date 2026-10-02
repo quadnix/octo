@@ -186,7 +186,6 @@ describe('Main E2E', () => {
     const response = await axios.post(`https://${distributionDomainName}/echo`, body, {
       headers: {
         'content-type': 'application/json',
-        // eslint-disable-next-line spellcheck/spell-checker
         'x-amz-content-sha256': createHash('sha256').update(body).digest('hex'),
       },
       validateStatus: () => true,

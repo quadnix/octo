@@ -10,7 +10,7 @@ import gardenerImage from '@site/static/img/emotes/octo-gardener.png';
 import painterImage from '@site/static/img/emotes/octo-painter.png';
 import securityImage from '@site/static/img/emotes/octo-security.png';
 import superheroImage from '@site/static/img/emotes/octo-system-superhero.png';
-import CheckboxSvg from '@site/static/img/icons/checkbox.svg';
+import CheckSquareSvg from '@site/static/img/icons/check-square.svg';
 import CommentSvg from '@site/static/img/icons/comment.svg';
 import DiscordSvg from '@site/static/img/icons/discord.svg';
 import StarSvg from '@site/static/img/icons/star.svg';
@@ -39,7 +39,7 @@ const SupportOptions: SupportOption[] = [
     description: 'Contribute code, documentation, or ideas to help improve Octo.',
     emote: painterImage,
     href: 'https://github.com/quadnix/octo',
-    icon: <CheckboxSvg />,
+    icon: <CheckSquareSvg />,
     label: 'Contribute',
   },
   {
@@ -91,8 +91,8 @@ export default function SupportUs(): ReactElement {
         </div>
 
         <div className={styles.supportGrid}>
-          {SupportOptions.map((option, idx) => (
-            <SupportOptionElement key={idx} {...option} />
+          {SupportOptions.map((option, index) => (
+            <SupportOptionElement key={index} {...option} />
           ))}
         </div>
       </div>

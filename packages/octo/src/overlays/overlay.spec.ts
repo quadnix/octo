@@ -369,7 +369,7 @@ describe('Overlay UT', () => {
 
       await expect(async () => {
         await AOverlay.unSynth(TestOverlay, overlaySynth, deReferenceContext);
-      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Cannot find anchor while deserializing overlay!"`);
+      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Cannot find anchor while restoring overlay!"`);
     });
 
     it('should be able to unSynth with anchors', async () => {

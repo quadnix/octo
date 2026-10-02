@@ -167,6 +167,7 @@ export default [
     files: ['**/*.e2e-spec.{js,ts}', '**/*.ispec.{js,ts}', '**/*.spec.{js,ts}'],
     rules: {
       'jsdoc/require-jsdoc': 'off',
+      'spellcheck/spell-checker': 'off',
     },
   },
 

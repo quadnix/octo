@@ -215,7 +215,6 @@ describe('AwsLambdaExecutionModule E2E', () => {
       )
       .next();
 
-    /* eslint-disable spellcheck/spell-checker */
     expect(await TerragruntUtility.collectTerraformResources(OUTPUT_DIR)).toMatchInlineSnapshot(`
      [
        "aws_iam_role.iam-role-ExecutionRole-backend-v1-qa",

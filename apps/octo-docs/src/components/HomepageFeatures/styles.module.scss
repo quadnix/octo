@@ -29,7 +29,7 @@
 }
 
 /* Mixed-width rows, so the eye is given a rhythm instead of four identical boxes. */
-.bento {
+.featureGrid {
   display: grid;
   gap: 1.25rem;
   grid-template-columns: repeat(12, minmax(0, 1fr));

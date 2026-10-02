@@ -5,7 +5,7 @@ import { AModel } from '../model.abstract.js';
 import { PipelineSchema } from './pipeline.schema.js';
 
 /**
- * A Pipeline model is a CI/CD pipeline capable of various automations,
+ * A Pipeline model is a CI/CD pipeline that automates tasks,
  * including building and deploying code, running Octo projects, and more.
  *
  * :::danger Danger

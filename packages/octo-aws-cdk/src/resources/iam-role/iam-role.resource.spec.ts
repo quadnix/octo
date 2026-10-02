@@ -166,7 +166,6 @@ describe('IamRole UT', () => {
          "aws_iam_role_policy_attachment iam-role-test-role_accounts-access_attach",
        ]
       `);
-      // eslint-disable-next-line spellcheck/spell-checker
       expect(emitted.find((e) => e.type === 'aws_iam_policy')!.spec.policy.Statement).toMatchInlineSnapshot(`
        [
          {
@@ -209,7 +208,6 @@ describe('IamRole UT', () => {
       await iamRole.toHCL(terraform);
 
       const statements = emitted.find((e) => e.type === 'aws_iam_policy')!.spec.policy.Statement;
-      // eslint-disable-next-line spellcheck/spell-checker
       expect(statements.map((s: any) => s.Sid)).toEqual(['Allowreadfromtableaccounts']);
     });
   });

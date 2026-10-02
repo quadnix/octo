@@ -33,7 +33,7 @@ import { TransactionService } from '../../services/transaction/transaction.servi
  * @internal
  */
 export class ExternalIgwResource extends AResource<BaseResourceSchema, ExternalIgwResource> {
-  static override readonly NODE_NAME: string = 'sdk-igw';
+  static override readonly NODE_NAME: string = 'external-igw';
   static override readonly NODE_PACKAGE: string = '@octo';
   static override readonly NODE_SCHEMA = {};
   static override readonly NODE_TYPE: NodeType = NodeType.RESOURCE;

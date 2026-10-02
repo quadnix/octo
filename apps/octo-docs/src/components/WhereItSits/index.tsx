@@ -21,7 +21,7 @@ type PointItem = {
 const PointList: PointItem[] = [
   {
     answer:
-      'Octo works out what you meant and writes the code. Everything below it is the toolchain you already run, ' +
+      'Octo works out what you meant and writes the code. Everything below it is what you already run, ' +
       'and pointing it at OpenTofu instead of Terraform changes nothing above.',
     image: serverImage,
     problem:
@@ -67,7 +67,7 @@ const PointList: PointItem[] = [
  */
 function StackFigure(): ReactElement {
   return (
-    <svg className={styles.svg} viewBox="0 0 620 388" role="img" aria-label="Where Octo sits in the toolchain">
+    <svg className={styles.svg} viewBox="0 0 620 388" role="img" aria-label="Where Octo sits among your tools">
       <defs>
         <marker id="stackArrow" markerHeight="7" markerWidth="8" orient="auto" refX="4" refY="6">
           <path d="M0 0 L4 6 L8 0" fill="none" stroke="#b9c6d8" strokeWidth="1.5" />

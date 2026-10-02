@@ -54,7 +54,7 @@ export class LocalEncryptionStateProvider implements IStateProvider {
    * Reads a state file.
    *
    * @throws {@link TransactionError} With the message `No state found!` when the file does not exist.
-   * @throws {@link TransactionError} When the state cannot be decrypted with the configured key.
+   * @throws {@link TransactionError} When the configured key does not open the state.
    */
   async getState(stateFileName: string): Promise<Buffer> {
     try {
@@ -72,7 +72,7 @@ export class LocalEncryptionStateProvider implements IStateProvider {
       // the state was written with.
       if (error instanceof Error && /unable to authenticate data|Unsupported state/i.test(error.message)) {
         throw new TransactionError(
-          `State "${stateFileName}" could not be decrypted. The encryption key does not match the ` +
+          `State "${stateFileName}" could not be read. The encryption key does not match the ` +
             'one this state was written with.',
         );
       }

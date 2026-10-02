@@ -40,7 +40,7 @@ const CHANGE_VERBS_FUTURE: Record<ChangeKind, string> = {
  * @internal
  */
 function symbol(kind: ChangeKind): string {
-  return `<span class="sym ${kind}">${CHANGE_SYMBOLS[kind]}</span>`;
+  return `<span class="symbol ${kind}">${CHANGE_SYMBOLS[kind]}</span>`;
 }
 
 /**

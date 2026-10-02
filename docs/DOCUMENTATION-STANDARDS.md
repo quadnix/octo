@@ -90,7 +90,7 @@ now come out different — and then by re-capturing, never by hand-editing.
 | A CLI command, its flags, or what it prints — `octo-build/src/commands`                                                          | `reference/cli`                              | `getting-started/the-lifecycle`, `getting-started/installation`, `using-octo/destroying-infrastructure`, `techniques/github-actions-pipeline`      |
 | An `octo-aws-cdk` module, its name, or its inputs                                                                                | `reference/aws-module-catalog`               | `getting-started/shop-stack`, `fundamentals/shop-stack-explained`                                                                                  |
 | A template in `octo-templates`                                                                                                   | `reference/templates`                        | `getting-started/static-website`                                                                                                                   |
-| How the packages are versioned, or which combinations of them are supported — `nx.json`                                          | `reference/versioning`                       | `getting-started/installation`, `building-modules/publishing-a-library`                                                                            |
+| How the packages are versioned, or which combinations of them are supported — `nx.json`                                          | `reference/package-versions`                 | `getting-started/installation`, `building-modules/publishing-a-library`                                                                            |
 | The validate report's shape or rendering — `validate.mode.ts`, `octo-event-listeners`                                            | `using-octo/reading-a-validate-report`       | `getting-started/the-lifecycle`, `getting-started/shop-stack`, `using-octo/troubleshooting`                                                        |
 | A state provider or what it writes — `state-management/`                                                                         | `techniques/state-providers`                 | `fundamentals/state`, `getting-started/project-structure`                                                                                          |
 | An event or listener                                                                                                             | `techniques/events-and-listeners`            | `using-octo/the-definition-file`                                                                                                                   |
@@ -452,7 +452,7 @@ For pages the reader runs, not only reads.
   requirement the reader has to meet and it comes from the code: Node 20 or newer, Terraform 1.6 or
   newer from `terraform.requiredVersion`, Terragrunt 0.78 for `run --all`. Floors move rarely, and
   when one does, `getting-started/installation` owns it. The numbering scheme is not a version
-  either: `reference/versioning` owns which combinations of our packages are supported, and says it
+  either: `reference/package-versions` owns which combinations of our packages are supported, and says it
   as `major.minor.patch` and `0.x.y` rather than as a release anybody has to re-check.
 - Count before you write a number. "Ten modules", "seventy-seven exports", "around forty events"
   are claims, and three of them were wrong at once because each was written from memory of the

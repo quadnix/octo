@@ -239,7 +239,7 @@ export class ModelSerializationService {
         overlay.anchors.map(async (a: AnchorSchema<UnknownAnchor>): Promise<UnknownAnchor> => {
           const anchor = anchorParentLocationMapping[[a.parent.context, a.anchorId].join(',')];
           if (!anchor) {
-            throw new NodeUnsynthError('Cannot find anchor while deserializing overlay!', overlay.overlayId);
+            throw new NodeUnsynthError('Cannot find anchor while restoring overlay!', overlay.overlayId);
           }
           return anchor;
         }),

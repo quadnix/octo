@@ -68,7 +68,7 @@ export abstract class AOverlay<S extends BaseOverlaySchema, T extends UnknownOve
         const parent = await deReferenceContext(a.parent.context);
         const anchor = parent.getAnchor(a.anchorId);
         if (!anchor) {
-          throw new NodeUnsynthError('Cannot find anchor while deserializing overlay!', overlay.overlayId);
+          throw new NodeUnsynthError('Cannot find anchor while restoring overlay!', overlay.overlayId);
         }
         return anchor as UnknownAnchor;
       }),

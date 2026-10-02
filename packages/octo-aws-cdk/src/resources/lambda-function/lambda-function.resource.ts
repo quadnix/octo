@@ -142,13 +142,12 @@ export class LambdaFunction extends ATerraformResource<LambdaFunctionSchema, Lam
     );
     const functionUrl = terraform.raw(`${functionUrlTFResource.address}.function_url`);
     const functionUrlDomainName = terraform.raw(
-      // eslint-disable-next-line spellcheck/spell-checker
       `trimsuffix(trimprefix(${functionUrlTFResource.address}.function_url, "https://"), "/")`,
     );
 
     // A CloudFront distribution is admitted by account rather than by its ARN, because the distribution
     // already references this function's URL, and referencing its ARN back would close a cycle.
-    const invokers: { label: string; principal: string; sourceAccount?: string }[] = [
+    const allowedCallers: { label: string; principal: string; sourceAccount?: string }[] = [
       ...this.properties.invokerAccountIds.map((accountId) => ({ label: accountId, principal: accountId })),
       ...(this.properties.allowCloudFrontOriginAccess
         ? [
@@ -160,7 +159,7 @@ export class LambdaFunction extends ATerraformResource<LambdaFunctionSchema, Lam
           ]
         : []),
     ];
-    for (const invoker of invokers) {
+    for (const invoker of allowedCallers) {
       const sourceAccount = invoker.sourceAccount ? { source_account: invoker.sourceAccount } : {};
       lambdaFunctionOctoResource.addTerraformResource(
         'aws_lambda_permission',

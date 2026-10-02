@@ -45,4 +45,11 @@ export default [
       ],
     },
   },
+  {
+    // CSS colors and font names are not words.
+    files: ['src/reporters/html/report.styles.ts'],
+    rules: {
+      'spellcheck/spell-checker': 'off',
+    },
+  },
 ];

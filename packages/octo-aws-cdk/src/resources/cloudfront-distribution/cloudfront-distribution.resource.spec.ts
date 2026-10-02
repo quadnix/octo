@@ -229,7 +229,6 @@ describe('CloudFrontDistribution UT', () => {
       [
         'an unknown minimum protocol version',
         {
-          // eslint-disable-next-line spellcheck/spell-checker
           viewerCertificate: { certificateArn: CERTIFICATE_ARN, kind: 'acm', minimumProtocolVersion: 'SSLv3' as any },
         },
       ],
@@ -275,7 +274,6 @@ describe('CloudFrontDistribution UT', () => {
         new CloudFrontDistributionSchema().properties = properties({
           aliases: ['www.example.com', '*.example.com'],
           geoRestriction: { countries: ['DE', 'FR'], kind: 'allow' },
-          // eslint-disable-next-line spellcheck/spell-checker
           viewerCertificate: { certificateArn: CERTIFICATE_ARN, kind: 'acm', minimumProtocolVersion: 'TLSv1.2_2021' },
         });
       }).not.toThrow();
@@ -430,7 +428,6 @@ describe('CloudFrontDistribution UT', () => {
           viewerCertificate: {
             certificateArn: 'arn:aws:acm:eu-west-1:123456789012:certificate/test-certificate',
             kind: 'acm',
-            // eslint-disable-next-line spellcheck/spell-checker
             minimumProtocolVersion: 'TLSv1.2_2021',
           },
         }),
@@ -547,7 +544,6 @@ describe('CloudFrontDistribution UT', () => {
         viewerCertificate: {
           certificateArn: CERTIFICATE_ARN,
           kind: 'acm',
-          // eslint-disable-next-line spellcheck/spell-checker
           minimumProtocolVersion: 'TLSv1.2_2021',
         },
       });
@@ -577,7 +573,6 @@ describe('CloudFrontDistribution UT', () => {
               kind: 'custom',
               originProtocolPolicy: 'https-only',
               readTimeout: 30,
-              // eslint-disable-next-line spellcheck/spell-checker
               sslProtocols: ['TLSv1.2'],
             },
             originId: 'api',
@@ -720,7 +715,6 @@ describe('CloudFrontDistribution UT', () => {
           origin_keepalive_timeout: 5,
           origin_protocol_policy: 'http-only',
           origin_read_timeout: 30,
-          // eslint-disable-next-line spellcheck/spell-checker
           origin_ssl_protocols: ['TLSv1.2'],
         },
         domain_name: 'ref(alb-test.DNSName)',
@@ -738,7 +732,6 @@ describe('CloudFrontDistribution UT', () => {
       const originAccessControl = emitted.find((e) => e.type.endsWith('aws_cloudfront_origin_access_control'))!;
       expect((originAccessControl.spec as any).origin_access_control_origin_type).toBe('lambda');
       const rendered = emitted.find((e) => e.type.endsWith('aws_cloudfront_distribution'))!.spec as any;
-      // eslint-disable-next-line spellcheck/spell-checker
       expect(rendered.origin[0]).toMatchInlineSnapshot(`
        {
          "connection_attempts": 3,
@@ -850,7 +843,6 @@ describe('CloudFrontDistribution UT', () => {
               kind: 'custom',
               originProtocolPolicy: 'https-only',
               readTimeout: 30,
-              // eslint-disable-next-line spellcheck/spell-checker
               sslProtocols: ['TLSv1.2'],
             },
             originId: 'api',
@@ -874,7 +866,6 @@ describe('CloudFrontDistribution UT', () => {
         viewerCertificate: {
           certificateArn: CERTIFICATE_ARN,
           kind: 'acm',
-          // eslint-disable-next-line spellcheck/spell-checker
           minimumProtocolVersion: 'TLSv1.2_2021',
         },
       });

@@ -175,7 +175,7 @@ export interface INode<S, T> {
   setContext(): string | undefined;
 
   /**
-   * Generates a serializable representation of self.
+   * Generates a plain-data representation of self.
    */
   synth(): S;
 }

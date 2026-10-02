@@ -329,7 +329,6 @@ describe('AwsS3StorageServiceModule UT', () => {
       );
 
       const { hclRender, modelTransaction, resourceDiffs } = (await runModulesGenerator.next()).value!;
-      // eslint-disable-next-line spellcheck/spell-checker
       expect(hclRender).toMatchInlineSnapshot(`
        "# service/main.tf
        terraform {

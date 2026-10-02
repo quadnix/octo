@@ -994,7 +994,6 @@ describe('TransactionService UT', () => {
         const igwDiff = newGroup.find((d) => (d.node as UnknownResource).resourceId === 'igw-1')!;
         expect(vpcDiff.actions.map((a: any) => a.constructor.name)).toEqual(['TerraformNoopResourceAction']);
         expect(igwDiff.actions.map((a: any) => a.constructor.name)).toEqual([
-          // eslint-disable-next-line spellcheck/spell-checker
           'UniversalResourceActionFortest-external-resource',
         ]);
       });

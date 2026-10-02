@@ -81,9 +81,7 @@ export type ICloudFrontManagedOriginRequestPolicy = (typeof CLOUDFRONT_MANAGED_O
  */
 export const CLOUDFRONT_MANAGED_RESPONSE_HEADERS_POLICIES = [
   'Managed-CORS-and-SecurityHeadersPolicy',
-  // eslint-disable-next-line spellcheck/spell-checker
   'Managed-CORS-With-Preflight',
-  // eslint-disable-next-line spellcheck/spell-checker
   'Managed-CORS-with-preflight-and-SecurityHeadersPolicy',
   'Managed-SecurityHeadersPolicy',
   'Managed-SimpleCORS',

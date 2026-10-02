@@ -2,7 +2,7 @@ import Head from '@docusaurus/Head';
 import Layout from '@theme/Layout';
 import React, { type ReactElement } from 'react';
 
-import ClosingCta from '@site/src/components/ClosingCta';
+import ClosingCallToAction from '@site/src/components/ClosingCallToAction';
 import HomepageFeatures from '@site/src/components/HomepageFeatures';
 import HomepageHero from '@site/src/components/HomepageHero';
 import HowItRuns from '@site/src/components/HowItRuns';
@@ -29,7 +29,7 @@ export default function Home(): ReactElement {
         <TheGraph />
         <WhereItSits />
         <HowItRuns />
-        <ClosingCta />
+        <ClosingCallToAction />
         <SupportUs />
       </main>
     </Layout>

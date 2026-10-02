@@ -183,8 +183,8 @@ Expected. A folder planned before its dependency exists is planned against Terra
 `mock_outputs`, which is exactly what an approximate report means. Apply, commit, then validate
 again; the second report is exact.
 
-**`State "resources-actual.json" could not be decrypted. The encryption key does not match the one
-this state was written with.`**
+**`State "resources-actual.json" could not be read. The encryption key does not match the one this
+state was written with.`**
 
 `LocalEncryptionStateProvider` authenticates what it decrypts, so a key that does not match fails
 here rather than returning nonsense. Check that `OCTO_STATE_ENCRYPTION_KEY`, or whatever your

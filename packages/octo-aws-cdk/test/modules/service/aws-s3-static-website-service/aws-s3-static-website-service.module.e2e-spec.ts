@@ -67,7 +67,6 @@ describe('AwsS3StaticWebsiteServiceModule E2E', () => {
       )
       .next();
 
-    /* eslint-disable spellcheck/spell-checker */
     expect(await TerragruntUtility.collectTerraformResources(PUBLIC_OUTPUT_DIR)).toMatchInlineSnapshot(`
      [
        "aws_s3_bucket.bucket-test-bucket_website_bucket",
@@ -79,6 +78,5 @@ describe('AwsS3StaticWebsiteServiceModule E2E', () => {
        "aws_s3_object.bucket-test-bucket_file_page1html",
      ]
     `);
-    /* eslint-enable */
   }, 300_000);
 });

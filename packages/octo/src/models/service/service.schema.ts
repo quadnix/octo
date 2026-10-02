@@ -41,7 +41,7 @@ export enum ServiceType {
 
 /**
  * Schema of the {@link Service} model.
- * Subclasses extend this schema to declare whatever the service needs.
+ * Child classes extend this schema to declare whatever the service needs.
  *
  * @group Models/Service
  */

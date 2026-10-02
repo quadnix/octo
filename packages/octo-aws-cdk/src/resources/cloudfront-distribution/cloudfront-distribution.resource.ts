@@ -275,7 +275,6 @@ export class CloudFrontDistribution extends ATerraformResource<CloudFrontDistrib
             ? {
                 acm_certificate_arn: this.properties.viewerCertificate.certificateArn,
                 minimum_protocol_version: this.properties.viewerCertificate.minimumProtocolVersion,
-                // eslint-disable-next-line spellcheck/spell-checker
                 ssl_support_method: 'sni-only',
               }
             : { cloudfront_default_certificate: true },
@@ -512,7 +511,6 @@ export class CloudFrontDistribution extends ATerraformResource<CloudFrontDistrib
           ),
           origin_access_control_origin_type: origin.kind.kind,
           signing_behavior: 'always',
-          // eslint-disable-next-line spellcheck/spell-checker
           signing_protocol: 'sigv4',
         },
       );
@@ -852,7 +850,6 @@ function renderResponseHeadersPolicy(policy: CloudFrontResponseHeadersPolicySche
                     access_control_max_age_sec:
                       securityHeaders.strictTransportSecurityMaxAge ??
                       RENDER_DEFAULTS.policies.securityHeaders.strictTransportSecurityMaxAge,
-                    // eslint-disable-next-line spellcheck/spell-checker
                     include_subdomains: true,
                     override: true,
                     preload: false,

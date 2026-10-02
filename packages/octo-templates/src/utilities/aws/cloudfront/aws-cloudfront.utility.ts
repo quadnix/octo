@@ -1,4 +1,3 @@
-// eslint-disable-next-line spellcheck/spell-checker
 import { CloudFrontClient, GetDistributionCommand, ListInvalidationsCommand } from '@aws-sdk/client-cloudfront';
 
 /**
@@ -32,7 +31,6 @@ export class AwsCloudFrontUtility {
     let marker: string | undefined;
     do {
       const { InvalidationList } = await this.client.send(
-        // eslint-disable-next-line spellcheck/spell-checker
         new ListInvalidationsCommand({ DistributionId: distributionId, Marker: marker }),
       );
       for (const item of InvalidationList?.Items ?? []) {

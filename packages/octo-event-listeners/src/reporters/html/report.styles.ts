@@ -1,5 +1,3 @@
-/* eslint-disable spellcheck/spell-checker */
-
 /**
  * The report's entire stylesheet, inlined.
  *
@@ -226,17 +224,17 @@ details[open] .chev { transform: rotate(90deg); }
 .res-name { font-weight: 600; }
 .res-none { color: var(--text-dim); font-size: 12.5px; font-style: italic; padding: 3px 0 0 18px; }
 
-.sym {
+.symbol {
   display: inline-block;
   font-weight: 700;
   text-align: center;
   width: 13px;
 }
-.sym.create { color: var(--create); }
-.sym.update { color: var(--update); }
-.sym.recreate { color: var(--recreate); }
-.sym.delete { color: var(--delete); }
-.sym.other { color: var(--other); }
+.symbol.create { color: var(--create); }
+.symbol.update { color: var(--update); }
+.symbol.recreate { color: var(--recreate); }
+.symbol.delete { color: var(--delete); }
+.symbol.other { color: var(--other); }
 
 .tf { margin-top: 6px; }
 .tf-row { padding: 2px 0 2px 18px; }

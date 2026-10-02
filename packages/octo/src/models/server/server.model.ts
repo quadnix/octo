@@ -7,8 +7,8 @@ import { AModel } from '../model.abstract.js';
 import { ServerSchema } from './server.schema.js';
 
 /**
- * A Server model is a representation of the logical microservice.
- * E.g. frontend, backend, database, payment-service, etc.
+ * A Server model is a representation of one logical service.
+ * E.g. website, backend, database, payment-service, etc.
  *
  * @example
  * ```ts

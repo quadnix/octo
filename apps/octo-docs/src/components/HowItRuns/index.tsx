@@ -43,7 +43,7 @@ const DetailList: DetailItem[] = [
   },
   {
     description:
-      'Every run leaves a browsable page of what happened, and the same thing as data. That is what you ' +
+      'Every run leaves a page you can browse of what happened, and the same thing as data. That is what you ' +
       'post on a pull request so the person approving it sees the intent, not four hundred lines of ' +
       'resource changes.',
     title: 'Every run leaves a report',

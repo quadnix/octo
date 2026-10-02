@@ -562,7 +562,6 @@ describe('AwsCloudFrontServiceModule UT', () => {
 
     // The overlay creating the function runs before the overlay serving it.
     const actions = testModuleContainer.mapTransactionActions(modelTransaction).flat();
-    // eslint-disable-next-line spellcheck/spell-checker
     expect(actions.indexOf('UniversalModelActionForaws-lambda-execution-overlay')).toBeLessThan(
       actions.indexOf('AddAwsCloudFrontLambdaOriginOverlayAction'),
     );

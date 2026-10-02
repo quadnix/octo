@@ -552,7 +552,6 @@ export class RemoteStateProvider implements IStateProvider {
     // Take the upload lock, waiting on a live holder.
     while (true) {
       try {
-        // eslint-disable-next-line spellcheck/spell-checker
         await writeFile(uploadLockFilePath, String(process.pid), { flag: 'wx' });
         break;
       } catch (error) {
@@ -622,7 +621,6 @@ export class RemoteStateProvider implements IStateProvider {
     body.append('lockId', run.lockId);
     body.append('stateFileNames', stateFileNames.join(','));
     for (const { data, stateFileName } of changedStateFiles) {
-      // eslint-disable-next-line spellcheck/spell-checker
       const bytes = new Uint8Array(data);
       body.append('stateFiles', new Blob([bytes], { type: STATE_FILE_CONTENT_TYPE }), stateFileName);
     }
@@ -653,7 +651,6 @@ export class RemoteStateProvider implements IStateProvider {
   private async writeStateFile(stateFileName: string, data: Buffer): Promise<void> {
     await FileUtility.ensureDirectory(this.localStateDirectoryPath);
 
-    // eslint-disable-next-line spellcheck/spell-checker
     const temporaryFilePath = join(this.localStateDirectoryPath, `.${stateFileName}.${process.pid}.tmp`);
     await writeFile(temporaryFilePath, data);
     await rename(temporaryFilePath, join(this.localStateDirectoryPath, stateFileName));

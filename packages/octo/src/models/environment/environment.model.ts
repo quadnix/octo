@@ -6,11 +6,11 @@ import { EnvironmentSchema } from './environment.schema.js';
 
 /**
  * An Environment model is the logical sub-section of a Region which isolates one runtime environment from another.
- * E.g. qa, staging, production, etc.
+ * E.g. development, staging, production, etc.
  *
  * @example
  * ```ts
- * const environment = new Environment('qa');
+ * const environment = new Environment('staging');
  * ```
  *
  * @group Models/Environment

@@ -6,7 +6,7 @@ import styles from './styles.module.scss';
 import Reveal from '@site/src/components/Reveal';
 import zenImage from '@site/static/img/emotes/octo-zen-meditation.png';
 
-export default function ClosingCta(): ReactElement {
+export default function ClosingCallToAction(): ReactElement {
   return (
     <section className={styles.section}>
       <span className={styles.glow} aria-hidden="true" />

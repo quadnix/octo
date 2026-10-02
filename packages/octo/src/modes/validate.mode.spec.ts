@@ -42,7 +42,7 @@ describe('validate()', () => {
       },
       {
         moduleId: 'region-module',
-        resourceContext: '@octo/sdk-igw=igw-1',
+        resourceContext: '@octo/external-igw=igw-1',
         resourceId: 'igw-1',
         terraformAddresses: ['null_resource.igw-1'],
       },
