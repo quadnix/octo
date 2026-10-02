@@ -35,16 +35,16 @@ imports:
     importPath: "@quadnix/octo-aws-cdk/modules/app/simple-app"
   - className: AwsIniAccountModule
     importPath: "@quadnix/octo-aws-cdk/modules/account/aws-ini-account"
-  - className: AwsEcsDeploymentModule
-    importPath: "@quadnix/octo-aws-cdk/modules/deployment/aws-ecs-deployment"
+  - className: AwsDeploymentModule
+    importPath: "@quadnix/octo-aws-cdk/modules/deployment/aws-deployment"
   - className: AwsEcsEnvironmentModule
     importPath: "@quadnix/octo-aws-cdk/modules/environment/aws-ecs-environment"
   - className: AwsEcsExecutionModule
     importPath: "@quadnix/octo-aws-cdk/modules/execution/aws-ecs-execution"
   - className: AwsMultiAzRegionModule
     importPath: "@quadnix/octo-aws-cdk/modules/region/aws-multi-az-region"
-  - className: AwsEcsServerModule
-    importPath: "@quadnix/octo-aws-cdk/modules/server/aws-ecs-server"
+  - className: AwsServerModule
+    importPath: "@quadnix/octo-aws-cdk/modules/server/aws-server"
   - className: AwsEcsAlbServiceModule
     importPath: "@quadnix/octo-aws-cdk/modules/service/aws-ecs-alb-service"
   - className: AwsSimpleSubnetModule
@@ -73,24 +73,22 @@ modules:
       vpcCidrBlock: 10.0.0.0/16
 
   - moduleId: backend-server-module
-    moduleClass: AwsEcsServerModule
+    moduleClass: AwsServerModule
     moduleInputs:
       account: "${{account-module.model.account}}"
       serverKey: backend
 
   - moduleId: backend-deployment-v1-module
-    moduleClass: AwsEcsDeploymentModule
+    moduleClass: AwsDeploymentModule
     moduleInputs:
-      deploymentContainerProperties:
-        cpu: 256
-        image:
-          command: node webserver
-          ports:
-            - containerPort: 80
-              protocol: tcp
-          uri: docker.io/ealen/echo-server:0.9.2
-        memory: 512
+      command: node webserver
+      cpu: 256
       deploymentTag: v1
+      imageUri: docker.io/ealen/echo-server:0.9.2
+      memory: 512
+      ports:
+        - containerPort: 80
+          protocol: tcp
       server: "${{backend-server-module.model.server}}"
 
   - moduleId: qa-environment-module
