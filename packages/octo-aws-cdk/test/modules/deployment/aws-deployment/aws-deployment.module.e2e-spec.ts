@@ -1,9 +1,8 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
-import type { AwsEcsServerAnchorSchema } from '../../../../src/anchors/aws-ecs/aws-ecs-server.anchor.schema.js';
-import type { AwsIamRoleAnchorSchema } from '../../../../src/anchors/aws-iam/aws-iam-role.anchor.schema.js';
-import { AwsEcsDeploymentModule } from '../../../../src/modules/deployment/aws-ecs-deployment/index.js';
+import type { AwsServerAnchorSchema } from '../../../../src/anchors/aws-server/aws-server.anchor.schema.js';
+import { AwsDeploymentModule } from '../../../../src/modules/deployment/aws-deployment/index.js';
 import { config } from '../../../test.config.js';
 import { TerragruntUtility } from '../../../utilities/terragrunt/terragrunt.utility.js';
 
@@ -21,22 +20,15 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
   });
 
   server.addAnchor(
-    testModuleContainer.createTestAnchor<AwsEcsServerAnchorSchema>(
-      'AwsEcsServerAnchor',
-      { deploymentType: 'ecs', serverKey: 'backend' },
-      server,
-    ),
-  );
-  server.addAnchor(
-    testModuleContainer.createTestAnchor<AwsIamRoleAnchorSchema>(
-      'AwsIamRoleAnchor',
-      { iamRoleName: 'iamRoleName' },
+    testModuleContainer.createTestAnchor<AwsServerAnchorSchema>(
+      'AwsServerAnchor',
+      { grants: { dynamodb: [], s3: [] }, serverKey: 'backend' },
       server,
     ),
   );
 }
 
-describe('AwsEcsDeploymentModule E2E', () => {
+describe('AwsDeploymentModule E2E', () => {
   let testModuleContainer: TestModuleContainer;
 
   beforeEach(async () => {
@@ -60,31 +52,27 @@ describe('AwsEcsDeploymentModule E2E', () => {
     await setup(testModuleContainer);
     const { resourceDiffs } = (
       await testModuleContainer
-        .runModules<AwsEcsDeploymentModule>(
+        .runModules<AwsDeploymentModule>(
           {
             inputs: {
-              deploymentContainerProperties: {
-                cpu: 256,
-                image: {
-                  command: 'command',
-                  ports: [{ containerPort: 80, protocol: 'tcp' }],
-                  uri: 'uri',
-                },
-                memory: 512,
-              },
+              command: 'command',
+              cpu: 256,
               deploymentTag: 'v1',
+              imageUri: 'uri',
+              memory: 512,
+              ports: [{ containerPort: 80, protocol: 'tcp' }],
               server: stub('${{testModule.model.server}}'),
             },
             moduleId: 'deployment',
-            type: AwsEcsDeploymentModule,
+            type: AwsDeploymentModule,
           },
           { outputDir: OUTPUT_DIR, terraformTarget: 'plan' },
         )
         .next()
     ).value!;
 
-    // The deployment module contributes no terraform of its own (the task definition only materializes
-    // once composed with an execution), so generate emits nothing for terragrunt to run.
+    // The deployment module contributes no terraform of its own (the code only materializes once
+    // run by an execution), so generate emits nothing for terragrunt to run.
     expect(resourceDiffs.flat()).toHaveLength(0);
     expect(await TerragruntUtility.collectTerraformResources(OUTPUT_DIR)).toEqual([]);
   }, 300_000);

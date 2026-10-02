@@ -106,6 +106,7 @@ describe('AwsEcrImageTagModule E2E', () => {
           },
           {
             inputs: {
+              architecture: 'arm64',
               dockerfileDirectory: 'images/nginx',
               image: stub<Image>('${{image.model.image}}'),
               imageTag: '0.0.1',

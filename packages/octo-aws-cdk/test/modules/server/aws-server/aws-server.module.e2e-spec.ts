@@ -4,9 +4,8 @@ import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsAccountAnchorSchema } from '../../../../src/anchors/aws-account/aws-account.anchor.schema.js';
 import type { AwsS3StorageServiceAccessPrefixAnchorSchema } from '../../../../src/anchors/aws-s3-storage-service/aws-s3-storage-service-access-prefix.anchor.schema.js';
 import type { AwsS3StorageServiceAnchorSchema } from '../../../../src/anchors/aws-s3-storage-service/aws-s3-storage-service.anchor.schema.js';
-import { AwsEcsServerModule } from '../../../../src/modules/server/aws-ecs-server/index.js';
-import { AwsEcsServerS3AccessPrefixPermission } from '../../../../src/modules/server/aws-ecs-server/index.schema.js';
-import { S3Storage } from '../../../../src/resources/s3-storage/index.js';
+import { AwsServerModule } from '../../../../src/modules/server/aws-server/index.js';
+import { AwsServerAccessPermission } from '../../../../src/modules/server/aws-server/index.schema.js';
 import { config } from '../../../test.config.js';
 import { TerragruntUtility } from '../../../utilities/terragrunt/terragrunt.utility.js';
 
@@ -47,18 +46,9 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
       service,
     ),
   );
-
-  const s3Storage = new S3Storage('bucket-test-bucket', {
-    awsAccountId: AWS_ACCOUNT_ID,
-    awsRegionId: AWS_REGION_ID,
-    blockPublicAccess: true,
-    Bucket: 'test-bucket',
-    permissions: [],
-  });
-  await testModuleContainer.createResources('testModule', [s3Storage], { save: true });
 }
 
-describe('AwsEcsServerModule E2E', () => {
+describe('AwsServerModule E2E', () => {
   let testModuleContainer: TestModuleContainer;
 
   beforeEach(async () => {
@@ -78,39 +68,33 @@ describe('AwsEcsServerModule E2E', () => {
     await TestContainer.reset();
   });
 
-  it('should generate terragrunt that validates and plans against AWS', async () => {
+  it('should generate no terraform resources to run against AWS', async () => {
     await setup(testModuleContainer);
-    await testModuleContainer
-      .runModules<AwsEcsServerModule>(
-        {
-          inputs: {
-            account: stub('${{testModule.model.account}}'),
-            s3: [
-              {
-                accessPrefixes: [{ access: AwsEcsServerS3AccessPrefixPermission.READ, accessPrefix: 'uploads' }],
-                service: stub('${{testModule.model.service}}'),
-              },
-            ],
-            serverKey: 'backend',
+    const { resourceDiffs } = (
+      await testModuleContainer
+        .runModules<AwsServerModule>(
+          {
+            inputs: {
+              account: stub('${{testModule.model.account}}'),
+              s3: [
+                {
+                  accessPrefixes: [{ access: AwsServerAccessPermission.READ, accessPrefix: 'uploads' }],
+                  service: stub('${{testModule.model.service}}'),
+                },
+              ],
+              serverKey: 'backend',
+            },
+            moduleId: 'server',
+            type: AwsServerModule,
           },
-          moduleId: 'server',
-          type: AwsEcsServerModule,
-        },
-        { outputDir: OUTPUT_DIR, terraformTarget: 'plan' },
-      )
-      .next();
+          { outputDir: OUTPUT_DIR, terraformTarget: 'plan' },
+        )
+        .next()
+    ).value!;
 
-    // eslint-disable-next-line spellcheck/spell-checker
-    expect(await TerragruntUtility.collectTerraformResources(OUTPUT_DIR)).toMatchInlineSnapshot(`
-     [
-       "aws_iam_role.iam-role-ServerRole-backend",
-       "aws_iam_role_policy_attachment.iam-role-ServerRole-backend_AmazonECSTaskExecutionRolePolicy",
-       "aws_iam_policy.iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-f5e52fdb60ea",
-       "aws_iam_role_policy_attachment.iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-f5e52fdb60ea_attach",
-       "aws_s3_bucket.bucket-test-bucket",
-       "aws_s3_bucket_public_access_block.bucket-test-bucket-public-access",
-       "aws_s3_bucket_policy.bucket-test-bucket-policy",
-     ]
-    `);
+    // The server and its grants are data only. The role holding the grants materializes once the
+    // server is run by an execution, so generate emits nothing for terragrunt to run.
+    expect(resourceDiffs.flat()).toHaveLength(0);
+    expect(await TerragruntUtility.collectTerraformResources(OUTPUT_DIR)).toEqual([]);
   }, 300_000);
 });

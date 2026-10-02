@@ -1,19 +1,18 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import type { AwsDeploymentAnchorSchema } from '../../../../src/anchors/aws-deployment/aws-deployment.anchor.schema.js';
 import type { AwsEcsClusterAnchorSchema } from '../../../../src/anchors/aws-ecs/aws-ecs-cluster.anchor.schema.js';
-import type { AwsEcsTaskDefinitionAnchorSchema } from '../../../../src/anchors/aws-ecs/aws-ecs-task-definition.anchor.schema.js';
 import type { AwsEfsAnchorSchema } from '../../../../src/anchors/aws-efs/aws-efs.anchor.schema.js';
-import type { AwsIamRoleAnchorSchema } from '../../../../src/anchors/aws-iam/aws-iam-role.anchor.schema.js';
 import type { AwsRegionAnchorSchema } from '../../../../src/anchors/aws-region/aws-region.anchor.schema.js';
 import type { AwsSecurityGroupAnchorSchema } from '../../../../src/anchors/aws-security-group/aws-security-group.anchor.schema.js';
+import type { AwsServerAnchorSchema } from '../../../../src/anchors/aws-server/aws-server.anchor.schema.js';
 import type { AwsSubnetLocalFilesystemMountAnchorSchema } from '../../../../src/anchors/aws-subnet/aws-subnet-local-filesystem-mount.anchor.schema.js';
 import type { AwsSubnetAnchorSchema } from '../../../../src/anchors/aws-subnet/aws-subnet.anchor.schema.js';
 import { AwsEcsExecutionModule } from '../../../../src/modules/execution/aws-ecs-execution/index.js';
 import { EcsClusterSchema } from '../../../../src/resources/ecs-cluster/index.schema.js';
 import { EfsSchema } from '../../../../src/resources/efs/index.schema.js';
 import { EfsMountTargetSchema } from '../../../../src/resources/efs-mount-target/index.schema.js';
-import { IamRoleSchema } from '../../../../src/resources/iam-role/index.schema.js';
 import { SubnetSchema } from '../../../../src/resources/subnet/index.schema.js';
 import { VpcSchema } from '../../../../src/resources/vpc/index.schema.js';
 import { config } from '../../../test.config.js';
@@ -43,12 +42,15 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
     subnet: ['private-subnet'],
   });
   deployment.addAnchor(
-    testModuleContainer.createTestAnchor<AwsEcsTaskDefinitionAnchorSchema>(
-      'AwsEcsTaskDefinitionAnchor',
+    testModuleContainer.createTestAnchor<AwsDeploymentAnchorSchema>(
+      'AwsDeploymentAnchor',
       {
+        command: '/bin/sh',
         cpu: 256,
-        image: { command: '/bin/sh', ports: [{ containerPort: 8080, protocol: 'tcp' }], uri: 'docker.io' },
+        image: { kind: 'uri', uri: 'docker.io' },
         memory: 512,
+        ports: [{ containerPort: 8080, protocol: 'tcp' }],
+        timeoutInSeconds: null,
       },
       deployment,
     ),
@@ -83,9 +85,9 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
   );
 
   server.addAnchor(
-    testModuleContainer.createTestAnchor<AwsIamRoleAnchorSchema>(
-      'AwsIamRoleAnchor',
-      { iamRoleName: 'iam-role-ServerRole-backend' },
+    testModuleContainer.createTestAnchor<AwsServerAnchorSchema>(
+      'AwsServerAnchor',
+      { grants: { dynamodb: [], s3: [] }, serverKey: 'backend' },
       server,
     ),
   );
@@ -142,7 +144,7 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
   );
 
   await testModuleContainer.createTestResources<
-    [EcsClusterSchema, EfsSchema, EfsMountTargetSchema, IamRoleSchema, SubnetSchema, VpcSchema]
+    [EcsClusterSchema, EfsSchema, EfsMountTargetSchema, SubnetSchema, VpcSchema]
   >(
     'testModule',
     [
@@ -165,13 +167,6 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
         resourceContext: '@octo/efs-mount-target=efs-mount-region-private-subnet-test-filesystem',
         response: { MountTargetId: 'MountTargetId', NetworkInterfaceId: 'NetworkInterfaceId' },
         schema: EfsMountTargetSchema,
-        terraform: true,
-      },
-      {
-        properties: { awsAccountId: AWS_ACCOUNT_ID, policies: [], rolename: 'iam-role-ServerRole-backend' },
-        resourceContext: '@octo/iam-role=iam-role-ServerRole-backend',
-        response: { Arn: 'Arn', RoleId: 'RoleId', RoleName: 'iam-role-ServerRole-backend' },
-        schema: IamRoleSchema,
         terraform: true,
       },
       {
@@ -260,6 +255,8 @@ describe('AwsEcsExecutionModule E2E', () => {
        "aws_security_group.sec-grp-SecurityGroup-backend",
        "aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
        "aws_vpc_security_group_egress_rule.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet_egress_0",
+       "aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet",
+       "aws_iam_role_policy_attachment.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet_AmazonECSTaskExecutionRolePolicy",
        "aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet",
        "aws_ecs_service.ecs-service-backend-v1-region-qa-private-subnet",
      ]
