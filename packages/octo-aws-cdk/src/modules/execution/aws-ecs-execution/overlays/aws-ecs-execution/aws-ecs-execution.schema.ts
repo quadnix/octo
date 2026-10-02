@@ -21,6 +21,10 @@ export class AwsEcsExecutionOverlaySchema extends BaseOverlaySchema {
         value.deploymentTag,
         value.environmentName,
         value.executionId,
+        ...value.filesystemNames,
+        ...value.grants.dynamodb.map((g) => g.tableName),
+        ...value.grants.s3.map((g) => g.bucketName),
+        value.iamRoleName,
         value.regionId,
         value.serverKey,
         value.subnetId,
@@ -34,6 +38,12 @@ export class AwsEcsExecutionOverlaySchema extends BaseOverlaySchema {
     deploymentTag: string;
     environmentName: string;
     executionId: string;
+    filesystemNames: string[];
+    grants: {
+      dynamodb: { allowRead: boolean; allowWrite: boolean; tableName: string }[];
+      s3: { accessPrefix: string; allowRead: boolean; allowWrite: boolean; bucketName: string }[];
+    };
+    iamRoleName: string;
     regionId: string;
     serverKey: string;
     subnetId: string;

@@ -10,8 +10,8 @@ import {
   SubnetSchema,
   Validate,
 } from '@quadnix/octo';
+import { AwsDeploymentAnchorSchema } from '../../../anchors/aws-deployment/aws-deployment.anchor.schema.js';
 import { AwsEcsClusterAnchorSchema } from '../../../anchors/aws-ecs/aws-ecs-cluster.anchor.schema.js';
-import { AwsEcsTaskDefinitionAnchorSchema } from '../../../anchors/aws-ecs/aws-ecs-task-definition.anchor.schema.js';
 import { AwsEfsAnchorSchema } from '../../../anchors/aws-efs/aws-efs.anchor.schema.js';
 import { AwsSecurityGroupAnchorRuleSchema } from '../../../anchors/aws-security-group/aws-security-group.anchor.schema.js';
 
@@ -128,7 +128,7 @@ export class AwsEcsExecutionModuleSchema {
         ...value.sidecars.map((d) => d.deployment),
       ],
       options: {
-        isModel: { anchors: [{ schema: AwsEcsTaskDefinitionAnchorSchema }], NODE_NAME: 'deployment' },
+        isModel: { anchors: [{ schema: AwsDeploymentAnchorSchema }], NODE_NAME: 'deployment' },
       },
     },
     {

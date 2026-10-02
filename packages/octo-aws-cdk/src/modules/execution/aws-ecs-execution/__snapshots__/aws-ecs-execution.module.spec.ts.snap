@@ -71,12 +71,16 @@ resource "aws_ecs_task_definition" "ecs-task-definition-backend-v1-region-qa-pri
     }
   ])
   cpu = "256"
-  execution_role_arn = var.iam_role_ServerRole_backend.Arn
+  execution_role_arn = aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet.arn
   family = "qa-region-private-subnet-backend"
   memory = "512"
   network_mode = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  task_role_arn = var.iam_role_ServerRole_backend.Arn
+  runtime_platform {
+    cpu_architecture = "X86_64"
+    operating_system_family = "LINUX"
+  }
+  task_role_arn = aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet.arn
 }
 
 + execution/main.tf
@@ -101,12 +105,66 @@ resource "aws_ecs_task_definition" "ecs-task-definition-changed-execution-id" {
     }
   ])
   cpu = "256"
-  execution_role_arn = var.iam_role_ServerRole_backend.Arn
+  execution_role_arn = aws_iam_role.iam-role-ExecutionRole-changed-execution-id.arn
   family = "qa-region-private-subnet-backend"
   memory = "512"
   network_mode = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  task_role_arn = var.iam_role_ServerRole_backend.Arn
+  runtime_platform {
+    cpu_architecture = "X86_64"
+    operating_system_family = "LINUX"
+  }
+  task_role_arn = aws_iam_role.iam-role-ExecutionRole-changed-execution-id.arn
+}
+
+- execution/main.tf
+resource "aws_iam_role_policy_attachment" "iam-role-ExecutionRole-backend-v1-region-qa-private-subnet_AmazonECSTaskExecutionRolePolicy" {
+  provider = aws._123-us-east-1
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+  role = aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet.name
+
+  depends_on = [aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet]
+}
+
++ execution/main.tf
+resource "aws_iam_role_policy_attachment" "iam-role-ExecutionRole-changed-execution-id_AmazonECSTaskExecutionRolePolicy" {
+  provider = aws._123-us-east-1
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+  role = aws_iam_role.iam-role-ExecutionRole-changed-execution-id.name
+
+  depends_on = [aws_iam_role.iam-role-ExecutionRole-changed-execution-id]
+}
+
+- execution/main.tf
+resource "aws_iam_role" "iam-role-ExecutionRole-backend-v1-region-qa-private-subnet" {
+  provider = aws._123-us-east-1
+  assume_role_policy = jsonencode({
+    Statement = [{
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+      }]
+    Version = "2012-10-17"
+  })
+  name = "ExecutionRole-backend-v1-region-qa-private-subnet"
+}
+
++ execution/main.tf
+resource "aws_iam_role" "iam-role-ExecutionRole-changed-execution-id" {
+  provider = aws._123-us-east-1
+  assume_role_policy = jsonencode({
+    Statement = [{
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+      }]
+    Version = "2012-10-17"
+  })
+  name = "ExecutionRole-changed-execution-id"
 }
 
 - execution/main.tf
@@ -174,6 +232,36 @@ output "ecs-task-definition-changed-execution-id-taskDefinitionArn" {
 }
 
 - execution/outputs.tf
+output "iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-Arn" {
+  value = aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet.arn
+}
+
+- execution/outputs.tf
+output "iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-RoleId" {
+  value = aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet.unique_id
+}
+
+- execution/outputs.tf
+output "iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-RoleName" {
+  value = aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet.name
+}
+
++ execution/outputs.tf
+output "iam-role-ExecutionRole-changed-execution-id-Arn" {
+  value = aws_iam_role.iam-role-ExecutionRole-changed-execution-id.arn
+}
+
++ execution/outputs.tf
+output "iam-role-ExecutionRole-changed-execution-id-RoleId" {
+  value = aws_iam_role.iam-role-ExecutionRole-changed-execution-id.unique_id
+}
+
++ execution/outputs.tf
+output "iam-role-ExecutionRole-changed-execution-id-RoleName" {
+  value = aws_iam_role.iam-role-ExecutionRole-changed-execution-id.name
+}
+
+- execution/outputs.tf
 output "sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-Arn" {
   value = aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.arn
 }
@@ -232,8 +320,8 @@ exports[`AwsEcsExecutionModule UT should CUD 8`] = `
 +           sourceVolume = "test-filesystem"
 +         }]
         name = "backend-v1"
-@@ -27,2 +31,8 @@
-    task_role_arn = var.iam_role_ServerRole_backend.Arn
+@@ -31,2 +35,8 @@
+    task_role_arn = aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet.arn
 +   volume {
 +     efs_volume_configuration {
 +       file_system_id = var.efs_region_test_filesystem.FileSystemId
@@ -246,13 +334,13 @@ exports[`AwsEcsExecutionModule UT should CUD 8`] = `
 @@ -5,2 +5,3 @@
       "ecs-cluster-region-qa" = { clusterArn = "mock-ecs-cluster-region-qa-clusterArn" }
 +     "efs-region-test-filesystem" = { FileSystemId = "mock-efs-region-test-filesystem-FileSystemId" }
-      "iam-role-ServerRole-backend" = { Arn = "mock-iam-role-ServerRole-backend-Arn" }
+      "subnet-region-private-subnet" = { SubnetId = "mock-subnet-region-private-subnet-SubnetId" }
 
 ~ execution/terragrunt.hcl inputs = {
 @@ -2,2 +2,3 @@
     ecs_cluster_region_qa = dependency.testModule.outputs["ecs-cluster-region-qa"]
 +   efs_region_test_filesystem = dependency.testModule.outputs["efs-region-test-filesystem"]
-    iam_role_ServerRole_backend = dependency.testModule.outputs["iam-role-ServerRole-backend"]
+    subnet_region_private_subnet = dependency.testModule.outputs["subnet-region-private-subnet"]
 
 + execution/variables.tf
 variable "efs_region_test_filesystem" {
@@ -325,18 +413,47 @@ resource "aws_ecs_task_definition" "ecs-task-definition-backend-v1-region-qa-pri
     }
   ])
   cpu = "256"
-  execution_role_arn = var.iam_role_ServerRole_backend.Arn
+  execution_role_arn = aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet.arn
   family = "qa-region-private-subnet-backend"
   memory = "512"
   network_mode = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  task_role_arn = var.iam_role_ServerRole_backend.Arn
+  runtime_platform {
+    cpu_architecture = "X86_64"
+    operating_system_family = "LINUX"
+  }
+  task_role_arn = aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet.arn
   volume {
     efs_volume_configuration {
       file_system_id = var.efs_region_test_filesystem.FileSystemId
     }
     name = "test-filesystem"
   }
+}
+
+- execution/main.tf
+resource "aws_iam_role_policy_attachment" "iam-role-ExecutionRole-backend-v1-region-qa-private-subnet_AmazonECSTaskExecutionRolePolicy" {
+  provider = aws._123-us-east-1
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+  role = aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet.name
+
+  depends_on = [aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet]
+}
+
+- execution/main.tf
+resource "aws_iam_role" "iam-role-ExecutionRole-backend-v1-region-qa-private-subnet" {
+  provider = aws._123-us-east-1
+  assume_role_policy = jsonencode({
+    Statement = [{
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+      }]
+    Version = "2012-10-17"
+  })
+  name = "ExecutionRole-backend-v1-region-qa-private-subnet"
 }
 
 - execution/main.tf
@@ -391,6 +508,21 @@ output "ecs-task-definition-backend-v1-region-qa-private-subnet-taskDefinitionAr
 }
 
 - execution/outputs.tf
+output "iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-Arn" {
+  value = aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet.arn
+}
+
+- execution/outputs.tf
+output "iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-RoleId" {
+  value = aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet.unique_id
+}
+
+- execution/outputs.tf
+output "iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-RoleName" {
+  value = aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet.name
+}
+
+- execution/outputs.tf
 output "sec-grp-SecurityGroup-backend-Arn" {
   value = aws_security_group.sec-grp-SecurityGroup-backend.arn
 }
@@ -417,7 +549,6 @@ dependency "testModule" {
   mock_outputs = {
     "ecs-cluster-region-qa" = { clusterArn = "mock-ecs-cluster-region-qa-clusterArn" }
     "efs-region-test-filesystem" = { FileSystemId = "mock-efs-region-test-filesystem-FileSystemId" }
-    "iam-role-ServerRole-backend" = { Arn = "mock-iam-role-ServerRole-backend-Arn" }
     "subnet-region-private-subnet" = { SubnetId = "mock-subnet-region-private-subnet-SubnetId" }
     "vpc-region" = { VpcId = "mock-vpc-region-VpcId" }
   }
@@ -429,7 +560,6 @@ dependency "testModule" {
 inputs = {
   ecs_cluster_region_qa = dependency.testModule.outputs["ecs-cluster-region-qa"]
   efs_region_test_filesystem = dependency.testModule.outputs["efs-region-test-filesystem"]
-  iam_role_ServerRole_backend = dependency.testModule.outputs["iam-role-ServerRole-backend"]
   subnet_region_private_subnet = dependency.testModule.outputs["subnet-region-private-subnet"]
   vpc_region = dependency.testModule.outputs["vpc-region"]
 }
@@ -457,11 +587,6 @@ variable "efs_region_test_filesystem" {
 }
 
 - execution/variables.tf
-variable "iam_role_ServerRole_backend" {
-  type = map(string)
-}
-
-- execution/variables.tf
 variable "subnet_region_private_subnet" {
   type = map(string)
 }
@@ -482,7 +607,15 @@ exports[`AwsEcsExecutionModule UT should CUD tags 2`] = `
     }
 
 ~ execution/main.tf resource "aws_ecs_task_definition" "ecs-task-definition-backend-v1-region-qa-private-subnet" {
-@@ -28,3 +28,4 @@
+@@ -32,3 +32,4 @@
+    tags = {
+-     tag1 = "value1"
++     tag1 = "value1_1"
++     tag2 = "value2"
+    }
+
+~ execution/main.tf resource "aws_iam_role" "iam-role-ExecutionRole-backend-v1-region-qa-private-subnet" {
+@@ -14,3 +14,4 @@
     tags = {
 -     tag1 = "value1"
 +     tag1 = "value1_1"
@@ -517,8 +650,17 @@ exports[`AwsEcsExecutionModule UT should CUD tags 4`] = `
   }
 
 ~ execution/main.tf resource "aws_ecs_task_definition" "ecs-task-definition-backend-v1-region-qa-private-subnet" {
-@@ -27,6 +27,2 @@
-    task_role_arn = var.iam_role_ServerRole_backend.Arn
+@@ -31,6 +31,2 @@
+    task_role_arn = aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet.arn
+-   tags = {
+-     tag1 = "value1_1"
+-     tag2 = "value2"
+-   }
+  }
+
+~ execution/main.tf resource "aws_iam_role" "iam-role-ExecutionRole-backend-v1-region-qa-private-subnet" {
+@@ -13,6 +13,2 @@
+    name = "ExecutionRole-backend-v1-region-qa-private-subnet"
 -   tags = {
 -     tag1 = "value1_1"
 -     tag2 = "value2"
@@ -589,12 +731,41 @@ resource "aws_ecs_task_definition" "ecs-task-definition-backend-v1-region-qa-pri
     }
   ])
   cpu = "256"
-  execution_role_arn = var.iam_role_ServerRole_backend.Arn
+  execution_role_arn = aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet.arn
   family = "qa-region-private-subnet-backend"
   memory = "512"
   network_mode = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  task_role_arn = var.iam_role_ServerRole_backend.Arn
+  runtime_platform {
+    cpu_architecture = "X86_64"
+    operating_system_family = "LINUX"
+  }
+  task_role_arn = aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet.arn
+}
+
+- execution-1/main.tf
+resource "aws_iam_role_policy_attachment" "iam-role-ExecutionRole-backend-v1-region-qa-private-subnet_AmazonECSTaskExecutionRolePolicy" {
+  provider = aws._123-us-east-1
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+  role = aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet.name
+
+  depends_on = [aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet]
+}
+
+- execution-1/main.tf
+resource "aws_iam_role" "iam-role-ExecutionRole-backend-v1-region-qa-private-subnet" {
+  provider = aws._123-us-east-1
+  assume_role_policy = jsonencode({
+    Statement = [{
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+      }]
+    Version = "2012-10-17"
+  })
+  name = "ExecutionRole-backend-v1-region-qa-private-subnet"
 }
 
 - execution-1/main.tf
@@ -647,6 +818,21 @@ output "ecs-task-definition-backend-v1-region-qa-private-subnet-taskDefinitionAr
 }
 
 - execution-1/outputs.tf
+output "iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-Arn" {
+  value = aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet.arn
+}
+
+- execution-1/outputs.tf
+output "iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-RoleId" {
+  value = aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet.unique_id
+}
+
+- execution-1/outputs.tf
+output "iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-RoleName" {
+  value = aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet.name
+}
+
+- execution-1/outputs.tf
 output "sec-grp-SecurityGroup-backend-Arn" {
   value = aws_security_group.sec-grp-SecurityGroup-backend.arn
 }
@@ -672,7 +858,6 @@ dependency "testModule" {
 
   mock_outputs = {
     "ecs-cluster-region-qa" = { clusterArn = "mock-ecs-cluster-region-qa-clusterArn" }
-    "iam-role-ServerRole-backend" = { Arn = "mock-iam-role-ServerRole-backend-Arn" }
     "subnet-region-private-subnet" = { SubnetId = "mock-subnet-region-private-subnet-SubnetId" }
     "vpc-region" = { VpcId = "mock-vpc-region-VpcId" }
   }
@@ -683,7 +868,6 @@ dependency "testModule" {
 - execution-1/terragrunt.hcl
 inputs = {
   ecs_cluster_region_qa = dependency.testModule.outputs["ecs-cluster-region-qa"]
-  iam_role_ServerRole_backend = dependency.testModule.outputs["iam-role-ServerRole-backend"]
   subnet_region_private_subnet = dependency.testModule.outputs["subnet-region-private-subnet"]
   vpc_region = dependency.testModule.outputs["vpc-region"]
 }
@@ -702,11 +886,6 @@ remote_state {
 
 - execution-1/variables.tf
 variable "ecs_cluster_region_qa" {
-  type = map(string)
-}
-
-- execution-1/variables.tf
-variable "iam_role_ServerRole_backend" {
   type = map(string)
 }
 
@@ -764,12 +943,41 @@ resource "aws_ecs_task_definition" "ecs-task-definition-backend-v1-region-qa-pri
     }
   ])
   cpu = "256"
-  execution_role_arn = var.iam_role_ServerRole_backend.Arn
+  execution_role_arn = aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet.arn
   family = "qa-region-private-subnet-backend"
   memory = "512"
   network_mode = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  task_role_arn = var.iam_role_ServerRole_backend.Arn
+  runtime_platform {
+    cpu_architecture = "X86_64"
+    operating_system_family = "LINUX"
+  }
+  task_role_arn = aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet.arn
+}
+
++ execution-2/main.tf
+resource "aws_iam_role_policy_attachment" "iam-role-ExecutionRole-backend-v1-region-qa-private-subnet_AmazonECSTaskExecutionRolePolicy" {
+  provider = aws._123-us-east-1
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+  role = aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet.name
+
+  depends_on = [aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet]
+}
+
++ execution-2/main.tf
+resource "aws_iam_role" "iam-role-ExecutionRole-backend-v1-region-qa-private-subnet" {
+  provider = aws._123-us-east-1
+  assume_role_policy = jsonencode({
+    Statement = [{
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+      }]
+    Version = "2012-10-17"
+  })
+  name = "ExecutionRole-backend-v1-region-qa-private-subnet"
 }
 
 + execution-2/main.tf
@@ -822,6 +1030,21 @@ output "ecs-task-definition-backend-v1-region-qa-private-subnet-taskDefinitionAr
 }
 
 + execution-2/outputs.tf
+output "iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-Arn" {
+  value = aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet.arn
+}
+
++ execution-2/outputs.tf
+output "iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-RoleId" {
+  value = aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet.unique_id
+}
+
++ execution-2/outputs.tf
+output "iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-RoleName" {
+  value = aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet.name
+}
+
++ execution-2/outputs.tf
 output "sec-grp-SecurityGroup-backend-Arn" {
   value = aws_security_group.sec-grp-SecurityGroup-backend.arn
 }
@@ -847,7 +1070,6 @@ dependency "testModule" {
 
   mock_outputs = {
     "ecs-cluster-region-qa" = { clusterArn = "mock-ecs-cluster-region-qa-clusterArn" }
-    "iam-role-ServerRole-backend" = { Arn = "mock-iam-role-ServerRole-backend-Arn" }
     "subnet-region-private-subnet" = { SubnetId = "mock-subnet-region-private-subnet-SubnetId" }
     "vpc-region" = { VpcId = "mock-vpc-region-VpcId" }
   }
@@ -858,7 +1080,6 @@ dependency "testModule" {
 + execution-2/terragrunt.hcl
 inputs = {
   ecs_cluster_region_qa = dependency.testModule.outputs["ecs-cluster-region-qa"]
-  iam_role_ServerRole_backend = dependency.testModule.outputs["iam-role-ServerRole-backend"]
   subnet_region_private_subnet = dependency.testModule.outputs["subnet-region-private-subnet"]
   vpc_region = dependency.testModule.outputs["vpc-region"]
 }
@@ -877,11 +1098,6 @@ remote_state {
 
 + execution-2/variables.tf
 variable "ecs_cluster_region_qa" {
-  type = map(string)
-}
-
-+ execution-2/variables.tf
-variable "iam_role_ServerRole_backend" {
   type = map(string)
 }
 

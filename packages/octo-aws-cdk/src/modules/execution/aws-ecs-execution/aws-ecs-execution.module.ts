@@ -8,15 +8,20 @@ import {
   type Region,
   type Server,
 } from '@quadnix/octo';
+import { AwsDeploymentAnchorSchema } from '../../../anchors/aws-deployment/aws-deployment.anchor.schema.js';
+import { AwsDynamoDBAnchorSchema } from '../../../anchors/aws-dynamodb/aws-dynamodb.anchor.schema.js';
+import { AwsEcrImageAnchorSchema } from '../../../anchors/aws-ecr/aws-ecr-image.anchor.schema.js';
 import { AwsEcsClusterAnchorSchema } from '../../../anchors/aws-ecs/aws-ecs-cluster.anchor.schema.js';
 import { AwsEcsExecutionAnchor } from '../../../anchors/aws-ecs/aws-ecs-execution.anchor.js';
 import { AwsEcsServiceAnchor } from '../../../anchors/aws-ecs/aws-ecs-service.anchor.js';
-import { AwsEcsTaskDefinitionAnchorSchema } from '../../../anchors/aws-ecs/aws-ecs-task-definition.anchor.schema.js';
-import { AwsIamRoleAnchorSchema } from '../../../anchors/aws-iam/aws-iam-role.anchor.schema.js';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
+import { AwsS3StorageServiceAccessPrefixAnchorSchema } from '../../../anchors/aws-s3-storage-service/aws-s3-storage-service-access-prefix.anchor.schema.js';
+import { AwsS3StorageServiceAnchorSchema } from '../../../anchors/aws-s3-storage-service/aws-s3-storage-service.anchor.schema.js';
 import { AwsSecurityGroupAnchor } from '../../../anchors/aws-security-group/aws-security-group.anchor.js';
 import { AwsSecurityGroupAnchorSchema } from '../../../anchors/aws-security-group/aws-security-group.anchor.schema.js';
+import { AwsServerAnchorSchema } from '../../../anchors/aws-server/aws-server.anchor.schema.js';
 import { AwsSubnetLocalFilesystemMountAnchorSchema } from '../../../anchors/aws-subnet/aws-subnet-local-filesystem-mount.anchor.schema.js';
+import { TaskDefinitionUtility } from '../../../utilities/task-definition/task-definition.utility.js';
 import { AwsEcsExecutionModuleSchema } from './index.schema.js';
 import { AwsEcsExecution } from './models/execution/index.js';
 import { AwsEcsExecutionOverlay } from './overlays/aws-ecs-execution/index.js';
@@ -87,7 +92,7 @@ export class AwsEcsExecutionModule extends AModule<AwsEcsExecutionModuleSchema, 
     inputs: AwsEcsExecutionModuleSchema,
   ): Promise<(AwsEcsExecution | AwsEcsExecutionOverlay | AwsEcsExecutionServerSecurityGroupOverlay)[]> {
     const { deployments, environment, subnet } = inputs;
-    const { region } = await this.registerMetadata(inputs);
+    const { awsAccountId, awsRegionId, region } = await this.registerMetadata(inputs);
 
     if (environment.getParents()['region'][0].to.getContext() !== subnet.getParents()['region'][0].to.getContext()) {
       throw new ModuleError('Environment and Subnet must be in the same region!', this.constructor.name);
@@ -162,7 +167,7 @@ export class AwsEcsExecutionModule extends AModule<AwsEcsExecutionModuleSchema, 
 
     // Get main deployment server's anchors.
     const mainServer = deployments.main.deployment.getParents()['server'][0].to as Server;
-    const [matchingMainIamRoleAnchor] = await mainServer.getAnchorsMatchingSchema(AwsIamRoleAnchorSchema, [], {
+    const [matchingMainServerAnchor] = await mainServer.getAnchorsMatchingSchema(AwsServerAnchorSchema, [], {
       searchBoundaryMembers: false,
     });
     const [matchingMainSecurityGroupAnchor] = await mainServer.getAnchorsMatchingSchema(
@@ -172,17 +177,27 @@ export class AwsEcsExecutionModule extends AModule<AwsEcsExecutionModuleSchema, 
         searchBoundaryMembers: false,
       },
     );
-    if (!matchingMainIamRoleAnchor || !matchingMainSecurityGroupAnchor) {
+    if (!matchingMainServerAnchor || !matchingMainSecurityGroupAnchor) {
       throw new ModuleError(
         `Server "${mainServer.serverKey}" does not have compatible anchors!`,
         this.constructor.name,
       );
     }
 
-    // Get sidecar deployment server's anchors.
-    const sidecarServers = deployments.sidecars.map((d) => d.deployment.getParents()['server'][0].to as Server);
+    // Get sidecar deployment servers' anchors, once per server. A sidecar runs as the role holding the
+    // main deployment server's grants, so the server of a sidecar must grant nothing of its own.
+    const sidecarServers: Server[] = [];
+    for (const { deployment } of deployments.sidecars) {
+      const server = deployment.getParents()['server'][0].to as Server;
+      if (server !== mainServer && !sidecarServers.includes(server)) {
+        sidecarServers.push(server);
+      }
+    }
     const matchingSidecarSecurityGroupAnchors: MatchingAnchor<AwsSecurityGroupAnchorSchema>[] = [];
     for (const server of sidecarServers) {
+      const [matchingSidecarServerAnchor] = await server.getAnchorsMatchingSchema(AwsServerAnchorSchema, [], {
+        searchBoundaryMembers: false,
+      });
       const [matchingSidecarSecurityGroupAnchor] = await server.getAnchorsMatchingSchema(
         AwsSecurityGroupAnchorSchema,
         [],
@@ -190,38 +205,134 @@ export class AwsEcsExecutionModule extends AModule<AwsEcsExecutionModuleSchema, 
           searchBoundaryMembers: false,
         },
       );
-      if (!matchingSidecarSecurityGroupAnchor) {
+      if (!matchingSidecarServerAnchor || !matchingSidecarSecurityGroupAnchor) {
         throw new ModuleError(`Server "${server.serverKey}" does not have compatible anchors!`, this.constructor.name);
       }
+
+      const { grants: sidecarGrants } = matchingSidecarServerAnchor.getSchemaInstance().properties;
+      if (sidecarGrants.dynamodb.length > 0 || sidecarGrants.s3.length > 0) {
+        throw new ModuleError(
+          `Server "${server.serverKey}" of a sidecar cannot grant anything! A sidecar runs with the grants of server "${mainServer.serverKey}".`,
+          this.constructor.name,
+        );
+      }
+
       matchingSidecarSecurityGroupAnchors.push(matchingSidecarSecurityGroupAnchor);
     }
 
-    // Get main deployment anchors.
-    const [matchingMainTaskDefinitionAnchor] = await deployments.main.deployment.getAnchorsMatchingSchema(
-      AwsEcsTaskDefinitionAnchorSchema,
-      [],
-      {
-        searchBoundaryMembers: false,
-      },
-    );
-
-    // Get sidecar deployment anchors.
-    const matchingSidecarTaskDefinitionAnchors: MatchingAnchor<AwsEcsTaskDefinitionAnchorSchema>[] = [];
-    for (const deployment of deployments.sidecars) {
-      const [matchingSidecarTaskDefinitionAnchor] = await deployment.deployment.getAnchorsMatchingSchema(
-        AwsEcsTaskDefinitionAnchorSchema,
-        [],
-        {
-          searchBoundaryMembers: false,
-        },
+    // Get main deployment server's grants, and the anchors of the buckets and tables they name.
+    const { grants } = matchingMainServerAnchor.getSchemaInstance().properties;
+    const grantAnchors: (
+      | MatchingAnchor<AwsS3StorageServiceAccessPrefixAnchorSchema>
+      | MatchingAnchor<AwsDynamoDBAnchorSchema>
+    )[] = [];
+    for (const grant of grants.s3) {
+      const [matchingAccessPrefixAnchor] = await mainServer.getAnchorsMatchingSchema(
+        AwsS3StorageServiceAccessPrefixAnchorSchema,
+        [
+          { key: 'accessPrefix', value: grant.accessPrefix },
+          { key: 'bucketName', value: grant.bucketName },
+        ],
       );
-      matchingSidecarTaskDefinitionAnchors.push(matchingSidecarTaskDefinitionAnchor);
+
+      // The role is created in this execution's account, and can only be granted a bucket in it.
+      const bucket = matchingAccessPrefixAnchor.getActual().getParent();
+      const [matchingS3StorageAnchor] = await bucket.getAnchorsMatchingSchema(AwsS3StorageServiceAnchorSchema, [], {
+        searchBoundaryMembers: false,
+      });
+      const bucketAwsAccountId = matchingS3StorageAnchor.getSchemaInstance().properties.awsAccountId;
+      if (bucketAwsAccountId !== awsAccountId) {
+        throw new ModuleError(
+          `Bucket "${grant.bucketName}" is in account "${bucketAwsAccountId}", not in the execution's account "${awsAccountId}"!`,
+          this.constructor.name,
+        );
+      }
+
+      if (!grantAnchors.some((a) => a.getActual() === matchingAccessPrefixAnchor.getActual())) {
+        grantAnchors.push(matchingAccessPrefixAnchor);
+      }
+    }
+    for (const grant of grants.dynamodb) {
+      const [matchingDynamoDBAnchor] = await mainServer.getAnchorsMatchingSchema(AwsDynamoDBAnchorSchema, [
+        { key: 'TableName', value: grant.tableName },
+      ]);
+
+      // The role is created in this execution's account, and can only be granted a table in it.
+      const tableAwsAccountId = matchingDynamoDBAnchor.getSchemaInstance().properties.awsAccountId;
+      if (tableAwsAccountId !== awsAccountId) {
+        throw new ModuleError(
+          `Table "${grant.tableName}" is in account "${tableAwsAccountId}", not in the execution's account "${awsAccountId}"!`,
+          this.constructor.name,
+        );
+      }
+
+      if (!grantAnchors.some((a) => a.getActual() === matchingDynamoDBAnchor.getActual())) {
+        grantAnchors.push(matchingDynamoDBAnchor);
+      }
     }
 
-    // Get environment anchors.
-    const [matchingEcsClusterAnchor] = await environment.getAnchorsMatchingSchema(AwsEcsClusterAnchorSchema, [], {
-      searchBoundaryMembers: false,
-    });
+    // Get each deployment's anchor, the main deployment's first.
+    const deploymentPropertiesList: AwsDeploymentAnchorSchema['properties'][] = [];
+    for (const { deployment } of [deployments.main, ...deployments.sidecars]) {
+      const [matchingDeploymentAnchor] = await deployment.getAnchorsMatchingSchema(AwsDeploymentAnchorSchema, [], {
+        searchBoundaryMembers: false,
+      });
+      deploymentPropertiesList.push(matchingDeploymentAnchor.getSchemaInstance().properties);
+    }
+
+    // Check the main deployment has what ECS needs.
+    const [mainDeploymentProperties] = deploymentPropertiesList;
+    const cpu = inputs.deployments.main.containerProperties.cpu || mainDeploymentProperties.cpu;
+    const memory = inputs.deployments.main.containerProperties.memory || mainDeploymentProperties.memory;
+    if (!cpu || !memory) {
+      throw new ModuleError(
+        `Deployment "${deployments.main.deployment.deploymentTag}" needs a cpu and a memory to run on ECS!`,
+        this.constructor.name,
+      );
+    }
+    if (!TaskDefinitionUtility.isCpuAndMemoryValid(cpu, memory)) {
+      throw new ModuleError('Invalid values for CPU and/or memory!', this.constructor.name);
+    }
+
+    // Get the image of each deployment, and check it has what ECS needs.
+    const imageAnchors: MatchingAnchor<AwsEcrImageAnchorSchema>[] = [];
+    const images: AwsEcsExecutionOverlay['properties']['deploymentContainerProperties']['images'] = [];
+    for (const [index, { containerProperties, deployment }] of [deployments.main, ...deployments.sidecars].entries()) {
+      const deploymentProperties = deploymentPropertiesList[index];
+
+      let uri: string;
+      if (deploymentProperties.image.kind === 'ecr') {
+        const { imageId, imageTag } = deploymentProperties.image;
+        const [matchingImageAnchor] = await deployment.getAnchorsMatchingSchema(AwsEcrImageAnchorSchema, [
+          { key: 'imageId', value: imageId },
+        ]);
+        if (!imageAnchors.some((a) => a.getActual() === matchingImageAnchor.getActual())) {
+          imageAnchors.push(matchingImageAnchor);
+        }
+        uri = `${awsAccountId}.dkr.ecr.${awsRegionId}.amazonaws.com/${imageId}:${imageTag}`;
+      } else {
+        uri = deploymentProperties.image.uri;
+      }
+
+      const command = containerProperties.image.command || deploymentProperties.command;
+      if (!command) {
+        throw new ModuleError(
+          `Deployment "${deployment.deploymentTag}" needs a command to run on ECS!`,
+          this.constructor.name,
+        );
+      }
+
+      images.push({
+        command: command.split(' '),
+        essential: containerProperties.image.essential,
+        name: containerProperties.image.name,
+        ports: (containerProperties.image.ports || deploymentProperties.ports).map((p) => ({
+          containerPort: p.containerPort,
+          protocol: p.protocol,
+        })),
+        uri,
+      });
+    }
 
     // Get filesystem anchors.
     const matchingSubnetLocalFilesystemMountAnchors: MatchingAnchor<AwsSubnetLocalFilesystemMountAnchorSchema>[] = [];
@@ -237,73 +348,45 @@ export class AwsEcsExecutionModule extends AModule<AwsEcsExecutionModuleSchema, 
       matchingSubnetLocalFilesystemMountAnchors.push(matchingSubnetLocalFilesystemMountAnchor);
     }
 
+    // Get environment anchors.
+    const [matchingEcsClusterAnchor] = await environment.getAnchorsMatchingSchema(AwsEcsClusterAnchorSchema, [], {
+      searchBoundaryMembers: false,
+    });
+
+    // Validate the name of the role this execution runs as.
+    const iamRoleName = `ExecutionRole-${execution.executionId}`;
+    if (iamRoleName.length > 64) {
+      throw new ModuleError(`IAM role name "${iamRoleName}" is longer than 64 characters!`, this.constructor.name);
+    }
+
     // Add aws-ecs-execution overlay for container lifecycle.
     const executionOverlayId = `aws-ecs-execution-overlay-${execution.executionId}`;
     const executionOverlay = new AwsEcsExecutionOverlay(
       executionOverlayId,
       {
         deploymentContainerProperties: {
-          cpu:
-            inputs.deployments.main.containerProperties.cpu ||
-            matchingMainTaskDefinitionAnchor.getSchemaInstance().properties.cpu,
-          images: [
-            {
-              command: (
-                inputs.deployments.main.containerProperties.image.command ||
-                matchingMainTaskDefinitionAnchor.getSchemaInstance().properties.image.command
-              ).split(' '),
-              essential: inputs.deployments.main.containerProperties.image.essential,
-              name: inputs.deployments.main.containerProperties.image.name,
-              ports: (
-                inputs.deployments.main.containerProperties.image.ports ||
-                matchingMainTaskDefinitionAnchor.getSchemaInstance().properties.image.ports
-              ).map((p) => ({
-                containerPort: p.containerPort,
-                protocol: p.protocol,
-              })),
-              uri: matchingMainTaskDefinitionAnchor.getSchemaInstance().properties.image.uri,
-            },
-            ...inputs.deployments.sidecars.map((deployment) => {
-              const matchingSidecarTaskDefinitionAnchor = matchingSidecarTaskDefinitionAnchors.find(
-                (a) => a.getActual().getParent().deploymentTag === deployment.deployment.deploymentTag,
-              )!;
-
-              return {
-                command: (
-                  deployment.containerProperties.image.command ||
-                  matchingSidecarTaskDefinitionAnchor.getSchemaInstance().properties.image.command
-                ).split(' '),
-                essential: deployment.containerProperties.image.essential,
-                name: deployment.containerProperties.image.name,
-                ports: (
-                  deployment.containerProperties.image.ports ||
-                  matchingSidecarTaskDefinitionAnchor.getSchemaInstance().properties.image.ports
-                ).map((p) => ({
-                  containerPort: p.containerPort,
-                  protocol: p.protocol,
-                })),
-                uri: matchingSidecarTaskDefinitionAnchor.getSchemaInstance().properties.image.uri,
-              };
-            }),
-          ],
-          memory:
-            inputs.deployments.main.containerProperties.memory ||
-            matchingMainTaskDefinitionAnchor.getSchemaInstance().properties.memory,
+          cpu,
+          images,
+          memory,
         },
         deploymentTag: deployments.main.deployment.deploymentTag,
         environmentName: environment.environmentName,
         executionId: execution.executionId,
+        filesystemNames: (inputs.filesystems || []).map((f) => f.filesystemName),
+        grants,
+        iamRoleName,
         regionId: region.regionId,
         serverKey: mainServer.serverKey,
         subnetId: subnet.subnetId,
         subnetType: subnet.subnetType,
       },
       [
-        matchingMainIamRoleAnchor,
         ecsExecutionAnchor,
         matchingEcsClusterAnchor,
         securityGroupAnchor,
         ...matchingSubnetLocalFilesystemMountAnchors,
+        ...grantAnchors,
+        ...imageAnchors,
       ],
     );
     execution.addAnchor(
