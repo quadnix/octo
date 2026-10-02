@@ -68,6 +68,7 @@ modules:
   - moduleId: image-tag-module
     moduleClass: AwsEcrImageTagModule
     moduleInputs:
+      architecture: x86_64
       dockerfileDirectory: image
       dockerfileName: Dockerfile
       image: "${{image-module.model.image}}"

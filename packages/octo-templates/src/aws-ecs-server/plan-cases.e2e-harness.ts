@@ -70,28 +70,21 @@ const CASES: { name: string; overrides: Overrides }[] = [
     overrides: { 'region-module': (i) => ({ ...i, vpcCidrBlock: '10.0.1.0/16' }) },
   },
   {
-    name: 'AwsEcsServerModule/serverKey',
+    name: 'AwsServerModule/serverKey',
     overrides: { 'backend-server-module': (i) => ({ ...i, serverKey: 'changed-backend' }) },
   },
   {
-    name: 'AwsEcsDeploymentModule/deploymentContainerProperties',
+    name: 'AwsDeploymentModule/cpu and memory',
     overrides: {
       'backend-deployment-v1-module': (i) => ({
         ...i,
-        deploymentContainerProperties: {
-          cpu: 512,
-          image: {
-            command: 'node webserver',
-            ports: [{ containerPort: 80, protocol: 'tcp' }],
-            uri: 'docker.io/ealen/echo-server:0.9.2',
-          },
-          memory: 1024,
-        },
+        cpu: 512,
+        memory: 1024,
       }),
     },
   },
   {
-    name: 'AwsEcsDeploymentModule/deploymentTag',
+    name: 'AwsDeploymentModule/deploymentTag',
     overrides: { 'backend-deployment-v1-module': (i) => ({ ...i, deploymentTag: 'v2' }) },
   },
   {

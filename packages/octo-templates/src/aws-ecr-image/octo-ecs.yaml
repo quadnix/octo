@@ -2,8 +2,8 @@
 
 # This template, plus something that runs what it publishes.
 #
-# A task definition names a published image through its resource rather than by copying the URI, so
-# the URI it ends up with comes back through octo's own response path. Declaring the version and the
+# A deployment names a published image by its image and tag rather than by copying the URI, so the
+# URI its task definition ends up with comes back through octo's own response path. Declaring the version and the
 # stack running it in one definition is what makes them created by the same apply, which is the only
 # run where every link in that path is cold.
 #
@@ -23,11 +23,6 @@ env:
   - key: AWS_IMAGE_TAG
     kind: string
     value: "0.1.0"
-  # The whole URI, because an "${env.KEY}" reference resolves only as an entire value and this one is
-  # assembled from three of them.
-  - key: AWS_ECS_IMAGE_URI
-    kind: string
-    value: "123456789123.dkr.ecr.us-east-1.amazonaws.com/quadnix/octo-ecr-image-template:0.1.0"
 
 settings:
   listeners:
@@ -53,10 +48,10 @@ imports:
     importPath: "@quadnix/octo-aws-cdk/modules/subnet/aws-simple-subnet"
   - className: AwsEcsEnvironmentModule
     importPath: "@quadnix/octo-aws-cdk/modules/environment/aws-ecs-environment"
-  - className: AwsEcsServerModule
-    importPath: "@quadnix/octo-aws-cdk/modules/server/aws-ecs-server"
-  - className: AwsEcsDeploymentModule
-    importPath: "@quadnix/octo-aws-cdk/modules/deployment/aws-ecs-deployment"
+  - className: AwsServerModule
+    importPath: "@quadnix/octo-aws-cdk/modules/server/aws-server"
+  - className: AwsDeploymentModule
+    importPath: "@quadnix/octo-aws-cdk/modules/deployment/aws-deployment"
   - className: AwsEcsExecutionModule
     importPath: "@quadnix/octo-aws-cdk/modules/execution/aws-ecs-execution"
 
@@ -92,6 +87,7 @@ modules:
   - moduleId: image-tag-module
     moduleClass: AwsEcrImageTagModule
     moduleInputs:
+      architecture: x86_64
       dockerfileDirectory: image
       dockerfileName: Dockerfile
       image: "${{image-module.model.image}}"
@@ -118,29 +114,28 @@ modules:
       environmentName: ecr-qa
       region: "${{region-module.model.region}}"
 
-  # The names below are scoped to this template on purpose. An IAM role name is unique per account
-  # and an ECS cluster name is unique per region, so a stack naming them the way another template
+  # The names below are scoped to this template on purpose. An IAM role name, derived from the
+  # execution, is unique per account and an ECS cluster name is unique per region, so a stack naming them the way another template
   # does cannot be torn down independently of it: a run of either that dies before its teardown
   # leaves the name behind, and the next run of the *other* one is refused it.
   - moduleId: server-module
-    moduleClass: AwsEcsServerModule
+    moduleClass: AwsServerModule
     moduleInputs:
       account: "${{account-module.model.account}}"
       serverKey: ecr-backend
 
   - moduleId: deployment-module
-    moduleClass: AwsEcsDeploymentModule
+    moduleClass: AwsDeploymentModule
     moduleInputs:
-      deploymentContainerProperties:
-        cpu: 256
-        image:
-          command: /bin/sh
-          ports:
-            - containerPort: 80
-              protocol: tcp
-          uri: "${env.AWS_ECS_IMAGE_URI}"
-        memory: 512
+      command: /bin/sh
+      cpu: 256
       deploymentTag: v1
+      image: "${{image-module.model.image}}"
+      imageTag: "${env.AWS_IMAGE_TAG}"
+      memory: 512
+      ports:
+        - containerPort: 80
+          protocol: tcp
       server: "${{server-module.model.server}}"
 
   # Nothing starts the container. `desiredCount` is the lowest the schema allows, and the image is

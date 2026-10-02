@@ -1,0 +1,160 @@
+# yaml-language-server: $schema=../../../octo-build/src/resources/octo-v1.schema.json
+
+# A container image published into ECR and run on Lambda, in a serverless region, and served to the
+# internet through CloudFront. The server and the deployment create nothing: the execution creates
+# the function's role, the function, and its URL, which only signed requests may call.
+
+version: 1
+
+env:
+  - key: AWS_ACCOUNT_ID
+    kind: string
+    value: "123456789123"
+  - key: AWS_IMAGE_NAME
+    kind: string
+    value: "octo-lambda-function-template"
+  - key: GREETING
+    kind: string
+    value: "hello"
+
+settings:
+  listeners:
+    - type: LoggingEventListener
+      level: info
+
+  stateProvider:
+    type: LocalStateProvider
+    statePath: .octo/state
+
+imports:
+  - className: SimpleAppModule
+    importPath: "@quadnix/octo-aws-cdk/modules/app/simple-app"
+  - className: AwsIniAccountModule
+    importPath: "@quadnix/octo-aws-cdk/modules/account/aws-ini-account"
+  - className: AwsServerlessRegionModule
+    importPath: "@quadnix/octo-aws-cdk/modules/region/aws-serverless-region"
+  - className: AwsEcrImageModule
+    importPath: "@quadnix/octo-aws-cdk/modules/image/aws-ecr-image"
+  - className: AwsEcrImageTagModule
+    importPath: "@quadnix/octo-aws-cdk/modules/image/aws-ecr-image-tag"
+  - className: AwsServerlessEnvironmentModule
+    importPath: "@quadnix/octo-aws-cdk/modules/environment/aws-serverless-environment"
+  - className: AwsServerlessSubnetModule
+    importPath: "@quadnix/octo-aws-cdk/modules/subnet/aws-serverless-subnet"
+  - className: AwsServerModule
+    importPath: "@quadnix/octo-aws-cdk/modules/server/aws-server"
+  - className: AwsDeploymentModule
+    importPath: "@quadnix/octo-aws-cdk/modules/deployment/aws-deployment"
+  - className: AwsLambdaExecutionModule
+    importPath: "@quadnix/octo-aws-cdk/modules/execution/aws-lambda-execution"
+  - className: AwsCloudFrontServiceModule
+    importPath: "@quadnix/octo-aws-cdk/modules/service/aws-cloudfront-service"
+
+modules:
+  - moduleId: app-module
+    moduleClass: SimpleAppModule
+    moduleInputs:
+      name: aws-lambda-function
+
+  - moduleId: account-module
+    moduleClass: AwsIniAccountModule
+    moduleInputs:
+      accountId: "${env.AWS_ACCOUNT_ID}"
+      app: "${{app-module.model.app}}"
+      iniProfile: default
+
+  - moduleId: region-module
+    moduleClass: AwsServerlessRegionModule
+    moduleInputs:
+      account: "${{account-module.model.account}}"
+      name: lambda-region
+      regionId: aws-us-east-1
+
+  - moduleId: image-module
+    moduleClass: AwsEcrImageModule
+    moduleInputs:
+      imageFamily: quadnix
+      imageName: "${env.AWS_IMAGE_NAME}"
+      regions:
+        - "${{region-module.model.region}}"
+
+  # Built for arm64, the processor the function runs on, on whatever machine runs the build.
+  - moduleId: image-tag-module
+    moduleClass: AwsEcrImageTagModule
+    moduleInputs:
+      architecture: arm64
+      dockerfileDirectory: function
+      dockerfileName: Dockerfile
+      image: "${{image-module.model.image}}"
+      imageTag: "0.0.1"
+
+  - moduleId: environment-module
+    moduleClass: AwsServerlessEnvironmentModule
+    moduleInputs:
+      environmentName: qa
+      environmentVariables:
+        GREETING: "${env.GREETING}"
+      region: "${{region-module.model.region}}"
+
+  - moduleId: subnet-module
+    moduleClass: AwsServerlessSubnetModule
+    moduleInputs:
+      region: "${{region-module.model.region}}"
+
+  - moduleId: server-module
+    moduleClass: AwsServerModule
+    moduleInputs:
+      account: "${{account-module.model.account}}"
+      serverKey: lambda-backend
+
+  - moduleId: deployment-module
+    moduleClass: AwsDeploymentModule
+    moduleInputs:
+      deploymentTag: v1
+      image: "${{image-module.model.image}}"
+      imageTag: "0.0.1"
+      memory: 512
+      ports:
+        - containerPort: 8080
+          protocol: tcp
+      server: "${{server-module.model.server}}"
+      timeoutInSeconds: 30
+
+  # The execution id is the function's name, and part of its role's, both of which are unique per
+  # account. It is scoped to this template so that no other stack is refused the name.
+  - moduleId: execution-module
+    moduleClass: AwsLambdaExecutionModule
+    moduleInputs:
+      deployment: "${{deployment-module.model.deployment}}"
+      environment: "${{environment-module.model.environment}}"
+      executionId: octo-lambda-function-template
+      subnet: "${{subnet-module.model.subnet}}"
+
+  - moduleId: distribution-module
+    moduleClass: AwsCloudFrontServiceModule
+    moduleInputs:
+      account: "${{account-module.model.account}}"
+      distributionName: octo-lambda-function-template
+      origins:
+        - originId: api
+          source: "${{execution-module.model.execution}}"
+      priceClass: PriceClass_100
+      routes:
+        - originId: api
+
+tags:
+  - scope: {}
+    tags:
+      e2e-test: "true"
+      e2e-test-family: aws-lambda-function
+
+terraform:
+  requiredVersion: "1.6.0"
+  requiredProviders:
+    aws:
+      source: hashicorp/aws
+      minVersion: "6.0.0"
+  providers:
+    - providerType: aws
+      accountId: "${env.AWS_ACCOUNT_ID}"
+      regionId: us-east-1

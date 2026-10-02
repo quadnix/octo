@@ -1,5 +1,107 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
+exports[`Main E2E input changes AwsDeploymentModule should handle cpu and memory change 1`] = `
+[
+  "* @octo/ecs-task-definition=ecs-task-definition-backend-v1-qa-execution",
+  "* @octo/ecs-service=ecs-service-backend-v1-qa-execution",
+]
+`;
+
+exports[`Main E2E input changes AwsDeploymentModule should handle cpu and memory change: validate report 1`] = `
+{
+  "attributedChanges": [],
+  "confidence": "approximate",
+  "drift": [],
+  "failures": [],
+  "intentChanges": [
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/ecs-task-definition=ecs-task-definition-backend-v1-qa-execution",
+      "resourceId": "ecs-task-definition-backend-v1-qa-execution",
+      "terraformChanges": [
+        {
+          "address": "aws_ecs_task_definition.ecs-task-definition-backend-v1-qa-execution",
+          "changedFields": [
+            "arn",
+            "arn_without_revision",
+            "container_definitions",
+            "cpu",
+            "enable_fault_injection",
+            "id",
+            "ipc_mode",
+            "memory",
+            "pid_mode",
+            "revision",
+          ],
+          "tfActions": [
+            "delete",
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/ecs-service=ecs-service-backend-v1-qa-execution",
+      "resourceId": "ecs-service-backend-v1-qa-execution",
+      "terraformChanges": [
+        {
+          "address": "aws_ecs_service.ecs-service-backend-v1-qa-execution",
+          "changedFields": [
+            "task_definition",
+          ],
+          "tfActions": [
+            "update",
+          ],
+        },
+      ],
+    },
+  ],
+  "notes": [],
+  "uncertain": [],
+}
+`;
+
+exports[`Main E2E input changes AwsDeploymentModule should handle deploymentTag change 1`] = `
+[
+  "* @octo/ecs-task-definition=ecs-task-definition-backend-v1-qa-execution",
+  "* @octo/ecs-service=ecs-service-backend-v1-qa-execution",
+]
+`;
+
+exports[`Main E2E input changes AwsDeploymentModule should handle deploymentTag change: validate report 1`] = `
+{
+  "attributedChanges": [],
+  "confidence": "approximate",
+  "drift": [],
+  "failures": [],
+  "intentChanges": [
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/ecs-task-definition=ecs-task-definition-backend-v1-qa-execution",
+      "resourceId": "ecs-task-definition-backend-v1-qa-execution",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/ecs-service=ecs-service-backend-v1-qa-execution",
+      "resourceId": "ecs-service-backend-v1-qa-execution",
+      "terraformChanges": [],
+    },
+  ],
+  "notes": [],
+  "uncertain": [],
+}
+`;
+
 exports[`Main E2E input changes AwsEcsAlbServiceModule should handle albName change 1`] = `
 [
   "- @octo/security-group=sec-grp-app-region-east-qa-api-alb",
@@ -260,108 +362,6 @@ exports[`Main E2E input changes AwsEcsAlbServiceModule should handle targets hea
           ],
         },
       ],
-    },
-  ],
-  "notes": [],
-  "uncertain": [],
-}
-`;
-
-exports[`Main E2E input changes AwsEcsDeploymentModule should handle deploymentContainerProperties change 1`] = `
-[
-  "* @octo/ecs-task-definition=ecs-task-definition-backend-v1-qa-execution",
-  "* @octo/ecs-service=ecs-service-backend-v1-qa-execution",
-]
-`;
-
-exports[`Main E2E input changes AwsEcsDeploymentModule should handle deploymentContainerProperties change: validate report 1`] = `
-{
-  "attributedChanges": [],
-  "confidence": "approximate",
-  "drift": [],
-  "failures": [],
-  "intentChanges": [
-    {
-      "moduleId": "backend-v1-qa-execution-module",
-      "octoAction": "update",
-      "reason": undefined,
-      "resourceContext": "@octo/ecs-task-definition=ecs-task-definition-backend-v1-qa-execution",
-      "resourceId": "ecs-task-definition-backend-v1-qa-execution",
-      "terraformChanges": [
-        {
-          "address": "aws_ecs_task_definition.ecs-task-definition-backend-v1-qa-execution",
-          "changedFields": [
-            "arn",
-            "arn_without_revision",
-            "container_definitions",
-            "cpu",
-            "enable_fault_injection",
-            "id",
-            "ipc_mode",
-            "memory",
-            "pid_mode",
-            "revision",
-          ],
-          "tfActions": [
-            "delete",
-            "create",
-          ],
-        },
-      ],
-    },
-    {
-      "moduleId": "backend-v1-qa-execution-module",
-      "octoAction": "update",
-      "reason": undefined,
-      "resourceContext": "@octo/ecs-service=ecs-service-backend-v1-qa-execution",
-      "resourceId": "ecs-service-backend-v1-qa-execution",
-      "terraformChanges": [
-        {
-          "address": "aws_ecs_service.ecs-service-backend-v1-qa-execution",
-          "changedFields": [
-            "task_definition",
-          ],
-          "tfActions": [
-            "update",
-          ],
-        },
-      ],
-    },
-  ],
-  "notes": [],
-  "uncertain": [],
-}
-`;
-
-exports[`Main E2E input changes AwsEcsDeploymentModule should handle deploymentTag change 1`] = `
-[
-  "* @octo/ecs-task-definition=ecs-task-definition-backend-v1-qa-execution",
-  "* @octo/ecs-service=ecs-service-backend-v1-qa-execution",
-]
-`;
-
-exports[`Main E2E input changes AwsEcsDeploymentModule should handle deploymentTag change: validate report 1`] = `
-{
-  "attributedChanges": [],
-  "confidence": "approximate",
-  "drift": [],
-  "failures": [],
-  "intentChanges": [
-    {
-      "moduleId": "backend-v1-qa-execution-module",
-      "octoAction": "update",
-      "reason": undefined,
-      "resourceContext": "@octo/ecs-task-definition=ecs-task-definition-backend-v1-qa-execution",
-      "resourceId": "ecs-task-definition-backend-v1-qa-execution",
-      "terraformChanges": [],
-    },
-    {
-      "moduleId": "backend-v1-qa-execution-module",
-      "octoAction": "update",
-      "reason": undefined,
-      "resourceContext": "@octo/ecs-service=ecs-service-backend-v1-qa-execution",
-      "resourceId": "ecs-service-backend-v1-qa-execution",
-      "terraformChanges": [],
     },
   ],
   "notes": [],
@@ -648,11 +648,15 @@ exports[`Main E2E input changes AwsEcsExecutionModule should handle desiredCount
 
 exports[`Main E2E input changes AwsEcsExecutionModule should handle executionId change 1`] = `
 [
+  "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-qa-execution",
+  "- @octo/iam-role=iam-role-ExecutionRole-backend-v1-qa-execution",
   "- @octo/ecs-task-definition=ecs-task-definition-backend-v1-qa-execution",
   "- @octo/alb-target-group=alb-target-group-backend-v1-qa-execution",
   "- @octo/security-group=sec-grp-SecurityGroup-backend-v1-qa-execution",
   "- @octo/ecs-service=ecs-service-backend-v1-qa-execution",
   "+ @octo/security-group=sec-grp-SecurityGroup-changed-execution-id",
+  "+ @octo/iam-role=iam-role-ExecutionRole-changed-execution-id",
+  "* @octo/iam-role=iam-role-ExecutionRole-changed-execution-id",
   "+ @octo/ecs-task-definition=ecs-task-definition-changed-execution-id",
   "+ @octo/ecs-service=ecs-service-changed-execution-id",
   "+ @octo/alb-target-group=alb-target-group-changed-execution-id",
@@ -717,6 +721,29 @@ exports[`Main E2E input changes AwsEcsExecutionModule should handle executionId 
       "moduleId": "backend-v1-qa-execution-module",
       "octoAction": "add",
       "reason": undefined,
+      "resourceContext": "@octo/iam-role=iam-role-ExecutionRole-changed-execution-id",
+      "resourceId": "iam-role-ExecutionRole-changed-execution-id",
+      "terraformChanges": [
+        {
+          "address": "aws_iam_role.iam-role-ExecutionRole-changed-execution-id",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+        {
+          "address": "aws_iam_role_policy_attachment.iam-role-ExecutionRole-changed-execution-id_AmazonECSTaskExecutionRolePolicy",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "add",
+      "reason": undefined,
       "resourceContext": "@octo/ecs-task-definition=ecs-task-definition-changed-execution-id",
       "resourceId": "ecs-task-definition-changed-execution-id",
       "terraformChanges": [
@@ -757,6 +784,29 @@ exports[`Main E2E input changes AwsEcsExecutionModule should handle executionId 
           "changedFields": [],
           "tfActions": [
             "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "delete",
+      "reason": undefined,
+      "resourceContext": "@octo/iam-role=iam-role-ExecutionRole-backend-v1-qa-execution",
+      "resourceId": "iam-role-ExecutionRole-backend-v1-qa-execution",
+      "terraformChanges": [
+        {
+          "address": "aws_iam_role.iam-role-ExecutionRole-backend-v1-qa-execution",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+        {
+          "address": "aws_iam_role_policy_attachment.iam-role-ExecutionRole-backend-v1-qa-execution_AmazonECSTaskExecutionRolePolicy",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
           ],
         },
       ],
@@ -911,162 +961,10 @@ exports[`Main E2E input changes AwsEcsExecutionModule should handle securityGrou
 }
 `;
 
-exports[`Main E2E input changes AwsEcsServerModule should handle serverKey change 1`] = `
-[
-  "* @octo/iam-role=iam-role-ServerRole-backend",
-  "- @octo/iam-role=iam-role-ServerRole-backend",
-  "^ @octo/ecs-task-definition=ecs-task-definition-backend-v1-qa-execution",
-  "- @octo/security-group=sec-grp-SecurityGroup-backend",
-  "* @octo/ecs-service=ecs-service-backend-v1-qa-execution",
-  "+ @octo/iam-role=iam-role-ServerRole-changed-backend",
-  "* @octo/iam-role=iam-role-ServerRole-changed-backend",
-  "+ @octo/security-group=sec-grp-SecurityGroup-changed-backend",
-]
-`;
-
-exports[`Main E2E input changes AwsEcsServerModule should handle serverKey change: validate report 1`] = `
-{
-  "attributedChanges": [],
-  "confidence": "approximate",
-  "drift": [],
-  "failures": [],
-  "intentChanges": [
-    {
-      "moduleId": "backend-server-module",
-      "octoAction": "add",
-      "reason": undefined,
-      "resourceContext": "@octo/iam-role=iam-role-ServerRole-changed-backend",
-      "resourceId": "iam-role-ServerRole-changed-backend",
-      "terraformChanges": [
-        {
-          "address": "aws_iam_role.iam-role-ServerRole-changed-backend",
-          "changedFields": [],
-          "tfActions": [
-            "create",
-          ],
-        },
-        {
-          "address": "aws_iam_role_policy_attachment.iam-role-ServerRole-changed-backend_AmazonECSTaskExecutionRolePolicy",
-          "changedFields": [],
-          "tfActions": [
-            "create",
-          ],
-        },
-      ],
-    },
-    {
-      "moduleId": "backend-v1-qa-execution-module",
-      "octoAction": "add",
-      "reason": undefined,
-      "resourceContext": "@octo/security-group=sec-grp-SecurityGroup-changed-backend",
-      "resourceId": "sec-grp-SecurityGroup-changed-backend",
-      "terraformChanges": [
-        {
-          "address": "aws_security_group.sec-grp-SecurityGroup-changed-backend",
-          "changedFields": [],
-          "tfActions": [
-            "create",
-          ],
-        },
-      ],
-    },
-    {
-      "moduleId": "backend-v1-qa-execution-module",
-      "octoAction": "replace",
-      "reason": "family is force-new on aws_ecs_task_definition; a change recreates it",
-      "resourceContext": "@octo/ecs-task-definition=ecs-task-definition-backend-v1-qa-execution",
-      "resourceId": "ecs-task-definition-backend-v1-qa-execution",
-      "terraformChanges": [
-        {
-          "address": "aws_ecs_task_definition.ecs-task-definition-backend-v1-qa-execution",
-          "changedFields": [
-            "arn",
-            "arn_without_revision",
-            "container_definitions",
-            "enable_fault_injection",
-            "execution_role_arn",
-            "family",
-            "id",
-            "ipc_mode",
-            "pid_mode",
-            "revision",
-            "task_role_arn",
-          ],
-          "tfActions": [
-            "delete",
-            "create",
-          ],
-        },
-      ],
-    },
-    {
-      "moduleId": "backend-v1-qa-execution-module",
-      "octoAction": "update",
-      "reason": undefined,
-      "resourceContext": "@octo/ecs-service=ecs-service-backend-v1-qa-execution",
-      "resourceId": "ecs-service-backend-v1-qa-execution",
-      "terraformChanges": [
-        {
-          "address": "aws_ecs_service.ecs-service-backend-v1-qa-execution",
-          "changedFields": [
-            "network_configuration",
-            "task_definition",
-          ],
-          "tfActions": [
-            "update",
-          ],
-        },
-      ],
-    },
-    {
-      "moduleId": "backend-server-module",
-      "octoAction": "delete",
-      "reason": undefined,
-      "resourceContext": "@octo/iam-role=iam-role-ServerRole-backend",
-      "resourceId": "iam-role-ServerRole-backend",
-      "terraformChanges": [
-        {
-          "address": "aws_iam_role.iam-role-ServerRole-backend",
-          "changedFields": [],
-          "tfActions": [
-            "delete",
-          ],
-        },
-        {
-          "address": "aws_iam_role_policy_attachment.iam-role-ServerRole-backend_AmazonECSTaskExecutionRolePolicy",
-          "changedFields": [],
-          "tfActions": [
-            "delete",
-          ],
-        },
-      ],
-    },
-    {
-      "moduleId": "backend-v1-qa-execution-module",
-      "octoAction": "delete",
-      "reason": undefined,
-      "resourceContext": "@octo/security-group=sec-grp-SecurityGroup-backend",
-      "resourceId": "sec-grp-SecurityGroup-backend",
-      "terraformChanges": [
-        {
-          "address": "aws_security_group.sec-grp-SecurityGroup-backend",
-          "changedFields": [],
-          "tfActions": [
-            "delete",
-          ],
-        },
-      ],
-    },
-  ],
-  "notes": [],
-  "uncertain": [],
-}
-`;
-
 exports[`Main E2E input changes AwsIniAccountModule should handle accountId change 1`] = `
 [
   "^ @octo/ecs-cluster=ecs-cluster-app-region-east-qa",
-  "^ @octo/iam-role=iam-role-ServerRole-backend",
+  "^ @octo/iam-role=iam-role-ExecutionRole-backend-v1-qa-execution",
   "^ @octo/vpc=vpc-app-region-east",
   "^ @octo/ecs-task-definition=ecs-task-definition-backend-v1-qa-execution",
   "^ @octo/alb-target-group=alb-target-group-backend-v1-qa-execution",
@@ -1106,7 +1004,6 @@ exports[`Main E2E input changes AwsIniAccountModule should handle accountId chan
   "^ @octo/nat-gateway=nat-gateway-app-region-east-public-subnet",
   "* @octo/nat-gateway=nat-gateway-app-region-east-public-subnet",
   "* @octo/nat-gateway=nat-gateway-app-region-east-public-subnet",
-  "* @octo/nat-gateway=nat-gateway-app-region-east-public-subnet",
   "^ @octo/network-acl=nacl-app-region-east-public-subnet",
   "* @octo/network-acl=nacl-app-region-east-public-subnet",
   "* @octo/network-acl=nacl-app-region-east-public-subnet",
@@ -1130,14 +1027,6 @@ exports[`Main E2E input changes AwsIniAccountModule should handle accountId chan
   "drift": [],
   "failures": [],
   "intentChanges": [
-    {
-      "moduleId": "backend-server-module",
-      "octoAction": "replace",
-      "reason": "name is force-new on aws_iam_role; a change recreates the role",
-      "resourceContext": "@octo/iam-role=iam-role-ServerRole-backend",
-      "resourceId": "iam-role-ServerRole-backend",
-      "terraformChanges": [],
-    },
     {
       "moduleId": "region-module",
       "octoAction": "replace",
@@ -1272,6 +1161,14 @@ exports[`Main E2E input changes AwsIniAccountModule should handle accountId chan
       "reason": "security group properties are identity; a change recreates it",
       "resourceContext": "@octo/security-group=sec-grp-SecurityGroup-backend-v1-qa-execution",
       "resourceId": "sec-grp-SecurityGroup-backend-v1-qa-execution",
+      "terraformChanges": [],
+    },
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "replace",
+      "reason": "name is force-new on aws_iam_role; a change recreates the role",
+      "resourceContext": "@octo/iam-role=iam-role-ExecutionRole-backend-v1-qa-execution",
+      "resourceId": "iam-role-ExecutionRole-backend-v1-qa-execution",
       "terraformChanges": [],
     },
     {
@@ -2134,7 +2031,6 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle regionIds c
   "* @octo/network-acl=nacl-app-region-east-private-subnet",
   "* @octo/network-acl=nacl-app-region-east-public-backup-subnet",
   "* @octo/route-table=rt-app-region-east-public-backup-subnet",
-  "* @octo/nat-gateway=nat-gateway-app-region-east-public-subnet",
   "* @octo/network-acl=nacl-app-region-east-public-subnet",
   "* @octo/route-table=rt-app-region-east-public-subnet",
   "* @octo/route-table=rt-app-region-east-private-subnet",
@@ -2162,14 +2058,6 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle regionIds c
       "reason": undefined,
       "resourceContext": "@octo/subnet=subnet-app-region-east-public-subnet",
       "resourceId": "subnet-app-region-east-public-subnet",
-      "terraformChanges": [],
-    },
-    {
-      "moduleId": "public-subnet-module",
-      "octoAction": "update",
-      "reason": undefined,
-      "resourceContext": "@octo/nat-gateway=nat-gateway-app-region-east-public-subnet",
-      "resourceId": "nat-gateway-app-region-east-public-subnet",
       "terraformChanges": [],
     },
     {
@@ -2298,7 +2186,6 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle vpcCidrBloc
   "* @octo/route-table=rt-app-region-east-public-backup-subnet",
   "* @octo/route-table=rt-app-region-east-public-backup-subnet",
   "* @octo/alb=alb-app-region-east-qa-api-alb",
-  "* @octo/nat-gateway=nat-gateway-app-region-east-public-subnet",
   "* @octo/nat-gateway=nat-gateway-app-region-east-public-subnet",
   "* @octo/network-acl=nacl-app-region-east-public-subnet",
   "* @octo/network-acl=nacl-app-region-east-public-subnet",
@@ -2655,6 +2542,106 @@ exports[`Main E2E input changes AwsMultiAzRegionModule should handle vpcCidrBloc
       "resourceContext": "@octo/alb-target-group=alb-target-group-backend-v1-qa-execution",
       "resourceId": "alb-target-group-backend-v1-qa-execution",
       "terraformChanges": [],
+    },
+  ],
+  "notes": [],
+  "uncertain": [],
+}
+`;
+
+exports[`Main E2E input changes AwsServerModule should handle serverKey change 1`] = `
+[
+  "^ @octo/ecs-task-definition=ecs-task-definition-backend-v1-qa-execution",
+  "- @octo/security-group=sec-grp-SecurityGroup-backend",
+  "* @octo/ecs-service=ecs-service-backend-v1-qa-execution",
+  "+ @octo/security-group=sec-grp-SecurityGroup-changed-backend",
+]
+`;
+
+exports[`Main E2E input changes AwsServerModule should handle serverKey change: validate report 1`] = `
+{
+  "attributedChanges": [],
+  "confidence": "approximate",
+  "drift": [],
+  "failures": [],
+  "intentChanges": [
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "add",
+      "reason": undefined,
+      "resourceContext": "@octo/security-group=sec-grp-SecurityGroup-changed-backend",
+      "resourceId": "sec-grp-SecurityGroup-changed-backend",
+      "terraformChanges": [
+        {
+          "address": "aws_security_group.sec-grp-SecurityGroup-changed-backend",
+          "changedFields": [],
+          "tfActions": [
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "replace",
+      "reason": "family is force-new on aws_ecs_task_definition; a change recreates it",
+      "resourceContext": "@octo/ecs-task-definition=ecs-task-definition-backend-v1-qa-execution",
+      "resourceId": "ecs-task-definition-backend-v1-qa-execution",
+      "terraformChanges": [
+        {
+          "address": "aws_ecs_task_definition.ecs-task-definition-backend-v1-qa-execution",
+          "changedFields": [
+            "arn",
+            "arn_without_revision",
+            "container_definitions",
+            "enable_fault_injection",
+            "family",
+            "id",
+            "ipc_mode",
+            "pid_mode",
+            "revision",
+          ],
+          "tfActions": [
+            "delete",
+            "create",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "update",
+      "reason": undefined,
+      "resourceContext": "@octo/ecs-service=ecs-service-backend-v1-qa-execution",
+      "resourceId": "ecs-service-backend-v1-qa-execution",
+      "terraformChanges": [
+        {
+          "address": "aws_ecs_service.ecs-service-backend-v1-qa-execution",
+          "changedFields": [
+            "network_configuration",
+            "task_definition",
+          ],
+          "tfActions": [
+            "update",
+          ],
+        },
+      ],
+    },
+    {
+      "moduleId": "backend-v1-qa-execution-module",
+      "octoAction": "delete",
+      "reason": undefined,
+      "resourceContext": "@octo/security-group=sec-grp-SecurityGroup-backend",
+      "resourceId": "sec-grp-SecurityGroup-backend",
+      "terraformChanges": [
+        {
+          "address": "aws_security_group.sec-grp-SecurityGroup-backend",
+          "changedFields": [],
+          "tfActions": [
+            "delete",
+          ],
+        },
+      ],
     },
   ],
   "notes": [],

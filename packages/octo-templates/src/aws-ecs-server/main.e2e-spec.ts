@@ -183,7 +183,7 @@ describe('Main E2E', () => {
       });
     });
 
-    describe('AwsEcsServerModule', () => {
+    describe('AwsServerModule', () => {
       it('should handle serverKey change', async () => {
         expect(
           await planDigest({ 'backend-server-module': (i) => ({ ...i, serverKey: 'changed-backend' }) }),
@@ -191,21 +191,14 @@ describe('Main E2E', () => {
       });
     });
 
-    describe('AwsEcsDeploymentModule', () => {
-      it('should handle deploymentContainerProperties change', async () => {
+    describe('AwsDeploymentModule', () => {
+      it('should handle cpu and memory change', async () => {
         expect(
           await planDigest({
             'backend-deployment-v1-module': (i) => ({
               ...i,
-              deploymentContainerProperties: {
-                cpu: 512,
-                image: {
-                  command: 'node webserver',
-                  ports: [{ containerPort: 80, protocol: 'tcp' }],
-                  uri: 'docker.io/ealen/echo-server:0.9.2',
-                },
-                memory: 1024,
-              },
+              cpu: 512,
+              memory: 1024,
             }),
           }),
         ).toMatchSnapshot();

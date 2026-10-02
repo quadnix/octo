@@ -46,11 +46,7 @@ interface Definition {
 }
 
 /**
- * The version the ECS consumer runs, and the URI naming it.
- *
- * `octo-ecs.yaml` takes the URI whole, as one `${env.KEY}`, because a reference resolves only as an
- * entire value and this one is assembled from three of them. The same constant is what the case
- * asserts AWS was given.
+ * The version the ECS consumer runs, and the URI AWS is expected to be given for it.
  */
 const ECS_IMAGE_TAG = '0.1.0';
 
@@ -95,7 +91,7 @@ function imageTagModule(
   return {
     moduleClass: 'AwsEcrImageTagModule',
     moduleId,
-    moduleInputs: { dockerfileDirectory: 'image', dockerfileName, image, imageTag },
+    moduleInputs: { architecture: 'x86_64', dockerfileDirectory: 'image', dockerfileName, image, imageTag },
   };
 }
 
@@ -425,7 +421,6 @@ describe('Main E2E', () => {
 
     await OctoCliUtility.lifecycle(__dirname, definitionFilePath, {
       ...environment,
-      AWS_ECS_IMAGE_URI: ECS_IMAGE_URI,
       AWS_IMAGE_TAG: ECS_IMAGE_TAG,
     });
 

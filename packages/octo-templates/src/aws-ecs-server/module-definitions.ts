@@ -16,12 +16,12 @@ import {
 } from '@quadnix/octo';
 import { AwsIniAccountModule } from '@quadnix/octo-aws-cdk/modules/account/aws-ini-account';
 import { SimpleAppModule } from '@quadnix/octo-aws-cdk/modules/app/simple-app';
-import { AwsEcsDeploymentModule } from '@quadnix/octo-aws-cdk/modules/deployment/aws-ecs-deployment';
+import { AwsDeploymentModule } from '@quadnix/octo-aws-cdk/modules/deployment/aws-deployment';
 import { AwsEcsEnvironmentModule } from '@quadnix/octo-aws-cdk/modules/environment/aws-ecs-environment';
 import { AwsEcsExecutionModule } from '@quadnix/octo-aws-cdk/modules/execution/aws-ecs-execution';
 import { AwsMultiAzRegionModule } from '@quadnix/octo-aws-cdk/modules/region/aws-multi-az-region';
 import { AwsMultiAzRegionId } from '@quadnix/octo-aws-cdk/modules/region/aws-multi-az-region/schema';
-import { AwsEcsServerModule } from '@quadnix/octo-aws-cdk/modules/server/aws-ecs-server';
+import { AwsServerModule } from '@quadnix/octo-aws-cdk/modules/server/aws-server';
 import { AwsEcsAlbServiceModule } from '@quadnix/octo-aws-cdk/modules/service/aws-ecs-alb-service';
 import { AwsSimpleSubnetModule } from '@quadnix/octo-aws-cdk/modules/subnet/aws-simple-subnet';
 import { config } from './app.config.js';
@@ -125,22 +125,18 @@ export class ModuleDefinitions {
       vpcCidrBlock: '10.0.0.0/16',
     });
 
-    this.add(AwsEcsServerModule, 'backend-server-module', {
+    this.add(AwsServerModule, 'backend-server-module', {
       account: stub<Account>('${{account-module.model.account}}'),
       serverKey: 'backend',
     });
 
-    this.add(AwsEcsDeploymentModule, 'backend-deployment-v1-module', {
-      deploymentContainerProperties: {
-        cpu: 256,
-        image: {
-          command: 'node webserver',
-          ports: [{ containerPort: 80, protocol: 'tcp' }],
-          uri: 'docker.io/ealen/echo-server:0.9.2',
-        },
-        memory: 512,
-      },
+    this.add(AwsDeploymentModule, 'backend-deployment-v1-module', {
+      command: 'node webserver',
+      cpu: 256,
       deploymentTag: 'v1',
+      imageUri: 'docker.io/ealen/echo-server:0.9.2',
+      memory: 512,
+      ports: [{ containerPort: 80, protocol: 'tcp' }],
       server: stub<Server>('${{backend-server-module.model.server}}'),
     });
 
