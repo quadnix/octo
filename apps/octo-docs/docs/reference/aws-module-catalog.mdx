@@ -93,6 +93,11 @@ IAM role names are shared by every region of an account, so an `executionId` mus
 its account: running the same execution in two regions takes two names, such as
 `checkout-v1-staging-us` and `checkout-v1-staging-eu`.
 
+A new version of the code is a new deployment, run by a new execution with an `executionId` of its
+own, such as `checkout-v2-staging`. The old execution is not changed: both versions run side by
+side, each with its own role, until you take the old execution out of your definition file. That is
+what lets a release be gradual: move traffic to the new version, and back again if it misbehaves.
+
 `AwsServerModule`'s `s3` input is the shop's receipts grant from [Shop
 Stack](/docs/getting-started/shop-stack): a list of storage services and, per service, the
 access prefixes the server may access with `READ`, `WRITE`, or `READ_WRITE`. `dynamodb` is the same
@@ -172,7 +177,8 @@ this execution may reach:
           ToPort: 443
 ```
 
-A Lambda execution runs one deployment in a serverless region, as a function named `executionId`.
+A Lambda execution runs one deployment in a serverless region, as a function named `executionId`,
+so every version gets a function and a URL of its own.
 The image must be published in the function's own region, and a web server in it answers Lambda's
 requests through the [Lambda Web Adapter](https://github.com/awslabs/aws-lambda-web-adapter), which
 the image carries. The adapter forwards each request to the deployment's port, so the deployment
@@ -213,7 +219,9 @@ reopen a bucket behind it.
 `AwsCloudFrontServiceModule` sits under the account, because a distribution is not in any one
 region. `origins` names what it serves, each one an `originId` and a `source`: a bucket from
 `AwsS3StorageServiceModule`, or an execution from `AwsLambdaExecutionModule`, served through its
-URL. `routes` sends requests to an origin by its `originId`.
+URL. `routes` sends requests to an origin by its `originId`. A new version of a function is a
+second execution with a URL of its own, so moving traffic to it means changing the `source` of the
+origin to the new execution.
 The route with no `pathPattern` is the default, and the others are matched in the order they are
 given. For every bucket it serves, the module adds a statement to that bucket's policy naming the
 distribution, so the bucket stays closed to everyone else.
