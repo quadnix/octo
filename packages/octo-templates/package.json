@@ -5,6 +5,7 @@
     "@aws-sdk/client-ec2": "~3.743.0",
     "@aws-sdk/client-ecr": "~3.743.0",
     "@aws-sdk/client-ecs": "~3.743.0",
+    "@aws-sdk/client-iam": "~3.743.0",
     "@aws-sdk/client-resource-groups-tagging-api": "~3.743.0",
     "@aws-sdk/lib-dynamodb": "~3.743.0",
     "@quadnix/octo": "~0.1.0",
