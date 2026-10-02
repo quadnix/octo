@@ -205,8 +205,8 @@ export class AwsEcsExecutionModuleSchema {
   environmentVariables? = Schema<Record<string, string>>({});
 
   /**
-   * A unique identifier for this execution.
-   * This is used to distinguish between different executions in the same environment.
+   * A unique identifier for this execution. It names the IAM role the task runs as, and IAM role names
+   * are shared by every region of an account, so it must be unique within the account.
    */
   @Validate({ options: { minLength: 1 } })
   executionId = Schema<string>();
