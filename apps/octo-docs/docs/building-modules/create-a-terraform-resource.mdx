@@ -190,6 +190,42 @@ ever calling `diffProperties`. A force-new argument that the resource ID is deri
 handled, and [Resources](/docs/fundamentals/resources) covers what that destroy costs. Compare the
 force-new arguments the ID does not carry.
 
+## Choosing parents
+
+A resource's parents are the resources the cloud provider needs to exist before this one can be
+created. They are not the list of everything the resource mentions. Two questions decide it, and the
+provider's API reference answers both:
+
+- Does the create call carry a value the provider assigns only when the other resource is created?
+  A subnet needs its VPC's ID, and nobody knows `vpc-0d8d555c656b950ad` until the VPC exists.
+- Does the provider refuse the create call while the other resource is missing? S3 rejects a bucket
+  policy that names an IAM role which does not exist yet.
+
+A yes to either makes the other resource a parent. It goes into the constructor's `parents`, and
+its value is read with `getRef`, below. Where the provider needs it but this resource reads nothing
+from it, as an internet-facing load balancer needs its VPC's internet gateway, pass it to
+`addOctoTerraformResource` as `explicitParents` instead.
+
+Two noes mean it is not a parent, even when this resource names it. Checkout's IAM role carries a
+policy naming the receipts bucket, and IAM accepts that policy before the bucket exists. The ARN in
+it is built from the bucket's name, which somebody chose and which is known before anything is
+created, so there is nothing to wait for. The action that creates the role finds the bucket in the
+graph and passes the bucket resource in, and the role reads the name off it, so nobody types the
+ARN.
+
+A method that takes a resource it does not make a parent can also refuse ones its author did not
+mean to allow. The role refuses a bucket in another account, so a grant cannot quietly reach
+somebody else's storage. Which limits to set is your call; say each one in the method's JSDoc and
+cover it with a test, because the next author reads the limit there and nowhere else.
+
+A parent adds one thing to a reference: this resource waits for the other one. You may also ask
+for that wait where the provider would accept the call but the result would be wrong. A CloudFront
+invalidation reads nothing from the bucket, and takes it as a parent anyway so that it runs after
+the files are uploaded, not before. The one thing a parent must never do is close a cycle. The role
+names the bucket and the bucket's policy names the role, so if every mention were a parent, each
+would wait for the other, and Octo would refuse the graph at `octo generate` with a dependency
+cycle.
+
 ## Referencing another resource
 
 Never write a Terraform address by hand. Ask for a reference:
@@ -204,6 +240,14 @@ writes the `variable` block, the `output` block on the other side, the Terragrun
 the `inputs` wiring. That is the mechanism behind the two folders in [Shop
 Stack](/docs/getting-started/shop-stack), and it is why you cannot write the address yourself: at
 the point you would write it, the answer is not known.
+
+When the value needs text of this resource's own around the reference, such as a path after a
+domain name the provider assigned, join the two with `interpolate`. The reference inside it is
+wired the same way:
+
+```typescript
+const ordersUrl = terraform.interpolate('https://', terraform.getRef(this.parents[0], 'DomainName'), '/api/orders');
+```
 
 ## Ordering against another resource
 
@@ -231,11 +275,43 @@ that field of the other node must have happened first. Octo orders the whole run
 renders the result as `depends_on` inside a folder and as a Terragrunt `dependency` across folders.
 The full signature is on [`Dependency`](/api/octo/class/Dependency).
 
+### Which behaviors to declare
+
+Every parent link already carries three orderings, so a resource never declares these:
+
+| When the...                  | it waits for the...  |
+|------------------------------|----------------------|
+| child is added               | parent's add, update |
+| child gains a parent         | parent's add         |
+| parent is deleted            | child's delete       |
+
+They cover a child that is created or deleted along with its parent. The bucket above is neither:
+it already exists when checkout is granted access, and it is still there when checkout's role is
+deleted. That is the case every behavior a resource declares is for, a child that stays while its
+parent comes or goes. Find them in three steps.
+
+1. List the diffs each side can produce, and the field each one is on. Read them from the two
+   resources' `diff` methods. The bucket reports a permission change as an update on
+   `update-permissions`; an IAM role is added, replaced, or deleted on `resourceId`, and updated on
+   the type of policy that changed. A behavior that names a diff neither side produces orders
+   nothing, and Octo does not warn about it.
+2. Where the child can be updated or replaced to point at a parent that is being added or replaced,
+   the child waits for the parent. The bucket's first line above: its permissions change only after
+   checkout's role exists.
+3. Where the parent can be deleted while the child is updated or replaced to stop pointing at it,
+   the parent waits for the child. The bucket's second line: the role is deleted only after the
+   bucket's policy stops naming it.
+
+Declare every pair those steps find, even where both resources sit in one folder and Terraform
+would order them by the reference. Never declare the reverse of a wait that already exists: two
+nodes waiting for each other is a cycle, and Octo refuses the graph at `octo generate`.
+
 ## The rest of the scope
 
 |                                                      |                                                                         |
 |------------------------------------------------------|-------------------------------------------------------------------------|
 | `terraform.raw(expr)`                                | An HCL expression to emit unquoted, such as `${address}.arn`.           |
+| `terraform.interpolate(...parts)`                    | One quoted string from text and `getRef` results, such as a URL.        |
 | `terraform.jsonencode(obj)`                          | Wraps a value in `jsonencode(...)`. Policy documents.                   |
 | `terraform.mapAttr(obj)`                             | A map attribute, `key = { }`, as opposed to a block.                    |
 | `terraform.localPath(filePath)`                      | A file on disk, named so the folder reads the same everywhere.          |

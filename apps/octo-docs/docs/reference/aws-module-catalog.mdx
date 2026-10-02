@@ -48,6 +48,7 @@ Every import path follows that shape: the package, then `modules/<model-type>/<m
 | `AwsMultiAzRegionModule`    | `account`, `name`, `regionIds`, `vpcCidrBlock`                                                                                | VPC, internet gateway                                                           |
 | `AwsServerlessRegionModule` | `account`, `name`, `regionId`                                                                                                 |                                                                                 |
 | `AwsSimpleSubnetModule`     | `region`, `subnetName`, `subnetCidrBlock`, `subnetAvailabilityZone`, `subnetOptions?`, `subnetSiblings?`, `localFilesystems?` | subnet, route table, network ACL, security group, NAT gateway, EFS mount target |
+| `AwsServerlessSubnetModule` | `region`                                                                                                                      |                                                                                 |
 
 Both region modules define a region as one VPC with an internet gateway. They differ in what the
 region publishes: a single-AZ region advertises one availability zone, a multi-AZ region advertises
@@ -57,7 +58,9 @@ region IDs are Octo's own, `aws-eu-west-1a`, distinct from the AWS region.
 `AwsServerlessRegionModule` is a region with no network: it creates nothing, and says only which AWS
 region its services are created in, as `aws-us-east-1`. It publishes a different shape from the
 other two, so a subnet or anything else that needs a VPC refuses it when the modules are composed.
-The static website sits in one, and a storage bucket takes a region of any of the three kinds.
+The static website sits in one, and a storage bucket or an image takes a region of any of the three
+kinds. A serverless region holds one subnet, `AwsServerlessSubnetModule`, which also creates nothing:
+it is always named `default`, covers the whole region, and is there because an execution is always placed in a subnet.
 
 The subnet module is where the network shape actually lives. `subnetOptions` carries
 `createNatGateway`, `disableSubnetIntraNetwork`, and `subnetType`; `subnetSiblings` is how a private
@@ -70,49 +73,66 @@ not anything is running behind it.
 
 ## Servers, deployments, and executions
 
-| Module                    | Inputs                                                                                                                                | Creates                                      |
-|---------------------------|---------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------|
-| `AwsEcsServerModule`      | `account`, `serverKey`, `s3?`, `securityGroupRules?`                                                                                  | IAM role                                     |
-| `AwsEcsDeploymentModule`  | `server`, `deploymentTag`, `deploymentContainerProperties`                                                                            |                                              |
-| `AwsEcsEnvironmentModule` | `region`, `environmentName`, `environmentVariables?`                                                                                  | ECS cluster                                  |
-| `AwsEcsExecutionModule`   | `deployments`, `environment`, `subnet`, `executionId`, `desiredCount`, `environmentVariables?`, `filesystems?`, `securityGroupRules?` | ECS service, task definition, security group |
+| Module                           | Inputs                                                                                                                                | Creates                                                |
+|----------------------------------|---------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------|
+| `AwsServerModule`                | `account`, `serverKey`, `s3?`, `dynamodb?`, `securityGroupRules?`                                                                     |                                                        |
+| `AwsDeploymentModule`            | `server`, `deploymentTag`, `image?` and `imageTag?` or `imageUri?`, `command?`, `ports?`, `cpu?`, `memory?`, `timeoutInSeconds?`      |                                                        |
+| `AwsEcsEnvironmentModule`        | `region`, `environmentName`, `environmentVariables?`                                                                                  | ECS cluster                                            |
+| `AwsServerlessEnvironmentModule` | `region`, `environmentName`, `environmentVariables?`                                                                                  |                                                        |
+| `AwsEcsExecutionModule`          | `deployments`, `environment`, `subnet`, `executionId`, `desiredCount`, `environmentVariables?`, `filesystems?`, `securityGroupRules?` | IAM role, ECS service, task definition, security group |
+| `AwsLambdaExecutionModule`       | `deployment`, `environment`, `subnet`, `executionId`, `environmentVariables?`, `invokerAccountIds?`                                   | IAM role, Lambda function, function URL                |
 
-These four are one story told in four parts. A server is the logical microservice and gets an IAM
-role. A deployment is one version of its container. An environment is a stage inside a region, and
-becomes the ECS cluster. An execution is a deployment running in an environment in a subnet, and is
-what actually runs.
+These are one story told in parts. A server is the logical microservice: what its code may reach,
+and its network rules. A deployment is one version of its code: the container image, and what the
+code needs to run. An environment is a stage inside a region. An execution is a deployment running in
+an environment in a subnet, and it is the only one of them that creates anything: an ECS service, or
+a Lambda function, and the IAM role the code runs as, holding what the server may reach. The server
+and the deployment know nothing about where the code runs, so the same two run on ECS or on Lambda,
+and a server run in two environments gets a role in each. The role is named after `executionId`, and
+IAM role names are shared by every region of an account, so an `executionId` must be unique within
+its account: running the same execution in two regions takes two names, such as
+`checkout-v1-staging-us` and `checkout-v1-staging-eu`.
 
-`AwsEcsServerModule`'s `s3` input is the shop's receipts grant from [Shop
+`AwsServerModule`'s `s3` input is the shop's receipts grant from [Shop
 Stack](/docs/getting-started/shop-stack): a list of storage services and, per service, the
-access prefixes the server may access with `READ`, `WRITE`, or `READ_WRITE`. That produces an
-[overlay](/docs/fundamentals/overlays), a policy on the role, and a statement on the bucket.
+access prefixes the server may access with `READ`, `WRITE`, or `READ_WRITE`. `dynamodb` is the same
+for tables, each a DynamoDB service and one of those three, where read covers the table's indexes.
+Each grant is an [overlay](/docs/fundamentals/overlays) joining the server to the bucket or table,
+and creates nothing on its own. The execution running the server turns it into a policy on its role,
+and for a bucket into a statement on the bucket. The role is created in the execution's account, so
+every bucket and table a server is granted must be in that account too.
 
-Three of the inputs above are nested objects rather than scalars, and each one is a shape a
-definition file has to get right before anything is written. A deployment describes the container
-image the task definition registers:
+A deployment names its image one of two ways. An image Octo publishes is named by `image`, from
+`AwsEcrImageModule`, and `imageTag`, from `AwsEcrImageTagModule`, which orders the push before
+anything that runs it. Any other image is named by `imageUri`, and only ECS runs one:
 
 ```yaml
   - moduleId: checkout-deployment-v1-module
-    moduleClass: AwsEcsDeploymentModule
+    moduleClass: AwsDeploymentModule
     moduleInputs:
       server: "${{checkout-server-module.model.server}}"
       deploymentTag: 0-0-1
-      deploymentContainerProperties:
-        cpu: 256            # 256, 512, 1024, 2048, 4096, 8192, or 16384
-        memory: 512         # MiB
-        image:
-          command: /bin/sh
-          ports:
-            - containerPort: 80
-              protocol: tcp
-          uri: "${env.CHECKOUT_IMAGE_URI}"
+      image: "${{checkout-image-module.model.image}}"
+      imageTag: 0.0.1
+      command: node main.js
+      ports:
+        - containerPort: 80
+          protocol: tcp
+      cpu: 256            # ECS: 256, 512, 1024, 2048, 4096, 8192, or 16384
+      memory: 512         # MiB
+      timeoutInSeconds: 30
 ```
 
-`deploymentTag` is two to thirty-two characters of letters, numbers, hyphens, and underscores. A dot
-is not one of them, so a version reads as `0-0-1`.
+Every field but the image is optional on the deployment, and the execution checks the ones its
+runtime needs, failing before anything is created: ECS needs `cpu`, `memory`, and a `command`, and
+Lambda needs `memory` from 128 to 10240, a `timeoutInSeconds` up to 900, and an image Octo
+publishes. The function runs on the processor that image is built for. `deploymentTag` is two to thirty-two characters of letters, numbers, hyphens,
+and underscores. A dot is not one of them, so a version reads as `0-0-1`.
 
-An execution names one main container and any sidecars, each pairing a deployment with the container
-properties that deployment runs under:
+An ECS execution names one main container and any sidecars, each pairing a deployment with the
+container properties that deployment runs under. Every container in the task runs as one role, the
+one holding the main deployment's server grants, so a sidecar's deployment must run on a server that
+grants nothing:
 
 ```yaml
   - moduleId: checkout-v1-staging-execution-module
@@ -151,33 +171,37 @@ this execution may reach:
           ToPort: 443
 ```
 
-The image URI in `deploymentContainerProperties` is written out rather than referenced. A task
-definition and the image module that publishes to it sit on either side of a reference Octo does not
-resolve, so the URI is assembled by hand from the account, the region, the repository, and the tag,
-and declared as one `env` key because a `${env.KEY}` reference resolves only as a whole value:
+A Lambda execution runs one deployment in a serverless region, as a function named `executionId`.
+The image must be published in the function's own region, and a web server in it answers Lambda's
+requests through the [Lambda Web Adapter](https://github.com/awslabs/aws-lambda-web-adapter), which
+the image carries. The adapter forwards each request to the deployment's port, so the deployment
+declares at most one, over TCP, and without one the adapter uses 8080. Every function gets a URL that answers only requests signed with AWS
+credentials, and `invokerAccountIds` names the accounts allowed to call it:
 
 ```yaml
-env:
-  - key: CHECKOUT_IMAGE_URI
-    kind: string
-    value: "123456789012.dkr.ecr.eu-west-1.amazonaws.com/shop/checkout:0.0.1"
+  - moduleId: checkout-v1-staging-execution-module
+    moduleClass: AwsLambdaExecutionModule
+    moduleInputs:
+      executionId: checkout-v1-staging
+      deployment: "${{checkout-deployment-v1-module.model.deployment}}"
+      environment: "${{staging-environment-module.model.environment}}"
+      subnet: "${{serverless-subnet-module.model.subnet}}"
 ```
 
-The repository is `<imageFamily>/<imageName>` from `AwsEcrImageModule`, and the tag is `imageTag`
-from `AwsEcrImageTagModule`. Declaring the version and the stack that runs it in one definition file
-means one apply publishes the image and registers the task definition that names it.
+The function's role is given no permission to write logs, so it writes none and Lambda creates no
+log group. `executionId` is at most fifty characters, because it names the role too.
 
 ## Services
 
-| Module                                   | Inputs                                                                                                                                                                                                            | Creates                                                                                                                                                  |
-|------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `AwsS3StorageServiceModule`              | `region`, `bucketName`, `accessPrefixes?`, `blockPublicAccess?`, `directoryPath?`, `filter?`, `transform?`, `subDirectoryOrFilePath?`                                                                             | S3 bucket, public access block, bucket policy, and with `directoryPath` one object per file                                                              |
-| `AwsS3StaticWebsiteServiceModule`        | `region`, `bucketName`, `directoryPath`, `filter?`, `transform?`, `subDirectoryOrFilePath?`                                                                                                                       | S3 bucket, public access block, bucket policy, website configuration, one object per file                                                                |
-| `AwsDynamoDBServiceModule`               | `region`, `TableName`, `KeySchema`, `AttributeDefinitions`, `billingMode`, `GlobalSecondaryIndexes?`, `LocalSecondaryIndexes?`, `StreamSpecification?`, `timeToLiveAttribute?`                                    | DynamoDB table                                                                                                                                           |
-| `AwsDynamoDBGlobalServiceModule`         | `dynamoDBService`, `replicas`                                                                                                                                                                                     | DynamoDB global table replicas                                                                                                                           |
-| `AwsEcsAlbServiceModule`                 | `region`, `albName`, `listeners`, `subnets`, `targets?`                                                                                                                                                           | application load balancer, listener, target group, security group                                                                                        |
-| `AwsCloudFrontServiceModule`             | `account`, `distributionName`, `origins`, `routes`, `aliases?`, `certificateArn?`, `defaultRootObject?`, `errorResponses?`, `priceClass?`, `cachePolicies?`, `originRequestPolicies?`, `responseHeadersPolicies?` | CloudFront distribution, an origin access control per bucket it serves, a statement in each of those buckets' policies, and the custom policies declared |
-| `AwsCloudFrontInvalidationServiceModule` | `cloudFront`, `source`                                                                                                                                                                                            | an invalidation of the distribution every time the bucket's files change                                                                                 |
+| Module                                   | Inputs                                                                                                                                                                                                            | Creates                                                                                                                                                                                                       |
+|------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `AwsS3StorageServiceModule`              | `region`, `bucketName`, `accessPrefixes?`, `blockPublicAccess?`, `directoryPath?`, `filter?`, `transform?`, `subDirectoryOrFilePath?`                                                                             | S3 bucket, public access block, bucket policy, and with `directoryPath` one object per file                                                                                                                   |
+| `AwsS3StaticWebsiteServiceModule`        | `region`, `bucketName`, `directoryPath`, `filter?`, `transform?`, `subDirectoryOrFilePath?`                                                                                                                       | S3 bucket, public access block, bucket policy, website configuration, one object per file                                                                                                                     |
+| `AwsDynamoDBServiceModule`               | `region`, `TableName`, `KeySchema`, `AttributeDefinitions`, `billingMode`, `GlobalSecondaryIndexes?`, `LocalSecondaryIndexes?`, `StreamSpecification?`, `timeToLiveAttribute?`                                    | DynamoDB table                                                                                                                                                                                                |
+| `AwsDynamoDBGlobalServiceModule`         | `dynamoDBService`, `replicas`                                                                                                                                                                                     | DynamoDB global table replicas                                                                                                                                                                                |
+| `AwsEcsAlbServiceModule`                 | `region`, `albName`, `listeners`, `subnets`, `targets?`                                                                                                                                                           | application load balancer, listener, target group, security group                                                                                                                                             |
+| `AwsCloudFrontServiceModule`             | `account`, `distributionName`, `origins`, `routes`, `aliases?`, `certificateArn?`, `defaultRootObject?`, `errorResponses?`, `priceClass?`, `cachePolicies?`, `originRequestPolicies?`, `responseHeadersPolicies?` | CloudFront distribution, an origin access control per bucket or function it serves, a statement in each of those buckets' policies, a permission on each of those functions, and the custom policies declared |
+| `AwsCloudFrontInvalidationServiceModule` | `cloudFront`, `source`                                                                                                                                                                                            | an invalidation of the distribution every time the bucket's files change                                                                                                                                      |
 
 `AwsS3StaticWebsiteServiceModule` makes a public bucket that answers on its S3 website endpoint,
 over plain HTTP. A site served over HTTPS from a closed bucket is two modules instead:
@@ -186,11 +210,19 @@ module you pick is what decides whether the bucket is public, so removing a dist
 reopen a bucket behind it.
 
 `AwsCloudFrontServiceModule` sits under the account, because a distribution is not in any one
-region. `origins` names what it serves, each one an `originId` and a `source`; today a source is a
-bucket from `AwsS3StorageServiceModule`. `routes` sends requests to an origin by its `originId`. The
-route with no `pathPattern` is the default, and the others are matched in the order they are given.
-For every bucket it serves, the module adds a statement to that bucket's policy naming the
+region. `origins` names what it serves, each one an `originId` and a `source`: a bucket from
+`AwsS3StorageServiceModule`, or an execution from `AwsLambdaExecutionModule`, served through its
+URL. `routes` sends requests to an origin by its `originId`.
+The route with no `pathPattern` is the default, and the others are matched in the order they are
+given. For every bucket it serves, the module adds a statement to that bucket's policy naming the
 distribution, so the bucket stays closed to everyone else.
+
+CloudFront signs every request it forwards to a function, and the function admits the distributions
+of its own account. A route to a function defaults to every HTTP method, no caching, and every header
+the viewer sent except `Host`. A client sending a body, a `POST` or a `PUT`, must send the body's
+SHA-256 in hex as the `x-amz-content-sha256` header, because the signature covers the body; without
+it the function answers `403`. CloudFront waits 60 seconds for a function to answer, so a function
+whose `timeoutInSeconds` is longer is rejected before anything is created.
 
 ```yaml
   - moduleId: website-storage-module
@@ -227,6 +259,10 @@ A bucket served this way cannot have a dot in its name. The distribution reaches
 `<bucket>.s3.<region>.amazonaws.com` over HTTPS, and the certificate AWS serves there covers a
 single label, so a dotted name is refused when the modules are composed rather than answering `502`
 to every visitor later.
+
+An origin can also be an ALB from `AwsEcsAlbServiceModule`. CloudFront reaches it over HTTP on port
+80, the only listener the ALB has, and the ALB still answers anyone who calls its DNS name directly:
+putting CloudFront in front of it does not close it.
 
 Set `aliases` to answer on your own domains and `certificateArn` to a certificate covering them;
 CloudFront reads certificates from `us-east-1` alone, wherever the bucket lives. The DNS records
@@ -307,41 +343,44 @@ A load balancer bills by the hour from the moment it exists, whether or not anyt
 
 ## Filesystems and images
 
-| Module                   | Inputs                                                        | Creates                            |
-|--------------------------|---------------------------------------------------------------|------------------------------------|
-| `AwsEfsFilesystemModule` | `region`, `filesystemName`                                    | EFS filesystem                     |
-| `AwsEcrImageModule`      | `imageFamily`, `imageName`, `regions`                         | ECR repository, one per region     |
-| `AwsEcrImageTagModule`   | `image`, `imageTag`, `dockerfileDirectory`, `dockerfileName?` | one published image per repository |
+| Module                   | Inputs                                                                        | Creates                            |
+|--------------------------|-------------------------------------------------------------------------------|------------------------------------|
+| `AwsEfsFilesystemModule` | `region`, `filesystemName`                                                    | EFS filesystem                     |
+| `AwsEcrImageModule`      | `imageFamily`, `imageName`, `regions`                                         | ECR repository, one per region     |
+| `AwsEcrImageTagModule`   | `image`, `imageTag`, `architecture`, `dockerfileDirectory`, `dockerfileName?` | one published image per repository |
 
 An EFS filesystem belongs to a region; mounting it into a subnet is the subnet module's
 `localFilesystems` input, which is what produces the mount target.
 
 The two image modules are a repository and the versions inside it, declared separately.
-`AwsEcrImageModule` creates the repositories and nothing else. `AwsEcrImageTagModule` takes that
-module's image as its `image` input, builds the Dockerfile at `dockerfileDirectory`, and pushes the
-result into every repository the image has, under `imageTag`. That directory is relative to the
-project root, because it is part of what Octo commits and an absolute path would differ on every
-machine. One repository is pointed at by as many tag modules as you have versions, and adding or
-removing one leaves the others alone.
+`AwsEcrImageModule` creates the repositories and nothing else, one in each AWS region its `regions`
+resolve to. Two of those regions in different accounts cannot be the same AWS region: the module
+rejects them. `AwsEcrImageTagModule` takes that module's image as its `image` input, builds the
+Dockerfile at `dockerfileDirectory` for `architecture`, `arm64` or `x86_64`, and pushes the result
+into every repository the image has, under `imageTag`. A Lambda function or an ECS task running the
+image runs on that processor, and an ECS task whose images were built for different processors is
+rejected. `dockerfileDirectory` is relative to the project root, because it is part of what Octo
+commits and an absolute path would differ on every machine. One repository is pointed at by as many
+tag modules as you have versions, and adding or removing one leaves the others alone.
 
 `imageTag` is the only input that decides what is published. A repository's tags are immutable, so
-editing `dockerfileDirectory` or `dockerfileName` publishes nothing: new content is a new tag, which
+editing `architecture`, `dockerfileDirectory`, or `dockerfileName` publishes nothing: new content is a new tag, which
 is a new module. Changing the tag publishes the new one and deletes the old.
 
 This is one of the library's two [external
 resources](/docs/building-modules/create-an-external-resource), the other being the CloudFront
 invalidation. Terraform has no resource that puts
 an image into a registry, so Octo runs the local `docker` CLI and the ECR API itself, which means
-the machine running the apply needs Docker. An execution whose deployment names an image URI Octo
-published is ordered behind it, so the same run can publish a version and start something that runs
-it.
+the machine running the apply needs Docker, and builds the image for its own processor. An execution
+whose deployment names the image and tag is ordered behind the push, so the same run can publish a
+version and start something that runs it.
 
 ## Anchors
 
 These are the shapes the modules above publish and consume, and they are what a module of your own
 needs to match to interoperate. Import a schema from `@quadnix/octo-aws-cdk/anchors/<name>/schema`,
 where `<name>` is the anchor's own name rather than the directory it sits in:
-`anchors/aws-iam-role/schema`, not `anchors/aws-iam/schema`.
+`anchors/aws-serverless-environment/schema`, not `anchors/aws-environment/schema`.
 
 | Anchor                                        | On                | Publishes                                                                    |
 |-----------------------------------------------|-------------------|------------------------------------------------------------------------------|
@@ -349,16 +388,19 @@ where `<name>` is the anchor's own name rather than the directory it sits in:
 | `AwsRegionAnchorSchema`                       | region            | `awsRegionId`, `awsRegionAZs`, `regionId`, `vpcCidrBlock`                    |
 | `AwsServerlessRegionAnchorSchema`             | region            | `awsRegionId`, `regionId`, `serverless`                                      |
 | `AwsSubnetAnchorSchema`                       | subnet            | `subnetName`, `CidrBlock`, `AvailabilityZone`, `awsAccountId`, `awsRegionId` |
+| `AwsServerlessSubnetAnchorSchema`             | subnet            | `subnetName`, `serverless`                                                   |
 | `AwsSubnetLocalFilesystemMountAnchorSchema`   | overlay           | `subnetName`, `filesystemName`, `awsAccountId`, `awsRegionId`                |
-| `AwsEcsServerAnchorSchema`                    | server            | `serverKey`, `deploymentType`                                                |
-| `AwsIamRoleAnchorSchema`                      | server            | `iamRoleName`                                                                |
+| `AwsServerAnchorSchema`                       | server            | `serverKey`, `grants`                                                        |
 | `AwsSecurityGroupAnchorSchema`                | server, execution | `securityGroupName`, `rules`                                                 |
+| `AwsDeploymentAnchorSchema`                   | deployment        | `image`, `command`, `ports`, `cpu`, `memory`, `timeoutInSeconds`             |
 | `AwsS3StorageServiceAnchorSchema`             | service           | `bucketName`, `awsAccountId`, `awsRegionId`, `contentDigest`                 |
 | `AwsS3StorageServiceAccessPrefixAnchorSchema` | service           | `accessPrefix`, `bucketName`                                                 |
 | `AwsEcsClusterAnchorSchema`                   | environment       | `clusterName`, `environmentVariables`                                        |
+| `AwsServerlessEnvironmentAnchorSchema`        | environment       | `environmentName`, `environmentVariables`, `serverless`                      |
 | `AwsEcsExecutionAnchorSchema`                 | execution         | `desiredCount`, `environmentVariables`                                       |
 | `AwsEcsServiceAnchorSchema`                   | overlay           | `executionId`                                                                |
-| `AwsEcsTaskDefinitionAnchorSchema`            | deployment        | `cpu`, `memory`, `image`                                                     |
+| `AwsLambdaExecutionAnchorSchema`              | execution         | `functionName`, `environmentVariables`, `invokerAccountIds`                  |
+| `AwsLambdaFunctionAnchorSchema`               | overlay           | `functionName`, `timeoutInSeconds`                                           |
 | `AwsEcrImageAnchorSchema`                     | image             | `imageId`                                                                    |
 | `AwsEcsAlbAnchorSchema`                       | service           | `albName`                                                                    |
 | `AwsCloudFrontAnchorSchema`                   | service           | `awsAccountId`, `distributionName`                                           |
@@ -366,8 +408,8 @@ where `<name>` is the anchor's own name rather than the directory it sits in:
 | `AwsDynamoDBGlobalAnchorSchema`               | service           | `TableName`                                                                  |
 | `AwsEfsAnchorSchema`                          | filesystem        | `filesystemName`                                                             |
 
-Two of them sit on an overlay rather than on a model, because what they describe is a relationship:
-a filesystem mounted into a subnet, and an execution's ECS service.
+Three of them sit on an overlay rather than on a model, because what they describe is a relationship:
+a filesystem mounted into a subnet, an execution's ECS service, and an execution's Lambda function.
 
 The one you will meet first is `AwsRegionAnchorSchema`. Almost every module in this catalog takes a
 region, and what it actually requires is any node named `region` that publishes that shape, which is

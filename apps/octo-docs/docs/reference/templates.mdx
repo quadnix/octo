@@ -69,8 +69,8 @@ modules:
   - moduleId: app-module                     # SimpleAppModule
   - moduleId: account-module                 # AwsIniAccountModule
   - moduleId: region-module                  # AwsMultiAzRegionModule, two AZs
-  - moduleId: backend-server-module          # AwsEcsServerModule
-  - moduleId: backend-deployment-v1-module   # AwsEcsDeploymentModule, an echo-server image
+  - moduleId: backend-server-module          # AwsServerModule
+  - moduleId: backend-deployment-v1-module   # AwsDeploymentModule, an echo-server image
   - moduleId: qa-environment-module          # AwsEcsEnvironmentModule
   - moduleId: public-subnet-module           # AwsSimpleSubnetModule, with a NAT gateway
   - moduleId: public-backup-subnet-module    # AwsSimpleSubnetModule, in the second AZ
@@ -97,7 +97,7 @@ it.
 ## The reference suites
 
 `@quadnix/octo-templates` in the Octo repository holds the three stacks above as end-to-end test
-suites, and two more that have no scaffold. They are not something you install; they are where the
+suites, and three more that have no scaffold. They are not something you install; they are where the
 templates are actually verified, and they run the real lifecycle against a real AWS account.
 
 They are worth reading for the things a definition file cannot show. `aws-ecs-server` has a drift
@@ -107,7 +107,7 @@ template on its own never exercises. The three above build their modules through
 `ModuleDefinitions` class that a test can mutate, so "remove this module and run again" is a line of
 code.
 
-The two without a scaffold both run the `octo` binary rather than driving Octo in process, because
+The three without a scaffold all run the `octo` binary rather than driving Octo in process, because
 each holds an [external resource](/docs/building-modules/create-an-external-resource): Terraform
 shells back out to a second `octo` process mid-apply, which an in-process test never sees.
 
@@ -121,6 +121,13 @@ change. It is the slowest suite here — a distribution takes minutes to create 
 so it asks its questions of one live distribution rather than creating several: a re-apply that has
 to change nothing, a content change that has to invalidate exactly once, and a price class edit that
 has to come back with the same distribution id.
+
+`aws-lambda-function` publishes an image and runs it on Lambda, in a serverless region, behind a
+CloudFront distribution. It needs Docker, and builds the image for `arm64`, the processor the
+function is declared to run on. It calls the function's URL with a signed request, calls it again
+through the distribution, and changes an environment variable to see the function answer
+differently. Its server and deployment create nothing; the execution creates the function, its URL,
+and the role it runs as.
 
 If you are writing modules of your own, these are the closest thing to a worked example of testing
 them against something real. [Testing a Module](/docs/building-modules/testing-a-module) is the page

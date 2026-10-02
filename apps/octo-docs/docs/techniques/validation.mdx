@@ -90,11 +90,11 @@ For a list of nested objects, destruct to the list and check each against a sche
 
 ```typescript
 @Validate({
-  destruct: (value: AwsEcsServerModuleSchema['s3']): AwsEcsServerS3AccessPrefixSchema[] =>
+  destruct: (value: AwsServerModuleSchema['s3']): AwsServerS3AccessPrefixSchema[] =>
     value!.map((v) => v.accessPrefixes).flat(),
-  options: { isSchema: { schema: AwsEcsServerS3AccessPrefixSchema } },
+  options: { isSchema: { schema: AwsServerS3AccessPrefixSchema } },
 })
-s3 ? = Schema<{ accessPrefixes: AwsEcsServerS3AccessPrefixSchema[]; service: Service }[]>([]);
+s3 ? = Schema<{ accessPrefixes: AwsServerS3AccessPrefixSchema[]; service: Service }[]>([]);
 ```
 
 ## Several rules on one property

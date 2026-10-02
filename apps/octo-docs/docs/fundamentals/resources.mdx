@@ -75,9 +75,12 @@ Resource](/docs/building-modules/create-an-external-resource).
 
 ## Order
 
-A parent is created before its child and destroyed after it. The shop has one such edge: the
-receipts bucket is a child of checkout's IAM role, because the bucket policy names that role's ARN.
-That edge is what applies the role first and tears it down last, without anybody stating an order.
+A parent is created before its child and destroyed after it, and a resource has a parent only when
+the cloud provider needs that parent to exist first. The shop has one such edge: the receipts bucket
+is a child of checkout's IAM role, because S3 rejects a bucket policy naming a role that does not
+exist yet. The role's own policy names the bucket too, but IAM accepts that before the bucket
+exists, so no edge runs the other way. That one edge is what applies the role first and tears it
+down last, without anybody stating an order.
 [Dependencies](/docs/fundamentals/dependencies) is where those edges come from.
 
 ## Renaming is not renaming
