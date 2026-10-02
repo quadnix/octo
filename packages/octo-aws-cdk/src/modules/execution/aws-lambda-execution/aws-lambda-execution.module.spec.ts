@@ -581,6 +581,20 @@ describe('AwsLambdaExecutionModule UT', () => {
     expect(hclRender).not.toContain('AWS_LWA_PORT');
   });
 
+  it("should run the deployment's command with each argument as given", async () => {
+    await setup(testModuleContainer, { deployment: { command: ['node', '--title=api server', 'main.js'] } });
+    const { hclRender } = (
+      await testModuleContainer
+        .runModules<AwsLambdaExecutionModule>(
+          { inputs: executionInputs(), moduleId: 'execution', type: AwsLambdaExecutionModule },
+          { filterByModuleIds: ['execution'], terraformTarget: 'skip' },
+        )
+        .next()
+    ).value!;
+
+    expect(hclRender).toMatch(/command\s*=\s*\["node", "--title=api server", "main.js"]/);
+  });
+
   it('should update the function in place when its memory moves', async () => {
     await setup(testModuleContainer);
     await testModuleContainer

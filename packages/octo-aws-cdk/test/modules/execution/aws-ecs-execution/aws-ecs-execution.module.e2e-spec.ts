@@ -45,7 +45,7 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
     testModuleContainer.createTestAnchor<AwsDeploymentAnchorSchema>(
       'AwsDeploymentAnchor',
       {
-        command: '/bin/sh',
+        command: ['/bin/sh'],
         cpu: 256,
         image: { kind: 'uri', uri: 'docker.io' },
         memory: 512,

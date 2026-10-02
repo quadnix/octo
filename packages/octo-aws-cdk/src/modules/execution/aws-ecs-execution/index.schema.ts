@@ -25,15 +25,15 @@ import { AwsSecurityGroupAnchorRuleSchema } from '../../../anchors/aws-security-
  */
 export class AwsEcsExecutionModuleDeploymentContainerPropertiesImageSchema {
   /**
-   * The command to run when the container starts.
+   * The command to run when the container starts, one argument per element.
    * This overrides the default command specified in the Docker image.
    */
   @Validate({
-    destruct: (value: AwsEcsExecutionModuleDeploymentContainerPropertiesImageSchema['command']): string[] =>
+    destruct: (value: AwsEcsExecutionModuleDeploymentContainerPropertiesImageSchema['command']): string[][] =>
       value ? [value] : [],
     options: { minLength: 1 },
   })
-  command? = Schema<string | null>(null);
+  command? = Schema<string[] | null>(null);
 
   /**
    * Whether this container is essential for the task.

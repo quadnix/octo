@@ -131,7 +131,7 @@ export class ModuleDefinitions {
     });
 
     this.add(AwsDeploymentModule, 'backend-deployment-v1-module', {
-      command: 'node webserver',
+      command: ['node', 'webserver'],
       cpu: 256,
       deploymentTag: 'v1',
       imageUri: 'docker.io/ealen/echo-server:0.9.2',

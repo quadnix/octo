@@ -19,13 +19,13 @@ import { AwsServerAnchorSchema } from '../../../anchors/aws-server/aws-server.an
  */
 export class AwsDeploymentModuleSchema {
   /**
-   * The command to run, replacing the image's own, e.g. `node main.js`.
+   * The command to run, replacing the image's own, one argument per element, e.g. `['node', 'main.js']`.
    */
   @Validate({
-    destruct: (value: AwsDeploymentModuleSchema['command']): string[] => (value ? [value] : []),
+    destruct: (value: AwsDeploymentModuleSchema['command']): string[][] => (value ? [value] : []),
     options: { minLength: 1 },
   })
-  command? = Schema<string | null>(null);
+  command? = Schema<string[] | null>(null);
 
   /**
    * The CPU units the code needs, where 1024 units are one vCPU. ECS needs it; Lambda derives CPU from

@@ -33,13 +33,14 @@ export class AwsDeploymentAnchorPortSchema {
  */
 export class AwsDeploymentAnchorPropertiesSchema {
   /**
-   * The command to run, replacing the image's own, or `null` to keep the image's own command.
+   * The command to run, one argument per element, replacing the image's own, or `null` to keep the
+   * image's own command.
    */
   @Validate({
-    destruct: (value: AwsDeploymentAnchorPropertiesSchema['command']): string[] => (value ? [value] : []),
+    destruct: (value: AwsDeploymentAnchorPropertiesSchema['command']): string[][] => (value ? [value] : []),
     options: { minLength: 1 },
   })
-  command = Schema<string | null>();
+  command = Schema<string[] | null>();
 
   /**
    * The CPU units the code needs, where 1024 units are one vCPU, or `null` to leave it to the runtime.

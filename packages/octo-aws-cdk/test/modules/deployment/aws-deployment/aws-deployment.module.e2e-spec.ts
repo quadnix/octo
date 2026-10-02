@@ -55,7 +55,7 @@ describe('AwsDeploymentModule E2E', () => {
         .runModules<AwsDeploymentModule>(
           {
             inputs: {
-              command: 'command',
+              command: ['command'],
               cpu: 256,
               deploymentTag: 'v1',
               imageUri: 'uri',

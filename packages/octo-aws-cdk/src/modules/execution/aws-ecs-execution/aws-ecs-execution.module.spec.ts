@@ -98,7 +98,7 @@ async function setup(
   const deploymentAnchor = testModuleContainer.createTestAnchor<AwsDeploymentAnchorSchema>(
     'AwsDeploymentAnchor',
     {
-      command: '/bin/sh',
+      command: ['/bin/sh'],
       cpu: 256,
       image: publishedImageTag
         ? { imageId: 'family/image', imageTag: publishedImageTag, kind: 'ecr' }
@@ -128,7 +128,7 @@ async function setup(
     ? testModuleContainer.createTestAnchor<AwsDeploymentAnchorSchema>(
         'AwsDeploymentAnchor',
         {
-          command: '/bin/logger',
+          command: ['/bin/logger'],
           cpu: null,
           image: sidecar!.publishedImageTag
             ? { imageId: 'family/image', imageTag: sidecar!.publishedImageTag, kind: 'ecr' }
@@ -971,7 +971,7 @@ describe('AwsEcsExecutionModule UT', () => {
                 main: {
                   containerProperties: {
                     image: {
-                      command: 'npm start',
+                      command: ['npm', 'start'],
                       essential: true,
                       name: 'backend-v1',
                     },

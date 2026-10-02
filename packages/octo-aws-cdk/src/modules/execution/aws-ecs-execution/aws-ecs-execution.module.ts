@@ -323,7 +323,7 @@ export class AwsEcsExecutionModule extends AModule<AwsEcsExecutionModuleSchema, 
       }
 
       images.push({
-        command: command.split(' '),
+        command,
         essential: containerProperties.image.essential,
         name: containerProperties.image.name,
         ports: (containerProperties.image.ports || deploymentProperties.ports).map((p) => ({

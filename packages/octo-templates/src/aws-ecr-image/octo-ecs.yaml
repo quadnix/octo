@@ -127,7 +127,7 @@ modules:
   - moduleId: deployment-module
     moduleClass: AwsDeploymentModule
     moduleInputs:
-      command: /bin/sh
+      command: [/bin/sh]
       cpu: 256
       deploymentTag: v1
       image: '${{image-module.model.image}}'

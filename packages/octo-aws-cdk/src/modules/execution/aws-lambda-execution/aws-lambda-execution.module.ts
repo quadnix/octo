@@ -201,7 +201,7 @@ export class AwsLambdaExecutionModule extends AModule<AwsLambdaExecutionModuleSc
       {
         deploymentContainerProperties: {
           image: { imageId: image.imageId, imageTag: image.imageTag },
-          imageCommand: command ? command.split(' ') : [],
+          imageCommand: command ?? [],
           memoryInMegabytes: memory,
           port: ports[0]?.containerPort ?? null,
           timeoutInSeconds,

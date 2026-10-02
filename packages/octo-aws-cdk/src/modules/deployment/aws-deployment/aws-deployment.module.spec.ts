@@ -71,7 +71,7 @@ describe('AwsDeploymentModule UT', () => {
         .runModules<AwsDeploymentModule>(
           {
             inputs: {
-              command: 'node webserver',
+              command: ['node', 'webserver'],
               cpu: 256,
               deploymentTag: 'v1',
               imageUri: 'docker.io/ealen/echo-server:0.9.2',
@@ -97,7 +97,10 @@ describe('AwsDeploymentModule UT', () => {
     expect(testModuleContainer.digestDiffs(resourceDiffs)).toEqual([]);
     expect(await getDeploymentAnchorProperties(modelTransaction)).toMatchInlineSnapshot(`
      {
-       "command": "node webserver",
+       "command": [
+         "node",
+         "webserver",
+       ],
        "cpu": 256,
        "image": {
          "kind": "uri",

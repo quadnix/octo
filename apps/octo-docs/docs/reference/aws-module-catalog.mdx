@@ -114,7 +114,7 @@ anything that runs it. Any other image is named by `imageUri`, and only ECS runs
       deploymentTag: 0-0-1
       image: "${{checkout-image-module.model.image}}"
       imageTag: 0.0.1
-      command: node main.js
+      command: [node, main.js]
       ports:
         - containerPort: 80
           protocol: tcp
@@ -127,7 +127,8 @@ Every field but the image is optional on the deployment, and the execution check
 runtime needs, failing before anything is created: ECS needs `cpu`, `memory`, and a `command`, and
 Lambda needs `memory` from 128 to 10240, a `timeoutInSeconds` up to 900, and an image Octo
 publishes. The function runs on the processor that image is built for. `deploymentTag` is two to thirty-two characters of letters, numbers, hyphens,
-and underscores. A dot is not one of them, so a version reads as `0-0-1`.
+and underscores. A dot is not one of them, so a version reads as `0-0-1`. `command` is a list with one
+argument per element, as a Dockerfile's `CMD [...]` is, so an argument may hold a space.
 
 An ECS execution names one main container and any sidecars, each pairing a deployment with the
 container properties that deployment runs under. Every container in the task runs as one role, the
@@ -146,7 +147,7 @@ grants nothing:
         main:
           containerProperties:
             image:
-              command: /bin/sh
+              command: [/bin/sh]
               essential: true
               name: checkout-v1
               ports:
