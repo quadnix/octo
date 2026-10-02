@@ -58,7 +58,7 @@ region IDs are Octo's own, `aws-eu-west-1a`, distinct from the AWS region.
 `AwsServerlessRegionModule` is a region with no network: it creates nothing, and says only which AWS
 region its services are created in, as `aws-us-east-1`. It publishes a different shape from the
 other two, so a subnet or anything else that needs a VPC refuses it when the modules are composed.
-The static website sits in one, and a storage bucket or an image takes a region of any of the three
+The static website sits in one, and a storage bucket, a DynamoDB table or an image takes a region of any of the three
 kinds. A serverless region holds one subnet, `AwsServerlessSubnetModule`, which also creates nothing:
 it is always named `default`, covers the whole region, and is there because an execution is always placed in a subnet.
 

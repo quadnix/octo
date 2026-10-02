@@ -1,5 +1,4 @@
 import { type Region, RegionSchema, Schema, Validate } from '@quadnix/octo';
-import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import {
   DynamoDBBillingPayPerRequestSchema,
   DynamoDBBillingProvisionedSchema,
@@ -105,13 +104,12 @@ export class AwsDynamoDBServiceModuleSchema {
   LocalSecondaryIndexes? = Schema<DynamoDBSecondaryIndexSchema[]>([]);
 
   /**
-   * The AWS region where the DynamoDB table will be created.
-   * The region must have AWS region anchors configured.
+   * The region the table is created in, as produced by any of the AWS region modules.
    */
   @Validate([
     {
       options: {
-        isModel: { anchors: [{ schema: AwsRegionAnchorSchema }], NODE_NAME: 'region' },
+        isModel: { NODE_NAME: 'region' },
       },
     },
     {

@@ -1,8 +1,12 @@
 import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
+import type { AwsServerlessRegionAnchorSchema } from '../../../anchors/aws-region/aws-serverless-region.anchor.schema.js';
 import { AwsDynamoDBServiceModule } from './index.js';
 
-async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
+async function setup(
+  testModuleContainer: TestModuleContainer,
+  { regionKind = 'networked' }: { regionKind?: 'networked' | 'none' | 'serverless' } = {},
+): Promise<void> {
   const {
     region: [region],
   } = await testModuleContainer.createTestModels('testModule', {
@@ -11,18 +15,28 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
     region: ['region'],
   });
 
-  region.addAnchor(
-    testModuleContainer.createTestAnchor<AwsRegionAnchorSchema>(
-      'AwsRegionAnchor',
-      {
-        awsRegionAZs: ['us-east-1a'],
-        awsRegionId: 'us-east-1',
-        regionId: 'aws-us-east-1a',
-        vpcCidrBlock: '10.0.0.0/16',
-      },
-      region,
-    ),
-  );
+  if (regionKind === 'networked') {
+    region.addAnchor(
+      testModuleContainer.createTestAnchor<AwsRegionAnchorSchema>(
+        'AwsRegionAnchor',
+        {
+          awsRegionAZs: ['us-east-1a'],
+          awsRegionId: 'us-east-1',
+          regionId: 'aws-us-east-1a',
+          vpcCidrBlock: '10.0.0.0/16',
+        },
+        region,
+      ),
+    );
+  } else if (regionKind === 'serverless') {
+    region.addAnchor(
+      testModuleContainer.createTestAnchor<AwsServerlessRegionAnchorSchema>(
+        'AwsServerlessRegionAnchor',
+        { awsRegionId: 'us-east-1', regionId: 'region', serverless: true },
+        region,
+      ),
+    );
+  }
 }
 
 describe('AwsDynamoDBServiceModule UT', () => {
@@ -1108,6 +1122,54 @@ describe('AwsDynamoDBServiceModule UT', () => {
       ).rejects.toThrowErrorMatchingInlineSnapshot(
         `"Property "AttributeDefinitions" in schema could not be validated!"`,
       );
+    });
+    it('should reject a region that is not an AWS region', async () => {
+      await setup(testModuleContainer, { regionKind: 'none' });
+      await expect(
+        testModuleContainer
+          .runModules<AwsDynamoDBServiceModule>(
+            {
+              inputs: {
+                AttributeDefinitions: [{ AttributeName: 'AccountId', AttributeType: 'S' }],
+                billingMode: { settings: {}, type: 'PAY_PER_REQUEST' },
+                KeySchema: [{ AttributeName: 'AccountId', KeyType: 'HASH' }],
+                region: stub('${{testModule.model.region}}'),
+                TableName: 'test-table',
+              },
+              moduleId: 'service',
+              type: AwsDynamoDBServiceModule,
+            },
+            { terraformTarget: 'skip' },
+          )
+          .next(),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`"Region is not an AWS region!"`);
+    });
+
+    it('should create a table in a serverless region', async () => {
+      await setup(testModuleContainer, { regionKind: 'serverless' });
+      const { resourceDiffs } = (
+        await testModuleContainer
+          .runModules<AwsDynamoDBServiceModule>(
+            {
+              inputs: {
+                AttributeDefinitions: [{ AttributeName: 'AccountId', AttributeType: 'S' }],
+                billingMode: { settings: {}, type: 'PAY_PER_REQUEST' },
+                KeySchema: [{ AttributeName: 'AccountId', KeyType: 'HASH' }],
+                region: stub('${{testModule.model.region}}'),
+                TableName: 'test-table',
+              },
+              moduleId: 'service',
+              type: AwsDynamoDBServiceModule,
+            },
+            { terraformTarget: 'skip' },
+          )
+          .next()
+      ).value!;
+      expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
+       [
+         "+ @octo/dynamodb=dynamodb-test-table",
+       ]
+      `);
     });
   });
 });

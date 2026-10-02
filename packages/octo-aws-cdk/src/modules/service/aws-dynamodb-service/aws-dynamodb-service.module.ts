@@ -1,6 +1,7 @@
-import { AModule, type Account, Module } from '@quadnix/octo';
+import { AModule, type Account, Module, ModuleError } from '@quadnix/octo';
 import { AwsDynamoDBAnchor } from '../../../anchors/aws-dynamodb/aws-dynamodb.anchor.js';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
+import { AwsServerlessRegionAnchorSchema } from '../../../anchors/aws-region/aws-serverless-region.anchor.schema.js';
 import { AwsDynamoDBServiceModuleSchema } from './index.schema.js';
 import { AwsDynamoDBService } from './models/service/index.js';
 
@@ -56,6 +57,7 @@ export class AwsDynamoDBServiceModule extends AModule<AwsDynamoDBServiceModuleSc
 
   /**
    * Resolves the account and region this table is created in.
+   * The region may be networked or serverless; the table only needs its AWS region ID.
    */
   override async registerMetadata(
     inputs: AwsDynamoDBServiceModuleSchema,
@@ -64,9 +66,14 @@ export class AwsDynamoDBServiceModule extends AModule<AwsDynamoDBServiceModuleSc
     const account = region.getParents()['account'][0].to as Account;
 
     // Get AWS Region ID.
-    const [matchingAnchor] = await region.getAnchorsMatchingSchema(AwsRegionAnchorSchema, [], {
-      searchBoundaryMembers: false,
-    });
+    const [[matchingRegionAnchor], [matchingServerlessRegionAnchor]] = await Promise.all([
+      region.getAnchorsMatchingSchema(AwsRegionAnchorSchema, [], { searchBoundaryMembers: false }),
+      region.getAnchorsMatchingSchema(AwsServerlessRegionAnchorSchema, [], { searchBoundaryMembers: false }),
+    ]);
+    const matchingAnchor = matchingRegionAnchor || matchingServerlessRegionAnchor;
+    if (!matchingAnchor) {
+      throw new ModuleError('Region is not an AWS region!', this.constructor.name);
+    }
     const awsRegionId = matchingAnchor.getSchemaInstance().properties.awsRegionId;
 
     return {
