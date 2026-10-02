@@ -52,7 +52,9 @@
   gap: 1rem;
   padding: 1.5rem;
   text-decoration: none;
-  transition: border-color 0.3s ease, transform 0.3s ease;
+  transition:
+    border-color 0.3s ease,
+    transform 0.3s ease;
 
   &:hover {
     border-color: var(--landing-accent);

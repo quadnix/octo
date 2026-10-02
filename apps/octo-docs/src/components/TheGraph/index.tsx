@@ -54,15 +54,25 @@ function GraphFigure(): ReactElement {
       {/* Module boundaries. */}
       <g className={styles.boundary}>
         <rect height="92" rx="14" width="174" x="28" y="140" />
-        <text x="42" y="160">app module</text>
+        <text x="42" y="160">
+          app module
+        </text>
         <rect height="92" rx="14" width="174" x="238" y="12" />
-        <text x="252" y="32">account module</text>
+        <text x="252" y="32">
+          account module
+        </text>
         <rect height="92" rx="14" width="174" x="458" y="12" />
-        <text x="472" y="32">region module</text>
+        <text x="472" y="32">
+          region module
+        </text>
         <rect height="92" rx="14" width="174" x="238" y="140" />
-        <text x="252" y="160">server module</text>
+        <text x="252" y="160">
+          server module
+        </text>
         <rect height="92" rx="14" width="174" x="238" y="268" />
-        <text x="252" y="288">receipts module</text>
+        <text x="252" y="288">
+          receipts module
+        </text>
       </g>
 
       {/* Edges. */}
@@ -76,7 +86,9 @@ function GraphFigure(): ReactElement {
       {/* The relationship that crosses two boundaries, which is the point of the picture. */}
       <g className={styles.overlayEdge}>
         <path d="M380 222 L 380 288" />
-        <text x="392" y="260">reads and writes</text>
+        <text x="392" y="260">
+          reads and writes
+        </text>
       </g>
 
       {/* Nodes. */}
@@ -125,6 +137,9 @@ function GraphFigure(): ReactElement {
   );
 }
 
+/**
+ * The landing page section showing your infrastructure as the graph Octo is built on.
+ */
 export default function TheGraph(): ReactElement {
   return (
     <section className={styles.section}>
@@ -136,9 +151,9 @@ export default function TheGraph(): ReactElement {
               Your infrastructure, as a picture you can actually read
             </Heading>
             <p className={styles.subtitle}>
-              Octo is built on a graph, so what you get is not a pile of files. It is your application drawn out:
-              every piece, every connection between them, and a boundary around the part each building block owns.
-              The same picture covers what you asked for and what exists in the cloud underneath it.
+              Octo is built on a graph, so what you get is not a pile of files. It is your application drawn out: every
+              piece, every connection between them, and a boundary around the part each building block owns. The same
+              picture covers what you asked for and what exists in the cloud underneath it.
             </p>
           </div>
         </Reveal>

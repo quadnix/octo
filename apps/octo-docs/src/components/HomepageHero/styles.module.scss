@@ -97,7 +97,10 @@
   font-size: 0.98rem;
   font-weight: 600;
   padding: 0.85rem 1.6rem;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .buttonPrimary {

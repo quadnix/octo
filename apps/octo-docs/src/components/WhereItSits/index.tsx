@@ -142,6 +142,9 @@ function StackFigure(): ReactElement {
   );
 }
 
+/**
+ * The landing page section placing Octo on top of the tools you already run.
+ */
 export default function WhereItSits(): ReactElement {
   return (
     <section className={styles.section}>
@@ -153,8 +156,8 @@ export default function WhereItSits(): ReactElement {
               It sits on top of the tools you already run
             </Heading>
             <p className={styles.subtitle}>
-              Octo is not a replacement for Terraform, and it is not a new cloud to learn. It is the layer above
-              them, where the decisions get made and written down.
+              Octo is not a replacement for Terraform, and it is not a new cloud to learn. It is the layer above them,
+              where the decisions get made and written down.
             </p>
           </div>
         </Reveal>

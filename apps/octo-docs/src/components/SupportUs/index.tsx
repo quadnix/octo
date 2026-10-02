@@ -58,6 +58,9 @@ const SupportOptions: SupportOption[] = [
   },
 ];
 
+/**
+ * One way to support Octo, rendered as a card that opens its link in a new tab.
+ */
 function SupportOptionElement({ description, emote, href, icon, label }: SupportOption): ReactElement {
   return (
     <Link href={href} className={styles.supportCard} target="_blank" rel="noopener noreferrer">
@@ -75,6 +78,9 @@ function SupportOptionElement({ description, emote, href, icon, label }: Support
   );
 }
 
+/**
+ * The landing page section listing the ways to support Octo.
+ */
 export default function SupportUs(): ReactElement {
   return (
     <section className={styles.supportUs}>

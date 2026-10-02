@@ -45,6 +45,9 @@ const CloudPrimitives: string[] = [
 
 const IntentWords: string[] = ['app', 'account', 'region', 'environment', 'server', 'service'];
 
+/**
+ * The landing page section contrasting the cloud resources you write today with the intent Octo takes instead.
+ */
 export default function TheShift(): ReactElement {
   return (
     <section className={styles.section}>

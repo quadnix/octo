@@ -132,9 +132,9 @@ describe('LambdaFunction UT', () => {
       const imageTagToFunction = ecrImageTag.getDependency(lambdaFunction, DependencyRelationship.PARENT)!;
 
       // The role exists, or has been recreated, before the function runs as it.
-      expect(
-        functionToIamRole.hasMatchingBehavior('resourceId', DiffAction.UPDATE, 'resourceId', DiffAction.ADD),
-      ).toBe(true);
+      expect(functionToIamRole.hasMatchingBehavior('resourceId', DiffAction.UPDATE, 'resourceId', DiffAction.ADD)).toBe(
+        true,
+      );
       expect(
         functionToIamRole.hasMatchingBehavior('resourceId', DiffAction.UPDATE, 'resourceId', DiffAction.REPLACE),
       ).toBe(true);

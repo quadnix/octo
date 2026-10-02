@@ -72,8 +72,7 @@ const FeatureList: FeatureItem[] = [
     title: 'Package your setup once, use it anywhere',
   },
   {
-    answer:
-      'Octo checks every connection while it works out your intent, before a single line of Terraform exists.',
+    answer: 'Octo checks every connection while it works out your intent, before a single line of Terraform exists.',
     figure: (
       <div className={styles.figure}>
         <span className={styles.timelineRow}>
@@ -137,6 +136,9 @@ const FeatureList: FeatureItem[] = [
   },
 ];
 
+/**
+ * One card in the features grid: the problem, how Octo answers it, and its figure.
+ */
 function Feature({ answer, figure, image, problem, span, title }: FeatureItem): ReactElement {
   return (
     <article className={`${styles.card} ${span === 'wide' ? styles.cardWide : styles.cardNarrow}`}>
@@ -153,6 +155,9 @@ function Feature({ answer, figure, image, problem, span, title }: FeatureItem): 
   );
 }
 
+/**
+ * The landing page section listing what Octo gives the people who maintain infrastructure.
+ */
 export default function HomepageFeatures(): ReactElement {
   return (
     <section className={styles.section}>

@@ -15,6 +15,9 @@ const linkMapping: { [key: string]: { displayName: string; href: string } } = {
   },
 };
 
+/**
+ * Renders a link to a known part of the site by its id, so a moved page is fixed in one place.
+ */
 export function Link({ display, id, path = '' }): ReactElement {
   const mapping = linkMapping[id];
   if (!mapping) {

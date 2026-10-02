@@ -5,10 +5,10 @@ version: 1
 env:
   - key: AWS_ACCOUNT_ID
     kind: string
-    value: "123456789123"
+    value: '123456789123'
   - key: AWS_CLOUDFRONT_WEBSITE_BUCKET_NAME
     kind: string
-    value: "my-website-unique-bucket"
+    value: 'my-website-unique-bucket'
 
 settings:
   listeners:
@@ -21,17 +21,17 @@ settings:
 
 imports:
   - className: SimpleAppModule
-    importPath: "@quadnix/octo-aws-cdk/modules/app/simple-app"
+    importPath: '@quadnix/octo-aws-cdk/modules/app/simple-app'
   - className: AwsIniAccountModule
-    importPath: "@quadnix/octo-aws-cdk/modules/account/aws-ini-account"
+    importPath: '@quadnix/octo-aws-cdk/modules/account/aws-ini-account'
   - className: AwsServerlessRegionModule
-    importPath: "@quadnix/octo-aws-cdk/modules/region/aws-serverless-region"
+    importPath: '@quadnix/octo-aws-cdk/modules/region/aws-serverless-region'
   - className: AwsS3StorageServiceModule
-    importPath: "@quadnix/octo-aws-cdk/modules/service/aws-s3-storage-service"
+    importPath: '@quadnix/octo-aws-cdk/modules/service/aws-s3-storage-service'
   - className: AwsCloudFrontServiceModule
-    importPath: "@quadnix/octo-aws-cdk/modules/service/aws-cloudfront-service"
+    importPath: '@quadnix/octo-aws-cdk/modules/service/aws-cloudfront-service'
   - className: AwsCloudFrontInvalidationServiceModule
-    importPath: "@quadnix/octo-aws-cdk/modules/service/aws-cloudfront-invalidation-service"
+    importPath: '@quadnix/octo-aws-cdk/modules/service/aws-cloudfront-invalidation-service'
 
 modules:
   - moduleId: app-module
@@ -42,14 +42,14 @@ modules:
   - moduleId: account-module
     moduleClass: AwsIniAccountModule
     moduleInputs:
-      accountId: "${env.AWS_ACCOUNT_ID}"
-      app: "${{app-module.model.app}}"
+      accountId: '${env.AWS_ACCOUNT_ID}'
+      app: '${{app-module.model.app}}'
       iniProfile: default
 
   - moduleId: region-module
     moduleClass: AwsServerlessRegionModule
     moduleInputs:
-      account: "${{account-module.model.account}}"
+      account: '${{account-module.model.account}}'
       name: aws-cloudfront-website
       regionId: aws-us-east-1
 
@@ -60,16 +60,16 @@ modules:
   - moduleId: website-storage-module
     moduleClass: AwsS3StorageServiceModule
     moduleInputs:
-      bucketName: "${env.AWS_CLOUDFRONT_WEBSITE_BUCKET_NAME}"
+      bucketName: '${env.AWS_CLOUDFRONT_WEBSITE_BUCKET_NAME}'
       directoryPath: website
-      region: "${{region-module.model.region}}"
+      region: '${{region-module.model.region}}'
 
   # The distribution serving the bucket. A missing page answers a real 404 carrying the site's error
   # document; the closed bucket reports a missing object as 403.
   - moduleId: website-cloudfront-module
     moduleClass: AwsCloudFrontServiceModule
     moduleInputs:
-      account: "${{account-module.model.account}}"
+      account: '${{account-module.model.account}}'
       defaultRootObject: index.html
       distributionName: aws-cloudfront-website
       errorResponses:
@@ -81,7 +81,7 @@ modules:
           responsePagePath: /error.html
       origins:
         - originId: website
-          source: "${{website-storage-module.model.service}}"
+          source: '${{website-storage-module.model.service}}'
       priceClass: PriceClass_100
       routes:
         - originId: website
@@ -90,22 +90,22 @@ modules:
   - moduleId: website-invalidation-module
     moduleClass: AwsCloudFrontInvalidationServiceModule
     moduleInputs:
-      cloudFront: "${{website-cloudfront-module.model.service}}"
-      source: "${{website-storage-module.model.service}}"
+      cloudFront: '${{website-cloudfront-module.model.service}}'
+      source: '${{website-storage-module.model.service}}'
 
 tags:
   - scope: {}
     tags:
-      e2e-test: "true"
+      e2e-test: 'true'
       e2e-test-family: aws-cloudfront-website
 
 terraform:
-  requiredVersion: "1.6.0"
+  requiredVersion: '1.6.0'
   requiredProviders:
     aws:
       source: hashicorp/aws
-      minVersion: "5.0.0"
+      minVersion: '5.0.0'
   providers:
     - providerType: aws
-      accountId: "${env.AWS_ACCOUNT_ID}"
+      accountId: '${env.AWS_ACCOUNT_ID}'
       regionId: us-east-1

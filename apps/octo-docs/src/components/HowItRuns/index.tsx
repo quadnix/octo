@@ -21,10 +21,25 @@ type DetailItem = {
  * two cannot touch your cloud account at all.
  */
 const StepList: StepItem[] = [
-  { badge: 'no credentials', detail: 'Works out what you asked for and writes the Terraform.', name: 'generate', tone: 'safe' },
-  { badge: 'creates nothing', detail: 'Plans it, and reports the plan against what you asked for.', name: 'validate', tone: 'safe' },
+  {
+    badge: 'no credentials',
+    detail: 'Works out what you asked for and writes the Terraform.',
+    name: 'generate',
+    tone: 'safe',
+  },
+  {
+    badge: 'creates nothing',
+    detail: 'Plans it, and reports the plan against what you asked for.',
+    name: 'validate',
+    tone: 'safe',
+  },
   { badge: 'takes the lock', detail: 'Creates the infrastructure, through Terraform.', name: 'apply', tone: 'writes' },
-  { badge: 'frees the lock', detail: 'Records what was created, ready for the next run.', name: 'commit', tone: 'writes' },
+  {
+    badge: 'frees the lock',
+    detail: 'Records what was created, ready for the next run.',
+    name: 'commit',
+    tone: 'writes',
+  },
 ];
 
 const DetailList: DetailItem[] = [
@@ -50,6 +65,9 @@ const DetailList: DetailItem[] = [
   },
 ];
 
+/**
+ * One command in the lifecycle, marked as safe to run or as one that writes.
+ */
 function Step({ badge, detail, name, tone }: StepItem): ReactElement {
   return (
     <li className={styles.step}>
@@ -62,6 +80,9 @@ function Step({ badge, detail, name, tone }: StepItem): ReactElement {
   );
 }
 
+/**
+ * The landing page section walking through the four lifecycle commands.
+ */
 export default function HowItRuns(): ReactElement {
   return (
     <section className={styles.section}>
@@ -73,8 +94,8 @@ export default function HowItRuns(): ReactElement {
               Four commands, and nothing hidden in between
             </Heading>
             <p className={styles.subtitle}>
-              Octo does not replace anything in your toolchain. It adds the step above it, where the decisions get
-              made, and hands the result to the tools you already run.
+              Octo does not replace anything in your toolchain. It adds the step above it, where the decisions get made,
+              and hands the result to the tools you already run.
             </p>
           </div>
         </Reveal>

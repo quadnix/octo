@@ -61,6 +61,7 @@ favicons
 filemd5
 filesystem
 filesystems
+formatter
 gcm
 gcp
 geo
@@ -100,6 +101,8 @@ lsi
 lstat
 marshall
 matcher
+mdx
+mjs
 mkdtemp
 mnt
 moto

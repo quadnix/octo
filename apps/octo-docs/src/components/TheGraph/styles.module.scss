@@ -164,7 +164,9 @@
   border-radius: 18px;
   height: 100%;
   padding: 1.75rem;
-  transition: border-color 0.3s ease, transform 0.3s ease;
+  transition:
+    border-color 0.3s ease,
+    transform 0.3s ease;
 
   &:hover {
     border-color: var(--landing-border-strong);

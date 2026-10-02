@@ -1,0 +1,8 @@
+# Docs and other prose are written by hand. A formatter reflows the snippets inside them into code
+# nobody could have typed; see docs/DOCUMENTATION-STANDARDS.md and apps/octo-docs/scripts/check-code-blocks.mjs.
+*.md
+*.mdx
+
+# Lockfiles belong to the package manager.
+pnpm-lock.yaml
+package-lock.json

@@ -6,6 +6,9 @@ import styles from './styles.module.scss';
 import Typewriter from '@site/src/components/Typewriter';
 import mascotImage from '@site/static/img/emotes/octo-mascot.png';
 
+/**
+ * The top of the landing page: the headline, the words typed beneath it, and the mascot.
+ */
 export default function HomepageHero(): ReactElement {
   return (
     <header className={styles.hero}>

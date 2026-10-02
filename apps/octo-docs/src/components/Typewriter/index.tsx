@@ -15,6 +15,9 @@ interface TypewriterOptions {
   words: string[];
 }
 
+/**
+ * Types each word in turn, pauses, deletes it, and moves on to the next.
+ */
 export default function Typewriter({
   className,
   deletingSpeed = 50,

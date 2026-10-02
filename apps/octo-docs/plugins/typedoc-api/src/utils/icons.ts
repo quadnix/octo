@@ -4,7 +4,7 @@ import type { ReflectionKind } from 'typedoc';
 
 // We have to map these manually instead of using the `ReflectionKind` enum,
 // otherwise the `typedoc` package ends up in the bundle and crashes.
- 
+
 const KIND_ICONS: Record<ReflectionKind, string> = {
   1: 'project', // Project
   1024: 'symbol-property', // Property
@@ -31,7 +31,6 @@ const KIND_ICONS: Record<ReflectionKind, string> = {
   8192: 'bracket-dot', // IndexSignature
   8_388_608: 'references', // Document
 };
- 
 
 export function getKindIcon(kind: ReflectionKind, name: string): string {
   let icon = KIND_ICONS[kind];

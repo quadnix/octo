@@ -29,7 +29,7 @@ export default [
 
   // All files.
   {
-    files: ['**/*.{js,cjs,ts,tsx}'],
+    files: ['**/*.{js,cjs,mjs,ts,tsx}'],
     languageOptions: {
       globals: {
         ...globals.node,

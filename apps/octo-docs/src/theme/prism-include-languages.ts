@@ -2,6 +2,9 @@ import siteConfig from '@generated/docusaurus.config';
 import type * as PrismNamespace from 'prismjs';
 import type { Optional } from 'utility-types';
 
+/**
+ * Loads the extra Prism languages listed in the site config into the given Prism instance.
+ */
 export default function prismIncludeLanguages(PrismObject: typeof PrismNamespace): void {
   const {
     themeConfig: { prism },

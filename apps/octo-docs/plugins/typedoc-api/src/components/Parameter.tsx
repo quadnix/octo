@@ -46,7 +46,9 @@ function ParameterChild({ param }: ParameterProps): ReactElement | null {
 
         <Comment comment={param.comment} />
 
-        {param.children?.map((child) => <Parameter key={child.id} param={child} />)}
+        {param.children?.map((child) => (
+          <Parameter key={child.id} param={child} />
+        ))}
 
         <Parameter param={extractDeclarationFromType(param.type)} />
       </li>
@@ -152,7 +154,9 @@ export function Parameter({ param }: ParameterProps): ReactElement | null {
         </li>
       )}
 
-      {param.children?.map((child) => <ParameterChild key={child.id} param={child} />)}
+      {param.children?.map((child) => (
+        <ParameterChild key={child.id} param={child} />
+      ))}
     </ul>
   );
 }

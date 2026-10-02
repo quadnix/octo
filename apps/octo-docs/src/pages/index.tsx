@@ -11,6 +11,9 @@ import TheGraph from '@site/src/components/TheGraph';
 import TheShift from '@site/src/components/TheShift';
 import WhereItSits from '@site/src/components/WhereItSits';
 
+/**
+ * The landing page, made of its sections in reading order.
+ */
 export default function Home(): ReactElement {
   return (
     <Layout

@@ -53,7 +53,10 @@
   flex-direction: column;
   height: 100%;
   padding: 1.85rem;
-  transition: border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    border-color 0.3s ease,
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
 
   &:hover {
     border-color: var(--landing-border-strong);
@@ -258,7 +261,6 @@
   .cardHead {
     gap: 0.9rem;
   }
-
 }
 
 /* The compile-time versus apply-time timeline. */

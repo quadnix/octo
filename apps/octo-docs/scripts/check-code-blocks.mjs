@@ -84,12 +84,7 @@ const syntaxErrorsIn = (code) => {
   let fewest;
 
   for (const wrap of WRAPPERS) {
-    const sourceFile = ts.createSourceFile(
-      'block.ts',
-      wrap(withEllipsesResolved(code)),
-      ts.ScriptTarget.Latest,
-      true,
-    );
+    const sourceFile = ts.createSourceFile('block.ts', wrap(withEllipsesResolved(code)), ts.ScriptTarget.Latest, true);
     const diagnostics = sourceFile.parseDiagnostics ?? [];
     if (diagnostics.length === 0) {
       return [];
@@ -149,7 +144,7 @@ if (failures.length > 0) {
   }
   console.error(
     '\nA snippet must parse as statements, as class members, or as a single expression, and must not\n' +
-      'carry the marks of a formatter having reflowed a fragment. Rewrite the block by hand, from the\n' +
+      'carry the marks of a formatter having reshaped a fragment. Rewrite the block by hand, from the\n' +
       'real source it quotes.',
   );
   process.exit(1);

@@ -57,9 +57,7 @@
 }
 
 .panelAfter {
-  background:
-    radial-gradient(30rem 20rem at 50% 0%, rgba(79, 70, 229, 0.09), transparent 70%),
-    var(--landing-surface);
+  background: radial-gradient(30rem 20rem at 50% 0%, rgba(79, 70, 229, 0.09), transparent 70%), var(--landing-surface);
   border-color: rgba(79, 70, 229, 0.28);
   box-shadow: 0 14px 40px -22px rgba(79, 70, 229, 0.55);
 }

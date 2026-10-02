@@ -6,6 +6,9 @@ import styles from './styles.module.scss';
 import Reveal from '@site/src/components/Reveal';
 import zenImage from '@site/static/img/emotes/octo-zen-meditation.png';
 
+/**
+ * The last section of the landing page, pointing the reader at installation and the introduction.
+ */
 export default function ClosingCallToAction(): ReactElement {
   return (
     <section className={styles.section}>
@@ -18,8 +21,8 @@ export default function ClosingCallToAction(): ReactElement {
               Write down what you meant.
             </Heading>
             <p className={styles.subtitle}>
-              Octo keeps the intent behind every resource, so the next person to read your infrastructure does not
-              have to guess.
+              Octo keeps the intent behind every resource, so the next person to read your infrastructure does not have
+              to guess.
             </p>
             <div className={styles.buttons}>
               <Link className={styles.buttonPrimary} to="/docs/getting-started/installation">

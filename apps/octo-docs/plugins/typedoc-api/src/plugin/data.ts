@@ -49,8 +49,6 @@ export async function generateJson(
   outFile: string,
   options: DocusaurusPluginTypeDocApiOptions,
 ): Promise<boolean> {
-   
-
   // Running the TypeDoc compiler is pretty slow...
   // We should only load on the 1st build, and use cache for subsequent reloads.
   if (!options.typedocOptions?.watch && global.typedocBuild.count > 0 && fs.existsSync(outFile)) {
@@ -127,7 +125,7 @@ export function createReflectionMap(items: TSDDeclarationReflection[] = []): TSD
 
   items.forEach((item) => {
     // Add @reference categories to reflection.
-    const referenceCategories: Record<string, { children: ReflectionId[]; title: string; }> = {};
+    const referenceCategories: Record<string, { children: ReflectionId[]; title: string }> = {};
     for (const tag of item.comment?.blockTags ?? []) {
       if (tag.tag === '@reference' && tag.content.length >= 2 && tag.content[0].kind === 'text') {
         const categoryName = tag.content[0].text.trim();
@@ -176,7 +174,7 @@ export function loadPackageJsonAndDocs(
   pkgFileName: string = 'package.json',
   readmeFileName: string = 'README.md',
   changelogFileName: string = 'CHANGELOG.md',
-): { changelogPath: string; packageJson: { name: string; version: string }; readmePath: string; } {
+): { changelogPath: string; packageJson: { name: string; version: string }; readmePath: string } {
   let currentDir = initialDir;
 
   while (!fs.existsSync(path.join(currentDir, pkgFileName))) {

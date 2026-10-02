@@ -43,7 +43,9 @@ export function Index({ reflection }: IndexProps): ReactElement | null {
 
                 <div className="tsd-panel-content">
                   <ul className="tsd-index-list">
-                    {category.children?.map((child) => <IndexChild key={child} id={child} />)}
+                    {category.children?.map((child) => (
+                      <IndexChild key={child} id={child} />
+                    ))}
                   </ul>
                 </div>
               </section>
@@ -74,7 +76,9 @@ export function Index({ reflection }: IndexProps): ReactElement | null {
 
                       <div className="tsd-panel-content">
                         <ul className="tsd-index-list">
-                          {category.children?.map((child) => <IndexChild key={child} id={child} />)}
+                          {category.children?.map((child) => (
+                            <IndexChild key={child} id={child} />
+                          ))}
                         </ul>
                       </div>
                     </Fragment>
@@ -85,7 +89,9 @@ export function Index({ reflection }: IndexProps): ReactElement | null {
 
                     <div className="tsd-panel-content">
                       <ul className="tsd-index-list">
-                        {group.children?.map((child) => <IndexChild key={child} id={child} />)}
+                        {group.children?.map((child) => (
+                          <IndexChild key={child} id={child} />
+                        ))}
                       </ul>
                     </div>
                   </>
