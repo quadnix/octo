@@ -153,7 +153,8 @@ terraform:
   requiredProviders:
     aws:
       source: hashicorp/aws
-      minVersion: '6.0.0'
+      # A function URL's permissions need invoked_via_function_url, first in 6.28.0.
+      minVersion: '6.28.0'
   providers:
     - providerType: aws
       accountId: '${env.AWS_ACCOUNT_ID}'

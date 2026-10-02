@@ -173,6 +173,7 @@ export class LambdaFunction extends ATerraformResource<LambdaFunctionSchema, Lam
           statement_id: `AllowFunctionUrlInvokeFrom-${invoker.label}`,
         },
       );
+      // A URL caller also needs lambda:InvokeFunction; `invoked_via_function_url` is in hashicorp/aws >= 6.28.0.
       lambdaFunctionOctoResource.addTerraformResource(
         'aws_lambda_permission',
         `${this.resourceId}_url_invoker_${invoker.label}_invoke`,

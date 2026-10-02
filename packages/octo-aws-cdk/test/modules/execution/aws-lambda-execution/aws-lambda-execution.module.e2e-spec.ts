@@ -187,7 +187,7 @@ describe('AwsLambdaExecutionModule E2E', () => {
     await testModuleContainer.initialize();
 
     testModuleContainer.registerTerraformConfig({
-      providers: { aws: { minVersion: '5.49', source: 'hashicorp/aws' } },
+      providers: { aws: { minVersion: '6.28', source: 'hashicorp/aws' } },
     });
     testModuleContainer.registerTerraformProvider('aws', AWS_ACCOUNT_ID, AWS_REGION_ID);
   });

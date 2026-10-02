@@ -274,7 +274,7 @@ describe('AwsLambdaExecutionModule UT', () => {
     await testModuleContainer.initialize();
 
     testModuleContainer.registerTerraformConfig({
-      providers: { aws: { minVersion: '5.49', source: 'hashicorp/aws' } },
+      providers: { aws: { minVersion: '6.28', source: 'hashicorp/aws' } },
     });
     testModuleContainer.registerTerraformProvider('aws', '123', 'us-east-1');
   });
@@ -302,7 +302,7 @@ describe('AwsLambdaExecutionModule UT', () => {
        required_providers {
          aws = {
            source = "hashicorp/aws"
-           version = ">= 5.49"
+           version = ">= 6.28"
          }
        }
      }

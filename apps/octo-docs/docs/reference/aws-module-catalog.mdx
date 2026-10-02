@@ -198,6 +198,11 @@ credentials, and `invokerAccountIds` names the accounts allowed to call it:
 The function's role is given no permission to write logs, so it writes none and Lambda creates no
 log group. `executionId` is at most fifty characters, because it names the role too.
 
+A Lambda execution needs the `hashicorp/aws` provider 6.28.0 or later, so set `minVersion` under
+`terraform.requiredProviders` to at least that. An older provider fails the plan with
+`An argument named "invoked_via_function_url" is not expected here`, because the permissions on a
+function's URL use it.
+
 ## Services
 
 | Module                                   | Inputs                                                                                                                                                                                                            | Creates                                                                                                                                                                                                       |
