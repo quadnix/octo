@@ -254,6 +254,7 @@ export class AwsEcsExecutionModule extends AModule<AwsEcsExecutionModuleSchema, 
     }
     for (const grant of grants.dynamodb) {
       const [matchingDynamoDBAnchor] = await mainServer.getAnchorsMatchingSchema(AwsDynamoDBAnchorSchema, [
+        { key: 'awsRegionId', value: grant.awsRegionId },
         { key: 'TableName', value: grant.tableName },
       ]);
 

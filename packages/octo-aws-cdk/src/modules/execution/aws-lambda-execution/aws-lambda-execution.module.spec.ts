@@ -20,9 +20,9 @@ type DeploymentProperties = AwsDeploymentAnchorSchema['properties'];
  * of a published image, as the serverless, server, deployment and image modules would have left them.
  *
  * `deployment` overrides what the deployment anchor holds. `publishedIn` is the region the tag is
- * published in. `withTableGrant` gives the server read-write access to a table, and `withBucketGrant`
- * read access to a bucket prefix. `bucketAccount` and `tableAccount` are the accounts those are
- * created in.
+ * published in. `withTableGrant` gives the server read-write access to a table `accounts` in each of
+ * `tableRegions`, and `withBucketGrant` read access to a bucket prefix. `bucketAccount` and
+ * `tableAccount` are the accounts those are created in.
  */
 async function setup(
   testModuleContainer: TestModuleContainer,
@@ -32,6 +32,7 @@ async function setup(
     publishedFor = 'arm64',
     publishedIn = 'us-east-1',
     tableAccount = '123',
+    tableRegions = ['us-east-1'],
     withBucketGrant = false,
     withTableGrant = false,
   }: {
@@ -40,6 +41,7 @@ async function setup(
     publishedFor?: 'arm64' | 'x86_64';
     publishedIn?: string;
     tableAccount?: string;
+    tableRegions?: string[];
     withBucketGrant?: boolean;
     withTableGrant?: boolean;
   } = {},
@@ -89,7 +91,14 @@ async function setup(
     'AwsServerAnchor',
     {
       grants: {
-        dynamodb: withTableGrant ? [{ allowRead: true, allowWrite: true, tableName: 'accounts' }] : [],
+        dynamodb: withTableGrant
+          ? tableRegions.map((awsRegionId) => ({
+              allowRead: true,
+              allowWrite: true,
+              awsRegionId,
+              tableName: 'accounts',
+            }))
+          : [],
         s3: withBucketGrant
           ? [{ accessPrefix: 'uploads', allowRead: true, allowWrite: false, bucketName: 'test-bucket' }]
           : [],
@@ -210,26 +219,27 @@ async function setup(
     ]);
   }
 
-  if (withTableGrant) {
+  for (const [index, awsRegionId] of (withTableGrant ? tableRegions : []).entries()) {
+    const tableModuleId = index === 0 ? 'tableModule' : `tableModule-${awsRegionId}`;
     const {
       service: [table],
-    } = await testModuleContainer.createTestModels('tableModule', {
+    } = await testModuleContainer.createTestModels(tableModuleId, {
       app: [app],
-      service: [['accounts', { tableName: 'accounts' }]],
+      service: [[`accounts-${awsRegionId}`, { tableName: 'accounts' }]],
     });
     const tableAnchor = testModuleContainer.createTestAnchor<AwsDynamoDBAnchorSchema>(
       'AwsDynamoDBAnchor',
-      { awsAccountId: tableAccount, TableName: 'accounts' },
+      { awsAccountId: tableAccount, awsRegionId, TableName: 'accounts' },
       table,
     );
     table.addAnchor(tableAnchor);
     await testModuleContainer.createResources(
-      'tableModule',
+      tableModuleId,
       [
-        new DynamoDB('dynamodb-accounts', {
+        new DynamoDB(`dynamodb-accounts-${awsRegionId}`, {
           AttributeDefinitions: [{ AttributeName: 'AccountId', AttributeType: 'S' }],
           awsAccountId: '123',
-          awsRegionId: 'us-east-1',
+          awsRegionId,
           billingMode: { settings: {}, type: 'PAY_PER_REQUEST' },
           DeletionProtectionEnabled: false,
           GlobalSecondaryIndexes: [],
@@ -244,8 +254,8 @@ async function setup(
     await testModuleContainer.createTestOverlays('testModule', [
       {
         anchors: [serverAnchor, tableAnchor],
-        context: '@octo/aws-server-dynamodb-access-overlay=aws-server-dynamodb-access-overlay-accounts',
-        properties: { allowRead: true, allowWrite: true, serverKey: 'backend', tableName: 'accounts' },
+        context: `@octo/aws-server-dynamodb-access-overlay=aws-server-dynamodb-access-overlay-accounts-${awsRegionId}`,
+        properties: { allowRead: true, allowWrite: true, awsRegionId, serverKey: 'backend', tableName: 'accounts' },
       },
     ]);
   }
@@ -530,6 +540,22 @@ describe('AwsLambdaExecutionModule UT', () => {
 
     expect(hclRender).toContain('"arn:aws:dynamodb:us-east-1:123:table/accounts"');
     expect(hclRender).toContain('"dynamodb:PutItem"');
+  });
+
+  it('should grant the role each of two tables of one name, in its own region', async () => {
+    await setup(testModuleContainer, { tableRegions: ['us-east-1', 'eu-west-1'], withTableGrant: true });
+    testModuleContainer.registerTerraformProvider('aws', '123', 'eu-west-1');
+    const { hclRender } = (
+      await testModuleContainer
+        .runModules<AwsLambdaExecutionModule>(
+          { inputs: executionInputs(), moduleId: 'execution', type: AwsLambdaExecutionModule },
+          { filterByModuleIds: ['execution'], terraformTarget: 'skip' },
+        )
+        .next()
+    ).value!;
+
+    expect(hclRender).toContain('"arn:aws:dynamodb:us-east-1:123:table/accounts"');
+    expect(hclRender).toContain('"arn:aws:dynamodb:eu-west-1:123:table/accounts"');
   });
 
   it('should grant the role the bucket prefixes the server may reach, and admit it to each bucket', async () => {

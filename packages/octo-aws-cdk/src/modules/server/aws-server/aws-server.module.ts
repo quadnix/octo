@@ -163,6 +163,7 @@ export class AwsServerModule extends AModule<AwsServerModuleSchema, AwsServer> {
     }
 
     // Collect the DynamoDB grants, one per table, merging the access of a table granted more than once.
+    // A table is named by its region and name, since two regions may each hold a table of one name.
     const dynamodbGrants = new Map<
       string,
       { allowRead: boolean; allowWrite: boolean; anchor: MatchingAnchor<AwsDynamoDBAnchorSchema> }
@@ -171,7 +172,7 @@ export class AwsServerModule extends AModule<AwsServerModuleSchema, AwsServer> {
       const [matchingDynamoDBAnchor] = await grant.service.getAnchorsMatchingSchema(AwsDynamoDBAnchorSchema, [], {
         searchBoundaryMembers: false,
       });
-      const { awsAccountId, TableName: tableName } = matchingDynamoDBAnchor.getSchemaInstance().properties;
+      const { awsAccountId, awsRegionId, TableName: tableName } = matchingDynamoDBAnchor.getSchemaInstance().properties;
       if (awsAccountId !== account.accountId) {
         throw new ModuleError(
           'This module does not support adding dynamodb resources from other accounts!',
@@ -180,8 +181,9 @@ export class AwsServerModule extends AModule<AwsServerModuleSchema, AwsServer> {
       }
 
       const { allowRead, allowWrite } = this.getAccess(grant.access);
-      const existingGrant = dynamodbGrants.get(tableName);
-      dynamodbGrants.set(tableName, {
+      const key = JSON.stringify([awsRegionId, tableName]);
+      const existingGrant = dynamodbGrants.get(key);
+      dynamodbGrants.set(key, {
         allowRead: allowRead || !!existingGrant?.allowRead,
         allowWrite: allowWrite || !!existingGrant?.allowWrite,
         anchor: matchingDynamoDBAnchor,
@@ -189,13 +191,15 @@ export class AwsServerModule extends AModule<AwsServerModuleSchema, AwsServer> {
     }
 
     // Add one grant overlay per DynamoDB table.
-    for (const [tableName, { allowRead, allowWrite, anchor }] of dynamodbGrants) {
-      const overlayIdSuffix = CommonUtility.hash(server.serverKey, tableName).substring(0, 12);
-      serverAnchor.properties.grants.dynamodb.push({ allowRead, allowWrite, tableName });
+    for (const { allowRead, allowWrite, anchor } of dynamodbGrants.values()) {
+      const { awsRegionId, TableName: tableName } = anchor.getSchemaInstance().properties;
+
+      const overlayIdSuffix = CommonUtility.hash(server.serverKey, awsRegionId, tableName).substring(0, 12);
+      serverAnchor.properties.grants.dynamodb.push({ allowRead, allowWrite, awsRegionId, tableName });
       models.push(
         new AwsServerDynamoDBAccessOverlay(
           `aws-server-dynamodb-access-overlay-${overlayIdSuffix}`,
-          { allowRead, allowWrite, serverKey: server.serverKey, tableName },
+          { allowRead, allowWrite, awsRegionId, serverKey: server.serverKey, tableName },
           [serverAnchor, anchor],
         ),
       );

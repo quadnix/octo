@@ -133,6 +133,7 @@ export class AwsLambdaExecutionModule extends AModule<AwsLambdaExecutionModuleSc
     }
     for (const grant of grants.dynamodb) {
       const [matchingDynamoDBAnchor] = await server.getAnchorsMatchingSchema(AwsDynamoDBAnchorSchema, [
+        { key: 'awsRegionId', value: grant.awsRegionId },
         { key: 'TableName', value: grant.tableName },
       ]);
 

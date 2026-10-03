@@ -20,15 +20,15 @@ export class AwsServerAnchorSchema extends BaseAnchorSchema {
 
   /**
    * Input properties.
-   * * `properties.grants.dynamodb` - The DynamoDB tables the code may reach, each by name, and whether it
-   * may read and write them.
+   * * `properties.grants.dynamodb` - The DynamoDB tables the code may reach, each by region and name, and
+   * whether it may read and write them.
    * * `properties.grants.s3` - The S3 bucket prefixes the code may reach, each by bucket and prefix, and
    * whether it may read and write them.
    * * `properties.serverKey` - The server key.
    */
   @Validate({
     destruct: (value: AwsServerAnchorSchema['properties']): string[] => [
-      ...value.grants.dynamodb.map((g) => g.tableName),
+      ...value.grants.dynamodb.flatMap((g) => [g.awsRegionId, g.tableName]),
       ...value.grants.s3.map((g) => g.bucketName),
       value.serverKey,
     ],
@@ -36,7 +36,7 @@ export class AwsServerAnchorSchema extends BaseAnchorSchema {
   })
   override properties = Schema<{
     grants: {
-      dynamodb: { allowRead: boolean; allowWrite: boolean; tableName: string }[];
+      dynamodb: { allowRead: boolean; allowWrite: boolean; awsRegionId: string; tableName: string }[];
       s3: { accessPrefix: string; allowRead: boolean; allowWrite: boolean; bucketName: string }[];
     };
     serverKey: string;

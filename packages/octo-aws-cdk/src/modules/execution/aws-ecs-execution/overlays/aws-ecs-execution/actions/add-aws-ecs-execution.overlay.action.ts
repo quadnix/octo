@@ -14,6 +14,8 @@ import {
   SubnetType,
   hasNodeName,
 } from '@quadnix/octo';
+import { AwsDynamoDBAnchorSchema } from '../../../../../../anchors/aws-dynamodb/aws-dynamodb.anchor.schema.js';
+import { AwsS3StorageServiceAccessPrefixAnchorSchema } from '../../../../../../anchors/aws-s3-storage-service/aws-s3-storage-service-access-prefix.anchor.schema.js';
 import { DynamoDBSchema } from '../../../../../../resources/dynamodb/index.schema.js';
 import { EcrImageTagSchema } from '../../../../../../resources/ecr-image-tag/index.schema.js';
 import { EcsClusterSchema } from '../../../../../../resources/ecs-cluster/index.schema.js';
@@ -100,12 +102,23 @@ export class AddAwsEcsExecutionOverlayAction implements IModelAction<AwsEcsExecu
       rolename: properties.iamRoleName,
     });
 
-    // Grant the role each bucket prefix, and admit the role to each bucket.
+    // Grant the role each bucket prefix, and admit the role to each bucket. A bucket is found through
+    // the access prefix anchor this overlay joins.
     for (const grant of properties.grants.s3) {
-      const [matchingS3StorageResource] = await awsExecutionOverlay.getResourcesMatchingSchema(S3StorageSchema, [
-        { key: 'awsAccountId', value: awsAccountId },
-        { key: 'Bucket', value: grant.bucketName },
-      ]);
+      const [matchingAccessPrefixAnchor] = await awsExecutionOverlay.getAnchorsMatchingSchema(
+        AwsS3StorageServiceAccessPrefixAnchorSchema,
+        [
+          { key: 'accessPrefix', value: grant.accessPrefix },
+          { key: 'bucketName', value: grant.bucketName },
+        ],
+        { searchBoundaryMembers: false },
+      );
+      const [matchingS3StorageResource] = matchingAccessPrefixAnchor
+        ? await matchingAccessPrefixAnchor
+            .getActual()
+            .getParent()
+            .getResourcesMatchingSchema(S3StorageSchema, [], [], { searchBoundaryMembers: false })
+        : [];
       if (!matchingS3StorageResource) {
         throw new OverlayActionExceptionTransactionError(
           `Bucket "${grant.bucketName}" not found!`,
@@ -129,21 +142,31 @@ export class AddAwsEcsExecutionOverlayAction implements IModelAction<AwsEcsExecu
       actionOutputs[s3Storage.resourceId] = s3Storage;
     }
 
-    // Grant the role each table.
+    // Grant the role each table. A table is found through the table anchor this overlay joins.
     for (const grant of properties.grants.dynamodb) {
-      const [matchingDynamoDBResource] = await awsExecutionOverlay.getResourcesMatchingSchema(DynamoDBSchema, [
-        { key: 'awsAccountId', value: awsAccountId },
-        { key: 'TableName', value: grant.tableName },
-      ]);
+      const [matchingDynamoDBAnchor] = await awsExecutionOverlay.getAnchorsMatchingSchema(
+        AwsDynamoDBAnchorSchema,
+        [
+          { key: 'awsRegionId', value: grant.awsRegionId },
+          { key: 'TableName', value: grant.tableName },
+        ],
+        { searchBoundaryMembers: false },
+      );
+      const [matchingDynamoDBResource] = matchingDynamoDBAnchor
+        ? await matchingDynamoDBAnchor
+            .getActual()
+            .getParent()
+            .getResourcesMatchingSchema(DynamoDBSchema, [], [], { searchBoundaryMembers: false })
+        : [];
       if (!matchingDynamoDBResource) {
         throw new OverlayActionExceptionTransactionError(
-          `Table "${grant.tableName}" not found in "${awsAccountId}"!`,
+          `Table "${grant.tableName}" not found in "${grant.awsRegionId}"!`,
           diff,
           this.constructor.name,
         );
       }
 
-      const policyId = `${properties.iamRoleName}-${CommonUtility.hash(grant.tableName).substring(0, 12)}`;
+      const policyId = `${properties.iamRoleName}-${CommonUtility.hash(grant.awsRegionId, grant.tableName).substring(0, 12)}`;
       iamRole.addDynamoDBTablePolicy(policyId, matchingDynamoDBResource, {
         allowRead: grant.allowRead,
         allowWrite: grant.allowWrite,

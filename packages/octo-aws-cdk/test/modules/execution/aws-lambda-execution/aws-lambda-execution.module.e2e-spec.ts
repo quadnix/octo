@@ -69,7 +69,10 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
   const serverAnchor = testModuleContainer.createTestAnchor<AwsServerAnchorSchema>(
     'AwsServerAnchor',
     {
-      grants: { dynamodb: [{ allowRead: true, allowWrite: true, tableName: 'accounts' }], s3: [] },
+      grants: {
+        dynamodb: [{ allowRead: true, allowWrite: true, awsRegionId: AWS_REGION_ID, tableName: 'accounts' }],
+        s3: [],
+      },
       serverKey: 'backend',
     },
     server,
@@ -146,7 +149,7 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
   });
   const tableAnchor = testModuleContainer.createTestAnchor<AwsDynamoDBAnchorSchema>(
     'AwsDynamoDBAnchor',
-    { awsAccountId: AWS_ACCOUNT_ID, TableName: 'accounts' },
+    { awsAccountId: AWS_ACCOUNT_ID, awsRegionId: AWS_REGION_ID, TableName: 'accounts' },
     table,
   );
   table.addAnchor(tableAnchor);
@@ -172,7 +175,13 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
     {
       anchors: [serverAnchor, tableAnchor],
       context: '@octo/aws-server-dynamodb-access-overlay=aws-server-dynamodb-access-overlay-accounts',
-      properties: { allowRead: true, allowWrite: true, serverKey: 'backend', tableName: 'accounts' },
+      properties: {
+        allowRead: true,
+        allowWrite: true,
+        awsRegionId: AWS_REGION_ID,
+        serverKey: 'backend',
+        tableName: 'accounts',
+      },
     },
   ]);
 }

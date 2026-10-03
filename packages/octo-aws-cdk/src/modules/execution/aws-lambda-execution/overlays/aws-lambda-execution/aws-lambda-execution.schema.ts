@@ -16,7 +16,7 @@ export class AwsLambdaExecutionOverlaySchema extends BaseOverlaySchema {
       value.deploymentTag,
       value.environmentName,
       value.executionId,
-      ...value.grants.dynamodb.map((g) => g.tableName),
+      ...value.grants.dynamodb.flatMap((g) => [g.awsRegionId, g.tableName]),
       ...value.grants.s3.map((g) => g.bucketName),
       value.iamRoleName,
       value.serverKey,
@@ -32,7 +32,7 @@ export class AwsLambdaExecutionOverlaySchema extends BaseOverlaySchema {
     environmentName: string;
     executionId: string;
     grants: {
-      dynamodb: { allowRead: boolean; allowWrite: boolean; tableName: string }[];
+      dynamodb: { allowRead: boolean; allowWrite: boolean; awsRegionId: string; tableName: string }[];
       s3: { accessPrefix: string; allowRead: boolean; allowWrite: boolean; bucketName: string }[];
     };
     iamRoleName: string;

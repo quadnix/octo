@@ -8,6 +8,7 @@ export class AwsServerDynamoDBAccessOverlaySchema extends BaseOverlaySchema {
     destruct: (value: AwsServerDynamoDBAccessOverlaySchema['properties']): string[] => [
       String(value.allowRead),
       String(value.allowWrite),
+      value.awsRegionId,
       value.serverKey,
       value.tableName,
     ],
@@ -16,6 +17,7 @@ export class AwsServerDynamoDBAccessOverlaySchema extends BaseOverlaySchema {
   override properties = Schema<{
     allowRead: boolean;
     allowWrite: boolean;
+    awsRegionId: string;
     serverKey: string;
     tableName: string;
   }>();

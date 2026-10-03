@@ -19,14 +19,20 @@ export class AwsDynamoDBAnchorSchema extends BaseAnchorSchema {
   /**
    * Input properties.
    * * `properties.awsAccountId`: The AWS account the table is created in.
+   * * `properties.awsRegionId`: The AWS region the table is created in.
    * * `properties.TableName`: The name of the DynamoDB table.
    */
   @Validate({
-    destruct: (value: AwsDynamoDBAnchorSchema['properties']): string[] => [value.awsAccountId, value.TableName],
+    destruct: (value: AwsDynamoDBAnchorSchema['properties']): string[] => [
+      value.awsAccountId,
+      value.awsRegionId,
+      value.TableName,
+    ],
     options: { minLength: 1 },
   })
   override properties = Schema<{
     awsAccountId: string;
+    awsRegionId: string;
     TableName: string;
   }>();
 }

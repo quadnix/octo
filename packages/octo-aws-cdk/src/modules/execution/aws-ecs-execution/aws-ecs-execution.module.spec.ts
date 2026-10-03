@@ -150,7 +150,9 @@ async function setup(
         'AwsServerAnchor',
         {
           grants: {
-            dynamodb: sidecar!.grants ? [{ allowRead: true, allowWrite: false, tableName: 'logs' }] : [],
+            dynamodb: sidecar!.grants
+              ? [{ allowRead: true, allowWrite: false, awsRegionId: 'us-east-1', tableName: 'logs' }]
+              : [],
             s3: [],
           },
           serverKey: 'logger',
@@ -200,7 +202,7 @@ async function setup(
     {
       grants: withGrants
         ? {
-            dynamodb: [{ allowRead: true, allowWrite: true, tableName: 'accounts' }],
+            dynamodb: [{ allowRead: true, allowWrite: true, awsRegionId: 'us-east-1', tableName: 'accounts' }],
             s3: [{ accessPrefix: 'uploads', allowRead: true, allowWrite: false, bucketName: 'test-bucket' }],
           }
         : { dynamodb: [], s3: [] },
@@ -424,7 +426,7 @@ async function setup(
     });
     const tableAnchor = testModuleContainer.createTestAnchor<AwsDynamoDBAnchorSchema>(
       'AwsDynamoDBAnchor',
-      { awsAccountId: tableAccount, TableName: 'accounts' },
+      { awsAccountId: tableAccount, awsRegionId: 'us-east-1', TableName: 'accounts' },
       table,
     );
     table.addAnchor(tableAnchor);
@@ -462,7 +464,13 @@ async function setup(
       {
         anchors: [serverAnchor, tableAnchor],
         context: '@octo/aws-server-dynamodb-access-overlay=aws-server-dynamodb-access-overlay-accounts',
-        properties: { allowRead: true, allowWrite: true, serverKey: 'backend', tableName: 'accounts' },
+        properties: {
+          allowRead: true,
+          allowWrite: true,
+          awsRegionId: 'us-east-1',
+          serverKey: 'backend',
+          tableName: 'accounts',
+        },
       },
     ]);
   }

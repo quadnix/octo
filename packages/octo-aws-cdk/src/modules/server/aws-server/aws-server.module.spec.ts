@@ -50,7 +50,7 @@ async function setup(
   table.addAnchor(
     testModuleContainer.createTestAnchor<AwsDynamoDBAnchorSchema>(
       'AwsDynamoDBAnchor',
-      { awsAccountId: tableAccountId, TableName: 'accounts' },
+      { awsAccountId: tableAccountId, awsRegionId: 'us-east-1', TableName: 'accounts' },
       table,
     ),
   );
@@ -186,7 +186,7 @@ describe('AwsServerModule UT', () => {
       searchBoundaryMembers: false,
     });
     expect(serverAnchor.getSchemaInstance().properties.grants).toEqual({
-      dynamodb: [{ allowRead: true, allowWrite: false, tableName: 'accounts' }],
+      dynamodb: [{ allowRead: true, allowWrite: false, awsRegionId: 'us-east-1', tableName: 'accounts' }],
       s3: [{ accessPrefix: 'uploads', allowRead: true, allowWrite: true, bucketName: 'test-bucket' }],
     });
 
@@ -211,6 +211,7 @@ describe('AwsServerModule UT', () => {
          "properties": {
            "allowRead": true,
            "allowWrite": false,
+           "awsRegionId": "us-east-1",
            "serverKey": "backend",
            "tableName": "accounts",
          },
@@ -255,7 +256,7 @@ describe('AwsServerModule UT', () => {
       searchBoundaryMembers: false,
     });
     expect(serverAnchor.getSchemaInstance().properties.grants).toEqual({
-      dynamodb: [{ allowRead: true, allowWrite: true, tableName: 'accounts' }],
+      dynamodb: [{ allowRead: true, allowWrite: true, awsRegionId: 'us-east-1', tableName: 'accounts' }],
       s3: [{ accessPrefix: 'uploads', allowRead: true, allowWrite: true, bucketName: 'test-bucket' }],
     });
     expect(modelTransaction.flat().filter((d) => d.field === 'overlayId')).toHaveLength(2);

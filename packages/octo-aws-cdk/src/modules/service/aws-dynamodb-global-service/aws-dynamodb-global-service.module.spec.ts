@@ -125,6 +125,7 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
       'AwsDynamoDBAnchor',
       {
         awsAccountId: '123',
+        awsRegionId: 'us-east-1',
         TableName: 'test-table',
       },
       service,
