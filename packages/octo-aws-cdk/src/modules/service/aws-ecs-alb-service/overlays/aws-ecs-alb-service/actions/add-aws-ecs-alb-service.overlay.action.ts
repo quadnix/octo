@@ -45,14 +45,12 @@ export class AddAwsEcsAlbServiceOverlayAction implements IModelAction<AwsEcsAlbS
     actionInputs: EnhancedModuleSchema<AwsEcsAlbServiceModule>,
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
-    const albEcsExecutionOverlay = diff.node;
-
     const { awsAccountId, awsRegionId } = actionInputs.metadata;
 
-    const [matchingVpcResource] = await albEcsExecutionOverlay.getResourcesMatchingSchema(VpcSchema, [
-      { key: 'awsAccountId', value: awsAccountId },
-      { key: 'awsRegionId', value: awsRegionId },
-    ]);
+    // Get the VPC from the ALB's region.
+    const [matchingVpcResource] = await actionInputs.inputs.region.getResourcesMatchingSchema(VpcSchema, [], [], {
+      searchBoundaryMembers: false,
+    });
 
     const albTargetGroups: AlbTargetGroup[] = [];
     for (const target of actionInputs.inputs.targets!) {

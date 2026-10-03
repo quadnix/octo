@@ -11,6 +11,7 @@ export class AwsSimpleSubnetLocalFilesystemMountOverlay extends AOverlay<
   AwsSimpleSubnetLocalFilesystemMountOverlaySchema,
   AwsSimpleSubnetLocalFilesystemMountOverlay
 > {
+  declare anchors: [MatchingAnchor<AwsEfsAnchorSchema>, AwsSubnetAnchor];
   declare properties: AwsSimpleSubnetLocalFilesystemMountOverlaySchema['properties'];
 
   /**

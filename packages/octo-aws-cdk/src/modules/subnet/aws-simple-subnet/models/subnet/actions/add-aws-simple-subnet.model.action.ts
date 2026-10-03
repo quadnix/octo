@@ -52,10 +52,12 @@ export class AddAwsSimpleSubnetModelAction implements IModelAction<AwsSimpleSubn
     const { awsAccountId, awsRegionId } = actionInputs.metadata;
 
     const subnetCidrBlock = actionInputs.inputs.subnetCidrBlock;
-    const [matchingVpcResource] = await subnet.getResourcesMatchingSchema(VpcSchema, [
-      { key: 'awsAccountId', value: awsAccountId },
-      { key: 'awsRegionId', value: awsRegionId },
-    ]);
+
+    // Get the region's VPC and internet gateway, from the region itself.
+    const region = actionInputs.inputs.region;
+    const [matchingVpcResource] = await region.getResourcesMatchingSchema(VpcSchema, [], [], {
+      searchBoundaryMembers: false,
+    });
     if (!matchingVpcResource) {
       throw new ModelActionExceptionTransactionError(
         `Vpc in account "${awsAccountId}" and region "${awsRegionId}" not found!`,
@@ -63,10 +65,9 @@ export class AddAwsSimpleSubnetModelAction implements IModelAction<AwsSimpleSubn
         this.constructor.name,
       );
     }
-    const [matchingInternetGatewayResource] = await subnet.getResourcesMatchingSchema(InternetGatewaySchema, [
-      { key: 'awsAccountId', value: awsAccountId },
-      { key: 'awsRegionId', value: awsRegionId },
-    ]);
+    const [matchingInternetGatewayResource] = await region.getResourcesMatchingSchema(InternetGatewaySchema, [], [], {
+      searchBoundaryMembers: false,
+    });
     if (!matchingInternetGatewayResource) {
       throw new ModelActionExceptionTransactionError(
         `InternetGateway in account "${awsAccountId}" and region "${awsRegionId}" not found!`,

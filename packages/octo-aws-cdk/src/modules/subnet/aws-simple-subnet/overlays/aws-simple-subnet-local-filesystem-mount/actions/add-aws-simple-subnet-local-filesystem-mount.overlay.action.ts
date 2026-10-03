@@ -48,9 +48,12 @@ export class AddAwsSimpleSubnetLocalFilesystemMountOverlayAction implements IMod
 
     const { awsAccountId, awsRegionId } = actionInputs.metadata;
 
-    const [matchingEfsResource] = await subnetLocalFilesystemMountOverlay.getResourcesMatchingSchema(EfsSchema, [
-      { key: 'filesystemName', value: properties.filesystemName },
-    ]);
+    // Get the filesystem through the anchor this overlay joins, and the VPC from the subnet's region.
+    const [matchingEfsAnchor] = subnetLocalFilesystemMountOverlay.anchors;
+    const [matchingEfsResource] = await matchingEfsAnchor
+      .getActual()
+      .getParent()
+      .getResourcesMatchingSchema(EfsSchema, [], [], { searchBoundaryMembers: false });
     if (!matchingEfsResource) {
       throw new OverlayActionExceptionTransactionError(
         `EFS "${properties.filesystemName}" not found!`,
@@ -59,10 +62,9 @@ export class AddAwsSimpleSubnetLocalFilesystemMountOverlayAction implements IMod
       );
     }
     const subnet = actionInputs.resources[`subnet-${properties.subnetId}`] as Subnet;
-    const [matchingVpcResource] = (await subnetLocalFilesystemMountOverlay.getResourcesMatchingSchema(VpcSchema, [
-      { key: 'awsAccountId', value: awsAccountId },
-      { key: 'awsRegionId', value: awsRegionId },
-    ]))!;
+    const [matchingVpcResource] = await actionInputs.inputs.region.getResourcesMatchingSchema(VpcSchema, [], [], {
+      searchBoundaryMembers: false,
+    });
 
     // Create EFS Mount Target Security Groups.
     const efsMountTargetSG = new SecurityGroup(

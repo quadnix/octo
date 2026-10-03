@@ -7,6 +7,7 @@ import {
   Factory,
   type IModelAction,
   MatchingAnchor,
+  type Region,
   hasNodeName,
 } from '@quadnix/octo';
 import { SecurityGroup } from '../../../../../../resources/security-group/index.js';
@@ -44,10 +45,11 @@ export class AddAwsEcsExecutionServerSecurityGroupOverlayAction implements IMode
 
     const { awsAccountId, awsRegionId } = actionInputs.metadata;
 
-    const [matchingVpcResource] = await securityGroupOverlay.getResourcesMatchingSchema(VpcSchema, [
-      { key: 'awsAccountId', value: awsAccountId },
-      { key: 'awsRegionId', value: awsRegionId },
-    ]);
+    // Get the VPC from the region of the execution's subnet.
+    const region = actionInputs.inputs.subnet.getParents()['region'][0].to as Region;
+    const [matchingVpcResource] = await region.getResourcesMatchingSchema(VpcSchema, [], [], {
+      searchBoundaryMembers: false,
+    });
 
     for (const anchor of anchors) {
       const anchorProperties = (anchor instanceof MatchingAnchor ? anchor.getSchemaInstance() : anchor).properties;

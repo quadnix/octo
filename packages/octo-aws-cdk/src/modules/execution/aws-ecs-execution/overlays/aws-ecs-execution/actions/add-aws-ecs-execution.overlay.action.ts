@@ -15,7 +15,9 @@ import {
   hasNodeName,
 } from '@quadnix/octo';
 import { AwsDynamoDBAnchorSchema } from '../../../../../../anchors/aws-dynamodb/aws-dynamodb.anchor.schema.js';
+import { AwsEfsAnchorSchema } from '../../../../../../anchors/aws-efs/aws-efs.anchor.schema.js';
 import { AwsS3StorageServiceAccessPrefixAnchorSchema } from '../../../../../../anchors/aws-s3-storage-service/aws-s3-storage-service-access-prefix.anchor.schema.js';
+import { AwsSubnetLocalFilesystemMountAnchorSchema } from '../../../../../../anchors/aws-subnet/aws-subnet-local-filesystem-mount.anchor.schema.js';
 import { DynamoDBSchema } from '../../../../../../resources/dynamodb/index.schema.js';
 import { EcrImageTagSchema } from '../../../../../../resources/ecr-image-tag/index.schema.js';
 import { EcsClusterSchema } from '../../../../../../resources/ecs-cluster/index.schema.js';
@@ -173,17 +175,27 @@ export class AddAwsEcsExecutionOverlayAction implements IModelAction<AwsEcsExecu
       });
     }
 
-    // Get matching EFS resources.
+    // Get matching EFS resources, each through the mount anchor this overlay joins and the filesystem
+    // anchor that mount joins.
     const efsList: MatchingResource<EfsSchema>[] = [];
     for (const filesystemName of properties.filesystemNames) {
-      const [matchingEfsResource] = await awsExecutionOverlay.getResourcesMatchingSchema(
-        EfsSchema,
-        [
-          { key: 'awsRegionId', value: awsRegionId },
-          { key: 'filesystemName', value: filesystemName },
-        ],
-        [],
+      const [matchingMountAnchor] = await awsExecutionOverlay.getAnchorsMatchingSchema(
+        AwsSubnetLocalFilesystemMountAnchorSchema,
+        [{ key: 'filesystemName', value: filesystemName }],
+        { searchBoundaryMembers: false },
       );
+      const [matchingEfsAnchor] = matchingMountAnchor
+        ? await matchingMountAnchor
+            .getActual()
+            .getParent()
+            .getAnchorsMatchingSchema(AwsEfsAnchorSchema, [], { searchBoundaryMembers: false })
+        : [];
+      const [matchingEfsResource] = matchingEfsAnchor
+        ? await matchingEfsAnchor
+            .getActual()
+            .getParent()
+            .getResourcesMatchingSchema(EfsSchema, [], [], { searchBoundaryMembers: false })
+        : [];
       if (!matchingEfsResource) {
         throw new OverlayActionExceptionTransactionError(
           `Filesystem "${filesystemName}" not found in "${awsRegionId}"!`,
@@ -258,12 +270,11 @@ export class AddAwsEcsExecutionOverlayAction implements IModelAction<AwsEcsExecu
       [new MatchingResource(iamRole), ...ecrImageTagList, ...efsList],
     );
 
-    // Get matching ECS Cluster resource.
-    const [matchingEcsClusterResource] = await awsExecutionOverlay.getResourcesMatchingSchema(EcsClusterSchema, [
-      { key: 'awsAccountId', value: awsAccountId },
-      { key: 'awsRegionId', value: awsRegionId },
-      { key: 'clusterName', value: ecsClusterAnchorProperties.clusterName },
-    ]);
+    // Get matching ECS Cluster resource, from the environment the cluster anchor belongs to.
+    const [matchingEcsClusterResource] = await matchingEcsClusterAnchor
+      .getActual()
+      .getParent()
+      .getResourcesMatchingSchema(EcsClusterSchema, [], [], { searchBoundaryMembers: false });
     if (!matchingEcsClusterResource) {
       throw new OverlayActionExceptionTransactionError(
         `ECS Cluster "${ecsClusterAnchorProperties.clusterName}" not found!`,
@@ -272,12 +283,10 @@ export class AddAwsEcsExecutionOverlayAction implements IModelAction<AwsEcsExecu
       );
     }
 
-    // Get matching Subnet resource.
-    const [matchingSubnetResource] = await awsExecutionOverlay.getResourcesMatchingSchema(SubnetSchema, [
-      { key: 'awsAccountId', value: awsAccountId },
-      { key: 'awsRegionId', value: awsRegionId },
-      { key: 'subnetName', value: subnet.subnetName },
-    ]);
+    // Get matching Subnet resource, from the subnet itself.
+    const [matchingSubnetResource] = await subnet.getResourcesMatchingSchema(SubnetSchema, [], [], {
+      searchBoundaryMembers: false,
+    });
     if (!matchingSubnetResource) {
       throw new OverlayActionExceptionTransactionError(
         `Subnet "${subnet.subnetName}" not found!`,
