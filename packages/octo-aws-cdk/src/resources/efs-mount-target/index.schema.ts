@@ -17,7 +17,7 @@ import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
  *   subnet((Subnet)) --> efs_mount_target
  *   security_group((Security<br>Group)) --> efs_mount_target
  * ```
- * @overrideProperty resourceId - The resource id is of format `efs-mount-<region-id>-<subnet-name>-<file-system-name>`
+ * @overrideProperty resourceId - The resource id is of format `efs-mount-<subnet-id>-<file-system-name>`
  */
 export class EfsMountTargetSchema extends BaseResourceSchema {
   /**

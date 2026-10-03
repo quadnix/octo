@@ -167,27 +167,27 @@ describe('AwsSimpleSubnetModule UT', () => {
        }
      }
 
-     resource "aws_security_group" "sec-grp-efs-mount-private-subnet-test-filesystem-51fb32" {
+     resource "aws_security_group" "sec-grp-efs-mount-region-private-subnet-test-filesystem-51fb32" {
        provider = aws._123-us-east-1
        vpc_id = var.vpc_region_VpcId
      }
 
-     resource "aws_vpc_security_group_ingress_rule" "sec-grp-efs-mount-private-subnet-test-filesystem-51fb32_ingress_0" {
+     resource "aws_vpc_security_group_ingress_rule" "sec-grp-efs-mount-region-private-subnet-test-filesystem-51fb32_ingress_0" {
        provider = aws._123-us-east-1
        cidr_ipv4 = "10.0.1.0/24"
        description = "tcp 2049-2049 10.0.1.0/24"
        ip_protocol = "tcp"
-       security_group_id = aws_security_group.sec-grp-efs-mount-private-subnet-test-filesystem-51fb32.id
+       security_group_id = aws_security_group.sec-grp-efs-mount-region-private-subnet-test-filesystem-51fb32.id
        from_port = 2049
        to_port = 2049
 
-       depends_on = [aws_security_group.sec-grp-efs-mount-private-subnet-test-filesystem-51fb32]
+       depends_on = [aws_security_group.sec-grp-efs-mount-region-private-subnet-test-filesystem-51fb32]
      }
 
-     resource "aws_efs_mount_target" "efs-mount-private-subnet-test-filesystem-51fb32" {
+     resource "aws_efs_mount_target" "efs-mount-region-private-subnet-test-filesystem-51fb32" {
        provider = aws._123-us-east-1
        file_system_id = var.efs_region_test_filesystem_FileSystemId
-       security_groups = [aws_security_group.sec-grp-efs-mount-private-subnet-test-filesystem-51fb32.id]
+       security_groups = [aws_security_group.sec-grp-efs-mount-region-private-subnet-test-filesystem-51fb32.id]
        subnet_id = aws_subnet.subnet-region-private-subnet-51fb32.id
      }
 
@@ -212,20 +212,20 @@ describe('AwsSimpleSubnetModule UT', () => {
        value = aws_network_acl.nacl-region-private-subnet-51fb32.id
      }
 
-     output "sec-grp-efs-mount-private-subnet-test-filesystem-51fb32-Arn" {
-       value = aws_security_group.sec-grp-efs-mount-private-subnet-test-filesystem-51fb32.arn
+     output "sec-grp-efs-mount-region-private-subnet-test-filesystem-51fb32-Arn" {
+       value = aws_security_group.sec-grp-efs-mount-region-private-subnet-test-filesystem-51fb32.arn
      }
 
-     output "sec-grp-efs-mount-private-subnet-test-filesystem-51fb32-GroupId" {
-       value = aws_security_group.sec-grp-efs-mount-private-subnet-test-filesystem-51fb32.id
+     output "sec-grp-efs-mount-region-private-subnet-test-filesystem-51fb32-GroupId" {
+       value = aws_security_group.sec-grp-efs-mount-region-private-subnet-test-filesystem-51fb32.id
      }
 
-     output "efs-mount-private-subnet-test-filesystem-51fb32-MountTargetId" {
-       value = aws_efs_mount_target.efs-mount-private-subnet-test-filesystem-51fb32.id
+     output "efs-mount-region-private-subnet-test-filesystem-51fb32-MountTargetId" {
+       value = aws_efs_mount_target.efs-mount-region-private-subnet-test-filesystem-51fb32.id
      }
 
-     output "efs-mount-private-subnet-test-filesystem-51fb32-NetworkInterfaceId" {
-       value = aws_efs_mount_target.efs-mount-private-subnet-test-filesystem-51fb32.network_interface_id
+     output "efs-mount-region-private-subnet-test-filesystem-51fb32-NetworkInterfaceId" {
+       value = aws_efs_mount_target.efs-mount-region-private-subnet-test-filesystem-51fb32.network_interface_id
      }
 
      # subnet/terragrunt.hcl
@@ -314,8 +314,8 @@ describe('AwsSimpleSubnetModule UT', () => {
        "+ @octo/subnet=subnet-region-private-subnet-51fb32",
        "+ @octo/route-table=rt-region-private-subnet-51fb32",
        "+ @octo/network-acl=nacl-region-private-subnet-51fb32",
-       "+ @octo/security-group=sec-grp-efs-mount-private-subnet-test-filesystem-51fb32",
-       "+ @octo/efs-mount-target=efs-mount-private-subnet-test-filesystem-51fb32",
+       "+ @octo/security-group=sec-grp-efs-mount-region-private-subnet-test-filesystem-51fb32",
+       "+ @octo/efs-mount-target=efs-mount-region-private-subnet-test-filesystem-51fb32",
      ]
     `);
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
@@ -398,8 +398,8 @@ describe('AwsSimpleSubnetModule UT', () => {
     expect(addLocalFilesystem.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(addLocalFilesystem.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "+ @octo/security-group=sec-grp-efs-mount-private-subnet-test-filesystem-51fb32",
-       "+ @octo/efs-mount-target=efs-mount-private-subnet-test-filesystem-51fb32",
+       "+ @octo/security-group=sec-grp-efs-mount-region-private-subnet-test-filesystem-51fb32",
+       "+ @octo/efs-mount-target=efs-mount-region-private-subnet-test-filesystem-51fb32",
      ]
     `);
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
@@ -432,9 +432,9 @@ describe('AwsSimpleSubnetModule UT', () => {
     expect(deleteResult.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(deleteResult.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "- @octo/security-group=sec-grp-efs-mount-private-subnet-test-filesystem-51fb32",
+       "- @octo/security-group=sec-grp-efs-mount-region-private-subnet-test-filesystem-51fb32",
        "- @octo/subnet=subnet-region-private-subnet-51fb32",
-       "- @octo/efs-mount-target=efs-mount-private-subnet-test-filesystem-51fb32",
+       "- @octo/efs-mount-target=efs-mount-region-private-subnet-test-filesystem-51fb32",
        "- @octo/network-acl=nacl-region-private-subnet-51fb32",
        "- @octo/route-table=rt-region-private-subnet-51fb32",
      ]
