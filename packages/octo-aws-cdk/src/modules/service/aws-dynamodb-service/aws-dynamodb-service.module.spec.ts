@@ -97,7 +97,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
        allowed_account_ids = ["123"]
      }
 
-     resource "aws_dynamodb_table" "dynamodb-test-table" {
+     resource "aws_dynamodb_table" "dynamodb-test-table-51fb32" {
        provider = aws._123-us-east-1
        attribute {
          name = "AccountId"
@@ -113,8 +113,8 @@ describe('AwsDynamoDBServiceModule UT', () => {
      }
 
      # dynamodb-module/outputs.tf
-     output "dynamodb-test-table-TableArn" {
-       value = aws_dynamodb_table.dynamodb-test-table.arn
+     output "dynamodb-test-table-51fb32-TableArn" {
+       value = aws_dynamodb_table.dynamodb-test-table-51fb32.arn
      }
 
      # dynamodb-module/terragrunt.hcl
@@ -141,7 +141,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
     `);
     expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "+ @octo/dynamodb=dynamodb-test-table",
+       "+ @octo/dynamodb=dynamodb-test-table-51fb32",
      ]
     `);
   });
@@ -171,7 +171,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
     ).value!;
     expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`
      [
-       "+ @octo/dynamodb=dynamodb-test-table",
+       "+ @octo/dynamodb=dynamodb-test-table-51fb32",
      ]
     `);
 
@@ -226,7 +226,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
     expect(deleteResult.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(deleteResult.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "- @octo/dynamodb=dynamodb-test-table",
+       "- @octo/dynamodb=dynamodb-test-table-51fb32",
      ]
     `);
 
@@ -260,7 +260,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
     ).value!;
     expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`
      [
-       "+ @octo/dynamodb=dynamodb-test-table",
+       "+ @octo/dynamodb=dynamodb-test-table-51fb32",
      ]
     `);
 
@@ -290,7 +290,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
     expect(updateTags.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(updateTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "* @octo/dynamodb=dynamodb-test-table",
+       "* @octo/dynamodb=dynamodb-test-table-51fb32",
      ]
     `);
 
@@ -319,7 +319,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
     expect(deleteTags.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(deleteTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "* @octo/dynamodb=dynamodb-test-table",
+       "* @octo/dynamodb=dynamodb-test-table-51fb32",
      ]
     `);
   });
@@ -372,7 +372,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
       expect(updateBillingProvisionedThroughput.hclDiff).toMatchSnapshot();
       expect(testModuleContainer.digestDiffs(updateBillingProvisionedThroughput.resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "* @octo/dynamodb=dynamodb-test-table",
+         "* @octo/dynamodb=dynamodb-test-table-51fb32",
        ]
       `);
 
@@ -401,7 +401,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
       expect(updateBillingPayPerRequest.hclDiff).toMatchSnapshot();
       expect(testModuleContainer.digestDiffs(updateBillingPayPerRequest.resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "* @octo/dynamodb=dynamodb-test-table",
+         "* @octo/dynamodb=dynamodb-test-table-51fb32",
        ]
       `);
     });
@@ -444,7 +444,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
         expect(hclRender).toMatchSnapshot();
         expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
          [
-           "+ @octo/dynamodb=dynamodb-test-table",
+           "+ @octo/dynamodb=dynamodb-test-table-51fb32",
          ]
         `);
       });
@@ -508,7 +508,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
         expect(addGSI.hclDiff).toMatchSnapshot();
         expect(testModuleContainer.digestDiffs(addGSI.resourceDiffs)).toMatchInlineSnapshot(`
          [
-           "* @octo/dynamodb=dynamodb-test-table",
+           "* @octo/dynamodb=dynamodb-test-table-51fb32",
          ]
         `);
       });
@@ -652,7 +652,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
         expect(updateGSI.hclDiff).toMatchSnapshot();
         expect(testModuleContainer.digestDiffs(updateGSI.resourceDiffs)).toMatchInlineSnapshot(`
          [
-           "* @octo/dynamodb=dynamodb-test-table",
+           "* @octo/dynamodb=dynamodb-test-table-51fb32",
          ]
         `);
       });
@@ -716,7 +716,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
         expect(removeGSI.hclDiff).toMatchSnapshot();
         expect(testModuleContainer.digestDiffs(removeGSI.resourceDiffs)).toMatchInlineSnapshot(`
          [
-           "* @octo/dynamodb=dynamodb-test-table",
+           "* @octo/dynamodb=dynamodb-test-table-51fb32",
          ]
         `);
       });
@@ -766,7 +766,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
         expect(hclRender).toMatchSnapshot();
         expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
          [
-           "+ @octo/dynamodb=dynamodb-test-table",
+           "+ @octo/dynamodb=dynamodb-test-table-51fb32",
          ]
         `);
       });
@@ -852,7 +852,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
         ).value!;
         expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
          [
-           "^ @octo/dynamodb=dynamodb-test-table",
+           "^ @octo/dynamodb=dynamodb-test-table-51fb32",
          ]
         `);
       });
@@ -906,7 +906,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
       expect(addStream.hclDiff).toMatchSnapshot();
       expect(testModuleContainer.digestDiffs(addStream.resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "* @octo/dynamodb=dynamodb-test-table",
+         "* @octo/dynamodb=dynamodb-test-table-51fb32",
        ]
       `);
 
@@ -935,7 +935,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
       expect(removeStream.hclDiff).toMatchSnapshot();
       expect(testModuleContainer.digestDiffs(removeStream.resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "* @octo/dynamodb=dynamodb-test-table",
+         "* @octo/dynamodb=dynamodb-test-table-51fb32",
        ]
       `);
     });
@@ -988,7 +988,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
       expect(addTTL.hclDiff).toMatchSnapshot();
       expect(testModuleContainer.digestDiffs(addTTL.resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "* @octo/dynamodb=dynamodb-test-table",
+         "* @octo/dynamodb=dynamodb-test-table-51fb32",
        ]
       `);
 
@@ -1017,10 +1017,67 @@ describe('AwsDynamoDBServiceModule UT', () => {
       expect(removeTTL.hclDiff).toMatchSnapshot();
       expect(testModuleContainer.digestDiffs(removeTTL.resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "* @octo/dynamodb=dynamodb-test-table",
+         "* @octo/dynamodb=dynamodb-test-table-51fb32",
        ]
       `);
     });
+  });
+
+  it('should create one table per region for tables sharing a name', async () => {
+    const {
+      account: [account],
+      region: [region1],
+    } = await testModuleContainer.createTestModels('testModule', {
+      account: ['aws,123'],
+      app: ['test-app'],
+      region: ['region-1'],
+    });
+    const {
+      region: [region2],
+    } = await testModuleContainer.createTestModels('testModule2', { account: [account], region: ['region-2'] });
+    for (const [region, awsRegionId] of [
+      [region1, 'us-east-1'],
+      [region2, 'eu-west-1'],
+    ] as const) {
+      region.addAnchor(
+        testModuleContainer.createTestAnchor<AwsServerlessRegionAnchorSchema>(
+          'AwsServerlessRegionAnchor',
+          { awsRegionId, regionId: region.regionId, serverless: true },
+          region,
+        ),
+      );
+    }
+    testModuleContainer.registerTerraformProvider('aws', '123', 'eu-west-1');
+
+    const tableInputs = {
+      AttributeDefinitions: [{ AttributeName: 'AccountId', AttributeType: 'S' as const }],
+      billingMode: { settings: {}, type: 'PAY_PER_REQUEST' as const },
+      KeySchema: [{ AttributeName: 'AccountId', KeyType: 'HASH' as const }],
+      TableName: 'accounts',
+    };
+    const { hclRender } = (
+      await testModuleContainer
+        .runModules<AwsDynamoDBServiceModule>(
+          [
+            {
+              inputs: { ...tableInputs, region: stub('${{testModule.model.region}}') },
+              moduleId: 'dynamodb-module-1',
+              type: AwsDynamoDBServiceModule,
+            },
+            {
+              inputs: { ...tableInputs, region: stub('${{testModule2.model.region}}') },
+              moduleId: 'dynamodb-module-2',
+              type: AwsDynamoDBServiceModule,
+            },
+          ],
+          { filterByModuleIds: ['dynamodb-module-1', 'dynamodb-module-2'], terraformTarget: 'skip' },
+        )
+        .next()
+    ).value!;
+
+    expect(hclRender.match(/resource "aws_dynamodb_table"/g)).toHaveLength(2);
+    expect(hclRender).toContain('provider = aws._123-us-east-1');
+    expect(hclRender).toContain('provider = aws._123-eu-west-1');
   });
 
   it('should handle moduleId change', async () => {
@@ -1167,7 +1224,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
       ).value!;
       expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "+ @octo/dynamodb=dynamodb-test-table",
+         "+ @octo/dynamodb=dynamodb-test-table-51fb32",
        ]
       `);
     });

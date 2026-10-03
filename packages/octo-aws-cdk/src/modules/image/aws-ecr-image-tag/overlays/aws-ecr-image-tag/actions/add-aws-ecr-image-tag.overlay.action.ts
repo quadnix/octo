@@ -59,7 +59,7 @@ export class AddAwsEcrImageTagOverlayAction implements IModelAction<AwsEcrImageT
       const { awsAccountId, awsRegionId, imageId } = matchingEcrImage.getSchemaInstance().properties;
 
       // A resource id takes no dots, which an image tag routinely has.
-      const resourceId = `ecr-image-tag-${awsRegionId}-${imageId}-${properties.imageTag.replace(/[^\w-]/g, '-')}`;
+      const resourceId = `ecr-image-tag-${awsAccountId}-${awsRegionId}-${imageId}-${properties.imageTag.replace(/[^\w-]/g, '-')}`;
       const ecrImageTag = new EcrImageTag(
         resourceId,
         {

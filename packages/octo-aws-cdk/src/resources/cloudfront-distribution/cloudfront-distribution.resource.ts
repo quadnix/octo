@@ -302,14 +302,14 @@ export class CloudFrontDistribution extends ATerraformResource<CloudFrontDistrib
     kind: 'alb' | 'lambda',
     parent: MatchingResource<AlbSchema> | MatchingResource<LambdaFunctionSchema>,
   ): void {
-    const parentResourceId = parent.getActual().resourceId;
+    const parentResourceId = parent.getActual().localResourceId;
 
     const origin = this.properties.origins.find((o) => o.kind.kind === kind && o.kind.resourceId === parentResourceId);
     if (!origin) {
       throw new ResourceError(`No ${kind} origin names "${parentResourceId}"!`, this);
     }
 
-    if (this.parents.some((p) => p.getActual().resourceId === parentResourceId)) {
+    if (this.parents.some((p) => p.getActual().localResourceId === parentResourceId)) {
       return;
     }
     parent.addChild('resourceId', this, 'resourceId');
@@ -362,7 +362,7 @@ export class CloudFrontDistribution extends ATerraformResource<CloudFrontDistrib
    * @internal
    */
   private getOriginParent(resourceId: string): CloudFrontDistribution['parents'][number] {
-    const parent = this.parents.find((p) => p.getSchemaInstanceInResourceAction().resourceId === resourceId);
+    const parent = this.parents.find((p) => p.getSchemaInstanceInResourceAction().localResourceId === resourceId);
     if (!parent) {
       throw new ResourceError(
         `CloudFront origin names "${resourceId}", which is not a parent of the distribution!`,
@@ -506,7 +506,7 @@ export class CloudFrontDistribution extends ATerraformResource<CloudFrontDistrib
         `${this.resourceId}_origin_access_control_${label}`,
         {
           name: CloudFrontDistribution.boundedName(
-            `${this.resourceId}-${origin.originId}`,
+            `${this.localResourceId}-${origin.originId}`,
             ORIGIN_ACCESS_CONTROL_NAME_MAX_LENGTH,
           ),
           origin_access_control_origin_type: origin.kind.kind,

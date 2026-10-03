@@ -92,7 +92,7 @@ export class AddAwsEcsAlbServiceModelAction implements IModelAction<AwsEcsAlbSer
 
     // Create ALB security group.
     const albSG = new SecurityGroup(
-      `sec-grp-${actionInputs.inputs.region.regionId}-${actionInputs.inputs.albName}`,
+      `sec-grp-${actionInputs.inputs.albName}`,
       {
         awsAccountId,
         awsRegionId,
@@ -118,7 +118,7 @@ export class AddAwsEcsAlbServiceModelAction implements IModelAction<AwsEcsAlbSer
 
     // Create ALB.
     const alb = new Alb(
-      `alb-${actionInputs.inputs.region.regionId}-${actionInputs.inputs.albName}`,
+      `alb-${actionInputs.inputs.albName}`,
       {
         awsAccountId,
         awsRegionId,

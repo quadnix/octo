@@ -153,7 +153,7 @@ describe('AwsEcrImageTagModule UT', () => {
     `);
     expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "+ @octo/ecr-image-tag=ecr-image-tag-us-east-1-family/image-0-0-1",
+       "+ @octo/ecr-image-tag=ecr-image-tag-123-us-east-1-family/image-0-0-1-86a33f",
      ]
     `);
 
@@ -175,7 +175,7 @@ describe('AwsEcrImageTagModule UT', () => {
     ).value!;
     expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`
      [
-       "+ @octo/ecr-image-tag=ecr-image-tag-us-east-1-family/image-0-0-1",
+       "+ @octo/ecr-image-tag=ecr-image-tag-123-us-east-1-family/image-0-0-1-86a33f",
      ]
     `);
 
@@ -190,7 +190,7 @@ describe('AwsEcrImageTagModule UT', () => {
     expect(hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(resourceDiffsDelete)).toMatchInlineSnapshot(`
      [
-       "- @octo/ecr-image-tag=ecr-image-tag-us-east-1-family/image-0-0-1",
+       "- @octo/ecr-image-tag=ecr-image-tag-123-us-east-1-family/image-0-0-1-86a33f",
      ]
     `);
 
@@ -209,8 +209,8 @@ describe('AwsEcrImageTagModule UT', () => {
 
       expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "+ @octo/ecr-image-tag=ecr-image-tag-us-east-1-family/image-0-0-1",
-         "+ @octo/ecr-image-tag=ecr-image-tag-us-west-2-family/image-0-0-1",
+         "+ @octo/ecr-image-tag=ecr-image-tag-123-us-east-1-family/image-0-0-1-86a33f",
+         "+ @octo/ecr-image-tag=ecr-image-tag-123-us-west-2-family/image-0-0-1-86a33f",
        ]
       `);
     });
@@ -233,7 +233,7 @@ describe('AwsEcrImageTagModule UT', () => {
 
       expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "+ @octo/ecr-image-tag=ecr-image-tag-us-east-1-family/image-1-1",
+         "+ @octo/ecr-image-tag=ecr-image-tag-123-us-east-1-family/image-1-1-86a33f",
        ]
       `);
     });
@@ -259,7 +259,7 @@ describe('AwsEcrImageTagModule UT', () => {
 
       expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "- @octo/ecr-image-tag=ecr-image-tag-us-east-1-family/image-1-0",
+         "- @octo/ecr-image-tag=ecr-image-tag-123-us-east-1-family/image-1-0-86a33f",
        ]
       `);
     });
@@ -279,8 +279,8 @@ describe('AwsEcrImageTagModule UT', () => {
 
       expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "- @octo/ecr-image-tag=ecr-image-tag-us-east-1-family/image-0-0-1",
-         "+ @octo/ecr-image-tag=ecr-image-tag-us-east-1-family/image-0-0-2",
+         "- @octo/ecr-image-tag=ecr-image-tag-123-us-east-1-family/image-0-0-1-86a33f",
+         "+ @octo/ecr-image-tag=ecr-image-tag-123-us-east-1-family/image-0-0-2-86a33f",
        ]
       `);
     });
@@ -327,8 +327,8 @@ describe('AwsEcrImageTagModule UT', () => {
 
       expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "- @octo/ecr-image-tag=ecr-image-tag-us-east-1-family/image-0-0-1",
-         "+ @octo/ecr-image-tag=ecr-image-tag-us-east-1-family/other-image-0-0-1",
+         "- @octo/ecr-image-tag=ecr-image-tag-123-us-east-1-family/image-0-0-1-86a33f",
+         "+ @octo/ecr-image-tag=ecr-image-tag-123-us-east-1-family/other-image-0-0-1-86a33f",
        ]
       `);
     });

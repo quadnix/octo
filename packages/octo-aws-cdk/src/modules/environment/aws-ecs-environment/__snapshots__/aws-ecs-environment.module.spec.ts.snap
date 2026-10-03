@@ -2,7 +2,7 @@
 
 exports[`AwsEcsEnvironmentModule UT input changes should handle environmentName change 1`] = `
 "+ environment/main.tf
-resource "aws_ecs_cluster" "ecs-cluster-region-changed-qa" {
+resource "aws_ecs_cluster" "ecs-cluster-region-changed-qa-51fb32" {
   provider = aws._123-us-east-1
   name = "region-changed-qa"
   setting {
@@ -12,7 +12,7 @@ resource "aws_ecs_cluster" "ecs-cluster-region-changed-qa" {
 }
 
 - environment/main.tf
-resource "aws_ecs_cluster" "ecs-cluster-region-qa" {
+resource "aws_ecs_cluster" "ecs-cluster-region-qa-51fb32" {
   provider = aws._123-us-east-1
   name = "region-qa"
   setting {
@@ -22,13 +22,13 @@ resource "aws_ecs_cluster" "ecs-cluster-region-qa" {
 }
 
 + environment/outputs.tf
-output "ecs-cluster-region-changed-qa-clusterArn" {
-  value = aws_ecs_cluster.ecs-cluster-region-changed-qa.arn
+output "ecs-cluster-region-changed-qa-51fb32-clusterArn" {
+  value = aws_ecs_cluster.ecs-cluster-region-changed-qa-51fb32.arn
 }
 
 - environment/outputs.tf
-output "ecs-cluster-region-qa-clusterArn" {
-  value = aws_ecs_cluster.ecs-cluster-region-qa.arn
+output "ecs-cluster-region-qa-51fb32-clusterArn" {
+  value = aws_ecs_cluster.ecs-cluster-region-qa-51fb32.arn
 }"
 `;
 
@@ -43,7 +43,7 @@ provider "aws" {
 }
 
 - environment/main.tf
-resource "aws_ecs_cluster" "ecs-cluster-region-qa" {
+resource "aws_ecs_cluster" "ecs-cluster-region-qa-51fb32" {
   provider = aws._123-us-east-1
   name = "region-qa"
   setting {
@@ -64,8 +64,8 @@ terraform {
 }
 
 - environment/outputs.tf
-output "ecs-cluster-region-qa-clusterArn" {
-  value = aws_ecs_cluster.ecs-cluster-region-qa.arn
+output "ecs-cluster-region-qa-51fb32-clusterArn" {
+  value = aws_ecs_cluster.ecs-cluster-region-qa-51fb32.arn
 }
 
 - environment/terragrunt.hcl
@@ -85,7 +85,7 @@ remote_state {
 `;
 
 exports[`AwsEcsEnvironmentModule UT should CUD tags 1`] = `
-"~ environment/main.tf resource "aws_ecs_cluster" "ecs-cluster-region-qa" {
+"~ environment/main.tf resource "aws_ecs_cluster" "ecs-cluster-region-qa-51fb32" {
 @@ -8,3 +8,4 @@
     tags = {
 -     tag1 = "value1"
@@ -95,7 +95,7 @@ exports[`AwsEcsEnvironmentModule UT should CUD tags 1`] = `
 `;
 
 exports[`AwsEcsEnvironmentModule UT should CUD tags 3`] = `
-"~ environment/main.tf resource "aws_ecs_cluster" "ecs-cluster-region-qa" {
+"~ environment/main.tf resource "aws_ecs_cluster" "ecs-cluster-region-qa-51fb32" {
 @@ -7,6 +7,2 @@
     }
 -   tags = {
@@ -114,7 +114,7 @@ provider "aws" {
 }
 
 - environment-1/main.tf
-resource "aws_ecs_cluster" "ecs-cluster-region-qa" {
+resource "aws_ecs_cluster" "ecs-cluster-region-qa-51fb32" {
   provider = aws._123-us-east-1
   name = "region-qa"
   setting {
@@ -135,8 +135,8 @@ terraform {
 }
 
 - environment-1/outputs.tf
-output "ecs-cluster-region-qa-clusterArn" {
-  value = aws_ecs_cluster.ecs-cluster-region-qa.arn
+output "ecs-cluster-region-qa-51fb32-clusterArn" {
+  value = aws_ecs_cluster.ecs-cluster-region-qa-51fb32.arn
 }
 
 - environment-1/terragrunt.hcl
@@ -162,7 +162,7 @@ provider "aws" {
 }
 
 + environment-2/main.tf
-resource "aws_ecs_cluster" "ecs-cluster-region-qa" {
+resource "aws_ecs_cluster" "ecs-cluster-region-qa-51fb32" {
   provider = aws._123-us-east-1
   name = "region-qa"
   setting {
@@ -183,8 +183,8 @@ terraform {
 }
 
 + environment-2/outputs.tf
-output "ecs-cluster-region-qa-clusterArn" {
-  value = aws_ecs_cluster.ecs-cluster-region-qa.arn
+output "ecs-cluster-region-qa-51fb32-clusterArn" {
+  value = aws_ecs_cluster.ecs-cluster-region-qa-51fb32.arn
 }
 
 + environment-2/terragrunt.hcl

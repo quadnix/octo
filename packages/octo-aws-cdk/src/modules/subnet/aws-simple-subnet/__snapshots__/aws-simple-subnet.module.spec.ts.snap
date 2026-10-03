@@ -2,9 +2,9 @@
 
 exports[`AwsSimpleSubnetModule UT input changes should handle subnetName change 1`] = `
 "+ subnet/main.tf
-resource "aws_network_acl" "nacl-region-changed-subnet" {
+resource "aws_network_acl" "nacl-region-changed-subnet-51fb32" {
   provider = aws._123-us-east-1
-  subnet_ids = [aws_subnet.subnet-region-changed-subnet.id]
+  subnet_ids = [aws_subnet.subnet-region-changed-subnet-51fb32.id]
   vpc_id = var.vpc_region_VpcId
   ingress {
     action = "allow"
@@ -25,9 +25,9 @@ resource "aws_network_acl" "nacl-region-changed-subnet" {
 }
 
 - subnet/main.tf
-resource "aws_network_acl" "nacl-region-private-subnet" {
+resource "aws_network_acl" "nacl-region-private-subnet-51fb32" {
   provider = aws._123-us-east-1
-  subnet_ids = [aws_subnet.subnet-region-private-subnet.id]
+  subnet_ids = [aws_subnet.subnet-region-private-subnet-51fb32.id]
   vpc_id = var.vpc_region_VpcId
   ingress {
     action = "allow"
@@ -48,37 +48,37 @@ resource "aws_network_acl" "nacl-region-private-subnet" {
 }
 
 + subnet/main.tf
-resource "aws_route_table_association" "rt-region-changed-subnet_assoc" {
+resource "aws_route_table_association" "rt-region-changed-subnet-51fb32_assoc" {
   provider = aws._123-us-east-1
-  route_table_id = aws_route_table.rt-region-changed-subnet.id
-  subnet_id = aws_subnet.subnet-region-changed-subnet.id
+  route_table_id = aws_route_table.rt-region-changed-subnet-51fb32.id
+  subnet_id = aws_subnet.subnet-region-changed-subnet-51fb32.id
 
-  depends_on = [aws_route_table.rt-region-changed-subnet]
+  depends_on = [aws_route_table.rt-region-changed-subnet-51fb32]
 }
 
 - subnet/main.tf
-resource "aws_route_table_association" "rt-region-private-subnet_assoc" {
+resource "aws_route_table_association" "rt-region-private-subnet-51fb32_assoc" {
   provider = aws._123-us-east-1
-  route_table_id = aws_route_table.rt-region-private-subnet.id
-  subnet_id = aws_subnet.subnet-region-private-subnet.id
+  route_table_id = aws_route_table.rt-region-private-subnet-51fb32.id
+  subnet_id = aws_subnet.subnet-region-private-subnet-51fb32.id
 
-  depends_on = [aws_route_table.rt-region-private-subnet]
+  depends_on = [aws_route_table.rt-region-private-subnet-51fb32]
 }
 
 + subnet/main.tf
-resource "aws_route_table" "rt-region-changed-subnet" {
+resource "aws_route_table" "rt-region-changed-subnet-51fb32" {
   provider = aws._123-us-east-1
   vpc_id = var.vpc_region_VpcId
 }
 
 - subnet/main.tf
-resource "aws_route_table" "rt-region-private-subnet" {
+resource "aws_route_table" "rt-region-private-subnet-51fb32" {
   provider = aws._123-us-east-1
   vpc_id = var.vpc_region_VpcId
 }
 
 + subnet/main.tf
-resource "aws_subnet" "subnet-region-changed-subnet" {
+resource "aws_subnet" "subnet-region-changed-subnet-51fb32" {
   provider = aws._123-us-east-1
   availability_zone = "us-east-1a"
   cidr_block = "10.0.1.0/24"
@@ -86,7 +86,7 @@ resource "aws_subnet" "subnet-region-changed-subnet" {
 }
 
 - subnet/main.tf
-resource "aws_subnet" "subnet-region-private-subnet" {
+resource "aws_subnet" "subnet-region-private-subnet-51fb32" {
   provider = aws._123-us-east-1
   availability_zone = "us-east-1a"
   cidr_block = "10.0.1.0/24"
@@ -94,58 +94,58 @@ resource "aws_subnet" "subnet-region-private-subnet" {
 }
 
 + subnet/outputs.tf
-output "nacl-region-changed-subnet-NetworkAclId" {
-  value = aws_network_acl.nacl-region-changed-subnet.id
+output "nacl-region-changed-subnet-51fb32-NetworkAclId" {
+  value = aws_network_acl.nacl-region-changed-subnet-51fb32.id
 }
 
 - subnet/outputs.tf
-output "nacl-region-private-subnet-NetworkAclId" {
-  value = aws_network_acl.nacl-region-private-subnet.id
+output "nacl-region-private-subnet-51fb32-NetworkAclId" {
+  value = aws_network_acl.nacl-region-private-subnet-51fb32.id
 }
 
 + subnet/outputs.tf
-output "rt-region-changed-subnet-RouteTableId" {
-  value = aws_route_table.rt-region-changed-subnet.id
+output "rt-region-changed-subnet-51fb32-RouteTableId" {
+  value = aws_route_table.rt-region-changed-subnet-51fb32.id
 }
 
 + subnet/outputs.tf
-output "rt-region-changed-subnet-subnetAssociationId" {
-  value = aws_route_table_association.rt-region-changed-subnet_assoc.id
+output "rt-region-changed-subnet-51fb32-subnetAssociationId" {
+  value = aws_route_table_association.rt-region-changed-subnet-51fb32_assoc.id
 }
 
 - subnet/outputs.tf
-output "rt-region-private-subnet-RouteTableId" {
-  value = aws_route_table.rt-region-private-subnet.id
+output "rt-region-private-subnet-51fb32-RouteTableId" {
+  value = aws_route_table.rt-region-private-subnet-51fb32.id
 }
 
 - subnet/outputs.tf
-output "rt-region-private-subnet-subnetAssociationId" {
-  value = aws_route_table_association.rt-region-private-subnet_assoc.id
+output "rt-region-private-subnet-51fb32-subnetAssociationId" {
+  value = aws_route_table_association.rt-region-private-subnet-51fb32_assoc.id
 }
 
 + subnet/outputs.tf
-output "subnet-region-changed-subnet-SubnetArn" {
-  value = aws_subnet.subnet-region-changed-subnet.arn
+output "subnet-region-changed-subnet-51fb32-SubnetArn" {
+  value = aws_subnet.subnet-region-changed-subnet-51fb32.arn
 }
 
 + subnet/outputs.tf
-output "subnet-region-changed-subnet-SubnetId" {
-  value = aws_subnet.subnet-region-changed-subnet.id
+output "subnet-region-changed-subnet-51fb32-SubnetId" {
+  value = aws_subnet.subnet-region-changed-subnet-51fb32.id
 }
 
 - subnet/outputs.tf
-output "subnet-region-private-subnet-SubnetArn" {
-  value = aws_subnet.subnet-region-private-subnet.arn
+output "subnet-region-private-subnet-51fb32-SubnetArn" {
+  value = aws_subnet.subnet-region-private-subnet-51fb32.arn
 }
 
 - subnet/outputs.tf
-output "subnet-region-private-subnet-SubnetId" {
-  value = aws_subnet.subnet-region-private-subnet.id
+output "subnet-region-private-subnet-51fb32-SubnetId" {
+  value = aws_subnet.subnet-region-private-subnet-51fb32.id
 }"
 `;
 
 exports[`AwsSimpleSubnetModule UT input changes should handle subnetOptions change 1`] = `
-"~ subnet/main.tf resource "aws_network_acl" "nacl-region-private-subnet" {
+"~ subnet/main.tf resource "aws_network_acl" "nacl-region-private-subnet-51fb32" {
 @@ -5,3 +5,3 @@
     ingress {
 -     action = "allow"
@@ -159,7 +159,7 @@ exports[`AwsSimpleSubnetModule UT input changes should handle subnetOptions chan
 `;
 
 exports[`AwsSimpleSubnetModule UT should CUD 1`] = `
-"~ subnet/main.tf resource "aws_network_acl" "nacl-region-private-subnet" {
+"~ subnet/main.tf resource "aws_network_acl" "nacl-region-private-subnet-51fb32" {
 @@ -5,3 +5,3 @@
     ingress {
 -     action = "allow"
@@ -174,50 +174,50 @@ exports[`AwsSimpleSubnetModule UT should CUD 1`] = `
 
 exports[`AwsSimpleSubnetModule UT should CUD 3`] = `
 "+ subnet/main.tf
-resource "aws_efs_mount_target" "efs-mount-region-private-subnet-test-filesystem" {
+resource "aws_efs_mount_target" "efs-mount-private-subnet-test-filesystem-51fb32" {
   provider = aws._123-us-east-1
   file_system_id = var.efs_region_test_filesystem_FileSystemId
-  security_groups = [aws_security_group.sec-grp-efs-mount-region-private-subnet-test-filesystem.id]
-  subnet_id = aws_subnet.subnet-region-private-subnet.id
+  security_groups = [aws_security_group.sec-grp-efs-mount-private-subnet-test-filesystem-51fb32.id]
+  subnet_id = aws_subnet.subnet-region-private-subnet-51fb32.id
 }
 
 + subnet/main.tf
-resource "aws_security_group" "sec-grp-efs-mount-region-private-subnet-test-filesystem" {
+resource "aws_security_group" "sec-grp-efs-mount-private-subnet-test-filesystem-51fb32" {
   provider = aws._123-us-east-1
   vpc_id = var.vpc_region_VpcId
 }
 
 + subnet/main.tf
-resource "aws_vpc_security_group_ingress_rule" "sec-grp-efs-mount-region-private-subnet-test-filesystem_ingress_0" {
+resource "aws_vpc_security_group_ingress_rule" "sec-grp-efs-mount-private-subnet-test-filesystem-51fb32_ingress_0" {
   provider = aws._123-us-east-1
   cidr_ipv4 = "10.0.1.0/24"
   description = "tcp 2049-2049 10.0.1.0/24"
   ip_protocol = "tcp"
-  security_group_id = aws_security_group.sec-grp-efs-mount-region-private-subnet-test-filesystem.id
+  security_group_id = aws_security_group.sec-grp-efs-mount-private-subnet-test-filesystem-51fb32.id
   from_port = 2049
   to_port = 2049
 
-  depends_on = [aws_security_group.sec-grp-efs-mount-region-private-subnet-test-filesystem]
+  depends_on = [aws_security_group.sec-grp-efs-mount-private-subnet-test-filesystem-51fb32]
 }
 
 + subnet/outputs.tf
-output "efs-mount-region-private-subnet-test-filesystem-MountTargetId" {
-  value = aws_efs_mount_target.efs-mount-region-private-subnet-test-filesystem.id
+output "efs-mount-private-subnet-test-filesystem-51fb32-MountTargetId" {
+  value = aws_efs_mount_target.efs-mount-private-subnet-test-filesystem-51fb32.id
 }
 
 + subnet/outputs.tf
-output "efs-mount-region-private-subnet-test-filesystem-NetworkInterfaceId" {
-  value = aws_efs_mount_target.efs-mount-region-private-subnet-test-filesystem.network_interface_id
+output "efs-mount-private-subnet-test-filesystem-51fb32-NetworkInterfaceId" {
+  value = aws_efs_mount_target.efs-mount-private-subnet-test-filesystem-51fb32.network_interface_id
 }
 
 + subnet/outputs.tf
-output "sec-grp-efs-mount-region-private-subnet-test-filesystem-Arn" {
-  value = aws_security_group.sec-grp-efs-mount-region-private-subnet-test-filesystem.arn
+output "sec-grp-efs-mount-private-subnet-test-filesystem-51fb32-Arn" {
+  value = aws_security_group.sec-grp-efs-mount-private-subnet-test-filesystem-51fb32.arn
 }
 
 + subnet/outputs.tf
-output "sec-grp-efs-mount-region-private-subnet-test-filesystem-GroupId" {
-  value = aws_security_group.sec-grp-efs-mount-region-private-subnet-test-filesystem.id
+output "sec-grp-efs-mount-private-subnet-test-filesystem-51fb32-GroupId" {
+  value = aws_security_group.sec-grp-efs-mount-private-subnet-test-filesystem-51fb32.id
 }
 
 ~ subnet/terragrunt.hcl dependency "testModule" {
@@ -245,17 +245,17 @@ provider "aws" {
 }
 
 - subnet/main.tf
-resource "aws_efs_mount_target" "efs-mount-region-private-subnet-test-filesystem" {
+resource "aws_efs_mount_target" "efs-mount-private-subnet-test-filesystem-51fb32" {
   provider = aws._123-us-east-1
   file_system_id = var.efs_region_test_filesystem_FileSystemId
-  security_groups = [aws_security_group.sec-grp-efs-mount-region-private-subnet-test-filesystem.id]
-  subnet_id = aws_subnet.subnet-region-private-subnet.id
+  security_groups = [aws_security_group.sec-grp-efs-mount-private-subnet-test-filesystem-51fb32.id]
+  subnet_id = aws_subnet.subnet-region-private-subnet-51fb32.id
 }
 
 - subnet/main.tf
-resource "aws_network_acl" "nacl-region-private-subnet" {
+resource "aws_network_acl" "nacl-region-private-subnet-51fb32" {
   provider = aws._123-us-east-1
-  subnet_ids = [aws_subnet.subnet-region-private-subnet.id]
+  subnet_ids = [aws_subnet.subnet-region-private-subnet-51fb32.id]
   vpc_id = var.vpc_region_VpcId
   ingress {
     action = "deny"
@@ -276,28 +276,28 @@ resource "aws_network_acl" "nacl-region-private-subnet" {
 }
 
 - subnet/main.tf
-resource "aws_route_table_association" "rt-region-private-subnet_assoc" {
+resource "aws_route_table_association" "rt-region-private-subnet-51fb32_assoc" {
   provider = aws._123-us-east-1
-  route_table_id = aws_route_table.rt-region-private-subnet.id
-  subnet_id = aws_subnet.subnet-region-private-subnet.id
+  route_table_id = aws_route_table.rt-region-private-subnet-51fb32.id
+  subnet_id = aws_subnet.subnet-region-private-subnet-51fb32.id
 
-  depends_on = [aws_route_table.rt-region-private-subnet]
+  depends_on = [aws_route_table.rt-region-private-subnet-51fb32]
 }
 
 - subnet/main.tf
-resource "aws_route_table" "rt-region-private-subnet" {
-  provider = aws._123-us-east-1
-  vpc_id = var.vpc_region_VpcId
-}
-
-- subnet/main.tf
-resource "aws_security_group" "sec-grp-efs-mount-region-private-subnet-test-filesystem" {
+resource "aws_route_table" "rt-region-private-subnet-51fb32" {
   provider = aws._123-us-east-1
   vpc_id = var.vpc_region_VpcId
 }
 
 - subnet/main.tf
-resource "aws_subnet" "subnet-region-private-subnet" {
+resource "aws_security_group" "sec-grp-efs-mount-private-subnet-test-filesystem-51fb32" {
+  provider = aws._123-us-east-1
+  vpc_id = var.vpc_region_VpcId
+}
+
+- subnet/main.tf
+resource "aws_subnet" "subnet-region-private-subnet-51fb32" {
   provider = aws._123-us-east-1
   availability_zone = "us-east-1a"
   cidr_block = "10.0.1.0/24"
@@ -305,16 +305,16 @@ resource "aws_subnet" "subnet-region-private-subnet" {
 }
 
 - subnet/main.tf
-resource "aws_vpc_security_group_ingress_rule" "sec-grp-efs-mount-region-private-subnet-test-filesystem_ingress_0" {
+resource "aws_vpc_security_group_ingress_rule" "sec-grp-efs-mount-private-subnet-test-filesystem-51fb32_ingress_0" {
   provider = aws._123-us-east-1
   cidr_ipv4 = "10.0.1.0/24"
   description = "tcp 2049-2049 10.0.1.0/24"
   ip_protocol = "tcp"
-  security_group_id = aws_security_group.sec-grp-efs-mount-region-private-subnet-test-filesystem.id
+  security_group_id = aws_security_group.sec-grp-efs-mount-private-subnet-test-filesystem-51fb32.id
   from_port = 2049
   to_port = 2049
 
-  depends_on = [aws_security_group.sec-grp-efs-mount-region-private-subnet-test-filesystem]
+  depends_on = [aws_security_group.sec-grp-efs-mount-private-subnet-test-filesystem-51fb32]
 }
 
 - subnet/main.tf
@@ -329,48 +329,48 @@ terraform {
 }
 
 - subnet/outputs.tf
-output "efs-mount-region-private-subnet-test-filesystem-MountTargetId" {
-  value = aws_efs_mount_target.efs-mount-region-private-subnet-test-filesystem.id
+output "efs-mount-private-subnet-test-filesystem-51fb32-MountTargetId" {
+  value = aws_efs_mount_target.efs-mount-private-subnet-test-filesystem-51fb32.id
 }
 
 - subnet/outputs.tf
-output "efs-mount-region-private-subnet-test-filesystem-NetworkInterfaceId" {
-  value = aws_efs_mount_target.efs-mount-region-private-subnet-test-filesystem.network_interface_id
+output "efs-mount-private-subnet-test-filesystem-51fb32-NetworkInterfaceId" {
+  value = aws_efs_mount_target.efs-mount-private-subnet-test-filesystem-51fb32.network_interface_id
 }
 
 - subnet/outputs.tf
-output "nacl-region-private-subnet-NetworkAclId" {
-  value = aws_network_acl.nacl-region-private-subnet.id
+output "nacl-region-private-subnet-51fb32-NetworkAclId" {
+  value = aws_network_acl.nacl-region-private-subnet-51fb32.id
 }
 
 - subnet/outputs.tf
-output "rt-region-private-subnet-RouteTableId" {
-  value = aws_route_table.rt-region-private-subnet.id
+output "rt-region-private-subnet-51fb32-RouteTableId" {
+  value = aws_route_table.rt-region-private-subnet-51fb32.id
 }
 
 - subnet/outputs.tf
-output "rt-region-private-subnet-subnetAssociationId" {
-  value = aws_route_table_association.rt-region-private-subnet_assoc.id
+output "rt-region-private-subnet-51fb32-subnetAssociationId" {
+  value = aws_route_table_association.rt-region-private-subnet-51fb32_assoc.id
 }
 
 - subnet/outputs.tf
-output "sec-grp-efs-mount-region-private-subnet-test-filesystem-Arn" {
-  value = aws_security_group.sec-grp-efs-mount-region-private-subnet-test-filesystem.arn
+output "sec-grp-efs-mount-private-subnet-test-filesystem-51fb32-Arn" {
+  value = aws_security_group.sec-grp-efs-mount-private-subnet-test-filesystem-51fb32.arn
 }
 
 - subnet/outputs.tf
-output "sec-grp-efs-mount-region-private-subnet-test-filesystem-GroupId" {
-  value = aws_security_group.sec-grp-efs-mount-region-private-subnet-test-filesystem.id
+output "sec-grp-efs-mount-private-subnet-test-filesystem-51fb32-GroupId" {
+  value = aws_security_group.sec-grp-efs-mount-private-subnet-test-filesystem-51fb32.id
 }
 
 - subnet/outputs.tf
-output "subnet-region-private-subnet-SubnetArn" {
-  value = aws_subnet.subnet-region-private-subnet.arn
+output "subnet-region-private-subnet-51fb32-SubnetArn" {
+  value = aws_subnet.subnet-region-private-subnet-51fb32.arn
 }
 
 - subnet/outputs.tf
-output "subnet-region-private-subnet-SubnetId" {
-  value = aws_subnet.subnet-region-private-subnet.id
+output "subnet-region-private-subnet-51fb32-SubnetId" {
+  value = aws_subnet.subnet-region-private-subnet-51fb32.id
 }
 
 - subnet/terragrunt.hcl
@@ -411,7 +411,7 @@ variable "vpc_region_VpcId" {}"
 `;
 
 exports[`AwsSimpleSubnetModule UT should CUD tags 1`] = `
-"~ subnet/main.tf resource "aws_network_acl" "nacl-region-private-subnet" {
+"~ subnet/main.tf resource "aws_network_acl" "nacl-region-private-subnet-51fb32" {
 @@ -21,3 +21,4 @@
     tags = {
 -     tag1 = "value1"
@@ -419,7 +419,7 @@ exports[`AwsSimpleSubnetModule UT should CUD tags 1`] = `
 +     tag2 = "value2"
     }
 
-~ subnet/main.tf resource "aws_route_table" "rt-region-private-subnet" {
+~ subnet/main.tf resource "aws_route_table" "rt-region-private-subnet-51fb32" {
 @@ -4,3 +4,4 @@
     tags = {
 -     tag1 = "value1"
@@ -427,7 +427,7 @@ exports[`AwsSimpleSubnetModule UT should CUD tags 1`] = `
 +     tag2 = "value2"
     }
 
-~ subnet/main.tf resource "aws_subnet" "subnet-region-private-subnet" {
+~ subnet/main.tf resource "aws_subnet" "subnet-region-private-subnet-51fb32" {
 @@ -6,3 +6,4 @@
     tags = {
 -     tag1 = "value1"
@@ -437,7 +437,7 @@ exports[`AwsSimpleSubnetModule UT should CUD tags 1`] = `
 `;
 
 exports[`AwsSimpleSubnetModule UT should CUD tags 3`] = `
-"~ subnet/main.tf resource "aws_network_acl" "nacl-region-private-subnet" {
+"~ subnet/main.tf resource "aws_network_acl" "nacl-region-private-subnet-51fb32" {
 @@ -20,6 +20,2 @@
     }
 -   tags = {
@@ -446,7 +446,7 @@ exports[`AwsSimpleSubnetModule UT should CUD tags 3`] = `
 -   }
   }
 
-~ subnet/main.tf resource "aws_route_table" "rt-region-private-subnet" {
+~ subnet/main.tf resource "aws_route_table" "rt-region-private-subnet-51fb32" {
 @@ -3,6 +3,2 @@
     vpc_id = var.vpc_region_VpcId
 -   tags = {
@@ -455,7 +455,7 @@ exports[`AwsSimpleSubnetModule UT should CUD tags 3`] = `
 -   }
   }
 
-~ subnet/main.tf resource "aws_subnet" "subnet-region-private-subnet" {
+~ subnet/main.tf resource "aws_subnet" "subnet-region-private-subnet-51fb32" {
 @@ -5,6 +5,2 @@
     vpc_id = var.vpc_region_VpcId
 -   tags = {
@@ -466,7 +466,7 @@ exports[`AwsSimpleSubnetModule UT should CUD tags 3`] = `
 `;
 
 exports[`AwsSimpleSubnetModule UT should associate and disassociate private subnet with public subnet with a NAT Gateway 1`] = `
-"~ subnet1/main.tf resource "aws_network_acl" "nacl-region-public-subnet" {
+"~ subnet1/main.tf resource "aws_network_acl" "nacl-region-public-subnet-51fb32" {
 @@ -20,10 +20,2 @@
     }
 -   ingress {
@@ -490,7 +490,7 @@ exports[`AwsSimpleSubnetModule UT should associate and disassociate private subn
 -   }
   }
 
-~ subnet2/main.tf resource "aws_network_acl" "nacl-region-private-subnet" {
+~ subnet2/main.tf resource "aws_network_acl" "nacl-region-private-subnet-51fb32" {
 @@ -12,18 +12,2 @@
     }
 -   ingress {
@@ -530,12 +530,12 @@ exports[`AwsSimpleSubnetModule UT should associate and disassociate private subn
 -   }
   }
 
-~ subnet2/main.tf resource "aws_route_table" "rt-region-private-subnet" {
+~ subnet2/main.tf resource "aws_route_table" "rt-region-private-subnet-51fb32" {
 @@ -3,6 +3,2 @@
     vpc_id = var.vpc_region_VpcId
 -   route {
 -     cidr_block = "0.0.0.0/0"
--     nat_gateway_id = var.nat_gateway_region_public_subnet_NatGatewayId
+-     nat_gateway_id = var.nat_gateway_region_public_subnet_51fb32_NatGatewayId
 -   }
   }
 
@@ -544,7 +544,7 @@ dependency "subnet1" {
   config_path = "../subnet1"
 
   mock_outputs = {
-    "nat-gateway-region-public-subnet-NatGatewayId" = "nat-0123456789abcdef0"
+    "nat-gateway-region-public-subnet-51fb32-NatGatewayId" = "nat-0123456789abcdef0"
   }
   mock_outputs_allowed_terraform_commands = ["init", "plan", "show", "validate"]
   mock_outputs_merge_strategy_with_state = "shallow"
@@ -553,43 +553,43 @@ dependency "subnet1" {
 ~ subnet2/terragrunt.hcl inputs = {
 @@ -1,3 +1,2 @@
   inputs = {
--   nat_gateway_region_public_subnet_NatGatewayId = dependency.subnet1.outputs["nat-gateway-region-public-subnet-NatGatewayId"]
+-   nat_gateway_region_public_subnet_51fb32_NatGatewayId = dependency.subnet1.outputs["nat-gateway-region-public-subnet-51fb32-NatGatewayId"]
     vpc_region_VpcId = dependency.testModule.outputs["vpc-region-VpcId"]
 
 - subnet2/variables.tf
-variable "nat_gateway_region_public_subnet_NatGatewayId" {}"
+variable "nat_gateway_region_public_subnet_51fb32_NatGatewayId" {}"
 `;
 
 exports[`AwsSimpleSubnetModule UT should associate and disassociate private subnet with public subnet with a NAT Gateway 3`] = `
 "- subnet1/main.tf
-resource "aws_eip" "nat-gateway-region-public-subnet_eip" {
+resource "aws_eip" "nat-gateway-region-public-subnet-51fb32_eip" {
   provider = aws._123-us-east-1
   domain = "vpc"
 }
 
 - subnet1/main.tf
-resource "aws_nat_gateway" "nat-gateway-region-public-subnet" {
+resource "aws_nat_gateway" "nat-gateway-region-public-subnet-51fb32" {
   provider = aws._123-us-east-1
-  allocation_id = aws_eip.nat-gateway-region-public-subnet_eip.id
+  allocation_id = aws_eip.nat-gateway-region-public-subnet-51fb32_eip.id
   connectivity_type = "public"
-  subnet_id = aws_subnet.subnet-region-public-subnet.id
+  subnet_id = aws_subnet.subnet-region-public-subnet-51fb32.id
 
-  depends_on = [aws_eip.nat-gateway-region-public-subnet_eip]
+  depends_on = [aws_eip.nat-gateway-region-public-subnet-51fb32_eip]
 }
 
 - subnet1/outputs.tf
-output "nat-gateway-region-public-subnet-AllocationId" {
-  value = aws_eip.nat-gateway-region-public-subnet_eip.id
+output "nat-gateway-region-public-subnet-51fb32-AllocationId" {
+  value = aws_eip.nat-gateway-region-public-subnet-51fb32_eip.id
 }
 
 - subnet1/outputs.tf
-output "nat-gateway-region-public-subnet-NatGatewayId" {
-  value = aws_nat_gateway.nat-gateway-region-public-subnet.id
+output "nat-gateway-region-public-subnet-51fb32-NatGatewayId" {
+  value = aws_nat_gateway.nat-gateway-region-public-subnet-51fb32.id
 }"
 `;
 
 exports[`AwsSimpleSubnetModule UT should associate and disassociate subnet with siblings 1`] = `
-"~ subnet1/main.tf resource "aws_network_acl" "nacl-region-private-subnet" {
+"~ subnet1/main.tf resource "aws_network_acl" "nacl-region-private-subnet-51fb32" {
 @@ -12,10 +12,2 @@
     }
 -   ingress {
@@ -613,7 +613,7 @@ exports[`AwsSimpleSubnetModule UT should associate and disassociate subnet with 
 -   }
   }
 
-~ subnet2/main.tf resource "aws_network_acl" "nacl-region-public-subnet" {
+~ subnet2/main.tf resource "aws_network_acl" "nacl-region-public-subnet-51fb32" {
 @@ -20,10 +20,2 @@
     }
 -   ingress {
@@ -647,9 +647,9 @@ provider "aws" {
 }
 
 - subnet-1/main.tf
-resource "aws_network_acl" "nacl-region-private-subnet" {
+resource "aws_network_acl" "nacl-region-private-subnet-51fb32" {
   provider = aws._123-us-east-1
-  subnet_ids = [aws_subnet.subnet-region-private-subnet.id]
+  subnet_ids = [aws_subnet.subnet-region-private-subnet-51fb32.id]
   vpc_id = var.vpc_region_VpcId
   ingress {
     action = "allow"
@@ -670,22 +670,22 @@ resource "aws_network_acl" "nacl-region-private-subnet" {
 }
 
 - subnet-1/main.tf
-resource "aws_route_table_association" "rt-region-private-subnet_assoc" {
+resource "aws_route_table_association" "rt-region-private-subnet-51fb32_assoc" {
   provider = aws._123-us-east-1
-  route_table_id = aws_route_table.rt-region-private-subnet.id
-  subnet_id = aws_subnet.subnet-region-private-subnet.id
+  route_table_id = aws_route_table.rt-region-private-subnet-51fb32.id
+  subnet_id = aws_subnet.subnet-region-private-subnet-51fb32.id
 
-  depends_on = [aws_route_table.rt-region-private-subnet]
+  depends_on = [aws_route_table.rt-region-private-subnet-51fb32]
 }
 
 - subnet-1/main.tf
-resource "aws_route_table" "rt-region-private-subnet" {
+resource "aws_route_table" "rt-region-private-subnet-51fb32" {
   provider = aws._123-us-east-1
   vpc_id = var.vpc_region_VpcId
 }
 
 - subnet-1/main.tf
-resource "aws_subnet" "subnet-region-private-subnet" {
+resource "aws_subnet" "subnet-region-private-subnet-51fb32" {
   provider = aws._123-us-east-1
   availability_zone = "us-east-1a"
   cidr_block = "10.0.1.0/24"
@@ -704,28 +704,28 @@ terraform {
 }
 
 - subnet-1/outputs.tf
-output "nacl-region-private-subnet-NetworkAclId" {
-  value = aws_network_acl.nacl-region-private-subnet.id
+output "nacl-region-private-subnet-51fb32-NetworkAclId" {
+  value = aws_network_acl.nacl-region-private-subnet-51fb32.id
 }
 
 - subnet-1/outputs.tf
-output "rt-region-private-subnet-RouteTableId" {
-  value = aws_route_table.rt-region-private-subnet.id
+output "rt-region-private-subnet-51fb32-RouteTableId" {
+  value = aws_route_table.rt-region-private-subnet-51fb32.id
 }
 
 - subnet-1/outputs.tf
-output "rt-region-private-subnet-subnetAssociationId" {
-  value = aws_route_table_association.rt-region-private-subnet_assoc.id
+output "rt-region-private-subnet-51fb32-subnetAssociationId" {
+  value = aws_route_table_association.rt-region-private-subnet-51fb32_assoc.id
 }
 
 - subnet-1/outputs.tf
-output "subnet-region-private-subnet-SubnetArn" {
-  value = aws_subnet.subnet-region-private-subnet.arn
+output "subnet-region-private-subnet-51fb32-SubnetArn" {
+  value = aws_subnet.subnet-region-private-subnet-51fb32.arn
 }
 
 - subnet-1/outputs.tf
-output "subnet-region-private-subnet-SubnetId" {
-  value = aws_subnet.subnet-region-private-subnet.id
+output "subnet-region-private-subnet-51fb32-SubnetId" {
+  value = aws_subnet.subnet-region-private-subnet-51fb32.id
 }
 
 - subnet-1/terragrunt.hcl
@@ -767,9 +767,9 @@ provider "aws" {
 }
 
 + subnet-2/main.tf
-resource "aws_network_acl" "nacl-region-private-subnet" {
+resource "aws_network_acl" "nacl-region-private-subnet-51fb32" {
   provider = aws._123-us-east-1
-  subnet_ids = [aws_subnet.subnet-region-private-subnet.id]
+  subnet_ids = [aws_subnet.subnet-region-private-subnet-51fb32.id]
   vpc_id = var.vpc_region_VpcId
   ingress {
     action = "allow"
@@ -790,22 +790,22 @@ resource "aws_network_acl" "nacl-region-private-subnet" {
 }
 
 + subnet-2/main.tf
-resource "aws_route_table_association" "rt-region-private-subnet_assoc" {
+resource "aws_route_table_association" "rt-region-private-subnet-51fb32_assoc" {
   provider = aws._123-us-east-1
-  route_table_id = aws_route_table.rt-region-private-subnet.id
-  subnet_id = aws_subnet.subnet-region-private-subnet.id
+  route_table_id = aws_route_table.rt-region-private-subnet-51fb32.id
+  subnet_id = aws_subnet.subnet-region-private-subnet-51fb32.id
 
-  depends_on = [aws_route_table.rt-region-private-subnet]
+  depends_on = [aws_route_table.rt-region-private-subnet-51fb32]
 }
 
 + subnet-2/main.tf
-resource "aws_route_table" "rt-region-private-subnet" {
+resource "aws_route_table" "rt-region-private-subnet-51fb32" {
   provider = aws._123-us-east-1
   vpc_id = var.vpc_region_VpcId
 }
 
 + subnet-2/main.tf
-resource "aws_subnet" "subnet-region-private-subnet" {
+resource "aws_subnet" "subnet-region-private-subnet-51fb32" {
   provider = aws._123-us-east-1
   availability_zone = "us-east-1a"
   cidr_block = "10.0.1.0/24"
@@ -824,28 +824,28 @@ terraform {
 }
 
 + subnet-2/outputs.tf
-output "nacl-region-private-subnet-NetworkAclId" {
-  value = aws_network_acl.nacl-region-private-subnet.id
+output "nacl-region-private-subnet-51fb32-NetworkAclId" {
+  value = aws_network_acl.nacl-region-private-subnet-51fb32.id
 }
 
 + subnet-2/outputs.tf
-output "rt-region-private-subnet-RouteTableId" {
-  value = aws_route_table.rt-region-private-subnet.id
+output "rt-region-private-subnet-51fb32-RouteTableId" {
+  value = aws_route_table.rt-region-private-subnet-51fb32.id
 }
 
 + subnet-2/outputs.tf
-output "rt-region-private-subnet-subnetAssociationId" {
-  value = aws_route_table_association.rt-region-private-subnet_assoc.id
+output "rt-region-private-subnet-51fb32-subnetAssociationId" {
+  value = aws_route_table_association.rt-region-private-subnet-51fb32_assoc.id
 }
 
 + subnet-2/outputs.tf
-output "subnet-region-private-subnet-SubnetArn" {
-  value = aws_subnet.subnet-region-private-subnet.arn
+output "subnet-region-private-subnet-51fb32-SubnetArn" {
+  value = aws_subnet.subnet-region-private-subnet-51fb32.arn
 }
 
 + subnet-2/outputs.tf
-output "subnet-region-private-subnet-SubnetId" {
-  value = aws_subnet.subnet-region-private-subnet.id
+output "subnet-region-private-subnet-51fb32-SubnetId" {
+  value = aws_subnet.subnet-region-private-subnet-51fb32.id
 }
 
 + subnet-2/terragrunt.hcl

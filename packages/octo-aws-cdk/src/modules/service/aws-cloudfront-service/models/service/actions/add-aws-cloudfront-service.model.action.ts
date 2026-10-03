@@ -78,10 +78,8 @@ export class AddAwsCloudFrontServiceModelAction implements IModelAction<AwsCloud
       });
       if (matchingAlbAnchor) {
         const { albName } = matchingAlbAnchor.getSchemaInstance().properties;
-        const subnet = origin.source.getParents()['subnet'][0].to;
-        const region = subnet.getParents()['region'][0].to as Region;
 
-        origins.push({ ...originSettings, kind: { kind: 'alb', resourceId: `alb-${region.regionId}-${albName}` } });
+        origins.push({ ...originSettings, kind: { kind: 'alb', resourceId: `alb-${albName}` } });
         appOriginIds.push(origin.originId);
         continue;
       }

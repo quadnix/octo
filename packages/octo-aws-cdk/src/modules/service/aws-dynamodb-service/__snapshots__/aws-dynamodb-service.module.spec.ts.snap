@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`AwsDynamoDBServiceModule UT input changes should handle GlobalSecondaryIndexes change should add a GSI to an existing table 1`] = `
-"~ service/main.tf resource "aws_dynamodb_table" "dynamodb-test-table" {
+"~ service/main.tf resource "aws_dynamodb_table" "dynamodb-test-table-51fb32" {
 @@ -6,2 +6,6 @@
     }
 +   attribute {
@@ -39,7 +39,7 @@ provider "aws" {
   allowed_account_ids = ["123"]
 }
 
-resource "aws_dynamodb_table" "dynamodb-test-table" {
+resource "aws_dynamodb_table" "dynamodb-test-table-51fb32" {
   provider = aws._123-us-east-1
   attribute {
     name = "AccountId"
@@ -68,8 +68,8 @@ resource "aws_dynamodb_table" "dynamodb-test-table" {
 }
 
 # service/outputs.tf
-output "dynamodb-test-table-TableArn" {
-  value = aws_dynamodb_table.dynamodb-test-table.arn
+output "dynamodb-test-table-51fb32-TableArn" {
+  value = aws_dynamodb_table.dynamodb-test-table-51fb32.arn
 }
 
 # service/terragrunt.hcl
@@ -89,7 +89,7 @@ remote_state {
 `;
 
 exports[`AwsDynamoDBServiceModule UT input changes should handle GlobalSecondaryIndexes change should delete a GSI from an existing table 1`] = `
-"~ service/main.tf resource "aws_dynamodb_table" "dynamodb-test-table" {
+"~ service/main.tf resource "aws_dynamodb_table" "dynamodb-test-table-51fb32" {
 @@ -6,6 +6,2 @@
     }
 -   attribute {
@@ -110,7 +110,7 @@ exports[`AwsDynamoDBServiceModule UT input changes should handle GlobalSecondary
 `;
 
 exports[`AwsDynamoDBServiceModule UT input changes should handle GlobalSecondaryIndexes change should replace a GSI in an existing table 1`] = `
-"~ service/main.tf resource "aws_dynamodb_table" "dynamodb-test-table" {
+"~ service/main.tf resource "aws_dynamodb_table" "dynamodb-test-table-51fb32" {
 @@ -7,3 +7,3 @@
     attribute {
 -     name = "email"
@@ -143,7 +143,7 @@ provider "aws" {
   allowed_account_ids = ["123"]
 }
 
-resource "aws_dynamodb_table" "dynamodb-test-table" {
+resource "aws_dynamodb_table" "dynamodb-test-table-51fb32" {
   provider = aws._123-us-east-1
   attribute {
     name = "AccountId"
@@ -173,8 +173,8 @@ resource "aws_dynamodb_table" "dynamodb-test-table" {
 }
 
 # service/outputs.tf
-output "dynamodb-test-table-TableArn" {
-  value = aws_dynamodb_table.dynamodb-test-table.arn
+output "dynamodb-test-table-51fb32-TableArn" {
+  value = aws_dynamodb_table.dynamodb-test-table-51fb32.arn
 }
 
 # service/terragrunt.hcl
@@ -194,7 +194,7 @@ remote_state {
 `;
 
 exports[`AwsDynamoDBServiceModule UT input changes should handle StreamSpecification change 1`] = `
-"~ service/main.tf resource "aws_dynamodb_table" "dynamodb-test-table" {
+"~ service/main.tf resource "aws_dynamodb_table" "dynamodb-test-table-51fb32" {
 @@ -13,2 +13,4 @@
     write_capacity = 5
 +   stream_enabled = true
@@ -203,7 +203,7 @@ exports[`AwsDynamoDBServiceModule UT input changes should handle StreamSpecifica
 `;
 
 exports[`AwsDynamoDBServiceModule UT input changes should handle StreamSpecification change 3`] = `
-"~ service/main.tf resource "aws_dynamodb_table" "dynamodb-test-table" {
+"~ service/main.tf resource "aws_dynamodb_table" "dynamodb-test-table-51fb32" {
 @@ -13,4 +13,2 @@
     write_capacity = 5
 -   stream_enabled = true
@@ -212,7 +212,7 @@ exports[`AwsDynamoDBServiceModule UT input changes should handle StreamSpecifica
 `;
 
 exports[`AwsDynamoDBServiceModule UT input changes should handle billingMode change 1`] = `
-"~ service/main.tf resource "aws_dynamodb_table" "dynamodb-test-table" {
+"~ service/main.tf resource "aws_dynamodb_table" "dynamodb-test-table-51fb32" {
 @@ -11,4 +11,4 @@
     table_class = "STANDARD"
 -   read_capacity = 5
@@ -223,7 +223,7 @@ exports[`AwsDynamoDBServiceModule UT input changes should handle billingMode cha
 `;
 
 exports[`AwsDynamoDBServiceModule UT input changes should handle billingMode change 3`] = `
-"~ service/main.tf resource "aws_dynamodb_table" "dynamodb-test-table" {
+"~ service/main.tf resource "aws_dynamodb_table" "dynamodb-test-table-51fb32" {
 @@ -6,3 +6,3 @@
     }
 -   billing_mode = "PROVISIONED"
@@ -241,7 +241,7 @@ exports[`AwsDynamoDBServiceModule UT input changes should handle billingMode cha
 `;
 
 exports[`AwsDynamoDBServiceModule UT input changes should handle timeToLiveAttribute change 1`] = `
-"~ service/main.tf resource "aws_dynamodb_table" "dynamodb-test-table" {
+"~ service/main.tf resource "aws_dynamodb_table" "dynamodb-test-table-51fb32" {
 @@ -13,2 +13,6 @@
     write_capacity = 5
 +   ttl {
@@ -252,7 +252,7 @@ exports[`AwsDynamoDBServiceModule UT input changes should handle timeToLiveAttri
 `;
 
 exports[`AwsDynamoDBServiceModule UT input changes should handle timeToLiveAttribute change 3`] = `
-"~ service/main.tf resource "aws_dynamodb_table" "dynamodb-test-table" {
+"~ service/main.tf resource "aws_dynamodb_table" "dynamodb-test-table-51fb32" {
 @@ -13,6 +13,2 @@
     write_capacity = 5
 -   ttl {
@@ -273,7 +273,7 @@ provider "aws" {
 }
 
 - service/main.tf
-resource "aws_dynamodb_table" "dynamodb-test-table" {
+resource "aws_dynamodb_table" "dynamodb-test-table-51fb32" {
   provider = aws._123-us-east-1
   attribute {
     name = "AccountId"
@@ -300,8 +300,8 @@ terraform {
 }
 
 - service/outputs.tf
-output "dynamodb-test-table-TableArn" {
-  value = aws_dynamodb_table.dynamodb-test-table.arn
+output "dynamodb-test-table-51fb32-TableArn" {
+  value = aws_dynamodb_table.dynamodb-test-table-51fb32.arn
 }
 
 - service/terragrunt.hcl
@@ -321,7 +321,7 @@ remote_state {
 `;
 
 exports[`AwsDynamoDBServiceModule UT should CUD tags 2`] = `
-"~ service/main.tf resource "aws_dynamodb_table" "dynamodb-test-table" {
+"~ service/main.tf resource "aws_dynamodb_table" "dynamodb-test-table-51fb32" {
 @@ -14,3 +14,4 @@
     tags = {
 -     tag1 = "value1"
@@ -331,7 +331,7 @@ exports[`AwsDynamoDBServiceModule UT should CUD tags 2`] = `
 `;
 
 exports[`AwsDynamoDBServiceModule UT should CUD tags 4`] = `
-"~ service/main.tf resource "aws_dynamodb_table" "dynamodb-test-table" {
+"~ service/main.tf resource "aws_dynamodb_table" "dynamodb-test-table-51fb32" {
 @@ -13,6 +13,2 @@
     write_capacity = 5
 -   tags = {
@@ -350,7 +350,7 @@ provider "aws" {
 }
 
 - service-1/main.tf
-resource "aws_dynamodb_table" "dynamodb-test-table" {
+resource "aws_dynamodb_table" "dynamodb-test-table-51fb32" {
   provider = aws._123-us-east-1
   attribute {
     name = "AccountId"
@@ -379,8 +379,8 @@ terraform {
 }
 
 - service-1/outputs.tf
-output "dynamodb-test-table-TableArn" {
-  value = aws_dynamodb_table.dynamodb-test-table.arn
+output "dynamodb-test-table-51fb32-TableArn" {
+  value = aws_dynamodb_table.dynamodb-test-table-51fb32.arn
 }
 
 - service-1/terragrunt.hcl
@@ -406,7 +406,7 @@ provider "aws" {
 }
 
 + service-2/main.tf
-resource "aws_dynamodb_table" "dynamodb-test-table" {
+resource "aws_dynamodb_table" "dynamodb-test-table-51fb32" {
   provider = aws._123-us-east-1
   attribute {
     name = "AccountId"
@@ -435,8 +435,8 @@ terraform {
 }
 
 + service-2/outputs.tf
-output "dynamodb-test-table-TableArn" {
-  value = aws_dynamodb_table.dynamodb-test-table.arn
+output "dynamodb-test-table-51fb32-TableArn" {
+  value = aws_dynamodb_table.dynamodb-test-table-51fb32.arn
 }
 
 + service-2/terragrunt.hcl

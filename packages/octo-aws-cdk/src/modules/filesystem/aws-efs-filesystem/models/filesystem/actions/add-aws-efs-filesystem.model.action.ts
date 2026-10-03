@@ -44,7 +44,7 @@ export class AddAwsEfsFilesystemModelAction implements IModelAction<AwsEfsFilesy
 
     // Create EFS.
     const efs = new Efs(
-      `efs-${region.regionId}-${filesystem.filesystemName}`,
+      `efs-${filesystem.filesystemName}`,
       { awsAccountId, awsRegionId, filesystemName: filesystem.filesystemName },
       [],
     );

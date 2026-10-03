@@ -4,13 +4,13 @@ exports[`AwsEcrImageTagModule UT publishing a version should publish nothing whe
 
 exports[`AwsEcrImageTagModule UT should CUD 2`] = `
 "- image-tag/main.tf
-data "external" "ecr-image-tag-us-east-1-family_image-0-0-1" {
-  program = ["octo", "get-response", "--resourceId=ecr-image-tag-us-east-1-family/image-0-0-1"]
-  depends_on = [null_resource.ecr-image-tag-us-east-1-family_image-0-0-1]
+data "external" "ecr-image-tag-123-us-east-1-family_image-0-0-1-86a33f" {
+  program = ["octo", "get-response", "--resourceId=ecr-image-tag-123-us-east-1-family/image-0-0-1-86a33f"]
+  depends_on = [null_resource.ecr-image-tag-123-us-east-1-family_image-0-0-1-86a33f]
 }
 
 - image-tag/main.tf
-resource "null_resource" "ecr-image-tag-us-east-1-family_image-0-0-1" {
+resource "null_resource" "ecr-image-tag-123-us-east-1-family_image-0-0-1-86a33f" {
   triggers = {
     octo_properties_hash = "44136fa355b3678a"
     input_ecr_us_east_1_family_image_registryId = "\${var.ecr_us_east_1_family_image_registryId}"
@@ -19,11 +19,11 @@ resource "null_resource" "ecr-image-tag-us-east-1-family_image-0-0-1" {
     input_ecr_us_east_1_family_image_repositoryUri = "\${var.ecr_us_east_1_family_image_repositoryUri}"
   }
   provisioner "local-exec" {
-    command = "octo run-action --resourceId=ecr-image-tag-us-east-1-family/image-0-0-1 --input ecr-us-east-1-family/image.registryId=\${var.ecr_us_east_1_family_image_registryId} --input ecr-us-east-1-family/image.repositoryArn=\${var.ecr_us_east_1_family_image_repositoryArn} --input ecr-us-east-1-family/image.repositoryName=\${var.ecr_us_east_1_family_image_repositoryName} --input ecr-us-east-1-family/image.repositoryUri=\${var.ecr_us_east_1_family_image_repositoryUri}"
+    command = "octo run-action --resourceId=ecr-image-tag-123-us-east-1-family/image-0-0-1-86a33f --input ecr-us-east-1-family/image.registryId=\${var.ecr_us_east_1_family_image_registryId} --input ecr-us-east-1-family/image.repositoryArn=\${var.ecr_us_east_1_family_image_repositoryArn} --input ecr-us-east-1-family/image.repositoryName=\${var.ecr_us_east_1_family_image_repositoryName} --input ecr-us-east-1-family/image.repositoryUri=\${var.ecr_us_east_1_family_image_repositoryUri}"
   }
   provisioner "local-exec" {
     when = destroy
-    command = "octo run-action --resourceId=ecr-image-tag-us-east-1-family/image-0-0-1 --input ecr-us-east-1-family/image.registryId=\${self.triggers.input_ecr_us_east_1_family_image_registryId} --input ecr-us-east-1-family/image.repositoryArn=\${self.triggers.input_ecr_us_east_1_family_image_repositoryArn} --input ecr-us-east-1-family/image.repositoryName=\${self.triggers.input_ecr_us_east_1_family_image_repositoryName} --input ecr-us-east-1-family/image.repositoryUri=\${self.triggers.input_ecr_us_east_1_family_image_repositoryUri}"
+    command = "octo run-action --resourceId=ecr-image-tag-123-us-east-1-family/image-0-0-1-86a33f --input ecr-us-east-1-family/image.registryId=\${self.triggers.input_ecr_us_east_1_family_image_registryId} --input ecr-us-east-1-family/image.repositoryArn=\${self.triggers.input_ecr_us_east_1_family_image_repositoryArn} --input ecr-us-east-1-family/image.repositoryName=\${self.triggers.input_ecr_us_east_1_family_image_repositoryName} --input ecr-us-east-1-family/image.repositoryUri=\${self.triggers.input_ecr_us_east_1_family_image_repositoryUri}"
   }
 }
 
@@ -41,8 +41,8 @@ terraform {
 }
 
 - image-tag/outputs.tf
-output "ecr-image-tag-us-east-1-family_image-0-0-1" {
-  value = data.external.ecr-image-tag-us-east-1-family_image-0-0-1.result
+output "ecr-image-tag-123-us-east-1-family_image-0-0-1-86a33f" {
+  value = data.external.ecr-image-tag-123-us-east-1-family_image-0-0-1-86a33f.result
 }
 
 - image-tag/terragrunt.hcl
@@ -106,12 +106,12 @@ terraform {
   }
 }
 
-data "external" "ecr-image-tag-us-east-1-family_image-0-0-1" {
-  program = ["octo", "get-response", "--resourceId=ecr-image-tag-us-east-1-family/image-0-0-1"]
-  depends_on = [null_resource.ecr-image-tag-us-east-1-family_image-0-0-1]
+data "external" "ecr-image-tag-123-us-east-1-family_image-0-0-1-86a33f" {
+  program = ["octo", "get-response", "--resourceId=ecr-image-tag-123-us-east-1-family/image-0-0-1-86a33f"]
+  depends_on = [null_resource.ecr-image-tag-123-us-east-1-family_image-0-0-1-86a33f]
 }
 
-resource "null_resource" "ecr-image-tag-us-east-1-family_image-0-0-1" {
+resource "null_resource" "ecr-image-tag-123-us-east-1-family_image-0-0-1-86a33f" {
   triggers = {
     octo_properties_hash = "44136fa355b3678a"
     input_ecr_us_east_1_family_image_registryId = "\${var.ecr_us_east_1_family_image_registryId}"
@@ -120,17 +120,17 @@ resource "null_resource" "ecr-image-tag-us-east-1-family_image-0-0-1" {
     input_ecr_us_east_1_family_image_repositoryUri = "\${var.ecr_us_east_1_family_image_repositoryUri}"
   }
   provisioner "local-exec" {
-    command = "octo run-action --resourceId=ecr-image-tag-us-east-1-family/image-0-0-1 --input ecr-us-east-1-family/image.registryId=\${var.ecr_us_east_1_family_image_registryId} --input ecr-us-east-1-family/image.repositoryArn=\${var.ecr_us_east_1_family_image_repositoryArn} --input ecr-us-east-1-family/image.repositoryName=\${var.ecr_us_east_1_family_image_repositoryName} --input ecr-us-east-1-family/image.repositoryUri=\${var.ecr_us_east_1_family_image_repositoryUri}"
+    command = "octo run-action --resourceId=ecr-image-tag-123-us-east-1-family/image-0-0-1-86a33f --input ecr-us-east-1-family/image.registryId=\${var.ecr_us_east_1_family_image_registryId} --input ecr-us-east-1-family/image.repositoryArn=\${var.ecr_us_east_1_family_image_repositoryArn} --input ecr-us-east-1-family/image.repositoryName=\${var.ecr_us_east_1_family_image_repositoryName} --input ecr-us-east-1-family/image.repositoryUri=\${var.ecr_us_east_1_family_image_repositoryUri}"
   }
   provisioner "local-exec" {
     when = destroy
-    command = "octo run-action --resourceId=ecr-image-tag-us-east-1-family/image-0-0-1 --input ecr-us-east-1-family/image.registryId=\${self.triggers.input_ecr_us_east_1_family_image_registryId} --input ecr-us-east-1-family/image.repositoryArn=\${self.triggers.input_ecr_us_east_1_family_image_repositoryArn} --input ecr-us-east-1-family/image.repositoryName=\${self.triggers.input_ecr_us_east_1_family_image_repositoryName} --input ecr-us-east-1-family/image.repositoryUri=\${self.triggers.input_ecr_us_east_1_family_image_repositoryUri}"
+    command = "octo run-action --resourceId=ecr-image-tag-123-us-east-1-family/image-0-0-1-86a33f --input ecr-us-east-1-family/image.registryId=\${self.triggers.input_ecr_us_east_1_family_image_registryId} --input ecr-us-east-1-family/image.repositoryArn=\${self.triggers.input_ecr_us_east_1_family_image_repositoryArn} --input ecr-us-east-1-family/image.repositoryName=\${self.triggers.input_ecr_us_east_1_family_image_repositoryName} --input ecr-us-east-1-family/image.repositoryUri=\${self.triggers.input_ecr_us_east_1_family_image_repositoryUri}"
   }
 }
 
 # image-tag/outputs.tf
-output "ecr-image-tag-us-east-1-family_image-0-0-1" {
-  value = data.external.ecr-image-tag-us-east-1-family_image-0-0-1.result
+output "ecr-image-tag-123-us-east-1-family_image-0-0-1-86a33f" {
+  value = data.external.ecr-image-tag-123-us-east-1-family_image-0-0-1-86a33f.result
 }
 
 # image-tag/terragrunt.hcl

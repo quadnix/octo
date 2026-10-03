@@ -125,29 +125,29 @@ describe('AwsSimpleSubnetModule UT', () => {
        allowed_account_ids = ["123"]
      }
 
-     resource "aws_subnet" "subnet-region-private-subnet" {
+     resource "aws_subnet" "subnet-region-private-subnet-51fb32" {
        provider = aws._123-us-east-1
        availability_zone = "us-east-1a"
        cidr_block = "10.0.1.0/24"
        vpc_id = var.vpc_region_VpcId
      }
 
-     resource "aws_route_table" "rt-region-private-subnet" {
+     resource "aws_route_table" "rt-region-private-subnet-51fb32" {
        provider = aws._123-us-east-1
        vpc_id = var.vpc_region_VpcId
      }
 
-     resource "aws_route_table_association" "rt-region-private-subnet_assoc" {
+     resource "aws_route_table_association" "rt-region-private-subnet-51fb32_assoc" {
        provider = aws._123-us-east-1
-       route_table_id = aws_route_table.rt-region-private-subnet.id
-       subnet_id = aws_subnet.subnet-region-private-subnet.id
+       route_table_id = aws_route_table.rt-region-private-subnet-51fb32.id
+       subnet_id = aws_subnet.subnet-region-private-subnet-51fb32.id
 
-       depends_on = [aws_route_table.rt-region-private-subnet]
+       depends_on = [aws_route_table.rt-region-private-subnet-51fb32]
      }
 
-     resource "aws_network_acl" "nacl-region-private-subnet" {
+     resource "aws_network_acl" "nacl-region-private-subnet-51fb32" {
        provider = aws._123-us-east-1
-       subnet_ids = [aws_subnet.subnet-region-private-subnet.id]
+       subnet_ids = [aws_subnet.subnet-region-private-subnet-51fb32.id]
        vpc_id = var.vpc_region_VpcId
        ingress {
          action = "allow"
@@ -167,65 +167,65 @@ describe('AwsSimpleSubnetModule UT', () => {
        }
      }
 
-     resource "aws_security_group" "sec-grp-efs-mount-region-private-subnet-test-filesystem" {
+     resource "aws_security_group" "sec-grp-efs-mount-private-subnet-test-filesystem-51fb32" {
        provider = aws._123-us-east-1
        vpc_id = var.vpc_region_VpcId
      }
 
-     resource "aws_vpc_security_group_ingress_rule" "sec-grp-efs-mount-region-private-subnet-test-filesystem_ingress_0" {
+     resource "aws_vpc_security_group_ingress_rule" "sec-grp-efs-mount-private-subnet-test-filesystem-51fb32_ingress_0" {
        provider = aws._123-us-east-1
        cidr_ipv4 = "10.0.1.0/24"
        description = "tcp 2049-2049 10.0.1.0/24"
        ip_protocol = "tcp"
-       security_group_id = aws_security_group.sec-grp-efs-mount-region-private-subnet-test-filesystem.id
+       security_group_id = aws_security_group.sec-grp-efs-mount-private-subnet-test-filesystem-51fb32.id
        from_port = 2049
        to_port = 2049
 
-       depends_on = [aws_security_group.sec-grp-efs-mount-region-private-subnet-test-filesystem]
+       depends_on = [aws_security_group.sec-grp-efs-mount-private-subnet-test-filesystem-51fb32]
      }
 
-     resource "aws_efs_mount_target" "efs-mount-region-private-subnet-test-filesystem" {
+     resource "aws_efs_mount_target" "efs-mount-private-subnet-test-filesystem-51fb32" {
        provider = aws._123-us-east-1
        file_system_id = var.efs_region_test_filesystem_FileSystemId
-       security_groups = [aws_security_group.sec-grp-efs-mount-region-private-subnet-test-filesystem.id]
-       subnet_id = aws_subnet.subnet-region-private-subnet.id
+       security_groups = [aws_security_group.sec-grp-efs-mount-private-subnet-test-filesystem-51fb32.id]
+       subnet_id = aws_subnet.subnet-region-private-subnet-51fb32.id
      }
 
      # subnet/outputs.tf
-     output "subnet-region-private-subnet-SubnetArn" {
-       value = aws_subnet.subnet-region-private-subnet.arn
+     output "subnet-region-private-subnet-51fb32-SubnetArn" {
+       value = aws_subnet.subnet-region-private-subnet-51fb32.arn
      }
 
-     output "subnet-region-private-subnet-SubnetId" {
-       value = aws_subnet.subnet-region-private-subnet.id
+     output "subnet-region-private-subnet-51fb32-SubnetId" {
+       value = aws_subnet.subnet-region-private-subnet-51fb32.id
      }
 
-     output "rt-region-private-subnet-RouteTableId" {
-       value = aws_route_table.rt-region-private-subnet.id
+     output "rt-region-private-subnet-51fb32-RouteTableId" {
+       value = aws_route_table.rt-region-private-subnet-51fb32.id
      }
 
-     output "rt-region-private-subnet-subnetAssociationId" {
-       value = aws_route_table_association.rt-region-private-subnet_assoc.id
+     output "rt-region-private-subnet-51fb32-subnetAssociationId" {
+       value = aws_route_table_association.rt-region-private-subnet-51fb32_assoc.id
      }
 
-     output "nacl-region-private-subnet-NetworkAclId" {
-       value = aws_network_acl.nacl-region-private-subnet.id
+     output "nacl-region-private-subnet-51fb32-NetworkAclId" {
+       value = aws_network_acl.nacl-region-private-subnet-51fb32.id
      }
 
-     output "sec-grp-efs-mount-region-private-subnet-test-filesystem-Arn" {
-       value = aws_security_group.sec-grp-efs-mount-region-private-subnet-test-filesystem.arn
+     output "sec-grp-efs-mount-private-subnet-test-filesystem-51fb32-Arn" {
+       value = aws_security_group.sec-grp-efs-mount-private-subnet-test-filesystem-51fb32.arn
      }
 
-     output "sec-grp-efs-mount-region-private-subnet-test-filesystem-GroupId" {
-       value = aws_security_group.sec-grp-efs-mount-region-private-subnet-test-filesystem.id
+     output "sec-grp-efs-mount-private-subnet-test-filesystem-51fb32-GroupId" {
+       value = aws_security_group.sec-grp-efs-mount-private-subnet-test-filesystem-51fb32.id
      }
 
-     output "efs-mount-region-private-subnet-test-filesystem-MountTargetId" {
-       value = aws_efs_mount_target.efs-mount-region-private-subnet-test-filesystem.id
+     output "efs-mount-private-subnet-test-filesystem-51fb32-MountTargetId" {
+       value = aws_efs_mount_target.efs-mount-private-subnet-test-filesystem-51fb32.id
      }
 
-     output "efs-mount-region-private-subnet-test-filesystem-NetworkInterfaceId" {
-       value = aws_efs_mount_target.efs-mount-region-private-subnet-test-filesystem.network_interface_id
+     output "efs-mount-private-subnet-test-filesystem-51fb32-NetworkInterfaceId" {
+       value = aws_efs_mount_target.efs-mount-private-subnet-test-filesystem-51fb32.network_interface_id
      }
 
      # subnet/terragrunt.hcl
@@ -311,11 +311,11 @@ describe('AwsSimpleSubnetModule UT', () => {
     `);
     expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "+ @octo/subnet=subnet-region-private-subnet",
-       "+ @octo/route-table=rt-region-private-subnet",
-       "+ @octo/network-acl=nacl-region-private-subnet",
-       "+ @octo/security-group=sec-grp-efs-mount-region-private-subnet-test-filesystem",
-       "+ @octo/efs-mount-target=efs-mount-region-private-subnet-test-filesystem",
+       "+ @octo/subnet=subnet-region-private-subnet-51fb32",
+       "+ @octo/route-table=rt-region-private-subnet-51fb32",
+       "+ @octo/network-acl=nacl-region-private-subnet-51fb32",
+       "+ @octo/security-group=sec-grp-efs-mount-private-subnet-test-filesystem-51fb32",
+       "+ @octo/efs-mount-target=efs-mount-private-subnet-test-filesystem-51fb32",
      ]
     `);
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
@@ -366,7 +366,7 @@ describe('AwsSimpleSubnetModule UT', () => {
     expect(addSubnetOptions.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(addSubnetOptions.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "* @octo/network-acl=nacl-region-private-subnet",
+       "* @octo/network-acl=nacl-region-private-subnet-51fb32",
      ]
     `);
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
@@ -398,8 +398,8 @@ describe('AwsSimpleSubnetModule UT', () => {
     expect(addLocalFilesystem.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(addLocalFilesystem.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "+ @octo/security-group=sec-grp-efs-mount-region-private-subnet-test-filesystem",
-       "+ @octo/efs-mount-target=efs-mount-region-private-subnet-test-filesystem",
+       "+ @octo/security-group=sec-grp-efs-mount-private-subnet-test-filesystem-51fb32",
+       "+ @octo/efs-mount-target=efs-mount-private-subnet-test-filesystem-51fb32",
      ]
     `);
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
@@ -432,11 +432,11 @@ describe('AwsSimpleSubnetModule UT', () => {
     expect(deleteResult.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(deleteResult.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "- @octo/security-group=sec-grp-efs-mount-region-private-subnet-test-filesystem",
-       "- @octo/subnet=subnet-region-private-subnet",
-       "- @octo/efs-mount-target=efs-mount-region-private-subnet-test-filesystem",
-       "- @octo/network-acl=nacl-region-private-subnet",
-       "- @octo/route-table=rt-region-private-subnet",
+       "- @octo/security-group=sec-grp-efs-mount-private-subnet-test-filesystem-51fb32",
+       "- @octo/subnet=subnet-region-private-subnet-51fb32",
+       "- @octo/efs-mount-target=efs-mount-private-subnet-test-filesystem-51fb32",
+       "- @octo/network-acl=nacl-region-private-subnet-51fb32",
+       "- @octo/route-table=rt-region-private-subnet-51fb32",
      ]
     `);
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
@@ -523,8 +523,8 @@ describe('AwsSimpleSubnetModule UT', () => {
     expect(disassociateSubnet.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(disassociateSubnet.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "* @octo/network-acl=nacl-region-private-subnet",
-       "* @octo/network-acl=nacl-region-public-subnet",
+       "* @octo/network-acl=nacl-region-private-subnet-51fb32",
+       "* @octo/network-acl=nacl-region-public-subnet-51fb32",
      ]
     `);
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
@@ -611,9 +611,9 @@ describe('AwsSimpleSubnetModule UT', () => {
     expect(disassociateSubnet.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(disassociateSubnet.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "* @octo/network-acl=nacl-region-private-subnet",
-       "* @octo/network-acl=nacl-region-public-subnet",
-       "* @octo/route-table=rt-region-private-subnet",
+       "* @octo/network-acl=nacl-region-private-subnet-51fb32",
+       "* @octo/network-acl=nacl-region-public-subnet-51fb32",
+       "* @octo/route-table=rt-region-private-subnet-51fb32",
      ]
     `);
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
@@ -657,7 +657,7 @@ describe('AwsSimpleSubnetModule UT', () => {
     expect(deleteNATGateway.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(deleteNATGateway.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "- @octo/nat-gateway=nat-gateway-region-public-subnet",
+       "- @octo/nat-gateway=nat-gateway-region-public-subnet-51fb32",
      ]
     `);
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
@@ -705,9 +705,9 @@ describe('AwsSimpleSubnetModule UT', () => {
     expect(updateTags.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(updateTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "* @octo/subnet=subnet-region-private-subnet",
-       "* @octo/network-acl=nacl-region-private-subnet",
-       "* @octo/route-table=rt-region-private-subnet",
+       "* @octo/subnet=subnet-region-private-subnet-51fb32",
+       "* @octo/network-acl=nacl-region-private-subnet-51fb32",
+       "* @octo/route-table=rt-region-private-subnet-51fb32",
      ]
     `);
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
@@ -733,9 +733,9 @@ describe('AwsSimpleSubnetModule UT', () => {
     expect(deleteTags.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(deleteTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "* @octo/subnet=subnet-region-private-subnet",
-       "* @octo/network-acl=nacl-region-private-subnet",
-       "* @octo/route-table=rt-region-private-subnet",
+       "* @octo/subnet=subnet-region-private-subnet-51fb32",
+       "* @octo/network-acl=nacl-region-private-subnet-51fb32",
+       "* @octo/route-table=rt-region-private-subnet-51fb32",
      ]
     `);
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
@@ -782,9 +782,9 @@ describe('AwsSimpleSubnetModule UT', () => {
       ).value!;
       expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "^ @octo/subnet=subnet-region-private-subnet",
-         "* @octo/network-acl=nacl-region-private-subnet",
-         "* @octo/route-table=rt-region-private-subnet",
+         "^ @octo/subnet=subnet-region-private-subnet-51fb32",
+         "* @octo/network-acl=nacl-region-private-subnet-51fb32",
+         "* @octo/route-table=rt-region-private-subnet-51fb32",
        ]
       `);
     });
@@ -829,10 +829,10 @@ describe('AwsSimpleSubnetModule UT', () => {
       ).value!;
       expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "^ @octo/subnet=subnet-region-private-subnet",
-         "* @octo/network-acl=nacl-region-private-subnet",
-         "* @octo/network-acl=nacl-region-private-subnet",
-         "* @octo/route-table=rt-region-private-subnet",
+         "^ @octo/subnet=subnet-region-private-subnet-51fb32",
+         "* @octo/network-acl=nacl-region-private-subnet-51fb32",
+         "* @octo/network-acl=nacl-region-private-subnet-51fb32",
+         "* @octo/route-table=rt-region-private-subnet-51fb32",
        ]
       `);
     });
@@ -877,12 +877,12 @@ describe('AwsSimpleSubnetModule UT', () => {
       expect(updateSubnetName.hclDiff).toMatchSnapshot();
       expect(testModuleContainer.digestDiffs(updateSubnetName.resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "- @octo/subnet=subnet-region-private-subnet",
-         "- @octo/network-acl=nacl-region-private-subnet",
-         "- @octo/route-table=rt-region-private-subnet",
-         "+ @octo/subnet=subnet-region-changed-subnet",
-         "+ @octo/route-table=rt-region-changed-subnet",
-         "+ @octo/network-acl=nacl-region-changed-subnet",
+         "- @octo/subnet=subnet-region-private-subnet-51fb32",
+         "- @octo/network-acl=nacl-region-private-subnet-51fb32",
+         "- @octo/route-table=rt-region-private-subnet-51fb32",
+         "+ @octo/subnet=subnet-region-changed-subnet-51fb32",
+         "+ @octo/route-table=rt-region-changed-subnet-51fb32",
+         "+ @octo/network-acl=nacl-region-changed-subnet-51fb32",
        ]
       `);
       expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
@@ -933,7 +933,7 @@ describe('AwsSimpleSubnetModule UT', () => {
       expect(updateSubnetOptions.hclDiff).toMatchSnapshot();
       expect(testModuleContainer.digestDiffs(updateSubnetOptions.resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "* @octo/network-acl=nacl-region-private-subnet",
+         "* @octo/network-acl=nacl-region-private-subnet-51fb32",
        ]
       `);
       expect(await testModuleContainer.isResourceStateEqual()).toBe(true);

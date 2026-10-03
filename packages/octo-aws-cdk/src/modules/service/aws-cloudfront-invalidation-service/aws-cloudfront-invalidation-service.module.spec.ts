@@ -236,12 +236,12 @@ describe('AwsCloudFrontInvalidationServiceModule UT', () => {
        }
      }
 
-     data "external" "cloudfront-invalidation-test-distribution-test-bucket" {
-       program = ["octo", "get-response", "--resourceId=cloudfront-invalidation-test-distribution-test-bucket"]
-       depends_on = [null_resource.cloudfront-invalidation-test-distribution-test-bucket]
+     data "external" "cloudfront-invalidation-test-distribution-test-bucket-51fb32" {
+       program = ["octo", "get-response", "--resourceId=cloudfront-invalidation-test-distribution-test-bucket-51fb32"]
+       depends_on = [null_resource.cloudfront-invalidation-test-distribution-test-bucket-51fb32]
      }
 
-     resource "null_resource" "cloudfront-invalidation-test-distribution-test-bucket" {
+     resource "null_resource" "cloudfront-invalidation-test-distribution-test-bucket-51fb32" {
        triggers = {
          octo_properties_hash = "2b1b7260c29279e1"
          input_cloudfront_test_distribution_DistributionId = "\${var.cloudfront_test_distribution_DistributionId}"
@@ -251,17 +251,17 @@ describe('AwsCloudFrontInvalidationServiceModule UT', () => {
          input_bucket_test_bucket_RegionalDomainName = "\${var.bucket_test_bucket_RegionalDomainName}"
        }
        provisioner "local-exec" {
-         command = "octo run-action --resourceId=cloudfront-invalidation-test-distribution-test-bucket --input cloudfront-test-distribution.DistributionId=\${var.cloudfront_test_distribution_DistributionId} --input bucket-test-bucket.Arn=\${var.bucket_test_bucket_Arn} --input bucket-test-bucket.awsRegionId=\${var.bucket_test_bucket_awsRegionId} --input bucket-test-bucket.Bucket=\${var.bucket_test_bucket_Bucket} --input bucket-test-bucket.RegionalDomainName=\${var.bucket_test_bucket_RegionalDomainName}"
+         command = "octo run-action --resourceId=cloudfront-invalidation-test-distribution-test-bucket-51fb32 --input cloudfront-test-distribution.DistributionId=\${var.cloudfront_test_distribution_DistributionId} --input bucket-test-bucket.Arn=\${var.bucket_test_bucket_Arn} --input bucket-test-bucket.awsRegionId=\${var.bucket_test_bucket_awsRegionId} --input bucket-test-bucket.Bucket=\${var.bucket_test_bucket_Bucket} --input bucket-test-bucket.RegionalDomainName=\${var.bucket_test_bucket_RegionalDomainName}"
        }
        provisioner "local-exec" {
          when = destroy
-         command = "octo run-action --resourceId=cloudfront-invalidation-test-distribution-test-bucket --input cloudfront-test-distribution.DistributionId=\${self.triggers.input_cloudfront_test_distribution_DistributionId} --input bucket-test-bucket.Arn=\${self.triggers.input_bucket_test_bucket_Arn} --input bucket-test-bucket.awsRegionId=\${self.triggers.input_bucket_test_bucket_awsRegionId} --input bucket-test-bucket.Bucket=\${self.triggers.input_bucket_test_bucket_Bucket} --input bucket-test-bucket.RegionalDomainName=\${self.triggers.input_bucket_test_bucket_RegionalDomainName}"
+         command = "octo run-action --resourceId=cloudfront-invalidation-test-distribution-test-bucket-51fb32 --input cloudfront-test-distribution.DistributionId=\${self.triggers.input_cloudfront_test_distribution_DistributionId} --input bucket-test-bucket.Arn=\${self.triggers.input_bucket_test_bucket_Arn} --input bucket-test-bucket.awsRegionId=\${self.triggers.input_bucket_test_bucket_awsRegionId} --input bucket-test-bucket.Bucket=\${self.triggers.input_bucket_test_bucket_Bucket} --input bucket-test-bucket.RegionalDomainName=\${self.triggers.input_bucket_test_bucket_RegionalDomainName}"
        }
      }
 
      # invalidation/outputs.tf
-     output "cloudfront-invalidation-test-distribution-test-bucket" {
-       value = data.external.cloudfront-invalidation-test-distribution-test-bucket.result
+     output "cloudfront-invalidation-test-distribution-test-bucket-51fb32" {
+       value = data.external.cloudfront-invalidation-test-distribution-test-bucket-51fb32.result
      }
 
      # invalidation/terragrunt.hcl
@@ -327,7 +327,7 @@ describe('AwsCloudFrontInvalidationServiceModule UT', () => {
     `);
     expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "+ @octo/cloudfront-invalidation=cloudfront-invalidation-test-distribution-test-bucket",
+       "+ @octo/cloudfront-invalidation=cloudfront-invalidation-test-distribution-test-bucket-51fb32",
      ]
     `);
   });
@@ -361,7 +361,7 @@ describe('AwsCloudFrontInvalidationServiceModule UT', () => {
       ).value!;
       expect(testModuleContainer.digestDiffs(changed.resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "* @octo/cloudfront-invalidation=cloudfront-invalidation-test-distribution-test-bucket",
+         "* @octo/cloudfront-invalidation=cloudfront-invalidation-test-distribution-test-bucket-51fb32",
        ]
       `);
     });
@@ -380,7 +380,7 @@ describe('AwsCloudFrontInvalidationServiceModule UT', () => {
       ).value!;
       expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "- @octo/cloudfront-invalidation=cloudfront-invalidation-test-distribution-test-bucket",
+         "- @octo/cloudfront-invalidation=cloudfront-invalidation-test-distribution-test-bucket-51fb32",
        ]
       `);
     });

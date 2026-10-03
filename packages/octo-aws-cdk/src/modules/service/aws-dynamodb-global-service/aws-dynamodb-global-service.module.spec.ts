@@ -213,7 +213,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
        allowed_account_ids = ["123"]
      }
 
-     resource "aws_dynamodb_table_replica" "dynamodb-global-test-table_us-west-2" {
+     resource "aws_dynamodb_table_replica" "dynamodb-global-test-table-2dc6ed_us-west-2" {
        global_table_arn = var.dynamodb_test_table_TableArn
        provider = aws._123-us-west-2
        tags = {
@@ -222,8 +222,8 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
      }
 
      # global-dynamodb-module/outputs.tf
-     output "dynamodb-global-test-table-123_us-west-2_TableArn" {
-       value = aws_dynamodb_table_replica.dynamodb-global-test-table_us-west-2.arn
+     output "dynamodb-global-test-table-2dc6ed-123_us-west-2_TableArn" {
+       value = aws_dynamodb_table_replica.dynamodb-global-test-table-2dc6ed_us-west-2.arn
      }
 
      # global-dynamodb-module/terragrunt.hcl
@@ -292,7 +292,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
     `);
     expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "* @octo/dynamodb-global=dynamodb-global-test-table",
+       "* @octo/dynamodb-global=dynamodb-global-test-table-2dc6ed",
      ]
     `);
   });
@@ -316,7 +316,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
     ).value!;
     expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`
      [
-       "* @octo/dynamodb-global=dynamodb-global-test-table",
+       "* @octo/dynamodb-global=dynamodb-global-test-table-2dc6ed",
      ]
     `);
 
@@ -361,7 +361,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
     expect(addReplica.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(addReplica.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "* @octo/dynamodb-global=dynamodb-global-test-table",
+       "* @octo/dynamodb-global=dynamodb-global-test-table-2dc6ed",
      ]
     `);
 
@@ -384,7 +384,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
     expect(removeReplica.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(removeReplica.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "* @octo/dynamodb-global=dynamodb-global-test-table",
+       "* @octo/dynamodb-global=dynamodb-global-test-table-2dc6ed",
      ]
     `);
 
@@ -408,7 +408,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
     expect(deleteResult.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(deleteResult.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "* @octo/dynamodb-global=dynamodb-global-test-table",
+       "* @octo/dynamodb-global=dynamodb-global-test-table-2dc6ed",
      ]
     `);
 
@@ -436,7 +436,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
     ).value!;
     expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`
      [
-       "* @octo/dynamodb-global=dynamodb-global-test-table",
+       "* @octo/dynamodb-global=dynamodb-global-test-table-2dc6ed",
      ]
     `);
 
@@ -462,7 +462,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
     expect(updateTags.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(updateTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "* @octo/dynamodb-global=dynamodb-global-test-table",
+       "* @octo/dynamodb-global=dynamodb-global-test-table-2dc6ed",
      ]
     `);
 
@@ -485,7 +485,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
     expect(deleteTags.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(deleteTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "* @octo/dynamodb-global=dynamodb-global-test-table",
+       "* @octo/dynamodb-global=dynamodb-global-test-table-2dc6ed",
      ]
     `);
   });
@@ -529,7 +529,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
       expect(addReplica.hclDiff).toMatchSnapshot();
       expect(testModuleContainer.digestDiffs(addReplica.resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "* @octo/dynamodb-global=dynamodb-global-test-table",
+         "* @octo/dynamodb-global=dynamodb-global-test-table-2dc6ed",
        ]
       `);
 
@@ -589,7 +589,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
       expect(removeReplica.hclDiff).toMatchSnapshot();
       expect(testModuleContainer.digestDiffs(removeReplica.resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "* @octo/dynamodb-global=dynamodb-global-test-table",
+         "* @octo/dynamodb-global=dynamodb-global-test-table-2dc6ed",
        ]
       `);
     });
@@ -629,7 +629,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
       expect(updateReplicaTags.hclDiff).toMatchSnapshot();
       expect(testModuleContainer.digestDiffs(updateReplicaTags.resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "* @octo/dynamodb-global=dynamodb-global-test-table",
+         "* @octo/dynamodb-global=dynamodb-global-test-table-2dc6ed",
        ]
       `);
     });
@@ -708,7 +708,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
       `);
       expect(result.hclRender.match(/resource "aws_dynamodb_table_replica" "[^"]+"/g)).toMatchInlineSnapshot(`
        [
-         "resource "aws_dynamodb_table_replica" "dynamodb-global-test-table_us-west-2"",
+         "resource "aws_dynamodb_table_replica" "dynamodb-global-test-table-2dc6ed_us-west-2"",
        ]
       `);
     });
@@ -749,7 +749,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
       `);
       expect(result.hclRender.match(/resource "aws_dynamodb_table_replica" "[^"]+"/g)).toMatchInlineSnapshot(`
        [
-         "resource "aws_dynamodb_table_replica" "dynamodb-global-test-table_us-west-2"",
+         "resource "aws_dynamodb_table_replica" "dynamodb-global-test-table-2dc6ed_us-west-2"",
        ]
       `);
     });

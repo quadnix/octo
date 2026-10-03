@@ -80,14 +80,14 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
        allowed_account_ids = ["123"]
      }
 
-     resource "aws_s3_bucket" "bucket-test-bucket_website_bucket" {
+     resource "aws_s3_bucket" "bucket-test-bucket-51fb32_website_bucket" {
        provider = aws._123-us-east-1
        bucket = "test-bucket"
      }
 
-     resource "aws_s3_bucket_website_configuration" "bucket-test-bucket_website_bucket_config" {
+     resource "aws_s3_bucket_website_configuration" "bucket-test-bucket-51fb32_website_bucket_config" {
        provider = aws._123-us-east-1
-       bucket = aws_s3_bucket.bucket-test-bucket_website_bucket.id
+       bucket = aws_s3_bucket.bucket-test-bucket-51fb32_website_bucket.id
        error_document {
          key = "error.html"
        }
@@ -95,58 +95,58 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
          suffix = "index.html"
        }
 
-       depends_on = [aws_s3_bucket.bucket-test-bucket_website_bucket]
+       depends_on = [aws_s3_bucket.bucket-test-bucket-51fb32_website_bucket]
      }
 
-     resource "aws_s3_bucket_public_access_block" "bucket-test-bucket_website_bucket_public_access" {
+     resource "aws_s3_bucket_public_access_block" "bucket-test-bucket-51fb32_website_bucket_public_access" {
        provider = aws._123-us-east-1
        block_public_acls = false
        block_public_policy = false
-       bucket = aws_s3_bucket.bucket-test-bucket_website_bucket.id
+       bucket = aws_s3_bucket.bucket-test-bucket-51fb32_website_bucket.id
        ignore_public_acls = false
        restrict_public_buckets = false
 
-       depends_on = [aws_s3_bucket_website_configuration.bucket-test-bucket_website_bucket_config]
+       depends_on = [aws_s3_bucket_website_configuration.bucket-test-bucket-51fb32_website_bucket_config]
      }
 
-     resource "aws_s3_bucket_policy" "bucket-test-bucket_website_bucket_policy" {
+     resource "aws_s3_bucket_policy" "bucket-test-bucket-51fb32_website_bucket_policy" {
        provider = aws._123-us-east-1
-       bucket = aws_s3_bucket.bucket-test-bucket_website_bucket.id
+       bucket = aws_s3_bucket.bucket-test-bucket-51fb32_website_bucket.id
        policy = jsonencode({
          Statement = [{
              Action = ["s3:GetObject"]
              Effect = "Allow"
              Principal = "*"
-             Resource = ["\${aws_s3_bucket.bucket-test-bucket_website_bucket.arn}/*"]
+             Resource = ["\${aws_s3_bucket.bucket-test-bucket-51fb32_website_bucket.arn}/*"]
              Sid = "PublicReadGetObject"
            }]
          Version = "2012-10-17"
        })
 
-       depends_on = [aws_s3_bucket_public_access_block.bucket-test-bucket_website_bucket_public_access]
+       depends_on = [aws_s3_bucket_public_access_block.bucket-test-bucket-51fb32_website_bucket_public_access]
      }
 
-     resource "aws_s3_object" "bucket-test-bucket_file_errorhtml" {
+     resource "aws_s3_object" "bucket-test-bucket-51fb32_file_errorhtml" {
        provider = aws._123-us-east-1
-       bucket = aws_s3_bucket.bucket-test-bucket_website_bucket.id
+       bucket = aws_s3_bucket.bucket-test-bucket-51fb32_website_bucket.id
        content_type = "text/html"
        etag = filemd5("\${var.OCTO_PROJECT_ROOT}/resources/s3-static-website/error.html")
        key = "error.html"
        source = "\${var.OCTO_PROJECT_ROOT}/resources/s3-static-website/error.html"
      }
 
-     resource "aws_s3_object" "bucket-test-bucket_file_indexhtml" {
+     resource "aws_s3_object" "bucket-test-bucket-51fb32_file_indexhtml" {
        provider = aws._123-us-east-1
-       bucket = aws_s3_bucket.bucket-test-bucket_website_bucket.id
+       bucket = aws_s3_bucket.bucket-test-bucket-51fb32_website_bucket.id
        content_type = "text/html"
        etag = filemd5("\${var.OCTO_PROJECT_ROOT}/resources/s3-static-website/index.html")
        key = "index.html"
        source = "\${var.OCTO_PROJECT_ROOT}/resources/s3-static-website/index.html"
      }
 
-     resource "aws_s3_object" "bucket-test-bucket_file_page1html" {
+     resource "aws_s3_object" "bucket-test-bucket-51fb32_file_page1html" {
        provider = aws._123-us-east-1
-       bucket = aws_s3_bucket.bucket-test-bucket_website_bucket.id
+       bucket = aws_s3_bucket.bucket-test-bucket-51fb32_website_bucket.id
        content_type = "text/html"
        etag = filemd5("\${var.OCTO_PROJECT_ROOT}/resources/s3-static-website/page-1.html")
        key = "page-1.html"
@@ -154,16 +154,16 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
      }
 
      # service/outputs.tf
-     output "bucket-test-bucket-Arn" {
-       value = aws_s3_bucket.bucket-test-bucket_website_bucket.arn
+     output "bucket-test-bucket-51fb32-Arn" {
+       value = aws_s3_bucket.bucket-test-bucket-51fb32_website_bucket.arn
      }
 
-     output "bucket-test-bucket-awsRegionId" {
+     output "bucket-test-bucket-51fb32-awsRegionId" {
        value = "us-east-1"
      }
 
-     output "bucket-test-bucket-RegionalDomainName" {
-       value = aws_s3_bucket.bucket-test-bucket_website_bucket.bucket_regional_domain_name
+     output "bucket-test-bucket-51fb32-RegionalDomainName" {
+       value = aws_s3_bucket.bucket-test-bucket-51fb32_website_bucket.bucket_regional_domain_name
      }
 
      # service/terragrunt.hcl
@@ -195,8 +195,8 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
     `);
     expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "+ @octo/s3-website=bucket-test-bucket",
-       "* @octo/s3-website=bucket-test-bucket",
+       "+ @octo/s3-website=bucket-test-bucket-51fb32",
+       "* @octo/s3-website=bucket-test-bucket-51fb32",
      ]
     `);
   });
@@ -221,8 +221,8 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
     ).value!;
     expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`
      [
-       "+ @octo/s3-website=bucket-test-bucket",
-       "* @octo/s3-website=bucket-test-bucket",
+       "+ @octo/s3-website=bucket-test-bucket-51fb32",
+       "* @octo/s3-website=bucket-test-bucket-51fb32",
      ]
     `);
 
@@ -267,7 +267,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
     expect(deleteResult.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(deleteResult.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "- @octo/s3-website=bucket-test-bucket",
+       "- @octo/s3-website=bucket-test-bucket-51fb32",
      ]
     `);
 
@@ -296,8 +296,8 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
     ).value!;
     expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`
      [
-       "+ @octo/s3-website=bucket-test-bucket",
-       "* @octo/s3-website=bucket-test-bucket",
+       "+ @octo/s3-website=bucket-test-bucket-51fb32",
+       "* @octo/s3-website=bucket-test-bucket-51fb32",
      ]
     `);
 
@@ -322,7 +322,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
     expect(updateTags.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(updateTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "* @octo/s3-website=bucket-test-bucket",
+       "* @octo/s3-website=bucket-test-bucket-51fb32",
      ]
     `);
 
@@ -346,7 +346,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
     expect(deleteTags.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(deleteTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "* @octo/s3-website=bucket-test-bucket",
+       "* @octo/s3-website=bucket-test-bucket-51fb32",
      ]
     `);
   });
@@ -390,7 +390,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
       ).value!;
       expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "^ @octo/s3-website=bucket-test-bucket",
+         "^ @octo/s3-website=bucket-test-bucket-51fb32",
        ]
       `);
     });
@@ -432,9 +432,9 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
       expect(hclDiff).toMatchSnapshot();
       expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "- @octo/s3-website=bucket-test-bucket",
-         "+ @octo/s3-website=bucket-changed-bucket",
-         "* @octo/s3-website=bucket-changed-bucket",
+         "- @octo/s3-website=bucket-test-bucket-51fb32",
+         "+ @octo/s3-website=bucket-changed-bucket-51fb32",
+         "* @octo/s3-website=bucket-changed-bucket-51fb32",
        ]
       `);
     });
@@ -476,7 +476,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
       expect(hclDiff).toMatchSnapshot();
       expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "* @octo/s3-website=bucket-test-bucket",
+         "* @octo/s3-website=bucket-test-bucket-51fb32",
        ]
       `);
     });

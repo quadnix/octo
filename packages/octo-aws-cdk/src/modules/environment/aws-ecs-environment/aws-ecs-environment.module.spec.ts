@@ -79,7 +79,7 @@ describe('AwsEcsEnvironmentModule UT', () => {
        allowed_account_ids = ["123"]
      }
 
-     resource "aws_ecs_cluster" "ecs-cluster-region-qa" {
+     resource "aws_ecs_cluster" "ecs-cluster-region-qa-51fb32" {
        provider = aws._123-us-east-1
        name = "region-qa"
        setting {
@@ -89,8 +89,8 @@ describe('AwsEcsEnvironmentModule UT', () => {
      }
 
      # environment/outputs.tf
-     output "ecs-cluster-region-qa-clusterArn" {
-       value = aws_ecs_cluster.ecs-cluster-region-qa.arn
+     output "ecs-cluster-region-qa-51fb32-clusterArn" {
+       value = aws_ecs_cluster.ecs-cluster-region-qa-51fb32.arn
      }
 
      # environment/terragrunt.hcl
@@ -117,7 +117,7 @@ describe('AwsEcsEnvironmentModule UT', () => {
     `);
     expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "+ @octo/ecs-cluster=ecs-cluster-region-qa",
+       "+ @octo/ecs-cluster=ecs-cluster-region-qa-51fb32",
      ]
     `);
   });
@@ -150,7 +150,7 @@ describe('AwsEcsEnvironmentModule UT', () => {
     expect(hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "- @octo/ecs-cluster=ecs-cluster-region-qa",
+       "- @octo/ecs-cluster=ecs-cluster-region-qa-51fb32",
      ]
     `);
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
@@ -193,7 +193,7 @@ describe('AwsEcsEnvironmentModule UT', () => {
     expect(update.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(update.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "* @octo/ecs-cluster=ecs-cluster-region-qa",
+       "* @octo/ecs-cluster=ecs-cluster-region-qa-51fb32",
      ]
     `);
     expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
@@ -215,7 +215,7 @@ describe('AwsEcsEnvironmentModule UT', () => {
     expect(deleteTags.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(deleteTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "* @octo/ecs-cluster=ecs-cluster-region-qa",
+       "* @octo/ecs-cluster=ecs-cluster-region-qa-51fb32",
      ]
     `);
   });
@@ -248,8 +248,8 @@ describe('AwsEcsEnvironmentModule UT', () => {
       expect(hclDiff).toMatchSnapshot();
       expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "- @octo/ecs-cluster=ecs-cluster-region-qa",
-         "+ @octo/ecs-cluster=ecs-cluster-region-changed-qa",
+         "- @octo/ecs-cluster=ecs-cluster-region-qa-51fb32",
+         "+ @octo/ecs-cluster=ecs-cluster-region-changed-qa-51fb32",
        ]
       `);
     });

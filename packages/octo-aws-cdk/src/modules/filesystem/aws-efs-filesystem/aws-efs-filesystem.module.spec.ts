@@ -78,7 +78,7 @@ describe('AwsEfsFilesystemModule UT', () => {
        allowed_account_ids = ["123"]
      }
 
-     resource "aws_efs_file_system" "efs-region-test-filesystem" {
+     resource "aws_efs_file_system" "efs-test-filesystem-51fb32" {
        provider = aws._123-us-east-1
        encrypted = false
        performance_mode = "generalPurpose"
@@ -88,23 +88,23 @@ describe('AwsEfsFilesystemModule UT', () => {
        }
      }
 
-     resource "aws_efs_backup_policy" "efs-region-test-filesystem_backup_policy" {
+     resource "aws_efs_backup_policy" "efs-test-filesystem-51fb32_backup_policy" {
        provider = aws._123-us-east-1
        backup_policy {
          status = "DISABLED"
        }
-       file_system_id = aws_efs_file_system.efs-region-test-filesystem.id
+       file_system_id = aws_efs_file_system.efs-test-filesystem-51fb32.id
 
-       depends_on = [aws_efs_file_system.efs-region-test-filesystem]
+       depends_on = [aws_efs_file_system.efs-test-filesystem-51fb32]
      }
 
      # filesystem/outputs.tf
-     output "efs-region-test-filesystem-FileSystemArn" {
-       value = aws_efs_file_system.efs-region-test-filesystem.arn
+     output "efs-test-filesystem-51fb32-FileSystemArn" {
+       value = aws_efs_file_system.efs-test-filesystem-51fb32.arn
      }
 
-     output "efs-region-test-filesystem-FileSystemId" {
-       value = aws_efs_file_system.efs-region-test-filesystem.id
+     output "efs-test-filesystem-51fb32-FileSystemId" {
+       value = aws_efs_file_system.efs-test-filesystem-51fb32.id
      }
 
      # filesystem/terragrunt.hcl
@@ -131,7 +131,7 @@ describe('AwsEfsFilesystemModule UT', () => {
     `);
     expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "+ @octo/efs=efs-region-test-filesystem",
+       "+ @octo/efs=efs-test-filesystem-51fb32",
      ]
     `);
   });
@@ -155,7 +155,7 @@ describe('AwsEfsFilesystemModule UT', () => {
     ).value!;
     expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`
      [
-       "+ @octo/efs=efs-region-test-filesystem",
+       "+ @octo/efs=efs-test-filesystem-51fb32",
      ]
     `);
 
@@ -179,7 +179,7 @@ describe('AwsEfsFilesystemModule UT', () => {
     expect(hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(resourceDiffsDelete)).toMatchInlineSnapshot(`
      [
-       "- @octo/efs=efs-region-test-filesystem",
+       "- @octo/efs=efs-test-filesystem-51fb32",
      ]
     `);
 
@@ -207,7 +207,7 @@ describe('AwsEfsFilesystemModule UT', () => {
     ).value!;
     expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`
      [
-       "+ @octo/efs=efs-region-test-filesystem",
+       "+ @octo/efs=efs-test-filesystem-51fb32",
      ]
     `);
 
@@ -231,7 +231,7 @@ describe('AwsEfsFilesystemModule UT', () => {
     expect(updateTags.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(updateTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "* @octo/efs=efs-region-test-filesystem",
+       "* @octo/efs=efs-test-filesystem-51fb32",
      ]
     `);
 
@@ -254,7 +254,7 @@ describe('AwsEfsFilesystemModule UT', () => {
     expect(deleteTags.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(deleteTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "* @octo/efs=efs-region-test-filesystem",
+       "* @octo/efs=efs-test-filesystem-51fb32",
      ]
     `);
   });
@@ -295,8 +295,8 @@ describe('AwsEfsFilesystemModule UT', () => {
       expect(hclDiff).toMatchSnapshot();
       expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "- @octo/efs=efs-region-test-filesystem",
-         "+ @octo/efs=efs-region-changed-filesystem",
+         "- @octo/efs=efs-test-filesystem-51fb32",
+         "+ @octo/efs=efs-changed-filesystem-51fb32",
        ]
       `);
     });

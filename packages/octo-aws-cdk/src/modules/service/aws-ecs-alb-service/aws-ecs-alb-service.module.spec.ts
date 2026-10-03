@@ -337,46 +337,46 @@ describe('AwsEcsAlbServiceModule UT', () => {
        allowed_account_ids = ["123"]
      }
 
-     resource "aws_security_group" "sec-grp-region-test-alb" {
+     resource "aws_security_group" "sec-grp-test-alb-074c0f" {
        provider = aws._123-us-east-1
        vpc_id = var.vpc_region_VpcId
      }
 
-     resource "aws_vpc_security_group_ingress_rule" "sec-grp-region-test-alb_ingress_0" {
+     resource "aws_vpc_security_group_ingress_rule" "sec-grp-test-alb-074c0f_ingress_0" {
        provider = aws._123-us-east-1
        cidr_ipv4 = "0.0.0.0/0"
        description = "tcp 80-80 0.0.0.0/0"
        ip_protocol = "tcp"
-       security_group_id = aws_security_group.sec-grp-region-test-alb.id
+       security_group_id = aws_security_group.sec-grp-test-alb-074c0f.id
        from_port = 80
        to_port = 80
 
-       depends_on = [aws_security_group.sec-grp-region-test-alb]
+       depends_on = [aws_security_group.sec-grp-test-alb-074c0f]
      }
 
-     resource "aws_vpc_security_group_egress_rule" "sec-grp-region-test-alb_egress_0" {
+     resource "aws_vpc_security_group_egress_rule" "sec-grp-test-alb-074c0f_egress_0" {
        provider = aws._123-us-east-1
        cidr_ipv4 = "0.0.0.0/0"
        description = "tcp 0-65535 0.0.0.0/0"
        ip_protocol = "tcp"
-       security_group_id = aws_security_group.sec-grp-region-test-alb.id
+       security_group_id = aws_security_group.sec-grp-test-alb-074c0f.id
        from_port = 0
        to_port = 65535
 
-       depends_on = [aws_vpc_security_group_ingress_rule.sec-grp-region-test-alb_ingress_0]
+       depends_on = [aws_vpc_security_group_ingress_rule.sec-grp-test-alb-074c0f_ingress_0]
      }
 
-     resource "aws_lb" "alb-region-test-alb" {
+     resource "aws_lb" "alb-test-alb-074c0f" {
        provider = aws._123-us-east-1
        internal = false
        ip_address_type = "ipv4"
        load_balancer_type = "application"
        name = "test-alb"
-       security_groups = [aws_security_group.sec-grp-region-test-alb.id]
+       security_groups = [aws_security_group.sec-grp-test-alb-074c0f.id]
        subnets = [var.subnet_region_public_subnet_1_SubnetId, var.subnet_region_public_subnet_2_SubnetId]
      }
 
-     resource "aws_lb_target_group" "alb-target-group-backend-v1-region-qa-public-subnet-1" {
+     resource "aws_lb_target_group" "alb-target-group-test-alb-backend-v1-region-qa-public-subnet-1-074c0f" {
        provider = aws._123-us-east-1
        ip_address_type = "ipv4"
        name = "test-container-80"
@@ -398,28 +398,28 @@ describe('AwsEcsAlbServiceModule UT', () => {
        }
      }
 
-     resource "aws_lb_listener" "alb-listener-test-alb" {
+     resource "aws_lb_listener" "alb-listener-test-alb-074c0f" {
        provider = aws._123-us-east-1
        default_action {
          forward {
            target_group {
-             arn = aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn
+             arn = aws_lb_target_group.alb-target-group-test-alb-backend-v1-region-qa-public-subnet-1-074c0f.arn
              weight = 100
            }
          }
          type = "forward"
        }
-       load_balancer_arn = aws_lb.alb-region-test-alb.arn
+       load_balancer_arn = aws_lb.alb-test-alb-074c0f.arn
        port = 80
        protocol = "HTTP"
      }
 
-     resource "aws_lb_listener_rule" "alb-listener-test-alb_rule_1" {
+     resource "aws_lb_listener_rule" "alb-listener-test-alb-074c0f_rule_1" {
        provider = aws._123-us-east-1
        action {
          forward {
            target_group {
-             arn = aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn
+             arn = aws_lb_target_group.alb-target-group-test-alb-backend-v1-region-qa-public-subnet-1-074c0f.arn
              weight = 100
            }
          }
@@ -430,35 +430,35 @@ describe('AwsEcsAlbServiceModule UT', () => {
            values = ["/api"]
          }
        }
-       listener_arn = aws_lb_listener.alb-listener-test-alb.arn
+       listener_arn = aws_lb_listener.alb-listener-test-alb-074c0f.arn
        priority = 1
 
-       depends_on = [aws_lb_listener.alb-listener-test-alb]
+       depends_on = [aws_lb_listener.alb-listener-test-alb-074c0f]
      }
 
      # alb-module/outputs.tf
-     output "sec-grp-region-test-alb-Arn" {
-       value = aws_security_group.sec-grp-region-test-alb.arn
+     output "sec-grp-test-alb-074c0f-Arn" {
+       value = aws_security_group.sec-grp-test-alb-074c0f.arn
      }
 
-     output "sec-grp-region-test-alb-GroupId" {
-       value = aws_security_group.sec-grp-region-test-alb.id
+     output "sec-grp-test-alb-074c0f-GroupId" {
+       value = aws_security_group.sec-grp-test-alb-074c0f.id
      }
 
-     output "alb-region-test-alb-DNSName" {
-       value = aws_lb.alb-region-test-alb.dns_name
+     output "alb-test-alb-074c0f-DNSName" {
+       value = aws_lb.alb-test-alb-074c0f.dns_name
      }
 
-     output "alb-region-test-alb-LoadBalancerArn" {
-       value = aws_lb.alb-region-test-alb.arn
+     output "alb-test-alb-074c0f-LoadBalancerArn" {
+       value = aws_lb.alb-test-alb-074c0f.arn
      }
 
-     output "alb-target-group-backend-v1-region-qa-public-subnet-1-TargetGroupArn" {
-       value = aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn
+     output "alb-target-group-test-alb-backend-v1-region-qa-public-subnet-1-074c0f-TargetGroupArn" {
+       value = aws_lb_target_group.alb-target-group-test-alb-backend-v1-region-qa-public-subnet-1-074c0f.arn
      }
 
-     output "alb-listener-test-alb-ListenerArn" {
-       value = aws_lb_listener.alb-listener-test-alb.arn
+     output "alb-listener-test-alb-074c0f-ListenerArn" {
+       value = aws_lb_listener.alb-listener-test-alb-074c0f.arn
      }
 
      # alb-module/terragrunt.hcl
@@ -547,7 +547,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
        load_balancer {
          container_name = "test-container"
          container_port = 80
-         target_group_arn = var.alb_target_group_backend_v1_region_qa_public_subnet_1_TargetGroupArn
+         target_group_arn = var.alb_target_group_test_alb_backend_v1_region_qa_public_subnet_1_074c0f_TargetGroupArn
        }
      }
 
@@ -580,7 +580,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
        config_path = "../alb-module"
 
        mock_outputs = {
-         "alb-target-group-backend-v1-region-qa-public-subnet-1-TargetGroupArn" = "arn:aws:elasticloadbalancing:us-east-1:000000000000:targetgroup/mock-tg/0123456789abcdef"
+         "alb-target-group-test-alb-backend-v1-region-qa-public-subnet-1-074c0f-TargetGroupArn" = "arn:aws:elasticloadbalancing:us-east-1:000000000000:targetgroup/mock-tg/0123456789abcdef"
        }
        mock_outputs_allowed_terraform_commands = ["init", "plan", "show", "validate"]
        mock_outputs_merge_strategy_with_state = "shallow"
@@ -607,13 +607,13 @@ describe('AwsEcsAlbServiceModule UT', () => {
      }
 
      inputs = {
-       alb_target_group_backend_v1_region_qa_public_subnet_1_TargetGroupArn = dependency.alb-module.outputs["alb-target-group-backend-v1-region-qa-public-subnet-1-TargetGroupArn"]
+       alb_target_group_test_alb_backend_v1_region_qa_public_subnet_1_074c0f_TargetGroupArn = dependency.alb-module.outputs["alb-target-group-test-alb-backend-v1-region-qa-public-subnet-1-074c0f-TargetGroupArn"]
        ecs_cluster_region_qa_clusterArn = dependency.testModule.outputs["ecs-cluster-region-qa-clusterArn"]
        subnet_region_public_subnet_1_SubnetId = dependency.testSubnet1Module.outputs["subnet-region-public-subnet-1-SubnetId"]
      }
 
      # testExecutionModule/variables.tf
-     variable "alb_target_group_backend_v1_region_qa_public_subnet_1_TargetGroupArn" {}
+     variable "alb_target_group_test_alb_backend_v1_region_qa_public_subnet_1_074c0f_TargetGroupArn" {}
 
      variable "ecs_cluster_region_qa_clusterArn" {}
 
@@ -726,12 +726,12 @@ describe('AwsEcsAlbServiceModule UT', () => {
     );
     expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "+ @octo/security-group=sec-grp-region-test-alb",
-       "+ @octo/alb=alb-region-test-alb",
-       "+ @octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
-       "+ @octo/alb-listener=alb-listener-test-alb",
-       "* @octo/alb-listener=alb-listener-test-alb",
-       "* @octo/alb-listener=alb-listener-test-alb",
+       "+ @octo/security-group=sec-grp-test-alb-074c0f",
+       "+ @octo/alb=alb-test-alb-074c0f",
+       "+ @octo/alb-target-group=alb-target-group-test-alb-backend-v1-region-qa-public-subnet-1-074c0f",
+       "+ @octo/alb-listener=alb-listener-test-alb-074c0f",
+       "* @octo/alb-listener=alb-listener-test-alb-074c0f",
+       "* @octo/alb-listener=alb-listener-test-alb-074c0f",
      ]
     `);
   });
@@ -779,11 +779,11 @@ describe('AwsEcsAlbServiceModule UT', () => {
     ).value!;
     expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`
      [
-       "+ @octo/security-group=sec-grp-region-test-alb",
-       "+ @octo/alb=alb-region-test-alb",
-       "+ @octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
-       "+ @octo/alb-listener=alb-listener-test-alb",
-       "* @octo/alb-listener=alb-listener-test-alb",
+       "+ @octo/security-group=sec-grp-test-alb-074c0f",
+       "+ @octo/alb=alb-test-alb-074c0f",
+       "+ @octo/alb-target-group=alb-target-group-test-alb-backend-v1-region-qa-public-subnet-1-074c0f",
+       "+ @octo/alb-listener=alb-listener-test-alb-074c0f",
+       "* @octo/alb-listener=alb-listener-test-alb-074c0f",
        "* @octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
      ]
     `);
@@ -842,7 +842,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
     expect(addListenerRule.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(addListenerRule.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "* @octo/alb-listener=alb-listener-test-alb",
+       "* @octo/alb-listener=alb-listener-test-alb-074c0f",
      ]
     `);
 
@@ -900,8 +900,8 @@ describe('AwsEcsAlbServiceModule UT', () => {
     expect(updateListenerRule.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(updateListenerRule.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "* @octo/alb-listener=alb-listener-test-alb",
-       "* @octo/alb-listener=alb-listener-test-alb",
+       "* @octo/alb-listener=alb-listener-test-alb-074c0f",
+       "* @octo/alb-listener=alb-listener-test-alb-074c0f",
      ]
     `);
 
@@ -949,11 +949,11 @@ describe('AwsEcsAlbServiceModule UT', () => {
     expect(deleteResult.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(deleteResult.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "- @octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
-       "- @octo/security-group=sec-grp-region-test-alb",
+       "- @octo/alb-target-group=alb-target-group-test-alb-backend-v1-region-qa-public-subnet-1-074c0f",
+       "- @octo/security-group=sec-grp-test-alb-074c0f",
        "* @octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
-       "- @octo/alb=alb-region-test-alb",
-       "- @octo/alb-listener=alb-listener-test-alb",
+       "- @octo/alb=alb-test-alb-074c0f",
+       "- @octo/alb-listener=alb-listener-test-alb-074c0f",
      ]
     `);
 
@@ -1004,12 +1004,11 @@ describe('AwsEcsAlbServiceModule UT', () => {
     ).value!;
     expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`
      [
-       "+ @octo/security-group=sec-grp-region-test-alb",
-       "+ @octo/alb=alb-region-test-alb",
-       "+ @octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
-       "+ @octo/alb-listener=alb-listener-test-alb",
-       "* @octo/alb-listener=alb-listener-test-alb",
-       "* @octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
+       "+ @octo/security-group=sec-grp-test-alb-074c0f",
+       "+ @octo/alb=alb-test-alb-074c0f",
+       "+ @octo/alb-target-group=alb-target-group-test-alb-backend-v1-region-qa-public-subnet-1-074c0f",
+       "+ @octo/alb-listener=alb-listener-test-alb-074c0f",
+       "* @octo/alb-listener=alb-listener-test-alb-074c0f",
        "* @octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
      ]
     `);
@@ -1058,11 +1057,10 @@ describe('AwsEcsAlbServiceModule UT', () => {
     expect(updateTags.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(updateTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "* @octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
-       "* @octo/security-group=sec-grp-region-test-alb",
-       "* @octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
-       "* @octo/alb=alb-region-test-alb",
-       "* @octo/alb-listener=alb-listener-test-alb",
+       "* @octo/alb-target-group=alb-target-group-test-alb-backend-v1-region-qa-public-subnet-1-074c0f",
+       "* @octo/security-group=sec-grp-test-alb-074c0f",
+       "* @octo/alb=alb-test-alb-074c0f",
+       "* @octo/alb-listener=alb-listener-test-alb-074c0f",
      ]
     `);
 
@@ -1109,11 +1107,10 @@ describe('AwsEcsAlbServiceModule UT', () => {
     expect(deleteTags.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(deleteTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "* @octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
-       "* @octo/security-group=sec-grp-region-test-alb",
-       "* @octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
-       "* @octo/alb=alb-region-test-alb",
-       "* @octo/alb-listener=alb-listener-test-alb",
+       "* @octo/alb-target-group=alb-target-group-test-alb-backend-v1-region-qa-public-subnet-1-074c0f",
+       "* @octo/security-group=sec-grp-test-alb-074c0f",
+       "* @octo/alb=alb-test-alb-074c0f",
+       "* @octo/alb-listener=alb-listener-test-alb-074c0f",
      ]
     `);
   });
@@ -1202,13 +1199,16 @@ describe('AwsEcsAlbServiceModule UT', () => {
       expect(hclDiff).toMatchSnapshot();
       expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "- @octo/security-group=sec-grp-region-test-alb",
-         "- @octo/alb=alb-region-test-alb",
-         "- @octo/alb-listener=alb-listener-test-alb",
-         "+ @octo/security-group=sec-grp-region-changed-alb",
-         "+ @octo/alb=alb-region-changed-alb",
-         "+ @octo/alb-listener=alb-listener-changed-alb",
-         "* @octo/alb-listener=alb-listener-changed-alb",
+         "- @octo/alb-target-group=alb-target-group-test-alb-backend-v1-region-qa-public-subnet-1-074c0f",
+         "- @octo/security-group=sec-grp-test-alb-074c0f",
+         "* @octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
+         "- @octo/alb=alb-test-alb-074c0f",
+         "- @octo/alb-listener=alb-listener-test-alb-074c0f",
+         "+ @octo/security-group=sec-grp-changed-alb-074c0f",
+         "+ @octo/alb=alb-changed-alb-074c0f",
+         "+ @octo/alb-target-group=alb-target-group-changed-alb-backend-v1-region-qa-public-subnet-1-074c0f",
+         "+ @octo/alb-listener=alb-listener-changed-alb-074c0f",
+         "* @octo/alb-listener=alb-listener-changed-alb-074c0f",
        ]
       `);
     });
@@ -1286,9 +1286,9 @@ describe('AwsEcsAlbServiceModule UT', () => {
       expect(hclDiff).toMatchSnapshot();
       expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "- @octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
+         "- @octo/alb-target-group=alb-target-group-test-alb-backend-v1-region-qa-public-subnet-1-074c0f",
          "* @octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
-         "* @octo/alb-listener=alb-listener-test-alb",
+         "* @octo/alb-listener=alb-listener-test-alb-074c0f",
        ]
       `);
     });
@@ -1376,7 +1376,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
       expect(hclDiff).toMatchSnapshot();
       expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "* @octo/alb-listener=alb-listener-test-alb",
+         "* @octo/alb-listener=alb-listener-test-alb-074c0f",
        ]
       `);
     });
@@ -1475,7 +1475,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
       expect(hclDiff).toMatchSnapshot();
       expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "* @octo/alb-listener=alb-listener-test-alb",
+         "* @octo/alb-listener=alb-listener-test-alb-074c0f",
        ]
       `);
     });
@@ -1554,8 +1554,8 @@ describe('AwsEcsAlbServiceModule UT', () => {
       expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
          "* @octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
-         "* @octo/alb-listener=alb-listener-test-alb",
-         "+ @octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
+         "* @octo/alb-listener=alb-listener-test-alb-074c0f",
+         "+ @octo/alb-target-group=alb-target-group-test-alb-backend-v1-region-qa-public-subnet-1-074c0f",
        ]
       `);
     });
@@ -1731,7 +1731,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
       ).value!;
       expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "^ @octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
+         "^ @octo/alb-target-group=alb-target-group-test-alb-backend-v1-region-qa-public-subnet-1-074c0f",
          "* @octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
        ]
       `);
@@ -1820,7 +1820,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
       expect(hclDiff).toMatchSnapshot();
       expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "* @octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
+         "* @octo/alb-target-group=alb-target-group-test-alb-backend-v1-region-qa-public-subnet-1-074c0f",
          "* @octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
        ]
       `);
@@ -1909,9 +1909,9 @@ describe('AwsEcsAlbServiceModule UT', () => {
       ).value!;
       expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "^ @octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
+         "^ @octo/alb-target-group=alb-target-group-test-alb-backend-v1-region-qa-public-subnet-1-074c0f",
          "* @octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
-         "* @octo/alb-listener=alb-listener-test-alb",
+         "* @octo/alb-listener=alb-listener-test-alb-074c0f",
        ]
       `);
     });

@@ -102,37 +102,37 @@ describe('AwsS3StorageServiceModule UT', () => {
        allowed_account_ids = ["123"]
      }
 
-     resource "aws_s3_bucket" "bucket-test-bucket" {
+     resource "aws_s3_bucket" "bucket-test-bucket-51fb32" {
        provider = aws._123-us-east-1
        bucket = "test-bucket"
      }
 
-     resource "aws_s3_bucket_public_access_block" "bucket-test-bucket-public-access" {
+     resource "aws_s3_bucket_public_access_block" "bucket-test-bucket-51fb32-public-access" {
        provider = aws._123-us-east-1
        block_public_acls = true
        block_public_policy = true
-       bucket = aws_s3_bucket.bucket-test-bucket.id
+       bucket = aws_s3_bucket.bucket-test-bucket-51fb32.id
        ignore_public_acls = true
        restrict_public_buckets = true
 
-       depends_on = [aws_s3_bucket.bucket-test-bucket]
+       depends_on = [aws_s3_bucket.bucket-test-bucket-51fb32]
      }
 
      # service/outputs.tf
-     output "bucket-test-bucket-Arn" {
-       value = aws_s3_bucket.bucket-test-bucket.arn
+     output "bucket-test-bucket-51fb32-Arn" {
+       value = aws_s3_bucket.bucket-test-bucket-51fb32.arn
      }
 
-     output "bucket-test-bucket-awsRegionId" {
+     output "bucket-test-bucket-51fb32-awsRegionId" {
        value = "us-east-1"
      }
 
-     output "bucket-test-bucket-Bucket" {
-       value = aws_s3_bucket.bucket-test-bucket.id
+     output "bucket-test-bucket-51fb32-Bucket" {
+       value = aws_s3_bucket.bucket-test-bucket-51fb32.id
      }
 
-     output "bucket-test-bucket-RegionalDomainName" {
-       value = aws_s3_bucket.bucket-test-bucket.bucket_regional_domain_name
+     output "bucket-test-bucket-51fb32-RegionalDomainName" {
+       value = aws_s3_bucket.bucket-test-bucket-51fb32.bucket_regional_domain_name
      }
 
      # service/terragrunt.hcl
@@ -159,7 +159,7 @@ describe('AwsS3StorageServiceModule UT', () => {
     `);
     expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "+ @octo/s3-storage=bucket-test-bucket",
+       "+ @octo/s3-storage=bucket-test-bucket-51fb32",
      ]
     `);
   });
@@ -183,7 +183,7 @@ describe('AwsS3StorageServiceModule UT', () => {
     ).value!;
     expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`
      [
-       "+ @octo/s3-storage=bucket-test-bucket",
+       "+ @octo/s3-storage=bucket-test-bucket-51fb32",
      ]
     `);
 
@@ -229,7 +229,7 @@ describe('AwsS3StorageServiceModule UT', () => {
     expect(deleteResult.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(deleteResult.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "- @octo/s3-storage=bucket-test-bucket",
+       "- @octo/s3-storage=bucket-test-bucket-51fb32",
      ]
     `);
 
@@ -258,7 +258,7 @@ describe('AwsS3StorageServiceModule UT', () => {
     ).value!;
     expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`
      [
-       "+ @octo/s3-storage=bucket-test-bucket",
+       "+ @octo/s3-storage=bucket-test-bucket-51fb32",
      ]
     `);
 
@@ -283,7 +283,7 @@ describe('AwsS3StorageServiceModule UT', () => {
     expect(updateTags.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(updateTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "* @octo/s3-storage=bucket-test-bucket",
+       "* @octo/s3-storage=bucket-test-bucket-51fb32",
      ]
     `);
 
@@ -307,7 +307,7 @@ describe('AwsS3StorageServiceModule UT', () => {
     expect(deleteTags.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(deleteTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "* @octo/s3-storage=bucket-test-bucket",
+       "* @octo/s3-storage=bucket-test-bucket-51fb32",
      ]
     `);
   });
@@ -347,43 +347,43 @@ describe('AwsS3StorageServiceModule UT', () => {
          allowed_account_ids = ["123"]
        }
 
-       resource "aws_s3_bucket" "bucket-test-bucket" {
+       resource "aws_s3_bucket" "bucket-test-bucket-51fb32" {
          provider = aws._123-us-east-1
          bucket = "test-bucket"
        }
 
-       resource "aws_s3_bucket_public_access_block" "bucket-test-bucket-public-access" {
+       resource "aws_s3_bucket_public_access_block" "bucket-test-bucket-51fb32-public-access" {
          provider = aws._123-us-east-1
          block_public_acls = true
          block_public_policy = true
-         bucket = aws_s3_bucket.bucket-test-bucket.id
+         bucket = aws_s3_bucket.bucket-test-bucket-51fb32.id
          ignore_public_acls = true
          restrict_public_buckets = true
 
-         depends_on = [aws_s3_bucket.bucket-test-bucket]
+         depends_on = [aws_s3_bucket.bucket-test-bucket-51fb32]
        }
 
-       resource "aws_s3_object" "bucket-test-bucket_file_errorhtml" {
+       resource "aws_s3_object" "bucket-test-bucket-51fb32_file_errorhtml" {
          provider = aws._123-us-east-1
-         bucket = aws_s3_bucket.bucket-test-bucket.id
+         bucket = aws_s3_bucket.bucket-test-bucket-51fb32.id
          content_type = "text/html"
          etag = filemd5("\${var.OCTO_PROJECT_ROOT}/resources/s3-static-website/error.html")
          key = "error.html"
          source = "\${var.OCTO_PROJECT_ROOT}/resources/s3-static-website/error.html"
        }
 
-       resource "aws_s3_object" "bucket-test-bucket_file_indexhtml" {
+       resource "aws_s3_object" "bucket-test-bucket-51fb32_file_indexhtml" {
          provider = aws._123-us-east-1
-         bucket = aws_s3_bucket.bucket-test-bucket.id
+         bucket = aws_s3_bucket.bucket-test-bucket-51fb32.id
          content_type = "text/html"
          etag = filemd5("\${var.OCTO_PROJECT_ROOT}/resources/s3-static-website/index.html")
          key = "index.html"
          source = "\${var.OCTO_PROJECT_ROOT}/resources/s3-static-website/index.html"
        }
 
-       resource "aws_s3_object" "bucket-test-bucket_file_page1html" {
+       resource "aws_s3_object" "bucket-test-bucket-51fb32_file_page1html" {
          provider = aws._123-us-east-1
-         bucket = aws_s3_bucket.bucket-test-bucket.id
+         bucket = aws_s3_bucket.bucket-test-bucket-51fb32.id
          content_type = "text/html"
          etag = filemd5("\${var.OCTO_PROJECT_ROOT}/resources/s3-static-website/page-1.html")
          key = "page-1.html"
@@ -391,20 +391,20 @@ describe('AwsS3StorageServiceModule UT', () => {
        }
 
        # service/outputs.tf
-       output "bucket-test-bucket-Arn" {
-         value = aws_s3_bucket.bucket-test-bucket.arn
+       output "bucket-test-bucket-51fb32-Arn" {
+         value = aws_s3_bucket.bucket-test-bucket-51fb32.arn
        }
 
-       output "bucket-test-bucket-awsRegionId" {
+       output "bucket-test-bucket-51fb32-awsRegionId" {
          value = "us-east-1"
        }
 
-       output "bucket-test-bucket-Bucket" {
-         value = aws_s3_bucket.bucket-test-bucket.id
+       output "bucket-test-bucket-51fb32-Bucket" {
+         value = aws_s3_bucket.bucket-test-bucket-51fb32.id
        }
 
-       output "bucket-test-bucket-RegionalDomainName" {
-         value = aws_s3_bucket.bucket-test-bucket.bucket_regional_domain_name
+       output "bucket-test-bucket-51fb32-RegionalDomainName" {
+         value = aws_s3_bucket.bucket-test-bucket-51fb32.bucket_regional_domain_name
        }
 
        # service/terragrunt.hcl
@@ -436,8 +436,8 @@ describe('AwsS3StorageServiceModule UT', () => {
       `);
       expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "+ @octo/s3-storage=bucket-test-bucket",
-         "* @octo/s3-storage=bucket-test-bucket",
+         "+ @octo/s3-storage=bucket-test-bucket-51fb32",
+         "* @octo/s3-storage=bucket-test-bucket-51fb32",
        ]
       `);
     });
@@ -462,8 +462,8 @@ describe('AwsS3StorageServiceModule UT', () => {
       ).value!;
       expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`
        [
-         "+ @octo/s3-storage=bucket-test-bucket",
-         "* @octo/s3-storage=bucket-test-bucket",
+         "+ @octo/s3-storage=bucket-test-bucket-51fb32",
+         "* @octo/s3-storage=bucket-test-bucket-51fb32",
        ]
       `);
 
@@ -508,7 +508,7 @@ describe('AwsS3StorageServiceModule UT', () => {
       expect(deleteResult.hclDiff).toMatchSnapshot();
       expect(testModuleContainer.digestDiffs(deleteResult.resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "- @octo/s3-storage=bucket-test-bucket",
+         "- @octo/s3-storage=bucket-test-bucket-51fb32",
        ]
       `);
 
@@ -554,7 +554,7 @@ describe('AwsS3StorageServiceModule UT', () => {
       ).value!;
       expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "^ @octo/s3-storage=bucket-test-bucket",
+         "^ @octo/s3-storage=bucket-test-bucket-51fb32",
        ]
       `);
     });
@@ -596,7 +596,7 @@ describe('AwsS3StorageServiceModule UT', () => {
       expect(hclDiff).toMatchSnapshot();
       expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "* @octo/s3-storage=bucket-test-bucket",
+         "* @octo/s3-storage=bucket-test-bucket-51fb32",
        ]
       `);
     });
@@ -638,8 +638,8 @@ describe('AwsS3StorageServiceModule UT', () => {
       expect(hclDiff).toMatchSnapshot();
       expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "- @octo/s3-storage=bucket-test-bucket",
-         "+ @octo/s3-storage=bucket-changed-bucket",
+         "- @octo/s3-storage=bucket-test-bucket-51fb32",
+         "+ @octo/s3-storage=bucket-changed-bucket-51fb32",
        ]
       `);
     });

@@ -2,19 +2,19 @@
 
 exports[`AwsMultiAzRegionModule UT input changes should handle name change 1`] = `
 "+ region/main.tf
-resource "aws_internet_gateway" "igw-changed-region" {
+resource "aws_internet_gateway" "igw-changed-region-b1f33b" {
   provider = aws._123-us-east-1
-  vpc_id = aws_vpc.vpc-changed-region.id
+  vpc_id = aws_vpc.vpc-changed-region-b1f33b.id
 }
 
 - region/main.tf
-resource "aws_internet_gateway" "igw-test-region" {
+resource "aws_internet_gateway" "igw-test-region-b1f33b" {
   provider = aws._123-us-east-1
-  vpc_id = aws_vpc.vpc-test-region.id
+  vpc_id = aws_vpc.vpc-test-region-b1f33b.id
 }
 
 + region/main.tf
-resource "aws_vpc" "vpc-changed-region" {
+resource "aws_vpc" "vpc-changed-region-b1f33b" {
   provider = aws._123-us-east-1
   cidr_block = "10.0.0.0/16"
   enable_dns_hostnames = true
@@ -23,7 +23,7 @@ resource "aws_vpc" "vpc-changed-region" {
 }
 
 - region/main.tf
-resource "aws_vpc" "vpc-test-region" {
+resource "aws_vpc" "vpc-test-region-b1f33b" {
   provider = aws._123-us-east-1
   cidr_block = "10.0.0.0/16"
   enable_dns_hostnames = true
@@ -32,43 +32,43 @@ resource "aws_vpc" "vpc-test-region" {
 }
 
 + region/outputs.tf
-output "igw-changed-region-InternetGatewayArn" {
-  value = aws_internet_gateway.igw-changed-region.arn
+output "igw-changed-region-b1f33b-InternetGatewayArn" {
+  value = aws_internet_gateway.igw-changed-region-b1f33b.arn
 }
 
 + region/outputs.tf
-output "igw-changed-region-InternetGatewayId" {
-  value = aws_internet_gateway.igw-changed-region.id
+output "igw-changed-region-b1f33b-InternetGatewayId" {
+  value = aws_internet_gateway.igw-changed-region-b1f33b.id
 }
 
 - region/outputs.tf
-output "igw-test-region-InternetGatewayArn" {
-  value = aws_internet_gateway.igw-test-region.arn
+output "igw-test-region-b1f33b-InternetGatewayArn" {
+  value = aws_internet_gateway.igw-test-region-b1f33b.arn
 }
 
 - region/outputs.tf
-output "igw-test-region-InternetGatewayId" {
-  value = aws_internet_gateway.igw-test-region.id
+output "igw-test-region-b1f33b-InternetGatewayId" {
+  value = aws_internet_gateway.igw-test-region-b1f33b.id
 }
 
 + region/outputs.tf
-output "vpc-changed-region-VpcArn" {
-  value = aws_vpc.vpc-changed-region.arn
+output "vpc-changed-region-b1f33b-VpcArn" {
+  value = aws_vpc.vpc-changed-region-b1f33b.arn
 }
 
 + region/outputs.tf
-output "vpc-changed-region-VpcId" {
-  value = aws_vpc.vpc-changed-region.id
+output "vpc-changed-region-b1f33b-VpcId" {
+  value = aws_vpc.vpc-changed-region-b1f33b.id
 }
 
 - region/outputs.tf
-output "vpc-test-region-VpcArn" {
-  value = aws_vpc.vpc-test-region.arn
+output "vpc-test-region-b1f33b-VpcArn" {
+  value = aws_vpc.vpc-test-region-b1f33b.arn
 }
 
 - region/outputs.tf
-output "vpc-test-region-VpcId" {
-  value = aws_vpc.vpc-test-region.id
+output "vpc-test-region-b1f33b-VpcId" {
+  value = aws_vpc.vpc-test-region-b1f33b.id
 }"
 `;
 
@@ -81,13 +81,13 @@ provider "aws" {
 }
 
 - region/main.tf
-resource "aws_internet_gateway" "igw-test-region" {
+resource "aws_internet_gateway" "igw-test-region-b1f33b" {
   provider = aws._123-us-east-1
-  vpc_id = aws_vpc.vpc-test-region.id
+  vpc_id = aws_vpc.vpc-test-region-b1f33b.id
 }
 
 - region/main.tf
-resource "aws_vpc" "vpc-test-region" {
+resource "aws_vpc" "vpc-test-region-b1f33b" {
   provider = aws._123-us-east-1
   cidr_block = "10.0.0.0/16"
   enable_dns_hostnames = true
@@ -107,23 +107,23 @@ terraform {
 }
 
 - region/outputs.tf
-output "igw-test-region-InternetGatewayArn" {
-  value = aws_internet_gateway.igw-test-region.arn
+output "igw-test-region-b1f33b-InternetGatewayArn" {
+  value = aws_internet_gateway.igw-test-region-b1f33b.arn
 }
 
 - region/outputs.tf
-output "igw-test-region-InternetGatewayId" {
-  value = aws_internet_gateway.igw-test-region.id
+output "igw-test-region-b1f33b-InternetGatewayId" {
+  value = aws_internet_gateway.igw-test-region-b1f33b.id
 }
 
 - region/outputs.tf
-output "vpc-test-region-VpcArn" {
-  value = aws_vpc.vpc-test-region.arn
+output "vpc-test-region-b1f33b-VpcArn" {
+  value = aws_vpc.vpc-test-region-b1f33b.arn
 }
 
 - region/outputs.tf
-output "vpc-test-region-VpcId" {
-  value = aws_vpc.vpc-test-region.id
+output "vpc-test-region-b1f33b-VpcId" {
+  value = aws_vpc.vpc-test-region-b1f33b.id
 }
 
 - region/terragrunt.hcl
@@ -143,7 +143,7 @@ remote_state {
 `;
 
 exports[`AwsMultiAzRegionModule UT should CUD tags 1`] = `
-"~ region/main.tf resource "aws_internet_gateway" "igw-test-region" {
+"~ region/main.tf resource "aws_internet_gateway" "igw-test-region-b1f33b" {
 @@ -4,3 +4,4 @@
     tags = {
 -     tag1 = "value1"
@@ -151,7 +151,7 @@ exports[`AwsMultiAzRegionModule UT should CUD tags 1`] = `
 +     tag2 = "value2"
     }
 
-~ region/main.tf resource "aws_vpc" "vpc-test-region" {
+~ region/main.tf resource "aws_vpc" "vpc-test-region-b1f33b" {
 @@ -7,3 +7,4 @@
     tags = {
 -     tag1 = "value1"
@@ -161,16 +161,16 @@ exports[`AwsMultiAzRegionModule UT should CUD tags 1`] = `
 `;
 
 exports[`AwsMultiAzRegionModule UT should CUD tags 3`] = `
-"~ region/main.tf resource "aws_internet_gateway" "igw-test-region" {
+"~ region/main.tf resource "aws_internet_gateway" "igw-test-region-b1f33b" {
 @@ -3,6 +3,2 @@
-    vpc_id = aws_vpc.vpc-test-region.id
+    vpc_id = aws_vpc.vpc-test-region-b1f33b.id
 -   tags = {
 -     tag1 = "value1_1"
 -     tag2 = "value2"
 -   }
   }
 
-~ region/main.tf resource "aws_vpc" "vpc-test-region" {
+~ region/main.tf resource "aws_vpc" "vpc-test-region-b1f33b" {
 @@ -6,6 +6,2 @@
     instance_tenancy = "default"
 -   tags = {
@@ -189,13 +189,13 @@ provider "aws" {
 }
 
 - region-1/main.tf
-resource "aws_internet_gateway" "igw-test-region" {
+resource "aws_internet_gateway" "igw-test-region-b1f33b" {
   provider = aws._123-us-east-1
-  vpc_id = aws_vpc.vpc-test-region.id
+  vpc_id = aws_vpc.vpc-test-region-b1f33b.id
 }
 
 - region-1/main.tf
-resource "aws_vpc" "vpc-test-region" {
+resource "aws_vpc" "vpc-test-region-b1f33b" {
   provider = aws._123-us-east-1
   cidr_block = "10.0.0.0/16"
   enable_dns_hostnames = true
@@ -215,23 +215,23 @@ terraform {
 }
 
 - region-1/outputs.tf
-output "igw-test-region-InternetGatewayArn" {
-  value = aws_internet_gateway.igw-test-region.arn
+output "igw-test-region-b1f33b-InternetGatewayArn" {
+  value = aws_internet_gateway.igw-test-region-b1f33b.arn
 }
 
 - region-1/outputs.tf
-output "igw-test-region-InternetGatewayId" {
-  value = aws_internet_gateway.igw-test-region.id
+output "igw-test-region-b1f33b-InternetGatewayId" {
+  value = aws_internet_gateway.igw-test-region-b1f33b.id
 }
 
 - region-1/outputs.tf
-output "vpc-test-region-VpcArn" {
-  value = aws_vpc.vpc-test-region.arn
+output "vpc-test-region-b1f33b-VpcArn" {
+  value = aws_vpc.vpc-test-region-b1f33b.arn
 }
 
 - region-1/outputs.tf
-output "vpc-test-region-VpcId" {
-  value = aws_vpc.vpc-test-region.id
+output "vpc-test-region-b1f33b-VpcId" {
+  value = aws_vpc.vpc-test-region-b1f33b.id
 }
 
 - region-1/terragrunt.hcl
@@ -257,13 +257,13 @@ provider "aws" {
 }
 
 + region-2/main.tf
-resource "aws_internet_gateway" "igw-test-region" {
+resource "aws_internet_gateway" "igw-test-region-b1f33b" {
   provider = aws._123-us-east-1
-  vpc_id = aws_vpc.vpc-test-region.id
+  vpc_id = aws_vpc.vpc-test-region-b1f33b.id
 }
 
 + region-2/main.tf
-resource "aws_vpc" "vpc-test-region" {
+resource "aws_vpc" "vpc-test-region-b1f33b" {
   provider = aws._123-us-east-1
   cidr_block = "10.0.0.0/16"
   enable_dns_hostnames = true
@@ -283,23 +283,23 @@ terraform {
 }
 
 + region-2/outputs.tf
-output "igw-test-region-InternetGatewayArn" {
-  value = aws_internet_gateway.igw-test-region.arn
+output "igw-test-region-b1f33b-InternetGatewayArn" {
+  value = aws_internet_gateway.igw-test-region-b1f33b.arn
 }
 
 + region-2/outputs.tf
-output "igw-test-region-InternetGatewayId" {
-  value = aws_internet_gateway.igw-test-region.id
+output "igw-test-region-b1f33b-InternetGatewayId" {
+  value = aws_internet_gateway.igw-test-region-b1f33b.id
 }
 
 + region-2/outputs.tf
-output "vpc-test-region-VpcArn" {
-  value = aws_vpc.vpc-test-region.arn
+output "vpc-test-region-b1f33b-VpcArn" {
+  value = aws_vpc.vpc-test-region-b1f33b.arn
 }
 
 + region-2/outputs.tf
-output "vpc-test-region-VpcId" {
-  value = aws_vpc.vpc-test-region.id
+output "vpc-test-region-b1f33b-VpcId" {
+  value = aws_vpc.vpc-test-region-b1f33b.id
 }
 
 + region-2/terragrunt.hcl

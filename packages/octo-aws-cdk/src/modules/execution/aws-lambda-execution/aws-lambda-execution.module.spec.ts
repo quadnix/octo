@@ -313,7 +313,7 @@ describe('AwsLambdaExecutionModule UT', () => {
        allowed_account_ids = ["123"]
      }
 
-     resource "aws_iam_role" "iam-role-ExecutionRole-backend-v1-qa" {
+     resource "aws_iam_role" "iam-role-ExecutionRole-backend-v1-qa-83d832" {
        provider = aws._123-us-east-1
        assume_role_policy = jsonencode({
          Statement = [{
@@ -328,7 +328,7 @@ describe('AwsLambdaExecutionModule UT', () => {
        name = "ExecutionRole-backend-v1-qa"
      }
 
-     resource "aws_lambda_function" "lambda-function-backend-v1-qa" {
+     resource "aws_lambda_function" "lambda-function-backend-v1-qa-83d832" {
        provider = aws._123-us-east-1
        architectures = ["arm64"]
        environment {
@@ -342,45 +342,45 @@ describe('AwsLambdaExecutionModule UT', () => {
        image_uri = var.ecr_image_tag_us_east_1_family_image_0_0_1.imageUri
        memory_size = 512
        package_type = "Image"
-       role = aws_iam_role.iam-role-ExecutionRole-backend-v1-qa.arn
+       role = aws_iam_role.iam-role-ExecutionRole-backend-v1-qa-83d832.arn
        timeout = 30
      }
 
-     resource "aws_lambda_function_url" "lambda-function-backend-v1-qa_url" {
+     resource "aws_lambda_function_url" "lambda-function-backend-v1-qa-83d832_url" {
        provider = aws._123-us-east-1
        authorization_type = "AWS_IAM"
-       function_name = aws_lambda_function.lambda-function-backend-v1-qa.function_name
+       function_name = aws_lambda_function.lambda-function-backend-v1-qa-83d832.function_name
 
-       depends_on = [aws_lambda_function.lambda-function-backend-v1-qa]
+       depends_on = [aws_lambda_function.lambda-function-backend-v1-qa-83d832]
      }
 
      # execution/outputs.tf
-     output "iam-role-ExecutionRole-backend-v1-qa-Arn" {
-       value = aws_iam_role.iam-role-ExecutionRole-backend-v1-qa.arn
+     output "iam-role-ExecutionRole-backend-v1-qa-83d832-Arn" {
+       value = aws_iam_role.iam-role-ExecutionRole-backend-v1-qa-83d832.arn
      }
 
-     output "iam-role-ExecutionRole-backend-v1-qa-RoleId" {
-       value = aws_iam_role.iam-role-ExecutionRole-backend-v1-qa.unique_id
+     output "iam-role-ExecutionRole-backend-v1-qa-83d832-RoleId" {
+       value = aws_iam_role.iam-role-ExecutionRole-backend-v1-qa-83d832.unique_id
      }
 
-     output "iam-role-ExecutionRole-backend-v1-qa-RoleName" {
-       value = aws_iam_role.iam-role-ExecutionRole-backend-v1-qa.name
+     output "iam-role-ExecutionRole-backend-v1-qa-83d832-RoleName" {
+       value = aws_iam_role.iam-role-ExecutionRole-backend-v1-qa-83d832.name
      }
 
-     output "lambda-function-backend-v1-qa-Arn" {
-       value = aws_lambda_function.lambda-function-backend-v1-qa.arn
+     output "lambda-function-backend-v1-qa-83d832-Arn" {
+       value = aws_lambda_function.lambda-function-backend-v1-qa-83d832.arn
      }
 
-     output "lambda-function-backend-v1-qa-FunctionName" {
-       value = aws_lambda_function.lambda-function-backend-v1-qa.function_name
+     output "lambda-function-backend-v1-qa-83d832-FunctionName" {
+       value = aws_lambda_function.lambda-function-backend-v1-qa-83d832.function_name
      }
 
-     output "lambda-function-backend-v1-qa-FunctionUrl" {
-       value = aws_lambda_function_url.lambda-function-backend-v1-qa_url.function_url
+     output "lambda-function-backend-v1-qa-83d832-FunctionUrl" {
+       value = aws_lambda_function_url.lambda-function-backend-v1-qa-83d832_url.function_url
      }
 
-     output "lambda-function-backend-v1-qa-FunctionUrlDomainName" {
-       value = trimsuffix(trimprefix(aws_lambda_function_url.lambda-function-backend-v1-qa_url.function_url, "https://"), "/")
+     output "lambda-function-backend-v1-qa-83d832-FunctionUrlDomainName" {
+       value = trimsuffix(trimprefix(aws_lambda_function_url.lambda-function-backend-v1-qa-83d832_url.function_url, "https://"), "/")
      }
 
      # execution/terragrunt.hcl
@@ -477,8 +477,8 @@ describe('AwsLambdaExecutionModule UT', () => {
     `);
     expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "+ @octo/iam-role=iam-role-ExecutionRole-backend-v1-qa",
-       "+ @octo/lambda-function=lambda-function-backend-v1-qa",
+       "+ @octo/iam-role=iam-role-ExecutionRole-backend-v1-qa-83d832",
+       "+ @octo/lambda-function=lambda-function-backend-v1-qa-83d832",
      ]
     `);
   });
@@ -498,7 +498,7 @@ describe('AwsLambdaExecutionModule UT', () => {
         .next()
     ).value!;
 
-    expect(hclRender).toContain('resource "aws_lambda_function_url" "lambda-function-backend-v1-qa_url"');
+    expect(hclRender).toContain('resource "aws_lambda_function_url" "lambda-function-backend-v1-qa-83d832_url"');
     expect(hclRender).toContain('authorization_type = "AWS_IAM"');
     expect(hclRender).toContain('principal = "210987654321"');
   });
@@ -544,7 +544,7 @@ describe('AwsLambdaExecutionModule UT', () => {
     ).value!;
 
     // The bucket admits the role by reference, and the role reads the prefix by name.
-    expect(hclRender).toContain('AWS = [var.iam_role_ExecutionRole_backend_v1_qa_Arn]');
+    expect(hclRender).toContain('AWS = [var.iam_role_ExecutionRole_backend_v1_qa_83d832_Arn]');
     expect(hclRender).toContain('"arn:aws:s3:::test-bucket/uploads/*"');
   });
 
@@ -616,7 +616,7 @@ describe('AwsLambdaExecutionModule UT', () => {
 
     expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "* @octo/lambda-function=lambda-function-backend-v1-qa",
+       "* @octo/lambda-function=lambda-function-backend-v1-qa-83d832",
      ]
     `);
   });

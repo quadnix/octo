@@ -81,7 +81,7 @@ describe('AwsEcrImageModule UT', () => {
        allowed_account_ids = ["123"]
      }
 
-     resource "aws_ecr_repository" "ecr-us-east-1-family_image" {
+     resource "aws_ecr_repository" "ecr-123-us-east-1-family_image-86a33f" {
        provider = aws._123-us-east-1
        force_delete = true
        image_scanning_configuration {
@@ -92,20 +92,20 @@ describe('AwsEcrImageModule UT', () => {
      }
 
      # image/outputs.tf
-     output "ecr-us-east-1-family_image-registryId" {
-       value = aws_ecr_repository.ecr-us-east-1-family_image.registry_id
+     output "ecr-123-us-east-1-family_image-86a33f-registryId" {
+       value = aws_ecr_repository.ecr-123-us-east-1-family_image-86a33f.registry_id
      }
 
-     output "ecr-us-east-1-family_image-repositoryArn" {
-       value = aws_ecr_repository.ecr-us-east-1-family_image.arn
+     output "ecr-123-us-east-1-family_image-86a33f-repositoryArn" {
+       value = aws_ecr_repository.ecr-123-us-east-1-family_image-86a33f.arn
      }
 
-     output "ecr-us-east-1-family_image-repositoryName" {
-       value = aws_ecr_repository.ecr-us-east-1-family_image.name
+     output "ecr-123-us-east-1-family_image-86a33f-repositoryName" {
+       value = aws_ecr_repository.ecr-123-us-east-1-family_image-86a33f.name
      }
 
-     output "ecr-us-east-1-family_image-repositoryUri" {
-       value = aws_ecr_repository.ecr-us-east-1-family_image.repository_url
+     output "ecr-123-us-east-1-family_image-86a33f-repositoryUri" {
+       value = aws_ecr_repository.ecr-123-us-east-1-family_image-86a33f.repository_url
      }
 
      # image/terragrunt.hcl
@@ -139,7 +139,7 @@ describe('AwsEcrImageModule UT', () => {
     `);
     expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "+ @octo/ecr-image=ecr-us-east-1-family/image",
+       "+ @octo/ecr-image=ecr-123-us-east-1-family/image-86a33f",
      ]
     `);
   });
@@ -172,7 +172,9 @@ describe('AwsEcrImageModule UT', () => {
         )
         .next()
     ).value!;
-    expect(testModuleContainer.digestDiffs(resourceDiffs)).toEqual(['+ @octo/ecr-image=ecr-us-east-1-family/image']);
+    expect(testModuleContainer.digestDiffs(resourceDiffs)).toEqual([
+      '+ @octo/ecr-image=ecr-123-us-east-1-family/image-86a33f',
+    ]);
   });
 
   it('should CUD', async () => {
@@ -195,7 +197,7 @@ describe('AwsEcrImageModule UT', () => {
     ).value!;
     expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`
      [
-       "+ @octo/ecr-image=ecr-us-east-1-family/image",
+       "+ @octo/ecr-image=ecr-123-us-east-1-family/image-86a33f",
      ]
     `);
 
@@ -220,7 +222,7 @@ describe('AwsEcrImageModule UT', () => {
     expect(hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(resourceDiffsDelete)).toMatchInlineSnapshot(`
      [
-       "- @octo/ecr-image=ecr-us-east-1-family/image",
+       "- @octo/ecr-image=ecr-123-us-east-1-family/image-86a33f",
      ]
     `);
 
@@ -249,7 +251,7 @@ describe('AwsEcrImageModule UT', () => {
     ).value!;
     expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`
      [
-       "+ @octo/ecr-image=ecr-us-east-1-family/image",
+       "+ @octo/ecr-image=ecr-123-us-east-1-family/image-86a33f",
      ]
     `);
 
@@ -274,7 +276,7 @@ describe('AwsEcrImageModule UT', () => {
     expect(updateTags.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(updateTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "* @octo/ecr-image=ecr-us-east-1-family/image",
+       "* @octo/ecr-image=ecr-123-us-east-1-family/image-86a33f",
      ]
     `);
 
@@ -298,7 +300,7 @@ describe('AwsEcrImageModule UT', () => {
     expect(deleteTags.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(deleteTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "* @octo/ecr-image=ecr-us-east-1-family/image",
+       "* @octo/ecr-image=ecr-123-us-east-1-family/image-86a33f",
      ]
     `);
   });
@@ -341,8 +343,8 @@ describe('AwsEcrImageModule UT', () => {
       expect(hclDiff).toMatchSnapshot();
       expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "- @octo/ecr-image=ecr-us-east-1-family/image",
-         "+ @octo/ecr-image=ecr-us-east-1-changed-family/image",
+         "- @octo/ecr-image=ecr-123-us-east-1-family/image-86a33f",
+         "+ @octo/ecr-image=ecr-123-us-east-1-changed-family/image-86a33f",
        ]
       `);
     });
@@ -384,8 +386,8 @@ describe('AwsEcrImageModule UT', () => {
       expect(hclDiff).toMatchSnapshot();
       expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "- @octo/ecr-image=ecr-us-east-1-family/image",
-         "+ @octo/ecr-image=ecr-us-east-1-family/changed-image",
+         "- @octo/ecr-image=ecr-123-us-east-1-family/image-86a33f",
+         "+ @octo/ecr-image=ecr-123-us-east-1-family/changed-image-86a33f",
        ]
       `);
     });

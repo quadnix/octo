@@ -57,7 +57,7 @@ export class AddAwsEcsAlbServiceOverlayAction implements IModelAction<AwsEcsAlbS
     const albTargetGroups: AlbTargetGroup[] = [];
     for (const target of actionInputs.inputs.targets!) {
       const albTargetGroup = new AlbTargetGroup(
-        `alb-target-group-${target.execution.executionId}`,
+        `alb-target-group-${actionInputs.inputs.albName}-${target.execution.executionId}`,
         {
           awsAccountId,
           awsRegionId,
@@ -78,9 +78,7 @@ export class AddAwsEcsAlbServiceOverlayAction implements IModelAction<AwsEcsAlbS
     }
 
     for (const listener of actionInputs.inputs.listeners) {
-      const alb = actionInputs.resources[
-        `alb-${actionInputs.inputs.region.regionId}-${actionInputs.inputs.albName}`
-      ] as Alb;
+      const alb = actionInputs.resources[`alb-${actionInputs.inputs.albName}`] as Alb;
 
       const albListener = new AlbListener(
         `alb-listener-${actionInputs.inputs.albName}`,

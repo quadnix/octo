@@ -508,8 +508,8 @@ function sidecarExecutionInputs(): ModuleSchemaInputs<AwsEcsExecutionModule> {
 function taskDefinitionParents(resourceDiffs: Parameters<TestModuleContainer['digestDiffs']>[0]): string[] {
   const taskDefinition = resourceDiffs
     .flat()
-    .map((d) => d.node as unknown as { parents: MatchingResource<never>[]; resourceId: string })
-    .find((n) => n.resourceId === 'ecs-task-definition-backend-v1-region-qa-private-subnet')!;
+    .map((d) => d.node as unknown as { localResourceId: string; parents: MatchingResource<never>[] })
+    .find((n) => n.localResourceId === 'ecs-task-definition-backend-v1-region-qa-private-subnet')!;
 
   return taskDefinition.parents.map((p) => p.getActual().getContext());
 }
@@ -581,27 +581,27 @@ describe('AwsEcsExecutionModule UT', () => {
        allowed_account_ids = ["123"]
      }
 
-     resource "aws_security_group" "sec-grp-SecurityGroup-backend" {
+     resource "aws_security_group" "sec-grp-SecurityGroup-backend-94a6a9" {
        provider = aws._123-us-east-1
        vpc_id = var.vpc_region.VpcId
      }
 
-     resource "aws_security_group" "sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet" {
+     resource "aws_security_group" "sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-94a6a9" {
        provider = aws._123-us-east-1
        vpc_id = var.vpc_region.VpcId
      }
 
-     resource "aws_vpc_security_group_egress_rule" "sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet_egress_0" {
+     resource "aws_vpc_security_group_egress_rule" "sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-94a6a9_egress_0" {
        provider = aws._123-us-east-1
        cidr_ipv4 = "0.0.0.0/0"
        description = "all traffic 0.0.0.0/0"
        ip_protocol = "-1"
-       security_group_id = aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.id
+       security_group_id = aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-94a6a9.id
 
-       depends_on = [aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet]
+       depends_on = [aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-94a6a9]
      }
 
-     resource "aws_iam_role" "iam-role-ExecutionRole-backend-v1-region-qa-private-subnet" {
+     resource "aws_iam_role" "iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9" {
        provider = aws._123-us-east-1
        assume_role_policy = jsonencode({
          Statement = [{
@@ -616,15 +616,15 @@ describe('AwsEcsExecutionModule UT', () => {
        name = "ExecutionRole-backend-v1-region-qa-private-subnet"
      }
 
-     resource "aws_iam_role_policy_attachment" "iam-role-ExecutionRole-backend-v1-region-qa-private-subnet_AmazonECSTaskExecutionRolePolicy" {
+     resource "aws_iam_role_policy_attachment" "iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9_AmazonECSTaskExecutionRolePolicy" {
        provider = aws._123-us-east-1
        policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
-       role = aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet.name
+       role = aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9.name
 
-       depends_on = [aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet]
+       depends_on = [aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9]
      }
 
-     resource "aws_ecs_task_definition" "ecs-task-definition-backend-v1-region-qa-private-subnet" {
+     resource "aws_ecs_task_definition" "ecs-task-definition-backend-v1-region-qa-private-subnet-94a6a9" {
        provider = aws._123-us-east-1
        container_definitions = jsonencode([
          {
@@ -645,7 +645,7 @@ describe('AwsEcsExecutionModule UT', () => {
          }
        ])
        cpu = "256"
-       execution_role_arn = aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet.arn
+       execution_role_arn = aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9.arn
        family = "qa-region-private-subnet-backend"
        memory = "512"
        network_mode = "awsvpc"
@@ -654,10 +654,10 @@ describe('AwsEcsExecutionModule UT', () => {
          cpu_architecture = "X86_64"
          operating_system_family = "LINUX"
        }
-       task_role_arn = aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet.arn
+       task_role_arn = aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9.arn
      }
 
-     resource "aws_ecs_service" "ecs-service-backend-v1-region-qa-private-subnet" {
+     resource "aws_ecs_service" "ecs-service-backend-v1-region-qa-private-subnet-94a6a9" {
        provider = aws._123-us-east-1
        cluster = var.ecs_cluster_region_qa.clusterArn
        desired_count = 1
@@ -665,51 +665,51 @@ describe('AwsEcsExecutionModule UT', () => {
        name = "backend-v1-region-qa-private-subnet"
        network_configuration {
          assign_public_ip = false
-         security_groups = [aws_security_group.sec-grp-SecurityGroup-backend.id, aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.id]
+         security_groups = [aws_security_group.sec-grp-SecurityGroup-backend-94a6a9.id, aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-94a6a9.id]
          subnets = [var.subnet_region_private_subnet.SubnetId]
        }
-       task_definition = aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet.arn
+       task_definition = aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet-94a6a9.arn
      }
 
      # execution/outputs.tf
-     output "sec-grp-SecurityGroup-backend-Arn" {
-       value = aws_security_group.sec-grp-SecurityGroup-backend.arn
+     output "sec-grp-SecurityGroup-backend-94a6a9-Arn" {
+       value = aws_security_group.sec-grp-SecurityGroup-backend-94a6a9.arn
      }
 
-     output "sec-grp-SecurityGroup-backend-GroupId" {
-       value = aws_security_group.sec-grp-SecurityGroup-backend.id
+     output "sec-grp-SecurityGroup-backend-94a6a9-GroupId" {
+       value = aws_security_group.sec-grp-SecurityGroup-backend-94a6a9.id
      }
 
-     output "sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-Arn" {
-       value = aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.arn
+     output "sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-94a6a9-Arn" {
+       value = aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-94a6a9.arn
      }
 
-     output "sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-GroupId" {
-       value = aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.id
+     output "sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-94a6a9-GroupId" {
+       value = aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-94a6a9.id
      }
 
-     output "iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-Arn" {
-       value = aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet.arn
+     output "iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9-Arn" {
+       value = aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9.arn
      }
 
-     output "iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-RoleId" {
-       value = aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet.unique_id
+     output "iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9-RoleId" {
+       value = aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9.unique_id
      }
 
-     output "iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-RoleName" {
-       value = aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet.name
+     output "iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9-RoleName" {
+       value = aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9.name
      }
 
-     output "ecs-task-definition-backend-v1-region-qa-private-subnet-revision" {
-       value = aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet.revision
+     output "ecs-task-definition-backend-v1-region-qa-private-subnet-94a6a9-revision" {
+       value = aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet-94a6a9.revision
      }
 
-     output "ecs-task-definition-backend-v1-region-qa-private-subnet-taskDefinitionArn" {
-       value = aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet.arn
+     output "ecs-task-definition-backend-v1-region-qa-private-subnet-94a6a9-taskDefinitionArn" {
+       value = aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet-94a6a9.arn
      }
 
-     output "ecs-service-backend-v1-region-qa-private-subnet-serviceArn" {
-       value = aws_ecs_service.ecs-service-backend-v1-region-qa-private-subnet.id
+     output "ecs-service-backend-v1-region-qa-private-subnet-94a6a9-serviceArn" {
+       value = aws_ecs_service.ecs-service-backend-v1-region-qa-private-subnet-94a6a9.id
      }
 
      # execution/terragrunt.hcl
@@ -909,12 +909,12 @@ describe('AwsEcsExecutionModule UT', () => {
     `);
     expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "+ @octo/security-group=sec-grp-SecurityGroup-backend",
-       "+ @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
-       "+ @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet",
-       "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet",
-       "+ @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
-       "+ @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
+       "+ @octo/security-group=sec-grp-SecurityGroup-backend-94a6a9",
+       "+ @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-94a6a9",
+       "+ @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
+       "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
+       "+ @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet-94a6a9",
+       "+ @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet-94a6a9",
      ]
     `);
   });
@@ -952,12 +952,12 @@ describe('AwsEcsExecutionModule UT', () => {
     ).value!;
     expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`
      [
-       "+ @octo/security-group=sec-grp-SecurityGroup-backend",
-       "+ @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
-       "+ @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet",
-       "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet",
-       "+ @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
-       "+ @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
+       "+ @octo/security-group=sec-grp-SecurityGroup-backend-94a6a9",
+       "+ @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-94a6a9",
+       "+ @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
+       "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
+       "+ @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet-94a6a9",
+       "+ @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet-94a6a9",
      ]
     `);
 
@@ -995,8 +995,8 @@ describe('AwsEcsExecutionModule UT', () => {
     expect(updateDeployment.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(updateDeployment.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "* @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
-       "* @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
+       "* @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet-94a6a9",
+       "* @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet-94a6a9",
      ]
     `);
 
@@ -1033,8 +1033,8 @@ describe('AwsEcsExecutionModule UT', () => {
     expect(updateDeploymentRevert.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(updateDeploymentRevert.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "* @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
-       "* @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
+       "* @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet-94a6a9",
+       "* @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet-94a6a9",
      ]
     `);
 
@@ -1071,7 +1071,7 @@ describe('AwsEcsExecutionModule UT', () => {
     expect(updateDesiredCount.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(updateDesiredCount.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "* @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
+       "* @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet-94a6a9",
      ]
     `);
 
@@ -1109,8 +1109,8 @@ describe('AwsEcsExecutionModule UT', () => {
     expect(addFilesystem.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(addFilesystem.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "* @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
-       "* @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
+       "* @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet-94a6a9",
+       "* @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet-94a6a9",
      ]
     `);
 
@@ -1157,8 +1157,8 @@ describe('AwsEcsExecutionModule UT', () => {
     expect(addSecurityGroupRule.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(addSecurityGroupRule.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "* @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
-       "* @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
+       "* @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-94a6a9",
+       "* @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet-94a6a9",
      ]
     `);
 
@@ -1206,12 +1206,12 @@ describe('AwsEcsExecutionModule UT', () => {
     expect(deleteResult.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(deleteResult.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet",
-       "- @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet",
-       "- @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
-       "- @octo/security-group=sec-grp-SecurityGroup-backend",
-       "- @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
-       "- @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
+       "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
+       "- @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
+       "- @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet-94a6a9",
+       "- @octo/security-group=sec-grp-SecurityGroup-backend-94a6a9",
+       "- @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-94a6a9",
+       "- @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet-94a6a9",
      ]
     `);
 
@@ -1253,12 +1253,12 @@ describe('AwsEcsExecutionModule UT', () => {
     ).value!;
     expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`
      [
-       "+ @octo/security-group=sec-grp-SecurityGroup-backend",
-       "+ @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
-       "+ @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet",
-       "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet",
-       "+ @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
-       "+ @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
+       "+ @octo/security-group=sec-grp-SecurityGroup-backend-94a6a9",
+       "+ @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-94a6a9",
+       "+ @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
+       "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
+       "+ @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet-94a6a9",
+       "+ @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet-94a6a9",
      ]
     `);
 
@@ -1296,11 +1296,11 @@ describe('AwsEcsExecutionModule UT', () => {
     expect(updateTags.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(updateTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet",
-       "* @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
-       "* @octo/security-group=sec-grp-SecurityGroup-backend",
-       "* @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
-       "* @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
+       "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
+       "* @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet-94a6a9",
+       "* @octo/security-group=sec-grp-SecurityGroup-backend-94a6a9",
+       "* @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-94a6a9",
+       "* @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet-94a6a9",
      ]
     `);
 
@@ -1337,11 +1337,11 @@ describe('AwsEcsExecutionModule UT', () => {
     expect(deleteTags.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(deleteTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet",
-       "* @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
-       "* @octo/security-group=sec-grp-SecurityGroup-backend",
-       "* @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
-       "* @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
+       "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
+       "* @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet-94a6a9",
+       "* @octo/security-group=sec-grp-SecurityGroup-backend-94a6a9",
+       "* @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-94a6a9",
+       "* @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet-94a6a9",
      ]
     `);
   });
@@ -1410,8 +1410,8 @@ describe('AwsEcsExecutionModule UT', () => {
       expect(hclDiff).toMatchSnapshot();
       expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "* @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
-         "* @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
+         "* @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet-94a6a9",
+         "* @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet-94a6a9",
        ]
       `);
     });
@@ -1479,7 +1479,7 @@ describe('AwsEcsExecutionModule UT', () => {
       expect(hclDiff).toMatchSnapshot();
       expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "* @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
+         "* @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet-94a6a9",
        ]
       `);
     });
@@ -1547,16 +1547,16 @@ describe('AwsEcsExecutionModule UT', () => {
       expect(hclDiff).toMatchSnapshot();
       expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet",
-         "- @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet",
-         "- @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
-         "- @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
-         "- @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
-         "+ @octo/security-group=sec-grp-SecurityGroup-changed-execution-id",
-         "+ @octo/iam-role=iam-role-ExecutionRole-changed-execution-id",
-         "* @octo/iam-role=iam-role-ExecutionRole-changed-execution-id",
-         "+ @octo/ecs-task-definition=ecs-task-definition-changed-execution-id",
-         "+ @octo/ecs-service=ecs-service-changed-execution-id",
+         "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
+         "- @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
+         "- @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet-94a6a9",
+         "- @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-94a6a9",
+         "- @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet-94a6a9",
+         "+ @octo/security-group=sec-grp-SecurityGroup-changed-execution-id-94a6a9",
+         "+ @octo/iam-role=iam-role-ExecutionRole-changed-execution-id-94a6a9",
+         "* @octo/iam-role=iam-role-ExecutionRole-changed-execution-id-94a6a9",
+         "+ @octo/ecs-task-definition=ecs-task-definition-changed-execution-id-94a6a9",
+         "+ @octo/ecs-service=ecs-service-changed-execution-id-94a6a9",
        ]
       `);
     });
@@ -1675,7 +1675,7 @@ describe('AwsEcsExecutionModule UT', () => {
     expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
        "- @octo/ecs-cluster=ecs-cluster-region-qa",
-       "^ @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
+       "^ @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet-94a6a9",
      ]
     `);
   });
@@ -1697,7 +1697,7 @@ describe('AwsEcsExecutionModule UT', () => {
     ).value!;
 
     expect(taskDefinitionParents(resourceDiffs)).toEqual([
-      '@octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet',
+      '@octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9',
       '@octo/ecr-image-tag=ecr-image-tag-us-east-1-family/image-0-0-1',
     ]);
 
@@ -1741,7 +1741,7 @@ describe('AwsEcsExecutionModule UT', () => {
     ).value!;
 
     expect(taskDefinitionParents(resourceDiffs)).toEqual([
-      '@octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet',
+      '@octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9',
     ]);
 
     // There is no resource behind the image, so the container names it by URI and nothing orders it.
@@ -1763,20 +1763,20 @@ describe('AwsEcsExecutionModule UT', () => {
     expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/s3-storage=bucket-test-bucket",
-       "+ @octo/security-group=sec-grp-SecurityGroup-backend",
-       "+ @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
-       "+ @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet",
-       "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet",
-       "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet",
-       "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet",
-       "+ @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
-       "+ @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
+       "+ @octo/security-group=sec-grp-SecurityGroup-backend-94a6a9",
+       "+ @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-94a6a9",
+       "+ @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
+       "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
+       "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
+       "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
+       "+ @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet-94a6a9",
+       "+ @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet-94a6a9",
        "* @octo/s3-storage=bucket-test-bucket",
      ]
     `);
 
     // The bucket admits the role by reference, and the role reads the table by name.
-    expect(hclRender).toContain('AWS = [var.iam_role_ExecutionRole_backend_v1_region_qa_private_subnet_Arn]');
+    expect(hclRender).toContain('AWS = [var.iam_role_ExecutionRole_backend_v1_region_qa_private_subnet_94a6a9_Arn]');
     expect(hclRender).toContain('"arn:aws:dynamodb:us-east-1:123:table/accounts/index/*"');
   });
 
@@ -1794,13 +1794,13 @@ describe('AwsEcsExecutionModule UT', () => {
 
     expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "+ @octo/security-group=sec-grp-SecurityGroup-backend",
-       "+ @octo/security-group=sec-grp-SecurityGroup-logger",
-       "+ @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
-       "+ @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet",
-       "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet",
-       "+ @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
-       "+ @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
+       "+ @octo/security-group=sec-grp-SecurityGroup-backend-20d169",
+       "+ @octo/security-group=sec-grp-SecurityGroup-logger-20d169",
+       "+ @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-20d169",
+       "+ @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-20d169",
+       "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-20d169",
+       "+ @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet-20d169",
+       "+ @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet-20d169",
      ]
     `);
   });
@@ -1819,12 +1819,12 @@ describe('AwsEcsExecutionModule UT', () => {
 
     expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "+ @octo/security-group=sec-grp-SecurityGroup-backend",
-       "+ @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
-       "+ @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet",
-       "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet",
-       "+ @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
-       "+ @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
+       "+ @octo/security-group=sec-grp-SecurityGroup-backend-f33ddc",
+       "+ @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-f33ddc",
+       "+ @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-f33ddc",
+       "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-f33ddc",
+       "+ @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet-f33ddc",
+       "+ @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet-f33ddc",
      ]
     `);
   });
@@ -1843,7 +1843,7 @@ describe('AwsEcsExecutionModule UT', () => {
 
     expect(taskDefinitionParents(resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "@octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet",
+       "@octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-20d169",
        "@octo/ecr-image-tag=ecr-image-tag-us-east-1-family/image-0-0-1",
        "@octo/ecr-image-tag=ecr-image-tag-us-east-1-family/image-0-0-2",
      ]
@@ -1864,7 +1864,7 @@ describe('AwsEcsExecutionModule UT', () => {
 
     expect(taskDefinitionParents(resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "@octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet",
+       "@octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-20d169",
        "@octo/ecr-image-tag=ecr-image-tag-us-east-1-family/image-0-0-1",
      ]
     `);

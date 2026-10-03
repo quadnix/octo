@@ -198,7 +198,7 @@ async function setupAlb(
     [new MatchingResource(vpc)],
   );
   const alb = new Alb(
-    `alb-${region.regionId}-web`,
+    'alb-web',
     {
       awsAccountId: '123',
       awsRegionId: 'us-east-1',
@@ -283,12 +283,12 @@ describe('AwsCloudFrontServiceModule UT', () => {
        allowed_account_ids = ["123"]
      }
 
-     data "aws_cloudfront_cache_policy" "cloudfront-test-distribution_managed_cache_ManagedCachingOptimized" {
+     data "aws_cloudfront_cache_policy" "cloudfront-test-distribution-b1f33b_managed_cache_ManagedCachingOptimized" {
        name = "Managed-CachingOptimized"
        provider = aws._123-us-east-1
      }
 
-     resource "aws_cloudfront_origin_access_control" "cloudfront-test-distribution_origin_access_control_site" {
+     resource "aws_cloudfront_origin_access_control" "cloudfront-test-distribution-b1f33b_origin_access_control_site" {
        provider = aws._123-us-east-1
        name = "cloudfront-test-distribution-site"
        origin_access_control_origin_type = "s3"
@@ -296,7 +296,7 @@ describe('AwsCloudFrontServiceModule UT', () => {
        signing_protocol = "sigv4"
      }
 
-     resource "aws_cloudfront_distribution" "cloudfront-test-distribution_distribution" {
+     resource "aws_cloudfront_distribution" "cloudfront-test-distribution-b1f33b_distribution" {
        provider = aws._123-us-east-1
        comment = "test-distribution"
        custom_error_response {
@@ -307,7 +307,7 @@ describe('AwsCloudFrontServiceModule UT', () => {
        }
        default_cache_behavior {
          allowed_methods = ["GET", "HEAD"]
-         cache_policy_id = data.aws_cloudfront_cache_policy.cloudfront-test-distribution_managed_cache_ManagedCachingOptimized.id
+         cache_policy_id = data.aws_cloudfront_cache_policy.cloudfront-test-distribution-b1f33b_managed_cache_ManagedCachingOptimized.id
          cached_methods = ["GET", "HEAD"]
          compress = true
          target_origin_id = "site"
@@ -319,7 +319,7 @@ describe('AwsCloudFrontServiceModule UT', () => {
        is_ipv6_enabled = true
        ordered_cache_behavior {
          allowed_methods = ["GET", "HEAD"]
-         cache_policy_id = data.aws_cloudfront_cache_policy.cloudfront-test-distribution_managed_cache_ManagedCachingOptimized.id
+         cache_policy_id = data.aws_cloudfront_cache_policy.cloudfront-test-distribution-b1f33b_managed_cache_ManagedCachingOptimized.id
          cached_methods = ["GET", "HEAD"]
          compress = true
          target_origin_id = "site"
@@ -329,7 +329,7 @@ describe('AwsCloudFrontServiceModule UT', () => {
        origin {
          connection_attempts = 3
          connection_timeout = 10
-         origin_access_control_id = aws_cloudfront_origin_access_control.cloudfront-test-distribution_origin_access_control_site.id
+         origin_access_control_id = aws_cloudfront_origin_access_control.cloudfront-test-distribution-b1f33b_origin_access_control_site.id
          domain_name = "test-bucket.s3.us-east-1.amazonaws.com"
          origin_id = "site"
        }
@@ -343,24 +343,24 @@ describe('AwsCloudFrontServiceModule UT', () => {
          cloudfront_default_certificate = true
        }
 
-       depends_on = [aws_cloudfront_origin_access_control.cloudfront-test-distribution_origin_access_control_site]
+       depends_on = [aws_cloudfront_origin_access_control.cloudfront-test-distribution-b1f33b_origin_access_control_site]
      }
 
      # distribution/outputs.tf
-     output "cloudfront-test-distribution-Arn" {
-       value = aws_cloudfront_distribution.cloudfront-test-distribution_distribution.arn
+     output "cloudfront-test-distribution-b1f33b-Arn" {
+       value = aws_cloudfront_distribution.cloudfront-test-distribution-b1f33b_distribution.arn
      }
 
-     output "cloudfront-test-distribution-DistributionId" {
-       value = aws_cloudfront_distribution.cloudfront-test-distribution_distribution.id
+     output "cloudfront-test-distribution-b1f33b-DistributionId" {
+       value = aws_cloudfront_distribution.cloudfront-test-distribution-b1f33b_distribution.id
      }
 
-     output "cloudfront-test-distribution-DomainName" {
-       value = aws_cloudfront_distribution.cloudfront-test-distribution_distribution.domain_name
+     output "cloudfront-test-distribution-b1f33b-DomainName" {
+       value = aws_cloudfront_distribution.cloudfront-test-distribution-b1f33b_distribution.domain_name
      }
 
-     output "cloudfront-test-distribution-HostedZoneId" {
-       value = aws_cloudfront_distribution.cloudfront-test-distribution_distribution.hosted_zone_id
+     output "cloudfront-test-distribution-b1f33b-HostedZoneId" {
+       value = aws_cloudfront_distribution.cloudfront-test-distribution-b1f33b_distribution.hosted_zone_id
      }
 
      # distribution/terragrunt.hcl
@@ -419,7 +419,7 @@ describe('AwsCloudFrontServiceModule UT', () => {
              Action = ["s3:GetObject"]
              Condition = {
                StringEquals = {
-                 "AWS:SourceArn" = var.cloudfront_test_distribution_Arn
+                 "AWS:SourceArn" = var.cloudfront_test_distribution_b1f33b_Arn
                }
              }
              Effect = "Allow"
@@ -427,7 +427,7 @@ describe('AwsCloudFrontServiceModule UT', () => {
                Service = "cloudfront.amazonaws.com"
              }
              Resource = ["\${aws_s3_bucket.bucket-test-bucket.arn}/*"]
-             Sid = "cloudfronttestdistributionCloudFrontReadPermission"
+             Sid = "cloudfronttestdistributionb1f33bCloudFrontReadPermission"
            }]
          Version = "2012-10-17"
        })
@@ -468,18 +468,18 @@ describe('AwsCloudFrontServiceModule UT', () => {
        config_path = "../distribution"
 
        mock_outputs = {
-         "cloudfront-test-distribution-Arn" = "arn:aws:cloudfront::000000000000:distribution/E000000000000"
+         "cloudfront-test-distribution-b1f33b-Arn" = "arn:aws:cloudfront::000000000000:distribution/E000000000000"
        }
        mock_outputs_allowed_terraform_commands = ["init", "plan", "show", "validate"]
        mock_outputs_merge_strategy_with_state = "shallow"
      }
 
      inputs = {
-       cloudfront_test_distribution_Arn = dependency.distribution.outputs["cloudfront-test-distribution-Arn"]
+       cloudfront_test_distribution_b1f33b_Arn = dependency.distribution.outputs["cloudfront-test-distribution-b1f33b-Arn"]
      }
 
      # testModule/variables.tf
-     variable "cloudfront_test_distribution_Arn" {}"
+     variable "cloudfront_test_distribution_b1f33b_Arn" {}"
     `);
     expect(testModuleContainer.mapTransactionActions(modelTransaction)).toMatchInlineSnapshot(`
      [
@@ -504,7 +504,7 @@ describe('AwsCloudFrontServiceModule UT', () => {
     expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/s3-storage=bucket-test-bucket",
-       "+ @octo/cloudfront-distribution=cloudfront-test-distribution",
+       "+ @octo/cloudfront-distribution=cloudfront-test-distribution-b1f33b",
        "* @octo/s3-storage=bucket-test-bucket",
      ]
     `);
@@ -528,8 +528,8 @@ describe('AwsCloudFrontServiceModule UT', () => {
         .next()
     ).value!;
 
-    expect(hclRender).toContain('"AWS:SourceArn" = var.cloudfront_test_distribution_Arn');
-    expect(hclRender).toContain('"AWS:SourceArn" = var.cloudfront_test_distribution_2_Arn');
+    expect(hclRender).toContain('"AWS:SourceArn" = var.cloudfront_test_distribution_b1f33b_Arn');
+    expect(hclRender).toContain('"AWS:SourceArn" = var.cloudfront_test_distribution_2_b1f33b_Arn');
     expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/s3-storage=bucket-test-bucket",
@@ -595,7 +595,7 @@ describe('AwsCloudFrontServiceModule UT', () => {
         .next()
     ).value!;
 
-    expect(hclRender).toContain('domain_name = var.alb_alb_region_web_DNSName');
+    expect(hclRender).toContain('domain_name = var.alb_web_DNSName');
     expect(hclRender).toContain('origin_protocol_policy = "http-only"');
     expect(hclRender).toMatch(/allowed_methods = \["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"\]/);
   });

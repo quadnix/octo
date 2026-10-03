@@ -66,7 +66,7 @@ export class AddAwsSimpleSubnetLocalFilesystemMountOverlayAction implements IMod
 
     // Create EFS Mount Target Security Groups.
     const efsMountTargetSG = new SecurityGroup(
-      `sec-grp-efs-mount-${properties.regionId}-${properties.subnetName}-${properties.filesystemName}`,
+      `sec-grp-efs-mount-${properties.subnetName}-${properties.filesystemName}`,
       {
         awsAccountId,
         awsRegionId,
@@ -85,7 +85,7 @@ export class AddAwsSimpleSubnetLocalFilesystemMountOverlayAction implements IMod
 
     // Create EFS Mount Target.
     const efsMountTarget = new EfsMountTarget(
-      `efs-mount-${properties.regionId}-${properties.subnetName}-${properties.filesystemName}`,
+      `efs-mount-${properties.subnetName}-${properties.filesystemName}`,
       { awsAccountId, awsRegionId },
       [matchingEfsResource, new MatchingResource(subnet), new MatchingResource(efsMountTargetSG)],
     );

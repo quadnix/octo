@@ -2,7 +2,7 @@
 
 exports[`AwsEcrImageModule UT input changes should handle imageFamily change 1`] = `
 "+ image/main.tf
-resource "aws_ecr_repository" "ecr-us-east-1-changed-family_image" {
+resource "aws_ecr_repository" "ecr-123-us-east-1-changed-family_image-86a33f" {
   provider = aws._123-us-east-1
   force_delete = true
   image_scanning_configuration {
@@ -13,7 +13,7 @@ resource "aws_ecr_repository" "ecr-us-east-1-changed-family_image" {
 }
 
 - image/main.tf
-resource "aws_ecr_repository" "ecr-us-east-1-family_image" {
+resource "aws_ecr_repository" "ecr-123-us-east-1-family_image-86a33f" {
   provider = aws._123-us-east-1
   force_delete = true
   image_scanning_configuration {
@@ -24,49 +24,49 @@ resource "aws_ecr_repository" "ecr-us-east-1-family_image" {
 }
 
 + image/outputs.tf
-output "ecr-us-east-1-changed-family_image-registryId" {
-  value = aws_ecr_repository.ecr-us-east-1-changed-family_image.registry_id
+output "ecr-123-us-east-1-changed-family_image-86a33f-registryId" {
+  value = aws_ecr_repository.ecr-123-us-east-1-changed-family_image-86a33f.registry_id
 }
 
 + image/outputs.tf
-output "ecr-us-east-1-changed-family_image-repositoryArn" {
-  value = aws_ecr_repository.ecr-us-east-1-changed-family_image.arn
+output "ecr-123-us-east-1-changed-family_image-86a33f-repositoryArn" {
+  value = aws_ecr_repository.ecr-123-us-east-1-changed-family_image-86a33f.arn
 }
 
 + image/outputs.tf
-output "ecr-us-east-1-changed-family_image-repositoryName" {
-  value = aws_ecr_repository.ecr-us-east-1-changed-family_image.name
+output "ecr-123-us-east-1-changed-family_image-86a33f-repositoryName" {
+  value = aws_ecr_repository.ecr-123-us-east-1-changed-family_image-86a33f.name
 }
 
 + image/outputs.tf
-output "ecr-us-east-1-changed-family_image-repositoryUri" {
-  value = aws_ecr_repository.ecr-us-east-1-changed-family_image.repository_url
+output "ecr-123-us-east-1-changed-family_image-86a33f-repositoryUri" {
+  value = aws_ecr_repository.ecr-123-us-east-1-changed-family_image-86a33f.repository_url
 }
 
 - image/outputs.tf
-output "ecr-us-east-1-family_image-registryId" {
-  value = aws_ecr_repository.ecr-us-east-1-family_image.registry_id
+output "ecr-123-us-east-1-family_image-86a33f-registryId" {
+  value = aws_ecr_repository.ecr-123-us-east-1-family_image-86a33f.registry_id
 }
 
 - image/outputs.tf
-output "ecr-us-east-1-family_image-repositoryArn" {
-  value = aws_ecr_repository.ecr-us-east-1-family_image.arn
+output "ecr-123-us-east-1-family_image-86a33f-repositoryArn" {
+  value = aws_ecr_repository.ecr-123-us-east-1-family_image-86a33f.arn
 }
 
 - image/outputs.tf
-output "ecr-us-east-1-family_image-repositoryName" {
-  value = aws_ecr_repository.ecr-us-east-1-family_image.name
+output "ecr-123-us-east-1-family_image-86a33f-repositoryName" {
+  value = aws_ecr_repository.ecr-123-us-east-1-family_image-86a33f.name
 }
 
 - image/outputs.tf
-output "ecr-us-east-1-family_image-repositoryUri" {
-  value = aws_ecr_repository.ecr-us-east-1-family_image.repository_url
+output "ecr-123-us-east-1-family_image-86a33f-repositoryUri" {
+  value = aws_ecr_repository.ecr-123-us-east-1-family_image-86a33f.repository_url
 }"
 `;
 
 exports[`AwsEcrImageModule UT input changes should handle imageName change 1`] = `
 "+ image/main.tf
-resource "aws_ecr_repository" "ecr-us-east-1-family_changed-image" {
+resource "aws_ecr_repository" "ecr-123-us-east-1-family_changed-image-86a33f" {
   provider = aws._123-us-east-1
   force_delete = true
   image_scanning_configuration {
@@ -77,7 +77,7 @@ resource "aws_ecr_repository" "ecr-us-east-1-family_changed-image" {
 }
 
 - image/main.tf
-resource "aws_ecr_repository" "ecr-us-east-1-family_image" {
+resource "aws_ecr_repository" "ecr-123-us-east-1-family_image-86a33f" {
   provider = aws._123-us-east-1
   force_delete = true
   image_scanning_configuration {
@@ -88,43 +88,43 @@ resource "aws_ecr_repository" "ecr-us-east-1-family_image" {
 }
 
 + image/outputs.tf
-output "ecr-us-east-1-family_changed-image-registryId" {
-  value = aws_ecr_repository.ecr-us-east-1-family_changed-image.registry_id
+output "ecr-123-us-east-1-family_changed-image-86a33f-registryId" {
+  value = aws_ecr_repository.ecr-123-us-east-1-family_changed-image-86a33f.registry_id
 }
 
 + image/outputs.tf
-output "ecr-us-east-1-family_changed-image-repositoryArn" {
-  value = aws_ecr_repository.ecr-us-east-1-family_changed-image.arn
+output "ecr-123-us-east-1-family_changed-image-86a33f-repositoryArn" {
+  value = aws_ecr_repository.ecr-123-us-east-1-family_changed-image-86a33f.arn
 }
 
 + image/outputs.tf
-output "ecr-us-east-1-family_changed-image-repositoryName" {
-  value = aws_ecr_repository.ecr-us-east-1-family_changed-image.name
+output "ecr-123-us-east-1-family_changed-image-86a33f-repositoryName" {
+  value = aws_ecr_repository.ecr-123-us-east-1-family_changed-image-86a33f.name
 }
 
 + image/outputs.tf
-output "ecr-us-east-1-family_changed-image-repositoryUri" {
-  value = aws_ecr_repository.ecr-us-east-1-family_changed-image.repository_url
+output "ecr-123-us-east-1-family_changed-image-86a33f-repositoryUri" {
+  value = aws_ecr_repository.ecr-123-us-east-1-family_changed-image-86a33f.repository_url
 }
 
 - image/outputs.tf
-output "ecr-us-east-1-family_image-registryId" {
-  value = aws_ecr_repository.ecr-us-east-1-family_image.registry_id
+output "ecr-123-us-east-1-family_image-86a33f-registryId" {
+  value = aws_ecr_repository.ecr-123-us-east-1-family_image-86a33f.registry_id
 }
 
 - image/outputs.tf
-output "ecr-us-east-1-family_image-repositoryArn" {
-  value = aws_ecr_repository.ecr-us-east-1-family_image.arn
+output "ecr-123-us-east-1-family_image-86a33f-repositoryArn" {
+  value = aws_ecr_repository.ecr-123-us-east-1-family_image-86a33f.arn
 }
 
 - image/outputs.tf
-output "ecr-us-east-1-family_image-repositoryName" {
-  value = aws_ecr_repository.ecr-us-east-1-family_image.name
+output "ecr-123-us-east-1-family_image-86a33f-repositoryName" {
+  value = aws_ecr_repository.ecr-123-us-east-1-family_image-86a33f.name
 }
 
 - image/outputs.tf
-output "ecr-us-east-1-family_image-repositoryUri" {
-  value = aws_ecr_repository.ecr-us-east-1-family_image.repository_url
+output "ecr-123-us-east-1-family_image-86a33f-repositoryUri" {
+  value = aws_ecr_repository.ecr-123-us-east-1-family_image-86a33f.repository_url
 }"
 `;
 
@@ -137,7 +137,7 @@ provider "aws" {
 }
 
 - image/main.tf
-resource "aws_ecr_repository" "ecr-us-east-1-family_image" {
+resource "aws_ecr_repository" "ecr-123-us-east-1-family_image-86a33f" {
   provider = aws._123-us-east-1
   force_delete = true
   image_scanning_configuration {
@@ -159,23 +159,23 @@ terraform {
 }
 
 - image/outputs.tf
-output "ecr-us-east-1-family_image-registryId" {
-  value = aws_ecr_repository.ecr-us-east-1-family_image.registry_id
+output "ecr-123-us-east-1-family_image-86a33f-registryId" {
+  value = aws_ecr_repository.ecr-123-us-east-1-family_image-86a33f.registry_id
 }
 
 - image/outputs.tf
-output "ecr-us-east-1-family_image-repositoryArn" {
-  value = aws_ecr_repository.ecr-us-east-1-family_image.arn
+output "ecr-123-us-east-1-family_image-86a33f-repositoryArn" {
+  value = aws_ecr_repository.ecr-123-us-east-1-family_image-86a33f.arn
 }
 
 - image/outputs.tf
-output "ecr-us-east-1-family_image-repositoryName" {
-  value = aws_ecr_repository.ecr-us-east-1-family_image.name
+output "ecr-123-us-east-1-family_image-86a33f-repositoryName" {
+  value = aws_ecr_repository.ecr-123-us-east-1-family_image-86a33f.name
 }
 
 - image/outputs.tf
-output "ecr-us-east-1-family_image-repositoryUri" {
-  value = aws_ecr_repository.ecr-us-east-1-family_image.repository_url
+output "ecr-123-us-east-1-family_image-86a33f-repositoryUri" {
+  value = aws_ecr_repository.ecr-123-us-east-1-family_image-86a33f.repository_url
 }
 
 - image/terragrunt.hcl
@@ -195,7 +195,7 @@ remote_state {
 `;
 
 exports[`AwsEcrImageModule UT should CUD tags 2`] = `
-"~ image/main.tf resource "aws_ecr_repository" "ecr-us-east-1-family_image" {
+"~ image/main.tf resource "aws_ecr_repository" "ecr-123-us-east-1-family_image-86a33f" {
 @@ -9,3 +9,4 @@
     tags = {
 -     tag1 = "value1"
@@ -205,7 +205,7 @@ exports[`AwsEcrImageModule UT should CUD tags 2`] = `
 `;
 
 exports[`AwsEcrImageModule UT should CUD tags 4`] = `
-"~ image/main.tf resource "aws_ecr_repository" "ecr-us-east-1-family_image" {
+"~ image/main.tf resource "aws_ecr_repository" "ecr-123-us-east-1-family_image-86a33f" {
 @@ -8,6 +8,2 @@
     name = "family/image"
 -   tags = {
@@ -224,7 +224,7 @@ provider "aws" {
 }
 
 - image-1/main.tf
-resource "aws_ecr_repository" "ecr-us-east-1-family_image" {
+resource "aws_ecr_repository" "ecr-123-us-east-1-family_image-86a33f" {
   provider = aws._123-us-east-1
   force_delete = true
   image_scanning_configuration {
@@ -246,23 +246,23 @@ terraform {
 }
 
 - image-1/outputs.tf
-output "ecr-us-east-1-family_image-registryId" {
-  value = aws_ecr_repository.ecr-us-east-1-family_image.registry_id
+output "ecr-123-us-east-1-family_image-86a33f-registryId" {
+  value = aws_ecr_repository.ecr-123-us-east-1-family_image-86a33f.registry_id
 }
 
 - image-1/outputs.tf
-output "ecr-us-east-1-family_image-repositoryArn" {
-  value = aws_ecr_repository.ecr-us-east-1-family_image.arn
+output "ecr-123-us-east-1-family_image-86a33f-repositoryArn" {
+  value = aws_ecr_repository.ecr-123-us-east-1-family_image-86a33f.arn
 }
 
 - image-1/outputs.tf
-output "ecr-us-east-1-family_image-repositoryName" {
-  value = aws_ecr_repository.ecr-us-east-1-family_image.name
+output "ecr-123-us-east-1-family_image-86a33f-repositoryName" {
+  value = aws_ecr_repository.ecr-123-us-east-1-family_image-86a33f.name
 }
 
 - image-1/outputs.tf
-output "ecr-us-east-1-family_image-repositoryUri" {
-  value = aws_ecr_repository.ecr-us-east-1-family_image.repository_url
+output "ecr-123-us-east-1-family_image-86a33f-repositoryUri" {
+  value = aws_ecr_repository.ecr-123-us-east-1-family_image-86a33f.repository_url
 }
 
 - image-1/terragrunt.hcl
@@ -288,7 +288,7 @@ provider "aws" {
 }
 
 + image-2/main.tf
-resource "aws_ecr_repository" "ecr-us-east-1-family_image" {
+resource "aws_ecr_repository" "ecr-123-us-east-1-family_image-86a33f" {
   provider = aws._123-us-east-1
   force_delete = true
   image_scanning_configuration {
@@ -310,23 +310,23 @@ terraform {
 }
 
 + image-2/outputs.tf
-output "ecr-us-east-1-family_image-registryId" {
-  value = aws_ecr_repository.ecr-us-east-1-family_image.registry_id
+output "ecr-123-us-east-1-family_image-86a33f-registryId" {
+  value = aws_ecr_repository.ecr-123-us-east-1-family_image-86a33f.registry_id
 }
 
 + image-2/outputs.tf
-output "ecr-us-east-1-family_image-repositoryArn" {
-  value = aws_ecr_repository.ecr-us-east-1-family_image.arn
+output "ecr-123-us-east-1-family_image-86a33f-repositoryArn" {
+  value = aws_ecr_repository.ecr-123-us-east-1-family_image-86a33f.arn
 }
 
 + image-2/outputs.tf
-output "ecr-us-east-1-family_image-repositoryName" {
-  value = aws_ecr_repository.ecr-us-east-1-family_image.name
+output "ecr-123-us-east-1-family_image-86a33f-repositoryName" {
+  value = aws_ecr_repository.ecr-123-us-east-1-family_image-86a33f.name
 }
 
 + image-2/outputs.tf
-output "ecr-us-east-1-family_image-repositoryUri" {
-  value = aws_ecr_repository.ecr-us-east-1-family_image.repository_url
+output "ecr-123-us-east-1-family_image-86a33f-repositoryUri" {
+  value = aws_ecr_repository.ecr-123-us-east-1-family_image-86a33f.repository_url
 }
 
 + image-2/terragrunt.hcl

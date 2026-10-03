@@ -65,7 +65,7 @@ describe('AwsSingleAzRegionModule UT', () => {
        allowed_account_ids = ["123"]
      }
 
-     resource "aws_vpc" "vpc-test-region" {
+     resource "aws_vpc" "vpc-test-region-b1f33b" {
        provider = aws._123-us-east-1
        cidr_block = "10.0.0.0/16"
        enable_dns_hostnames = true
@@ -73,26 +73,26 @@ describe('AwsSingleAzRegionModule UT', () => {
        instance_tenancy = "default"
      }
 
-     resource "aws_internet_gateway" "igw-test-region" {
+     resource "aws_internet_gateway" "igw-test-region-b1f33b" {
        provider = aws._123-us-east-1
-       vpc_id = aws_vpc.vpc-test-region.id
+       vpc_id = aws_vpc.vpc-test-region-b1f33b.id
      }
 
      # region/outputs.tf
-     output "vpc-test-region-VpcArn" {
-       value = aws_vpc.vpc-test-region.arn
+     output "vpc-test-region-b1f33b-VpcArn" {
+       value = aws_vpc.vpc-test-region-b1f33b.arn
      }
 
-     output "vpc-test-region-VpcId" {
-       value = aws_vpc.vpc-test-region.id
+     output "vpc-test-region-b1f33b-VpcId" {
+       value = aws_vpc.vpc-test-region-b1f33b.id
      }
 
-     output "igw-test-region-InternetGatewayArn" {
-       value = aws_internet_gateway.igw-test-region.arn
+     output "igw-test-region-b1f33b-InternetGatewayArn" {
+       value = aws_internet_gateway.igw-test-region-b1f33b.arn
      }
 
-     output "igw-test-region-InternetGatewayId" {
-       value = aws_internet_gateway.igw-test-region.id
+     output "igw-test-region-b1f33b-InternetGatewayId" {
+       value = aws_internet_gateway.igw-test-region-b1f33b.id
      }
 
      # region/terragrunt.hcl
@@ -119,8 +119,8 @@ describe('AwsSingleAzRegionModule UT', () => {
     `);
     expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "+ @octo/vpc=vpc-test-region",
-       "+ @octo/internet-gateway=igw-test-region",
+       "+ @octo/vpc=vpc-test-region-b1f33b",
+       "+ @octo/internet-gateway=igw-test-region-b1f33b",
      ]
     `);
   });
@@ -146,8 +146,8 @@ describe('AwsSingleAzRegionModule UT', () => {
     ).value!;
     expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`
      [
-       "+ @octo/vpc=vpc-test-region",
-       "+ @octo/internet-gateway=igw-test-region",
+       "+ @octo/vpc=vpc-test-region-b1f33b",
+       "+ @octo/internet-gateway=igw-test-region-b1f33b",
      ]
     `);
 
@@ -173,8 +173,8 @@ describe('AwsSingleAzRegionModule UT', () => {
     expect(hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(resourceDiffsDelete)).toMatchInlineSnapshot(`
      [
-       "- @octo/vpc=vpc-test-region",
-       "- @octo/internet-gateway=igw-test-region",
+       "- @octo/vpc=vpc-test-region-b1f33b",
+       "- @octo/internet-gateway=igw-test-region-b1f33b",
      ]
     `);
 
@@ -204,8 +204,8 @@ describe('AwsSingleAzRegionModule UT', () => {
     ).value!;
     expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`
      [
-       "+ @octo/vpc=vpc-test-region",
-       "+ @octo/internet-gateway=igw-test-region",
+       "+ @octo/vpc=vpc-test-region-b1f33b",
+       "+ @octo/internet-gateway=igw-test-region-b1f33b",
      ]
     `);
 
@@ -231,8 +231,8 @@ describe('AwsSingleAzRegionModule UT', () => {
     expect(updateTags.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(updateTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "* @octo/vpc=vpc-test-region",
-       "* @octo/internet-gateway=igw-test-region",
+       "* @octo/vpc=vpc-test-region-b1f33b",
+       "* @octo/internet-gateway=igw-test-region-b1f33b",
      ]
     `);
 
@@ -257,8 +257,8 @@ describe('AwsSingleAzRegionModule UT', () => {
     expect(deleteTags.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(deleteTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "* @octo/vpc=vpc-test-region",
-       "* @octo/internet-gateway=igw-test-region",
+       "* @octo/vpc=vpc-test-region-b1f33b",
+       "* @octo/internet-gateway=igw-test-region-b1f33b",
      ]
     `);
   });
@@ -303,10 +303,10 @@ describe('AwsSingleAzRegionModule UT', () => {
       expect(hclDiff).toMatchSnapshot();
       expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "- @octo/vpc=vpc-test-region",
-         "- @octo/internet-gateway=igw-test-region",
-         "+ @octo/vpc=vpc-changed-region",
-         "+ @octo/internet-gateway=igw-changed-region",
+         "- @octo/vpc=vpc-test-region-b1f33b",
+         "- @octo/internet-gateway=igw-test-region-b1f33b",
+         "+ @octo/vpc=vpc-changed-region-b1f33b",
+         "+ @octo/internet-gateway=igw-changed-region-b1f33b",
        ]
       `);
     });
@@ -351,7 +351,7 @@ describe('AwsSingleAzRegionModule UT', () => {
       ).value!;
       expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "* @octo/internet-gateway=igw-test-region",
+         "* @octo/internet-gateway=igw-test-region-b1f33b",
        ]
       `);
     });
@@ -395,8 +395,8 @@ describe('AwsSingleAzRegionModule UT', () => {
       ).value!;
       expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "^ @octo/vpc=vpc-test-region",
-         "* @octo/internet-gateway=igw-test-region",
+         "^ @octo/vpc=vpc-test-region-b1f33b",
+         "* @octo/internet-gateway=igw-test-region-b1f33b",
        ]
       `);
     });
