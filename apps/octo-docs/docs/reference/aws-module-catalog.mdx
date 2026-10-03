@@ -418,7 +418,7 @@ where `<name>` is the anchor's own name rather than the directory it sits in:
 | `AwsEcrImageAnchorSchema`                     | image             | `imageId`                                                                    |
 | `AwsEcsAlbAnchorSchema`                       | service           | `albName`                                                                    |
 | `AwsCloudFrontAnchorSchema`                   | service           | `awsAccountId`, `distributionName`                                           |
-| `AwsDynamoDBAnchorSchema`                     | service           | `TableName`                                                                  |
+| `AwsDynamoDBAnchorSchema`                     | service           | `TableName`, `awsAccountId`, `awsRegionId`                                   |
 | `AwsDynamoDBGlobalAnchorSchema`               | service           | `TableName`                                                                  |
 | `AwsEfsAnchorSchema`                          | filesystem        | `filesystemName`                                                             |
 

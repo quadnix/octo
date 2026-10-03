@@ -25,13 +25,14 @@ to a module because a module is what builds them. This one lives in the distribu
 
 ```typescript
 export class AwsCloudFrontLambdaOriginOverlaySchema extends BaseOverlaySchema {
-  override properties = Schema<{ functionName: string }>();
+  override properties = Schema<{ originId: string }>();
 }
 ```
 
 The properties are the relationship and nothing else. No model, no resource, no class from either
 side: an overlay is serialized and read back like any other node, so what it holds has to be plain
-data. Here that is one string, the name of the function being served.
+data. Here that is one string, the distribution's origin the function is served from. Which function
+it is, the overlay already knows from the anchor it joins.
 
 ## The class
 
@@ -41,6 +42,7 @@ export class AwsCloudFrontLambdaOriginOverlay extends AOverlay<
   AwsCloudFrontLambdaOriginOverlaySchema,
   AwsCloudFrontLambdaOriginOverlay
 > {
+  declare anchors: [AwsCloudFrontAnchor, MatchingAnchor<AwsLambdaFunctionAnchorSchema>];
   declare properties: AwsCloudFrontLambdaOriginOverlaySchema['properties'];
 
   constructor (
@@ -61,7 +63,8 @@ export class AwsCloudFrontLambdaOriginOverlay extends AOverlay<
 widen it. Without it the `new` below does not typecheck.
 
 The `anchors` parameter is the interesting line. This overlay joins exactly two, in a fixed order,
-and typing them as a tuple means nobody can build one with the anchors swapped or missing.
+and typing them as a tuple means nobody can build one with the anchors swapped or missing. Declaring
+the same tuple on the class lets the action read them back typed.
 
 One is a class, `AwsCloudFrontAnchor`, because the distribution's module owns both the overlay and
 that anchor. The other is a `MatchingAnchor<...Schema>`, because it came from somewhere else and was
@@ -78,12 +81,11 @@ const [matchingLambdaFunctionAnchor] = await origin.source.getAnchorsMatchingSch
   [],
   { searchBoundaryMembers: false },
 );
-const { functionName } = matchingLambdaFunctionAnchor.getSchemaInstance().properties;
 
 overlays.push(
   new AwsCloudFrontLambdaOriginOverlay(
-    `aws-cloudfront-lambda-origin-overlay-${inputs.distributionName}-${functionName}`,
-    { functionName },
+    `aws-cloudfront-lambda-origin-overlay-${inputs.distributionName}-${origin.originId}`,
+    { originId: origin.originId },
     [cloudFrontAnchor, matchingLambdaFunctionAnchor],
   ),
 );
@@ -92,10 +94,10 @@ overlays.push(
 Then return it from `onInit` along with everything else the module built.
 
 The overlay ID has to be the same on every run for the same relationship, so it is built from the
-two things that define this one: the distribution's name and the function's name. Serve the same
-function from the same distribution next week and the ID comes out identical. Point the distribution
-at a different function and it is a different overlay, which is true, because it is a different
-relationship.
+two things that define this one: the distribution's name and the origin's ID, which the user chose
+and which is unique within the distribution. Serve the same origin from the same distribution next
+week and the ID comes out identical. The function's name would not do: two regions may each run a
+function of one name, and one distribution may serve both.
 
 Adding the anchors also creates the [dependency](/docs/fundamentals/dependencies) edges, so the
 overlay depends on both parent models and disappears when either does. An overlay cannot hold an
@@ -118,15 +120,20 @@ export class AddAwsCloudFrontLambdaOriginOverlayAction implements IModelAction<A
   }
 
   async handle (diff, actionInputs, actionOutputs): Promise<ActionOutputs> {
-    const { functionName } = diff.node.properties;
+    const { originId } = diff.node.properties;
     const { distributionName } = actionInputs.inputs;
+    const [, matchingLambdaFunctionAnchor] = diff.node.anchors;
+    const { functionName } = matchingLambdaFunctionAnchor.getSchemaInstance().properties;
 
     const cloudFrontDistribution =
       actionInputs.resources[`cloudfront-${distributionName}`] as CloudFrontDistribution;
 
-    const [matchingLambdaFunction] = await diff.node.getResourcesMatchingSchema(LambdaFunctionSchema, [
-      { key: 'functionName', value: functionName },
-    ]);
+    const [matchingLambdaFunction] = await matchingLambdaFunctionAnchor
+      .getActual()
+      .getParent()
+      .getResourcesMatchingSchema(LambdaFunctionSchema, [{ key: 'functionName', value: functionName }], [], {
+        searchBoundaryMembers: false,
+      });
     if (!matchingLambdaFunction) {
       throw new OverlayActionExceptionTransactionError(
         `No Lambda function found for "${functionName}"!`, diff, this.constructor.name,
@@ -135,7 +142,7 @@ export class AddAwsCloudFrontLambdaOriginOverlayAction implements IModelAction<A
 
     const lambdaFunction = matchingLambdaFunction.getActual() as LambdaFunction;
     lambdaFunction.properties.allowCloudFrontOriginAccess = true;
-    cloudFrontDistribution.addLambdaOrigin(matchingLambdaFunction);
+    cloudFrontDistribution.addLambdaOrigin(originId, matchingLambdaFunction);
 
     actionOutputs[lambdaFunction.resourceId] = lambdaFunction;
     actionOutputs[cloudFrontDistribution.resourceId] = cloudFrontDistribution;
@@ -146,9 +153,11 @@ export class AddAwsCloudFrontLambdaOriginOverlayAction implements IModelAction<A
 
 Note the two ways it reaches a resource. The distribution came from the same module, so it is in
 `actionInputs.resources` under the ID the module's own model action gave it. The function came from
-a different module, so the overlay asks for a resource matching `LambdaFunctionSchema` with that
-name, and Octo searches outward from the overlay, through the models its anchors belong to. That
+a different module, so the overlay goes through the function's anchor to the node that anchor belongs
+to, and asks that node, and only that node, for a resource matching `LambdaFunctionSchema`. That
 second path is how one module changes another module's resource without importing its classes.
+Searching the whole boundary by name instead would find the wrong function as soon as another
+region runs one of the same name.
 
 Both resources go into `actionOutputs`. That is what puts the permission in the function's folder
 and the origin in the distribution's folder, from one relationship.
