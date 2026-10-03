@@ -718,6 +718,73 @@ export class TransactionService {
   }
 
   /**
+   * Refuses two names the `uniqueProperties` of one resource class say must differ: two values of its path,
+   * from two resources or from one, sharing the values of its domain.
+   */
+  private ensureUniqueNames(resources: UnknownResource[]): void {
+    const describeResource = (resource: UnknownResource): string =>
+      `resource "${resource.getContext()}" of module "${this.inputService.getModuleIdFromResource(resource)}"`;
+
+    const resourcesByClass = new Map<typeof AResource, UnknownResource[]>();
+    for (const resource of resources) {
+      const resourceClass = resource.constructor as typeof AResource;
+      if (!resourceClass.UNIQUE_PROPERTIES?.length) {
+        continue;
+      }
+      resourcesByClass.set(resourceClass, [...(resourcesByClass.get(resourceClass) ?? []), resource]);
+    }
+
+    for (const [resourceClass, classResources] of resourcesByClass) {
+      for (const { path, within } of resourceClass.UNIQUE_PROPERTIES) {
+        const holders = new Map<string, UnknownResource>();
+
+        for (const resource of classResources) {
+          // Resolve every name at the path, skipping a branch with no value.
+          let names: unknown[] = [resource.properties];
+          for (const segment of path.split('.')) {
+            const isArray = segment.endsWith('[]');
+            const key = isArray ? segment.slice(0, -2) : segment;
+            names = names.flatMap((value) => {
+              const child = (value as Record<string, unknown> | undefined)?.[key];
+              if (child === undefined || child === null) {
+                return [];
+              }
+              return isArray ? (child as unknown[]) : [child];
+            });
+          }
+          if (names.length === 0) {
+            continue;
+          }
+
+          // Resolve the domain, which every named resource must have.
+          const domain = within.map((property) => {
+            const value = resource.properties[property];
+            if (value === undefined || value === null) {
+              throw new TransactionError(
+                `${describeResource(resource)} has no "${property}", which its "${path}" is unique within!`,
+              );
+            }
+            return value;
+          });
+
+          // Refuse a name already held within the same domain.
+          for (const name of names) {
+            const key = JSON.stringify([...domain, name]);
+            const holder = holders.get(key);
+            if (holder) {
+              const domainName = within.length > 0 ? `within ${within.join(', ')}` : 'across the app';
+              throw new TransactionError(
+                `"${path}" "${name}" is not unique ${domainName}: ${describeResource(holder)} and ${describeResource(resource)} both use it!`,
+              );
+            }
+            holders.set(key, resource);
+          }
+        }
+      }
+    }
+  }
+
+  /**
    * Contributes every resource in the new (desired) resource graph to the shared
    * {@link TerraformService}: terraform resources via `toHCL()`, external resources via
    * `addOctoTerraformExternalResource()`. Always processes the full desired state — terraform
@@ -729,6 +796,8 @@ export class TransactionService {
    */
   private async generateTerraform(): Promise<void> {
     const resources = this.resourceDataRepository.getNewResourcesByProperties().filter((r) => !r.isMarkedDeleted());
+
+    this.ensureUniqueNames(resources);
 
     for (const resource of resources) {
       // Every resource is produced by a model action inside a module, so it is always module-bound.

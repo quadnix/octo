@@ -31,6 +31,14 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
   implements IResource<S, T>
 {
   /**
+   * The names this class declares unique, each by the properties whose values form its domain. Set by
+   * {@link Resource}.
+   *
+   * @internal
+   */
+  static readonly UNIQUE_PROPERTIES: { path: string; within: string[] }[];
+
+  /**
    * The scope every resource constructed now is created in. The transaction sets it around each model
    * action.
    */

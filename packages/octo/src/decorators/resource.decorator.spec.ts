@@ -2,6 +2,8 @@ import { jest } from '@jest/globals';
 import { NodeType } from '../app.type.js';
 import type { Container } from '../functions/container/container.js';
 import { TestContainer } from '../functions/container/test-container.js';
+import { Schema } from '../functions/schema/schema.js';
+import { AResource } from '../resources/resource.abstract.js';
 import { BaseResourceSchema } from '../resources/resource.schema.js';
 import { ResourceSerializationService } from '../services/serialization/resource/resource-serialization.service.js';
 import { TestResource } from '../utilities/test-helpers/test-classes.js';
@@ -11,6 +13,22 @@ import { Resource } from './resource.decorator.js';
 const TestOverlay = createOverlay('test-overlay').setClassName('TestOverlay');
 
 class TestResourceSchema extends BaseResourceSchema {}
+
+class TestTableSchema extends BaseResourceSchema {
+  override properties = Schema<{
+    accountId: string;
+    indexes: { name: string; size: number }[];
+    regionId: string;
+    tableName: string;
+    tags: string[];
+  }>();
+}
+
+class TestTable extends AResource<TestTableSchema, TestTable> {
+  constructor(resourceId: string, properties: TestTableSchema['properties']) {
+    super(resourceId, properties, []);
+  }
+}
 
 describe('Resource UT', () => {
   let container: Container;
@@ -46,6 +64,8 @@ describe('Resource UT', () => {
     TestResource['NODE_SCHEMA'] = undefined;
     // @ts-expect-error static members are readonly.
     TestResource['NODE_TYPE'] = undefined;
+    // @ts-expect-error static members are readonly.
+    TestResource['UNIQUE_PROPERTIES'] = undefined;
 
     await TestContainer.reset();
   });
@@ -94,6 +114,45 @@ describe('Resource UT', () => {
       expect(TestResource.NODE_PACKAGE).toEqual('@octo');
       expect(TestResource.NODE_SCHEMA).toEqual(TestResourceSchema);
       expect(TestResource.NODE_TYPE).toEqual(NodeType.RESOURCE);
+      expect(TestResource.UNIQUE_PROPERTIES).toEqual([]);
+    });
+
+    it('should set the unique names', async () => {
+      Resource<TestTable>('@octo', 'test-table', TestTableSchema, {
+        uniqueProperties: [
+          { path: 'tableName', within: ['accountId', 'regionId'] },
+          { path: 'indexes[].name', within: ['accountId'] },
+          { path: 'tags[]', within: [] },
+        ],
+      })(TestTable);
+
+      expect(TestTable.UNIQUE_PROPERTIES).toEqual([
+        { path: 'tableName', within: ['accountId', 'regionId'] },
+        { path: 'indexes[].name', within: ['accountId'] },
+        { path: 'tags[]', within: [] },
+      ]);
+    });
+
+    it('should not type-check a unique name the properties do not have', () => {
+      Resource<TestTable>('@octo', 'test-table', TestTableSchema, {
+        // @ts-expect-error the property does not exist.
+        uniqueProperties: [{ path: 'tablename', within: [] }],
+      });
+
+      Resource<TestTable>('@octo', 'test-table', TestTableSchema, {
+        // @ts-expect-error a path must end at a string.
+        uniqueProperties: [{ path: 'indexes[].size', within: [] }],
+      });
+
+      Resource<TestTable>('@octo', 'test-table', TestTableSchema, {
+        // @ts-expect-error an array is named with `[]`.
+        uniqueProperties: [{ path: 'indexes.name', within: [] }],
+      });
+
+      Resource<TestTable>('@octo', 'test-table', TestTableSchema, {
+        // @ts-expect-error the domain property does not exist.
+        uniqueProperties: [{ path: 'tableName', within: ['awsRegionId'] }],
+      });
     });
 
     it('should register a resource', async () => {

@@ -1,5 +1,6 @@
 import { jest } from '@jest/globals';
 import { MatchingResource, type UnknownModel, type UnknownModule, type UnknownResource, stub } from '../../app.type.js';
+import { Resource } from '../../decorators/resource.decorator.js';
 import { ResourceActionExceptionTransactionError } from '../../errors/index.js';
 import type { Container } from '../../functions/container/container.js';
 import { TestContainer } from '../../functions/container/test-container.js';
@@ -14,6 +15,7 @@ import { TestModuleContainer } from '../../modules/test-module.container.js';
 import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
 import type { IResourceAction } from '../../resources/resource-action.interface.js';
 import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
+import { BaseResourceSchema } from '../../resources/resource.schema.js';
 import { TestOverlay } from '../../utilities/test-helpers/test-classes.js';
 import { create } from '../../utilities/test-helpers/test-models.js';
 import { createAppModule, createAppOverlayModule, runModule } from '../../utilities/test-helpers/test-modules.js';
@@ -616,6 +618,118 @@ describe('TransactionService UT', () => {
     });
   });
 
+  describe('ensureUniqueNames()', () => {
+    const TestTable = createResource('test-table').setClassName('TestTable');
+    Object.assign(TestTable, {
+      UNIQUE_PROPERTIES: [
+        { path: 'tableName', within: ['accountId', 'regionId'] },
+        { path: 'policies[].name', within: ['accountId'] },
+        { path: 'bucketName', within: [] },
+      ],
+    });
+
+    let ensureUniqueNames: TransactionService['ensureUniqueNames'];
+    let inputService: InputService;
+
+    const createTable = (
+      moduleId: string,
+      resourceId: string,
+      properties: Record<string, unknown>,
+    ): UnknownResource => {
+      const table = new TestTable(resourceId, properties);
+      inputService.registerResource(moduleId, table);
+      return table;
+    };
+
+    beforeEach(async () => {
+      const service = await container.get(TransactionService);
+      ensureUniqueNames = service['ensureUniqueNames'].bind(service);
+      inputService = await container.get(InputService);
+    });
+
+    it('should throw error when two tables in one region share a name', () => {
+      const tables = [
+        createTable('module-1', 'table-1', { accountId: '123', regionId: 'us-east-1', tableName: 'accounts' }),
+        createTable('module-2', 'table-2', { accountId: '123', regionId: 'us-east-1', tableName: 'accounts' }),
+      ];
+
+      expect(() => ensureUniqueNames(tables)).toThrowErrorMatchingInlineSnapshot(
+        `""tableName" "accounts" is not unique within accountId, regionId: resource "@octo/test-table=table-1" of module "module-1" and resource "@octo/test-table=table-2" of module "module-2" both use it!"`,
+      );
+    });
+
+    it('should throw error when two policies of one resource share a name', () => {
+      const tables = [
+        createTable('module-1', 'table-1', {
+          accountId: '123',
+          policies: [{ name: 'read' }, { name: 'read' }],
+          regionId: 'us-east-1',
+        }),
+      ];
+
+      expect(() => ensureUniqueNames(tables)).toThrowErrorMatchingInlineSnapshot(
+        `""policies[].name" "read" is not unique within accountId: resource "@octo/test-table=table-1" of module "module-1" and resource "@octo/test-table=table-1" of module "module-1" both use it!"`,
+      );
+    });
+
+    it('should throw error when two policies in two regions of one account share a name', () => {
+      const tables = [
+        createTable('module-1', 'table-1', { accountId: '123', policies: [{ name: 'read' }], regionId: 'us-east-1' }),
+        createTable('module-2', 'table-2', { accountId: '123', policies: [{ name: 'read' }], regionId: 'us-west-2' }),
+      ];
+
+      expect(() => ensureUniqueNames(tables)).toThrow('"policies[].name" "read" is not unique within accountId');
+    });
+
+    it('should throw error when two resources in two accounts share a name unique across the app', () => {
+      const tables = [
+        createTable('module-1', 'table-1', { bucketName: 'receipts' }),
+        createTable('module-2', 'table-2', { bucketName: 'receipts' }),
+      ];
+
+      expect(() => ensureUniqueNames(tables)).toThrow('"bucketName" "receipts" is not unique across the app');
+    });
+
+    it('should throw error when a named resource is missing a domain value', () => {
+      const tables = [createTable('module-1', 'table-1', { accountId: '123', tableName: 'accounts' })];
+
+      expect(() => ensureUniqueNames(tables)).toThrowErrorMatchingInlineSnapshot(
+        `"resource "@octo/test-table=table-1" of module "module-1" has no "regionId", which its "tableName" is unique within!"`,
+      );
+    });
+
+    it('should pass two tables of one name in two regions', () => {
+      const tables = [
+        createTable('module-1', 'table-1', { accountId: '123', regionId: 'us-east-1', tableName: 'accounts' }),
+        createTable('module-2', 'table-2', { accountId: '123', regionId: 'us-west-2', tableName: 'accounts' }),
+      ];
+
+      expect(() => ensureUniqueNames(tables)).not.toThrow();
+    });
+
+    it('should pass a resource with no name, without asking for its domain', () => {
+      const tables = [
+        createTable('module-1', 'table-1', {}),
+        createTable('module-2', 'table-2', { accountId: '123', policies: [], regionId: 'us-east-1' }),
+      ];
+
+      expect(() => ensureUniqueNames(tables)).not.toThrow();
+    });
+
+    it('should not compare resources of two classes', () => {
+      const OtherTable = createResource('other-table').setClassName('OtherTable');
+      Object.assign(OtherTable, { UNIQUE_PROPERTIES: [{ path: 'tableName', within: ['accountId', 'regionId'] }] });
+      const otherTable = new OtherTable('table-2', { accountId: '123', regionId: 'us-east-1', tableName: 'accounts' });
+      inputService.registerResource('module-2', otherTable);
+      const tables = [
+        createTable('module-1', 'table-1', { accountId: '123', regionId: 'us-east-1', tableName: 'accounts' }),
+        otherTable,
+      ];
+
+      expect(() => ensureUniqueNames(tables)).not.toThrow();
+    });
+  });
+
   describe('generateTerraform()', () => {
     let generateTerraform: TransactionService['generateTerraform'];
 
@@ -687,6 +801,27 @@ describe('TransactionService UT', () => {
       await createTestResources([{ resourceContext: '@octo/test-resource=orphan-1' }]);
 
       await expect(generateTerraform()).rejects.toThrow('Resource "orphan-1" is not associated with any module!');
+    });
+
+    it('should throw error when two resources share a unique property declared through @Resource', async () => {
+      const TestTable = createResource('test-table').setClassName('TestTable');
+      Resource<UnknownResource>('@octo', 'test-table', BaseResourceSchema, {
+        uniqueProperties: [{ path: 'tableName', within: ['regionId'] }],
+      })(TestTable);
+      const [inputService, resourceDataRepository] = await Promise.all([
+        container.get(InputService),
+        container.get(ResourceDataRepository),
+      ]);
+      for (const [moduleId, resourceId] of [
+        ['module-1', 'table-1'],
+        ['module-2', 'table-2'],
+      ]) {
+        const table = new TestTable(resourceId, { regionId: 'us-east-1', tableName: 'accounts' });
+        resourceDataRepository.addNewResource(table);
+        inputService.registerResource(moduleId, table);
+      }
+
+      await expect(generateTerraform()).rejects.toThrow('"tableName" "accounts" is not unique within regionId');
     });
   });
 
