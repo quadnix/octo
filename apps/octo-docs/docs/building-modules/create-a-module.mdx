@@ -216,5 +216,9 @@ Nothing about a module instance is global, so a second queue is a second entry:
 
 Two folders, two queues, one class. This works as long as everything the module names is derived
 from its inputs. A resource ID hardcoded to `queue-orders` rather than built from `queueName` would
-make the second instance collide with the first, and that is the most common way a module fails when
-somebody else loads it twice.
+give both instances one ID, and `octo generate` refuses the second. That is the most common way a
+module fails when somebody else loads it twice.
+
+The ID an action passes only has to be unique among resources whose models sit in the same place in
+the graph. Octo adds a short hash of that place to make the full resource ID, so leave out what the
+graph already says, such as the region a model sits under.

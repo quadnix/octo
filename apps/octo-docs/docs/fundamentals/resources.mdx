@@ -47,7 +47,7 @@ Neither question can be asked of a Terraform state file.
 
 |              |                                                                                    |
 |--------------|------------------------------------------------------------------------------------|
-| `resourceId` | Its name, unique across your infrastructure, derived from the model that caused it. |
+| `resourceId` | Its name, unique across your infrastructure: the name its module gives it, followed by a short hash of where the model that caused it sits. |
 | `properties` | The configuration you asked for. This is what becomes Terraform.                    |
 | `response`   | What the provider gave back: ARNs, generated IDs, endpoints.                        |
 | `parents`    | The resources this one is built on.                                                 |
@@ -87,6 +87,8 @@ down last, without anybody stating an order.
 
 A resource's name is derived from the model that caused it. Change the bucket name in `octo.yaml`
 and the resource ID changes with it, so Octo sees one resource gone and a different one arrived.
+Moving the model to another place in the graph does the same, because the hash in the ID is of
+where the model sits.
 That is a destroy and a create, and for a bucket it means the objects inside it.
 
 Octo tells you before it happens: `octo apply` lists what would be destroyed and refuses to go on

@@ -83,8 +83,8 @@ export class ShopQueue extends ATerraformResource<ShopQueueSchema, ShopQueue> {
   declare properties: ShopQueueSchema['properties'];
   declare response: ShopQueueSchema['response'];
 
-  constructor (resourceId: string, properties: ShopQueueSchema['properties']) {
-    super(resourceId, properties, []);
+  constructor (localResourceId: string, properties: ShopQueueSchema['properties']) {
+    super(localResourceId, properties, []);
   }
 
   override async toHCL (terraform: TerraformModuleScope): Promise<void> {

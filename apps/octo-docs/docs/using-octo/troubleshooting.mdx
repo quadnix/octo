@@ -105,6 +105,14 @@ same AWS region, each with a module creating a table `accounts`. Rename one, or 
 AWS region. Two entries inside one resource, such as two CloudFront cache policies of one name,
 produce the same message naming one resource twice.
 
+**`Resource "..." already exists, and action "..." created it again!`**
+
+Two actions built a resource with the same ID in the same place in the graph. Octo refuses rather
+than merging the two. The usual cause is a module loaded twice whose resource ID is not built from
+its inputs, so both instances name their resource alike; build the ID from the input that tells the
+instances apart. An action that wants to change a resource another module created calls a method
+on that resource instead of constructing a second one.
+
 **`No matching action given for diff!`**
 
 A node changed and nothing is registered to handle it. The error carries the diff itself, including
