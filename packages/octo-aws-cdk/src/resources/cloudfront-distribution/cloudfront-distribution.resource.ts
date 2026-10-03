@@ -302,14 +302,16 @@ export class CloudFrontDistribution extends ATerraformResource<CloudFrontDistrib
     kind: 'alb' | 'lambda',
     parent: MatchingResource<AlbSchema> | MatchingResource<LambdaFunctionSchema>,
   ): void {
-    const parentResourceId = parent.getActual().localResourceId;
+    const parentLocalResourceId = parent.getActual().localResourceId;
 
-    const origin = this.properties.origins.find((o) => o.kind.kind === kind && o.kind.resourceId === parentResourceId);
+    const origin = this.properties.origins.find(
+      (o) => o.kind.kind === kind && o.kind.localResourceId === parentLocalResourceId,
+    );
     if (!origin) {
-      throw new ResourceError(`No ${kind} origin names "${parentResourceId}"!`, this);
+      throw new ResourceError(`No ${kind} origin names "${parentLocalResourceId}"!`, this);
     }
 
-    if (this.parents.some((p) => p.getActual().localResourceId === parentResourceId)) {
+    if (this.parents.some((p) => p.getActual().localResourceId === parentLocalResourceId)) {
       return;
     }
     parent.addChild('resourceId', this, 'resourceId');
@@ -361,11 +363,11 @@ export class CloudFrontDistribution extends ATerraformResource<CloudFrontDistrib
    *
    * @internal
    */
-  private getOriginParent(resourceId: string): CloudFrontDistribution['parents'][number] {
-    const parent = this.parents.find((p) => p.getSchemaInstanceInResourceAction().localResourceId === resourceId);
+  private getOriginParent(localResourceId: string): CloudFrontDistribution['parents'][number] {
+    const parent = this.parents.find((p) => p.getSchemaInstanceInResourceAction().localResourceId === localResourceId);
     if (!parent) {
       throw new ResourceError(
-        `CloudFront origin names "${resourceId}", which is not a parent of the distribution!`,
+        `CloudFront origin names "${localResourceId}", which is not a parent of the distribution!`,
         this,
       );
     }
@@ -447,7 +449,7 @@ export class CloudFrontDistribution extends ATerraformResource<CloudFrontDistrib
       originSpec = {
         custom_origin_config: RENDER_DEFAULTS.origins.lambda,
         domain_name: terraform.getRef(
-          this.getOriginParent(kind.resourceId) as MatchingResource<LambdaFunctionSchema>,
+          this.getOriginParent(kind.localResourceId) as MatchingResource<LambdaFunctionSchema>,
           'FunctionUrlDomainName',
         ),
         origin_access_control_id: originAccessControlIdByOriginId.get(origin.originId),
@@ -455,7 +457,10 @@ export class CloudFrontDistribution extends ATerraformResource<CloudFrontDistrib
     } else if (kind.kind === 'alb') {
       originSpec = {
         custom_origin_config: RENDER_DEFAULTS.origins.alb,
-        domain_name: terraform.getRef(this.getOriginParent(kind.resourceId) as MatchingResource<AlbSchema>, 'DNSName'),
+        domain_name: terraform.getRef(
+          this.getOriginParent(kind.localResourceId) as MatchingResource<AlbSchema>,
+          'DNSName',
+        ),
       };
     } else {
       originSpec = {

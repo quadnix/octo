@@ -68,7 +68,10 @@ export class AddAwsCloudFrontServiceModelAction implements IModelAction<AwsCloud
         });
         const { functionName } = matchingAnchor.getSchemaInstance().properties;
 
-        origins.push({ ...originSettings, kind: { kind: 'lambda', resourceId: `lambda-function-${functionName}` } });
+        origins.push({
+          ...originSettings,
+          kind: { kind: 'lambda', localResourceId: `lambda-function-${functionName}` },
+        });
         appOriginIds.push(origin.originId);
         continue;
       }
@@ -79,7 +82,7 @@ export class AddAwsCloudFrontServiceModelAction implements IModelAction<AwsCloud
       if (matchingAlbAnchor) {
         const { albName } = matchingAlbAnchor.getSchemaInstance().properties;
 
-        origins.push({ ...originSettings, kind: { kind: 'alb', resourceId: `alb-${albName}` } });
+        origins.push({ ...originSettings, kind: { kind: 'alb', localResourceId: `alb-${albName}` } });
         appOriginIds.push(origin.originId);
         continue;
       }
