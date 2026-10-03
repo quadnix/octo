@@ -116,7 +116,7 @@ describe('AwsServerlessRegionModule UT', () => {
             { terraformTarget: 'skip' },
           )
           .next(),
-      ).rejects.toThrow('Region "test-region" already exists!');
+      ).rejects.toThrow('Region already exists!');
     });
   });
 });

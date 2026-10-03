@@ -76,11 +76,6 @@ export class AwsMultiAzRegionModule extends AModule<AwsMultiAzRegionModuleSchema
       throw new ModuleError('Overlapping VPC cidr blocks are not allowed!', this.constructor.name);
     }
 
-    // Check for unique regionId.
-    if (accountRegions.some((r) => r.regionId === `${inputs.name}`)) {
-      throw new ModuleError(`Region "${inputs.name}" already exists!`, this.constructor.name);
-    }
-
     // Create a new region.
     const region = new AwsMultiAzRegion(`${inputs.name}`, inputs.regionIds);
     account.addRegion(region);

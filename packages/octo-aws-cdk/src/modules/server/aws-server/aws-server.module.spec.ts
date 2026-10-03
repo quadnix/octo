@@ -8,10 +8,7 @@ import { AwsServerAnchorSchema } from '../../../anchors/aws-server/aws-server.an
 import { AwsServerAccessPermission } from './index.schema.js';
 import { AwsServerModule } from './index.js';
 
-async function setup(
-  testModuleContainer: TestModuleContainer,
-  { bucketAccountId = '123', tableAccountId = '123' }: { bucketAccountId?: string; tableAccountId?: string } = {},
-): Promise<void> {
+async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
   const {
     account: [account],
     app: [app],
@@ -42,7 +39,7 @@ async function setup(
   bucket.addAnchor(
     testModuleContainer.createTestAnchor<AwsS3StorageServiceAnchorSchema>(
       'AwsS3StorageServiceAnchor',
-      { awsAccountId: bucketAccountId, awsRegionId: 'us-east-1', bucketName: 'test-bucket', contentDigest: 'digest' },
+      { awsAccountId: '123', awsRegionId: 'us-east-1', bucketName: 'test-bucket', contentDigest: 'digest' },
       bucket,
     ),
   );
@@ -50,7 +47,7 @@ async function setup(
   table.addAnchor(
     testModuleContainer.createTestAnchor<AwsDynamoDBAnchorSchema>(
       'AwsDynamoDBAnchor',
-      { awsAccountId: tableAccountId, awsRegionId: 'us-east-1', TableName: 'accounts' },
+      { awsAccountId: '123', awsRegionId: 'us-east-1', TableName: 'accounts' },
       table,
     ),
   );
@@ -292,53 +289,6 @@ describe('AwsServerModule UT', () => {
   });
 
   describe('validation', () => {
-    it('should reject a bucket in another account', async () => {
-      await setup(testModuleContainer, { bucketAccountId: '456' });
-
-      await expect(
-        testModuleContainer
-          .runModules<AwsServerModule>(
-            {
-              inputs: {
-                account: stub('${{testModule.model.account}}'),
-                s3: [
-                  {
-                    accessPrefixes: [{ access: AwsServerAccessPermission.READ, accessPrefix: 'uploads' }],
-                    service: stub('${{testModule.model.service}}'),
-                  },
-                ],
-                serverKey: 'backend',
-              },
-              moduleId: 'server',
-              type: AwsServerModule,
-            },
-            { terraformTarget: 'skip' },
-          )
-          .next(),
-      ).rejects.toThrow('This module does not support adding s3 resources from other accounts!');
-    });
-
-    it('should reject a table in another account', async () => {
-      await setup(testModuleContainer, { tableAccountId: '456' });
-
-      await expect(
-        testModuleContainer
-          .runModules<AwsServerModule>(
-            {
-              inputs: {
-                account: stub('${{testModule.model.account}}'),
-                dynamodb: [{ access: AwsServerAccessPermission.READ, service: stub('${{tableModule.model.service}}') }],
-                serverKey: 'backend',
-              },
-              moduleId: 'server',
-              type: AwsServerModule,
-            },
-            { terraformTarget: 'skip' },
-          )
-          .next(),
-      ).rejects.toThrow('This module does not support adding dynamodb resources from other accounts!');
-    });
-
     it('should reject an unknown access', async () => {
       await setup(testModuleContainer);
 

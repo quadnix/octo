@@ -1,7 +1,6 @@
 import { AModule, type Account, AccountType, type App, type MatchingAnchor, Module, ModuleError } from '@quadnix/octo';
 import { AwsDynamoDBAnchorSchema } from '../../../anchors/aws-dynamodb/aws-dynamodb.anchor.schema.js';
 import { AwsS3StorageServiceAccessPrefixAnchorSchema } from '../../../anchors/aws-s3-storage-service/aws-s3-storage-service-access-prefix.anchor.schema.js';
-import { AwsS3StorageServiceAnchorSchema } from '../../../anchors/aws-s3-storage-service/aws-s3-storage-service.anchor.schema.js';
 import { AwsSecurityGroupAnchor } from '../../../anchors/aws-security-group/aws-security-group.anchor.js';
 import { AwsServerAnchor } from '../../../anchors/aws-server/aws-server.anchor.js';
 import { CommonUtility } from '../../../utilities/common/common.utility.js';
@@ -64,7 +63,7 @@ export class AwsServerModule extends AModule<AwsServerModuleSchema, AwsServer> {
     inputs: AwsServerModuleSchema,
   ): Promise<(AwsServer | AwsServerDynamoDBAccessOverlay | AwsServerS3AccessOverlay)[]> {
     const models: (AwsServer | AwsServerDynamoDBAccessOverlay | AwsServerS3AccessOverlay)[] = [];
-    const { account, app } = await this.registerMetadata(inputs);
+    const { app } = await this.registerMetadata(inputs);
 
     // Create a new server.
     const server = new AwsServer(inputs.serverKey);
@@ -112,16 +111,6 @@ export class AwsServerModule extends AModule<AwsServerModuleSchema, AwsServer> {
     >();
     for (const s3 of inputs.s3 || []) {
       const service = s3.service;
-      const [matchingS3StorageAnchor] = await service.getAnchorsMatchingSchema(AwsS3StorageServiceAnchorSchema, [], {
-        searchBoundaryMembers: false,
-      });
-      if (matchingS3StorageAnchor.getSchemaInstance().properties.awsAccountId !== account.accountId) {
-        throw new ModuleError(
-          'This module does not support adding s3 resources from other accounts!',
-          this.constructor.name,
-        );
-      }
-
       for (const grant of s3.accessPrefixes) {
         const matchingAnchors = await service.getAnchorsMatchingSchema(
           AwsS3StorageServiceAccessPrefixAnchorSchema,
@@ -172,13 +161,7 @@ export class AwsServerModule extends AModule<AwsServerModuleSchema, AwsServer> {
       const [matchingDynamoDBAnchor] = await grant.service.getAnchorsMatchingSchema(AwsDynamoDBAnchorSchema, [], {
         searchBoundaryMembers: false,
       });
-      const { awsAccountId, awsRegionId, TableName: tableName } = matchingDynamoDBAnchor.getSchemaInstance().properties;
-      if (awsAccountId !== account.accountId) {
-        throw new ModuleError(
-          'This module does not support adding dynamodb resources from other accounts!',
-          this.constructor.name,
-        );
-      }
+      const { awsRegionId, TableName: tableName } = matchingDynamoDBAnchor.getSchemaInstance().properties;
 
       const { allowRead, allowWrite } = this.getAccess(grant.access);
       const key = JSON.stringify([awsRegionId, tableName]);

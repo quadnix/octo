@@ -473,7 +473,7 @@ describe('AwsSingleAzRegionModule UT', () => {
             { terraformTarget: 'skip' },
           )
           .next(),
-      ).rejects.toThrowErrorMatchingInlineSnapshot(`"Region "test-region" already exists!"`);
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`"Region already exists!"`);
     });
 
     it('should validate overlapping CIDR blocks', async () => {

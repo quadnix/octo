@@ -408,7 +408,7 @@ async function setup(
       'bucketModule',
       [
         new S3Storage('bucket-test-bucket', {
-          awsAccountId: '123',
+          awsAccountId: bucketAccount,
           awsRegionId: 'us-east-1',
           blockPublicAccess: true,
           Bucket: 'test-bucket',
@@ -435,7 +435,7 @@ async function setup(
       [
         new DynamoDB('dynamodb-accounts', {
           AttributeDefinitions: [{ AttributeName: 'AccountId', AttributeType: 'S' }],
-          awsAccountId: '123',
+          awsAccountId: tableAccount,
           awsRegionId: 'us-east-1',
           billingMode: { settings: {}, type: 'PAY_PER_REQUEST' },
           DeletionProtectionEnabled: false,
@@ -1906,7 +1906,7 @@ describe('AwsEcsExecutionModule UT', () => {
             type: AwsEcsExecutionModule,
           })
           .next(),
-      ).rejects.toThrow('Bucket "test-bucket" is in account "456", not in the execution\'s account "123"!');
+      ).rejects.toThrow('Bucket "test-bucket" is in account "456", not in the role\'s account "123"!');
     });
 
     it("should reject a granted table in another account than the execution's", async () => {
@@ -1920,7 +1920,7 @@ describe('AwsEcsExecutionModule UT', () => {
             type: AwsEcsExecutionModule,
           })
           .next(),
-      ).rejects.toThrow('Table "accounts" is in account "456", not in the execution\'s account "123"!');
+      ).rejects.toThrow('Table "accounts" is in account "456", not in the role\'s account "123"!');
     });
 
     it('should reject a deployment without a command', async () => {

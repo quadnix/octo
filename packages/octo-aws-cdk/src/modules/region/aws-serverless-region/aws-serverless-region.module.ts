@@ -1,4 +1,4 @@
-import { AModule, AccountType, Module, ModuleError, type Region } from '@quadnix/octo';
+import { AModule, AccountType, Module, ModuleError } from '@quadnix/octo';
 import { AwsServerlessRegionAnchor } from '../../../anchors/aws-region/aws-serverless-region.anchor.js';
 import { AwsServerlessRegionModuleSchema } from './index.schema.js';
 import { AwsServerlessRegion } from './models/region/index.js';
@@ -38,12 +38,6 @@ export class AwsServerlessRegionModule extends AModule<AwsServerlessRegionModule
     const account = inputs.account;
     if (account.accountType !== AccountType.AWS) {
       throw new ModuleError('Only AWS accounts are supported in this module!', this.constructor.name);
-    }
-
-    // Check for unique regionId.
-    const accountRegions = account.getChildren()['region']?.map((r) => r.to as Region) || [];
-    if (accountRegions.some((r) => r.regionId === inputs.name)) {
-      throw new ModuleError(`Region "${inputs.name}" already exists!`, this.constructor.name);
     }
 
     // Create a new region.

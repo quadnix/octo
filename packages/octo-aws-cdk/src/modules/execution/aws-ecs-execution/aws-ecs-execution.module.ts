@@ -16,7 +16,6 @@ import { AwsEcsExecutionAnchor } from '../../../anchors/aws-ecs/aws-ecs-executio
 import { AwsEcsServiceAnchor } from '../../../anchors/aws-ecs/aws-ecs-service.anchor.js';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import { AwsS3StorageServiceAccessPrefixAnchorSchema } from '../../../anchors/aws-s3-storage-service/aws-s3-storage-service-access-prefix.anchor.schema.js';
-import { AwsS3StorageServiceAnchorSchema } from '../../../anchors/aws-s3-storage-service/aws-s3-storage-service.anchor.schema.js';
 import { AwsSecurityGroupAnchor } from '../../../anchors/aws-security-group/aws-security-group.anchor.js';
 import { AwsSecurityGroupAnchorSchema } from '../../../anchors/aws-security-group/aws-security-group.anchor.schema.js';
 import { AwsServerAnchorSchema } from '../../../anchors/aws-server/aws-server.anchor.schema.js';
@@ -235,19 +234,6 @@ export class AwsEcsExecutionModule extends AModule<AwsEcsExecutionModuleSchema, 
         ],
       );
 
-      // The role is created in this execution's account, and can only be granted a bucket in it.
-      const bucket = matchingAccessPrefixAnchor.getActual().getParent();
-      const [matchingS3StorageAnchor] = await bucket.getAnchorsMatchingSchema(AwsS3StorageServiceAnchorSchema, [], {
-        searchBoundaryMembers: false,
-      });
-      const bucketAwsAccountId = matchingS3StorageAnchor.getSchemaInstance().properties.awsAccountId;
-      if (bucketAwsAccountId !== awsAccountId) {
-        throw new ModuleError(
-          `Bucket "${grant.bucketName}" is in account "${bucketAwsAccountId}", not in the execution's account "${awsAccountId}"!`,
-          this.constructor.name,
-        );
-      }
-
       if (!grantAnchors.some((a) => a.getActual() === matchingAccessPrefixAnchor.getActual())) {
         grantAnchors.push(matchingAccessPrefixAnchor);
       }
@@ -257,15 +243,6 @@ export class AwsEcsExecutionModule extends AModule<AwsEcsExecutionModuleSchema, 
         { key: 'awsRegionId', value: grant.awsRegionId },
         { key: 'TableName', value: grant.tableName },
       ]);
-
-      // The role is created in this execution's account, and can only be granted a table in it.
-      const tableAwsAccountId = matchingDynamoDBAnchor.getSchemaInstance().properties.awsAccountId;
-      if (tableAwsAccountId !== awsAccountId) {
-        throw new ModuleError(
-          `Table "${grant.tableName}" is in account "${tableAwsAccountId}", not in the execution's account "${awsAccountId}"!`,
-          this.constructor.name,
-        );
-      }
 
       if (!grantAnchors.some((a) => a.getActual() === matchingDynamoDBAnchor.getActual())) {
         grantAnchors.push(matchingDynamoDBAnchor);

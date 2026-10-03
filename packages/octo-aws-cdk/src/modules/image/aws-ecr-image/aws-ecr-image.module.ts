@@ -82,17 +82,6 @@ export class AwsEcrImageModule extends AModule<AwsEcrImageModuleSchema, AwsEcrIm
       }
       const awsRegionId = matchingAnchor.getSchemaInstance().properties.awsRegionId;
 
-      // A repository is named by its image and region alone, so one region holds it for one account.
-      const sharedRegion = metadata.uniqueImageRepositories.find(
-        (r) => r.awsAccountId !== account.accountId && r.awsRegionId === awsRegionId,
-      );
-      if (sharedRegion) {
-        throw new ModuleError(
-          `Image cannot be held in "${awsRegionId}" by more than one account!`,
-          this.constructor.name,
-        );
-      }
-
       if (
         !metadata.uniqueImageRepositories.find(
           (r) => r.awsAccountId === account.accountId && r.awsRegionId === awsRegionId,

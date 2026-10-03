@@ -207,13 +207,6 @@ export class AwsCloudFrontServiceModule extends AModule<AwsCloudFrontServiceModu
       if (matchingAlbAnchor) {
         const { albName } = matchingAlbAnchor.getSchemaInstance().properties;
 
-        // Validate the ALB can be served, from this distribution's account.
-        const subnet = origin.source.getParents()['subnet'][0].to;
-        const region = subnet.getParents()['region'][0].to;
-        if ((region.getParents()['account'][0].to as Account).accountId !== account.accountId) {
-          throw new ModuleError(`ALB "${albName}" is not in the distribution's account!`, this.constructor.name);
-        }
-
         // Validate an ALB is one origin of this distribution.
         if (
           overlays.some(
