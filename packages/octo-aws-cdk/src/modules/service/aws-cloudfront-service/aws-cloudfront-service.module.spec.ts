@@ -1,4 +1,5 @@
 import {
+  AResource,
   type Account,
   type App,
   MatchingResource,
@@ -65,29 +66,36 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{ accoun
 }
 
 /**
- * A Lambda function with a URL, run by an execution in a serverless region, as `AwsLambdaExecutionModule`
- * would have left it: the function anchored on the execution, and created by the execution's overlay.
+ * A Lambda function named `backend` with a URL, run by an execution in a serverless region, as
+ * `AwsLambdaExecutionModule` would have left it: the function anchored on the execution, and created by
+ * the execution's overlay. `scope` is the scope its resources are created in. Returns the function's
+ * resource id.
  */
 async function setupLambdaFunction(
   testModuleContainer: TestModuleContainer,
   { account, app }: { account: Account; app: App },
-  { timeoutInSeconds = 30 }: { timeoutInSeconds?: number } = {},
-): Promise<void> {
+  {
+    awsRegionId = 'us-east-1',
+    moduleId = 'lambdaModule',
+    scope = [],
+    timeoutInSeconds = 30,
+  }: { awsRegionId?: string; moduleId?: string; scope?: string[]; timeoutInSeconds?: number } = {},
+): Promise<string> {
   const {
     execution: [execution],
-  } = await testModuleContainer.createTestModels('lambdaModule', {
+  } = await testModuleContainer.createTestModels(moduleId, {
     account: [account],
     app: [app],
     deployment: ['v1'],
     environment: ['qa'],
     execution: [':0:0:0'],
-    region: ['serverless-region'],
-    server: ['backend'],
+    region: [`serverless-${awsRegionId}`],
+    server: [`backend-${awsRegionId}`],
     subnet: ['default'],
   });
 
-  const lambdaExecutionOverlayContext = '@octo/aws-lambda-execution-overlay=aws-lambda-execution-overlay-backend';
-  const testOverlays = await testModuleContainer.createTestOverlays('lambdaModule', [
+  const lambdaExecutionOverlayContext = `@octo/aws-lambda-execution-overlay=aws-lambda-execution-overlay-backend-${awsRegionId}`;
+  const testOverlays = await testModuleContainer.createTestOverlays(moduleId, [
     { anchors: [], context: lambdaExecutionOverlayContext },
   ]);
   execution.addAnchor(
@@ -98,50 +106,56 @@ async function setupLambdaFunction(
     ),
   );
 
-  const iamRole = new IamRole('iam-role-ExecutionRole-backend', {
-    awsAccountId: '123',
-    policies: [
-      { policy: 'lambda.amazonaws.com', policyId: 'LambdaAssumeRolePolicy', policyType: 'assume-role-policy' },
-    ],
-    rolename: 'ExecutionRole-backend',
-  });
-  const ecrImage = new EcrImage('ecr-us-east-1-family/image', {
-    awsAccountId: '123',
-    awsRegionId: 'us-east-1',
-    imageId: 'family/image',
-  });
-  const ecrImageTag = new EcrImageTag(
-    'ecr-image-tag-us-east-1-family/image-0-0-1',
-    {
-      architecture: 'arm64',
+  const [iamRole, ecrImage, ecrImageTag, lambdaFunction] = AResource.constructInScope(scope, () => {
+    const iamRole = new IamRole(`iam-role-ExecutionRole-backend-${awsRegionId}`, {
       awsAccountId: '123',
-      awsRegionId: 'us-east-1',
-      dockerfileDirectory: 'images/backend',
-      dockerfileName: 'Dockerfile',
+      policies: [
+        { policy: 'lambda.amazonaws.com', policyId: 'LambdaAssumeRolePolicy', policyType: 'assume-role-policy' },
+      ],
+      rolename: `ExecutionRole-backend-${awsRegionId}`,
+    });
+    const ecrImage = new EcrImage(`ecr-${awsRegionId}-family/image`, {
+      awsAccountId: '123',
+      awsRegionId,
       imageId: 'family/image',
-      imageTag: '0.0.1',
-    },
-    [new MatchingResource(ecrImage)],
-  );
-  const lambdaFunction = new LambdaFunction(
-    'lambda-function-backend',
-    {
-      allowCloudFrontOriginAccess: false,
-      architecture: 'arm64',
-      awsAccountId: '123',
-      awsRegionId: 'us-east-1',
-      environmentVariables: {},
-      functionName: 'backend',
-      imageCommand: [],
-      invokerAccountIds: [],
-      memoryInMegabytes: 512,
-      timeoutInSeconds,
-    },
-    [new MatchingResource(iamRole), new MatchingResource(ecrImageTag)],
-  );
-  await testModuleContainer.createResources('lambdaModule', [iamRole, ecrImage, ecrImageTag, lambdaFunction], {
+    });
+    const ecrImageTag = new EcrImageTag(
+      `ecr-image-tag-${awsRegionId}-family/image-0-0-1`,
+      {
+        architecture: 'arm64',
+        awsAccountId: '123',
+        awsRegionId,
+        dockerfileDirectory: 'images/backend',
+        dockerfileName: 'Dockerfile',
+        imageId: 'family/image',
+        imageTag: '0.0.1',
+      },
+      [new MatchingResource(ecrImage)],
+    );
+    const lambdaFunction = new LambdaFunction(
+      'lambda-function-backend',
+      {
+        allowCloudFrontOriginAccess: false,
+        architecture: 'arm64',
+        awsAccountId: '123',
+        awsRegionId,
+        environmentVariables: {},
+        functionName: 'backend',
+        imageCommand: [],
+        invokerAccountIds: [],
+        memoryInMegabytes: 512,
+        timeoutInSeconds,
+      },
+      [new MatchingResource(iamRole), new MatchingResource(ecrImageTag)],
+    );
+
+    return [iamRole, ecrImage, ecrImageTag, lambdaFunction] as const;
+  });
+  await testModuleContainer.createResources(moduleId, [iamRole, ecrImage, ecrImageTag, lambdaFunction], {
     save: true,
   });
+
+  return lambdaFunction.resourceId;
 }
 
 /**
@@ -572,6 +586,50 @@ describe('AwsCloudFrontServiceModule UT', () => {
     expect(hclRender).toContain('principal = "cloudfront.amazonaws.com"');
     expect(hclRender).toContain('source_account = "123"');
     expect(hclRender).toMatch(/allowed_methods = \["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"\]/);
+  });
+
+  it('should serve each of two Lambda functions of one name, in two regions, from its own origin', async () => {
+    const models = await setup(testModuleContainer);
+    const usFunctionId = await setupLambdaFunction(testModuleContainer, models, { scope: ['region=us-east-1'] });
+    const euFunctionId = await setupLambdaFunction(testModuleContainer, models, {
+      awsRegionId: 'eu-west-1',
+      moduleId: 'lambdaModule-eu-west-1',
+      scope: ['region=eu-west-1'],
+    });
+    testModuleContainer.registerTerraformProvider('aws', '123', 'eu-west-1');
+    const { hclRender } = (
+      await testModuleContainer
+        .runModules<AwsCloudFrontServiceModule>(
+          {
+            inputs: inputs({
+              origins: [
+                { originId: 'api-us', source: stub('${{lambdaModule.model.execution}}') },
+                { originId: 'api-eu', source: stub('${{lambdaModule-eu-west-1.model.execution}}') },
+              ],
+              routes: [{ originId: 'api-eu', pathPattern: '/eu/*' }, { originId: 'api-us' }],
+            }),
+            moduleId: 'distribution',
+            type: AwsCloudFrontServiceModule,
+          },
+          {
+            filterByModuleIds: ['lambdaModule', 'lambdaModule-eu-west-1', 'distribution'],
+            terraformTarget: 'skip',
+          },
+        )
+        .next()
+    ).value!;
+
+    // Each origin reads the host name of its own function.
+    for (const [originId, functionId] of [
+      ['api-us', usFunctionId],
+      ['api-eu', euFunctionId],
+    ]) {
+      expect(hclRender).toMatch(
+        new RegExp(
+          `domain_name = var\\.${functionId.replace(/-/g, '_')}_FunctionUrlDomainName\\s+origin_id = "${originId}"`,
+        ),
+      );
+    }
   });
 
   it('should serve an ALB over HTTP through its DNS name', async () => {

@@ -39,19 +39,24 @@ export class AddAwsCloudFrontAlbOriginOverlayAction implements IModelAction<AwsC
     actionInputs: EnhancedModuleSchema<AwsCloudFrontServiceModule>,
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
-    const { albName } = diff.node.properties;
+    const { originId } = diff.node.properties;
     const { distributionName } = actionInputs.inputs;
+    const [, matchingAlbAnchor] = diff.node.anchors;
+    const { albName } = matchingAlbAnchor.getSchemaInstance().properties;
 
     const cloudFrontDistribution = actionInputs.resources[`cloudfront-${distributionName}`] as CloudFrontDistribution;
 
-    // Find the ALB this overlay serves.
-    const [matchingAlb] = await diff.node.getResourcesMatchingSchema(AlbSchema, [{ key: 'Name', value: albName }]);
+    // Find the ALB this overlay serves, through the ALB anchor it joins.
+    const [matchingAlb] = await matchingAlbAnchor
+      .getActual()
+      .getParent()
+      .getResourcesMatchingSchema(AlbSchema, [{ key: 'Name', value: albName }], [], { searchBoundaryMembers: false });
     if (!matchingAlb) {
       throw new OverlayActionExceptionTransactionError(`No ALB found for "${albName}"!`, diff, this.constructor.name);
     }
 
     // Read the ALB's DNS name into the distribution.
-    cloudFrontDistribution.addAlbOrigin(matchingAlb);
+    cloudFrontDistribution.addAlbOrigin(originId, matchingAlb);
     actionOutputs[cloudFrontDistribution.resourceId] = cloudFrontDistribution;
 
     return actionOutputs;

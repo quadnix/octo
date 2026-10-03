@@ -180,7 +180,9 @@ export class AwsCloudFrontServiceModule extends AModule<AwsCloudFrontServiceModu
         // Validate a function is one origin of this distribution.
         if (
           overlays.some(
-            (o) => o instanceof AwsCloudFrontLambdaOriginOverlay && o.properties.functionName === functionName,
+            (o) =>
+              o instanceof AwsCloudFrontLambdaOriginOverlay &&
+              o.anchors[1].getActual() === matchingLambdaFunctionAnchor.getActual(),
           )
         ) {
           throw new ModuleError(
@@ -191,8 +193,8 @@ export class AwsCloudFrontServiceModule extends AModule<AwsCloudFrontServiceModu
 
         overlays.push(
           new AwsCloudFrontLambdaOriginOverlay(
-            `aws-cloudfront-lambda-origin-overlay-${inputs.distributionName}-${functionName}`,
-            { functionName },
+            `aws-cloudfront-lambda-origin-overlay-${inputs.distributionName}-${origin.originId}`,
+            { originId: origin.originId },
             [cloudFrontAnchor, matchingLambdaFunctionAnchor],
           ),
         );
@@ -213,14 +215,19 @@ export class AwsCloudFrontServiceModule extends AModule<AwsCloudFrontServiceModu
         }
 
         // Validate an ALB is one origin of this distribution.
-        if (overlays.some((o) => o instanceof AwsCloudFrontAlbOriginOverlay && o.properties.albName === albName)) {
+        if (
+          overlays.some(
+            (o) =>
+              o instanceof AwsCloudFrontAlbOriginOverlay && o.anchors[1].getActual() === matchingAlbAnchor.getActual(),
+          )
+        ) {
           throw new ModuleError(`ALB "${albName}" is named by more than one origin!`, this.constructor.name);
         }
 
         overlays.push(
           new AwsCloudFrontAlbOriginOverlay(
-            `aws-cloudfront-alb-origin-overlay-${inputs.distributionName}-${albName}`,
-            { albName },
+            `aws-cloudfront-alb-origin-overlay-${inputs.distributionName}-${origin.originId}`,
+            { originId: origin.originId },
             [cloudFrontAnchor, matchingAlbAnchor],
           ),
         );

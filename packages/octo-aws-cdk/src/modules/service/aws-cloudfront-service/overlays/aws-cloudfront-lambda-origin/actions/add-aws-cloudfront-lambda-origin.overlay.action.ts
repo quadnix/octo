@@ -40,15 +40,20 @@ export class AddAwsCloudFrontLambdaOriginOverlayAction implements IModelAction<A
     actionInputs: EnhancedModuleSchema<AwsCloudFrontServiceModule>,
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
-    const { functionName } = diff.node.properties;
+    const { originId } = diff.node.properties;
     const { distributionName } = actionInputs.inputs;
+    const [, matchingLambdaFunctionAnchor] = diff.node.anchors;
+    const { functionName } = matchingLambdaFunctionAnchor.getSchemaInstance().properties;
 
     const cloudFrontDistribution = actionInputs.resources[`cloudfront-${distributionName}`] as CloudFrontDistribution;
 
-    // Find the function this overlay serves.
-    const [matchingLambdaFunction] = await diff.node.getResourcesMatchingSchema(LambdaFunctionSchema, [
-      { key: 'functionName', value: functionName },
-    ]);
+    // Find the function this overlay serves, through the function anchor it joins.
+    const [matchingLambdaFunction] = await matchingLambdaFunctionAnchor
+      .getActual()
+      .getParent()
+      .getResourcesMatchingSchema(LambdaFunctionSchema, [{ key: 'functionName', value: functionName }], [], {
+        searchBoundaryMembers: false,
+      });
     if (!matchingLambdaFunction) {
       throw new OverlayActionExceptionTransactionError(
         `No Lambda function found for "${functionName}"!`,
@@ -60,7 +65,7 @@ export class AddAwsCloudFrontLambdaOriginOverlayAction implements IModelAction<A
     // Admit the distribution to the function, and read the function's URL into the distribution.
     const lambdaFunction = matchingLambdaFunction.getActual() as LambdaFunction;
     lambdaFunction.properties.allowCloudFrontOriginAccess = true;
-    cloudFrontDistribution.addLambdaOrigin(matchingLambdaFunction);
+    cloudFrontDistribution.addLambdaOrigin(originId, matchingLambdaFunction);
     actionOutputs[lambdaFunction.resourceId] = lambdaFunction;
     actionOutputs[cloudFrontDistribution.resourceId] = cloudFrontDistribution;
 

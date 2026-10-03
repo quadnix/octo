@@ -63,15 +63,7 @@ export class AddAwsCloudFrontServiceModelAction implements IModelAction<AwsCloud
       };
 
       if (hasNodeName(origin.source, 'execution')) {
-        const [matchingAnchor] = await origin.source.getAnchorsMatchingSchema(AwsLambdaFunctionAnchorSchema, [], {
-          searchBoundaryMembers: false,
-        });
-        const { functionName } = matchingAnchor.getSchemaInstance().properties;
-
-        origins.push({
-          ...originSettings,
-          kind: { kind: 'lambda', localResourceId: `lambda-function-${functionName}` },
-        });
+        origins.push({ ...originSettings, kind: { kind: 'lambda' } });
         appOriginIds.push(origin.originId);
         continue;
       }
@@ -80,9 +72,7 @@ export class AddAwsCloudFrontServiceModelAction implements IModelAction<AwsCloud
         searchBoundaryMembers: false,
       });
       if (matchingAlbAnchor) {
-        const { albName } = matchingAlbAnchor.getSchemaInstance().properties;
-
-        origins.push({ ...originSettings, kind: { kind: 'alb', localResourceId: `alb-${albName}` } });
+        origins.push({ ...originSettings, kind: { kind: 'alb' } });
         appOriginIds.push(origin.originId);
         continue;
       }

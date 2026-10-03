@@ -130,7 +130,7 @@ function createLambdaDistribution(): CloudFrontDistribution {
           connectionAttempts: 3,
           connectionTimeout: 10,
           customHeaders: {},
-          kind: { kind: 'lambda', localResourceId: 'lambda-function-backend' },
+          kind: { kind: 'lambda' },
           originId: 'api',
           originPath: '',
         },
@@ -207,7 +207,7 @@ function createAlbDistribution(): CloudFrontDistribution {
           connectionAttempts: 3,
           connectionTimeout: 10,
           customHeaders: {},
-          kind: { kind: 'alb', localResourceId: 'alb-test' },
+          kind: { kind: 'alb' },
           originId: 'web',
           originPath: '',
         },
@@ -478,23 +478,27 @@ describe('CloudFrontDistribution UT', () => {
   describe('addLambdaOrigin()', () => {
     it('should make the function a parent of the distribution', () => {
       const distribution = createLambdaDistribution();
-      distribution.addLambdaOrigin(new MatchingResource(createLambdaFunction()));
+      distribution.addLambdaOrigin('api', new MatchingResource(createLambdaFunction()));
 
       expect(distribution.parents.map((p) => p.getActual().resourceId)).toEqual(['lambda-function-backend']);
+      expect(distribution.properties.origins[0].kind).toEqual({
+        kind: 'lambda',
+        resourceId: 'lambda-function-backend',
+      });
     });
 
     it('should add the parent once when called twice', () => {
       const distribution = createLambdaDistribution();
       const lambdaFunction = new MatchingResource(createLambdaFunction());
-      distribution.addLambdaOrigin(lambdaFunction);
-      distribution.addLambdaOrigin(lambdaFunction);
+      distribution.addLambdaOrigin('api', lambdaFunction);
+      distribution.addLambdaOrigin('api', lambdaFunction);
 
       expect(distribution.parents).toHaveLength(1);
     });
 
-    it('should reject a function no Lambda origin names', () => {
-      expect(() => createDistribution().addLambdaOrigin(new MatchingResource(createLambdaFunction()))).toThrow(
-        'No lambda origin names "lambda-function-backend"!',
+    it('should reject an origin that is not a Lambda origin', () => {
+      expect(() => createDistribution().addLambdaOrigin('api', new MatchingResource(createLambdaFunction()))).toThrow(
+        'No lambda origin "api"!',
       );
     });
   });
@@ -502,7 +506,7 @@ describe('CloudFrontDistribution UT', () => {
   describe('addLambdaOrigin() timeout', () => {
     it('should accept a function that answers within the 60 seconds CloudFront waits', () => {
       const distribution = createLambdaDistribution();
-      distribution.addLambdaOrigin(new MatchingResource(createLambdaFunction({ timeoutInSeconds: 60 })));
+      distribution.addLambdaOrigin('api', new MatchingResource(createLambdaFunction({ timeoutInSeconds: 60 })));
 
       expect(distribution.parents).toHaveLength(1);
     });
@@ -510,6 +514,7 @@ describe('CloudFrontDistribution UT', () => {
     it('should reject a function that runs longer than CloudFront waits', () => {
       expect(() =>
         createLambdaDistribution().addLambdaOrigin(
+          'api',
           new MatchingResource(createLambdaFunction({ timeoutInSeconds: 61 })),
         ),
       ).toThrow('Lambda function "backend" times out after 61 seconds, but CloudFront waits 60!');
@@ -519,14 +524,15 @@ describe('CloudFrontDistribution UT', () => {
   describe('addAlbOrigin()', () => {
     it('should make the ALB a parent of the distribution', () => {
       const distribution = createAlbDistribution();
-      distribution.addAlbOrigin(new MatchingResource(createAlb()));
+      distribution.addAlbOrigin('web', new MatchingResource(createAlb()));
 
       expect(distribution.parents.map((p) => p.getActual().resourceId)).toEqual(['alb-test']);
+      expect(distribution.properties.origins[0].kind).toEqual({ kind: 'alb', resourceId: 'alb-test' });
     });
 
-    it('should reject an ALB no ALB origin names', () => {
-      expect(() => createDistribution().addAlbOrigin(new MatchingResource(createAlb()))).toThrow(
-        'No alb origin names "alb-test"!',
+    it('should reject an origin that is not an ALB origin', () => {
+      expect(() => createDistribution().addAlbOrigin('web', new MatchingResource(createAlb()))).toThrow(
+        'No alb origin "web"!',
       );
     });
   });
@@ -699,7 +705,7 @@ describe('CloudFrontDistribution UT', () => {
 
     it('should reach an ALB origin through its DNS name, over HTTP', async () => {
       const distribution = createAlbDistribution();
-      distribution.addAlbOrigin(new MatchingResource(createAlb()));
+      distribution.addAlbOrigin('web', new MatchingResource(createAlb()));
 
       const { emitted, terraform } = createRecordingScope();
       await distribution.toHCL(terraform);
@@ -724,7 +730,7 @@ describe('CloudFrontDistribution UT', () => {
 
     it("should reach a Lambda origin through its URL's host name, signed by an origin access control", async () => {
       const distribution = createLambdaDistribution();
-      distribution.addLambdaOrigin(new MatchingResource(createLambdaFunction()));
+      distribution.addLambdaOrigin('api', new MatchingResource(createLambdaFunction()));
 
       const { emitted, terraform } = createRecordingScope();
       await distribution.toHCL(terraform);
@@ -756,7 +762,7 @@ describe('CloudFrontDistribution UT', () => {
     it('should reject rendering a Lambda origin whose function was never attached', async () => {
       const { terraform } = createRecordingScope();
       await expect(createLambdaDistribution().toHCL(terraform)).rejects.toThrow(
-        'CloudFront origin names "lambda-function-backend", which is not a parent of the distribution!',
+        'CloudFront origin "api" has nothing attached to it!',
       );
     });
 

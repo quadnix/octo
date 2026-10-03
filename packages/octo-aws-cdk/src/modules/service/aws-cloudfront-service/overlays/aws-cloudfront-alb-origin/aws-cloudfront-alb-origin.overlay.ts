@@ -13,6 +13,7 @@ export class AwsCloudFrontAlbOriginOverlay extends AOverlay<
   AwsCloudFrontAlbOriginOverlaySchema,
   AwsCloudFrontAlbOriginOverlay
 > {
+  declare anchors: [AwsCloudFrontAnchor, MatchingAnchor<AwsEcsAlbAnchorSchema>];
   declare properties: AwsCloudFrontAlbOriginOverlaySchema['properties'];
 
   /**

@@ -36,10 +36,10 @@ export class CloudFrontOriginSchema {
    * * `s3` is a bucket reached privately, through an origin access control the distribution creates.
    * Read access on the bucket is granted by the bucket, not here.
    * * `lambda` is the URL of a Lambda function, reached over HTTPS through an origin access control the
-   * distribution creates. The function admits the distribution, not this origin. `localResourceId`
-   * names the function, which `CloudFrontDistribution.addLambdaOrigin()` then attaches.
+   * distribution creates. The function admits the distribution, not this origin. `resourceId` is the
+   * function's, set by `CloudFrontDistribution.addLambdaOrigin()` when it attaches the function.
    * * `alb` is an internet-facing ALB, reached over HTTP on port 80, the only listener octo's ALB
-   * has. `localResourceId` names the ALB, which `CloudFrontDistribution.addAlbOrigin()` then attaches.
+   * has. `resourceId` is the ALB's, set by `CloudFrontDistribution.addAlbOrigin()` when it attaches the ALB.
    * * `custom` is a hostname octo does not manage - a legacy origin, or a third party.
    */
   @Validate({
@@ -47,14 +47,14 @@ export class CloudFrontOriginSchema {
       value.kind === 's3'
         ? [value.bucketName, value.bucketRegion]
         : value.kind === 'lambda' || value.kind === 'alb'
-          ? [value.localResourceId]
+          ? [value.resourceId ?? []].flat()
           : [value.domainName, value.originProtocolPolicy, ...value.sslProtocols],
     options: { minLength: 1 },
   })
   kind = Schema<
     | { bucketName: string; bucketRegion: string; kind: 's3' }
-    | { kind: 'lambda'; localResourceId: string }
-    | { kind: 'alb'; localResourceId: string }
+    | { kind: 'lambda'; resourceId?: string }
+    | { kind: 'alb'; resourceId?: string }
     | {
         domainName: string;
         httpPort: number;

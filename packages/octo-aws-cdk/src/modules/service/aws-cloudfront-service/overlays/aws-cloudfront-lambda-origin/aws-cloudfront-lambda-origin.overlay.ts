@@ -13,6 +13,7 @@ export class AwsCloudFrontLambdaOriginOverlay extends AOverlay<
   AwsCloudFrontLambdaOriginOverlaySchema,
   AwsCloudFrontLambdaOriginOverlay
 > {
+  declare anchors: [AwsCloudFrontAnchor, MatchingAnchor<AwsLambdaFunctionAnchorSchema>];
   declare properties: AwsCloudFrontLambdaOriginOverlaySchema['properties'];
 
   /**
