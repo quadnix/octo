@@ -190,6 +190,41 @@ ever calling `diffProperties`. A force-new argument that the resource ID is deri
 handled, and [Resources](/docs/fundamentals/resources) covers what that destroy costs. Compare the
 force-new arguments the ID does not carry.
 
+## Unique names
+
+SQS refuses a second queue named `shop-orders` in the same account and region. Octo keeps two
+resources apart by their IDs, and two queue modules loaded into two Octo regions that both sit in
+`eu-west-1` produce two IDs and one name. Nothing about the name is wrong on its own, so the clash
+would surface part way through `octo apply`, after the first queue was created.
+
+Say which name the provider keeps unique, and within what, in the `uniqueProperties` option of
+`@Resource`:
+
+```typescript title="src/resources/shop-queue/shop-queue.resource.ts"
+@Resource<ShopQueue>('@shop', 'shop-queue', ShopQueueSchema, {
+  uniqueProperties: [{ path: 'queueName', within: ['awsAccountId', 'awsRegionId'] }],
+})
+export class ShopQueue extends ATerraformResource<ShopQueueSchema, ShopQueue> {
+```
+
+`path` is the property holding the name, and `within` lists the properties that together form the
+space it must be unique in. `octo generate` then refuses two queues that share all
+three values, and still accepts `shop-orders` in `eu-west-1` and in `us-east-1`, which SQS allows.
+IAM role names are unique per account, so a role lists only `awsAccountId`; S3 bucket names are
+unique across all of AWS, so a bucket lists nothing.
+
+A name nested in an array is written with `[]`, as `cachePolicies[].name`, and two entries inside
+one resource are compared with each other as well. A path or a property the schema does not have is
+a compile error. A resource with several such names lists one entry per name.
+
+The check compares resources of one class with each other, and nothing else:
+
+- A resource that lists no names is not checked, and Octo does not warn.
+- Two classes that create the same kind of thing in AWS are not compared with each other. Two
+  bucket resources of two libraries can still pick one name.
+- A name already taken outside the app, such as a bucket name somebody else owns, still fails at
+  `octo apply`.
+
 ## Choosing parents
 
 A resource's parents are the resources the cloud provider needs to exist before this one can be

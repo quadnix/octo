@@ -97,6 +97,14 @@ Two entries under `terraform.providers` gave the same `accountName` for the same
 has to be unique within a provider type, and a name, unlike the account number it replaces, is
 yours to repeat by accident. Rename one of the two.
 
+**`"TableName" "accounts" is not unique within awsAccountId, awsRegionId: ...`**
+
+Two resources would reach AWS under one name where AWS allows only one. The message names both
+resources and the modules that created them. The usual cause is two Octo regions pointing at the
+same AWS region, each with a module creating a table `accounts`. Rename one, or move it to another
+AWS region. Two entries inside one resource, such as two CloudFront cache policies of one name,
+produce the same message naming one resource twice.
+
 **`No matching action given for diff!`**
 
 A node changed and nothing is registered to handle it. The error carries the diff itself, including
