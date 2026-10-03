@@ -373,7 +373,7 @@ export class AlbListenerRuleSourceIpConditionSchema {
  *   alb((Alb)) --> alb_listener((Alb<br>Listener))
  *   alb_target_group((Alb<br>Target<br>Group)) --> alb_listener
  * ```
- * @overrideProperty resourceId - The resource id is of format `alb-listener-<alb-name>`
+ * @overrideProperty resourceId - The resource id is of format `alb-listener-<alb-name>-<port>`
  */
 export class AlbListenerSchema extends BaseResourceSchema {
   /**

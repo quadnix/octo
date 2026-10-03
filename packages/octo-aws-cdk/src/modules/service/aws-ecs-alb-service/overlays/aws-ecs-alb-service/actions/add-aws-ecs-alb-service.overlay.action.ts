@@ -81,7 +81,7 @@ export class AddAwsEcsAlbServiceOverlayAction implements IModelAction<AwsEcsAlbS
       const alb = actionInputs.resources[`alb-${actionInputs.inputs.albName}`] as Alb;
 
       const albListener = new AlbListener(
-        `alb-listener-${actionInputs.inputs.albName}`,
+        `alb-listener-${actionInputs.inputs.albName}-${listener.Port}`,
         {
           awsAccountId,
           awsRegionId,

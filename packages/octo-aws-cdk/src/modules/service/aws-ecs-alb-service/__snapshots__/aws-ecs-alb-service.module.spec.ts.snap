@@ -2,7 +2,7 @@
 
 exports[`AwsEcsAlbServiceModule UT input changes should handle albName change 1`] = `
 "+ alb-module/main.tf
-resource "aws_lb_listener" "alb-listener-changed-alb-074c0f" {
+resource "aws_lb_listener" "alb-listener-changed-alb-80-074c0f" {
   provider = aws._123-us-east-1
   default_action {
     forward {
@@ -19,7 +19,7 @@ resource "aws_lb_listener" "alb-listener-changed-alb-074c0f" {
 }
 
 - alb-module/main.tf
-resource "aws_lb_listener" "alb-listener-test-alb-074c0f" {
+resource "aws_lb_listener" "alb-listener-test-alb-80-074c0f" {
   provider = aws._123-us-east-1
   default_action {
     forward {
@@ -178,13 +178,13 @@ output "alb-changed-alb-074c0f-LoadBalancerArn" {
 }
 
 + alb-module/outputs.tf
-output "alb-listener-changed-alb-074c0f-ListenerArn" {
-  value = aws_lb_listener.alb-listener-changed-alb-074c0f.arn
+output "alb-listener-changed-alb-80-074c0f-ListenerArn" {
+  value = aws_lb_listener.alb-listener-changed-alb-80-074c0f.arn
 }
 
 - alb-module/outputs.tf
-output "alb-listener-test-alb-074c0f-ListenerArn" {
-  value = aws_lb_listener.alb-listener-test-alb-074c0f.arn
+output "alb-listener-test-alb-80-074c0f-ListenerArn" {
+  value = aws_lb_listener.alb-listener-test-alb-80-074c0f.arn
 }
 
 + alb-module/outputs.tf
@@ -256,7 +256,7 @@ variable "alb_target_group_test_alb_backend_v1_region_qa_public_subnet_1_074c0f_
 `;
 
 exports[`AwsEcsAlbServiceModule UT input changes should handle listener DefaultActions change 1`] = `
-"~ alb-module/main.tf resource "aws_lb_listener" "alb-listener-test-alb-074c0f" {
+"~ alb-module/main.tf resource "aws_lb_listener" "alb-listener-test-alb-80-074c0f" {
 @@ -3,9 +3,8 @@
     default_action {
 -     forward {
@@ -333,17 +333,54 @@ variable "alb_target_group_test_alb_backend_v1_region_qa_public_subnet_1_074c0f_
 `;
 
 exports[`AwsEcsAlbServiceModule UT input changes should handle listener Port change 1`] = `
-"~ alb-module/main.tf resource "aws_lb_listener" "alb-listener-test-alb-074c0f" {
-@@ -12,3 +12,3 @@
-    load_balancer_arn = aws_lb.alb-test-alb-074c0f.arn
--   port = 80
-+   port = 8080
-    protocol = "HTTP""
+"- alb-module/main.tf
+resource "aws_lb_listener" "alb-listener-test-alb-80-074c0f" {
+  provider = aws._123-us-east-1
+  default_action {
+    forward {
+      target_group {
+        arn = aws_lb_target_group.alb-target-group-test-alb-backend-v1-region-qa-public-subnet-1-074c0f.arn
+        weight = 100
+      }
+    }
+    type = "forward"
+  }
+  load_balancer_arn = aws_lb.alb-test-alb-074c0f.arn
+  port = 80
+  protocol = "HTTP"
+}
+
++ alb-module/main.tf
+resource "aws_lb_listener" "alb-listener-test-alb-8080-074c0f" {
+  provider = aws._123-us-east-1
+  default_action {
+    forward {
+      target_group {
+        arn = aws_lb_target_group.alb-target-group-test-alb-backend-v1-region-qa-public-subnet-1-074c0f.arn
+        weight = 100
+      }
+    }
+    type = "forward"
+  }
+  load_balancer_arn = aws_lb.alb-test-alb-074c0f.arn
+  port = 8080
+  protocol = "HTTP"
+}
+
+- alb-module/outputs.tf
+output "alb-listener-test-alb-80-074c0f-ListenerArn" {
+  value = aws_lb_listener.alb-listener-test-alb-80-074c0f.arn
+}
+
++ alb-module/outputs.tf
+output "alb-listener-test-alb-8080-074c0f-ListenerArn" {
+  value = aws_lb_listener.alb-listener-test-alb-8080-074c0f.arn
+}"
 `;
 
 exports[`AwsEcsAlbServiceModule UT input changes should handle listener rules change 1`] = `
 "+ alb-module/main.tf
-resource "aws_lb_listener_rule" "alb-listener-test-alb-074c0f_rule_1" {
+resource "aws_lb_listener_rule" "alb-listener-test-alb-80-074c0f_rule_1" {
   provider = aws._123-us-east-1
   action {
     fixed_response {
@@ -358,15 +395,15 @@ resource "aws_lb_listener_rule" "alb-listener-test-alb-074c0f_rule_1" {
       values = ["/api"]
     }
   }
-  listener_arn = aws_lb_listener.alb-listener-test-alb-074c0f.arn
+  listener_arn = aws_lb_listener.alb-listener-test-alb-80-074c0f.arn
   priority = 1
 
-  depends_on = [aws_lb_listener.alb-listener-test-alb-074c0f]
+  depends_on = [aws_lb_listener.alb-listener-test-alb-80-074c0f]
 }"
 `;
 
 exports[`AwsEcsAlbServiceModule UT input changes should handle target add change 1`] = `
-"~ alb-module/main.tf resource "aws_lb_listener" "alb-listener-test-alb-074c0f" {
+"~ alb-module/main.tf resource "aws_lb_listener" "alb-listener-test-alb-80-074c0f" {
 @@ -3,8 +3,9 @@
     default_action {
 -     fixed_response {
@@ -462,7 +499,7 @@ exports[`AwsEcsAlbServiceModule UT input changes should handle target healthChec
 
 exports[`AwsEcsAlbServiceModule UT should CUD 2`] = `
 "+ alb-module/main.tf
-resource "aws_lb_listener_rule" "alb-listener-test-alb-074c0f_rule_1" {
+resource "aws_lb_listener_rule" "alb-listener-test-alb-80-074c0f_rule_1" {
   provider = aws._123-us-east-1
   action {
     fixed_response {
@@ -477,16 +514,16 @@ resource "aws_lb_listener_rule" "alb-listener-test-alb-074c0f_rule_1" {
       values = ["/api"]
     }
   }
-  listener_arn = aws_lb_listener.alb-listener-test-alb-074c0f.arn
+  listener_arn = aws_lb_listener.alb-listener-test-alb-80-074c0f.arn
   priority = 1
 
-  depends_on = [aws_lb_listener.alb-listener-test-alb-074c0f]
+  depends_on = [aws_lb_listener.alb-listener-test-alb-80-074c0f]
 }"
 `;
 
 exports[`AwsEcsAlbServiceModule UT should CUD 4`] = `
 "- alb-module/main.tf
-resource "aws_lb_listener_rule" "alb-listener-test-alb-074c0f_rule_1" {
+resource "aws_lb_listener_rule" "alb-listener-test-alb-80-074c0f_rule_1" {
   provider = aws._123-us-east-1
   action {
     fixed_response {
@@ -501,14 +538,14 @@ resource "aws_lb_listener_rule" "alb-listener-test-alb-074c0f_rule_1" {
       values = ["/api"]
     }
   }
-  listener_arn = aws_lb_listener.alb-listener-test-alb-074c0f.arn
+  listener_arn = aws_lb_listener.alb-listener-test-alb-80-074c0f.arn
   priority = 1
 
-  depends_on = [aws_lb_listener.alb-listener-test-alb-074c0f]
+  depends_on = [aws_lb_listener.alb-listener-test-alb-80-074c0f]
 }
 
 + alb-module/main.tf
-resource "aws_lb_listener_rule" "alb-listener-test-alb-074c0f_rule_2" {
+resource "aws_lb_listener_rule" "alb-listener-test-alb-80-074c0f_rule_2" {
   provider = aws._123-us-east-1
   action {
     forward {
@@ -524,10 +561,10 @@ resource "aws_lb_listener_rule" "alb-listener-test-alb-074c0f_rule_2" {
       values = ["/api"]
     }
   }
-  listener_arn = aws_lb_listener.alb-listener-test-alb-074c0f.arn
+  listener_arn = aws_lb_listener.alb-listener-test-alb-80-074c0f.arn
   priority = 2
 
-  depends_on = [aws_lb_listener.alb-listener-test-alb-074c0f]
+  depends_on = [aws_lb_listener.alb-listener-test-alb-80-074c0f]
 }"
 `;
 
@@ -540,7 +577,7 @@ provider "aws" {
 }
 
 - alb-module/main.tf
-resource "aws_lb_listener_rule" "alb-listener-test-alb-074c0f_rule_2" {
+resource "aws_lb_listener_rule" "alb-listener-test-alb-80-074c0f_rule_2" {
   provider = aws._123-us-east-1
   action {
     forward {
@@ -556,14 +593,14 @@ resource "aws_lb_listener_rule" "alb-listener-test-alb-074c0f_rule_2" {
       values = ["/api"]
     }
   }
-  listener_arn = aws_lb_listener.alb-listener-test-alb-074c0f.arn
+  listener_arn = aws_lb_listener.alb-listener-test-alb-80-074c0f.arn
   priority = 2
 
-  depends_on = [aws_lb_listener.alb-listener-test-alb-074c0f]
+  depends_on = [aws_lb_listener.alb-listener-test-alb-80-074c0f]
 }
 
 - alb-module/main.tf
-resource "aws_lb_listener" "alb-listener-test-alb-074c0f" {
+resource "aws_lb_listener" "alb-listener-test-alb-80-074c0f" {
   provider = aws._123-us-east-1
   default_action {
     forward {
@@ -657,8 +694,8 @@ terraform {
 }
 
 - alb-module/outputs.tf
-output "alb-listener-test-alb-074c0f-ListenerArn" {
-  value = aws_lb_listener.alb-listener-test-alb-074c0f.arn
+output "alb-listener-test-alb-80-074c0f-ListenerArn" {
+  value = aws_lb_listener.alb-listener-test-alb-80-074c0f.arn
 }
 
 - alb-module/outputs.tf
@@ -779,7 +816,7 @@ variable "alb_target_group_test_alb_backend_v1_region_qa_public_subnet_1_074c0f_
 `;
 
 exports[`AwsEcsAlbServiceModule UT should CUD tags 2`] = `
-"~ alb-module/main.tf resource "aws_lb_listener" "alb-listener-test-alb-074c0f" {
+"~ alb-module/main.tf resource "aws_lb_listener" "alb-listener-test-alb-80-074c0f" {
 @@ -15,3 +15,4 @@
     tags = {
 -     tag1 = "value1"
@@ -813,7 +850,7 @@ exports[`AwsEcsAlbServiceModule UT should CUD tags 2`] = `
 `;
 
 exports[`AwsEcsAlbServiceModule UT should CUD tags 4`] = `
-"~ alb-module/main.tf resource "aws_lb_listener" "alb-listener-test-alb-074c0f" {
+"~ alb-module/main.tf resource "aws_lb_listener" "alb-listener-test-alb-80-074c0f" {
 @@ -14,6 +14,2 @@
     protocol = "HTTP"
 -   tags = {
@@ -859,7 +896,7 @@ provider "aws" {
 }
 
 - alb-module-1/main.tf
-resource "aws_lb_listener" "alb-listener-test-alb-074c0f" {
+resource "aws_lb_listener" "alb-listener-test-alb-80-074c0f" {
   provider = aws._123-us-east-1
   default_action {
     forward {
@@ -953,8 +990,8 @@ terraform {
 }
 
 - alb-module-1/outputs.tf
-output "alb-listener-test-alb-074c0f-ListenerArn" {
-  value = aws_lb_listener.alb-listener-test-alb-074c0f.arn
+output "alb-listener-test-alb-80-074c0f-ListenerArn" {
+  value = aws_lb_listener.alb-listener-test-alb-80-074c0f.arn
 }
 
 - alb-module-1/outputs.tf
@@ -1051,7 +1088,7 @@ provider "aws" {
 }
 
 + alb-module-2/main.tf
-resource "aws_lb_listener" "alb-listener-test-alb-074c0f" {
+resource "aws_lb_listener" "alb-listener-test-alb-80-074c0f" {
   provider = aws._123-us-east-1
   default_action {
     forward {
@@ -1145,8 +1182,8 @@ terraform {
 }
 
 + alb-module-2/outputs.tf
-output "alb-listener-test-alb-074c0f-ListenerArn" {
-  value = aws_lb_listener.alb-listener-test-alb-074c0f.arn
+output "alb-listener-test-alb-80-074c0f-ListenerArn" {
+  value = aws_lb_listener.alb-listener-test-alb-80-074c0f.arn
 }
 
 + alb-module-2/outputs.tf
