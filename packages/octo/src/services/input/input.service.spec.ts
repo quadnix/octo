@@ -3,8 +3,9 @@ import type { Container } from '../../functions/container/container.js';
 import { TestContainer } from '../../functions/container/test-container.js';
 import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
 import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
+import { AResource } from '../../resources/resource.abstract.js';
 import { create } from '../../utilities/test-helpers/test-models.js';
-import { createTestResources } from '../../utilities/test-helpers/test-resources.js';
+import { createResource, createTestResources } from '../../utilities/test-helpers/test-resources.js';
 import { InputService } from './input.service.js';
 
 describe('InputService UT', () => {
@@ -69,6 +70,52 @@ describe('InputService UT', () => {
       expect(() => {
         inputService.getRootModel();
       }).toThrow('Multiple app models are registered: module1.model.app, module2.model.app!');
+    });
+  });
+
+  describe('registerResource()', () => {
+    let inputService: InputService;
+
+    beforeEach(async () => {
+      const [overlayDataRepository, resourceDataRepository] = await Promise.all([
+        container.get(OverlayDataRepository),
+        container.get(ResourceDataRepository),
+      ]);
+      inputService = new InputService(overlayDataRepository, resourceDataRepository);
+    });
+
+    it('should throw when a module creates two resources with one local resource id in two scopes', () => {
+      const TestResource = createResource('test-resource');
+      const resource1 = AResource.constructInScope(
+        ['region=region-1,account=account,app=test'],
+        () => new TestResource('sec-grp-web'),
+      );
+      const resource2 = AResource.constructInScope(
+        ['region=region-2,account=account,app=test'],
+        () => new TestResource('sec-grp-web'),
+      );
+      inputService.registerResource('webModule', resource1);
+
+      expect(() => {
+        inputService.registerResource('webModule', resource2);
+      }).toThrow('Module "webModule" creates two resources named "sec-grp-web"!');
+    });
+
+    it('should register resources with one local resource id under two modules', () => {
+      const TestResource = createResource('test-resource');
+      const resource1 = AResource.constructInScope(
+        ['region=region-1,account=account,app=test'],
+        () => new TestResource('sec-grp-web'),
+      );
+      const resource2 = AResource.constructInScope(
+        ['region=region-2,account=account,app=test'],
+        () => new TestResource('sec-grp-web'),
+      );
+
+      inputService.registerResource('webModule1', resource1);
+      inputService.registerResource('webModule2', resource2);
+
+      expect(inputService.getModuleIdFromResource(resource2)).toBe('webModule2');
     });
   });
 

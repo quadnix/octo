@@ -37,8 +37,6 @@ export interface IResource<S extends BaseResourceSchema, T extends UnknownResour
    */
   isMarkedDeleted(): boolean;
 
-  merge(previous: AResource<S, T>): AResource<S, T>;
-
   /**
    * To mark self as deleted.
    * A deleted node will be removed from the graph after the transaction.

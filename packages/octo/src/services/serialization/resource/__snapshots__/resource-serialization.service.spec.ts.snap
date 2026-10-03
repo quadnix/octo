@@ -4,6 +4,7 @@ exports[`Resource Serialization Service UT deserialize() should deserialize a re
 [
   {
     "context": "@octo/test-resource=resource-1",
+    "localResourceId": "resource-1",
     "parents": [],
     "properties": {
       "key1": {
@@ -17,6 +18,7 @@ exports[`Resource Serialization Service UT deserialize() should deserialize a re
     "response": {
       "response1": "value1",
     },
+    "scope": [],
     "tags": {},
   },
 ]
@@ -26,6 +28,7 @@ exports[`Resource Serialization Service UT deserialize() should deserialize a si
 [
   {
     "context": "@octo/test-resource=resource-1",
+    "localResourceId": "resource-1",
     "parents": [],
     "properties": {
       "key1": "value1",
@@ -34,6 +37,7 @@ exports[`Resource Serialization Service UT deserialize() should deserialize a si
     "response": {
       "response1": "value1",
     },
+    "scope": [],
     "tags": {},
   },
 ]
@@ -53,6 +57,7 @@ exports[`Resource Serialization Service UT serialize() should not serialize dele
     "@octo/test-resource=resource-1": {
       "className": "@octo/test-resource",
       "resource": {
+        "localResourceId": "resource-1",
         "parents": [],
         "properties": {
           "key1": "value1",
@@ -61,6 +66,7 @@ exports[`Resource Serialization Service UT serialize() should not serialize dele
         "response": {
           "response1": "value1",
         },
+        "scope": [],
         "tags": {},
       },
     },
@@ -129,6 +135,7 @@ exports[`Resource Serialization Service UT serialize() should serialize dependen
     "@octo/test-resource=resource-1": {
       "className": "@octo/test-resource",
       "resource": {
+        "localResourceId": "resource-1",
         "parents": [],
         "properties": {
           "key1": "value1",
@@ -137,12 +144,14 @@ exports[`Resource Serialization Service UT serialize() should serialize dependen
         "response": {
           "response1": "value1",
         },
+        "scope": [],
         "tags": {},
       },
     },
     "@octo/test-resource=resource-2": {
       "className": "@octo/test-resource",
       "resource": {
+        "localResourceId": "resource-2",
         "parents": [
           {
             "context": "@octo/test-resource=resource-1",
@@ -155,6 +164,7 @@ exports[`Resource Serialization Service UT serialize() should serialize dependen
         "response": {
           "response2": "value2",
         },
+        "scope": [],
         "tags": {},
       },
     },
@@ -216,6 +226,7 @@ exports[`Resource Serialization Service UT serialize() should serialize multiple
     "@octo/test-resource=resource-1": {
       "className": "@octo/test-resource",
       "resource": {
+        "localResourceId": "resource-1",
         "parents": [],
         "properties": {
           "key1": "value1",
@@ -224,12 +235,14 @@ exports[`Resource Serialization Service UT serialize() should serialize multiple
         "response": {
           "response1": "value1",
         },
+        "scope": [],
         "tags": {},
       },
     },
     "@octo/test-resource=resource-2": {
       "className": "@octo/test-resource",
       "resource": {
+        "localResourceId": "resource-2",
         "parents": [
           {
             "context": "@octo/test-resource=resource-1",
@@ -242,6 +255,7 @@ exports[`Resource Serialization Service UT serialize() should serialize multiple
         "response": {
           "response2": "value2",
         },
+        "scope": [],
         "tags": {},
       },
     },
@@ -256,10 +270,12 @@ exports[`Resource Serialization Service UT serialize() should serialize non-empt
     "@octo/test-resource=resource-1": {
       "className": "@octo/test-resource",
       "resource": {
+        "localResourceId": "resource-1",
         "parents": [],
         "properties": {},
         "resourceId": "resource-1",
         "response": {},
+        "scope": [],
         "tags": {},
       },
     },

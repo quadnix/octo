@@ -3,6 +3,7 @@ import {
   type Constructable,
   type IUnknownModelAction,
   type IUnknownResourceAction,
+  MatchingAnchor,
   NodeType,
   type TransactionOptions,
   type UnknownModel,
@@ -14,7 +15,6 @@ import { EventSource } from '../../decorators/event-source.decorator.js';
 import { Factory } from '../../decorators/factory.decorator.js';
 import {
   InputNotFoundTransactionError,
-  InputRegistrationError,
   ResourceActionExceptionTransactionError,
   ResourceActionTimeoutTransactionError,
   TransactionError,
@@ -483,8 +483,10 @@ export class TransactionService {
             }
           }
 
-          // Apply all actions on the diff, then update diff metadata with inputs and outputs.
-          const outputs = await a.handle(diffToProcess, inputs, {});
+          // Apply all actions on the diff in the scope of the node, then update diff metadata with inputs and outputs.
+          const outputs = await AResource.runInScope(this.getResourceScope(diffToProcess.node as UnknownModel), () =>
+            a.handle(diffToProcess, inputs, {}),
+          );
           for (const resource of Object.values(outputs)) {
             const moduleId =
               diffToProcess.node instanceof AOverlay
@@ -496,6 +498,17 @@ export class TransactionService {
               );
             }
 
+            // A resource already in the graph is one the action changed, not created: it keeps the module
+            // that created it, and that module's tags.
+            const existingResource = this.resourceDataRepository.getNewResourceByContext(resource.getContext());
+            if (existingResource && existingResource !== resource) {
+              throw new TransactionError(
+                `Resource "${resource.getContext()}" already exists, and action "${a.constructor.name}" created it again!`,
+              );
+            } else if (existingResource) {
+              continue;
+            }
+
             // Set resource tags.
             const resourceTags = this.inputService.resolve(`${moduleId}.tag.${resource.getContext()}`) as {
               [key: string]: string;
@@ -504,20 +517,8 @@ export class TransactionService {
               resource.tags[key] = value;
             }
 
-            const previousResource = this.resourceDataRepository.getNewResourceByContext(resource.getContext());
-            if (previousResource) {
-              resource.merge(previousResource);
-            } else {
-              this.resourceDataRepository.addNewResource(resource);
-            }
-
-            try {
-              this.inputService.registerResource(moduleId, resource);
-            } catch (error) {
-              if (!(error instanceof InputRegistrationError)) {
-                throw error;
-              }
-            }
+            this.resourceDataRepository.addNewResource(resource);
+            this.inputService.registerResource(moduleId, resource);
           }
 
           duplicateDiffs.forEach((d) => {
@@ -776,6 +777,49 @@ export class TransactionService {
         d.field === diff.field &&
         DiffUtility.isObjectDeepEquals(d.value, diff.value),
     );
+  }
+
+  /**
+   * The scope of the resources a node's actions create: the models the node sits under, or for an
+   * overlay the models every node it joins sits under. A model another member sits under is left out,
+   * since that member's context already names it.
+   */
+  private getResourceScope(node: UnknownModel | UnknownOverlay): string[] {
+    const members = new Map<string, UnknownModel>();
+    const placedNodeContexts = new Set<string>();
+    const collectMembers = (placedNode: UnknownModel | UnknownOverlay): void => {
+      if (placedNodeContexts.has(placedNode.getContext())) {
+        return;
+      }
+      placedNodeContexts.add(placedNode.getContext());
+
+      if (placedNode instanceof AOverlay) {
+        for (const anchor of placedNode.getAnchors()) {
+          collectMembers(anchor instanceof MatchingAnchor ? anchor.getActual().getParent() : anchor.getParent());
+        }
+        return;
+      }
+      for (const dependency of Object.values(placedNode.getParents()).flat()) {
+        members.set(dependency.to.getContext(), dependency.to as UnknownModel);
+      }
+    };
+    collectMembers(node);
+
+    // Find every model the members sit under.
+    const ancestorContexts = new Set<string>();
+    const collectAncestors = (model: UnknownModel): void => {
+      for (const dependency of Object.values(model.getParents()).flat()) {
+        if (!ancestorContexts.has(dependency.to.getContext())) {
+          ancestorContexts.add(dependency.to.getContext());
+          collectAncestors(dependency.to as UnknownModel);
+        }
+      }
+    };
+    for (const member of members.values()) {
+      collectAncestors(member);
+    }
+
+    return [...members.keys()].filter((context) => !ancestorContexts.has(context)).sort();
   }
 
   /**

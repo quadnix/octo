@@ -20,7 +20,15 @@ describe('StateManagementService UT', () => {
           resources: {
             [`ExternalIgwResource=${resourceId}`]: {
               className: '@octo/ExternalIgwResource',
-              resource: { parents: [], properties: {}, resourceId, response, tags: {} },
+              resource: {
+                localResourceId: resourceId,
+                parents: [],
+                properties: {},
+                resourceId,
+                response,
+                scope: [],
+                tags: {},
+              },
             },
           },
         },

@@ -26,10 +26,12 @@ describe('Resource Serialization Service UT', () => {
           'resource-1': {
             className: 'ClassNotExist',
             resource: {
+              localResourceId: 'resource=resource-1',
               parents: [],
               properties: {},
               resourceId: 'resource=resource-1',
               response: {},
+              scope: [],
               tags: {},
             },
           },

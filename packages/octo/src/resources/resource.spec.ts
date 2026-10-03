@@ -118,6 +118,7 @@ describe('Resource UT', () => {
 
       expect(resource2Copy.synth()).toMatchInlineSnapshot(`
        {
+         "localResourceId": "resource-2",
          "parents": [
            {
              "context": "@octo/test-resource=resource-1",
@@ -130,6 +131,7 @@ describe('Resource UT', () => {
          "response": {
            "key1": "value1",
          },
+         "scope": [],
          "tags": {},
        }
       `);
@@ -165,6 +167,7 @@ describe('Resource UT', () => {
 
       expect(resource3.synth()).toMatchInlineSnapshot(`
        {
+         "localResourceId": "resource-3",
          "parents": [
            {
              "context": "@octo/test-resource=resource-1",
@@ -177,6 +180,7 @@ describe('Resource UT', () => {
          "response": {
            "key1": "value1",
          },
+         "scope": [],
          "tags": {},
        }
       `);
@@ -216,6 +220,7 @@ describe('Resource UT', () => {
 
       expect(resource4.synth()).toMatchInlineSnapshot(`
        {
+         "localResourceId": "resource-4",
          "parents": [
            {
              "context": "@octo/test-resource=resource-1",
@@ -228,6 +233,7 @@ describe('Resource UT', () => {
          "response": {
            "key1": "value1",
          },
+         "scope": [],
          "tags": {},
        }
       `);
@@ -268,6 +274,7 @@ describe('Resource UT', () => {
 
       expect(resource4.synth()).toMatchInlineSnapshot(`
        {
+         "localResourceId": "resource-4",
          "parents": [
            {
              "context": "@octo/test-resource=resource-1",
@@ -280,6 +287,7 @@ describe('Resource UT', () => {
          "response": {
            "key1": "value1",
          },
+         "scope": [],
          "tags": {},
        }
       `);
@@ -761,139 +769,6 @@ describe('Resource UT', () => {
     });
   });
 
-  describe('merge()', () => {
-    it('should merge previous resource with self and return previous resource', async () => {
-      const { '@octo/test-resource=resource-2': previousResource } = await createTestResources([
-        { resourceContext: '@octo/test-resource=resource-1' },
-        {
-          parents: ['@octo/test-resource=resource-1'],
-          properties: { 'property-1': 'property-value-1', 'property-2': 'property-value-3' },
-          resourceContext: '@octo/test-resource=resource-2',
-          response: { 'response-1': 'response-value-1' },
-        },
-      ]);
-
-      const currentResource = new TestResource('resource-2', { 'property-2': 'property-value-2' }, []);
-      currentResource.response['response-2'] = 'response-value-2';
-
-      expect(currentResource.getDependencies()).toHaveLength(0);
-      currentResource.merge(previousResource);
-      expect(currentResource.getDependencies()).toHaveLength(1);
-      expect(currentResource.properties).toMatchInlineSnapshot(`
-        {
-          "property-1": "property-value-1",
-          "property-2": "property-value-2",
-        }
-      `);
-      expect(currentResource.response).toMatchInlineSnapshot(`
-        {
-          "response-1": "response-value-1",
-          "response-2": "response-value-2",
-        }
-      `);
-    });
-
-    it('should reference previous resource when self merged with previous', async () => {
-      const { '@octo/test-resource=resource-2': previousResource } = await createTestResources([
-        { resourceContext: '@octo/test-resource=resource-1' },
-        {
-          parents: ['@octo/test-resource=resource-1'],
-          properties: { 'property-1': 'property-value-1', 'property-2': 'property-value-3' },
-          resourceContext: '@octo/test-resource=resource-2',
-          response: { 'response-1': 'response-value-1' },
-        },
-      ]);
-
-      const currentResource = new TestResource('resource-2', { 'property-2': 'property-value-2' }, []);
-      currentResource.response['response-2'] = 'response-value-2';
-
-      currentResource.merge(previousResource);
-      expect(previousResource.properties).toMatchInlineSnapshot(`
-        {
-          "property-1": "property-value-1",
-          "property-2": "property-value-2",
-        }
-      `);
-      expect(previousResource.response).toMatchInlineSnapshot(`
-        {
-          "response-1": "response-value-1",
-          "response-2": "response-value-2",
-        }
-      `);
-
-      // Update current resource, which should reference previous resource.
-      currentResource.properties['property-2'] = 'property-value-3';
-      currentResource.response['response-2'] = 'response-value-3';
-
-      expect(previousResource.properties).toMatchInlineSnapshot(`
-        {
-          "property-1": "property-value-1",
-          "property-2": "property-value-3",
-        }
-      `);
-      expect(previousResource.response).toMatchInlineSnapshot(`
-        {
-          "response-1": "response-value-1",
-          "response-2": "response-value-3",
-        }
-      `);
-    });
-
-    it("should update current resource's resourceId when merged with previous", async () => {
-      const { '@octo/test-resource=resource-1': previousResource, '@octo/test-resource=resource-2': currentResource } =
-        await createTestResources([
-          { resourceContext: '@octo/test-resource=resource-1' },
-          { resourceContext: '@octo/test-resource=resource-2' },
-        ]);
-
-      expect(currentResource.resourceId).toBe('resource-2');
-      currentResource.merge(previousResource);
-      expect(currentResource.resourceId).toBe('resource-1');
-    });
-
-    it('should copy parents of current resource to previous resource', async () => {
-      const { '@octo/test-resource=resource-2': previousResource, '@octo/test-resource=resource-3': currentResource } =
-        await createTestResources([
-          { resourceContext: '@octo/test-resource=resource-1' },
-          { resourceContext: '@octo/test-resource=resource-2' },
-          {
-            parents: ['@octo/test-resource=resource-1'],
-            resourceContext: '@octo/test-resource=resource-3',
-          },
-        ]);
-
-      expect(previousResource.getDependencies()).toHaveLength(0);
-      currentResource.merge(previousResource);
-      expect(previousResource.getDependencies()).toHaveLength(1);
-    });
-
-    it('should copy children of current resource to previous resource', async () => {
-      const { '@octo/test-resource=resource-1': currentResource, '@octo/test-resource=resource-3': previousResource } =
-        await createTestResources([
-          { resourceContext: '@octo/test-resource=resource-1' },
-          { parents: ['@octo/test-resource=resource-1'], resourceContext: '@octo/test-resource=resource-2' },
-          { resourceContext: '@octo/test-resource=resource-3' },
-        ]);
-
-      expect(previousResource.getDependencies()).toHaveLength(0);
-      currentResource.merge(previousResource);
-      expect(previousResource.getDependencies()).toHaveLength(1);
-    });
-
-    it('should throw error when copying current resource dependencies that are neither parent nor child', async () => {
-      const { '@octo/test-resource=resource-1': previousResource, '@octo/test-resource=resource-2': currentResource } =
-        await createTestResources([
-          { resourceContext: '@octo/test-resource=resource-1' },
-          { resourceContext: '@octo/test-resource=resource-2' },
-        ]);
-
-      currentResource['dependencies'].push(new Dependency(currentResource, currentResource));
-      expect(() => {
-        currentResource.merge(previousResource);
-      }).toThrowErrorMatchingInlineSnapshot(`"Unknown dependency found in merge!"`);
-    });
-  });
-
   describe('remove()', () => {
     it('should not be able to remove a resource with dependencies', async () => {
       const { '@octo/test-resource=resource-1': resource1 } = await createTestResources([
@@ -946,6 +821,31 @@ describe('Resource UT', () => {
 
       expect(resource1.getContext()).toMatchInlineSnapshot(`"@octo/test-resource=resource-1"`);
     });
+
+    it('should name a resource created in a scope by its resource id and a hash of the scope', () => {
+      const resource = AResource.constructInScope(
+        ['region=region-1,account=account,app=test'],
+        () => new TestResource('resource-1'),
+      );
+
+      expect(resource.scope).toEqual(['region=region-1,account=account,app=test']);
+      expect(resource.localResourceId).toBe('resource-1');
+      expect(resource.resourceId).toMatch(/^resource-1-[0-9a-f]{6}$/);
+      expect(resource.getContext()).toBe(`@octo/test-resource=${resource.resourceId}`);
+    });
+
+    it('should tell apart resources with one resource id in two scopes', () => {
+      const resource1 = AResource.constructInScope(
+        ['region=region-1,account=account,app=test'],
+        () => new TestResource('resource-1'),
+      );
+      const resource2 = AResource.constructInScope(
+        ['region=region-2,account=account,app=test'],
+        () => new TestResource('resource-1'),
+      );
+
+      expect(resource1.getContext()).not.toBe(resource2.getContext());
+    });
   });
 
   describe('synth()', () => {
@@ -960,6 +860,7 @@ describe('Resource UT', () => {
 
       expect(resource1.synth()).toMatchInlineSnapshot(`
        {
+         "localResourceId": "resource-1",
          "parents": [],
          "properties": {
            "key1": "value1",
@@ -968,6 +869,7 @@ describe('Resource UT', () => {
          "response": {
            "key1": "value1",
          },
+         "scope": [],
          "tags": {},
        }
       `);
@@ -996,6 +898,18 @@ describe('Resource UT', () => {
       );
 
       expect(resource2_1.getParents()['test-resource']).toHaveLength(1);
+    });
+
+    it('should keep the scope of the resource', async () => {
+      const resource = AResource.constructInScope(
+        ['region=region-1,account=account,app=test'],
+        () => new TestResource('resource-1'),
+      );
+
+      const resource_1: UnknownResource = await AResource.unSynth(TestResource, resource.synth(), async () => resource);
+
+      expect(resource_1.scope).toEqual(['region=region-1,account=account,app=test']);
+      expect(resource_1.getContext()).toBe(resource.getContext());
     });
   });
 });

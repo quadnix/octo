@@ -19,6 +19,11 @@ import type { IResourceReference } from './resource.interface.js';
  */
 export class BaseResourceSchema {
   /**
+   * The ID the resource was created with, unique within its `scope`.
+   */
+  localResourceId = Schema<string>();
+
+  /**
    * The resources this one is built on top of.
    */
   parents = Schema<IResourceReference[]>();
@@ -29,7 +34,8 @@ export class BaseResourceSchema {
   properties = Schema<{ [key: string]: unknown }>();
 
   /**
-   * The ID of the resource, unique across the infrastructure.
+   * The ID of the resource, unique across the infrastructure: its `localResourceId`, followed by a hash
+   * of its `scope` when it has one.
    */
   resourceId = Schema<string>();
 
@@ -37,6 +43,12 @@ export class BaseResourceSchema {
    * What the cloud provider reported back once the resource existed. Empty until then.
    */
   response = Schema<{ [key: string]: string }>();
+
+  /**
+   * The contexts of the models the resource is placed under, derived from where the node creating it
+   * sits in the model graph. Octo sets it; a resource created outside a model action has none.
+   */
+  scope = Schema<string[]>([]);
 
   /**
    * The tags applied to the resource.

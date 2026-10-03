@@ -134,14 +134,9 @@ export async function createResources(
   for (const resource of args) {
     resourceDataRepository.addNewResource(resource);
     if (options?.save) {
-      const resourceClone = await AResource.cloneResource(resource, deReferenceResource);
-      const rIndex = resourceDataRepository['actualResources'].findIndex((r) => r.resourceId === resource.resourceId);
-      if (rIndex === -1) {
-        resourceDataRepository.addActualResource(resourceClone);
-      } else {
-        resourceDataRepository['actualResources'][rIndex] = resourceClone.merge(
-          resourceDataRepository['actualResources'][rIndex],
-        );
+      // A resource saved by an earlier call keeps what the runs since then made of it.
+      if (!resourceDataRepository.getActualResourceByContext(resource.getContext())) {
+        resourceDataRepository.addActualResource(await AResource.cloneResource(resource, deReferenceResource));
       }
     }
 
@@ -253,14 +248,9 @@ export async function createTestResources<S extends BaseResourceSchema[]>(
     }
     resourceDataRepository.addNewResource(resource);
     if (options?.save) {
-      const resourceClone = await AResource.cloneResource(resource, deReferenceResource);
-      const rIndex = resourceDataRepository['actualResources'].findIndex((r) => r.resourceId === resource.resourceId);
-      if (rIndex === -1) {
-        resourceDataRepository.addActualResource(resourceClone);
-      } else {
-        resourceDataRepository['actualResources'][rIndex] = resourceClone.merge(
-          resourceDataRepository['actualResources'][rIndex],
-        );
+      // A resource saved by an earlier call keeps what the runs since then made of it.
+      if (!resourceDataRepository.getActualResourceByContext(resource.getContext())) {
+        resourceDataRepository.addActualResource(await AResource.cloneResource(resource, deReferenceResource));
       }
     }
 

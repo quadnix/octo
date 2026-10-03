@@ -11,6 +11,7 @@ import { App } from '../../models/app/app.model.js';
 import type { IModelAction } from '../../models/model-action.interface.js';
 import { Region } from '../../models/region/region.model.js';
 import { TestModuleContainer } from '../../modules/test-module.container.js';
+import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
 import type { IResourceAction } from '../../resources/resource-action.interface.js';
 import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
 import { TestOverlay } from '../../utilities/test-helpers/test-classes.js';
@@ -219,17 +220,33 @@ describe('TransactionService UT', () => {
       expect((universalModelAction.handle as jest.Mock).mock.calls).toMatchSnapshot();
     });
 
-    it('should merge resources with same context', async () => {
-      const resource1_1 = new TestResource('resource1');
-      const resource1_2 = new TestResource('resource1');
+    it('should throw when two actions create resources with the same scope and resource id', async () => {
       (universalModelAction.handle as jest.Mocked<any>).mockResolvedValueOnce({
-        resource1: resource1_1,
+        resource1: new TestResource('resource1'),
       });
       (universalModelAction.handle as jest.Mocked<any>).mockResolvedValueOnce({
-        resource1: resource1_2,
+        resource1: new TestResource('resource1'),
       });
-      const mergeFunction1_1 = jest.spyOn(resource1_1, 'merge');
-      const mergeFunction1_2 = jest.spyOn(resource1_2, 'merge');
+
+      const { 'moduleId.model.app': app } = await runModule(container, {
+        inputs: { name: 'app' },
+        moduleId: 'moduleId',
+        type: TestAppModule,
+      });
+
+      const diff = new Diff(app, DiffAction.ADD, 'name', 'app');
+      const diffMetadata = new DiffMetadata(diff, [universalModelAction, universalModelAction]);
+      diffMetadata.applyOrder = 0;
+
+      await expect(applyModels([diffMetadata])).rejects.toThrow(
+        'Resource "@octo/test-resource=resource1" already exists, and action "Object" created it again!',
+      );
+    });
+
+    it('should accept the same resource returned by two actions', async () => {
+      const resource1 = new TestResource('resource1');
+      (universalModelAction.handle as jest.Mocked<any>).mockResolvedValueOnce({ resource1 });
+      (universalModelAction.handle as jest.Mocked<any>).mockResolvedValueOnce({ resource1 });
 
       const { 'moduleId.model.app': app } = await runModule(container, {
         inputs: { name: 'app' },
@@ -243,10 +260,42 @@ describe('TransactionService UT', () => {
 
       await applyModels([diffMetadata]);
 
-      expect(universalModelAction.handle).toHaveBeenCalledTimes(2);
-      expect((universalModelAction.handle as jest.Mock).mock.calls).toMatchSnapshot();
-      expect(mergeFunction1_1).not.toHaveBeenCalled();
-      expect(mergeFunction1_2).toHaveBeenCalledTimes(1);
+      const resourceDataRepository = await container.get(ResourceDataRepository);
+      expect(resourceDataRepository.getNewResourceByContext('@octo/test-resource=resource1')).toBe(resource1);
+    });
+
+    it('should file and tag a resource only under the module whose action created it', async () => {
+      const resource1 = new TestResource('resource1');
+      (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({ resource1 });
+
+      const { 'moduleId.model.app': app } = await runModule(container, {
+        inputs: { name: 'app' },
+        moduleId: 'moduleId',
+        type: TestAppModule,
+      });
+      app.addAnchor(new TestAnchor('anchor-1', {}, app));
+      await runModule(container, {
+        inputs: { anchorName: 'anchor-1', app: stub('${{moduleId.model.app}}') },
+        moduleId: 'overlayModuleId',
+        type: TestAppOverlayModule,
+      });
+      const inputService = await container.get(InputService);
+      inputService.registerTag({ moduleId: 'moduleId' }, { owner: 'app' });
+      inputService.registerTag({ moduleId: 'overlayModuleId' }, { changedBy: 'overlay' });
+      const overlay = (await container.get(OverlayDataRepository)).getByContext('@octo/test-overlay=test-overlay')!;
+
+      const appDiffMetadata = new DiffMetadata(new Diff(app, DiffAction.ADD, 'name', 'app'), [universalModelAction]);
+      appDiffMetadata.applyOrder = 0;
+      const overlayDiffMetadata = new DiffMetadata(new Diff(overlay, DiffAction.ADD, 'overlayId', 'test-overlay'), [
+        universalModelAction,
+      ]);
+      overlayDiffMetadata.applyOrder = 1;
+
+      await applyModels([appDiffMetadata, overlayDiffMetadata]);
+
+      expect(inputService.getModuleIdFromResource(resource1)).toBe('moduleId');
+      expect(inputService.getModuleResources('overlayModuleId')).toEqual([]);
+      expect(resource1.tags).toEqual({ owner: 'app' });
     });
 
     it('should process diffs in different levels', async () => {
@@ -638,6 +687,65 @@ describe('TransactionService UT', () => {
       await createTestResources([{ resourceContext: '@octo/test-resource=orphan-1' }]);
 
       await expect(generateTerraform()).rejects.toThrow('Resource "orphan-1" is not associated with any module!');
+    });
+  });
+
+  describe('getResourceScope()', () => {
+    let getResourceScope: TransactionService['getResourceScope'];
+
+    beforeEach(async () => {
+      const service = await container.get(TransactionService);
+      getResourceScope = service['getResourceScope'].bind(service);
+    });
+
+    it('should scope a model to the models it sits under', () => {
+      const {
+        region: [region],
+        subnet: [subnet],
+      } = create({ account: ['aws,account'], app: ['test'], region: ['region-1'], subnet: ['subnet-1'] });
+
+      expect(getResourceScope(subnet)).toEqual([region.getContext()]);
+    });
+
+    it('should scope a model with several parents to each parent no other parent sits under', () => {
+      const {
+        deployment: [deployment],
+        environment: [environment],
+        execution: [execution],
+        subnet: [subnet],
+      } = create({
+        account: ['aws,account'],
+        app: ['test'],
+        deployment: ['v1'],
+        environment: ['qa'],
+        execution: [':0:0:0'],
+        region: ['region-1'],
+        server: ['backend'],
+        subnet: ['subnet-1'],
+      });
+
+      expect(getResourceScope(execution)).toEqual(
+        [deployment.getContext(), environment.getContext(), subnet.getContext()].sort(),
+      );
+    });
+
+    it('should scope an overlay to the union of what every model it joins sits under', () => {
+      const {
+        account: [account1],
+        region: [region1, region2],
+        subnet: [subnet2],
+      } = create({
+        account: ['aws,account-1', 'aws,account-2:-1'],
+        app: ['test'],
+        region: ['region-1', 'region-2'],
+        subnet: ['subnet-2:1'],
+      });
+      const overlay = new TestOverlay('overlay-1', {}, [
+        new TestAnchor('anchor-1', {}, region1),
+        new TestAnchor('anchor-2', {}, subnet2),
+      ]);
+
+      expect(getResourceScope(overlay)).toEqual([account1.getContext(), region2.getContext()].sort());
     });
   });
 

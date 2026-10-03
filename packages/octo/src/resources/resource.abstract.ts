@@ -4,7 +4,7 @@ import { type Dependency, DependencyRelationship } from '../functions/dependency
 import { Diff, DiffAction } from '../functions/diff/diff.js';
 import { DiffUtility } from '../functions/diff/diff.utility.js';
 import { ANode } from '../functions/node/node.abstract.js';
-import { ObjectUtility } from '../utilities/object/object.utility.js';
+import { StringUtility } from '../utilities/string/string.utility.js';
 import type { IResource, IResourceReference } from './resource.interface.js';
 import type { BaseResourceSchema } from './resource.schema.js';
 
@@ -16,7 +16,9 @@ import type { BaseResourceSchema } from './resource.schema.js';
  * committed one to decide what to create, update, or destroy.
  *
  * A resource is identified by its `resourceId`, configured by its `properties`, and reports back
- * through its `response` once the infrastructure exists.
+ * through its `response` once the infrastructure exists. The ID it is created with is its
+ * `localResourceId`, which only has to be unique within its `scope`: where the node creating the
+ * resource sits in the model graph. Octo makes the `resourceId` from the two.
  *
  * Most resources extend {@link ATerraformResource} rather than this class.
  *
@@ -28,6 +30,12 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
   extends ANode<S, T>
   implements IResource<S, T>
 {
+  /**
+   * The scope every resource constructed now is created in. The transaction sets it around each model
+   * action.
+   */
+  private static constructionScope: string[] = [];
+
   /**
    * The resources this one is built on top of. A parent is always created before its children,
    * and destroyed after them.
@@ -42,26 +50,43 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
   readonly response: S['response'] = {};
 
   /**
+   * The contexts of the models this resource is placed under, sorted. Octo derives it from the node
+   * whose action created the resource; a resource created outside a model action has an empty scope.
+   */
+  readonly scope: string[] = [...AResource.constructionScope];
+
+  /**
    * The tags applied to this resource. See {@link Octo.registerTags} to set them in bulk.
    */
   readonly tags: S['tags'] = {};
 
+  /**
+   * The ID of the resource, unique across the infrastructure: its `localResourceId`, followed by a
+   * hash of its scope when it has one.
+   */
+  get resourceId(): S['resourceId'] {
+    if (this.scope.length === 0) {
+      return this.localResourceId;
+    }
+    return `${this.localResourceId}-${StringUtility.deterministicHash(this.scope).substring(0, 6)}`;
+  }
+
   private _deleteMarker = false;
 
   /**
-   * @param resourceId The ID of the resource, unique across the infrastructure.
+   * @param localResourceId The ID of the resource, unique within its scope.
    * @param properties The desired configuration of the resource.
    * @param parents The resources this one is built on top of.
    * @throws {@link ResourceError} If the resource ID is not alphanumeric with `-`, `_`, or `/`.
    */
   protected constructor(
-    readonly resourceId: S['resourceId'],
+    readonly localResourceId: S['localResourceId'],
     readonly properties: S['properties'],
     parents: (MatchingResource<BaseResourceSchema> | UnknownResource)[] = [],
   ) {
     super();
 
-    if (!/^[\w-/]+$/.test(resourceId)) {
+    if (!/^[\w-/]+$/.test(localResourceId)) {
       throw new ResourceError('Invalid resource ID!', this);
     }
 
@@ -79,6 +104,37 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
   ): Promise<T> {
     const deserializationClass = sourceResource.constructor as typeof AResource<BaseResourceSchema, T>;
     return deserializationClass.unSynth(deserializationClass, sourceResource.synth(), deReferenceResource);
+  }
+
+  /**
+   * Constructs resources in the given scope.
+   *
+   * @internal
+   */
+  static constructInScope<R>(scope: string[], construct: () => R): R {
+    const previousScope = AResource.constructionScope;
+    AResource.constructionScope = scope;
+    try {
+      return construct();
+    } finally {
+      AResource.constructionScope = previousScope;
+    }
+  }
+
+  /**
+   * Runs a model action, so every resource it constructs is created in the given scope.
+   * Model actions run one at a time, which is what makes the scope safe to hold statically.
+   *
+   * @internal
+   */
+  static async runInScope<R>(scope: string[], run: () => Promise<R>): Promise<R> {
+    const previousScope = AResource.constructionScope;
+    AResource.constructionScope = scope;
+    try {
+      return await run();
+    } finally {
+      AResource.constructionScope = previousScope;
+    }
   }
 
   /**
@@ -101,7 +157,10 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
       }
     });
 
-    const newResource = new deserializationClass(resource.resourceId, resource.properties, resourceInlineParents);
+    const newResource = AResource.constructInScope(
+      resource.scope || [],
+      () => new deserializationClass(resource.localResourceId, resource.properties, resourceInlineParents),
+    );
     for (const key of Object.keys(resource.response)) {
       newResource.response[key] = resource.response[key];
     }
@@ -528,34 +587,6 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
   }
 
   /**
-   * @internal
-   */
-  merge(previous: AResource<S, T>): AResource<S, T> {
-    const currentDependencies = this.getDependencies();
-    const previousDependencies = previous.getDependencies();
-
-    ObjectUtility.deepMergeInPlace(previous.properties, this.properties);
-    ObjectUtility.deepMergeInPlace(previous.response, this.response);
-    ObjectUtility.deepMergeInPlace(previous.tags, this.tags);
-
-    const currentDependenciesNotInPreviousResource = currentDependencies.filter(
-      (cd) => !previousDependencies.find((pd) => pd.isEqual(cd)),
-    );
-    for (const dependency of currentDependenciesNotInPreviousResource) {
-      if (dependency.isChildRelationship()) {
-        dependency.to.addChild('resourceId', previous, 'resourceId');
-      } else if (dependency.isParentRelationship()) {
-        previous.addChild('resourceId', dependency.to as UnknownResource, 'resourceId');
-      } else {
-        throw new ResourceError('Unknown dependency found in merge!', this);
-      }
-    }
-
-    Object.assign(this, previous);
-    return previous;
-  }
-
-  /**
    * To mark this resource for deletion. It leaves the graph at the end of the transaction.
    *
    * @param force Removes the resource even if other resources still depend on it.
@@ -609,6 +640,7 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
    */
   override synth(): S {
     const resourceSynth: BaseResourceSchema = {
+      localResourceId: this.localResourceId,
       parents: this.parents.map((p) => {
         const parentReference: IResourceReference = {
           context: p instanceof MatchingResource ? p.getActual().getContext() : p.getContext(),
@@ -623,6 +655,7 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
       properties: JSON.parse(JSON.stringify(this.properties)),
       resourceId: this.resourceId,
       response: JSON.parse(JSON.stringify(this.response)),
+      scope: [...this.scope],
       tags: JSON.parse(JSON.stringify(this.tags)),
     };
     return resourceSynth as S;
