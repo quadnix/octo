@@ -28,7 +28,9 @@ export type DynamoDBDiff = {
 /**
  * @internal
  */
-@Resource<DynamoDB>('@octo', 'dynamodb', DynamoDBSchema)
+@Resource<DynamoDB>('@octo', 'dynamodb', DynamoDBSchema, {
+  uniqueProperties: [{ path: 'TableName', within: ['awsAccountId', 'awsRegionId'] }],
+})
 export class DynamoDB extends ATerraformResource<DynamoDBSchema, DynamoDB> {
   declare properties: DynamoDBSchema['properties'];
   declare response: DynamoDBSchema['response'];

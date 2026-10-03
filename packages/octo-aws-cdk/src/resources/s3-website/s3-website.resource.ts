@@ -16,7 +16,7 @@ import { S3WebsiteSchema } from './index.schema.js';
 /**
  * @internal
  */
-@Resource<S3Website>('@octo', 's3-website', S3WebsiteSchema)
+@Resource<S3Website>('@octo', 's3-website', S3WebsiteSchema, { uniqueProperties: [{ path: 'Bucket', within: [] }] })
 export class S3Website extends ATerraformResource<S3WebsiteSchema, S3Website> {
   declare properties: S3WebsiteSchema['properties'];
   declare response: S3WebsiteSchema['response'];

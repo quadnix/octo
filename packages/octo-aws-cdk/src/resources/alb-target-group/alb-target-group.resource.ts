@@ -13,7 +13,9 @@ import { AlbTargetGroupSchema } from './index.schema.js';
 /**
  * @internal
  */
-@Resource<AlbTargetGroup>('@octo', 'alb-target-group', AlbTargetGroupSchema)
+@Resource<AlbTargetGroup>('@octo', 'alb-target-group', AlbTargetGroupSchema, {
+  uniqueProperties: [{ path: 'Name', within: ['awsAccountId', 'awsRegionId'] }],
+})
 export class AlbTargetGroup extends ATerraformResource<AlbTargetGroupSchema, AlbTargetGroup> {
   declare parents: [MatchingResource<VpcSchema>];
   declare properties: AlbTargetGroupSchema['properties'];

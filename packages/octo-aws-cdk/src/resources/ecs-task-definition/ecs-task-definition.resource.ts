@@ -21,7 +21,9 @@ import { EcsTaskDefinitionSchema } from './index.schema.js';
 /**
  * @internal
  */
-@Resource<EcsTaskDefinition>('@octo', 'ecs-task-definition', EcsTaskDefinitionSchema)
+@Resource<EcsTaskDefinition>('@octo', 'ecs-task-definition', EcsTaskDefinitionSchema, {
+  uniqueProperties: [{ path: 'family', within: ['awsAccountId', 'awsRegionId'] }],
+})
 export class EcsTaskDefinition extends ATerraformResource<EcsTaskDefinitionSchema, EcsTaskDefinition> {
   declare parents: [
     MatchingResource<IamRoleSchema>,

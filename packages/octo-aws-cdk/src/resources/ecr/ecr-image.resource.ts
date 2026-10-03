@@ -4,7 +4,9 @@ import { EcrImageSchema } from './index.schema.js';
 /**
  * @internal
  */
-@Resource<EcrImage>('@octo', 'ecr-image', EcrImageSchema)
+@Resource<EcrImage>('@octo', 'ecr-image', EcrImageSchema, {
+  uniqueProperties: [{ path: 'imageId', within: ['awsAccountId', 'awsRegionId'] }],
+})
 export class EcrImage extends ATerraformResource<EcrImageSchema, EcrImage> {
   declare properties: EcrImageSchema['properties'];
   declare response: EcrImageSchema['response'];

@@ -4,7 +4,9 @@ import { EcsClusterSchema } from './index.schema.js';
 /**
  * @internal
  */
-@Resource<EcsCluster>('@octo', 'ecs-cluster', EcsClusterSchema)
+@Resource<EcsCluster>('@octo', 'ecs-cluster', EcsClusterSchema, {
+  uniqueProperties: [{ path: 'clusterName', within: ['awsAccountId', 'awsRegionId'] }],
+})
 export class EcsCluster extends ATerraformResource<EcsClusterSchema, EcsCluster> {
   declare properties: EcsClusterSchema['properties'];
   declare response: EcsClusterSchema['response'];

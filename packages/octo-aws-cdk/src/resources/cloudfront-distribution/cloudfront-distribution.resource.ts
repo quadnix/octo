@@ -93,7 +93,13 @@ const RENDER_DEFAULTS = {
 /**
  * @internal
  */
-@Resource<CloudFrontDistribution>('@octo', 'cloudfront-distribution', CloudFrontDistributionSchema)
+@Resource<CloudFrontDistribution>('@octo', 'cloudfront-distribution', CloudFrontDistributionSchema, {
+  uniqueProperties: [
+    { path: 'cachePolicies[].name', within: ['awsAccountId'] },
+    { path: 'originRequestPolicies[].name', within: ['awsAccountId'] },
+    { path: 'responseHeadersPolicies[].name', within: ['awsAccountId'] },
+  ],
+})
 export class CloudFrontDistribution extends ATerraformResource<CloudFrontDistributionSchema, CloudFrontDistribution> {
   declare parents: (MatchingResource<AlbSchema> | MatchingResource<LambdaFunctionSchema>)[];
   declare properties: CloudFrontDistributionSchema['properties'];

@@ -17,7 +17,9 @@ import { LambdaFunctionSchema } from './index.schema.js';
 /**
  * @internal
  */
-@Resource<LambdaFunction>('@octo', 'lambda-function', LambdaFunctionSchema)
+@Resource<LambdaFunction>('@octo', 'lambda-function', LambdaFunctionSchema, {
+  uniqueProperties: [{ path: 'functionName', within: ['awsAccountId', 'awsRegionId'] }],
+})
 export class LambdaFunction extends ATerraformResource<LambdaFunctionSchema, LambdaFunction> {
   declare parents: [MatchingResource<IamRoleSchema>, MatchingResource<EcrImageTagSchema>];
   declare properties: LambdaFunctionSchema['properties'];

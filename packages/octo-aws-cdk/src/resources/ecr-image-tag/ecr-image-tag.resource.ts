@@ -16,7 +16,9 @@ import { EcrImageTagSchema } from './index.schema.js';
  *
  * @internal
  */
-@Resource<EcrImageTag>('@octo', 'ecr-image-tag', EcrImageTagSchema)
+@Resource<EcrImageTag>('@octo', 'ecr-image-tag', EcrImageTagSchema, {
+  uniqueProperties: [{ path: 'imageTag', within: ['awsAccountId', 'awsRegionId', 'imageId'] }],
+})
 export class EcrImageTag extends AResource<EcrImageTagSchema, EcrImageTag> {
   declare parents: [MatchingResource<EcrImageSchema>];
   declare properties: EcrImageTagSchema['properties'];

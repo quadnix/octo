@@ -35,7 +35,9 @@ export type IIamUserDeletePolicyDiff = { action: 'delete'; policyId: string; pol
 /**
  * @internal
  */
-@Resource<IamUser>('@octo', 'iam-user', IamUserSchema)
+@Resource<IamUser>('@octo', 'iam-user', IamUserSchema, {
+  uniqueProperties: [{ path: 'username', within: ['awsAccountId'] }],
+})
 export class IamUser extends ATerraformResource<IamUserSchema, IamUser> {
   declare properties: IamUserSchema['properties'];
   declare response: IamUserSchema['response'];

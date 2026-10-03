@@ -17,7 +17,9 @@ import { AlbSchema } from './index.schema.js';
 /**
  * @internal
  */
-@Resource<Alb>('@octo', 'alb', AlbSchema)
+@Resource<Alb>('@octo', 'alb', AlbSchema, {
+  uniqueProperties: [{ path: 'Name', within: ['awsAccountId', 'awsRegionId'] }],
+})
 export class Alb extends ATerraformResource<AlbSchema, Alb> {
   declare parents: [
     MatchingResource<InternetGatewaySchema>,

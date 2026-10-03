@@ -36,7 +36,9 @@ export type IIamRoleDeletePolicyDiff = { action: 'delete'; policyId: string; pol
 /**
  * @internal
  */
-@Resource<IamRole>('@octo', 'iam-role', IamRoleSchema)
+@Resource<IamRole>('@octo', 'iam-role', IamRoleSchema, {
+  uniqueProperties: [{ path: 'rolename', within: ['awsAccountId'] }],
+})
 export class IamRole extends ATerraformResource<IamRoleSchema, IamRole> {
   declare properties: IamRoleSchema['properties'];
   declare response: IamRoleSchema['response'];
