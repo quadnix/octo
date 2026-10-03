@@ -367,9 +367,8 @@ An EFS filesystem belongs to a region; mounting it into a subnet is the subnet m
 `localFilesystems` input, which is what produces the mount target.
 
 The two image modules are a repository and the versions inside it, declared separately.
-`AwsEcrImageModule` creates the repositories and nothing else, one in each AWS region its `regions`
-resolve to. Two of those regions in different accounts cannot be the same AWS region: the module
-rejects them. `AwsEcrImageTagModule` takes that module's image as its `image` input, builds the
+`AwsEcrImageModule` creates the repositories and nothing else, one in each account and AWS region
+its `regions` resolve to. `AwsEcrImageTagModule` takes that module's image as its `image` input, builds the
 Dockerfile at `dockerfileDirectory` for `architecture`, `arm64` or `x86_64`, and pushes the result
 into every repository the image has, under `imageTag`. A Lambda function or an ECS task running the
 image runs on that processor, and an ECS task whose images were built for different processors is

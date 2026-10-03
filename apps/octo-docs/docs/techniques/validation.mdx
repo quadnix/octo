@@ -139,11 +139,8 @@ be empty, a node of the right kind. Those are cheap and they run everywhere the 
 A rule belongs in the module's `onInit` when it needs more than one input, or a lookup:
 
 ```typescript
-if (matchingS3StorageAnchor.getSchemaInstance().properties.awsAccountId !== account.accountId) {
-  throw new ModuleError(
-    'This module does not support adding s3 resources from other accounts!',
-    this.constructor.name,
-  );
+if (environment.getParents()['region'][0].to.getContext() !== subnet.getParents()['region'][0].to.getContext()) {
+  throw new ModuleError('Environment and Subnet must be in the same region!', this.constructor.name);
 }
 ```
 
