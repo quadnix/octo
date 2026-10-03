@@ -233,7 +233,7 @@ export class AwsEcsExecutionModuleSchema {
 
   /**
    * Security group rules to apply to the execution.
-   * These define the network traffic rules for the containers.
+   * The execution's one security group holds these together with the rules of each deployment's server.
    */
   @Validate({
     destruct: (value: AwsEcsExecutionModuleSchema['securityGroupRules']): AwsSecurityGroupAnchorRuleSchema[] => value!,

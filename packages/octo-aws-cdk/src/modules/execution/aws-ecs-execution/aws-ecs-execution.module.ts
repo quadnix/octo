@@ -376,7 +376,7 @@ export class AwsEcsExecutionModule extends AModule<AwsEcsExecutionModuleSchema, 
     const securityGroupOverlay = new AwsEcsExecutionServerSecurityGroupOverlay(
       `aws-ecs-execution-server-security-group-overlay-${execution.executionId}`,
       {},
-      [matchingMainSecurityGroupAnchor, ...matchingSidecarSecurityGroupAnchors, securityGroupAnchor],
+      [securityGroupAnchor, matchingMainSecurityGroupAnchor, ...matchingSidecarSecurityGroupAnchors],
     );
     models.push(securityGroupOverlay);
 

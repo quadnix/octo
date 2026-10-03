@@ -11,7 +11,11 @@ export class AwsEcsExecutionServerSecurityGroupOverlay extends AOverlay<
   AwsEcsExecutionServerSecurityGroupOverlaySchema,
   AwsEcsExecutionServerSecurityGroupOverlay
 > {
-  declare anchors: (MatchingAnchor<AwsSecurityGroupAnchorSchema> | AwsSecurityGroupAnchor)[];
+  declare anchors: [
+    AwsSecurityGroupAnchor,
+    MatchingAnchor<AwsSecurityGroupAnchorSchema>,
+    ...MatchingAnchor<AwsSecurityGroupAnchorSchema>[],
+  ];
   declare properties: AwsEcsExecutionServerSecurityGroupOverlaySchema['properties'];
 
   /**
@@ -20,7 +24,11 @@ export class AwsEcsExecutionServerSecurityGroupOverlay extends AOverlay<
   constructor(
     overlayId: string,
     properties: AwsEcsExecutionServerSecurityGroupOverlaySchema['properties'],
-    anchors: (MatchingAnchor<AwsSecurityGroupAnchorSchema> | AwsSecurityGroupAnchor)[],
+    anchors: [
+      AwsSecurityGroupAnchor,
+      MatchingAnchor<AwsSecurityGroupAnchorSchema>,
+      ...MatchingAnchor<AwsSecurityGroupAnchorSchema>[],
+    ],
   ) {
     super(overlayId, properties, anchors);
   }

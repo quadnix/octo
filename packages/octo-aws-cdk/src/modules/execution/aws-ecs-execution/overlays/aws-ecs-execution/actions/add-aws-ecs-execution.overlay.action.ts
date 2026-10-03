@@ -295,19 +295,14 @@ export class AddAwsEcsExecutionOverlayAction implements IModelAction<AwsEcsExecu
       );
     }
 
-    // Get matching execution's SecurityGroup resources - one per server its deployments run on, and
-    // the execution's own. Deployments sharing a server share its security group.
-    const { deployments } = actionInputs.inputs;
-    const servers = new Set(
-      [deployments.main, ...deployments.sidecars].map((d) => d.deployment.getParents()['server'][0].to),
-    );
+    // Get matching execution's SecurityGroup resource, holding the rules of every server it runs.
     const execution = securityGroupAnchor.getParent() as Execution;
-    const matchingExecutionSGResources = await execution.getResourcesMatchingSchema(SecurityGroupSchema, [], [], {
+    const [matchingExecutionSGResource] = await execution.getResourcesMatchingSchema(SecurityGroupSchema, [], [], {
       searchBoundaryMembers: false,
     });
-    if (matchingExecutionSGResources.length !== servers.size + 1) {
+    if (!matchingExecutionSGResource) {
       throw new OverlayActionExceptionTransactionError(
-        'One or more security groups from main server, sidecar server, and/or execution not found!',
+        `Security group of execution "${properties.executionId}" not found!`,
         diff,
         this.constructor.name,
       );
@@ -328,7 +323,7 @@ export class AddAwsEcsExecutionOverlayAction implements IModelAction<AwsEcsExecu
         matchingEcsClusterResource,
         new MatchingResource(ecsTaskDefinition),
         matchingSubnetResource,
-        ...matchingExecutionSGResources,
+        matchingExecutionSGResource,
       ],
     );
 

@@ -3,6 +3,7 @@ import {
   type ModuleSchemaInputs,
   TestContainer,
   TestModuleContainer,
+  hasNodeName,
   stub,
 } from '@quadnix/octo';
 import type { AwsDeploymentAnchorSchema } from '../../../anchors/aws-deployment/aws-deployment.anchor.schema.js';
@@ -23,6 +24,7 @@ import type { EcsClusterSchema } from '../../../resources/ecs-cluster/index.sche
 import type { EfsSchema } from '../../../resources/efs/index.schema.js';
 import type { EfsMountTargetSchema } from '../../../resources/efs-mount-target/index.schema.js';
 import { S3Storage } from '../../../resources/s3-storage/index.js';
+import type { SecurityGroup } from '../../../resources/security-group/index.js';
 import type { SubnetSchema } from '../../../resources/subnet/index.schema.js';
 import type { VpcSchema } from '../../../resources/vpc/index.schema.js';
 import { AwsEcsExecutionModule } from './index.js';
@@ -46,7 +48,8 @@ import { AwsEcsExecutionModule } from './index.js';
  *
  * `sidecar` adds a sidecar deployment `sidecar-v1` in module `sidecarModule`, on server `logger` or on
  * the main server. With `grants`, its server is granted a table of its own. With `publishedImageTag`,
- * it runs a tag of the same image as the main deployment, built for `publishedFor`.
+ * it runs a tag of the same image as the main deployment, built for `publishedFor`. With a sidecar,
+ * `backend` opens port 8080, and `logger` opens port 24224 and repeats the execution's default egress.
  */
 async function setup(
   testModuleContainer: TestModuleContainer,
@@ -163,7 +166,13 @@ async function setup(
     sidecarServer.addAnchor(
       testModuleContainer.createTestAnchor<AwsSecurityGroupAnchorSchema>(
         'AwsSecurityGroupAnchor',
-        { rules: [], securityGroupName: 'SecurityGroup-logger' },
+        {
+          rules: [
+            { CidrBlock: '10.0.0.0/16', Egress: false, FromPort: 24224, IpProtocol: 'tcp', ToPort: 24224 },
+            { CidrBlock: '0.0.0.0/0', Egress: true, FromPort: 0, IpProtocol: '-1', ToPort: 0 },
+          ],
+          securityGroupName: 'SecurityGroup-logger',
+        },
         sidecarServer,
       ),
     );
@@ -214,7 +223,12 @@ async function setup(
   server.addAnchor(
     testModuleContainer.createTestAnchor<AwsSecurityGroupAnchorSchema>(
       'AwsSecurityGroupAnchor',
-      { rules: [], securityGroupName: 'SecurityGroup-backend' },
+      {
+        rules: sidecar
+          ? [{ CidrBlock: '0.0.0.0/0', Egress: false, FromPort: 8080, IpProtocol: 'tcp', ToPort: 8080 }]
+          : [],
+        securityGroupName: 'SecurityGroup-backend',
+      },
       server,
     ),
   );
@@ -589,11 +603,6 @@ describe('AwsEcsExecutionModule UT', () => {
        allowed_account_ids = ["123"]
      }
 
-     resource "aws_security_group" "sec-grp-SecurityGroup-backend-94a6a9" {
-       provider = aws._123-us-east-1
-       vpc_id = var.vpc_region.VpcId
-     }
-
      resource "aws_security_group" "sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-94a6a9" {
        provider = aws._123-us-east-1
        vpc_id = var.vpc_region.VpcId
@@ -673,21 +682,13 @@ describe('AwsEcsExecutionModule UT', () => {
        name = "backend-v1-region-qa-private-subnet"
        network_configuration {
          assign_public_ip = false
-         security_groups = [aws_security_group.sec-grp-SecurityGroup-backend-94a6a9.id, aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-94a6a9.id]
+         security_groups = [aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-94a6a9.id]
          subnets = [var.subnet_region_private_subnet.SubnetId]
        }
        task_definition = aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet-94a6a9.arn
      }
 
      # execution/outputs.tf
-     output "sec-grp-SecurityGroup-backend-94a6a9-Arn" {
-       value = aws_security_group.sec-grp-SecurityGroup-backend-94a6a9.arn
-     }
-
-     output "sec-grp-SecurityGroup-backend-94a6a9-GroupId" {
-       value = aws_security_group.sec-grp-SecurityGroup-backend-94a6a9.id
-     }
-
      output "sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-94a6a9-Arn" {
        value = aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-94a6a9.arn
      }
@@ -917,7 +918,6 @@ describe('AwsEcsExecutionModule UT', () => {
     `);
     expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "+ @octo/security-group=sec-grp-SecurityGroup-backend-94a6a9",
        "+ @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-94a6a9",
        "+ @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
        "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
@@ -960,7 +960,6 @@ describe('AwsEcsExecutionModule UT', () => {
     ).value!;
     expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`
      [
-       "+ @octo/security-group=sec-grp-SecurityGroup-backend-94a6a9",
        "+ @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-94a6a9",
        "+ @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
        "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
@@ -1217,7 +1216,6 @@ describe('AwsEcsExecutionModule UT', () => {
        "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
        "- @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
        "- @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet-94a6a9",
-       "- @octo/security-group=sec-grp-SecurityGroup-backend-94a6a9",
        "- @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-94a6a9",
        "- @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet-94a6a9",
      ]
@@ -1261,7 +1259,6 @@ describe('AwsEcsExecutionModule UT', () => {
     ).value!;
     expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`
      [
-       "+ @octo/security-group=sec-grp-SecurityGroup-backend-94a6a9",
        "+ @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-94a6a9",
        "+ @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
        "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
@@ -1306,7 +1303,6 @@ describe('AwsEcsExecutionModule UT', () => {
      [
        "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
        "* @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet-94a6a9",
-       "* @octo/security-group=sec-grp-SecurityGroup-backend-94a6a9",
        "* @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-94a6a9",
        "* @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet-94a6a9",
      ]
@@ -1347,7 +1343,6 @@ describe('AwsEcsExecutionModule UT', () => {
      [
        "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
        "* @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet-94a6a9",
-       "* @octo/security-group=sec-grp-SecurityGroup-backend-94a6a9",
        "* @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-94a6a9",
        "* @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet-94a6a9",
      ]
@@ -1771,7 +1766,6 @@ describe('AwsEcsExecutionModule UT', () => {
     expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/s3-storage=bucket-test-bucket",
-       "+ @octo/security-group=sec-grp-SecurityGroup-backend-94a6a9",
        "+ @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-94a6a9",
        "+ @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
        "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
@@ -1788,7 +1782,7 @@ describe('AwsEcsExecutionModule UT', () => {
     expect(hclRender).toContain('"arn:aws:dynamodb:us-east-1:123:table/accounts/index/*"');
   });
 
-  it('should open the execution to the server of each deployment', async () => {
+  it('should give the execution one security group, holding the rules of each server it runs', async () => {
     await setup(testModuleContainer, { sidecar: {} });
 
     const { resourceDiffs } = (
@@ -1802,8 +1796,6 @@ describe('AwsEcsExecutionModule UT', () => {
 
     expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "+ @octo/security-group=sec-grp-SecurityGroup-backend-20d169",
-       "+ @octo/security-group=sec-grp-SecurityGroup-logger-20d169",
        "+ @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-20d169",
        "+ @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-20d169",
        "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-20d169",
@@ -1811,9 +1803,17 @@ describe('AwsEcsExecutionModule UT', () => {
        "+ @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet-20d169",
      ]
     `);
+
+    const securityGroup = resourceDiffs.flat().find((d) => hasNodeName(d.node, 'security-group'))!
+      .node as SecurityGroup;
+    expect(securityGroup.properties.rules).toEqual([
+      { CidrBlock: '0.0.0.0/0', Egress: true, FromPort: 0, IpProtocol: '-1', ToPort: 0 },
+      { CidrBlock: '0.0.0.0/0', Egress: false, FromPort: 8080, IpProtocol: 'tcp', ToPort: 8080 },
+      { CidrBlock: '10.0.0.0/16', Egress: false, FromPort: 24224, IpProtocol: 'tcp', ToPort: 24224 },
+    ]);
   });
 
-  it('should open the execution to a server once when a sidecar runs on the main server', async () => {
+  it('should hold the rules of a server once when a sidecar runs on the main server', async () => {
     await setup(testModuleContainer, { sidecar: { onMainServer: true } });
 
     const { resourceDiffs } = (
@@ -1827,7 +1827,6 @@ describe('AwsEcsExecutionModule UT', () => {
 
     expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "+ @octo/security-group=sec-grp-SecurityGroup-backend-f33ddc",
        "+ @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-f33ddc",
        "+ @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-f33ddc",
        "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-f33ddc",
@@ -1835,6 +1834,13 @@ describe('AwsEcsExecutionModule UT', () => {
        "+ @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet-f33ddc",
      ]
     `);
+
+    const securityGroup = resourceDiffs.flat().find((d) => hasNodeName(d.node, 'security-group'))!
+      .node as SecurityGroup;
+    expect(securityGroup.properties.rules).toEqual([
+      { CidrBlock: '0.0.0.0/0', Egress: true, FromPort: 0, IpProtocol: '-1', ToPort: 0 },
+      { CidrBlock: '0.0.0.0/0', Egress: false, FromPort: 8080, IpProtocol: 'tcp', ToPort: 8080 },
+    ]);
   });
 
   it('should bind the task definition to the published image of each deployment', async () => {
