@@ -1,7 +1,6 @@
 import type { UnknownResource } from '../app.type.js';
 import type { Diff } from '../functions/diff/diff.js';
 import type { INode, INodeReference } from '../functions/node/node.interface.js';
-import type { AResource } from './resource.abstract.js';
 import type { BaseResourceSchema } from './resource.schema.js';
 
 /**

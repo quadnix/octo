@@ -136,7 +136,7 @@ describe('Resource UT', () => {
     it('should not type-check a unique name the properties do not have', () => {
       Resource<TestTable>('@octo', 'test-table', TestTableSchema, {
         // @ts-expect-error the property does not exist.
-        uniqueProperties: [{ path: 'tablename', within: [] }],
+        uniqueProperties: [{ path: 'tableTitle', within: [] }],
       });
 
       Resource<TestTable>('@octo', 'test-table', TestTableSchema, {

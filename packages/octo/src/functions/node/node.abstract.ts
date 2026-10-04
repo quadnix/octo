@@ -245,7 +245,7 @@ export abstract class ANode<S, T> implements INode<S, T> {
     const members: UnknownNode[] = [];
     const parentOf: { [key: string]: string[] } = {};
     // Walked nodes, and whether each was walked down to its children.
-    const walked: { [key: string]: boolean } = {};
+    const walked: { [key: string]: boolean | undefined } = {};
 
     const pushToExtenders = (nodes: UnknownNode[], descend: boolean): void => {
       nodes.forEach((node) => {

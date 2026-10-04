@@ -3,7 +3,6 @@ import {
   type Constructable,
   type IUnknownModelAction,
   type IUnknownResourceAction,
-  MatchingAnchor,
   NodeType,
   type TransactionOptions,
   type UnknownModel,
@@ -403,18 +402,6 @@ export class TransactionService {
     }
 
     modelActions.actions = [];
-  }
-
-  /**
-   * @internal
-   */
-  unregisterOverlayActions(forOverlay: Constructable<UnknownOverlay>): void {
-    const overlayActions = this.overlayActions.find((a) => a.overlayClass === forOverlay);
-    if (!overlayActions) {
-      return;
-    }
-
-    overlayActions.actions = [];
   }
 
   /**
@@ -826,9 +813,7 @@ export class TransactionService {
 
       if (placedNode instanceof AOverlay) {
         const moduleId = this.inputService.getModuleIdFromOverlay(placedNode);
-        const joinedNodes = placedNode
-          .getAnchors()
-          .map((anchor) => (anchor instanceof MatchingAnchor ? anchor.getActual().getParent() : anchor.getParent()));
+        const joinedNodes = placedNode.getAnchors().map((anchor) => anchor.getParent());
         const ownNodes = joinedNodes.filter(
           (joinedNode) =>
             moduleId !== undefined &&

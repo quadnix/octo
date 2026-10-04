@@ -437,7 +437,7 @@ export class Octo {
    */
   async validate(
     app: App,
-    { errors: planErrors, plans }: { errors?: Map<string, string>; plans: Map<string, TerraformPlan> },
+    plans: { errors?: Map<string, string>; plans: Map<string, TerraformPlan> },
     transaction?: ModelTransactionResult,
   ): ReturnType<typeof runValidate> {
     return this.runMode('validate', app.name, async () => {
@@ -459,8 +459,8 @@ export class Octo {
       const report = await runValidate({
         externalResourceStateIds,
         persistedMappings,
-        planErrors,
-        plans,
+        planErrors: plans.errors,
+        plans: plans.plans,
         previousFolders: terraformFolders ?? [],
         transaction: resolvedTransaction,
       });

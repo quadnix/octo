@@ -114,6 +114,7 @@ export class TerraformUtility {
    * **This changes real infrastructure**, and runs with `-auto-approve`. Use
    * {@link TerraformUtility.findPlannedDestroys} beforehand if a destroy needs confirming.
    *
+   * @param terragruntDir The directory octo generated the module folders into.
    * @param onOutput Called with each chunk terragrunt writes, as it writes it. An apply can run for
    * tens of minutes, and the buffered result only arrives at the end - without this the caller has
    * nothing to show for the whole run. The chunks are also still accumulated into the result.
@@ -189,6 +190,7 @@ export class TerraformUtility {
   /**
    * Reads the outputs of every generated module folder.
    *
+   * @param terragruntDir The directory octo generated the module folders into.
    * @param options Pass `{ json: true }` to get the outputs parsed and keyed by `moduleId`, which is
    * the shape {@link Octo.commit} takes. Without it, terragrunt's raw output is returned.
    */
@@ -226,6 +228,7 @@ export class TerraformUtility {
   /**
    * Plans every generated module folder.
    *
+   * @param terragruntDir The directory octo generated the module folders into.
    * @param options Pass `{ json: true }` to get the plans parsed and keyed by `moduleId`, which is
    * the shape {@link Octo.validate} takes - along with the `errors` of any folder that could not be
    * planned. Without it, terragrunt's raw output is returned.
@@ -281,8 +284,8 @@ export class TerraformUtility {
     return this.runAll(terragruntDir, 'validate', this.consumeArgs());
   }
   /**
-   * @param onOutput Receives each chunk as the child writes it. `execFile` keeps accumulating into
-   * its own buffers regardless, so the resolved result is unchanged whether or not this is passed.
+   * Runs `file` with `args`. `onOutput` receives each chunk as the child writes it; `execFile` keeps
+   * accumulating into its own buffers regardless, so the resolved result is the same either way.
    */
   protected execFileAsync(
     file: string,

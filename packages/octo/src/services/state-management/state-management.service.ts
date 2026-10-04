@@ -201,6 +201,7 @@ export class StateManagementService {
   /**
    * Reads a state file as-is.
    *
+   * @param stateFileName The file's name in the state provider.
    * @param defaultValue Returned instead of throwing when the file does not exist.
    */
   async getState(stateFileName: string, defaultValue?: any): Promise<Buffer> {

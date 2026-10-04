@@ -1,4 +1,4 @@
-import type { Constructable, UnknownModel } from '../../app.type.js';
+import type { UnknownModel } from '../../app.type.js';
 import { Container } from '../../functions/container/container.js';
 import { getSchemaInstance } from '../../functions/schema/schema.js';
 import { Account } from '../../models/account/account.model.js';

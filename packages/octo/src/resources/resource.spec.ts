@@ -2,7 +2,6 @@ import { jest } from '@jest/globals';
 import { MatchingResource, type UnknownResource } from '../app.type.js';
 import type { Container } from '../functions/container/container.js';
 import { TestContainer } from '../functions/container/test-container.js';
-import { Dependency } from '../functions/dependency/dependency.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';
 import { createResource, createTestResources } from '../utilities/test-helpers/test-resources.js';
 

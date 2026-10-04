@@ -850,7 +850,7 @@ export class TerraformService {
       addTerraformData: (type, name, spec = {}) => this.addTerraformData(moduleId, type, name, spec),
       getProviderAliasRef: (accountId, regionId) => this.getProviderAliasRef(moduleId, accountId, regionId),
       getRef: ((resource: UnknownResource | MatchingResource<any>, key: string) =>
-        this.getRef(resource as UnknownResource, key)) as TerraformModuleScope['getRef'],
+        this.getRef(resource, key)) as TerraformModuleScope['getRef'],
       interpolate: (...parts) => this.interpolate(parts),
       jsonencode: (subject) => this.jsonencode(subject),
       localPath: (filePath) => this.localPath(moduleId, filePath),
@@ -1245,20 +1245,6 @@ export class TerraformService {
     return new ExpressionHclNode(`${providerType}.${alias}`);
   }
 
-  /**
-   * @internal
-   */
-  private getRef<T extends UnknownResource>(
-    resource: T,
-    key: keyof ResourceSchema<T>['response'] & string,
-  ): HclExpression;
-  /**
-   * @internal
-   */
-  private getRef<S extends BaseResourceSchema>(
-    resource: MatchingResource<S>,
-    key: keyof S['response'] & string,
-  ): HclExpression;
   /**
    * @internal
    */

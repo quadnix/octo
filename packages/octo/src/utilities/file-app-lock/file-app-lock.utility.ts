@@ -145,8 +145,8 @@ export class FileAppLockUtility {
     }
 
     try {
-      const record = JSON.parse(contents) as AppLockRecord;
-      return typeof record.lockId === 'string' ? record : { lockId: contents };
+      const record = JSON.parse(contents) as Partial<AppLockRecord>;
+      return typeof record.lockId === 'string' ? (record as AppLockRecord) : { lockId: contents };
     } catch (error) {
       return { lockId: contents };
     }

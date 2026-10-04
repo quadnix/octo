@@ -336,7 +336,6 @@ export class TestModuleContainer {
         changes.push(`^ ${d.node.getContext()}`);
       } else if (d.action === DiffAction.VALIDATE) {
         // Not a change: validation runs as its own transaction, one diff per surviving resource.
-        continue;
       } else {
         changes.push(`* ${d.node.getContext()}`);
       }

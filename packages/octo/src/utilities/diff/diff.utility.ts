@@ -187,6 +187,7 @@ export class DiffUtility {
    * @param x The first value.
    * @param y The second value.
    * @param excludePaths Dot-separated paths to ignore, e.g. `tags`.
+   * @param currentPath The path walked so far. Callers leave it empty; the recursion fills it.
    */
   static isObjectDeepEquals(x: unknown, y: unknown, excludePaths: string[] = [], currentPath: string[] = []): boolean {
     if (x instanceof AAnchor && y instanceof AAnchor) {

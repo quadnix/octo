@@ -360,12 +360,6 @@ export type TransactionOptions = {
 };
 
 /**
- * @internal
- */
-// Source: https://stackoverflow.com/a/55032655/1834562
-export type ModifyInterface<T, R> = Omit<T, keyof R> & R;
-
-/**
  * The schema of an anchor class.
  *
  * @group Types
@@ -391,18 +385,13 @@ export type EnhancedModuleSchema<T extends UnknownModule> = {
 /**
  * @internal
  */
-export type GeneratorYieldType<T extends (...args: any) => AsyncGenerator<any, any, any>> =
-  ReturnType<T> extends AsyncGenerator<infer Y, any, any> ? Y : never;
+export type GeneratorYieldType<T extends (...args: any) => AsyncGenerator<any>> =
+  ReturnType<T> extends AsyncGenerator<infer Y> ? Y : never;
 
 /**
  * @internal
  */
 export type ModelSchema<T> = T extends AModel<infer S, any> ? S : never;
-
-/**
- * @internal
- */
-export type ModuleOutput<M> = M extends AModule<any, infer T> ? T : never;
 
 /**
  * The schema of a module class.

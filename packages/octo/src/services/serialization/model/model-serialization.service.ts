@@ -31,7 +31,7 @@ import { InputService } from '../../input/input.service.js';
 export class ModelSerializationService {
   private readonly classMapping: { [key: string]: any } = {};
 
-  private MODEL_DESERIALIZATION_TIMEOUT_IN_MS = 3000;
+  private readonly MODEL_DESERIALIZATION_TIMEOUT_IN_MS = 3000;
 
   /**
    * @internal
@@ -144,13 +144,6 @@ export class ModelSerializationService {
     }
 
     return { anchors, dependencies, models, overlays };
-  }
-
-  /**
-   * @internal
-   */
-  setModelDeserializationTimeout(timeoutInMs: number): void {
-    this.MODEL_DESERIALIZATION_TIMEOUT_IN_MS = timeoutInMs;
   }
 
   /**

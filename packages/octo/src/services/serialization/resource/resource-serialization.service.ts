@@ -24,7 +24,7 @@ export class ResourceSerializationService {
   private actualResourceModuleIds = new Map<string, string>(); // Resource context -> module recorded in state.
   private readonly classMapping: { [key: string]: any } = {};
 
-  private RESOURCE_DESERIALIZATION_TIMEOUT_IN_MS = 3000;
+  private readonly RESOURCE_DESERIALIZATION_TIMEOUT_IN_MS = 3000;
 
   /**
    * @internal
@@ -93,13 +93,6 @@ export class ResourceSerializationService {
   async serializeNewResources(): Promise<ResourceSerializedOutput> {
     const resources = this.resourceDataRepository.getNewResourcesByProperties();
     return this.serialize(resources);
-  }
-
-  /**
-   * @internal
-   */
-  setResourceDeserializationTimeout(timeoutInMs: number): void {
-    this.RESOURCE_DESERIALIZATION_TIMEOUT_IN_MS = timeoutInMs;
   }
 
   /**
