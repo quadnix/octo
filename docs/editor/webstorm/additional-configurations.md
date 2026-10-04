@@ -10,4 +10,4 @@
 
 - Languages & Frameworks > JavaScript > Code Quality Tools > Enable Automatic ESLint
 - Languages & Frameworks > Markdown > Disable "Show problems in code fences"
-- Languages & Frameworks > Typescript > TSLint > Disable TSLint
+- Languages & Frameworks > TypeScript > TSLint > Disable TSLint

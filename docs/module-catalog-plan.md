@@ -37,13 +37,13 @@ than a load balancer), and weakens the vocabulary that the model graph's readabi
 Introduce new first-class model kinds as siblings of `Server`/`Service` (each an `AModel`
 subclass with its own `NODE_NAME` and schema). Committed set:
 
-| Model kind | Meaning | Absorbs / first modules |
-| --- | --- | --- |
-| `database` | Stateful query-addressed store | `aws-dynamodb-service` → `aws-dynamodb-database`, `aws-dynamodb-global-service` → global variant; later RDS/Aurora |
-| `cache` | Volatile keyed store | ElastiCache Redis (Wave B) |
-| `queue` | Message transport (queues, topics, streams) | SQS, SNS, MSK, Firehose (Wave A) |
-| `loadbalancer` | Traffic entry/distribution | `aws-ecs-alb-service` → `aws-alb-loadbalancer` |
-| `storage` | Object storage | `aws-s3-storage-service` → `aws-s3-storage`; static website stays a service-level variant or becomes `aws-s3-static-website-storage` — decide at design time |
+| Model kind     | Meaning                                     | Absorbs / first modules                                                                                                                                      |
+|----------------|---------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `database`     | Stateful query-addressed store              | `aws-dynamodb-service` → `aws-dynamodb-database`, `aws-dynamodb-global-service` → global variant; later RDS/Aurora                                           |
+| `cache`        | Volatile keyed store                        | ElastiCache Redis (Wave B)                                                                                                                                   |
+| `queue`        | Message transport (queues, topics, streams) | SQS, SNS, MSK, Firehose (Wave A)                                                                                                                             |
+| `loadbalancer` | Traffic entry/distribution                  | `aws-ecs-alb-service` → `aws-alb-loadbalancer`                                                                                                               |
+| `storage`      | Object storage                              | `aws-s3-storage-service` → `aws-s3-storage`; static website stays a service-level variant or becomes `aws-s3-static-website-storage` — decide at design time |
 
 Candidates, added only when their first module lands (keep the vocabulary small — every addition
 must earn its place): `gateway` (KrakenD, API Gateway), `identity` (Keycloak, Cognito).
@@ -79,46 +79,46 @@ snapshot tests.
 
 Small, self-contained, high leverage — most later modules consume these anchors.
 
-| Module | Kind | Notes |
-| --- | --- | --- |
-| `aws-route53-dns` | new `dns` capability on region/app (decide: model kind vs overlay) | Hosted zones, record sets. ▸ `DnsZoneAnchor` consumed by https, loadbalancer, gateway modules. Decide early whether DNS is a model (visible node) or an overlay (relationship); leaning model — users think about domains. |
-| `aws-acm-https` | overlay on `loadbalancer`/`gateway` | Certificate request + DNS validation (◂ DnsZoneAnchor), listener attachment. ▸ `TlsCertificateAnchor`. |
-| `aws-kms` | overlay/anchor provider | CMKs, aliases, key policies. ▸ `EncryptionKeyAnchor` consumed by database/storage/queue/secrets modules ("encrypted with your key" as a decision-surface knob). |
-| `aws-ssh` | capability on `server` | EC2 key pairs and/or SSM Session Manager access profile (prefer SSM: no open port 22, IAM-audited). ▸ `ShellAccessAnchor` — later consumed by the debugging feature (Part III). |
-| `aws-sqs-queue` / `aws-sns-queue` | `queue` | Queues/topics + DLQs, subscriptions; IAM policies wired to consuming executions via overlays. |
-| `aws-msk-queue` | `queue` | Managed Kafka. The "aws kafka" ask — recommend MSK **before** self-hosted Kafka (group 3); same model kind, so consumers can later swap modules (the Octo wedge). |
-| `aws-firehose-queue` | `queue` | Delivery streams; ▸ into `storage`/ELK targets. Pairs with observability wave. |
-| `aws-codebuild-cicd` + `aws-codepipeline-cicd` | `pipeline` (model exists) | Finally gives `Pipeline.instructionSet` meaning: build projects, pipeline stages, source hooks. This is *app* CI/CD provisioning — distinct from the platform's infra-CICD view (frontend plan 09), which observes Octo's own applies. |
+| Module                                         | Kind                                                               | Notes                                                                                                                                                                                                                                  |
+|------------------------------------------------|--------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `aws-route53-dns`                              | new `dns` capability on region/app (decide: model kind vs overlay) | Hosted zones, record sets. ▸ `DnsZoneAnchor` consumed by https, loadbalancer, gateway modules. Decide early whether DNS is a model (visible node) or an overlay (relationship); leaning model — users think about domains.             |
+| `aws-acm-https`                                | overlay on `loadbalancer`/`gateway`                                | Certificate request + DNS validation (◂ DnsZoneAnchor), listener attachment. ▸ `TlsCertificateAnchor`.                                                                                                                                 |
+| `aws-kms`                                      | overlay/anchor provider                                            | CMKs, aliases, key policies. ▸ `EncryptionKeyAnchor` consumed by database/storage/queue/secrets modules ("encrypted with your key" as a decision-surface knob).                                                                        |
+| `aws-ssh`                                      | capability on `server`                                             | EC2 key pairs and/or SSM Session Manager access profile (prefer SSM: no open port 22, IAM-audited). ▸ `ShellAccessAnchor` — later consumed by the debugging feature (Part III).                                                        |
+| `aws-sqs-queue` / `aws-sns-queue`              | `queue`                                                            | Queues/topics + DLQs, subscriptions; IAM policies wired to consuming executions via overlays.                                                                                                                                          |
+| `aws-msk-queue`                                | `queue`                                                            | Managed Kafka. The "aws kafka" ask — recommend MSK **before** self-hosted Kafka (group 3); same model kind, so consumers can later swap modules (the Octo wedge).                                                                      |
+| `aws-firehose-queue`                           | `queue`                                                            | Delivery streams; ▸ into `storage`/ELK targets. Pairs with observability wave.                                                                                                                                                         |
+| `aws-codebuild-cicd` + `aws-codepipeline-cicd` | `pipeline` (model exists)                                          | Finally gives `Pipeline.instructionSet` meaning: build projects, pipeline stages, source hooks. This is *app* CI/CD provisioning — distinct from the platform's infra-CICD view (frontend plan 09), which observes Octo's own applies. |
 
 ## Wave B — Data & compute expansion (group 3)
 
-| Module | Kind | Notes |
-| --- | --- | --- |
-| `aws-elasticache-cache` | `cache` | Redis replication groups, subnet groups, auth token (◂ EncryptionKeyAnchor). ▸ `CacheEndpointAnchor` for executions. |
-| `aws-lambda-server` (+ deployment/execution variants) | `server` family | Serverless compute as an alternative to `aws-ecs-server`: same model vocabulary, function + roles + event sources instead of tasks. Proves module substitution on the compute axis. |
-| `aws-eks-*` family | `server`/`environment`/`execution`/`deployment` | The elephant: a full parallel to the ECS family (cluster, node groups/Fargate profiles, IRSA, deployments as k8s manifests via TF kubernetes provider). Schedule as its own effort; it unlocks Tilt (Wave C) and self-hosted stacks. Migration ECS→EKS is the flagship scenario for the migration planner (IV.1). |
-| `kafka-on-eks-queue` | `queue` | Self-hosted Kafka for teams outgrowing MSK's constraints. ◂ EKS anchors. Only after EKS + MSK exist. |
-| `krakend-gateway` | `gateway` (new kind) | API gateway as containers (◂ ECS or EKS server anchors) + loadbalancer in front; route config as module inputs. |
-| `nginx-consul-registrator-stack` | composite (`gateway` + discovery overlays) | The classic self-hosted service-discovery trio on ECS/EC2. Worth doing as the exemplar of a *multi-piece composite module* — proves modules can encode whole architectures, which is exactly the "custom solutions" thesis. |
+| Module                                                | Kind                                            | Notes                                                                                                                                                                                                                                                                                                             |
+|-------------------------------------------------------|-------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `aws-elasticache-cache`                               | `cache`                                         | Redis replication groups, subnet groups, auth token (◂ EncryptionKeyAnchor). ▸ `CacheEndpointAnchor` for executions.                                                                                                                                                                                              |
+| `aws-lambda-server` (+ deployment/execution variants) | `server` family                                 | Serverless compute as an alternative to `aws-ecs-server`: same model vocabulary, function + roles + event sources instead of tasks. Proves module substitution on the compute axis.                                                                                                                               |
+| `aws-eks-*` family                                    | `server`/`environment`/`execution`/`deployment` | The elephant: a full parallel to the ECS family (cluster, node groups/Fargate profiles, IRSA, deployments as k8s manifests via TF kubernetes provider). Schedule as its own effort; it unlocks Tilt (Wave C) and self-hosted stacks. Migration ECS→EKS is the flagship scenario for the migration planner (IV.1). |
+| `kafka-on-eks-queue`                                  | `queue`                                         | Self-hosted Kafka for teams outgrowing MSK's constraints. ◂ EKS anchors. Only after EKS + MSK exist.                                                                                                                                                                                                              |
+| `krakend-gateway`                                     | `gateway` (new kind)                            | API gateway as containers (◂ ECS or EKS server anchors) + loadbalancer in front; route config as module inputs.                                                                                                                                                                                                   |
+| `nginx-consul-registrator-stack`                      | composite (`gateway` + discovery overlays)      | The classic self-hosted service-discovery trio on ECS/EC2. Worth doing as the exemplar of a *multi-piece composite module* — proves modules can encode whole architectures, which is exactly the "custom solutions" thesis.                                                                                       |
 
 ## Wave C — Delivery & developer experience (group 4)
 
-| Module | Kind | Notes |
-| --- | --- | --- |
-| `tilt-on-eks` | dev-environment capability | The motivating example: your local dev loop running in the cluster. Provisions a dev namespace, registry access (◂ ECR image anchors), RBAC-scoped kubeconfig, and emits Tiltfile scaffolding for the user's repo. ◂ EKS. Novelty: the module's output is partly *developer-machine config*, not only cloud resources — a new module output type to design deliberately. |
-| `opa-policy` | overlay | OPA sidecar/admission (on EKS) or OPA-as-authorizer for gateways; policy bundles from user repo. Also a candidate *internal* consumer: compliance rules (frontend plan 09 §9.9) could compile to OPA policies — keep the door open. |
-| `keycloak-identity` | `identity` (new kind) | Keycloak on ECS/EKS + `database` dependency + realm/client provisioning. ▸ `OidcProviderAnchor` consumed by gateways/ALB auth rules — composes with the "auth in front of everything" feed example. |
+| Module              | Kind                       | Notes                                                                                                                                                                                                                                                                                                                                                                    |
+|---------------------|----------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `tilt-on-eks`       | dev-environment capability | The motivating example: your local dev loop running in the cluster. Provisions a dev namespace, registry access (◂ ECR image anchors), RBAC-scoped kubeconfig, and emits Tiltfile scaffolding for the user's repo. ◂ EKS. Novelty: the module's output is partly *developer-machine config*, not only cloud resources — a new module output type to design deliberately. |
+| `opa-policy`        | overlay                    | OPA sidecar/admission (on EKS) or OPA-as-authorizer for gateways; policy bundles from user repo. Also a candidate *internal* consumer: compliance rules (frontend plan 09 §9.9) could compile to OPA policies — keep the door open.                                                                                                                                      |
+| `keycloak-identity` | `identity` (new kind)      | Keycloak on ECS/EKS + `database` dependency + realm/client provisioning. ▸ `OidcProviderAnchor` consumed by gateways/ALB auth rules — composes with the "auth in front of everything" feed example.                                                                                                                                                                      |
 
 ## Wave D — Observability integrations (group 5)
 
 Consistent with the vision's "no observability platform": these modules **install and wire** the
 user's chosen stack into their infra; Octo does not ingest telemetry itself.
 
-| Module | Kind | Notes |
-| --- | --- | --- |
-| `datadog-observability` | overlay on servers/executions | Agent sidecars/daemonsets, API key from secrets (◂ SecretRefAnchor — depends on platform secrets service, or user-provided SSM ref in v1), unified tags matching Octo's context tags — which makes DD dashboards graph-addressable. |
-| `newrelic-observability` | overlay | Same shape as Datadog; second implementation proves the observability anchor contract is real. |
-| `elk-stack` | composite (`database`-ish OpenSearch + `queue` firehose + dashboards) | Self-hosted/managed OpenSearch + ingestion (◂ Firehose from Wave A) + Kibana behind ◂ identity/loadbalancer anchors. Also the natural artifact store for Part III's log features. |
+| Module                   | Kind                                                                  | Notes                                                                                                                                                                                                                               |
+|--------------------------|-----------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `datadog-observability`  | overlay on servers/executions                                         | Agent sidecars/daemonsets, API key from secrets (◂ SecretRefAnchor — depends on platform secrets service, or user-provided SSM ref in v1), unified tags matching Octo's context tags — which makes DD dashboards graph-addressable. |
+| `newrelic-observability` | overlay                                                               | Same shape as Datadog; second implementation proves the observability anchor contract is real.                                                                                                                                      |
+| `elk-stack`              | composite (`database`-ish OpenSearch + `queue` firehose + dashboards) | Self-hosted/managed OpenSearch + ingestion (◂ Firehose from Wave A) + Kibana behind ◂ identity/loadbalancer anchors. Also the natural artifact store for Part III's log features.                                                   |
 
 ---
 
