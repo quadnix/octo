@@ -16,6 +16,7 @@ import { renderReportHtml } from './reporters/html/html.reporter.js';
 import { type IndexRun, renderIndexHtml } from './reporters/html/index.reporter.js';
 import type { OctoReport } from './reporters/report.model.js';
 import { RunObserver } from './reporters/run.observer.js';
+import { timestampFor } from './reporters/timestamp.js';
 
 /**
  * Options for {@link HtmlReportEventListener}.
@@ -28,16 +29,6 @@ export interface HtmlReportEventListenerOptions {
    * Defaults to `.octo/reports`.
    */
   reportDir?: string;
-}
-
-/**
- * `20260814T105124`. Sortable, so file names order chronologically.
- */
-function timestampFor(date: Date): string {
-  return date
-    .toISOString()
-    .replace(/[-:]/g, '')
-    .replace(/\.\d+Z$/, '');
 }
 
 /**

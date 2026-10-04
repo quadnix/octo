@@ -1,18 +1,7 @@
 import { CHANGE_SYMBOLS, type ChangeKind, type OctoReport } from '../report.model.js';
 import { readableTimestamp } from '../timestamp.js';
+import { escapeHtml } from './escape-html.js';
 import { REPORT_STYLES } from './report.styles.js';
-
-/**
- * @internal
- */
-function escapeHtml(value: unknown): string {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
 
 /**
  * One row of the index.

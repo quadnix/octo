@@ -10,19 +10,8 @@ import {
   type ReportUnexplained,
 } from '../report.model.js';
 import { formatTimestamp } from '../timestamp.js';
+import { escapeHtml } from './escape-html.js';
 import { REPORT_STYLES } from './report.styles.js';
-
-/**
- * @internal
- */
-function escapeHtml(value: unknown): string {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
 
 /**
  * For sentences about what octo intends but terraform has not planned, which are always about
