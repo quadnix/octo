@@ -16,7 +16,7 @@ import { renderReportHtml } from './reporters/html/html.reporter.js';
 import { type IndexRun, renderIndexHtml } from './reporters/html/index.reporter.js';
 import type { OctoReport } from './reporters/report.model.js';
 import { RunObserver } from './reporters/run.observer.js';
-import { timestampFor } from './reporters/timestamp.js';
+import { TimestampUtility } from './utilities/timestamp/timestamp.utility.js';
 
 /**
  * Options for {@link HtmlReportEventListener}.
@@ -178,7 +178,7 @@ export class HtmlReportEventListener {
       return;
     }
 
-    const basename = `${timestampFor(new Date(report.startedAt))}-${report.mode}`;
+    const basename = `${TimestampUtility.timestampFor(new Date(report.startedAt))}-${report.mode}`;
     const htmlPath = join(this.reportDir, `${basename}.html`);
     const jsonPath = join(this.reportDir, `${basename}.json`);
 

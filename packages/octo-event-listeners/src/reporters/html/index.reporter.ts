@@ -1,6 +1,6 @@
+import { HtmlUtility } from '../../utilities/html/html.utility.js';
+import { TimestampUtility } from '../../utilities/timestamp/timestamp.utility.js';
 import { CHANGE_SYMBOLS, type ChangeKind, type OctoReport } from '../report.model.js';
-import { readableTimestamp } from '../timestamp.js';
-import { escapeHtml } from './escape-html.js';
 import { REPORT_STYLES } from './report.styles.js';
 
 /**
@@ -51,13 +51,13 @@ export function renderIndexHtml(runs: IndexRun[]): string {
     .map(
       (run) =>
         '<tr>' +
-        `<td><code>${escapeHtml(readableTimestamp(run.timestamp))}</code></td>` +
-        `<td>${escapeHtml(run.mode)}</td>` +
-        `<td>${run.outcome ? `<span class="badge ${escapeHtml(run.outcome)}">${escapeHtml(run.outcome)}</span>` : ''}</td>` +
+        `<td><code>${HtmlUtility.escapeHtml(TimestampUtility.readableTimestamp(run.timestamp))}</code></td>` +
+        `<td>${HtmlUtility.escapeHtml(run.mode)}</td>` +
+        `<td>${run.outcome ? `<span class="badge ${HtmlUtility.escapeHtml(run.outcome)}">${HtmlUtility.escapeHtml(run.outcome)}</span>` : ''}</td>` +
         `<td>${renderCounts(run)}</td>` +
-        `<td class="index-headline">${escapeHtml(run.headline ?? '')}</td>` +
-        `<td><a href="./${escapeHtml(run.basename)}">open</a></td>` +
-        `<td><a href="./${escapeHtml(run.basename.replace(/\.html$/, '.json'))}">json</a></td>` +
+        `<td class="index-headline">${HtmlUtility.escapeHtml(run.headline ?? '')}</td>` +
+        `<td><a href="./${HtmlUtility.escapeHtml(run.basename)}">open</a></td>` +
+        `<td><a href="./${HtmlUtility.escapeHtml(run.basename.replace(/\.html$/, '.json'))}">json</a></td>` +
         '</tr>',
     )
     .join('');

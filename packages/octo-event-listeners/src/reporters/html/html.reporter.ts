@@ -1,3 +1,5 @@
+import { HtmlUtility } from '../../utilities/html/html.utility.js';
+import { TimestampUtility } from '../../utilities/timestamp/timestamp.utility.js';
 import {
   CHANGE_LABELS,
   CHANGE_ORDER,
@@ -9,8 +11,6 @@ import {
   type ReportStory,
   type ReportUnexplained,
 } from '../report.model.js';
-import { formatTimestamp } from '../timestamp.js';
-import { escapeHtml } from './escape-html.js';
 import { REPORT_STYLES } from './report.styles.js';
 
 /**
@@ -88,12 +88,12 @@ function renderChangedFields(row: ReportAddress): string {
       .map(
         (field) =>
           '<div class="field">' +
-          `<code class="field-name">${escapeHtml(field.field)}</code>` +
+          `<code class="field-name">${HtmlUtility.escapeHtml(field.field)}</code>` +
           // A create has no `from` and a delete no `to`; the missing side is written as an em dash
           // rather than dropped, so the arrow always reads in the same direction.
-          `<span class="field-was">${field.from === undefined ? '—' : escapeHtml(field.from)}</span>` +
+          `<span class="field-was">${field.from === undefined ? '—' : HtmlUtility.escapeHtml(field.from)}</span>` +
           '<span class="field-arrow">→</span>' +
-          `<span class="field-now">${field.to === undefined ? '—' : escapeHtml(field.to)}</span>` +
+          `<span class="field-now">${field.to === undefined ? '—' : HtmlUtility.escapeHtml(field.to)}</span>` +
           '</div>',
       )
       .join('') +
@@ -118,8 +118,8 @@ function renderTerraformRows(resource: ReportResource): string {
       .sort((a, b) => a.address.localeCompare(b.address))
       .map(
         (row) =>
-          `<div class="tf-row">${symbol(row.kind)} <code class="tf-address">${escapeHtml(row.address)}</code></div>` +
-          (row.explanation ? `<div class="tf-why">${escapeHtml(row.explanation)}</div>` : '') +
+          `<div class="tf-row">${symbol(row.kind)} <code class="tf-address">${HtmlUtility.escapeHtml(row.address)}</code></div>` +
+          (row.explanation ? `<div class="tf-why">${HtmlUtility.escapeHtml(row.explanation)}</div>` : '') +
           renderChangedFields(row),
       )
       .join('') +
@@ -135,9 +135,9 @@ function renderResource(resource: ReportResource): string {
     '<div class="res">' +
     '<div class="res-head">' +
     symbol(resource.kind) +
-    `<span class="res-name mono">${escapeHtml(resource.resourceId)}</span>` +
+    `<span class="res-name mono">${HtmlUtility.escapeHtml(resource.resourceId)}</span>` +
     '</div>' +
-    (resource.reason ? `<div class="tf-why">${escapeHtml(resource.reason)}</div>` : '') +
+    (resource.reason ? `<div class="tf-why">${HtmlUtility.escapeHtml(resource.reason)}</div>` : '') +
     renderTerraformRows(resource) +
     '</div>'
   );
@@ -182,14 +182,14 @@ function renderStory(story: ReportStory): string {
   }
 
   return (
-    `<div class="card story" id="${escapeHtml(story.id)}" data-search="${escapeHtml(searchText)}" ` +
-    `data-kinds="${escapeHtml([...kinds].join(' '))}">` +
+    `<div class="card story" id="${HtmlUtility.escapeHtml(story.id)}" data-search="${HtmlUtility.escapeHtml(searchText)}" ` +
+    `data-kinds="${HtmlUtility.escapeHtml([...kinds].join(' '))}">` +
     `<details${shouldOpen ? ' open' : ''}>` +
     '<summary class="story-head">' +
     '<span class="chev">▶</span>' +
     symbol(story.kind) +
-    `<span class="story-title">${escapeHtml(story.title)}</span>` +
-    (story.nodeContext ? `<code class="story-context">${escapeHtml(story.nodeContext)}</code>` : '') +
+    `<span class="story-title">${HtmlUtility.escapeHtml(story.title)}</span>` +
+    (story.nodeContext ? `<code class="story-context">${HtmlUtility.escapeHtml(story.nodeContext)}</code>` : '') +
     // No intent change explained these, so they were grouped by module. Saying so distinguishes
     // "you edited this" from "these were left over and had to go somewhere".
     (story.isDerived
@@ -197,7 +197,7 @@ function renderStory(story: ReportStory): string {
         'grouped by the module that rendered them.">grouped by module</span>'
       : '') +
     renderMiniTotals(story) +
-    (story.moduleId ? `<span class="story-mod">${escapeHtml(story.moduleId)}</span>` : '') +
+    (story.moduleId ? `<span class="story-mod">${HtmlUtility.escapeHtml(story.moduleId)}</span>` : '') +
     '</summary>' +
     // Octo and terraform disagree. Rendering only the two halves — an "8 replaced" title above
     // every counter at zero — reads as both "this rebuilds the stack" and "nothing will happen".
@@ -206,7 +206,7 @@ function renderStory(story: ReportStory): string {
         'none of its addresses. Usually the change is invisible to a plan taken against current state — ' +
         'a provider or account move — which is what an <em>approximate</em> report warns about.</div>'
       : '') +
-    (story.reason ? `<div class="why"><b>why:</b> ${escapeHtml(story.reason)}</div>` : '') +
+    (story.reason ? `<div class="why"><b>why:</b> ${HtmlUtility.escapeHtml(story.reason)}</div>` : '') +
     `<div class="story-body">${story.resources.map(renderResource).join('')}</div>` +
     '</details>' +
     '</div>'
@@ -223,9 +223,9 @@ function renderZoneRows(entries: ReportUnexplained[]): string {
       (entry) =>
         '<div class="zone-row">' +
         symbol(entry.kind) +
-        ` <code>${escapeHtml(entry.address)}</code>` +
-        ` <span class="zone-mod">${escapeHtml(entry.moduleId)}</span>` +
-        (entry.reason ? `<div class="zone-why">${escapeHtml(entry.reason)}</div>` : '') +
+        ` <code>${HtmlUtility.escapeHtml(entry.address)}</code>` +
+        ` <span class="zone-mod">${HtmlUtility.escapeHtml(entry.moduleId)}</span>` +
+        (entry.reason ? `<div class="zone-why">${HtmlUtility.escapeHtml(entry.reason)}</div>` : '') +
         '</div>',
     )
     .join('');
@@ -280,8 +280,8 @@ function renderFailures(report: OctoReport): string {
     report.failures
       .map(
         (failure) =>
-          `<div class="zone-row">${failure.moduleId ? `<b>${escapeHtml(failure.moduleId)}</b> ` : ''}` +
-          `<span class="mono">${escapeHtml(failure.message)}</span></div>`,
+          `<div class="zone-row">${failure.moduleId ? `<b>${HtmlUtility.escapeHtml(failure.moduleId)}</b> ` : ''}` +
+          `<span class="mono">${HtmlUtility.escapeHtml(failure.message)}</span></div>`,
       )
       .join('') +
     '</div>'
@@ -305,7 +305,7 @@ function renderEmptiedModules(report: OctoReport): string {
     '<div class="card">' +
     [...emptiedModuleIds]
       .sort((a, b) => a.localeCompare(b))
-      .map((moduleId) => `<div class="zone-row"><code>${escapeHtml(moduleId)}</code></div>`)
+      .map((moduleId) => `<div class="zone-row"><code>${HtmlUtility.escapeHtml(moduleId)}</code></div>`)
       .join('') +
     '<div class="guidance"><b>These modules had a terraform folder at the last commit and produce no ' +
     'resources now.</b><ul><li>their folders were emptied, so nothing of theirs remains to apply</li>' +
@@ -330,10 +330,10 @@ function renderCommit(report: OctoReport): string {
     .map(
       (response) =>
         '<tr>' +
-        `<td><code>${escapeHtml(response.resourceContext)}</code></td>` +
-        `<td><code>${escapeHtml(response.key)}</code></td>` +
-        `<td><code>${response.previousValue === undefined ? '—' : escapeHtml(response.previousValue)}</code></td>` +
-        `<td><code>${escapeHtml(response.value)}</code></td>` +
+        `<td><code>${HtmlUtility.escapeHtml(response.resourceContext)}</code></td>` +
+        `<td><code>${HtmlUtility.escapeHtml(response.key)}</code></td>` +
+        `<td><code>${response.previousValue === undefined ? '—' : HtmlUtility.escapeHtml(response.previousValue)}</code></td>` +
+        `<td><code>${HtmlUtility.escapeHtml(response.value)}</code></td>` +
         '</tr>',
     )
     .join('');
@@ -359,7 +359,7 @@ function renderNotes(report: OctoReport): string {
     notes
       .map(
         (note) =>
-          `<div class="zone-row">${note.moduleId ? `<b>${escapeHtml(note.moduleId)}</b> ` : ''}${escapeHtml(
+          `<div class="zone-row">${note.moduleId ? `<b>${HtmlUtility.escapeHtml(note.moduleId)}</b> ` : ''}${HtmlUtility.escapeHtml(
             note.message,
           )}</div>`,
       )
@@ -413,7 +413,7 @@ const REPORT_SCRIPT = `
 export function renderReportHtml(report: OctoReport): string {
   // UTC, matching the filename and the index. `toLocaleString()` filed the same run under two
   // different dates: `2026-08-15 02:34` in the index, `8/14/2026, 10:34 PM` on the page it links to.
-  const finished = formatTimestamp(report.finishedAt);
+  const finished = TimestampUtility.formatTimestamp(report.finishedAt);
   const title = `${report.app} — octo ${report.mode}`;
 
   const confidenceBadge =
@@ -445,7 +445,7 @@ export function renderReportHtml(report: OctoReport): string {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${escapeHtml(title)}</title>
+<title>${HtmlUtility.escapeHtml(title)}</title>
 <style>${REPORT_STYLES}</style>
 </head>
 <body>
@@ -453,13 +453,13 @@ export function renderReportHtml(report: OctoReport): string {
 
   <div class="strip">
     <div class="strip-top">
-      <span class="strip-app">${escapeHtml(report.app)}</span>
-      <span class="badge ${report.outcome}">${escapeHtml(report.mode)}</span>
+      <span class="strip-app">${HtmlUtility.escapeHtml(report.app)}</span>
+      <span class="badge ${report.outcome}">${HtmlUtility.escapeHtml(report.mode)}</span>
       ${confidenceBadge}
-      <span class="strip-meta">${escapeHtml(finished)} · ${escapeHtml(renderDuration(report))}</span>
+      <span class="strip-meta">${HtmlUtility.escapeHtml(finished)} · ${HtmlUtility.escapeHtml(renderDuration(report))}</span>
     </div>
     <div class="strip-body">
-      <p class="headline">${escapeHtml(report.headline)}</p>
+      <p class="headline">${HtmlUtility.escapeHtml(report.headline)}</p>
       ${renderCounters(report)}
       ${approximateNote}
       ${inferredNote}
@@ -488,7 +488,7 @@ export function renderReportHtml(report: OctoReport): string {
   ${renderCommit(report)}
   ${renderNotes(report)}
 
-  <p class="footer">Generated by octo · ${escapeHtml(report.mode)}</p>
+  <p class="footer">Generated by octo · ${HtmlUtility.escapeHtml(report.mode)}</p>
 </div>
 <script>${REPORT_SCRIPT}</script>
 </body>

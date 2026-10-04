@@ -1,3 +1,4 @@
+import { TimestampUtility } from '../../utilities/timestamp/timestamp.utility.js';
 import {
   CHANGE_LABELS,
   CHANGE_ORDER,
@@ -7,7 +8,6 @@ import {
   type ReportStory,
   type ReportUnexplained,
 } from '../report.model.js';
-import { formatTimestamp } from '../timestamp.js';
 
 /**
  * How long the run took, terraform named separately. See {@link OctoReport.terraformInMs}.
@@ -138,7 +138,7 @@ function section(lines: string[], heading: string, rows: string[]): void {
 export function renderReportText(report: OctoReport): string {
   const lines: string[] = [
     `${report.app} — octo ${report.mode} — ${report.outcome}${report.confidence ? ` (${report.confidence})` : ''}`,
-    `${formatTimestamp(report.finishedAt)} · ${duration(report)}`,
+    `${TimestampUtility.formatTimestamp(report.finishedAt)} · ${duration(report)}`,
     '',
     report.headline,
     counters(report),
