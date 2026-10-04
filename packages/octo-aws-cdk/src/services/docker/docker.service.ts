@@ -24,6 +24,8 @@ export class DockerService {
    * repository with immutable tags rejects the second write, having already been given the first,
    * which leaves the tag pointing at half a push. Both flags need a buildx-backed `docker build`.
    *
+   * @param imageReference The `<repository>:<tag>` the built image is tagged as.
+   * @param platform The platform the image is built for.
    * @param dockerfilePath Absolute path of the Dockerfile.
    * @param contextDirectory Absolute path of the build context.
    */

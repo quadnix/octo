@@ -97,7 +97,7 @@ function createLambdaFunction({ timeoutInSeconds = 30 }: { timeoutInSeconds?: nu
     },
     [new MatchingResource(ecrImage)],
   );
-  const lambdaFunction = new LambdaFunction(
+  return new LambdaFunction(
     'lambda-function-backend',
     {
       allowCloudFrontOriginAccess: true,
@@ -113,7 +113,6 @@ function createLambdaFunction({ timeoutInSeconds = 30 }: { timeoutInSeconds?: nu
     },
     [new MatchingResource(iamRole), new MatchingResource(ecrImageTag)],
   );
-  return lambdaFunction;
 }
 
 /**

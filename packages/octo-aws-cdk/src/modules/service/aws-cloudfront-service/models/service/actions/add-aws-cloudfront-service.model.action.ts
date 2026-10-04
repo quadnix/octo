@@ -6,11 +6,9 @@ import {
   type EnhancedModuleSchema,
   Factory,
   type IModelAction,
-  type Region,
   hasNodeName,
 } from '@quadnix/octo';
 import { AwsEcsAlbAnchorSchema } from '../../../../../../anchors/aws-ecs/aws-ecs-alb.anchor.schema.js';
-import { AwsLambdaFunctionAnchorSchema } from '../../../../../../anchors/aws-lambda/aws-lambda-function.anchor.schema.js';
 import { AwsS3StorageServiceAnchorSchema } from '../../../../../../anchors/aws-s3-storage-service/aws-s3-storage-service.anchor.schema.js';
 import { CloudFrontDistribution } from '../../../../../../resources/cloudfront-distribution/index.js';
 import type {

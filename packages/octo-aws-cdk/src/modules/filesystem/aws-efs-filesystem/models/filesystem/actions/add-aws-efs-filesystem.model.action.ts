@@ -38,7 +38,6 @@ export class AddAwsEfsFilesystemModelAction implements IModelAction<AwsEfsFilesy
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
     const filesystem = diff.node;
-    const region = actionInputs.inputs.region;
 
     const { awsAccountId, awsRegionId } = actionInputs.metadata;
 

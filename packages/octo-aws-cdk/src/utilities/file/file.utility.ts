@@ -10,13 +10,6 @@ export class FileUtility {
   /**
    * @internal
    */
-  static base64Decode(base64EncodedString: string): string {
-    return Buffer.from(base64EncodedString, 'base64').toString('ascii');
-  }
-
-  /**
-   * @internal
-   */
   static async hash(filePath: string): Promise<string> {
     return new Promise((resolve, reject) => {
       const hash = createHash('sha1');

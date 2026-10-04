@@ -24,7 +24,7 @@ export class S3StoragePermissionSchema {
    * The key prefix within the bucket this permission is for, e.g. `uploads`.
    * If you want to allow access to the entire bucket, use empty string `''`.
    */
-  @Validate({ options: { custom: (value: string): boolean => typeof value === 'string' } })
+  @Validate({ options: { custom: (value: unknown): boolean => typeof value === 'string' } })
   accessPrefix = Schema<string>();
 
   /**

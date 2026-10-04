@@ -167,7 +167,6 @@ async function setupAlb(
   { account }: { account: Account; app: App },
 ): Promise<void> {
   const {
-    region: [region],
     subnet: [subnet],
   } = await testModuleContainer.createTestModels('albModule', {
     account: [account],
