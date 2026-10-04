@@ -1,6 +1,6 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import { HclUtility, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsDeploymentAnchorSchema } from '../../../../src/anchors/aws-deployment/aws-deployment.anchor.schema.js';
 import type { AwsDynamoDBAnchorSchema } from '../../../../src/anchors/aws-dynamodb/aws-dynamodb.anchor.schema.js';
 import type { AwsEcrImageAnchorSchema } from '../../../../src/anchors/aws-ecr/aws-ecr-image.anchor.schema.js';
@@ -12,7 +12,6 @@ import { AwsLambdaExecutionModule } from '../../../../src/modules/execution/aws-
 import { DynamoDB } from '../../../../src/resources/dynamodb/index.js';
 import type { EcrImageTagSchema } from '../../../../src/resources/ecr-image-tag/index.schema.js';
 import { config } from '../../../test.config.js';
-import { TerragruntUtility } from '../../../utilities/terragrunt/terragrunt.utility.js';
 
 const { AWS_ACCOUNT_ID, AWS_REGION_ID } = config;
 
@@ -208,29 +207,31 @@ describe('AwsLambdaExecutionModule E2E', () => {
 
   it('should generate terragrunt that validates and plans against AWS', async () => {
     await setup(testModuleContainer);
-    await testModuleContainer
-      .runModules<AwsLambdaExecutionModule>(
-        {
-          inputs: {
-            deployment: stub('${{testModule.model.deployment}}'),
-            environment: stub('${{testModule.model.environment}}'),
-            executionId: 'backend-v1-qa',
-            subnet: stub('${{testModule.model.subnet}}'),
+    const { hclRender } = (
+      await testModuleContainer
+        .runModules<AwsLambdaExecutionModule>(
+          {
+            inputs: {
+              deployment: stub('${{testModule.model.deployment}}'),
+              environment: stub('${{testModule.model.environment}}'),
+              executionId: 'backend-v1-qa',
+              subnet: stub('${{testModule.model.subnet}}'),
+            },
+            moduleId: 'execution',
+            type: AwsLambdaExecutionModule,
           },
-          moduleId: 'execution',
-          type: AwsLambdaExecutionModule,
-        },
-        { outputDir: OUTPUT_DIR, terraformTarget: 'plan' },
-      )
-      .next();
+          { outputDir: OUTPUT_DIR, terraformTarget: 'plan' },
+        )
+        .next()
+    ).value!;
 
-    expect(await TerragruntUtility.collectTerraformResources(OUTPUT_DIR)).toMatchInlineSnapshot(`
+    expect(Object.keys(HclUtility.parse(hclRender).resource)).toMatchInlineSnapshot(`
      [
-       "aws_iam_role.iam-role-ExecutionRole-backend-v1-qa",
-       "aws_iam_policy.iam-role-ExecutionRole-backend-v1-qa_ExecutionRole-backend-v1-qa-10db2797df2c",
-       "aws_iam_role_policy_attachment.iam-role-ExecutionRole-backend-v1-qa_ExecutionRole-backend-v1-qa-10db2797df2c_attach",
-       "aws_lambda_function.lambda-function-backend-v1-qa",
-       "aws_lambda_function_url.lambda-function-backend-v1-qa_url",
+       "aws_iam_role.iam-role-ExecutionRole-backend-v1-qa-c96758",
+       "aws_iam_policy.iam-role-ExecutionRole-backend-v1-qa-c96758_ExecutionRole-backend-v1-qa-34c1aa0ceda0",
+       "aws_iam_role_policy_attachment.iam-role-ExecutionRole-backend-v1-qa-c96758_ExecutionRole-backend-v1-qa-34c1aa0ceda0_attach",
+       "aws_lambda_function.lambda-function-backend-v1-qa-c96758",
+       "aws_lambda_function_url.lambda-function-backend-v1-qa-c96758_url",
        "null_resource.ecr-image-tag-us-east-1-family_image-0-0-1",
        "aws_dynamodb_table.dynamodb-accounts",
      ]

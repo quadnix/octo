@@ -1,12 +1,11 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { Service, ServiceType, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import { HclUtility, Service, ServiceType, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsDynamoDBAnchorSchema } from '../../../../src/anchors/aws-dynamodb/aws-dynamodb.anchor.schema.js';
 import type { AwsRegionAnchorSchema } from '../../../../src/anchors/aws-region/aws-region.anchor.schema.js';
 import { AwsDynamoDBGlobalServiceModule } from '../../../../src/modules/service/aws-dynamodb-global-service/index.js';
 import { DynamoDBSchema } from '../../../../src/resources/dynamodb/index.schema.js';
 import { config } from '../../../test.config.js';
-import { TerragruntUtility } from '../../../utilities/terragrunt/terragrunt.utility.js';
 
 const { AWS_ACCOUNT_ID, AWS_REGION_ID } = config;
 
@@ -128,23 +127,25 @@ describe('AwsDynamoDBGlobalServiceModule E2E', () => {
 
   it('should generate terragrunt that validates and plans against AWS', async () => {
     await setup(testModuleContainer);
-    await testModuleContainer
-      .runModules<AwsDynamoDBGlobalServiceModule>(
-        {
-          inputs: {
-            dynamoDBService: stub('${{testModule.model.service}}'),
-            replicas: [{ region: stub('${{testRegion2Module.model.region}}'), tags: { key1: 'value1' } }],
+    const { hclRender } = (
+      await testModuleContainer
+        .runModules<AwsDynamoDBGlobalServiceModule>(
+          {
+            inputs: {
+              dynamoDBService: stub('${{testModule.model.service}}'),
+              replicas: [{ region: stub('${{testRegion2Module.model.region}}'), tags: { key1: 'value1' } }],
+            },
+            moduleId: 'global-dynamodb-module',
+            type: AwsDynamoDBGlobalServiceModule,
           },
-          moduleId: 'global-dynamodb-module',
-          type: AwsDynamoDBGlobalServiceModule,
-        },
-        { outputDir: OUTPUT_DIR, terraformTarget: 'plan' },
-      )
-      .next();
+          { outputDir: OUTPUT_DIR, terraformTarget: 'plan' },
+        )
+        .next()
+    ).value!;
 
-    expect(await TerragruntUtility.collectTerraformResources(OUTPUT_DIR)).toMatchInlineSnapshot(`
+    expect(Object.keys(HclUtility.parse(hclRender).resource)).toMatchInlineSnapshot(`
      [
-       "aws_dynamodb_table_replica.dynamodb-global-test-table_us-west-2",
+       "aws_dynamodb_table_replica.dynamodb-global-test-table-384bcf_us-west-2",
      ]
     `);
   }, 300_000);

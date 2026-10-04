@@ -1,10 +1,9 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import { HclUtility, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsRegionAnchorSchema } from '../../../../src/anchors/aws-region/aws-region.anchor.schema.js';
 import { AwsEfsFilesystemModule } from '../../../../src/modules/filesystem/aws-efs-filesystem/index.js';
 import { config } from '../../../test.config.js';
-import { TerragruntUtility } from '../../../utilities/terragrunt/terragrunt.utility.js';
 
 const { AWS_ACCOUNT_ID, AWS_REGION_ID } = config;
 
@@ -56,24 +55,26 @@ describe('AwsEfsFilesystemModule E2E', () => {
 
   it('should generate terragrunt that validates and plans against AWS', async () => {
     await setup(testModuleContainer);
-    await testModuleContainer
-      .runModules<AwsEfsFilesystemModule>(
-        {
-          inputs: {
-            filesystemName: 'test-filesystem',
-            region: stub('${{testModule.model.region}}'),
+    const { hclRender } = (
+      await testModuleContainer
+        .runModules<AwsEfsFilesystemModule>(
+          {
+            inputs: {
+              filesystemName: 'test-filesystem',
+              region: stub('${{testModule.model.region}}'),
+            },
+            moduleId: 'filesystem',
+            type: AwsEfsFilesystemModule,
           },
-          moduleId: 'filesystem',
-          type: AwsEfsFilesystemModule,
-        },
-        { outputDir: OUTPUT_DIR, terraformTarget: 'plan' },
-      )
-      .next();
+          { outputDir: OUTPUT_DIR, terraformTarget: 'plan' },
+        )
+        .next()
+    ).value!;
 
-    expect(await TerragruntUtility.collectTerraformResources(OUTPUT_DIR)).toMatchInlineSnapshot(`
+    expect(Object.keys(HclUtility.parse(hclRender).resource)).toMatchInlineSnapshot(`
      [
-       "aws_efs_file_system.efs-region-test-filesystem",
-       "aws_efs_backup_policy.efs-region-test-filesystem_backup_policy",
+       "aws_efs_file_system.efs-test-filesystem-238572",
+       "aws_efs_backup_policy.efs-test-filesystem-238572_backup_policy",
      ]
     `);
   }, 300_000);

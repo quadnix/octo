@@ -1,10 +1,9 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import { HclUtility, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsRegionAnchorSchema } from '../../../../src/anchors/aws-region/aws-region.anchor.schema.js';
 import { AwsEcsEnvironmentModule } from '../../../../src/modules/environment/aws-ecs-environment/index.js';
 import { config } from '../../../test.config.js';
-import { TerragruntUtility } from '../../../utilities/terragrunt/terragrunt.utility.js';
 
 const { AWS_ACCOUNT_ID, AWS_REGION_ID } = config;
 
@@ -56,24 +55,26 @@ describe('AwsEcsEnvironmentModule E2E', () => {
 
   it('should generate terragrunt that validates and plans against AWS', async () => {
     await setup(testModuleContainer);
-    await testModuleContainer
-      .runModules<AwsEcsEnvironmentModule>(
-        {
-          inputs: {
-            environmentName: 'qa',
-            environmentVariables: { ENV_NAME: 'qa' },
-            region: stub('${{testModule.model.region}}'),
+    const { hclRender } = (
+      await testModuleContainer
+        .runModules<AwsEcsEnvironmentModule>(
+          {
+            inputs: {
+              environmentName: 'qa',
+              environmentVariables: { ENV_NAME: 'qa' },
+              region: stub('${{testModule.model.region}}'),
+            },
+            moduleId: 'environment',
+            type: AwsEcsEnvironmentModule,
           },
-          moduleId: 'environment',
-          type: AwsEcsEnvironmentModule,
-        },
-        { outputDir: OUTPUT_DIR, terraformTarget: 'plan' },
-      )
-      .next();
+          { outputDir: OUTPUT_DIR, terraformTarget: 'plan' },
+        )
+        .next()
+    ).value!;
 
-    expect(await TerragruntUtility.collectTerraformResources(OUTPUT_DIR)).toMatchInlineSnapshot(`
+    expect(Object.keys(HclUtility.parse(hclRender).resource)).toMatchInlineSnapshot(`
      [
-       "aws_ecs_cluster.ecs-cluster-region-qa",
+       "aws_ecs_cluster.ecs-cluster-region-qa-238572",
      ]
     `);
   }, 300_000);

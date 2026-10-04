@@ -2,13 +2,12 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DescribeImagesCommand, ECRClient, GetAuthorizationTokenCommand } from '@aws-sdk/client-ecr';
 import { jest } from '@jest/globals';
-import { type Image, type Region, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import { HclUtility, type Image, type Region, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsRegionAnchorSchema } from '../../../../src/anchors/aws-region/aws-region.anchor.schema.js';
 import { AwsEcrImageModule } from '../../../../src/modules/image/aws-ecr-image/index.js';
 import { AwsEcrImageTagModule } from '../../../../src/modules/image/aws-ecr-image-tag/index.js';
 import { DockerService } from '../../../../src/services/docker/docker.service.js';
 import { config } from '../../../test.config.js';
-import { TerragruntUtility } from '../../../utilities/terragrunt/terragrunt.utility.js';
 
 const { AWS_ACCOUNT_ID, AWS_REGION_ID } = config;
 
@@ -92,38 +91,39 @@ describe('AwsEcrImageTagModule E2E', () => {
 
   it('should generate terragrunt for a tag published after its repository that plans against AWS', async () => {
     await setup(testModuleContainer);
-    await testModuleContainer
-      .runModules<AwsEcrImageModule | AwsEcrImageTagModule>(
-        [
-          {
-            inputs: {
-              imageFamily: 'family',
-              imageName: 'image',
-              regions: [stub<Region>('${{testModule.model.region}}')],
+    const { hclRender } = (
+      await testModuleContainer
+        .runModules<AwsEcrImageModule | AwsEcrImageTagModule>(
+          [
+            {
+              inputs: {
+                imageFamily: 'family',
+                imageName: 'image',
+                regions: [stub<Region>('${{testModule.model.region}}')],
+              },
+              moduleId: 'image',
+              type: AwsEcrImageModule,
             },
-            moduleId: 'image',
-            type: AwsEcrImageModule,
-          },
-          {
-            inputs: {
-              architecture: 'arm64',
-              dockerfileDirectory: 'images/nginx',
-              image: stub<Image>('${{image.model.image}}'),
-              imageTag: '0.0.1',
+            {
+              inputs: {
+                architecture: 'arm64',
+                dockerfileDirectory: 'images/nginx',
+                image: stub<Image>('${{image.model.image}}'),
+                imageTag: '0.0.1',
+              },
+              moduleId: 'image-tag',
+              type: AwsEcrImageTagModule,
             },
-            moduleId: 'image-tag',
-            type: AwsEcrImageTagModule,
-          },
-        ],
-        { outputDir: OUTPUT_DIR, terraformTarget: 'plan' },
-      )
-      .next();
+          ],
+          { outputDir: OUTPUT_DIR, terraformTarget: 'plan' },
+        )
+        .next()
+    ).value!;
 
-    expect(await TerragruntUtility.collectTerraformResources(OUTPUT_DIR)).toMatchInlineSnapshot(`
-     [
-       "aws_ecr_repository.ecr-us-east-1-family_image",
-       "null_resource.ecr-image-tag-us-east-1-family_image-0-0-1",
-     ]
-    `);
+    // A repository's address holds the account id, so only the resource types are matched.
+    expect(Object.keys(HclUtility.parse(hclRender).resource).map((address) => address.split('.')[0])).toEqual([
+      'aws_ecr_repository',
+      'null_resource',
+    ]);
   }, 300_000);
 });

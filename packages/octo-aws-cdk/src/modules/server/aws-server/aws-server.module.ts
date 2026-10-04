@@ -1,9 +1,17 @@
-import { AModule, type Account, AccountType, type App, type MatchingAnchor, Module, ModuleError } from '@quadnix/octo';
+import {
+  AModule,
+  type Account,
+  AccountType,
+  type App,
+  type MatchingAnchor,
+  Module,
+  ModuleError,
+  StringUtility,
+} from '@quadnix/octo';
 import { AwsDynamoDBAnchorSchema } from '../../../anchors/aws-dynamodb/aws-dynamodb.anchor.schema.js';
 import { AwsS3StorageServiceAccessPrefixAnchorSchema } from '../../../anchors/aws-s3-storage-service/aws-s3-storage-service-access-prefix.anchor.schema.js';
 import { AwsSecurityGroupAnchor } from '../../../anchors/aws-security-group/aws-security-group.anchor.js';
 import { AwsServerAnchor } from '../../../anchors/aws-server/aws-server.anchor.js';
-import { CommonUtility } from '../../../utilities/common/common.utility.js';
 import { AwsServerAccessPermission, AwsServerModuleSchema } from './index.schema.js';
 import { AwsServer } from './models/server/index.js';
 import { AwsServerDynamoDBAccessOverlay } from './overlays/aws-server-dynamodb-access/index.js';
@@ -140,7 +148,10 @@ export class AwsServerModule extends AModule<AwsServerModuleSchema, AwsServer> {
 
       // The bucket is part of what defines this grant. Without it, one server given the same
       // access prefix in two buckets derives the same overlay ID twice.
-      const overlayIdSuffix = CommonUtility.hash(server.serverKey, bucketName, accessPrefix).substring(0, 12);
+      const overlayIdSuffix = StringUtility.deterministicHash([server.serverKey, bucketName, accessPrefix]).substring(
+        0,
+        12,
+      );
       serverAnchor.properties.grants.s3.push({ accessPrefix, allowRead, allowWrite, bucketName });
       models.push(
         new AwsServerS3AccessOverlay(
@@ -177,7 +188,10 @@ export class AwsServerModule extends AModule<AwsServerModuleSchema, AwsServer> {
     for (const { allowRead, allowWrite, anchor } of dynamodbGrants.values()) {
       const { awsRegionId, TableName: tableName } = anchor.getSchemaInstance().properties;
 
-      const overlayIdSuffix = CommonUtility.hash(server.serverKey, awsRegionId, tableName).substring(0, 12);
+      const overlayIdSuffix = StringUtility.deterministicHash([server.serverKey, awsRegionId, tableName]).substring(
+        0,
+        12,
+      );
       serverAnchor.properties.grants.dynamodb.push({ allowRead, allowWrite, awsRegionId, tableName });
       models.push(
         new AwsServerDynamoDBAccessOverlay(

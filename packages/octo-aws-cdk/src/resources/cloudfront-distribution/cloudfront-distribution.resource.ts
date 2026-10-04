@@ -6,9 +6,9 @@ import {
   type MatchingResource,
   Resource,
   ResourceError,
+  StringUtility,
   type TerraformModuleScope,
 } from '@quadnix/octo';
-import { CommonUtility } from '../../utilities/common/common.utility.js';
 import { PolicyUtility } from '../../utilities/policy/policy.utility.js';
 import type { AlbSchema } from '../alb/index.schema.js';
 import type { LambdaFunctionSchema } from '../lambda-function/index.schema.js';
@@ -115,25 +115,6 @@ export class CloudFrontDistribution extends ATerraformResource<CloudFrontDistrib
     super(resourceId, properties, []);
 
     this.validateReferences();
-  }
-
-  /**
-   * A name AWS will accept, that still says which thing it belongs to.
-   *
-   * A distribution's name and an origin's are each free-form, so their join is what overflows a
-   * limit neither of them knew about. Cutting the tail off alone would let two origins collide, so
-   * what is cut is replaced by a digest of the whole name: two names that differ anywhere still
-   * differ here, and the same name always renders the same way.
-   *
-   * @internal
-   */
-  private static boundedName(name: string, maxLength: number): string {
-    if (name.length <= maxLength) {
-      return name;
-    }
-
-    const digest = CommonUtility.hash(name).substring(0, 8);
-    return `${name.substring(0, maxLength - digest.length - 1)}-${digest}`;
   }
 
   /**
@@ -512,7 +493,7 @@ export class CloudFrontDistribution extends ATerraformResource<CloudFrontDistrib
         'aws_cloudfront_origin_access_control',
         `${this.resourceId}_origin_access_control_${label}`,
         {
-          name: CloudFrontDistribution.boundedName(
+          name: StringUtility.boundedName(
             `${this.localResourceId}-${origin.originId}`,
             ORIGIN_ACCESS_CONTROL_NAME_MAX_LENGTH,
           ),

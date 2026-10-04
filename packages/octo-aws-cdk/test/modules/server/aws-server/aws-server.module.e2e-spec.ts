@@ -1,13 +1,12 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import { HclUtility, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsAccountAnchorSchema } from '../../../../src/anchors/aws-account/aws-account.anchor.schema.js';
 import type { AwsS3StorageServiceAccessPrefixAnchorSchema } from '../../../../src/anchors/aws-s3-storage-service/aws-s3-storage-service-access-prefix.anchor.schema.js';
 import type { AwsS3StorageServiceAnchorSchema } from '../../../../src/anchors/aws-s3-storage-service/aws-s3-storage-service.anchor.schema.js';
 import { AwsServerModule } from '../../../../src/modules/server/aws-server/index.js';
 import { AwsServerAccessPermission } from '../../../../src/modules/server/aws-server/index.schema.js';
 import { config } from '../../../test.config.js';
-import { TerragruntUtility } from '../../../utilities/terragrunt/terragrunt.utility.js';
 
 const { AWS_ACCOUNT_ID, AWS_REGION_ID } = config;
 
@@ -70,7 +69,7 @@ describe('AwsServerModule E2E', () => {
 
   it('should generate no terraform resources to run against AWS', async () => {
     await setup(testModuleContainer);
-    const { resourceDiffs } = (
+    const { hclRender, resourceDiffs } = (
       await testModuleContainer
         .runModules<AwsServerModule>(
           {
@@ -95,6 +94,6 @@ describe('AwsServerModule E2E', () => {
     // The server and its grants are data only. The role holding the grants materializes once the
     // server is run by an execution, so generate emits nothing for terragrunt to run.
     expect(resourceDiffs.flat()).toHaveLength(0);
-    expect(await TerragruntUtility.collectTerraformResources(OUTPUT_DIR)).toEqual([]);
+    expect(Object.keys(HclUtility.parse(hclRender).resource)).toEqual([]);
   }, 300_000);
 });

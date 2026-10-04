@@ -1,10 +1,9 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import { HclUtility, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsRegionAnchorSchema } from '../../../../src/anchors/aws-region/aws-region.anchor.schema.js';
 import { AwsS3StorageServiceModule } from '../../../../src/modules/service/aws-s3-storage-service/index.js';
 import { config } from '../../../test.config.js';
-import { TerragruntUtility } from '../../../utilities/terragrunt/terragrunt.utility.js';
 
 const { AWS_ACCOUNT_ID, AWS_REGION_ID } = config;
 
@@ -56,25 +55,27 @@ describe('AwsS3StorageServiceModule E2E', () => {
 
   it('should generate terragrunt that validates and plans against AWS', async () => {
     await setup(testModuleContainer);
-    await testModuleContainer
-      .runModules<AwsS3StorageServiceModule>(
-        {
-          inputs: {
-            accessPrefixes: ['uploads'],
-            bucketName: 'test-bucket',
-            region: stub('${{testModule.model.region}}'),
+    const { hclRender } = (
+      await testModuleContainer
+        .runModules<AwsS3StorageServiceModule>(
+          {
+            inputs: {
+              accessPrefixes: ['uploads'],
+              bucketName: 'test-bucket',
+              region: stub('${{testModule.model.region}}'),
+            },
+            moduleId: 'service',
+            type: AwsS3StorageServiceModule,
           },
-          moduleId: 'service',
-          type: AwsS3StorageServiceModule,
-        },
-        { outputDir: OUTPUT_DIR, terraformTarget: 'plan' },
-      )
-      .next();
+          { outputDir: OUTPUT_DIR, terraformTarget: 'plan' },
+        )
+        .next()
+    ).value!;
 
-    expect(await TerragruntUtility.collectTerraformResources(OUTPUT_DIR)).toMatchInlineSnapshot(`
+    expect(Object.keys(HclUtility.parse(hclRender).resource)).toMatchInlineSnapshot(`
      [
-       "aws_s3_bucket.bucket-test-bucket",
-       "aws_s3_bucket_public_access_block.bucket-test-bucket-public-access",
+       "aws_s3_bucket.bucket-test-bucket-238572",
+       "aws_s3_bucket_public_access_block.bucket-test-bucket-238572-public-access",
      ]
     `);
   }, 300_000);

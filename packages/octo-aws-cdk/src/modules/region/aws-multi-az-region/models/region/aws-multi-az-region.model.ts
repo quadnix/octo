@@ -1,4 +1,5 @@
 import { Model, ModelError, Region } from '@quadnix/octo';
+import { AwsRegionUtility } from '../../../../../utilities/aws-region/aws-region.utility.js';
 import { AwsMultiAzRegionSchema } from './aws-multi-az-region.schema.js';
 
 /**
@@ -43,7 +44,7 @@ export class AwsMultiAzRegion extends Region {
     const awsRegionAZs: string[] = [];
     const awsRegionIds: Set<string> = new Set();
     for (const regionId of regionIds) {
-      const regionIdParts = AwsMultiAzRegion.getRegionIdParts(regionId);
+      const regionIdParts = AwsRegionUtility.getRegionIdParts(regionId);
       awsRegionAZs.push(regionIdParts.awsRegionAZ);
       awsRegionIds.add(regionIdParts.awsRegionId);
     }
@@ -66,16 +67,6 @@ export class AwsMultiAzRegion extends Region {
     return new AwsMultiAzRegion(region.regionId, region.awsRegionAZs.map((az) => `aws-${az}`) as AwsMultiAzRegionId[]);
   }
 
-  /**
-   * @internal
-   */
-  private static getRegionIdParts(regionId: AwsMultiAzRegionId): { awsRegionAZ: string; awsRegionId: string } {
-    const regionIdParts = regionId.split('-');
-    regionIdParts.shift();
-    const awsRegionAZ = regionIdParts.join('-');
-    const awsRegionId = awsRegionAZ.substring(0, awsRegionAZ.length - 1);
-    return { awsRegionAZ, awsRegionId };
-  }
 
   /**
    * @internal

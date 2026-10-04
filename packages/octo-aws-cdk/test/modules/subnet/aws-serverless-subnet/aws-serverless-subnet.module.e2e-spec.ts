@@ -1,10 +1,9 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import { HclUtility, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsServerlessRegionAnchorSchema } from '../../../../src/anchors/aws-region/aws-serverless-region.anchor.schema.js';
 import { AwsServerlessSubnetModule } from '../../../../src/modules/subnet/aws-serverless-subnet/index.js';
 import { config } from '../../../test.config.js';
-import { TerragruntUtility } from '../../../utilities/terragrunt/terragrunt.utility.js';
 
 const { AWS_ACCOUNT_ID, AWS_REGION_ID } = config;
 
@@ -49,17 +48,19 @@ describe('AwsServerlessSubnetModule E2E', () => {
 
   it('should generate no terragrunt, since a serverless subnet creates no resources', async () => {
     await setup(testModuleContainer);
-    await testModuleContainer
-      .runModules<AwsServerlessSubnetModule>(
-        {
-          inputs: { region: stub('${{testModule.model.region}}') },
-          moduleId: 'subnet',
-          type: AwsServerlessSubnetModule,
-        },
-        { outputDir: OUTPUT_DIR, terraformTarget: 'plan' },
-      )
-      .next();
+    const { hclRender } = (
+      await testModuleContainer
+        .runModules<AwsServerlessSubnetModule>(
+          {
+            inputs: { region: stub('${{testModule.model.region}}') },
+            moduleId: 'subnet',
+            type: AwsServerlessSubnetModule,
+          },
+          { outputDir: OUTPUT_DIR, terraformTarget: 'plan' },
+        )
+        .next()
+    ).value!;
 
-    expect(await TerragruntUtility.collectTerraformResources(OUTPUT_DIR)).toEqual([]);
+    expect(Object.keys(HclUtility.parse(hclRender).resource)).toEqual([]);
   }, 300_000);
 });

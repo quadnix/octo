@@ -1,10 +1,9 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import { HclUtility, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsServerAnchorSchema } from '../../../../src/anchors/aws-server/aws-server.anchor.schema.js';
 import { AwsDeploymentModule } from '../../../../src/modules/deployment/aws-deployment/index.js';
 import { config } from '../../../test.config.js';
-import { TerragruntUtility } from '../../../utilities/terragrunt/terragrunt.utility.js';
 
 const { AWS_ACCOUNT_ID, AWS_REGION_ID } = config;
 
@@ -50,7 +49,7 @@ describe('AwsDeploymentModule E2E', () => {
 
   it('should generate no terraform resources to run against AWS', async () => {
     await setup(testModuleContainer);
-    const { resourceDiffs } = (
+    const { hclRender, resourceDiffs } = (
       await testModuleContainer
         .runModules<AwsDeploymentModule>(
           {
@@ -74,6 +73,6 @@ describe('AwsDeploymentModule E2E', () => {
     // The deployment module contributes no terraform of its own (the code only materializes once
     // run by an execution), so generate emits nothing for terragrunt to run.
     expect(resourceDiffs.flat()).toHaveLength(0);
-    expect(await TerragruntUtility.collectTerraformResources(OUTPUT_DIR)).toEqual([]);
+    expect(Object.keys(HclUtility.parse(hclRender).resource)).toEqual([]);
   }, 300_000);
 });

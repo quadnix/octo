@@ -7,10 +7,10 @@ import {
   type Region,
   Service,
   ServiceType,
+  StringUtility,
   Validate,
 } from '@quadnix/octo';
 import { AwsS3StorageServiceAccessPrefixAnchor } from '../../../../../anchors/aws-s3-storage-service/aws-s3-storage-service-access-prefix.anchor.js';
-import { CommonUtility } from '../../../../../utilities/common/common.utility.js';
 import {
   type IManifest,
   type IS3FileExcludePath,
@@ -63,7 +63,7 @@ export class AwsS3StorageService extends Service {
       throw new ModelError('Access prefix already added in S3 bucket!', this);
     }
 
-    const accessPrefixHash = CommonUtility.hash(accessPrefix).substring(0, 12);
+    const accessPrefixHash = StringUtility.deterministicHash(accessPrefix).substring(0, 12);
     const accessPrefixAnchorName = `AwsS3StorageServiceAccessPrefixAnchor-${accessPrefixHash}`;
     this.addAnchor(
       new AwsS3StorageServiceAccessPrefixAnchor(

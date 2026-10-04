@@ -1,11 +1,10 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import { HclUtility, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsAccountAnchorSchema } from '../../../../src/anchors/aws-account/aws-account.anchor.schema.js';
 import { AwsSingleAzRegionModule } from '../../../../src/modules/region/aws-single-az-region/index.js';
 import { AwsSingleAzRegionId } from '../../../../src/modules/region/aws-single-az-region/index.schema.js';
 import { config } from '../../../test.config.js';
-import { TerragruntUtility } from '../../../utilities/terragrunt/terragrunt.utility.js';
 
 const { AWS_ACCOUNT_ID, AWS_REGION_ID } = config;
 
@@ -49,26 +48,28 @@ describe('AwsSingleAzRegionModule E2E', () => {
 
   it('should generate terragrunt that validates and plans against AWS', async () => {
     await setup(testModuleContainer);
-    await testModuleContainer
-      .runModules<AwsSingleAzRegionModule>(
-        {
-          inputs: {
-            account: stub('${{testModule.model.account}}'),
-            name: 'test-region',
-            regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
-            vpcCidrBlock: '10.0.0.0/16',
+    const { hclRender } = (
+      await testModuleContainer
+        .runModules<AwsSingleAzRegionModule>(
+          {
+            inputs: {
+              account: stub('${{testModule.model.account}}'),
+              name: 'test-region',
+              regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
+              vpcCidrBlock: '10.0.0.0/16',
+            },
+            moduleId: 'region',
+            type: AwsSingleAzRegionModule,
           },
-          moduleId: 'region',
-          type: AwsSingleAzRegionModule,
-        },
-        { outputDir: OUTPUT_DIR, terraformTarget: 'plan' },
-      )
-      .next();
+          { outputDir: OUTPUT_DIR, terraformTarget: 'plan' },
+        )
+        .next()
+    ).value!;
 
-    expect(await TerragruntUtility.collectTerraformResources(OUTPUT_DIR)).toMatchInlineSnapshot(`
+    expect(Object.keys(HclUtility.parse(hclRender).resource)).toMatchInlineSnapshot(`
      [
-       "aws_vpc.vpc-test-region",
-       "aws_internet_gateway.igw-test-region",
+       "aws_vpc.vpc-test-region-bbdcf0",
+       "aws_internet_gateway.igw-test-region-bbdcf0",
      ]
     `);
   }, 300_000);

@@ -1,10 +1,9 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import { HclUtility, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsRegionAnchorSchema } from '../../../../src/anchors/aws-region/aws-region.anchor.schema.js';
 import { AwsDynamoDBServiceModule } from '../../../../src/modules/service/aws-dynamodb-service/index.js';
 import { config } from '../../../test.config.js';
-import { TerragruntUtility } from '../../../utilities/terragrunt/terragrunt.utility.js';
 
 const { AWS_ACCOUNT_ID, AWS_REGION_ID } = config;
 
@@ -56,29 +55,31 @@ describe('AwsDynamoDBServiceModule E2E', () => {
 
   it('should generate terragrunt that validates and plans against AWS', async () => {
     await setup(testModuleContainer);
-    await testModuleContainer
-      .runModules<AwsDynamoDBServiceModule>(
-        {
-          inputs: {
-            AttributeDefinitions: [{ AttributeName: 'AccountId', AttributeType: 'S' }],
-            billingMode: {
-              settings: { ProvisionedThroughput: { ReadCapacityUnits: 5, WriteCapacityUnits: 5 } },
-              type: 'PROVISIONED',
+    const { hclRender } = (
+      await testModuleContainer
+        .runModules<AwsDynamoDBServiceModule>(
+          {
+            inputs: {
+              AttributeDefinitions: [{ AttributeName: 'AccountId', AttributeType: 'S' }],
+              billingMode: {
+                settings: { ProvisionedThroughput: { ReadCapacityUnits: 5, WriteCapacityUnits: 5 } },
+                type: 'PROVISIONED',
+              },
+              KeySchema: [{ AttributeName: 'AccountId', KeyType: 'HASH' }],
+              region: stub('${{testModule.model.region}}'),
+              TableName: 'test-table',
             },
-            KeySchema: [{ AttributeName: 'AccountId', KeyType: 'HASH' }],
-            region: stub('${{testModule.model.region}}'),
-            TableName: 'test-table',
+            moduleId: 'dynamodb-module',
+            type: AwsDynamoDBServiceModule,
           },
-          moduleId: 'dynamodb-module',
-          type: AwsDynamoDBServiceModule,
-        },
-        { outputDir: OUTPUT_DIR, terraformTarget: 'plan' },
-      )
-      .next();
+          { outputDir: OUTPUT_DIR, terraformTarget: 'plan' },
+        )
+        .next()
+    ).value!;
 
-    expect(await TerragruntUtility.collectTerraformResources(OUTPUT_DIR)).toMatchInlineSnapshot(`
+    expect(Object.keys(HclUtility.parse(hclRender).resource)).toMatchInlineSnapshot(`
      [
-       "aws_dynamodb_table.dynamodb-test-table",
+       "aws_dynamodb_table.dynamodb-test-table-238572",
      ]
     `);
   }, 300_000);

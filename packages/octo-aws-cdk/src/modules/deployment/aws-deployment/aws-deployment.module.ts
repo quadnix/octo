@@ -1,8 +1,7 @@
-import { AModule, Module, ModuleError } from '@quadnix/octo';
+import { AModule, Module, ModuleError, StringUtility } from '@quadnix/octo';
 import { AwsDeploymentAnchor } from '../../../anchors/aws-deployment/aws-deployment.anchor.js';
 import type { AwsDeploymentAnchorSchema } from '../../../anchors/aws-deployment/aws-deployment.anchor.schema.js';
 import { AwsEcrImageAnchorSchema } from '../../../anchors/aws-ecr/aws-ecr-image.anchor.schema.js';
-import { CommonUtility } from '../../../utilities/common/common.utility.js';
 import { AwsDeploymentModuleSchema } from './index.schema.js';
 import { AwsDeployment } from './models/deployment/index.js';
 import { AwsDeploymentImageOverlay } from './overlays/aws-deployment-image/index.js';
@@ -89,7 +88,10 @@ export class AwsDeploymentModule extends AModule<AwsDeploymentModuleSchema, AwsD
     const [matchingAwsEcrImageAnchor] = await image.getAnchorsMatchingSchema(AwsEcrImageAnchorSchema, [], {
       searchBoundaryMembers: false,
     });
-    const overlayIdSuffix = CommonUtility.hash(server.serverKey, deployment.deploymentTag).substring(0, 12);
+    const overlayIdSuffix = StringUtility.deterministicHash([server.serverKey, deployment.deploymentTag]).substring(
+      0,
+      12,
+    );
     models.push(
       new AwsDeploymentImageOverlay(
         `aws-deployment-image-overlay-${overlayIdSuffix}`,

@@ -1,6 +1,6 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import { HclUtility, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsDeploymentAnchorSchema } from '../../../../src/anchors/aws-deployment/aws-deployment.anchor.schema.js';
 import type { AwsEcsClusterAnchorSchema } from '../../../../src/anchors/aws-ecs/aws-ecs-cluster.anchor.schema.js';
 import type { AwsEfsAnchorSchema } from '../../../../src/anchors/aws-efs/aws-efs.anchor.schema.js';
@@ -16,7 +16,6 @@ import { EfsMountTargetSchema } from '../../../../src/resources/efs-mount-target
 import { SubnetSchema } from '../../../../src/resources/subnet/index.schema.js';
 import { VpcSchema } from '../../../../src/resources/vpc/index.schema.js';
 import { config } from '../../../test.config.js';
-import { TerragruntUtility } from '../../../utilities/terragrunt/terragrunt.utility.js';
 
 const { AWS_ACCOUNT_ID, AWS_REGION_ID } = config;
 
@@ -222,43 +221,44 @@ describe('AwsEcsExecutionModule E2E', () => {
 
   it('should generate terragrunt that validates and plans against AWS', async () => {
     await setup(testModuleContainer);
-    await testModuleContainer
-      .runModules<AwsEcsExecutionModule>(
-        {
-          inputs: {
-            deployments: {
-              main: {
-                containerProperties: {
-                  image: {
-                    essential: true,
-                    name: 'backend-v1',
+    const { hclRender } = (
+      await testModuleContainer
+        .runModules<AwsEcsExecutionModule>(
+          {
+            inputs: {
+              deployments: {
+                main: {
+                  containerProperties: {
+                    image: {
+                      essential: true,
+                      name: 'backend-v1',
+                    },
                   },
+                  deployment: stub('${{testModule.model.deployment}}'),
                 },
-                deployment: stub('${{testModule.model.deployment}}'),
+                sidecars: [],
               },
-              sidecars: [],
+              desiredCount: 1,
+              environment: stub('${{testModule.model.environment}}'),
+              executionId: 'backend-v1-region-qa-private-subnet',
+              subnet: stub('${{testModule.model.subnet}}'),
             },
-            desiredCount: 1,
-            environment: stub('${{testModule.model.environment}}'),
-            executionId: 'backend-v1-region-qa-private-subnet',
-            subnet: stub('${{testModule.model.subnet}}'),
+            moduleId: 'execution',
+            type: AwsEcsExecutionModule,
           },
-          moduleId: 'execution',
-          type: AwsEcsExecutionModule,
-        },
-        { outputDir: OUTPUT_DIR, terraformTarget: 'plan' },
-      )
-      .next();
+          { outputDir: OUTPUT_DIR, terraformTarget: 'plan' },
+        )
+        .next()
+    ).value!;
 
-    expect(await TerragruntUtility.collectTerraformResources(OUTPUT_DIR)).toMatchInlineSnapshot(`
+    expect(Object.keys(HclUtility.parse(hclRender).resource)).toMatchInlineSnapshot(`
      [
-       "aws_security_group.sec-grp-SecurityGroup-backend",
-       "aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
-       "aws_vpc_security_group_egress_rule.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet_egress_0",
-       "aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet",
-       "aws_iam_role_policy_attachment.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet_AmazonECSTaskExecutionRolePolicy",
-       "aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet",
-       "aws_ecs_service.ecs-service-backend-v1-region-qa-private-subnet",
+       "aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-788084",
+       "aws_vpc_security_group_egress_rule.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-788084_egress_0",
+       "aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-788084",
+       "aws_iam_role_policy_attachment.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-788084_AmazonECSTaskExecutionRolePolicy",
+       "aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet-788084",
+       "aws_ecs_service.ecs-service-backend-v1-region-qa-private-subnet-788084",
      ]
     `);
   }, 300_000);

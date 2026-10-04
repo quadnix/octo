@@ -1,4 +1,5 @@
 import { Model, Region } from '@quadnix/octo';
+import { AwsRegionUtility } from '../../../../../utilities/aws-region/aws-region.utility.js';
 import { AwsSingleAzRegionSchema } from './aws-single-az-region.schema.js';
 
 /**
@@ -40,7 +41,7 @@ export class AwsSingleAzRegion extends Region {
     super(name);
 
     // Derive AWS regionId and AZ.
-    const regionIdParts = AwsSingleAzRegion.getRegionIdParts(regionId);
+    const regionIdParts = AwsRegionUtility.getRegionIdParts(regionId);
     this.awsRegionAZs = [regionIdParts.awsRegionAZ];
     this.awsRegionId = regionIdParts.awsRegionId;
 
@@ -54,16 +55,6 @@ export class AwsSingleAzRegion extends Region {
     return new AwsSingleAzRegion(region.regionId, `aws-${region.awsRegionAZs[0]}` as AwsSingleAzRegionId);
   }
 
-  /**
-   * @internal
-   */
-  private static getRegionIdParts(regionId: AwsSingleAzRegionId): { awsRegionAZ: string; awsRegionId: string } {
-    const regionIdParts = regionId.split('-');
-    regionIdParts.shift();
-    const awsRegionAZ = regionIdParts.join('-');
-    const awsRegionId = awsRegionAZ.substring(0, awsRegionAZ.length - 1);
-    return { awsRegionAZ, awsRegionId };
-  }
 
   /**
    * @internal

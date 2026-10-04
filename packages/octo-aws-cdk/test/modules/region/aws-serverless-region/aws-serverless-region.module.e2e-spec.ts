@@ -1,11 +1,10 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import { HclUtility, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsAccountAnchorSchema } from '../../../../src/anchors/aws-account/aws-account.anchor.schema.js';
 import { AwsServerlessRegionModule } from '../../../../src/modules/region/aws-serverless-region/index.js';
 import { AwsServerlessRegionId } from '../../../../src/modules/region/aws-serverless-region/index.schema.js';
 import { config } from '../../../test.config.js';
-import { TerragruntUtility } from '../../../utilities/terragrunt/terragrunt.utility.js';
 
 const { AWS_ACCOUNT_ID, AWS_REGION_ID } = config;
 
@@ -49,21 +48,23 @@ describe('AwsServerlessRegionModule E2E', () => {
 
   it('should generate no terragrunt, since a serverless region creates no resources', async () => {
     await setup(testModuleContainer);
-    await testModuleContainer
-      .runModules<AwsServerlessRegionModule>(
-        {
-          inputs: {
-            account: stub('${{testModule.model.account}}'),
-            name: 'test-region',
-            regionId: AwsServerlessRegionId.AWS_US_EAST_1,
+    const { hclRender } = (
+      await testModuleContainer
+        .runModules<AwsServerlessRegionModule>(
+          {
+            inputs: {
+              account: stub('${{testModule.model.account}}'),
+              name: 'test-region',
+              regionId: AwsServerlessRegionId.AWS_US_EAST_1,
+            },
+            moduleId: 'region',
+            type: AwsServerlessRegionModule,
           },
-          moduleId: 'region',
-          type: AwsServerlessRegionModule,
-        },
-        { outputDir: OUTPUT_DIR, terraformTarget: 'plan' },
-      )
-      .next();
+          { outputDir: OUTPUT_DIR, terraformTarget: 'plan' },
+        )
+        .next()
+    ).value!;
 
-    expect(await TerragruntUtility.collectTerraformResources(OUTPUT_DIR)).toEqual([]);
+    expect(Object.keys(HclUtility.parse(hclRender).resource)).toEqual([]);
   }, 300_000);
 });

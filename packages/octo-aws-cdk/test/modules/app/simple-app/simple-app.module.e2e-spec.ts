@@ -1,9 +1,8 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { TestContainer, TestModuleContainer } from '@quadnix/octo';
+import { HclUtility, TestContainer, TestModuleContainer } from '@quadnix/octo';
 import { SimpleAppModule } from '../../../../src/modules/app/simple-app/index.js';
 import { config } from '../../../test.config.js';
-import { TerragruntUtility } from '../../../utilities/terragrunt/terragrunt.utility.js';
 
 const { AWS_ACCOUNT_ID, AWS_REGION_ID } = config;
 
@@ -29,7 +28,7 @@ describe('SimpleAppModule E2E', () => {
   });
 
   it('should generate no terraform resources to run against AWS', async () => {
-    const { resourceDiffs } = (
+    const { hclRender, resourceDiffs } = (
       await testModuleContainer
         .runModules<SimpleAppModule>(
           {
@@ -43,6 +42,6 @@ describe('SimpleAppModule E2E', () => {
     ).value!;
 
     expect(resourceDiffs.flat()).toHaveLength(0);
-    expect(await TerragruntUtility.collectTerraformResources(OUTPUT_DIR)).toEqual([]);
+    expect(Object.keys(HclUtility.parse(hclRender).resource)).toEqual([]);
   }, 300_000);
 });

@@ -1,6 +1,14 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { type AResource, MatchingResource, SubnetType, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import {
+  type AResource,
+  HclUtility,
+  MatchingResource,
+  SubnetType,
+  TestContainer,
+  TestModuleContainer,
+  stub,
+} from '@quadnix/octo';
 import type { AwsEcsServiceAnchorSchema } from '../../../../src/anchors/aws-ecs/aws-ecs-service.anchor.schema.js';
 import type { AwsRegionAnchorSchema } from '../../../../src/anchors/aws-region/aws-region.anchor.schema.js';
 import { AwsEcsAlbServiceModule } from '../../../../src/modules/service/aws-ecs-alb-service/index.js';
@@ -11,7 +19,6 @@ import { InternetGatewaySchema } from '../../../../src/resources/internet-gatewa
 import { SubnetSchema } from '../../../../src/resources/subnet/index.schema.js';
 import { VpcSchema } from '../../../../src/resources/vpc/index.schema.js';
 import { config } from '../../../test.config.js';
-import { TerragruntUtility } from '../../../utilities/terragrunt/terragrunt.utility.js';
 
 const { AWS_ACCOUNT_ID, AWS_REGION_ID } = config;
 
@@ -279,71 +286,73 @@ describe('AwsEcsAlbServiceModule E2E', () => {
 
   it('should generate terragrunt that validates and plans against AWS', async () => {
     await setup(testModuleContainer);
-    await testModuleContainer
-      .runModules<AwsEcsAlbServiceModule>(
-        {
-          inputs: {
-            albName: 'test-alb',
-            listeners: [
-              {
-                DefaultActions: [
-                  {
-                    action: {
-                      TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+    const { hclRender } = (
+      await testModuleContainer
+        .runModules<AwsEcsAlbServiceModule>(
+          {
+            inputs: {
+              albName: 'test-alb',
+              listeners: [
+                {
+                  DefaultActions: [
+                    {
+                      action: {
+                        TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                      },
+                      actionType: 'forward',
                     },
-                    actionType: 'forward',
-                  },
-                ],
-                Port: 80,
-                rules: [
-                  {
-                    actions: [
-                      {
-                        action: {
-                          TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                  ],
+                  Port: 80,
+                  rules: [
+                    {
+                      actions: [
+                        {
+                          action: {
+                            TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                          },
+                          actionType: 'forward',
                         },
-                        actionType: 'forward',
-                      },
-                    ],
-                    conditions: [
-                      {
-                        condition: { Values: ['/api'] },
-                        conditionType: 'path-pattern',
-                      },
-                    ],
-                    Priority: 1,
-                  },
-                ],
-              },
-            ],
-            region: stub('${{testModule.model.region}}'),
-            subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
-            targets: [
-              {
-                containerName: 'test-container',
-                containerPort: 80,
-                execution: stub('${{testExecutionModule.model.execution}}'),
-                healthCheck: HEALTH_CHECK_RESPONSE,
-                Name: 'test-container-80',
-              },
-            ],
+                      ],
+                      conditions: [
+                        {
+                          condition: { Values: ['/api'] },
+                          conditionType: 'path-pattern',
+                        },
+                      ],
+                      Priority: 1,
+                    },
+                  ],
+                },
+              ],
+              region: stub('${{testModule.model.region}}'),
+              subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+              targets: [
+                {
+                  containerName: 'test-container',
+                  containerPort: 80,
+                  execution: stub('${{testExecutionModule.model.execution}}'),
+                  healthCheck: HEALTH_CHECK_RESPONSE,
+                  Name: 'test-container-80',
+                },
+              ],
+            },
+            moduleId: 'alb-module',
+            type: AwsEcsAlbServiceModule,
           },
-          moduleId: 'alb-module',
-          type: AwsEcsAlbServiceModule,
-        },
-        { outputDir: OUTPUT_DIR, terraformTarget: 'plan' },
-      )
-      .next();
+          { outputDir: OUTPUT_DIR, terraformTarget: 'plan' },
+        )
+        .next()
+    ).value!;
 
-    expect(await TerragruntUtility.collectTerraformResources(OUTPUT_DIR)).toMatchInlineSnapshot(`
+    expect(Object.keys(HclUtility.parse(hclRender).resource)).toMatchInlineSnapshot(`
      [
-       "aws_security_group.sec-grp-region-test-alb",
-       "aws_vpc_security_group_ingress_rule.sec-grp-region-test-alb_ingress_0",
-       "aws_vpc_security_group_egress_rule.sec-grp-region-test-alb_egress_0",
-       "aws_lb.alb-region-test-alb",
-       "aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1",
-       "aws_lb_listener.alb-listener-test-alb",
-       "aws_lb_listener_rule.alb-listener-test-alb_rule_1",
+       "aws_security_group.sec-grp-test-alb-134b1b",
+       "aws_vpc_security_group_ingress_rule.sec-grp-test-alb-134b1b_ingress_0",
+       "aws_vpc_security_group_egress_rule.sec-grp-test-alb-134b1b_egress_0",
+       "aws_lb.alb-test-alb-134b1b",
+       "aws_lb_target_group.alb-target-group-test-alb-backend-v1-region-qa-public-subnet-1-134b1b",
+       "aws_lb_listener.alb-listener-test-alb-80-134b1b",
+       "aws_lb_listener_rule.alb-listener-test-alb-80-134b1b_rule_1",
        "aws_ecs_service.ecs-service-backend-v1-region-qa-public-subnet-1",
      ]
     `);

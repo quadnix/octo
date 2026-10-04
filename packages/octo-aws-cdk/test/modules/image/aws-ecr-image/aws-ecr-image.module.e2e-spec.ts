@@ -1,10 +1,9 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import { HclUtility, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsRegionAnchorSchema } from '../../../../src/anchors/aws-region/aws-region.anchor.schema.js';
 import { AwsEcrImageModule } from '../../../../src/modules/image/aws-ecr-image/index.js';
 import { config } from '../../../test.config.js';
-import { TerragruntUtility } from '../../../utilities/terragrunt/terragrunt.utility.js';
 
 const { AWS_ACCOUNT_ID, AWS_REGION_ID } = config;
 
@@ -56,25 +55,26 @@ describe('AwsEcrImageModule E2E', () => {
 
   it('should generate terragrunt that validates and plans against AWS', async () => {
     await setup(testModuleContainer);
-    await testModuleContainer
-      .runModules<AwsEcrImageModule>(
-        {
-          inputs: {
-            imageFamily: 'family',
-            imageName: 'image',
-            regions: [stub('${{testModule.model.region}}')],
+    const { hclRender } = (
+      await testModuleContainer
+        .runModules<AwsEcrImageModule>(
+          {
+            inputs: {
+              imageFamily: 'family',
+              imageName: 'image',
+              regions: [stub('${{testModule.model.region}}')],
+            },
+            moduleId: 'image',
+            type: AwsEcrImageModule,
           },
-          moduleId: 'image',
-          type: AwsEcrImageModule,
-        },
-        { outputDir: OUTPUT_DIR, terraformTarget: 'plan' },
-      )
-      .next();
+          { outputDir: OUTPUT_DIR, terraformTarget: 'plan' },
+        )
+        .next()
+    ).value!;
 
-    expect(await TerragruntUtility.collectTerraformResources(OUTPUT_DIR)).toMatchInlineSnapshot(`
-     [
-       "aws_ecr_repository.ecr-us-east-1-family_image",
-     ]
-    `);
+    // A repository's address holds the account id, so only the resource types are matched.
+    expect(Object.keys(HclUtility.parse(hclRender).resource).map((address) => address.split('.')[0])).toEqual([
+      'aws_ecr_repository',
+    ]);
   }, 300_000);
 });

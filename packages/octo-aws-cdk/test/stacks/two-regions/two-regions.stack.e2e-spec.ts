@@ -10,6 +10,7 @@ import {
   type Environment,
   type Execution,
   type Filesystem,
+  HclUtility,
   type Image,
   type ModuleSchemaInputs,
   type Region,
@@ -43,7 +44,6 @@ import { AwsEcsAlbServiceModule } from '../../../src/modules/service/aws-ecs-alb
 import { AwsServerlessSubnetModule } from '../../../src/modules/subnet/aws-serverless-subnet/index.js';
 import { AwsSimpleSubnetModule } from '../../../src/modules/subnet/aws-simple-subnet/index.js';
 import { config } from '../../test.config.js';
-import { TerragruntUtility } from '../../utilities/terragrunt/terragrunt.utility.js';
 
 const { AWS_ACCOUNT_ID } = config;
 
@@ -348,15 +348,6 @@ function countByType(addresses: string[]): Record<string, number> {
   return Object.fromEntries(Object.entries(counts).sort(([a], [b]) => a.localeCompare(b)));
 }
 
-/**
- * The value of every `<attribute> = "…"` line in the rendered HCL, sorted, so a test can show that
- * two regions really do hold the same AWS name.
- */
-function attributeValues(hcl: string, attribute: string): string[] {
-  const values = [...hcl.matchAll(new RegExp(`^\\s*${attribute}\\s*=\\s*"([^"]+)"`, 'gm'))].map((m) => m[1]);
-  return values.sort();
-}
-
 const EAST: EcsRegion = {
   albName: 'qa-api-alb',
   awsAvailabilityZones: ['us-east-1a', 'us-east-1b'],
@@ -431,7 +422,8 @@ describe('Two-region stack E2E', () => {
           .next()
       ).value!;
 
-      expect(countByType(await TerragruntUtility.collectTerraformResources(OUTPUT_DIR))).toMatchInlineSnapshot(`
+      const { resource } = HclUtility.parse(hclRender);
+      expect(countByType(Object.keys(resource))).toMatchInlineSnapshot(`
        {
          "aws_dynamodb_table": 2,
          "aws_ecs_cluster": 2,
@@ -461,9 +453,10 @@ describe('Two-region stack E2E', () => {
       `);
 
       // The names AWS keeps unique per account and region are the same in both regions.
-      expect(attributeValues(hclRender, 'name').filter((n) => n === 'accounts')).toHaveLength(2);
-      expect(attributeValues(hclRender, 'name').filter((n) => n === 'qa-api-alb')).toHaveLength(2);
-      expect(attributeValues(hclRender, 'name').filter((n) => n === 'backend-v1-80')).toHaveLength(2);
+      const names = Object.values(resource).map((block) => block.name);
+      expect(names.filter((n) => n === 'accounts')).toHaveLength(2);
+      expect(names.filter((n) => n === 'qa-api-alb')).toHaveLength(2);
+      expect(names.filter((n) => n === 'backend-v1-80')).toHaveLength(2);
     }, 1_800_000);
 
     it('should plan a serverless stack built under the same names in both regions', async () => {
@@ -489,7 +482,8 @@ describe('Two-region stack E2E', () => {
           .next()
       ).value!;
 
-      expect(countByType(await TerragruntUtility.collectTerraformResources(OUTPUT_DIR))).toMatchInlineSnapshot(`
+      const { resource } = HclUtility.parse(hclRender);
+      expect(countByType(Object.keys(resource))).toMatchInlineSnapshot(`
        {
          "aws_dynamodb_table": 2,
          "aws_ecr_repository": 2,
@@ -502,8 +496,9 @@ describe('Two-region stack E2E', () => {
        }
       `);
 
-      expect(attributeValues(hclRender, 'name').filter((n) => n === 'accounts')).toHaveLength(2);
-      expect(attributeValues(hclRender, 'name').filter((n) => n === 'two-regions/backend')).toHaveLength(2);
+      const names = Object.values(resource).map((block) => block.name);
+      expect(names.filter((n) => n === 'accounts')).toHaveLength(2);
+      expect(names.filter((n) => n === 'two-regions/backend')).toHaveLength(2);
     }, 1_800_000);
   });
 
@@ -535,11 +530,14 @@ describe('Two-region stack E2E', () => {
     }, 300_000);
 
     it('should plan an ECS stack whose regions name their own ALB, target group and table', async () => {
-      await testModuleContainer
-        .runModules(ecsStackModules([EAST, EAST_SECOND]), { outputDir: OUTPUT_DIR, terraformTarget: 'plan' })
-        .next();
+      const { hclRender } = (
+        await testModuleContainer
+          .runModules(ecsStackModules([EAST, EAST_SECOND]), { outputDir: OUTPUT_DIR, terraformTarget: 'plan' })
+          .next()
+      ).value!;
 
-      expect(countByType(await TerragruntUtility.collectTerraformResources(OUTPUT_DIR))).toMatchInlineSnapshot(`
+      const { resource } = HclUtility.parse(hclRender);
+      expect(countByType(Object.keys(resource))).toMatchInlineSnapshot(`
        {
          "aws_dynamodb_table": 2,
          "aws_ecs_cluster": 2,

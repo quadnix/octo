@@ -1,6 +1,6 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import { HclUtility, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsEfsAnchorSchema } from '../../../../src/anchors/aws-efs/aws-efs.anchor.schema.js';
 import type { AwsRegionAnchorSchema } from '../../../../src/anchors/aws-region/aws-region.anchor.schema.js';
 import { AwsSimpleSubnetModule } from '../../../../src/modules/subnet/aws-simple-subnet/index.js';
@@ -8,7 +8,6 @@ import type { EfsSchema } from '../../../../src/resources/efs/index.schema.js';
 import type { InternetGatewaySchema } from '../../../../src/resources/internet-gateway/index.schema.js';
 import type { VpcSchema } from '../../../../src/resources/vpc/index.schema.js';
 import { config } from '../../../test.config.js';
-import { TerragruntUtility } from '../../../utilities/terragrunt/terragrunt.utility.js';
 
 const { AWS_ACCOUNT_ID, AWS_REGION_ID } = config;
 
@@ -100,32 +99,34 @@ describe('AwsSimpleSubnetModule E2E', () => {
 
   it('should generate terragrunt that validates and plans against AWS', async () => {
     await setup(testModuleContainer);
-    await testModuleContainer
-      .runModules<AwsSimpleSubnetModule>(
-        {
-          inputs: {
-            localFilesystems: [stub('${{testModule.model.filesystem}}')],
-            region: stub('${{testModule.model.region}}'),
-            subnetAvailabilityZone: 'us-east-1a',
-            subnetCidrBlock: '10.0.1.0/24',
-            subnetName: 'private-subnet',
+    const { hclRender } = (
+      await testModuleContainer
+        .runModules<AwsSimpleSubnetModule>(
+          {
+            inputs: {
+              localFilesystems: [stub('${{testModule.model.filesystem}}')],
+              region: stub('${{testModule.model.region}}'),
+              subnetAvailabilityZone: 'us-east-1a',
+              subnetCidrBlock: '10.0.1.0/24',
+              subnetName: 'private-subnet',
+            },
+            moduleId: 'subnet',
+            type: AwsSimpleSubnetModule,
           },
-          moduleId: 'subnet',
-          type: AwsSimpleSubnetModule,
-        },
-        { outputDir: OUTPUT_DIR, terraformTarget: 'plan' },
-      )
-      .next();
+          { outputDir: OUTPUT_DIR, terraformTarget: 'plan' },
+        )
+        .next()
+    ).value!;
 
-    expect(await TerragruntUtility.collectTerraformResources(OUTPUT_DIR)).toMatchInlineSnapshot(`
+    expect(Object.keys(HclUtility.parse(hclRender).resource)).toMatchInlineSnapshot(`
      [
-       "aws_subnet.subnet-region-private-subnet",
-       "aws_route_table.rt-region-private-subnet",
-       "aws_route_table_association.rt-region-private-subnet_assoc",
-       "aws_network_acl.nacl-region-private-subnet",
-       "aws_security_group.sec-grp-efs-mount-region-private-subnet-test-filesystem",
-       "aws_vpc_security_group_ingress_rule.sec-grp-efs-mount-region-private-subnet-test-filesystem_ingress_0",
-       "aws_efs_mount_target.efs-mount-region-private-subnet-test-filesystem",
+       "aws_subnet.subnet-region-private-subnet-238572",
+       "aws_route_table.rt-region-private-subnet-238572",
+       "aws_route_table_association.rt-region-private-subnet-238572_assoc",
+       "aws_network_acl.nacl-region-private-subnet-238572",
+       "aws_security_group.sec-grp-efs-mount-region-private-subnet-test-filesystem-238572",
+       "aws_vpc_security_group_ingress_rule.sec-grp-efs-mount-region-private-subnet-test-filesystem-238572_ingress_0",
+       "aws_efs_mount_target.efs-mount-region-private-subnet-test-filesystem-238572",
      ]
     `);
   }, 300_000);

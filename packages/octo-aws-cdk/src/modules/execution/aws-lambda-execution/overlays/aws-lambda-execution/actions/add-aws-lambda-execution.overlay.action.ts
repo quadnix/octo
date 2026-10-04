@@ -8,6 +8,7 @@ import {
   type IModelAction,
   MatchingResource,
   OverlayActionExceptionTransactionError,
+  StringUtility,
   hasNodeName,
 } from '@quadnix/octo';
 import { AwsDynamoDBAnchorSchema } from '../../../../../../anchors/aws-dynamodb/aws-dynamodb.anchor.schema.js';
@@ -18,7 +19,6 @@ import { IamRole } from '../../../../../../resources/iam-role/index.js';
 import { LambdaFunction } from '../../../../../../resources/lambda-function/index.js';
 import type { S3Storage } from '../../../../../../resources/s3-storage/index.js';
 import { S3StorageSchema } from '../../../../../../resources/s3-storage/index.schema.js';
-import { CommonUtility } from '../../../../../../utilities/common/common.utility.js';
 import type { AwsLambdaExecutionModule } from '../../../aws-lambda-execution.module.js';
 import { AwsLambdaExecutionOverlay } from '../aws-lambda-execution.overlay.js';
 
@@ -121,7 +121,7 @@ export class AddAwsLambdaExecutionOverlayAction implements IModelAction<AwsLambd
         );
       }
 
-      const policyId = `${properties.iamRoleName}-${CommonUtility.hash(grant.bucketName, grant.accessPrefix).substring(0, 12)}`;
+      const policyId = `${properties.iamRoleName}-${StringUtility.deterministicHash([grant.bucketName, grant.accessPrefix]).substring(0, 12)}`;
       iamRole.addS3BucketPolicy(policyId, matchingS3StorageResource, grant.accessPrefix, {
         allowRead: grant.allowRead,
         allowWrite: grant.allowWrite,
@@ -160,7 +160,7 @@ export class AddAwsLambdaExecutionOverlayAction implements IModelAction<AwsLambd
         );
       }
 
-      const policyId = `${properties.iamRoleName}-${CommonUtility.hash(grant.awsRegionId, grant.tableName).substring(0, 12)}`;
+      const policyId = `${properties.iamRoleName}-${StringUtility.deterministicHash([grant.awsRegionId, grant.tableName]).substring(0, 12)}`;
       iamRole.addDynamoDBTablePolicy(policyId, matchingDynamoDBResource, {
         allowRead: grant.allowRead,
         allowWrite: grant.allowWrite,
