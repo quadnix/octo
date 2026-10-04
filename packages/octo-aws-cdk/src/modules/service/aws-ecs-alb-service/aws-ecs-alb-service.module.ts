@@ -122,11 +122,13 @@ export class AwsEcsAlbServiceModule extends AModule<AwsEcsAlbServiceModuleSchema
       matchingEcsServiceAnchors.push(matchingEcsServiceAnchor);
     }
 
-    // Add overlay for alb and ecs execution.
-    const ecsAlbServiceOverlay = new AwsEcsAlbServiceOverlay(`aws-ecs-alb-service-overlay-${inputs.albName}`, {}, [
-      ecsAlbAnchor,
-      ...matchingEcsServiceAnchors,
-    ]);
+    // Add overlay for alb and ecs execution. An overlay id is unique across the app, and two regions
+    // may each hold an ALB of one name, so the id names the region too.
+    const ecsAlbServiceOverlay = new AwsEcsAlbServiceOverlay(
+      `aws-ecs-alb-service-overlay-${region.regionId}-${inputs.albName}`,
+      {},
+      [ecsAlbAnchor, ...matchingEcsServiceAnchors],
+    );
 
     return [service, ecsAlbServiceOverlay];
   }

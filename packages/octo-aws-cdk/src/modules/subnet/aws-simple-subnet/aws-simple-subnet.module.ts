@@ -127,8 +127,10 @@ export class AwsSimpleSubnetModule extends AModule<AwsSimpleSubnetModuleSchema, 
         );
       }
 
+      // An overlay id is unique across the app, and two regions may each hold a subnet and a filesystem
+      // of one name, so the id names the subnet by its id, which holds the region.
       const awsSimpleSubnetLocalFilesystemMountOverlay = new AwsSimpleSubnetLocalFilesystemMountOverlay(
-        `aws-simple-subnet-local-filesystem-mount-overlay-${subnet.subnetName}-${filesystem.filesystemName}`,
+        `aws-simple-subnet-local-filesystem-mount-overlay-${subnet.subnetId}-${filesystem.filesystemName}`,
         {
           filesystemName: filesystem.filesystemName,
           regionId: region.regionId,
