@@ -19,7 +19,13 @@ exports[`AwsEcsExecutionModule UT input changes should handle desiredCount chang
 `;
 
 exports[`AwsEcsExecutionModule UT input changes should handle executionId change 1`] = `
-"- execution/main.tf
+"+ execution/main.tf
+moved {
+  from = aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet-94a6a9
+  to = aws_ecs_task_definition.ecs-task-definition-changed-execution-id-94a6a9
+}
+
+- execution/main.tf
 resource "aws_ecs_service" "ecs-service-backend-v1-region-qa-private-subnet-94a6a9" {
   provider = aws._123-us-east-1
   cluster = var.ecs_cluster_region_qa.clusterArn

@@ -47,6 +47,7 @@ async function setup(
   } = {},
 ): Promise<void> {
   const {
+    account: [account],
     app: [app],
     deployment: [deployment],
     environment: [environment],
@@ -222,10 +223,15 @@ async function setup(
   for (const [index, awsRegionId] of (withTableGrant ? tableRegions : []).entries()) {
     const tableModuleId = index === 0 ? 'tableModule' : `tableModule-${awsRegionId}`;
     const {
+      region: [tableRegion],
+    } = await testModuleContainer.createTestModels(tableModuleId, {
+      account: [account],
+      region: [awsRegionId === 'us-east-1' ? region : `region-${awsRegionId}`],
+    });
+    const {
       service: [table],
     } = await testModuleContainer.createTestModels(tableModuleId, {
-      app: [app],
-      service: [[`accounts-${awsRegionId}`, { tableName: 'accounts' }]],
+      service: [[`accounts-${awsRegionId}`, { tableName: 'accounts' }, [tableRegion]]],
     });
     const tableAnchor = testModuleContainer.createTestAnchor<AwsDynamoDBAnchorSchema>(
       'AwsDynamoDBAnchor',
@@ -619,6 +625,33 @@ describe('AwsLambdaExecutionModule UT', () => {
     ).value!;
 
     expect(hclRender).toMatch(/command\s*=\s*\["node", "--title=api server", "main.js"]/);
+  });
+
+  it('should keep the function and its role when it is granted a table in another region', async () => {
+    await setup(testModuleContainer, { withTableGrant: true });
+    await testModuleContainer
+      .runModules<AwsLambdaExecutionModule>(
+        { inputs: executionInputs(), moduleId: 'execution', type: AwsLambdaExecutionModule },
+        { terraformTarget: 'skip' },
+      )
+      .next();
+
+    await setup(testModuleContainer, { tableRegions: ['us-east-1', 'eu-west-1'], withTableGrant: true });
+    testModuleContainer.registerTerraformProvider('aws', '123', 'eu-west-1');
+    const { resourceDiffs } = (
+      await testModuleContainer
+        .runModules<AwsLambdaExecutionModule>(
+          { inputs: executionInputs(), moduleId: 'execution', type: AwsLambdaExecutionModule },
+          { terraformTarget: 'skip' },
+        )
+        .next()
+    ).value!;
+
+    expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
+     [
+       "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-qa-83d832",
+     ]
+    `);
   });
 
   it('should update the function in place when its memory moves', async () => {

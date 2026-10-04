@@ -2,6 +2,12 @@
 
 exports[`AwsEcsAlbServiceModule UT input changes should handle albName change 1`] = `
 "+ alb-module/main.tf
+moved {
+  from = aws_lb_target_group.alb-target-group-test-alb-backend-v1-region-qa-public-subnet-1-074c0f
+  to = aws_lb_target_group.alb-target-group-changed-alb-backend-v1-region-qa-public-subnet-1-074c0f
+}
+
++ alb-module/main.tf
 resource "aws_lb_listener" "alb-listener-changed-alb-80-074c0f" {
   provider = aws._123-us-east-1
   default_action {
