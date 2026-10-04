@@ -183,57 +183,6 @@
   text-transform: uppercase;
 }
 
-.figureBad {
-  background: rgba(220, 38, 38, 0.045);
-  border-color: rgba(220, 38, 38, 0.24);
-}
-
-.figureGood {
-  background: rgba(22, 163, 74, 0.05);
-  border-color: rgba(22, 163, 74, 0.26);
-}
-
-.figureBadHead,
-.figureGoodHead {
-  align-items: center;
-  display: flex;
-  font-size: 0.98rem;
-  font-weight: 600;
-  gap: 0.5rem;
-}
-
-.figureBadHead {
-  color: #b91c1c;
-}
-
-.figureGoodHead {
-  color: #15803d;
-}
-
-.figureMark {
-  font-size: 0.9rem;
-}
-
-.figureMono {
-  color: var(--landing-muted);
-  font-family: var(--ifm-font-family-monospace);
-  font-size: 0.8rem;
-  line-height: 1.5;
-}
-
-.figureNote {
-  color: var(--landing-muted);
-  font-size: 0.85rem;
-  font-style: italic;
-}
-
-.figureSub {
-  color: var(--landing-muted);
-  font-family: var(--ifm-font-family-monospace);
-  font-size: 0.8rem;
-  padding-left: 1.4rem;
-}
-
 @media screen and (max-width: 996px) {
   .section {
     padding: 3.5rem 0;

@@ -49,15 +49,6 @@ h4 {
   font-size: 110% !important;
 }
 
-.layout-component {
-  display: flex;
-  gap: 1rem;
-
-  & > div {
-    width: 50% !important;
-  }
-}
-
 /* Sidebar menu */
 .menu__link {
   line-height: 1;

@@ -78,10 +78,10 @@ from one where a change was started and not finished.
 
 ## Two states, two jobs
 
-|                 | Records                                                        | Written by                        | Lives in                   |
-|-----------------|----------------------------------------------------------------|-----------------------------------|----------------------------|
-| Octo state      | Your intent, your resources, and the link between them          | `octo generate` and `octo commit` | `.octo/`                   |
-| Terraform state | Cloud objects and their attributes                              | `terraform apply`                 | `.octo/<moduleId>.tfstate` |
+|                 | Records                                                | Written by                        | Lives in                   |
+|-----------------|--------------------------------------------------------|-----------------------------------|----------------------------|
+| Octo state      | Your intent, your resources, and the link between them | `octo generate` and `octo commit` | `.octo/`                   |
+| Terraform state | Cloud objects and their attributes                     | `terraform apply`                 | `.octo/<moduleId>.tfstate` |
 
 Neither replaces the other. Terraform state is what lets Terraform know a bucket exists. Octo state
 is what lets a report say the bucket is checkout's receipts storage.

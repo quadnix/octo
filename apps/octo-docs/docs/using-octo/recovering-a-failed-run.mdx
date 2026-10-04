@@ -9,12 +9,12 @@ clears that on its own, because Octo cannot tell a run that died from one that i
 
 What to do depends on where the run stopped, and the terminal tells you which:
 
-| What you see                                                                                          | Section                                                   |
-|-------------------------------------------------------------------------------------------------------|-----------------------------------------------------------|
-| `octo apply` ended with an error from Terraform                                                       | [The apply failed](#the-apply-failed)                     |
-| `octo apply` printed `This apply would DESTROY`                                                       | [The apply refused](#the-apply-refused)                   |
-| `octo commit` ended with an error                                                                     | [The commit failed](#the-commit-failed)                   |
-| No error at all: the terminal closed, you pressed Ctrl-C, the machine restarted, a CI job was cancelled | [The run died](#the-run-died)                             |
+| What you see                                                                                            | Section                                 |
+|---------------------------------------------------------------------------------------------------------|-----------------------------------------|
+| `octo apply` ended with an error from Terraform                                                         | [The apply failed](#the-apply-failed)   |
+| `octo apply` printed `This apply would DESTROY`                                                         | [The apply refused](#the-apply-refused) |
+| `octo commit` ended with an error                                                                       | [The commit failed](#the-commit-failed) |
+| No error at all: the terminal closed, you pressed Ctrl-C, the machine restarted, a CI job was cancelled | [The run died](#the-run-died)           |
 
 The examples use the [shop](/docs/getting-started/shop-stack): a region, and a receipts bucket in
 it.

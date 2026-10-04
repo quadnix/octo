@@ -45,12 +45,12 @@ Neither question can be asked of a Terraform state file.
 
 ## What a resource holds
 
-|              |                                                                                    |
-|--------------|------------------------------------------------------------------------------------|
+|              |                                                                                                                                             |
+|--------------|---------------------------------------------------------------------------------------------------------------------------------------------|
 | `resourceId` | Its name, unique across your infrastructure: the name its module gives it, followed by a short hash of where the model that caused it sits. |
-| `properties` | The configuration you asked for. This is what becomes Terraform.                    |
-| `response`   | What the provider gave back: ARNs, generated IDs, endpoints.                        |
-| `parents`    | The resources this one is built on.                                                 |
+| `properties` | The configuration you asked for. This is what becomes Terraform.                                                                            |
+| `response`   | What the provider gave back: ARNs, generated IDs, endpoints.                                                                                |
+| `parents`    | The resources this one is built on.                                                                                                         |
 
 `response` is the half that only exists once infrastructure does. Before the first apply,
 `bucket-shop-receipts` has no ARN, because there is no bucket yet. `octo commit` is what fills it

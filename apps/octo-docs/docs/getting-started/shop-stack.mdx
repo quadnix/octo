@@ -125,7 +125,7 @@ covers each one properly. For now:
 - `modules` is your infrastructure. Each entry loads one module under a `moduleId` of your choosing,
   with the inputs that module's schema declares.
 - `${{...}}` is how one module receives what another produced. The account module
-  is handed the app the app module built, not the string `"shop"`, and that is the difference
+  is handed the app that the app module built, not the string `"shop"`, and that is the difference
   between a list of four entries in Terraform and a graph in Octo.
 
 ## Generate

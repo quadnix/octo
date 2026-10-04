@@ -208,6 +208,8 @@ Say which name the provider keeps unique, and within what, in the `uniquePropert
   uniqueProperties: [{ path: 'queueName', within: ['awsAccountId', 'awsRegionId'] }],
 })
 export class ShopQueue extends ATerraformResource<ShopQueueSchema, ShopQueue> {
+  // ... the class body is unchanged
+}
 ```
 
 `path` is the property holding the name, and `within` lists the properties that together form the
