@@ -21,11 +21,6 @@
   "engines": {
     "node": ">=18.18.0"
   },
-  "files": [
-    "dist",
-    "!dist/tsconfig.build.tsbuildinfo",
-    "package.json"
-  ],
   "jest": {
     "coverageDirectory": "./coverage",
     "extensionsToTreatAsEsm": [
@@ -56,16 +51,13 @@
       ]
     }
   },
-  "main": "./dist/index.js",
   "name": "@quadnix/octo-templates",
   "nx": {
     "tags": [
       "scope:octo-templates"
     ]
   },
-  "publishConfig": {
-    "access": "public"
-  },
+  "private": true,
   "scripts": {
     "build": "rimraf dist && tsc -p tsconfig.build.json",
     "check:circular-dependency": "dpdm --no-tree --exit-code circular:1 --no-warning ./dist/**/*.js",
@@ -81,6 +73,5 @@
     "test:watch": "jest --watch"
   },
   "type": "module",
-  "types": "./dist/index.d.ts",
   "version": "0.1.1"
 }

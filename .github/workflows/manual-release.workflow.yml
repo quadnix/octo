@@ -60,9 +60,6 @@ jobs:
           jq -S '. + (input|{bugs, homepage, keywords, license, repository})' packages/octo-event-listeners/package.json package.json > out.json
           mv out.json packages/octo-event-listeners/package.json
           cp README.md packages/octo-event-listeners/README.md
-          jq -S '. + (input|{bugs, homepage, keywords, license, repository})' packages/octo-templates/package.json package.json > out.json
-          mv out.json packages/octo-templates/package.json
-          cp README.md packages/octo-templates/README.md
       - env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         name: Release
