@@ -1,4 +1,13 @@
-import { type AResource, MatchingResource, SubnetType, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import {
+  type AResource,
+  HclUtility,
+  MatchingResource,
+  type ModuleSchemaInputs,
+  SubnetType,
+  TestContainer,
+  TestModuleContainer,
+  stub,
+} from '@quadnix/octo';
 import type { AwsEcsServiceAnchorSchema } from '../../../anchors/aws-ecs/aws-ecs-service.anchor.schema.js';
 import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import type { EcsClusterSchema } from '../../../resources/ecs-cluster/index.schema.js';
@@ -1113,6 +1122,49 @@ describe('AwsEcsAlbServiceModule UT', () => {
        "* @octo/alb-listener=alb-listener-test-alb-80-074c0f",
      ]
     `);
+  });
+
+  it('should register one execution with the target group of each of two ALBs', async () => {
+    await setup(testModuleContainer);
+    const albInputs = (albName: string): ModuleSchemaInputs<AwsEcsAlbServiceModule> => ({
+      albName,
+      listeners: [
+        {
+          DefaultActions: [
+            { action: { TargetGroups: [{ targetGroupName: `${albName}-80`, Weight: 100 }] }, actionType: 'forward' },
+          ],
+          Port: 80,
+          rules: [],
+        },
+      ],
+      region: stub('${{testModule.model.region}}'),
+      subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+      targets: [
+        {
+          containerName: 'test-container',
+          containerPort: 80,
+          execution: stub('${{testExecutionModule.model.execution}}'),
+          healthCheck: HEALTH_CHECK_RESPONSE,
+          Name: `${albName}-80`,
+        },
+      ],
+    });
+
+    const { hclRender } = (
+      await testModuleContainer
+        .runModules<AwsEcsAlbServiceModule>(
+          [
+            { inputs: albInputs('api-alb'), moduleId: 'api-alb-module', type: AwsEcsAlbServiceModule },
+            { inputs: albInputs('admin-alb'), moduleId: 'admin-alb-module', type: AwsEcsAlbServiceModule },
+          ],
+          { terraformTarget: 'skip' },
+        )
+        .next()
+    ).value!;
+
+    const { resource } = HclUtility.parse(hclRender);
+    const [ecsService] = Object.entries(resource).filter(([address]) => address.startsWith('aws_ecs_service.'));
+    expect(ecsService[1].load_balancer).toHaveLength(2);
   });
 
   describe('input changes', () => {

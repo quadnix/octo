@@ -115,15 +115,12 @@ export class EcsTaskDefinitionSchema extends BaseResourceSchema {
    * * `properties.awsRegionId` - The AWS region ID.
    * * `properties.cpu` - The number of CPU units to reserve for the containers.
    * * `properties.deploymentTag` - The deployment tag, generally mapped to the deployment model deploymentTag property.
-   * This is usually defined in conjunction with the `family` (server key).
-   * Both the properties together specify the server and the code currently referenced in the task definition.
    * E.g. deploymentTag = v0 might mean the tag in GitHub, or a specific branch, or commit.
    * * `properties.environmentVariables` - The list of environment variables to pass to the container.
    * See {@link EcsTaskDefinitionEnvironmentVariableSchema} for options.
-   * * `properties.family` - The family of the task definition, generally mapped to the server model serverKey property.
-   * This is usually defined in conjunction with the `deploymentTag`.
-   * Both the properties together specify the server and the code currently referenced in the task definition.
-   * E.g. family = backend indicates that this task definition is for the backend server.
+   * * `properties.family` - The family of the task definition, unique within its account and AWS region,
+   * generally mapped to the execution's executionId, so that two deployments of one server in one
+   * environment and subnet each get a family of their own.
    * * `properties.images` - The containers to run as part of the task definition.
    * See {@link EcsTaskDefinitionImageSchema} for options.
    * * `properties.memory` - The amount of memory to reserve for the containers.

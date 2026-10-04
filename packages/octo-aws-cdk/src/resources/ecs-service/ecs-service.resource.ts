@@ -67,7 +67,6 @@ export class EcsService extends ATerraformResource<EcsServiceSchema, EcsService>
    */
   addAlbTargetGroup(albTargetGroup: MatchingResource<AlbTargetGroupSchema>, containerName: string): void {
     const { Name: targetGroupName, Port: containerPort } = albTargetGroup.getSchemaInstance().properties;
-    const existingAlbTargetGroupParentDependencies = this.getParents('alb-target-group')['alb-target-group'];
     const existingTaskDefinitionParent = this.getParents('ecs-task-definition')['ecs-task-definition'][0]
       .to as AResource<EcsTaskDefinitionSchema, any>;
 
@@ -81,9 +80,6 @@ export class EcsService extends ATerraformResource<EcsServiceSchema, EcsService>
         return;
       }
       throw new ResourceError(`Target group "${targetGroupName}" is already registered with this service!`, this);
-    }
-    if (existingAlbTargetGroupParentDependencies?.length > 0) {
-      throw new ResourceError('A Target group has already registered with this service!', this);
     }
     if (
       !existingTaskDefinitionParent.properties.images.find(

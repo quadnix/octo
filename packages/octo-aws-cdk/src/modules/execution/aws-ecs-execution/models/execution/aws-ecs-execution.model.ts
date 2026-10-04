@@ -78,6 +78,12 @@ export class AwsEcsExecution extends Execution {
    * @internal
    */
   override setContext(): string | undefined {
+    // Unset while the super constructor runs, where a parent already holding another execution asks
+    // for this one's context.
+    if (!this.deployments) {
+      return undefined;
+    }
+
     const parents = this.getParents();
     const deployment = parents['deployment']?.find(
       (d) => (d.to as Deployment).deploymentTag === this.deployments.main.deploymentTag,

@@ -21,6 +21,7 @@ import type { AwsSubnetAnchorSchema } from '../../../anchors/aws-subnet/aws-subn
 import { DynamoDB } from '../../../resources/dynamodb/index.js';
 import type { EcrImageTagSchema } from '../../../resources/ecr-image-tag/index.schema.js';
 import type { EcsClusterSchema } from '../../../resources/ecs-cluster/index.schema.js';
+import type { EcsTaskDefinition } from '../../../resources/ecs-task-definition/index.js';
 import type { EfsSchema } from '../../../resources/efs/index.schema.js';
 import type { EfsMountTargetSchema } from '../../../resources/efs-mount-target/index.schema.js';
 import { S3Storage } from '../../../resources/s3-storage/index.js';
@@ -61,6 +62,7 @@ async function setup(
     publishedFor = 'x86_64',
     publishedImageTag,
     publishedIn = 'us-east-1',
+    secondDeployment = false,
     sidecar,
     tableAccount = '123',
     tableRegion = 'us-east-1',
@@ -72,6 +74,7 @@ async function setup(
     publishedFor?: 'arm64' | 'x86_64';
     publishedImageTag?: string;
     publishedIn?: string;
+    secondDeployment?: boolean;
     sidecar?: {
       grants?: boolean;
       onMainServer?: boolean;
@@ -149,6 +152,27 @@ async function setup(
     : undefined;
   if (sidecarDeploymentAnchor) {
     sidecarDeployment.addAnchor(sidecarDeploymentAnchor);
+  }
+
+  // A second deployment of the same server, a module of its own, so that it has a stub of its own.
+  if (secondDeployment) {
+    const {
+      deployment: [deploymentV2],
+    } = await testModuleContainer.createTestModels('secondDeploymentModule', { deployment: ['v2'], server: [server] });
+    deploymentV2.addAnchor(
+      testModuleContainer.createTestAnchor<AwsDeploymentAnchorSchema>(
+        'AwsDeploymentAnchor',
+        {
+          command: ['/bin/sh'],
+          cpu: 256,
+          image: { kind: 'uri', uri: 'docker.io' },
+          memory: 512,
+          ports: [{ containerPort: 8080, protocol: 'tcp' }],
+          timeoutInSeconds: null,
+        },
+        deploymentV2,
+      ),
+    );
   }
 
   if (sidecarServer && sidecarServer !== server) {
@@ -672,7 +696,7 @@ describe('AwsEcsExecutionModule UT', () => {
        ])
        cpu = "256"
        execution_role_arn = aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9.arn
-       family = "qa-region-private-subnet-backend"
+       family = "backend-v1-region-qa-private-subnet"
        memory = "512"
        network_mode = "awsvpc"
        requires_compatibilities = ["FARGATE"]
@@ -1919,6 +1943,42 @@ describe('AwsEcsExecutionModule UT', () => {
        "@octo/ecr-image-tag=ecr-image-tag-us-east-1-family/image-0-0-1",
      ]
     `);
+  });
+
+  it('should give two deployments of one server in one environment and subnet a task definition family each', async () => {
+    await setup(testModuleContainer, { secondDeployment: true });
+
+    const { resourceDiffs } = (
+      await testModuleContainer
+        .runModules<AwsEcsExecutionModule>(
+          [
+            { inputs: executionInputs(), moduleId: 'execution', type: AwsEcsExecutionModule },
+            {
+              inputs: {
+                ...executionInputs(),
+                deployments: {
+                  main: {
+                    containerProperties: { image: { essential: true, name: 'backend-v2' } },
+                    deployment: stub('${{secondDeploymentModule.model.deployment}}'),
+                  },
+                  sidecars: [],
+                },
+                executionId: 'backend-v2-region-qa-private-subnet',
+              },
+              moduleId: 'execution-v2',
+              type: AwsEcsExecutionModule,
+            },
+          ],
+          { terraformTarget: 'skip' },
+        )
+        .next()
+    ).value!;
+
+    const families = resourceDiffs
+      .flat()
+      .filter((d) => hasNodeName(d.node, 'ecs-task-definition'))
+      .map((d) => (d.node as EcsTaskDefinition).properties.family);
+    expect(families).toEqual(['backend-v1-region-qa-private-subnet', 'backend-v2-region-qa-private-subnet']);
   });
 
   describe('validation', () => {

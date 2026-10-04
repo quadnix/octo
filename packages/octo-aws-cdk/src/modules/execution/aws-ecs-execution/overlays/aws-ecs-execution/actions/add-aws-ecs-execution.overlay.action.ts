@@ -263,7 +263,7 @@ export class AddAwsEcsExecutionOverlayAction implements IModelAction<AwsEcsExecu
         cpu: properties.deploymentContainerProperties.cpu,
         deploymentTag: properties.deploymentTag,
         environmentVariables,
-        family: `${properties.environmentName}-${properties.subnetId}-${properties.serverKey}`,
+        family: properties.executionId,
         images: properties.deploymentContainerProperties.images,
         memory: properties.deploymentContainerProperties.memory,
       },
