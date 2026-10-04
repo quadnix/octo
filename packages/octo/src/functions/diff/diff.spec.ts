@@ -1,6 +1,6 @@
+import { DiffUtility } from '../../utilities/diff/diff.utility.js';
 import { createResource } from '../../utilities/test-helpers/test-resources.js';
 import { Diff, DiffAction } from './diff.js';
-import { DiffUtility } from './diff.utility.js';
 
 const TestResource = createResource('test-resource').setClassName('TestResource');
 

@@ -120,6 +120,105 @@ describe('HclUtility UT', () => {
     });
   });
 
+  describe('parse()', () => {
+    it('should read nothing from text with no resource or data blocks', () => {
+      expect(HclUtility.parse('terraform {\n  required_version = ">= 1.6.0"\n}')).toEqual({ data: {}, resource: {} });
+    });
+
+    it('should key resources and data sources by their terraform address', () => {
+      const hcl = [
+        'provider "aws" {',
+        '  region = "us-east-1"',
+        '}',
+        '',
+        'resource "aws_vpc" "vpc-region" {',
+        '  cidr_block = "10.0.0.0/16"',
+        '}',
+        '',
+        'data "aws_iam_policy" "policy" {',
+        '  name = "ReadOnly"',
+        '}',
+      ].join('\n');
+
+      expect(HclUtility.parse(hcl)).toEqual({
+        data: { 'data.aws_iam_policy.policy': { name: 'ReadOnly' } },
+        resource: { 'aws_vpc.vpc-region': { cidr_block: '10.0.0.0/16' } },
+      });
+    });
+
+    it('should unquote strings and keep every other value as its text', () => {
+      const hcl = [
+        'resource "aws_lb" "alb" {',
+        '  internal = false',
+        '  name = "api"',
+        '  security_groups = [aws_security_group.sg.id]',
+        '  vpc_id = var.vpc_VpcId',
+        '}',
+      ].join('\n');
+
+      expect(HclUtility.parse(hcl).resource['aws_lb.alb']).toEqual({
+        internal: 'false',
+        name: 'api',
+        security_groups: '[aws_security_group.sg.id]',
+        vpc_id: 'var.vpc_VpcId',
+      });
+    });
+
+    it('should read nested blocks, and a repeated nested block as an array', () => {
+      const hcl = [
+        'resource "aws_lb_listener" "listener" {',
+        '  default_action {',
+        '    type = "forward"',
+        '  }',
+        '  tags = {',
+        '    Name = "listener"',
+        '  }',
+        '  rule {',
+        '    priority = 1',
+        '  }',
+        '  rule {',
+        '    priority = 2',
+        '  }',
+        '}',
+      ].join('\n');
+
+      expect(HclUtility.parse(hcl).resource['aws_lb_listener.listener']).toEqual({
+        default_action: { type: 'forward' },
+        rule: [{ priority: '1' }, { priority: '2' }],
+        tags: { Name: 'listener' },
+      });
+    });
+
+    it('should keep a value spanning lines whole, ignoring brackets inside strings', () => {
+      const hcl = [
+        'resource "aws_ecs_task_definition" "task" {',
+        '  container_definitions = jsonencode([',
+        '    {',
+        '      command = ["echo", "}"]',
+        '    }',
+        '  ])',
+        '  family = "backend"',
+        '}',
+      ].join('\n');
+
+      expect(HclUtility.parse(hcl).resource['aws_ecs_task_definition.task']).toEqual({
+        container_definitions: 'jsonencode([\n    {\n      command = ["echo", "}"]\n    }\n  ])',
+        family: 'backend',
+      });
+    });
+
+    it('should read every module of a serialized render', () => {
+      const render = HclUtility.serialize(
+        moduleFiles({
+          region: { mainTf: 'resource "aws_vpc" "vpc" {\n  cidr_block = "10.0.0.0/16"\n}' },
+          subnet: { mainTf: 'resource "aws_subnet" "subnet" {\n  vpc_id = var.vpc_VpcId\n}' },
+        }),
+      );
+
+      expect(Object.keys(HclUtility.parse(render).resource)).toEqual(['aws_vpc.vpc', 'aws_subnet.subnet']);
+    });
+  });
+
   describe('unifiedDiff()', () => {
     it('should return an empty string for identical inputs', () => {
       expect(HclUtility.unifiedDiff('a\nb\nc', 'a\nb\nc')).toBe('');

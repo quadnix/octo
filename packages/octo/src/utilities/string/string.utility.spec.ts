@@ -1,6 +1,24 @@
 import { StringUtility } from './string.utility.js';
 
 describe('StringUtility UT', () => {
+  describe('boundedName()', () => {
+    it('should return a name within the limit as it is', () => {
+      expect(StringUtility.boundedName('short-name', 10)).toBe('short-name');
+    });
+
+    it('should shorten a long name to the limit, ending in a digest', () => {
+      const name = StringUtility.boundedName('my-distribution-with-a-very-long-origin-id', 20);
+      expect(name).toHaveLength(20);
+      expect(name).toMatch(/^my-distribu-[0-9a-f]{8}$/);
+    });
+
+    it('should keep two long names apart that share the part it keeps', () => {
+      expect(StringUtility.boundedName('my-distribution-origin-a', 20)).not.toBe(
+        StringUtility.boundedName('my-distribution-origin-b', 20),
+      );
+    });
+  });
+
   describe('deterministicHash()', () => {
     it('should return a 16-character hex string', () => {
       const hash = StringUtility.deterministicHash('hello');

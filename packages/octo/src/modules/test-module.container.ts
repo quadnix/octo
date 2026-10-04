@@ -13,7 +13,6 @@ import type {
 import { type Container } from '../functions/container/container.js';
 import type { DiffMetadata } from '../functions/diff/diff-metadata.js';
 import { DiffAction } from '../functions/diff/diff.js';
-import { DiffUtility } from '../functions/diff/diff.utility.js';
 import { Octo } from '../main.js';
 import type { App } from '../models/app/app.model.js';
 import type { IModelAction } from '../models/model-action.interface.js';
@@ -35,6 +34,7 @@ import type { IStateProvider } from '../services/state-management/state-provider
 import { TestStateProvider } from '../services/state-management/test.state-provider.js';
 import { TerraformService } from '../services/terraform/terraform.service.js';
 import { TransactionService } from '../services/transaction/transaction.service.js';
+import { DiffUtility } from '../utilities/diff/diff.utility.js';
 import { HclUtility } from '../utilities/hcl/hcl.utility.js';
 import { TerraformUtility } from '../utilities/terraform/terraform.utility.js';
 import { TestAnchor } from '../utilities/test-helpers/test-classes.js';

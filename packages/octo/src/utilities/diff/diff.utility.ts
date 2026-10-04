@@ -1,8 +1,8 @@
 import type { UnknownNode } from '../../app.type.js';
+import { Dependency } from '../../functions/dependency/dependency.js';
+import { Diff, DiffAction } from '../../functions/diff/diff.js';
+import { ANode } from '../../functions/node/node.abstract.js';
 import { AAnchor } from '../../overlays/anchor.abstract.js';
-import { Dependency } from '../dependency/dependency.js';
-import { ANode } from '../node/node.abstract.js';
-import { Diff, DiffAction } from './diff.js';
 
 /**
  * Helpers for producing {@link Diff}s between two versions of a node.

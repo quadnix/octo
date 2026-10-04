@@ -2,8 +2,8 @@ import { type DiffValueTypeTagUpdate, MatchingResource, type UnknownResource } f
 import { DiffInverseResourceError, RemoveResourceError, ResourceError } from '../errors/index.js';
 import { type Dependency, DependencyRelationship } from '../functions/dependency/dependency.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';
-import { DiffUtility } from '../functions/diff/diff.utility.js';
 import { ANode } from '../functions/node/node.abstract.js';
+import { DiffUtility } from '../utilities/diff/diff.utility.js';
 import { StringUtility } from '../utilities/string/string.utility.js';
 import type { IResource, IResourceReference } from './resource.interface.js';
 import type { BaseResourceSchema } from './resource.schema.js';

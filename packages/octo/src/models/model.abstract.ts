@@ -12,7 +12,6 @@ import {
 import { NodeError, SchemaError, ValidationTransactionError } from '../errors/index.js';
 import { Container } from '../functions/container/container.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';
-import { DiffUtility } from '../functions/diff/diff.utility.js';
 import { ANode } from '../functions/node/node.abstract.js';
 import { getSchemaInstance } from '../functions/schema/schema.js';
 import type { AAnchor } from '../overlays/anchor.abstract.js';
@@ -23,6 +22,7 @@ import type { AResource } from '../resources/resource.abstract.js';
 import type { BaseResourceSchema } from '../resources/resource.schema.js';
 import { InputService } from '../services/input/input.service.js';
 import { SchemaTranslationService } from '../services/schema-translation/schema-translation.service.js';
+import { DiffUtility } from '../utilities/diff/diff.utility.js';
 import type { IModel } from './model.interface.js';
 
 /**

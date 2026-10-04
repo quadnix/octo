@@ -1,6 +1,6 @@
 import type { Constructable } from '../../app.type.js';
 import { ContainerRegistrationError, ContainerResolutionError } from '../../errors/index.js';
-import { DiffUtility } from '../diff/diff.utility.js';
+import { DiffUtility } from '../../utilities/diff/diff.utility.js';
 
 type Factory<T> = { create: (...args: unknown[]) => Promise<T> };
 type FactoryValue<T> = Factory<T> | [Promise<Factory<T>>, (factory: Factory<T>) => void];

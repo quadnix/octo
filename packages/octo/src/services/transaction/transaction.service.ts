@@ -35,7 +35,6 @@ import {
 import { Container } from '../../functions/container/container.js';
 import { DiffMetadata } from '../../functions/diff/diff-metadata.js';
 import { type Diff, DiffAction } from '../../functions/diff/diff.js';
-import { DiffUtility } from '../../functions/diff/diff.utility.js';
 import type { ANode } from '../../functions/node/node.abstract.js';
 import type { AModel } from '../../models/model.abstract.js';
 import { ModuleContainer } from '../../modules/module.container.js';
@@ -44,6 +43,7 @@ import { AOverlay } from '../../overlays/overlay.abstract.js';
 import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
 import { AResource } from '../../resources/resource.abstract.js';
 import { ATerraformResource } from '../../resources/terraform-resource.abstract.js';
+import { DiffUtility } from '../../utilities/diff/diff.utility.js';
 import { EventService } from '../event/event.service.js';
 import { InputService } from '../input/input.service.js';
 import { ResourceSerializationService } from '../serialization/resource/resource-serialization.service.js';

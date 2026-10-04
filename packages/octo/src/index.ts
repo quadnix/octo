@@ -15,7 +15,7 @@ export { Container } from './functions/container/container.js';
 export { TestContainer } from './functions/container/test-container.js';
 export { Dependency, DependencyRelationship, type IDependency } from './functions/dependency/dependency.js';
 export { Diff, DiffAction } from './functions/diff/diff.js';
-export { DiffUtility } from './functions/diff/diff.utility.js';
+export { DiffUtility } from './utilities/diff/diff.utility.js';
 export { type DiffMetadata } from './functions/diff/diff-metadata.js';
 export { ANodeAction } from './functions/node/node-action.abstract.js';
 export { Schema } from './functions/schema/schema.js';
@@ -71,7 +71,9 @@ export { TestStateProvider } from './services/state-management/test.state-provid
 
 export type { OctoTerraformResourceScope, TerraformModuleScope } from './services/terraform/terraform.service.js';
 
+export { type HclBlock, HclUtility } from './utilities/hcl/hcl.utility.js';
 export { ProjectUtility } from './utilities/project/project.utility.js';
+export { StringUtility } from './utilities/string/string.utility.js';
 export { TerraformUtility } from './utilities/terraform/terraform.utility.js';
 
 export {

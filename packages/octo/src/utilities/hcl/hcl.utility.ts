@@ -1,16 +1,34 @@
 import type { TerraformService } from '../../services/terraform/terraform.service.js';
 
 /**
- * Serializes and diffs octo's rendered terraform into stable, snapshot-friendly strings.
+ * One parsed HCL block: each attribute by name, and each nested block by its type. An attribute holding
+ * a quoted string is unquoted; any other value (a number, a list, a reference, a `jsonencode(...)` call)
+ * is kept as the HCL text it was rendered as. A nested block repeated in its parent (two `ingress`
+ * blocks) is an array.
  *
- * The render format is octo-owned and regular — `# <moduleId>/<file>` section headers, blank-line
- * separated top-level blocks — so everything here is plain string work needing no HCL parser or
- * external diff library. {@link unifiedDiff} is the generic line-diff engine; {@link diffBlocks}
- * layers octo's block structure on top of it.
+ * @group Utilities/Hcl
+ */
+export type HclBlock = { [key: string]: string | HclBlock | HclBlock[] };
+
+/**
+ * Reads, serializes and diffs the terraform octo renders.
  *
- * @internal
+ * The render format is octo-owned and regular: `# <moduleId>/<file>` section headers, and top-level
+ * blocks that start on a line with no indent. So everything here is plain string work, needing no external
+ * HCL parser or diff library. {@link parse} reads the blocks a module test asserts on,
+ * {@link serialize} flattens a render into one string, {@link unifiedDiff} is the generic line-diff
+ * engine, and {@link diffBlocks} layers octo's block structure on top of it.
+ *
+ * @group Utilities/Hcl
  */
 export class HclUtility {
+  /**
+   * The `# <moduleId>/<file>` line {@link serialize} puts before each file.
+   *
+   * @internal
+   */
+  private static readonly SECTION_HEADER = /^# (.+\/.+\.(?:tf|hcl))$/;
+
   /**
    * Diffs two {@link serialize} renders at the block level. A block is identified by its header line,
    * and blocks sharing a header (one `provider "aws"` per alias) by their first body line too, so a
@@ -18,8 +36,6 @@ export class HclUtility {
    * not as an unrelated add + remove. An added block shows its full new body, a removed block its full
    * old body — symmetric, with nothing trimmed away. The `+`/`-`/`~` vocabulary mirrors the
    * `digestDiffs` digest, tagged with `moduleId/file`. Returns `'<no changes>'` when nothing moved.
-   *
-   * @internal
    */
   static diffBlocks(previous: string, current: string): string {
     const previousSections = HclUtility.parseBlocks(previous);
@@ -60,11 +76,48 @@ export class HclUtility {
   }
 
   /**
+   * Reads the `resource` and `data` blocks of rendered terraform, keyed by their terraform address:
+   * `<type>.<name>` for a resource, `data.<type>.<name>` for a data source. It takes one file's text or
+   * a whole {@link serialize} render, such as the `hclRender` a module test gets back, since resource
+   * and data addresses are unique across an app.
+   *
+   * It reads octo's own render format, not arbitrary HCL: one attribute or block per line, and a value
+   * spanning lines only inside brackets.
+   *
+   * @example
+   * ```ts
+   * const { resource } = HclUtility.parse(hclRender);
+   * expect(Object.keys(resource)).toContain('aws_vpc.vpc-region-475bfa');
+   * expect(resource['aws_vpc.vpc-region-475bfa'].cidr_block).toBe('10.0.0.0/16');
+   * ```
+   */
+  static parse(hcl: string): { data: Record<string, HclBlock>; resource: Record<string, HclBlock> } {
+    const parsed: { data: Record<string, HclBlock>; resource: Record<string, HclBlock> } = { data: {}, resource: {} };
+
+    const lines = hcl.split('\n').filter((line) => !HclUtility.SECTION_HEADER.test(line));
+    for (const block of HclUtility.splitTopLevelBlocks(lines)) {
+      const blockLines = block.split('\n');
+      const header = /^(data|resource) "([^"]+)" "([^"]+)" \{$/.exec(blockLines[0]);
+      if (!header) {
+        continue;
+      }
+
+      const [, kind, type, name] = header;
+      const body = HclUtility.parseBody(blockLines.slice(1, -1));
+      if (kind === 'resource') {
+        parsed.resource[`${type}.${name}`] = body;
+      } else {
+        parsed.data[`data.${type}.${name}`] = body;
+      }
+    }
+
+    return parsed;
+  }
+
+  /**
    * Flattens the rendered terragrunt folders into one snapshot-friendly string: folders sorted by
    * module id, files in a stable order, each prefixed with a `# <moduleId>/<file>` header. An empty
    * file shows a `<empty>` body, so the file is still visible in the snapshot rather than omitted.
-   *
-   * @internal
    */
   static serialize(moduleFiles: ReturnType<TerraformService['renderAllModules']>): string {
     const parts: string[] = [];
@@ -92,8 +145,6 @@ export class HclUtility {
    * is safe to embed in a snapshot.
    *
    * Returns an empty string when the two inputs are identical.
-   *
-   * @internal
    */
   static unifiedDiff(before: string, after: string, { contextLines = 3 }: { contextLines?: number } = {}): string {
     const a = before.length === 0 ? [] : before.split('\n');
@@ -161,6 +212,33 @@ export class HclUtility {
     }
 
     return hunks.join('\n');
+  }
+
+  /**
+   * How many brackets a line opens, less how many it closes, ignoring those inside quoted strings.
+   *
+   * @internal
+   */
+  private static bracketDepth(line: string): number {
+    let depth = 0;
+    let inString = false;
+    for (let index = 0; index < line.length; index++) {
+      const character = line[index];
+      if (inString) {
+        if (character === '\\') {
+          index++;
+        } else if (character === '"') {
+          inString = false;
+        }
+      } else if (character === '"') {
+        inString = true;
+      } else if ('([{'.includes(character)) {
+        depth++;
+      } else if (')]}'.includes(character)) {
+        depth--;
+      }
+    }
+    return depth;
   }
 
   /**
@@ -232,7 +310,7 @@ export class HclUtility {
   /**
    * Splits a {@link serialize} render into its top-level blocks, grouped by `moduleId/file`. Relies on
    * octo's regular render format — `# <moduleId>/<file>` section headers, and a top-level block
-   * starting on an unindented line that is not a closing bracket.
+   * starting on a line with no indent that is not a closing bracket.
    *
    * @internal
    */
@@ -248,24 +326,12 @@ export class HclUtility {
       if (currentKey === undefined) {
         return;
       }
-      // Split into top-level blocks; a blank line inside a block does not end it.
-      const units: string[][] = [];
-      for (const line of buffer) {
-        if (line.trim() && !/^[\s)\]}]/.test(line)) {
-          units.push([line]);
-        } else if (units.length > 0) {
-          units[units.length - 1].push(line);
-        }
-      }
-      sections.set(
-        currentKey,
-        units.map((u) => u.join('\n').trim()),
-      );
+      sections.set(currentKey, HclUtility.splitTopLevelBlocks(buffer));
       buffer = [];
     };
 
     for (const line of serialized.split('\n')) {
-      const header = /^# (.+\/.+\.(?:tf|hcl))$/.exec(line);
+      const header = HclUtility.SECTION_HEADER.exec(line);
       if (header) {
         flush();
         currentKey = header[1];
@@ -279,6 +345,69 @@ export class HclUtility {
   }
 
   /**
+   * Parses the lines inside a block. An attribute whose value opens more brackets than it closes runs
+   * on to the line that closes them, and is kept as text; `key = {` on its own is an object, parsed
+   * like a nested block.
+   *
+   * @internal
+   */
+  private static parseBody(lines: string[]): HclBlock {
+    const body: HclBlock = {};
+
+    // Finds the line closing the block or value opened on line `start`.
+    const closingLine = (start: number): number => {
+      let depth = 0;
+      for (let index = start; index < lines.length; index++) {
+        depth += HclUtility.bracketDepth(lines[index]);
+        if (depth <= 0) {
+          return index;
+        }
+      }
+      return lines.length - 1;
+    };
+
+    let index = 0;
+    while (index < lines.length) {
+      const line = lines[index];
+
+      const attribute = /^\s*([\w-]+)\s*=\s*(.*)$/.exec(line);
+      if (attribute) {
+        const [, key, value] = attribute;
+        const end = closingLine(index);
+        if (value === '{') {
+          body[key] = HclUtility.parseBody(lines.slice(index + 1, end));
+        } else {
+          const text = [value, ...lines.slice(index + 1, end + 1)].join('\n').trim();
+          body[key] = /^"(?:[^"\\]|\\.)*"$/.test(text) ? text.slice(1, -1) : text;
+        }
+        index = end + 1;
+        continue;
+      }
+
+      const nestedBlock = /^\s*([\w-]+)(?:\s+"[^"]*")*\s*\{$/.exec(line);
+      if (nestedBlock) {
+        const [, key] = nestedBlock;
+        const end = closingLine(index);
+        const nested = HclUtility.parseBody(lines.slice(index + 1, end));
+        const existing = body[key];
+        if (existing === undefined) {
+          body[key] = nested;
+        } else if (Array.isArray(existing)) {
+          existing.push(nested);
+        } else {
+          body[key] = [existing as HclBlock, nested];
+        }
+        index = end + 1;
+        continue;
+      }
+
+      index++;
+    }
+
+    return body;
+  }
+
+  /**
    * Returns the header lines that more than one of these blocks starts with.
    *
    * @internal
@@ -286,5 +415,23 @@ export class HclUtility {
   private static repeatedHeaders(texts: string[]): string[] {
     const headers = texts.map((t) => t.split('\n')[0]);
     return headers.filter((h, index) => headers.indexOf(h) !== index);
+  }
+
+  /**
+   * Splits lines into top-level blocks, each trimmed. A block starts on a line with no indent that is not a
+   * closing bracket, so a blank line inside a block does not end it.
+   *
+   * @internal
+   */
+  private static splitTopLevelBlocks(lines: string[]): string[] {
+    const blocks: string[][] = [];
+    for (const line of lines) {
+      if (line.trim() && !/^[\s)\]}]/.test(line)) {
+        blocks.push([line]);
+      } else if (blocks.length > 0) {
+        blocks[blocks.length - 1].push(line);
+      }
+    }
+    return blocks.map((block) => block.join('\n').trim());
   }
 }

@@ -12,7 +12,6 @@ import {
 import { ResourceError } from '../../errors/index.js';
 import { TestContainer } from '../../functions/container/test-container.js';
 import { Diff, DiffAction } from '../../functions/diff/diff.js';
-import { DiffUtility } from '../../functions/diff/diff.utility.js';
 import type { Octo } from '../../main.js';
 import type { App } from '../../models/app/app.model.js';
 import type { TerraformPlan } from '../../modes/validate.mode.js';
@@ -26,6 +25,7 @@ import { StateManagementService } from '../../services/state-management/state-ma
 import { TestStateProvider } from '../../services/state-management/test.state-provider.js';
 import { type TerraformModuleScope, TerraformService } from '../../services/terraform/terraform.service.js';
 import { TransactionService } from '../../services/transaction/transaction.service.js';
+import { DiffUtility } from '../diff/diff.utility.js';
 
 /**
  * An external resource: lifecycle runs outside terraform via a resource action.

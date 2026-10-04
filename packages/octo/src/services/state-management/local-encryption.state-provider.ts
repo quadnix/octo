@@ -2,7 +2,7 @@ import { readdir, rm } from 'fs/promises';
 import { join, resolve } from 'path';
 import { TransactionError } from '../../errors/index.js';
 import { FileUtility } from '../../utilities/file/file.utility.js';
-import { FileAppLockUtility } from './file-app-lock.utility.js';
+import { FileAppLockUtility } from '../../utilities/file-app-lock/file-app-lock.utility.js';
 import type { IStateProvider } from './state-provider.interface.js';
 
 /**
