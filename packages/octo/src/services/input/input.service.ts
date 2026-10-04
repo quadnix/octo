@@ -275,16 +275,36 @@ export class InputService {
    * @internal
    */
   resolve(key: string): unknown | undefined {
+    const originalKey = key;
     if (!['metadata', 'tag'].includes(key.split('.')[1])) {
       key = this.resolveInputKey(key);
     }
     const keyParts = key.split('.');
+
+    // An input pointing to a node no module has created yet.
+    if (
+      originalKey.split('.')[1] === 'input' &&
+      key !== originalKey &&
+      ['model', 'overlay', 'resource'].includes(keyParts[1]) &&
+      !this.hasNode(key)
+    ) {
+      this.refuseMissingReference(`\${{${key}}}`, originalKey);
+    }
 
     switch (keyParts[1]) {
       case 'input': {
         const input = this.inputs[key];
         if (typeof input === 'object' && input !== null) {
           ObjectUtility.onEveryNestedKey(input, (parent, currentKey, currentValue) => {
+            const reference =
+              typeof currentValue === 'string' ? currentValue.match(/^\$\{\{(.+)}}$/)?.[1].trim() : undefined;
+            if (
+              reference &&
+              ['model', 'overlay', 'resource'].includes(reference.split('.')[1]) &&
+              !this.hasNode(reference)
+            ) {
+              this.refuseMissingReference(currentValue as string, key);
+            }
             parent[currentKey] = this.resolveInputValue(currentValue);
           });
         }
@@ -349,6 +369,33 @@ export class InputService {
       default:
         return undefined;
     }
+  }
+
+  /**
+   * Whether the model, overlay or resource a key such as `module.model.region` names exists.
+   */
+  private hasNode(key: string): boolean {
+    const [, kind] = key.split('.');
+    const nodeKey = key.split('.').slice(0, 3).join('.');
+    if (kind === 'model') {
+      return nodeKey in this.models;
+    }
+    if (kind === 'overlay') {
+      return nodeKey in this.overlays;
+    }
+    return nodeKey in this.resources;
+  }
+
+  /**
+   * Refuses an input pointing to what does not exist. A module's models, overlays and resources exist
+   * once it has run, and modules run in the order of their types, so the usual cause is a module
+   * whose type is ordered after the type of the module referring to it.
+   */
+  private refuseMissingReference(reference: string, inputKey: string): never {
+    throw new InputResolutionError(
+      `Input "${inputKey}" refers to "${reference}", which does not exist! If a module creates it, order that module's type before this one's.`,
+      inputKey,
+    );
   }
 
   /**

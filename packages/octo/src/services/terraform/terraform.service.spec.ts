@@ -687,6 +687,18 @@ describe('TerraformService UT', () => {
 
       expect(service.renderAllModules().get('m1')!.mainTf).toContain('vpc_id = aws_vpc.vpc-1.id');
     });
+
+    it('should separate the items of a list with commas', () => {
+      const scope = service.scope('m1');
+      const taskDefinition = new TestTerraformResource('task-definition-1', {});
+      scope.addOctoTerraformResource(taskDefinition).addTerraformResource('aws_td', 'task-definition-1', {
+        container_definitions: scope.jsonencode([{ name: 'main' }, { name: 'sidecar' }]),
+      });
+
+      expect(service.renderAllModules().get('m1')!.mainTf).toContain(
+        ['  container_definitions = jsonencode([', '    {', '      name = "main"', '    },', '    {'].join('\n'),
+      );
+    });
   });
 
   describe('localPath()', () => {

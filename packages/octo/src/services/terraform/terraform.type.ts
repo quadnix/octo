@@ -176,7 +176,7 @@ export class JsonEncodeHclNode extends HclExpression {
       if (this.subject.length === 0) {
         return 'jsonencode([])';
       }
-      const items = this.subject.map((v: unknown) => `${innerIndent}${formatValue(v, innerIndent)}`).join('\n');
+      const items = this.subject.map((v: unknown) => `${innerIndent}${formatValue(v, innerIndent)}`).join(',\n');
       return `jsonencode([\n${items}\n${currentIndent}])`;
     }
 

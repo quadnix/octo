@@ -205,6 +205,34 @@ describe('InputService UT', () => {
           inputService.resolve('testModule.input.key1');
         }).toThrow('Input could not be resolved!');
       });
+
+      it('should throw when an input refers to a model no module has created yet', async () => {
+        const [overlayDataRepository, resourceDataRepository] = await Promise.all([
+          container.get(OverlayDataRepository),
+          container.get(ResourceDataRepository),
+        ]);
+        const inputService = new InputService(overlayDataRepository, resourceDataRepository);
+
+        inputService.registerInput('subnetModule', 'region', '${{regionModule.model.region}}');
+
+        expect(() => inputService.resolve('subnetModule.input.region')).toThrowErrorMatchingInlineSnapshot(
+          `"Input "subnetModule.input.region" refers to "\${{regionModule.model.region}}", which does not exist! If a module creates it, order that module's type before this one's."`,
+        );
+      });
+
+      it('should throw when a nested input refers to a model no module has created yet', async () => {
+        const [overlayDataRepository, resourceDataRepository] = await Promise.all([
+          container.get(OverlayDataRepository),
+          container.get(ResourceDataRepository),
+        ]);
+        const inputService = new InputService(overlayDataRepository, resourceDataRepository);
+
+        inputService.registerInput('subnetModule', 'localFilesystems', ['${{filesystemModule.model.filesystem}}']);
+
+        expect(() => inputService.resolve('subnetModule.input.localFilesystems')).toThrowErrorMatchingInlineSnapshot(
+          `"Input "subnetModule.input.localFilesystems" refers to "\${{filesystemModule.model.filesystem}}", which does not exist! If a module creates it, order that module's type before this one's."`,
+        );
+      });
     });
 
     describe('when resolving tags', () => {

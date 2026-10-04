@@ -53,7 +53,9 @@ subnet module.
 
 Modules run in the order the definition file lists them, and that order matters for one reason: a
 module can only be handed something an earlier module has already built. The region module runs
-before the storage module because the storage module is handed the region.
+before the storage module because the storage module is handed the region. Instances of one class
+run together, where the first of them is listed, so whatever any of them is handed has to be listed
+above the first one.
 
 What happens in what order during an apply is decided by the
 [dependencies](/docs/fundamentals/dependencies) between nodes, not by this list. Module order

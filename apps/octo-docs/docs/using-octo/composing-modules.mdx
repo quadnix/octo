@@ -84,18 +84,21 @@ Move the receipts module above the region module and the run stops before anythi
 
 ```text
 Definition file is valid and all modules were successfully imported.
-Error: Property "region" in schema could not be resolved!
-    at getSchemaInstance (.../octo/dist/functions/schema/schema.js:25:19)
-    at ModuleContainer.apply (.../octo/dist/modules/module.container.js:58:46)
-    at async Octo.compose (.../octo/dist/main.js:106:16)
-schemaClassName: AwsS3StorageServiceModuleSchema
+Error: Input "receipts-module.input.region" refers to "${{region-module.model.region}}", which does not exist! If a module creates it, order that module's type before this one's.
+    at InputService.refuseMissingReference (.../octo/dist/services/input/input.service.js:340:15)
+    at InputService.resolve (.../octo/dist/services/input/input.service.js:242:18)
+    at .../octo/dist/modules/module.container.js:53:62
+inputKey: receipts-module.input.region
 ```
 
 The first line is the schema check passing, so the file itself is fine. The failure is one step
-later, while the modules are being run.
+later, while the modules are being run. It names the input that failed and what it pointed at,
+which is either listed too late or misspelled.
 
-Read "could not be resolved" as: the reference points at something that does not exist yet. It is
-almost always an ordering mistake, or a typo in a `moduleId`.
+Modules of one class run together, at the place where the first of them is listed. With the public
+subnet listed first, a filesystem, and then a private subnet that mounts the filesystem, both
+subnets run before the filesystem exists, and the private subnet fails as above. List the filesystem
+above the first subnet, not only above the subnet that needs it.
 
 This ordering has nothing to do with the order things are created in AWS. That comes from the
 [dependency](/docs/fundamentals/dependencies) edges between nodes, which is why the shop's checkout
