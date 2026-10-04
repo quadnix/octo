@@ -12,6 +12,7 @@ import { OverlayDataRepository } from '../overlays/overlay-data.repository.js';
 import { AOverlay } from '../overlays/overlay.abstract.js';
 import { EventService } from '../services/event/event.service.js';
 import { InputService } from '../services/input/input.service.js';
+import { DiffUtility } from '../utilities/diff/diff.utility.js';
 import type { AModule } from './module.abstract.js';
 
 type ModuleOptions = {
@@ -24,7 +25,7 @@ type ModuleOptions = {
 export class ModuleContainer {
   private modules: {
     hidden: boolean;
-    instances: { applied: boolean; inputKeys: string[]; moduleId: string }[];
+    instances: { applied: boolean; inputKeys: string[]; inputs: unknown; moduleId: string }[];
     module: Constructable<UnknownModule>;
     properties: ModuleOptions;
   }[] = [];
@@ -168,18 +169,35 @@ export class ModuleContainer {
       throw new ModuleError(`Module "${moduleName}" not yet registered!`, moduleName);
     }
 
-    m.hidden = false;
-
-    if (m.instances.findIndex((i) => i.moduleId === moduleId) !== -1) {
-      return;
+    // Octo reads a reference such as `${{module-id.model.region}}` by splitting it on dots.
+    if (moduleId.includes('.')) {
+      throw new ModuleError(`Module id "${moduleId}" cannot contain "."!`, moduleName);
     }
+
+    // Loading a module again under its id, with the same inputs, changes nothing. Any other module
+    // under that id would be lost.
+    const copiedInputs = JSON.parse(JSON.stringify(inputs));
+    const existing = this.modules.find((metadata) => metadata.instances.some((i) => i.moduleId === moduleId));
+    if (existing) {
+      const instance = existing.instances.find((i) => i.moduleId === moduleId)!;
+      if (existing === m && DiffUtility.isObjectDeepEquals(instance.inputs, copiedInputs)) {
+        m.hidden = false;
+        return;
+      }
+      throw new ModuleError(`Module id "${moduleId}" is already in use!`, moduleName);
+    }
+
+    m.hidden = false;
 
     m.instances.push({
       applied: false,
       inputKeys: getSchemaKeys((module as unknown as typeof AModule).MODULE_SCHEMA),
+      inputs: copiedInputs,
       moduleId,
     });
-    for (const [key, value] of Object.entries(inputs)) {
+    // A copy of its own: resolving an input overwrites it in place, which would change the copy kept
+    // above to compare a later load against.
+    for (const [key, value] of Object.entries(copiedInputs)) {
       this.inputService.registerInput(moduleId, key, JSON.parse(JSON.stringify(value)));
     }
   }

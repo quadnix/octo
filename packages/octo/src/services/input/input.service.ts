@@ -392,10 +392,7 @@ export class InputService {
    * whose type is ordered after the type of the module referring to it.
    */
   private refuseMissingReference(reference: string, inputKey: string): never {
-    throw new InputResolutionError(
-      `Input "${inputKey}" refers to "${reference}", which does not exist! If a module creates it, order that module's type before this one's.`,
-      inputKey,
-    );
+    throw new InputResolutionError(`Input "${inputKey}" refers to "${reference}", which does not exist!`, inputKey);
   }
 
   /**

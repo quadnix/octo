@@ -84,10 +84,10 @@ Move the receipts module above the region module and the run stops before anythi
 
 ```text
 Definition file is valid and all modules were successfully imported.
-Error: Input "receipts-module.input.region" refers to "${{region-module.model.region}}", which does not exist! If a module creates it, order that module's type before this one's.
+Error: Input "receipts-module.input.region" refers to "${{region-module.model.region}}", which does not exist!
     at InputService.refuseMissingReference (.../octo/dist/services/input/input.service.js:340:15)
     at InputService.resolve (.../octo/dist/services/input/input.service.js:242:18)
-    at .../octo/dist/modules/module.container.js:53:62
+    at .../octo/dist/modules/module.container.js:54:62
 inputKey: receipts-module.input.region
 ```
 
@@ -159,14 +159,13 @@ Point the storage module at an account instead of a region, and:
 ```text
 Error: Property "region" in schema could not be validated!
     at getSchemaInstance (.../octo/dist/functions/schema/schema.js:22:19)
-    at ModuleContainer.apply (.../octo/dist/modules/module.container.js:58:46)
-    at async Octo.compose (.../octo/dist/main.js:106:16)
+    at ModuleContainer.apply (.../octo/dist/modules/module.container.js:59:46)
+    at async Octo.compose (.../octo/dist/main.js:120:16)
 schemaClassName: AwsS3StorageServiceModuleSchema
 ```
 
-The two failures read almost the same and mean different things. "Could not be resolved" is a
-reference to something that does not exist. "Could not be validated" is a real node of the wrong
-shape.
+The two failures mean different things. "Does not exist" is a reference to something that is not
+there, listed too late or misspelled. "Could not be validated" is a real node of the wrong shape.
 
 Both happen while the graph is being assembled, before a line of Terraform is written and long
 before anything is created. That is the trade the whole design is making: more errors, all of them

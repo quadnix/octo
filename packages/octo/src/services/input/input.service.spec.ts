@@ -216,7 +216,7 @@ describe('InputService UT', () => {
         inputService.registerInput('subnetModule', 'region', '${{regionModule.model.region}}');
 
         expect(() => inputService.resolve('subnetModule.input.region')).toThrowErrorMatchingInlineSnapshot(
-          `"Input "subnetModule.input.region" refers to "\${{regionModule.model.region}}", which does not exist! If a module creates it, order that module's type before this one's."`,
+          `"Input "subnetModule.input.region" refers to "\${{regionModule.model.region}}", which does not exist!"`,
         );
       });
 
@@ -230,7 +230,7 @@ describe('InputService UT', () => {
         inputService.registerInput('subnetModule', 'localFilesystems', ['${{filesystemModule.model.filesystem}}']);
 
         expect(() => inputService.resolve('subnetModule.input.localFilesystems')).toThrowErrorMatchingInlineSnapshot(
-          `"Input "subnetModule.input.localFilesystems" refers to "\${{filesystemModule.model.filesystem}}", which does not exist! If a module creates it, order that module's type before this one's."`,
+          `"Input "subnetModule.input.localFilesystems" refers to "\${{filesystemModule.model.filesystem}}", which does not exist!"`,
         );
       });
     });

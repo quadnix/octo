@@ -3,9 +3,9 @@ title: Troubleshooting
 ---
 
 Octo fails early by design, so most of what goes wrong stops the run before any Terraform is
-written. The messages are precise about what happened and quiet about what to do next: `Property
-"region" in schema could not be resolved!` is exactly true and does not say that the fix is usually
-to move one entry higher up the file.
+written. The messages are precise about what happened and quiet about what to do next: `Input
+"receipts-module.input.region" refers to "${{region-module.model.region}}", which does not exist!`
+is exactly true and does not say that the fix is usually to move one entry higher up the file.
 
 Below is what each of the common ones means. They are grouped by the step that produced them,
 because the step narrows the cause further than the message does.
@@ -64,11 +64,16 @@ again. Relative paths resolve against the definition file, not your shell.
 
 ## While modules compose
 
-**`Property "region" in schema could not be resolved!`**
+**`Input "receipts-module.input.region" refers to "${{region-module.model.region}}", which does not exist!`**
 
 A `${{...}}` reference pointing at something that does not exist yet. Two causes, in order of
 likelihood: the module you referenced is listed after the one referencing it, or the `moduleId` is
-misspelled. Modules resolve in the order the definition file lists them.
+misspelled. Modules resolve in the order the definition file lists them, and modules of one class
+run together, where the first of them is listed.
+
+**`Property "region" in schema could not be resolved!`**
+
+A required input is missing from the module's `moduleInputs`, and has no default.
 
 **`Property "region" in schema could not be validated!`**
 
