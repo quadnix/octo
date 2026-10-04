@@ -112,7 +112,7 @@ addAccessPrefix(accessPrefix: string): void {
     throw new ModelError('Access prefix already added in S3 bucket!', this);
   }
 
-  const accessPrefixHash = CommonUtility.hash(accessPrefix).substring(0, 12);
+  const accessPrefixHash = StringUtility.deterministicHash(accessPrefix).substring(0, 12);
   const accessPrefixAnchorName = `AwsS3StorageServiceAccessPrefixAnchor-${accessPrefixHash}`;
   this.addAnchor(
     new AwsS3StorageServiceAccessPrefixAnchor(

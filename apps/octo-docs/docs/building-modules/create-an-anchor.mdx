@@ -92,12 +92,13 @@ When a model can carry several of the same kind, the ID has to tell them apart, 
 stable across runs. Our S3 storage model derives one per access prefix:
 
 ```typescript
-const accessPrefixHash = CommonUtility.hash(accessPrefix).substring(0, 12);
+const accessPrefixHash = StringUtility.deterministicHash(accessPrefix).substring(0, 12);
 const accessPrefixAnchorName = `AwsS3StorageServiceAccessPrefixAnchor-${accessPrefixHash}`;
 ```
 
-A hash of the thing that makes it distinct. An index, or anything ordering-dependent, would change
-identity when somebody reorders their inputs.
+A hash of the thing that makes it distinct, from octo's
+[`StringUtility`](/api/octo/class/StringUtility). An index, or anything ordering-dependent, would
+change identity when somebody reorders their inputs.
 
 ## What consumers do with it
 
