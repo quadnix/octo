@@ -12,7 +12,7 @@ type ValidateCommandArguments = {
 };
 
 /**
- * Step 2 of the octo lifecycle. See {@link Octo.validate}.
+ * Step 2 of the octo lifecycle. See `Octo.validate()`.
  */
 export const validateCommand = {
   builder: (yargs: Argv): Argv => {

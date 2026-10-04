@@ -8,7 +8,7 @@ type GenerateCommandArguments = {
 };
 
 /**
- * Step 1 of the octo lifecycle. See {@link Octo.generate}.
+ * Step 1 of the octo lifecycle. See `Octo.generate()`.
  *
  * The state is refreshed before octo boots, because booting is what reads it.
  */

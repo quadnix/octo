@@ -14,7 +14,7 @@ type CommitCommandArguments = {
 };
 
 /**
- * Step 4 of the octo lifecycle. See {@link Octo.commit}.
+ * Step 4 of the octo lifecycle. See `Octo.commit()`.
  *
  * This is the command that ends a run, so a commit that succeeds releases the app lock. One that
  * fails keeps it, and is run again with the same lock ID. Octo never unlocks on its own; the lock is

@@ -295,7 +295,7 @@ export class YamlDefinitionUtility {
   }
 
   /**
-   * Builds the {@link IStateProvider} the definition asks for.
+   * Builds the `IStateProvider` the definition asks for.
    */
   resolveStateProvider():
     | { type: LocalEncryptionStateProvider }
@@ -346,7 +346,7 @@ export class YamlDefinitionUtility {
   }
 
   /**
-   * The tag registrations the definition declares, in the shape {@link Octo.registerTags} takes.
+   * The tag registrations the definition declares, in the shape `Octo.registerTags()` takes.
    *
    * A `scope` naming a `moduleId` reaches that module's resources; an absent or empty one reaches
    * every resource of the run.
