@@ -178,7 +178,9 @@ describe('Multiple regions E2E', () => {
     it('should refuse one execution id in both regions', async () => {
       await expect(
         planStack(testModuleContainer, ecsStackModules([EAST, { ...WEST, executionId: EAST.executionId }]), OUTPUT_DIR),
-      ).rejects.toThrowErrorMatchingInlineSnapshot(`"Overlay already exists!"`);
+      ).rejects.toThrowErrorMatchingInlineSnapshot(
+        `""rolename" "ExecutionRole-backend-v1-qa-east" is not unique within awsAccountId: resource "@octo/iam-role=iam-role-ExecutionRole-backend-v1-qa-east-4eeb65" of module "execution-backend-v1-qa-east-east" and resource "@octo/iam-role=iam-role-ExecutionRole-backend-v1-qa-east-96d5ba" of module "execution-backend-v1-qa-east-west" both use it!"`,
+      );
     }, 300_000);
 
     it('should plan an ECS stack built under the same names in both regions', async () => {

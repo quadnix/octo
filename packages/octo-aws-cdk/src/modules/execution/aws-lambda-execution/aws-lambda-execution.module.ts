@@ -72,6 +72,8 @@ export class AwsLambdaExecutionModule extends AModule<AwsLambdaExecutionModuleSc
       throw new ModuleError('Environment and Subnet must be in the same region!', this.constructor.name);
     }
 
+    const region = environment.getParents()['region'][0].to as Region;
+
     // Create a new execution.
     const execution = new AwsLambdaExecution(inputs.executionId, deployment, environment, subnet);
     for (const [key, value] of Object.entries(inputs.environmentVariables || {})) {
@@ -174,7 +176,7 @@ export class AwsLambdaExecutionModule extends AModule<AwsLambdaExecutionModuleSc
 
     // Add aws-lambda-execution overlay for the function's lifecycle.
     const executionOverlay = new AwsLambdaExecutionOverlay(
-      `aws-lambda-execution-overlay-${execution.executionId}`,
+      `aws-lambda-execution-overlay-${region.regionId}-${execution.executionId}`,
       {
         deploymentContainerProperties: {
           image: { imageId: image.imageId, imageTag: image.imageTag },

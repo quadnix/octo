@@ -338,7 +338,7 @@ export class AwsEcsExecutionModule extends AModule<AwsEcsExecutionModuleSchema, 
     }
 
     // Add aws-ecs-execution overlay for container lifecycle.
-    const executionOverlayId = `aws-ecs-execution-overlay-${execution.executionId}`;
+    const executionOverlayId = `aws-ecs-execution-overlay-${region.regionId}-${execution.executionId}`;
     const executionOverlay = new AwsEcsExecutionOverlay(
       executionOverlayId,
       {
@@ -374,7 +374,7 @@ export class AwsEcsExecutionModule extends AModule<AwsEcsExecutionModuleSchema, 
 
     // Add SecurityGroupOverlay for security group lifecycle.
     const securityGroupOverlay = new AwsEcsExecutionServerSecurityGroupOverlay(
-      `aws-ecs-execution-server-security-group-overlay-${execution.executionId}`,
+      `aws-ecs-execution-server-security-group-overlay-${region.regionId}-${execution.executionId}`,
       {},
       [securityGroupAnchor, matchingMainSecurityGroupAnchor, ...matchingSidecarSecurityGroupAnchors],
     );
