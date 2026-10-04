@@ -423,6 +423,7 @@ class OctoTerraformResource<TResponse extends BaseResourceSchema['response'] = B
 class TerraformModule {
   readonly dataSources: TerraformData[] = [];
   hasExternalResources: boolean = false; // True when folder has external resources requiring null/external configs.
+  readonly moves: { fromResourceId: string; toResourceId: string }[] = []; // Resources taking over another's state.
   needsProjectRoot: boolean = false; // True when a resource named a local file, requiring the project root variable.
   readonly providerKeys: Set<string> = new Set(); // Specific providers this folder's resources require.
   readonly resources: OctoTerraformResource[] = [];
@@ -679,6 +680,16 @@ export class TerraformService {
   }
 
   /**
+   * Records that a resource takes over the terraform state of a deleted resource in the same folder.
+   * The folder then renders a `moved` block from each of the deleted resource's addresses to the new
+   * one's, so terraform updates or replaces the infrastructure in place instead of creating the new
+   * resource beside the old.
+   */
+  moveResource(moduleId: string, fromResourceId: string, toResourceId: string): void {
+    this.module(moduleId).moves.push({ fromResourceId, toResourceId });
+  }
+
+  /**
    * Phase 2 of rendering: prints the four files of every folder from the wiring computed in
    * phase 1. Makes no decisions — when a {@link RefHclNode} renders, its answer is looked up in the
    * folder's precomputed `resolvedRefs`. Cross-folder dependency cycles throw (in phase 1).
@@ -711,6 +722,9 @@ export class TerraformService {
         ...module.dataSources.map((d) => d.render(context)),
         ...module.resources.map((r) =>
           r.terraformResources.map((t) => t.render(context, moduleWiring.parentDependsOn.get(r) ?? [])).join('\n\n'),
+        ),
+        ...this.getMovedAddresses(module).map(
+          ({ from, to }) => `moved {\n${this.step}from = ${from}\n${this.step}to = ${to}\n}`,
         ),
       ]
         .filter(Boolean)
@@ -1194,6 +1208,32 @@ export class TerraformService {
 
     const [key, provider] = matches[0];
     return { alias: provider.alias, key, providerType: provider.providerType };
+  }
+
+  /**
+   * The `moved` addresses of a folder. A block named `<resourceId><suffix>` moves from the block the
+   * deleted resource named `<its resourceId><suffix>`; terraform ignores a `from` its state does not hold.
+   */
+  private getMovedAddresses(module: TerraformModule): { from: string; to: string }[] {
+    const movedAddresses: { from: string; to: string }[] = [];
+
+    for (const { fromResourceId, toResourceId } of module.moves) {
+      const fromName = StringUtility.sanitizeForIdentifier(fromResourceId);
+      const toName = StringUtility.sanitizeForIdentifier(toResourceId);
+
+      for (const { address } of this.resourceRegistry.get(toResourceId)!.terraformResources) {
+        const typeLength = address.indexOf('.') + 1;
+        const name = address.slice(typeLength);
+        if (name.startsWith(toName)) {
+          movedAddresses.push({
+            from: `${address.slice(0, typeLength)}${fromName}${name.slice(toName.length)}`,
+            to: address,
+          });
+        }
+      }
+    }
+
+    return movedAddresses;
   }
 
   /**

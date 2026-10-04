@@ -818,6 +818,58 @@ describe('TerraformService UT', () => {
     });
   });
 
+  describe('moveResource()', () => {
+    it('should move each block named after the resource id from the block the deleted resource named alike', () => {
+      const scope = service.scope('m1');
+      const role = new TestTerraformResource('role-2', {});
+      const roleTf = scope.addOctoTerraformResource(role);
+      roleTf.addTerraformResource('aws_iam_role', 'role-2', {});
+      roleTf.addTerraformResource('aws_iam_role_policy', 'role-2_policy-a', {});
+
+      service.moveResource('m1', 'role-1', 'role-2');
+
+      const mainTf = service.renderAllModules().get('m1')!.mainTf;
+      expect(mainTf).toContain('moved {\n  from = aws_iam_role.role-1\n  to = aws_iam_role.role-2\n}');
+      expect(mainTf).toContain(
+        'moved {\n  from = aws_iam_role_policy.role-1_policy-a\n  to = aws_iam_role_policy.role-2_policy-a\n}',
+      );
+    });
+
+    it('should move by sanitized ids', () => {
+      const scope = service.scope('m1');
+      const role = new TestTerraformResource('role/2', {});
+      scope.addOctoTerraformResource(role).addTerraformResource('aws_iam_role', 'role/2', {});
+
+      service.moveResource('m1', 'role/1', 'role/2');
+
+      expect(service.renderAllModules().get('m1')!.mainTf).toContain(
+        'moved {\n  from = aws_iam_role.role_1\n  to = aws_iam_role.role_2\n}',
+      );
+    });
+
+    it('should not move a block whose name does not start with the resource id', () => {
+      const scope = service.scope('m1');
+      const role = new TestTerraformResource('role-2', {});
+      scope.addOctoTerraformResource(role).addTerraformResource('aws_iam_role', 'shared-role', {});
+
+      service.moveResource('m1', 'role-1', 'role-2');
+
+      expect(service.renderAllModules().get('m1')!.mainTf).not.toContain('moved {');
+    });
+
+    it('should forget moves on reset', () => {
+      const scope = service.scope('m1');
+      const role = new TestTerraformResource('role-2', {});
+      scope.addOctoTerraformResource(role).addTerraformResource('aws_iam_role', 'role-2', {});
+      service.moveResource('m1', 'role-1', 'role-2');
+
+      service.resetTransactionState();
+      service.scope('m1').addOctoTerraformResource(role).addTerraformResource('aws_iam_role', 'role-2', {});
+
+      expect(service.renderAllModules().get('m1')!.mainTf).not.toContain('moved {');
+    });
+  });
+
   describe('getOctoTerraformResourceMappings()', () => {
     it('should map each octo resource to its terraform addresses and output names', () => {
       const scope = service.scope('m1');

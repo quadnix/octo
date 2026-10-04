@@ -113,6 +113,21 @@ its inputs, so both instances name their resource alike; build the ID from the i
 instances apart. An action that wants to change a resource another module created calls a method
 on that resource instead of constructing a second one.
 
+**`Resource "..." of module "..." takes a name of "..." of module "...", and terraform cannot move infrastructure between module folders!`**
+
+A resource is gone and a new one of its kind holds its name, so Octo would hand the old one's
+Terraform state to the new one, but the two live in different module folders and Terraform moves
+state only within one. Applied as it is, the new resource would be created while the old one still
+held the name, and the provider would refuse it. Remove the old resource in one apply and add the
+new one in the next.
+
+**`Resource "..." takes the names of both "..." and "...", and can take over only one of them!`**
+
+A new resource holds names that two deleted resources held, and Octo can move only one of them into
+it. **`Resources "..." and "..." both take a name of "...", and only one can take it over!`** is the
+same problem the other way round. Change the names so each new resource takes over at most one
+deleted resource, or remove the old ones in one apply and add the new ones in the next.
+
 **`No matching action given for diff!`**
 
 A node changed and nothing is registered to handle it. The error carries the diff itself, including

@@ -46,6 +46,7 @@ import { AResource } from '../../resources/resource.abstract.js';
 import { ATerraformResource } from '../../resources/terraform-resource.abstract.js';
 import { EventService } from '../event/event.service.js';
 import { InputService } from '../input/input.service.js';
+import { ResourceSerializationService } from '../serialization/resource/resource-serialization.service.js';
 import { TerraformService } from '../terraform/terraform.service.js';
 
 /**
@@ -85,6 +86,7 @@ export class TransactionService {
     private readonly moduleContainer: ModuleContainer,
     private readonly overlayDataRepository: OverlayDataRepository,
     private readonly resourceDataRepository: ResourceDataRepository,
+    private readonly resourceSerializationService: ResourceSerializationService,
     private readonly terraformService: TerraformService,
   ) {}
 
@@ -725,61 +727,17 @@ export class TransactionService {
     const describeResource = (resource: UnknownResource): string =>
       `resource "${resource.getContext()}" of module "${this.inputService.getModuleIdFromResource(resource)}"`;
 
-    const resourcesByClass = new Map<typeof AResource, UnknownResource[]>();
+    const holders = new Map<string, UnknownResource>();
     for (const resource of resources) {
-      const resourceClass = resource.constructor as typeof AResource;
-      if (!resourceClass.UNIQUE_PROPERTIES?.length) {
-        continue;
-      }
-      resourcesByClass.set(resourceClass, [...(resourcesByClass.get(resourceClass) ?? []), resource]);
-    }
-
-    for (const [resourceClass, classResources] of resourcesByClass) {
-      for (const { path, within } of resourceClass.UNIQUE_PROPERTIES) {
-        const holders = new Map<string, UnknownResource>();
-
-        for (const resource of classResources) {
-          // Resolve every name at the path, skipping a branch with no value.
-          let names: unknown[] = [resource.properties];
-          for (const segment of path.split('.')) {
-            const isArray = segment.endsWith('[]');
-            const key = isArray ? segment.slice(0, -2) : segment;
-            names = names.flatMap((value) => {
-              const child = (value as Record<string, unknown> | undefined)?.[key];
-              if (child === undefined || child === null) {
-                return [];
-              }
-              return isArray ? (child as unknown[]) : [child];
-            });
-          }
-          if (names.length === 0) {
-            continue;
-          }
-
-          // Resolve the domain, which every named resource must have.
-          const domain = within.map((property) => {
-            const value = resource.properties[property];
-            if (value === undefined || value === null) {
-              throw new TransactionError(
-                `${describeResource(resource)} has no "${property}", which its "${path}" is unique within!`,
-              );
-            }
-            return value;
-          });
-
-          // Refuse a name already held within the same domain.
-          for (const name of names) {
-            const key = JSON.stringify([...domain, name]);
-            const holder = holders.get(key);
-            if (holder) {
-              const domainName = within.length > 0 ? `within ${within.join(', ')}` : 'across the app';
-              throw new TransactionError(
-                `"${path}" "${name}" is not unique ${domainName}: ${describeResource(holder)} and ${describeResource(resource)} both use it!`,
-              );
-            }
-            holders.set(key, resource);
-          }
+      for (const uniqueName of this.getUniqueNames(resource)) {
+        const holder = holders.get(uniqueName.key);
+        if (holder) {
+          const domainName = uniqueName.within.length > 0 ? `within ${uniqueName.within.join(', ')}` : 'across the app';
+          throw new TransactionError(
+            `"${uniqueName.path}" "${uniqueName.name}" is not unique ${domainName}: ${describeResource(holder)} and ${describeResource(resource)} both use it!`,
+          );
         }
+        holders.set(uniqueName.key, resource);
       }
     }
   }
@@ -814,6 +772,8 @@ export class TransactionService {
         scope.addOctoTerraformExternalResource(resource);
       }
     }
+
+    this.moveRenamedResources(resources);
   }
 
   /**
@@ -849,9 +809,11 @@ export class TransactionService {
   }
 
   /**
-   * The scope of the resources a node's actions create: the models the node sits under, or for an
-   * overlay the models every node it joins sits under. A model another member sits under is left out,
-   * since that member's context already names it.
+   * The scope of the resources a node's actions create: the models the node sits under. An overlay
+   * sits where the nodes its own module created sit; the nodes it borrows from other modules are what
+   * it joins, so joining one more never moves what it created. An overlay joining only borrowed nodes
+   * sits where all of them sit. A model another member sits under is left out, since that member's
+   * context already names it.
    */
   private getResourceScope(node: UnknownModel | UnknownOverlay): string[] {
     const members = new Map<string, UnknownModel>();
@@ -863,8 +825,19 @@ export class TransactionService {
       placedNodeContexts.add(placedNode.getContext());
 
       if (placedNode instanceof AOverlay) {
-        for (const anchor of placedNode.getAnchors()) {
-          collectMembers(anchor instanceof MatchingAnchor ? anchor.getActual().getParent() : anchor.getParent());
+        const moduleId = this.inputService.getModuleIdFromOverlay(placedNode);
+        const joinedNodes = placedNode
+          .getAnchors()
+          .map((anchor) => (anchor instanceof MatchingAnchor ? anchor.getActual().getParent() : anchor.getParent()));
+        const ownNodes = joinedNodes.filter(
+          (joinedNode) =>
+            moduleId !== undefined &&
+            (joinedNode instanceof AOverlay
+              ? this.inputService.getModuleIdFromOverlay(joinedNode)
+              : this.inputService.getModuleIdFromModel(joinedNode)) === moduleId,
+        );
+        for (const placingNode of ownNodes.length > 0 ? ownNodes : joinedNodes) {
+          collectMembers(placingNode);
         }
         return;
       }
@@ -889,6 +862,122 @@ export class TransactionService {
     }
 
     return [...members.keys()].filter((context) => !ancestorContexts.has(context)).sort();
+  }
+
+  /**
+   * The names a resource holds that the `uniqueProperties` of its class say the provider keeps unique,
+   * each keyed by its class, path and domain. A path with no value holds no name.
+   */
+  private getUniqueNames(resource: UnknownResource): { key: string; name: unknown; path: string; within: string[] }[] {
+    const resourceClass = resource.constructor as typeof AResource;
+    const uniqueNames: { key: string; name: unknown; path: string; within: string[] }[] = [];
+
+    for (const { path, within } of resourceClass.UNIQUE_PROPERTIES ?? []) {
+      // Resolve every name at the path, skipping a branch with no value.
+      let names: unknown[] = [resource.properties];
+      for (const segment of path.split('.')) {
+        const isArray = segment.endsWith('[]');
+        const key = isArray ? segment.slice(0, -2) : segment;
+        names = names.flatMap((value) => {
+          const child = (value as Record<string, unknown> | undefined)?.[key];
+          if (child === undefined || child === null) {
+            return [];
+          }
+          return isArray ? (child as unknown[]) : [child];
+        });
+      }
+      if (names.length === 0) {
+        continue;
+      }
+
+      // Resolve the domain, which every named resource must have.
+      const domain = within.map((property) => {
+        const value = resource.properties[property];
+        if (value === undefined || value === null) {
+          throw new TransactionError(
+            `resource "${resource.getContext()}" of module "${this.inputService.getModuleIdFromResource(resource)}" has no "${property}", which its "${path}" is unique within!`,
+          );
+        }
+        return value;
+      });
+
+      for (const name of names) {
+        const key = JSON.stringify([resourceClass.NODE_PACKAGE, resourceClass.NODE_NAME, path, ...domain, name]);
+        uniqueNames.push({ key, name, path, within });
+      }
+    }
+
+    return uniqueNames;
+  }
+
+  /**
+   * Hands each deleted resource's terraform state to the added resource of its class that takes one of
+   * its names, so the two are one piece of infrastructure, updated or replaced in place. Without it
+   * terraform creates the added resource while the deleted one still holds the name, and the provider
+   * refuses. External resources are left out: octo runs their actions itself, and a move would skip them.
+   */
+  private moveRenamedResources(resources: UnknownResource[]): void {
+    const actualResources = this.resourceDataRepository.getActualResourcesByProperties();
+    const actualContexts = new Set(actualResources.map((r) => r.getContext()));
+    const newContexts = new Set(resources.map((r) => r.getContext()));
+
+    // Index the names of every deleted terraform resource.
+    const deletedResourcesByName = new Map<string, UnknownResource>();
+    for (const resource of actualResources) {
+      if (!(resource instanceof ATerraformResource) || newContexts.has(resource.getContext())) {
+        continue;
+      }
+      for (const { key } of this.getUniqueNames(resource)) {
+        deletedResourcesByName.set(key, resource);
+      }
+    }
+    if (deletedResourcesByName.size === 0) {
+      return;
+    }
+
+    // Pair each added terraform resource with the deleted resource holding one of its names.
+    const takenBy = new Map<UnknownResource, UnknownResource>();
+    for (const resource of resources) {
+      if (!(resource instanceof ATerraformResource) || actualContexts.has(resource.getContext())) {
+        continue;
+      }
+
+      const deletedResources = [
+        ...new Set(
+          this.getUniqueNames(resource)
+            .map(({ key }) => deletedResourcesByName.get(key))
+            .filter((r): r is UnknownResource => r !== undefined),
+        ),
+      ];
+      if (deletedResources.length === 0) {
+        continue;
+      }
+      if (deletedResources.length > 1) {
+        throw new TransactionError(
+          `Resource "${resource.getContext()}" takes the names of both "${deletedResources[0].getContext()}" and "${deletedResources[1].getContext()}", and can take over only one of them!`,
+        );
+      }
+
+      const [deletedResource] = deletedResources;
+      const otherResource = takenBy.get(deletedResource);
+      if (otherResource) {
+        throw new TransactionError(
+          `Resources "${otherResource.getContext()}" and "${resource.getContext()}" both take a name of "${deletedResource.getContext()}", and only one can take it over!`,
+        );
+      }
+      takenBy.set(deletedResource, resource);
+
+      // Terraform moves state only within one folder.
+      const moduleId = this.inputService.getModuleIdFromResource(resource)!;
+      const deletedModuleId = this.resourceSerializationService.getActualResourceModuleId(deletedResource);
+      if (deletedModuleId !== undefined && deletedModuleId !== moduleId) {
+        throw new TransactionError(
+          `Resource "${resource.getContext()}" of module "${moduleId}" takes a name of "${deletedResource.getContext()}" of module "${deletedModuleId}", and terraform cannot move infrastructure between module folders! Delete one in an apply, and add the other in the next.`,
+        );
+      }
+
+      this.terraformService.moveResource(moduleId, deletedResource.resourceId, resource.resourceId);
+    }
   }
 
   /**
@@ -974,6 +1063,7 @@ export class TransactionServiceFactory {
       moduleContainer,
       overlayDataRepository,
       resourceDataRepository,
+      resourceSerializationService,
       terraformService,
     ] = await Promise.all([
       container.get(EventService),
@@ -981,6 +1071,7 @@ export class TransactionServiceFactory {
       container.get(ModuleContainer),
       container.get(OverlayDataRepository),
       container.get(ResourceDataRepository),
+      container.get(ResourceSerializationService),
       container.get(TerraformService),
     ]);
 
@@ -991,6 +1082,7 @@ export class TransactionServiceFactory {
         moduleContainer,
         overlayDataRepository,
         resourceDataRepository,
+        resourceSerializationService,
         terraformService,
       );
     }

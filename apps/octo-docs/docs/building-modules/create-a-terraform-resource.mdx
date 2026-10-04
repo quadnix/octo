@@ -137,7 +137,10 @@ stops typechecking.
 
 `addOctoTerraformResource` can be called once, and `addTerraformResource` as many times as the
 resource needs; several calls chain with `depends_on` in call order, which is how one Octo resource
-becomes a role plus two policy attachments. A block emitted once per item, like a file upload, passes
+becomes a role plus two policy attachments. Name every block after the resource ID, as
+`this.resourceId` or `` `${this.resourceId}_policy` ``. When a resource's ID changes but the name
+it reaches AWS under stays, Octo moves each of its blocks to the block of the same suffix, and it
+recognizes a block only by that prefix. A block emitted once per item, like a file upload, passes
 `{ chain: false }` as the fourth argument to stay out of the chain, so the items are created in
 parallel. The last two lines are how a resource opts in to
 [tagging](/docs/using-octo/tagging-resources), and every Terraform resource in

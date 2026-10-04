@@ -864,7 +864,53 @@ describe('TransactionService UT', () => {
       );
     });
 
-    it('should scope an overlay to the union of what every model it joins sits under', () => {
+    it('should scope an overlay to what the models its own module created sit under', async () => {
+      const inputService = await container.get(InputService);
+      const {
+        region: [region1, region2],
+        subnet: [subnet2],
+      } = create({
+        account: ['aws,account-1', 'aws,account-2:-1'],
+        app: ['test'],
+        region: ['region-1', 'region-2'],
+        subnet: ['subnet-2:1'],
+      });
+      const overlay = new TestOverlay('overlay-1', {}, [
+        new TestAnchor('anchor-1', {}, region1),
+        new TestAnchor('anchor-2', {}, subnet2),
+      ]);
+      inputService.registerModel('module-1', region1);
+      inputService.registerModel('module-2', subnet2);
+      inputService.registerOverlay('module-2', overlay);
+
+      expect(getResourceScope(overlay)).toEqual([region2.getContext()]);
+    });
+
+    it('should not move the scope of an overlay when it joins one more model of another module', async () => {
+      const inputService = await container.get(InputService);
+      const {
+        region: [region1, region2],
+        subnet: [subnet1],
+      } = create({
+        account: ['aws,account-1', 'aws,account-2:-1'],
+        app: ['test'],
+        region: ['region-1', 'region-2'],
+        subnet: ['subnet-1'],
+      });
+      const overlay = new TestOverlay('overlay-1', {}, [new TestAnchor('anchor-1', {}, subnet1)]);
+      inputService.registerModel('module-1', subnet1);
+      inputService.registerModel('module-2', region2);
+      inputService.registerOverlay('module-1', overlay);
+      const scopeBefore = getResourceScope(overlay);
+
+      overlay.addAnchor(new TestAnchor('anchor-2', {}, region2));
+
+      expect(getResourceScope(overlay)).toEqual(scopeBefore);
+      expect(scopeBefore).toEqual([region1.getContext()]);
+    });
+
+    it('should scope an overlay that joins no model of its own module to what every model it joins sits under', async () => {
+      const inputService = await container.get(InputService);
       const {
         account: [account1],
         region: [region1, region2],
@@ -879,8 +925,26 @@ describe('TransactionService UT', () => {
         new TestAnchor('anchor-1', {}, region1),
         new TestAnchor('anchor-2', {}, subnet2),
       ]);
+      inputService.registerModel('module-1', region1);
+      inputService.registerModel('module-2', subnet2);
+      inputService.registerOverlay('module-3', overlay);
 
       expect(getResourceScope(overlay)).toEqual([account1.getContext(), region2.getContext()].sort());
+    });
+
+    it('should scope an overlay joining an overlay of its own module to where that overlay sits', async () => {
+      const inputService = await container.get(InputService);
+      const {
+        region: [region],
+        subnet: [subnet],
+      } = create({ account: ['aws,account'], app: ['test'], region: ['region-1'], subnet: ['subnet-1'] });
+      const innerOverlay = new TestOverlay('overlay-1', {}, [new TestAnchor('anchor-1', {}, subnet)]);
+      const outerOverlay = new TestOverlay('overlay-2', {}, [new TestAnchor('anchor-2', {}, innerOverlay)]);
+      inputService.registerModel('module-1', subnet);
+      inputService.registerOverlay('module-1', innerOverlay);
+      inputService.registerOverlay('module-1', outerOverlay);
+
+      expect(getResourceScope(outerOverlay)).toEqual([region.getContext()]);
     });
   });
 

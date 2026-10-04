@@ -91,5 +91,11 @@ Moving the model to another place in the graph does the same, because the hash i
 where the model sits.
 That is a destroy and a create, and for a bucket it means the objects inside it.
 
+When only the ID changes and the name the resource reaches the provider under stays, as when an
+ALB is renamed but its target groups keep theirs, the provider would refuse a second resource of
+that name while the first still exists. Octo writes a Terraform `moved` block instead, from the old
+resource's blocks to the new one's, so Terraform treats the two as one: it updates the
+infrastructure in place, or destroys it before it creates the replacement, never beside it.
+
 Octo tells you before it happens: `octo apply` lists what would be destroyed and refuses to go on
 until you pass `--auto-approve`.

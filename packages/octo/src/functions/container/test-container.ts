@@ -157,6 +157,7 @@ export class TestContainer {
         moduleContainer,
         overlayDataRepository,
         resourceDataRepository,
+        resourceSerializationService,
         terraformService,
       );
       container.unRegisterFactory(TransactionService);

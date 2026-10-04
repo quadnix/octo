@@ -21,6 +21,7 @@ import { InputService } from '../../input/input.service.js';
  * @internal
  */
 export class ResourceSerializationService {
+  private actualResourceModuleIds = new Map<string, string>(); // Resource context -> module recorded in state.
   private readonly classMapping: { [key: string]: any } = {};
 
   private RESOURCE_DESERIALIZATION_TIMEOUT_IN_MS = 3000;
@@ -42,6 +43,11 @@ export class ResourceSerializationService {
     oldSerializedOutput: ResourceSerializedOutput,
   ): Promise<void> {
     const actualResources = await this._deserialize(JSON.parse(JSON.stringify(actualSerializedOutput)), false);
+    this.actualResourceModuleIds = new Map(
+      Object.entries(actualSerializedOutput.resources)
+        .filter(([, { moduleId }]) => moduleId !== undefined)
+        .map(([context, { moduleId }]) => [context, moduleId!]),
+    );
     const oldResources = await this._deserialize(JSON.parse(JSON.stringify(oldSerializedOutput)), true);
 
     // Refresh the resource data repository.
@@ -51,6 +57,13 @@ export class ResourceSerializationService {
         args: [true, Object.values(actualResources), Object.values(oldResources), []],
       },
     );
+  }
+
+  /**
+   * The module that produced a committed resource, as the state it was loaded from records it.
+   */
+  getActualResourceModuleId(resource: UnknownResource): string | undefined {
+    return this.actualResourceModuleIds.get(resource.getContext());
   }
 
   /**

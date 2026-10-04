@@ -71,6 +71,12 @@ that anchor. The other is a `MatchingAnchor<...Schema>`, because it came from so
 found by matching a shape. That is the difference in a nutshell: use the class when you built it,
 and the schema when somebody else did.
 
+The resources an overlay's action creates sit where the models your own module created sit, and
+their resource IDs carry a hash of that place. Models the overlay borrows from other modules, like
+the function here, are what it joins and not where it is, so joining one more, such as granting a
+function a table in another region, changes no ID. An overlay that joins only borrowed models sits
+where all of them sit.
+
 ## Building it
 
 In the module, once both anchors are in hand:
