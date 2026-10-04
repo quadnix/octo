@@ -9,6 +9,7 @@ export class TaskDefinitionRepository {
   private readonly client: ECSClient;
 
   /**
+   * @param region The AWS region to read, e.g. `us-east-1`.
    * @param endpoint Address of an AWS-compatible service, e.g. a localstack container. Defaults to AWS.
    */
   constructor(region: string, endpoint?: string) {

@@ -10,6 +10,7 @@ export class AwsTagsUtility {
   private readonly iamClient: IAMClient;
 
   /**
+   * @param region The AWS region whose tagged resources are read. IAM roles are read globally.
    * @param endpoint Address of an AWS-compatible service, e.g. a localstack container. Defaults to AWS.
    */
   constructor(region: string, endpoint?: string) {
