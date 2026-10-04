@@ -2,7 +2,7 @@ import { resolve } from 'path';
 import { Container, StateManagementService, TerraformUtility } from '@quadnix/octo';
 import chalk from 'chalk';
 import type { ArgumentsCamelCase, Argv } from 'yargs';
-import { bootStateProvider, prepareCallbackEnvironment, reportError } from '../../utilities/octo/octo.utility.js';
+import { OctoUtility } from '../../utilities/octo/octo.utility.js';
 
 type ApplyCommandArguments = {
   autoApprove?: boolean;
@@ -108,10 +108,10 @@ export const applyCommand = {
     const { autoApprove, lockId, terraformBinary, terragruntBinary, terragruntDir, timeoutInMs } = argv;
     const resolvedDir = resolve(process.cwd(), terragruntDir);
 
-    prepareCallbackEnvironment();
+    OctoUtility.prepareCallbackEnvironment();
 
     try {
-      const { stateCheckInIntervalInMs } = await bootStateProvider();
+      const { stateCheckInIntervalInMs } = await OctoUtility.bootStateProvider();
 
       // The lock is verified before anything is planned, so a run without it fails having done
       // nothing. It is released by `octo commit`, not here - the apply is the middle of a run.
@@ -162,7 +162,7 @@ export const applyCommand = {
         console.log(chalk.green('==== Apply complete ===='));
       }
     } catch (error) {
-      reportError(error);
+      OctoUtility.reportError(error);
       process.exit(1);
     }
   },

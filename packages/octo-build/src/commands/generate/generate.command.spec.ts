@@ -14,9 +14,11 @@ const mockedBootStateProvider = jest.fn<() => Promise<void>>().mockResolvedValue
 // named function exports the way Jest's CJS mode does — `jest.unstable_mockModule` + a dynamic
 // `import()` of the module under test (below) is the mechanism that actually works here.
 jest.unstable_mockModule('../../utilities/octo/octo.utility.js', () => ({
-  bootOcto: mockedBootOcto,
-  bootStateProvider: mockedBootStateProvider,
-  reportError: mockedReportError,
+  OctoUtility: {
+    bootOcto: mockedBootOcto,
+    bootStateProvider: mockedBootStateProvider,
+    reportError: mockedReportError,
+  },
 }));
 
 const { generateCommand } = await import('./generate.command.js');

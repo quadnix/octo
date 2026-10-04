@@ -1,7 +1,7 @@
 import { Container, StateManagementService } from '@quadnix/octo';
 import chalk from 'chalk';
 import type { ArgumentsCamelCase, Argv } from 'yargs';
-import { bootStateProvider, reportError } from '../../utilities/octo/octo.utility.js';
+import { OctoUtility } from '../../utilities/octo/octo.utility.js';
 
 type UnlockCommandArguments = {
   lockId: string;
@@ -28,7 +28,7 @@ export const unlockCommand = {
     const { lockId } = argv;
 
     try {
-      await bootStateProvider();
+      await OctoUtility.bootStateProvider();
       const stateManagementService = await Container.getInstance().get(StateManagementService);
 
       if (!(await stateManagementService.getAppLock())) {
@@ -39,7 +39,7 @@ export const unlockCommand = {
       await stateManagementService.unlockApp(lockId);
       console.error(chalk.green(`App was unlocked, releasing lock ID "${lockId}".`));
     } catch (error) {
-      reportError(error);
+      OctoUtility.reportError(error);
       process.exit(1);
     }
   },

@@ -1,7 +1,7 @@
 import { resolve } from 'path';
 import { Container, StateManagementService } from '@quadnix/octo';
 import type { ArgumentsCamelCase, Argv } from 'yargs';
-import { bootOcto, bootStateProvider, reportError } from '../../utilities/octo/octo.utility.js';
+import { OctoUtility } from '../../utilities/octo/octo.utility.js';
 
 type GenerateCommandArguments = {
   outputDir: string;
@@ -29,10 +29,10 @@ export const generateCommand = {
     const { outputDir } = argv;
 
     try {
-      await bootStateProvider();
+      await OctoUtility.bootStateProvider();
       await (await Container.getInstance().get(StateManagementService)).refreshState();
 
-      const { app, octo } = await bootOcto();
+      const { app, octo } = await OctoUtility.bootOcto();
 
       const resolvedOutputDir = resolve(process.cwd(), outputDir);
       await octo.generate(app, { outputDir: resolvedOutputDir });
@@ -42,7 +42,7 @@ export const generateCommand = {
       // because pino's stream and this one flush independently. Failures still reach stderr via
       // `reportError`, so a silent run is a successful one.
     } catch (error) {
-      reportError(error);
+      OctoUtility.reportError(error);
       process.exit(1);
     }
   },

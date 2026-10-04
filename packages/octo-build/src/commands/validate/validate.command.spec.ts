@@ -35,9 +35,11 @@ const mockedReportError = jest.fn<(error: unknown) => void>();
 // named function exports the way Jest's CJS mode does — `jest.unstable_mockModule` + a dynamic
 // `import()` of the module under test (below) is the mechanism that actually works here.
 jest.unstable_mockModule('../../utilities/octo/octo.utility.js', () => ({
-  bootOcto: mockedBootOcto,
-  prepareCallbackEnvironment: mockedPrepareCallbackEnvironment,
-  reportError: mockedReportError,
+  OctoUtility: {
+    bootOcto: mockedBootOcto,
+    prepareCallbackEnvironment: mockedPrepareCallbackEnvironment,
+    reportError: mockedReportError,
+  },
 }));
 
 const { validateCommand } = await import('./validate.command.js');

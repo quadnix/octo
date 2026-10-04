@@ -1,5 +1,5 @@
 import type { ArgumentsCamelCase, Argv } from 'yargs';
-import { bootOcto, reportError } from '../../utilities/octo/octo.utility.js';
+import { OctoUtility } from '../../utilities/octo/octo.utility.js';
 
 type RunActionCommandArguments = {
   input?: string[];
@@ -38,7 +38,7 @@ export const runActionCommand = {
 
       // stdout carries ONLY the response JSON (terraform's `data "external"` consumes it), so suppress
       // boot output and route this command's own diagnostics to stderr.
-      const { app, octo } = await bootOcto({ quietStdout: true });
+      const { app, octo } = await OctoUtility.bootOcto({ quietStdout: true });
 
       const result = await octo.runAction(app, {
         inputs,
@@ -48,7 +48,7 @@ export const runActionCommand = {
       // stdout carries ONLY the response JSON — terraform's `data "external"` consumes it.
       process.stdout.write(JSON.stringify(result.response));
     } catch (error) {
-      reportError(error);
+      OctoUtility.reportError(error);
       process.exit(1);
     }
   },

@@ -2,7 +2,7 @@ import { resolve } from 'path';
 import { Container, TerraformUtility } from '@quadnix/octo';
 import chalk from 'chalk';
 import type { ArgumentsCamelCase, Argv } from 'yargs';
-import { bootOcto, prepareCallbackEnvironment, reportError } from '../../utilities/octo/octo.utility.js';
+import { OctoUtility } from '../../utilities/octo/octo.utility.js';
 
 type ValidateCommandArguments = {
   terraformBinary?: string;
@@ -46,9 +46,9 @@ export const validateCommand = {
 
     try {
       // A plan reads every `data "external"`, and each one shells back out to `octo get-response`.
-      prepareCallbackEnvironment();
+      OctoUtility.prepareCallbackEnvironment();
 
-      const { app, octo } = await bootOcto();
+      const { app, octo } = await OctoUtility.bootOcto();
       const terraformUtility = await Container.getInstance().get<TerraformUtility, any>(TerraformUtility, {
         args: [{ terraformBinary, terragruntBinary, timeoutInMs }, true],
       });
@@ -73,7 +73,7 @@ export const validateCommand = {
         process.exit(1);
       }
     } catch (error) {
-      reportError(error);
+      OctoUtility.reportError(error);
       process.exit(1);
     }
   },

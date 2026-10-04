@@ -2,7 +2,7 @@ import { resolve } from 'path';
 import { Container, StateManagementService, TerraformUtility } from '@quadnix/octo';
 import chalk from 'chalk';
 import type { ArgumentsCamelCase, Argv } from 'yargs';
-import { bootOcto, reportError } from '../../utilities/octo/octo.utility.js';
+import { OctoUtility } from '../../utilities/octo/octo.utility.js';
 
 type CommitCommandArguments = {
   lockId: string;
@@ -62,7 +62,7 @@ export const commitCommand = {
     const resolvedDir = resolve(process.cwd(), terragruntDir);
 
     try {
-      const { app, octo } = await bootOcto();
+      const { app, octo } = await OctoUtility.bootOcto();
       const terraformUtility = await Container.getInstance().get<TerraformUtility, any>(TerraformUtility, {
         args: [{ terraformBinary, terragruntBinary, timeoutInMs }, true],
       });
@@ -92,7 +92,7 @@ export const commitCommand = {
       // No verdict printed here - the listeners own stdout and render the commit report there.
       // The warnings above stay, on stderr: a different fd, so they cannot interleave with pino.
     } catch (error) {
-      reportError(error);
+      OctoUtility.reportError(error);
       process.exit(1);
     }
   },

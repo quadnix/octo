@@ -1,7 +1,7 @@
 import { Container, StateManagementService } from '@quadnix/octo';
 import chalk from 'chalk';
 import type { ArgumentsCamelCase, Argv } from 'yargs';
-import { bootStateProvider, reportError } from '../../utilities/octo/octo.utility.js';
+import { OctoUtility } from '../../utilities/octo/octo.utility.js';
 
 type LockCommandArguments = {
   lockId?: string;
@@ -26,7 +26,7 @@ export const lockCommand = {
   describe: 'Take the app state lock, printing its ID. Required before apply and commit.',
   handler: async (argv: ArgumentsCamelCase<LockCommandArguments>): Promise<void> => {
     try {
-      await bootStateProvider();
+      await OctoUtility.bootStateProvider();
       const stateManagementService = await Container.getInstance().get(StateManagementService);
 
       const { lockId } = await stateManagementService.lockApp(argv.lockId);
@@ -34,7 +34,7 @@ export const lockCommand = {
       console.error(chalk.green(argv.lockId ? 'App lock is resumed.' : 'App is locked.'));
       console.log(lockId);
     } catch (error) {
-      reportError(error);
+      OctoUtility.reportError(error);
       process.exit(1);
     }
   },

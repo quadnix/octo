@@ -1,6 +1,6 @@
 import { Container, StateManagementService } from '@quadnix/octo';
 import type { ArgumentsCamelCase, Argv } from 'yargs';
-import { bootStateProvider, reportError } from '../../utilities/octo/octo.utility.js';
+import { OctoUtility } from '../../utilities/octo/octo.utility.js';
 
 type GetResponseCommandArguments = {
   resourceId: string;
@@ -27,7 +27,7 @@ export const getResponseCommand = {
     const { resourceId } = argv;
 
     try {
-      await bootStateProvider();
+      await OctoUtility.bootStateProvider();
       const stateManagementService = await Container.getInstance().get(StateManagementService);
 
       const response = await stateManagementService.getResourceResponse(resourceId);
@@ -41,7 +41,7 @@ export const getResponseCommand = {
       // stdout carries ONLY the response JSON - terraform's `data "external"` consumes it.
       process.stdout.write(JSON.stringify(response));
     } catch (error) {
-      reportError(error);
+      OctoUtility.reportError(error);
       process.exit(1);
     }
   },
