@@ -1,12 +1,11 @@
-import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { readFile, readdir, rm } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { jest } from '@jest/globals';
-import { dump, load } from 'js-yaml';
 import { AwsEcsUtility } from '../utilities/aws/ecs/aws-ecs.utility.js';
 import { AwsLiveResourcesUtility } from '../utilities/aws/live-resources/aws-live-resources.utility.js';
 import { AwsTagsUtility } from '../utilities/aws/tags/aws-tags.utility.js';
-import { OctoCliUtility } from '../utilities/octo/octo-cli.utility.js';
+import { OctoCliUtility, type OctoDefinition } from '../utilities/octo/octo-cli.utility.js';
 import { config } from './app.config.js';
 import { ImageRepository } from './image.repository.js';
 import { TaskDefinitionRepository } from './task-definition.repository.js';
@@ -40,42 +39,12 @@ const STATE_FILE_PATH = join(STATE_DIRECTORY_PATH, 'resources-actual.json');
 
 const OUTPUT_DIRECTORY = join('.octo', 'generated');
 
-interface Definition {
-  modules: { moduleClass: string; moduleId: string; moduleInputs: Record<string, unknown> }[];
-  settings: { stateProvider: { statePath: string } };
-}
-
 /**
  * The version the ECS consumer runs, and the URI AWS is expected to be given for it.
  */
 const ECS_IMAGE_TAG = '0.1.0';
 
 const ECS_IMAGE_URI = `${config.AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION_ID}.amazonaws.com/${REPOSITORY_NAME}:${ECS_IMAGE_TAG}`;
-
-/**
- * A definition of this template's own, derived from `baseFileName` by the given edit, if any.
- *
- * The cases below are structural - another version published beside the first, a version dropped, a
- * version moved to another repository - so they are changes to the modules a definition declares
- * rather than to the values fed into one. Each is written beside the state directory, keeping the
- * same definition directory, which is what anchors the state path every run has to reuse.
- */
-async function writeDefinition(
-  name: string,
-  baseFileName: string,
-  edit: (definition: Definition) => void = () => undefined,
-): Promise<string> {
-  const definition = load(await readFile(join(__dirname, baseFileName), 'utf8')) as Definition;
-
-  edit(definition);
-  definition.settings.stateProvider.statePath = 'state';
-
-  const definitionFilePath = join(__dirname, '.octo', `${name}.yaml`);
-  await mkdir(join(__dirname, '.octo'), { recursive: true });
-  await writeFile(definitionFilePath, dump(definition));
-
-  return definitionFilePath;
-}
 
 /**
  * The module publishing a version, as a definition declares it.
@@ -87,7 +56,7 @@ function imageTagModule(
     image = '${{image-module.model.image}}',
     imageTag,
   }: { dockerfileName?: string; image?: string; imageTag: string },
-): Definition['modules'][0] {
+): OctoDefinition['modules'][0] {
   return {
     moduleClass: 'AwsEcrImageTagModule',
     moduleId,
@@ -98,7 +67,7 @@ function imageTagModule(
 /**
  * The second repository, as a definition declares it.
  */
-function otherRepositoryModule(): Definition['modules'][0] {
+function otherRepositoryModule(): OctoDefinition['modules'][0] {
   return {
     moduleClass: 'AwsEcrImageModule',
     moduleId: 'image-module-2',
@@ -161,17 +130,6 @@ async function removeTerragruntCaches(): Promise<void> {
   }
 }
 
-/**
- * The records an external resource's action leaves in octo state, one per resource.
- *
- * A record exists only between the action that wrote it and the commit that folds it into the
- * resource graph, so a settled state directory holds none.
- */
-async function readStateRecordNames(): Promise<string[]> {
-  const names = await readdir(STATE_DIRECTORY_PATH);
-  return names.filter((name) => name.startsWith('resource-state-')).sort();
-}
-
 jest.setTimeout(3_600_000);
 
 describe('Main E2E', () => {
@@ -192,7 +150,7 @@ describe('Main E2E', () => {
     expect(imageDigest).toMatch(/^sha256:[0-9a-f]{64}$/);
 
     // The record the action wrote mid-apply is gone: the committed graph holds it now.
-    expect(await readStateRecordNames()).toEqual([]);
+    expect(await OctoCliUtility.readStateRecordNames(__dirname)).toEqual([]);
 
     // The response the action produced mid-apply reached octo state, digest and all.
     expect(await readCommittedResponses()).toEqual({
@@ -226,7 +184,7 @@ describe('Main E2E', () => {
   });
 
   it('should publish another version alongside the one already there', async () => {
-    const definitionFilePath = await writeDefinition('two-versions', 'octo.yaml', (definition) => {
+    const definitionFilePath = await OctoCliUtility.writeDefinition(__dirname, 'two-versions', (definition) => {
       definition.modules.push(imageTagModule('image-tag-module-2', { imageTag: '0.0.2' }));
     });
     await OctoCliUtility.lifecycle(__dirname, definitionFilePath, { ...environment, AWS_IMAGE_TAG: '0.0.1' });
@@ -237,7 +195,7 @@ describe('Main E2E', () => {
   });
 
   it('should delete only the version it stops declaring', async () => {
-    const definitionFilePath = await writeDefinition('one-version-dropped', 'octo.yaml', (definition) => {
+    const definitionFilePath = await OctoCliUtility.writeDefinition(__dirname, 'one-version-dropped', (definition) => {
       definition.modules = definition.modules.filter((m) => m.moduleId !== 'image-tag-module');
       definition.modules.push(imageTagModule('image-tag-module-2', { imageTag: '0.0.2' }));
     });
@@ -250,7 +208,7 @@ describe('Main E2E', () => {
   });
 
   it('should delete the old version and publish the new one when the tag is edited in place', async () => {
-    const definitionFilePath = await writeDefinition('tag-edited', 'octo.yaml', (definition) => {
+    const definitionFilePath = await OctoCliUtility.writeDefinition(__dirname, 'tag-edited', (definition) => {
       definition.modules = definition.modules.filter((m) => m.moduleId !== 'image-tag-module');
       definition.modules.push(imageTagModule('image-tag-module-2', { imageTag: '0.0.3' }));
     });
@@ -264,7 +222,7 @@ describe('Main E2E', () => {
   it('should leave the published image alone when what it is built from changes', async () => {
     const publishedDigest = await imageRepository.getImageDigest(REPOSITORY_NAME, '0.0.3');
 
-    const definitionFilePath = await writeDefinition('rebuilt', 'octo.yaml', (definition) => {
+    const definitionFilePath = await OctoCliUtility.writeDefinition(__dirname, 'rebuilt', (definition) => {
       definition.modules = definition.modules.filter((m) => m.moduleId !== 'image-tag-module');
       definition.modules.push(
         imageTagModule('image-tag-module-2', { dockerfileName: 'Dockerfile.replacement', imageTag: '0.0.3' }),
@@ -279,7 +237,7 @@ describe('Main E2E', () => {
   });
 
   it('should move the published image when it is pointed at another repository', async () => {
-    const definitionFilePath = await writeDefinition('other-repository', 'octo.yaml', (definition) => {
+    const definitionFilePath = await OctoCliUtility.writeDefinition(__dirname, 'other-repository', (definition) => {
       definition.modules = definition.modules.filter((m) => m.moduleId !== 'image-tag-module');
       definition.modules.push(otherRepositoryModule());
       definition.modules.push(
@@ -301,7 +259,7 @@ describe('Main E2E', () => {
   // action wrote is the only place the published image is written down until the commit lands, and
   // a second apply must read it rather than publish again.
   it('should not republish when an apply is re-run before its commit', async () => {
-    const definitionFilePath = await writeDefinition('uncommitted', 'octo.yaml', (definition) => {
+    const definitionFilePath = await OctoCliUtility.writeDefinition(__dirname, 'uncommitted', (definition) => {
       definition.modules = definition.modules.filter((m) => m.moduleId !== 'image-tag-module');
       definition.modules.push(otherRepositoryModule());
       definition.modules.push(
@@ -329,7 +287,7 @@ describe('Main E2E', () => {
     // The image is published, and octo has it recorded nowhere else yet.
     const pushedAt = await imageRepository.getImagePushedAt(OTHER_REPOSITORY_NAME, '0.0.9');
     expect(pushedAt).not.toBeNull();
-    expect(await readStateRecordNames()).toHaveLength(1);
+    expect(await OctoCliUtility.readStateRecordNames(__dirname)).toHaveLength(1);
     expect(Object.keys(await readCommittedResponses()).sort()).toEqual(['0.0.3']);
 
     // A second apply over the same uncommitted state republishes nothing.
@@ -348,12 +306,12 @@ describe('Main E2E', () => {
       ['commit', '--terragruntDir', OUTPUT_DIRECTORY, '--lockId', lockId],
       environment,
     );
-    expect(await readStateRecordNames()).toEqual([]);
+    expect(await OctoCliUtility.readStateRecordNames(__dirname)).toEqual([]);
     expect(Object.keys(await readCommittedResponses()).sort()).toEqual(['0.0.3', '0.0.9']);
   });
 
   it('should publish nothing, and record nothing, when the image cannot be built', async () => {
-    const definitionFilePath = await writeDefinition('build-fails', 'octo.yaml', (definition) => {
+    const definitionFilePath = await OctoCliUtility.writeDefinition(__dirname, 'build-fails', (definition) => {
       definition.modules = definition.modules.filter((m) => m.moduleId !== 'image-tag-module');
       definition.modules.push(otherRepositoryModule());
       definition.modules.push(
@@ -379,13 +337,13 @@ describe('Main E2E', () => {
 
     // The action threw, so nothing was published and nothing was recorded for it.
     expect(await imageRepository.getImageDigest(OTHER_REPOSITORY_NAME, '0.0.10')).toBeNull();
-    expect(await readStateRecordNames()).toEqual([]);
+    expect(await OctoCliUtility.readStateRecordNames(__dirname)).toEqual([]);
     // The versions that were already there are untouched.
     expect(await imageRepository.getImageDigest(OTHER_REPOSITORY_NAME, '0.0.9')).toMatch(/^sha256:/);
   });
 
   it('should publish on the next run once the build is fixed', async () => {
-    const definitionFilePath = await writeDefinition('build-fixed', 'octo.yaml', (definition) => {
+    const definitionFilePath = await OctoCliUtility.writeDefinition(__dirname, 'build-fixed', (definition) => {
       definition.modules = definition.modules.filter((m) => m.moduleId !== 'image-tag-module');
       definition.modules.push(otherRepositoryModule());
       definition.modules.push(
@@ -406,7 +364,7 @@ describe('Main E2E', () => {
     await OctoCliUtility.lifecycle(__dirname, definitionFilePath, environment);
 
     expect(await imageRepository.getImageDigest(OTHER_REPOSITORY_NAME, '0.0.10')).toMatch(/^sha256:/);
-    expect(await readStateRecordNames()).toEqual([]);
+    expect(await OctoCliUtility.readStateRecordNames(__dirname)).toEqual([]);
     expect(Object.keys(await readCommittedResponses()).sort()).toEqual(['0.0.10', '0.0.3', '0.0.9']);
   });
 
@@ -417,7 +375,12 @@ describe('Main E2E', () => {
   // and terragrunt carries the map into the folder holding the task definition. Both resources are
   // created by this one apply, which is the only run where every link in that chain is cold.
   it('should give a task definition the image the same apply published', async () => {
-    const definitionFilePath = await writeDefinition('ecs-consumer', 'octo-ecs.yaml');
+    const definitionFilePath = await OctoCliUtility.writeDefinition(
+      __dirname,
+      'ecs-consumer',
+      undefined,
+      'octo-ecs.yaml',
+    );
 
     await OctoCliUtility.lifecycle(__dirname, definitionFilePath, {
       ...environment,
@@ -432,18 +395,23 @@ describe('Main E2E', () => {
     const taskDefinitionArn = await readCommittedTaskDefinitionArn();
     expect(await taskDefinitionRepository.getContainerImages(taskDefinitionArn)).toEqual([ECS_IMAGE_URI]);
 
-    expect(await readStateRecordNames()).toEqual([]);
+    expect(await OctoCliUtility.readStateRecordNames(__dirname)).toEqual([]);
   });
 
   it('should have no resources left after teardown', async () => {
     // Derived from the ECS definition rather than from `octo.yaml`, because its imports are what
     // register the delete actions: a resource's actions come from importing the module path they sit
     // under, and the modules being dropped here are the ones that brought them.
-    const definitionFilePath = await writeDefinition('teardown', 'octo-ecs.yaml', (definition) => {
-      definition.modules = definition.modules.filter(
-        (m) => m.moduleId === 'app-module' || m.moduleId === 'account-module',
-      );
-    });
+    const definitionFilePath = await OctoCliUtility.writeDefinition(
+      __dirname,
+      'teardown',
+      (definition) => {
+        definition.modules = definition.modules.filter(
+          (m) => m.moduleId === 'app-module' || m.moduleId === 'account-module',
+        );
+      },
+      'octo-ecs.yaml',
+    );
     await OctoCliUtility.lifecycle(__dirname, definitionFilePath, environment);
 
     expect(await imageRepository.hasRepository(REPOSITORY_NAME)).toBe(false);

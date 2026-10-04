@@ -1,12 +1,24 @@
 import { spawn } from 'node:child_process';
+import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { delimiter, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { dump, load } from 'js-yaml';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const BIN_DIRECTORY = resolve(__dirname, '..', '..', '..', 'node_modules', '.bin');
 
 const OUTPUT_DIRECTORY = join('.octo', 'generated');
+
+const STATE_DIRECTORY = join('.octo', 'state');
+
+/**
+ * The parts of a template's `octo.yaml` a test edits.
+ */
+export interface OctoDefinition {
+  modules: { moduleClass: string; moduleId: string; moduleInputs: Record<string, unknown> }[];
+  settings: { stateProvider: { statePath: string } };
+}
 
 /**
  * Drives a template through the `octo` CLI, the way a user does.
@@ -75,6 +87,33 @@ export class OctoCliUtility {
   }
 
   /**
+   * The responses octo committed, keyed by the resource name inside the context
+   * (`@octo/lambda-function`). Reads the local state a template's definition names.
+   */
+  static async readCommittedResponses(
+    projectDirectory: string,
+  ): Promise<{ [resourceName: string]: Record<string, string> }> {
+    const state = JSON.parse(
+      await readFile(join(projectDirectory, STATE_DIRECTORY, 'resources-actual.json'), 'utf8'),
+    ) as {
+      data: { resources: { [context: string]: { resource: { response: Record<string, string> } } } };
+    };
+
+    return Object.fromEntries(
+      Object.entries(state.data.resources).map(([context, entry]) => [context.split('=')[0], entry.resource.response]),
+    );
+  }
+
+  /**
+   * The names of the per-resource records left in the state directory, sorted. A record is written
+   * for an external resource while octo acts on it, so an empty list means nothing is in flight.
+   */
+  static async readStateRecordNames(projectDirectory: string): Promise<string[]> {
+    const names = await readdir(join(projectDirectory, STATE_DIRECTORY));
+    return names.filter((name) => name.startsWith('resource-state-')).sort();
+  }
+
+  /**
    * Runs one `octo` command, returning its stdout. Its stderr is forwarded as it arrives, because an
    * apply runs for minutes and its progress is the only sign it is alive.
    *
@@ -115,5 +154,30 @@ export class OctoCliUtility {
         }
       });
     });
+  }
+
+  /**
+   * Writes a definition of the template's own, derived from `baseFileName` by the given edit, and
+   * returns its path.
+   *
+   * Each is written beside the state directory, keeping the same definition directory, which is what
+   * anchors the state path every run has to reuse.
+   */
+  static async writeDefinition(
+    projectDirectory: string,
+    name: string,
+    edit: (definition: OctoDefinition) => void = (): void => undefined,
+    baseFileName = 'octo.yaml',
+  ): Promise<string> {
+    const definition = load(await readFile(join(projectDirectory, baseFileName), 'utf8')) as OctoDefinition;
+
+    edit(definition);
+    definition.settings.stateProvider.statePath = 'state';
+
+    const definitionFilePath = join(projectDirectory, '.octo', `${name}.yaml`);
+    await mkdir(join(projectDirectory, '.octo'), { recursive: true });
+    await writeFile(definitionFilePath, dump(definition));
+
+    return definitionFilePath;
   }
 }

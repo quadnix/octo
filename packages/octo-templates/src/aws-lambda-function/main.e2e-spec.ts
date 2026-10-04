@@ -1,5 +1,4 @@
 import { createHash } from 'node:crypto';
-import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Sha256 } from '@aws-crypto/sha256-js';
@@ -7,10 +6,9 @@ import { defaultProvider } from '@aws-sdk/credential-provider-node';
 import { jest } from '@jest/globals';
 import { SignatureV4 } from '@smithy/signature-v4';
 import axios from 'axios';
-import { dump, load } from 'js-yaml';
 import { AwsLiveResourcesUtility } from '../utilities/aws/live-resources/aws-live-resources.utility.js';
 import { AwsTagsUtility } from '../utilities/aws/tags/aws-tags.utility.js';
-import { OctoCliUtility } from '../utilities/octo/octo-cli.utility.js';
+import { OctoCliUtility, type OctoDefinition } from '../utilities/octo/octo-cli.utility.js';
 import { config } from './app.config.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -26,10 +24,6 @@ const E2E_TAGS = { 'e2e-test': 'true', 'e2e-test-family': 'aws-lambda-function' 
  */
 const IMAGE_NAME = `octo-lambda-function-${Date.now().toString(36)}`;
 
-const STATE_DIRECTORY_PATH = join(__dirname, '.octo', 'state');
-
-const STATE_FILE_PATH = join(STATE_DIRECTORY_PATH, 'resources-actual.json');
-
 /**
  * How long a call is retried for. A new role can take minutes to become assumable, a new permission
  * on a function URL seconds to take effect, and a new distribution minutes to reach every edge.
@@ -38,53 +32,7 @@ const CALL_POLL_ATTEMPTS = 60;
 
 const CALL_POLL_INTERVAL_IN_MS = 10_000;
 
-interface Definition {
-  modules: { moduleClass: string; moduleId: string; moduleInputs: Record<string, unknown> }[];
-  settings: { stateProvider: { statePath: string } };
-}
-
 type FunctionAnswer = { body: string; greeting: string; method: string; path: string };
-
-/**
- * A definition of this template's own, derived from `octo.yaml` by the given edit.
- *
- * Each is written beside the state directory, keeping the same definition directory, which is what
- * anchors the state path every run has to reuse.
- */
-async function writeDefinition(name: string, edit: (definition: Definition) => void): Promise<string> {
-  const definition = load(await readFile(join(__dirname, 'octo.yaml'), 'utf8')) as Definition;
-
-  edit(definition);
-  definition.settings.stateProvider.statePath = 'state';
-
-  const definitionFilePath = join(__dirname, '.octo', `${name}.yaml`);
-  await mkdir(join(__dirname, '.octo'), { recursive: true });
-  await writeFile(definitionFilePath, dump(definition));
-
-  return definitionFilePath;
-}
-
-/**
- * The responses octo committed, keyed by the resource name inside the context.
- */
-async function readCommittedResponses(): Promise<{ [resourceName: string]: Record<string, string> }> {
-  const state = JSON.parse(await readFile(STATE_FILE_PATH, 'utf8')) as {
-    data: { resources: { [context: string]: { resource: { response: Record<string, string> } } } };
-  };
-
-  return Object.fromEntries(
-    Object.entries(state.data.resources).map(([context, entry]) => [context.split('=')[0], entry.resource.response]),
-  );
-}
-
-/**
- * The records an external resource's action leaves in octo state, one per resource. A settled state
- * directory holds none.
- */
-async function readStateRecordNames(): Promise<string[]> {
-  const names = await readdir(STATE_DIRECTORY_PATH);
-  return names.filter((name) => name.startsWith('resource-state-')).sort();
-}
 
 /**
  * Calls a function URL, signing the request with this machine's AWS credentials, as a caller in the
@@ -144,7 +92,7 @@ describe('Main E2E', () => {
   it('should run the published image on Lambda, answering only signed requests on its URL', async () => {
     await OctoCliUtility.lifecycle(__dirname, 'octo.yaml', environment);
 
-    const responses = await readCommittedResponses();
+    const responses = await OctoCliUtility.readCommittedResponses(__dirname);
     const functionResponse = responses['@octo/lambda-function'];
     functionUrl = functionResponse.FunctionUrl;
     distributionDomainName = responses['@octo/cloudfront-distribution'].DomainName;
@@ -155,7 +103,7 @@ describe('Main E2E', () => {
     );
     expect(functionUrl).toMatch(/^https:\/\/[a-z0-9]+\.lambda-url\.us-east-1\.on\.aws\/$/);
     expect(`https://${functionResponse.FunctionUrlDomainName}/`).toBe(functionUrl);
-    expect(await readStateRecordNames()).toEqual([]);
+    expect(await OctoCliUtility.readStateRecordNames(__dirname)).toEqual([]);
 
     const answer = await waitForAnswer(
       () => callSigned(functionUrl, '/greet'),
@@ -198,7 +146,7 @@ describe('Main E2E', () => {
     await OctoCliUtility.lifecycle(__dirname, 'octo.yaml', { ...environment, GREETING: 'hello again' });
 
     // The function is updated in place: same name, same URL.
-    const responses = await readCommittedResponses();
+    const responses = await OctoCliUtility.readCommittedResponses(__dirname);
     expect(responses['@octo/lambda-function'].FunctionUrl).toBe(functionUrl);
 
     const answer = await waitForAnswer(
@@ -209,7 +157,7 @@ describe('Main E2E', () => {
   });
 
   it('should have no resources left after teardown', async () => {
-    const definitionFilePath = await writeDefinition('teardown', (definition) => {
+    const definitionFilePath = await OctoCliUtility.writeDefinition(__dirname, 'teardown', (definition) => {
       definition.modules = definition.modules.filter(
         (m) => m.moduleId === 'app-module' || m.moduleId === 'account-module',
       );

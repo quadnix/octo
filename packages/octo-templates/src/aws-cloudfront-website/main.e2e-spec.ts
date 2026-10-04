@@ -1,12 +1,11 @@
-import { cp, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import { cp, mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { jest } from '@jest/globals';
 import axios from 'axios';
-import { dump, load } from 'js-yaml';
 import { AwsCloudFrontUtility } from '../utilities/aws/cloudfront/aws-cloudfront.utility.js';
 import { AwsTagsUtility } from '../utilities/aws/tags/aws-tags.utility.js';
-import { OctoCliUtility } from '../utilities/octo/octo-cli.utility.js';
+import { OctoCliUtility, type OctoDefinition } from '../utilities/octo/octo-cli.utility.js';
 import { config } from './app.config.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -16,10 +15,6 @@ const AWS_REGION_ID = 'us-east-1';
 const E2E_TAGS = { 'e2e-test': 'true', 'e2e-test-family': 'aws-cloudfront-website' };
 
 const BUCKET_NAME = config.AWS_CLOUDFRONT_WEBSITE_BUCKET_NAME;
-
-const STATE_DIRECTORY_PATH = join(__dirname, '.octo', 'state');
-
-const STATE_FILE_PATH = join(STATE_DIRECTORY_PATH, 'resources-actual.json');
 
 /**
  * The second version of the site, written where a build tool would write one. It is a directory of
@@ -42,54 +37,6 @@ const ORIGINAL_INDEX_CONTENT = 'This website is served from the edge!';
 const EDGE_POLL_ATTEMPTS = 60;
 
 const EDGE_POLL_INTERVAL_IN_MS = 10_000;
-
-interface Definition {
-  modules: { moduleClass: string; moduleId: string; moduleInputs: Record<string, unknown> }[];
-  settings: { stateProvider: { statePath: string } };
-}
-
-/**
- * A definition of this template's own, derived from `octo.yaml` by the given edit.
- *
- * Each is written beside the state directory, keeping the same definition directory, which is what
- * anchors the state path every run has to reuse.
- */
-async function writeDefinition(name: string, edit: (definition: Definition) => void): Promise<string> {
-  const definition = load(await readFile(join(__dirname, 'octo.yaml'), 'utf8')) as Definition;
-
-  edit(definition);
-  definition.settings.stateProvider.statePath = 'state';
-
-  const definitionFilePath = join(__dirname, '.octo', `${name}.yaml`);
-  await mkdir(join(__dirname, '.octo'), { recursive: true });
-  await writeFile(definitionFilePath, dump(definition));
-
-  return definitionFilePath;
-}
-
-/**
- * The responses octo committed, keyed by the resource name inside the context.
- */
-async function readCommittedResponses(): Promise<{ [resourceName: string]: Record<string, string> }> {
-  const state = JSON.parse(await readFile(STATE_FILE_PATH, 'utf8')) as {
-    data: { resources: { [context: string]: { resource: { response: Record<string, string> } } } };
-  };
-
-  return Object.fromEntries(
-    Object.entries(state.data.resources).map(([context, entry]) => [context.split('=')[0], entry.resource.response]),
-  );
-}
-
-/**
- * The records an external resource's action leaves in octo state, one per resource.
- *
- * A record exists only between the action that wrote it and the commit that folds it into the
- * resource graph, so a settled state directory holds none.
- */
-async function readStateRecordNames(): Promise<string[]> {
-  const names = await readdir(STATE_DIRECTORY_PATH);
-  return names.filter((name) => name.startsWith('resource-state-')).sort();
-}
 
 /**
  * Reads the distribution's root until it serves the expected content, or gives up.
@@ -124,7 +71,7 @@ describe('Main E2E', () => {
   it('should serve the website through the distribution', async () => {
     await OctoCliUtility.lifecycle(__dirname, 'octo.yaml', environment);
 
-    const responses = await readCommittedResponses();
+    const responses = await OctoCliUtility.readCommittedResponses(__dirname);
 
     expect(responses['@octo/s3-storage']).toEqual({
       Arn: `arn:aws:s3:::${BUCKET_NAME}`,
@@ -150,7 +97,7 @@ describe('Main E2E', () => {
     const invalidationId = responses['@octo/cloudfront-invalidation'].InvalidationId;
     expect(invalidationId).toMatch(/^I[A-Z0-9]{10,}$/);
     expect(await awsCloudFrontUtility.getInvalidationIds(distributionId)).toEqual([invalidationId]);
-    expect(await readStateRecordNames()).toEqual([]);
+    expect(await OctoCliUtility.readStateRecordNames(__dirname)).toEqual([]);
 
     // The bucket is closed. Its website endpoint is emitted for a public bucket alone, so there is
     // nothing left listening on it.
@@ -166,16 +113,16 @@ describe('Main E2E', () => {
   });
 
   it('should change nothing when the identical intent is re-applied', async () => {
-    const responsesBefore = await readCommittedResponses();
+    const responsesBefore = await OctoCliUtility.readCommittedResponses(__dirname);
 
     await OctoCliUtility.lifecycle(__dirname, 'octo.yaml', environment);
 
     // Every response octo committed is the one it committed before, which is the whole of what a
     // run that changed nothing leaves behind.
-    expect(await readCommittedResponses()).toEqual(responsesBefore);
+    expect(await OctoCliUtility.readCommittedResponses(__dirname)).toEqual(responsesBefore);
     // Nothing published moved, so the edges were told nothing a second time.
     expect(await awsCloudFrontUtility.getInvalidationIds(distributionId)).toHaveLength(1);
-    expect(await readStateRecordNames()).toEqual([]);
+    expect(await OctoCliUtility.readStateRecordNames(__dirname)).toEqual([]);
   });
 
   it('should invalidate the edges once when the published content changes', async () => {
@@ -186,26 +133,26 @@ describe('Main E2E', () => {
       `<html lang='en'>\n<head>\n  <title>My Distributed Website</title>\n</head>\n<body>\n<h1>${REVISED_INDEX_CONTENT}</h1>\n</body>\n</html>\n`,
     );
 
-    const definitionFilePath = await writeDefinition('revised-content', (definition) => {
+    const definitionFilePath = await OctoCliUtility.writeDefinition(__dirname, 'revised-content', (definition) => {
       const storageModule = definition.modules.find((m) => m.moduleId === 'website-storage-module')!;
       storageModule.moduleInputs.directoryPath = REVISED_WEBSITE_DIRECTORY;
     });
     await OctoCliUtility.lifecycle(__dirname, definitionFilePath, environment);
 
-    const responses = await readCommittedResponses();
+    const responses = await OctoCliUtility.readCommittedResponses(__dirname);
 
     // One more invalidation, and the distribution itself untouched.
     expect(responses['@octo/cloudfront-distribution'].DistributionId).toBe(distributionId);
     const invalidationIds = await awsCloudFrontUtility.getInvalidationIds(distributionId);
     expect(invalidationIds).toHaveLength(2);
     expect(invalidationIds).toContain(responses['@octo/cloudfront-invalidation'].InvalidationId);
-    expect(await readStateRecordNames()).toEqual([]);
+    expect(await OctoCliUtility.readStateRecordNames(__dirname)).toEqual([]);
 
     await waitForEdgeContent(distributionDomainName, REVISED_INDEX_CONTENT);
   });
 
   it('should edit the live distribution in place when its price class moves', async () => {
-    const definitionFilePath = await writeDefinition('other-price-class', (definition) => {
+    const definitionFilePath = await OctoCliUtility.writeDefinition(__dirname, 'other-price-class', (definition) => {
       const storageModule = definition.modules.find((m) => m.moduleId === 'website-storage-module')!;
       storageModule.moduleInputs.directoryPath = REVISED_WEBSITE_DIRECTORY;
       const cloudFrontModule = definition.modules.find((m) => m.moduleId === 'website-cloudfront-module')!;
@@ -216,7 +163,7 @@ describe('Main E2E', () => {
     // Nothing on a distribution is force-new, so this is an update rather than a replacement. A
     // replacement would hand back a distribution id that had moved, and would have taken the site
     // down while it happened.
-    const responses = await readCommittedResponses();
+    const responses = await OctoCliUtility.readCommittedResponses(__dirname);
     expect(responses['@octo/cloudfront-distribution'].DistributionId).toBe(distributionId);
     expect(await awsCloudFrontUtility.getPriceClass(distributionId)).toBe('PriceClass_200');
 
@@ -225,7 +172,7 @@ describe('Main E2E', () => {
   });
 
   it('should have no resources left after teardown', async () => {
-    const definitionFilePath = await writeDefinition('teardown', (definition) => {
+    const definitionFilePath = await OctoCliUtility.writeDefinition(__dirname, 'teardown', (definition) => {
       definition.modules = definition.modules.filter(
         (m) => m.moduleId === 'app-module' || m.moduleId === 'account-module',
       );
