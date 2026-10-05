@@ -362,15 +362,17 @@ A load balancer bills by the hour from the moment it exists, whether or not anyt
 | Module                   | Inputs                                                                        | Creates                            |
 |--------------------------|-------------------------------------------------------------------------------|------------------------------------|
 | `AwsEfsFilesystemModule` | `region`, `filesystemName`                                                    | EFS filesystem                     |
-| `AwsEcrImageModule`      | `imageFamily`, `imageName`, `regions`                                         | ECR repository, one per region     |
+| `AwsEcrImageModule`      | `imageFamily`, `imageName`, `regions`                                         | ECR repository, one per AWS region |
 | `AwsEcrImageTagModule`   | `image`, `imageTag`, `architecture`, `dockerfileDirectory`, `dockerfileName?` | one published image per repository |
 
 An EFS filesystem belongs to a region; mounting it into a subnet is the subnet module's
 `localFilesystems` input, which is what produces the mount target.
 
 The two image modules are a repository and the versions inside it, declared separately.
-`AwsEcrImageModule` creates the repositories and nothing else, one in each account and AWS region
-its `regions` resolve to. `AwsEcrImageTagModule` takes that module's image as its `image` input, builds the
+`AwsEcrImageModule` creates the repositories and nothing else, one in each AWS region its `regions`
+resolve to. Every region must be in one account, because an image is used only inside its own
+account; a second account declares an image module of its own. Adding a region to `regions` or
+removing one leaves every other repository, and every version inside it, as it is. `AwsEcrImageTagModule` takes that module's image as its `image` input, builds the
 Dockerfile at `dockerfileDirectory` for `architecture`, `arm64` or `x86_64`, and pushes the result
 into every repository the image has, under `imageTag`. A Lambda function or an ECS task running the
 image runs on that processor, and an ECS task whose images were built for different processors is

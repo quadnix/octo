@@ -70,7 +70,7 @@ such as `s3`.
 | `Deployment`  | One version of a server's code.                                        | `Server`  |
 | `Execution`   | A deployment running in an environment, in a subnet.                   | all three |
 | `Service`     | Infrastructure that is not compute: a bucket, a queue, a table.        | any       |
-| `Image`       | A container image, available to any region.                            | `App`     |
+| `Image`       | A container image, used by the regions of its account it is linked to. | `Account` |
 | `Pipeline`    | A CI/CD pipeline. Not supported yet.                                   | `App`     |
 
 That set is fixed. You do not add a thirteenth, and the reason is the same reason the list is
