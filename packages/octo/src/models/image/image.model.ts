@@ -6,12 +6,13 @@ import { ImageSchema } from './image.schema.js';
 
 /**
  * An Image model represents a Docker image, to either build, or run, your services.
- * Images belong to the {@link App} rather than to a region, so the same image can be deployed anywhere.
+ * Images belong to an {@link Account}: an image is used only inside the account it sits in, and is
+ * linked to each of its regions it is published into.
  *
  * @example
  * ```ts
  * const image = new Image('nginx', '2.4');
- * app.addImage(image);
+ * account.addImage(image);
  * ```
  *
  * @group Models/Image
@@ -54,11 +55,11 @@ export class Image extends AModel<ImageSchema, Image> {
    */
   override setContext(): string | undefined {
     const parents = this.getParents();
-    const app = parents['app']?.[0]?.to;
-    if (!app) {
+    const account = parents['account']?.[0]?.to;
+    if (!account) {
       return undefined;
     }
-    return [`${(this.constructor as typeof Image).NODE_NAME}=${this.imageId}`, app.getContext()].join(',');
+    return [`${(this.constructor as typeof Image).NODE_NAME}=${this.imageId}`, account.getContext()].join(',');
   }
 
   /**

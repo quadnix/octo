@@ -3,7 +3,6 @@ import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
 import { ModelError } from '../../errors/index.js';
 import { Account } from '../account/account.model.js';
-import { Image } from '../image/image.model.js';
 import { AModel } from '../model.abstract.js';
 import { Pipeline } from '../pipeline/pipeline.model.js';
 import { Server } from '../server/server.model.js';
@@ -59,21 +58,6 @@ export class App extends AModel<AppSchema, App> {
       throw new ModelError('Account already exists!', this);
     }
     this.addChild('name', account, 'accountId');
-  }
-
-  /**
-   * To add an {@link Image}.
-   */
-  addImage(image: Image): void {
-    const childrenDependencies = this.getChildren('image');
-    if (!childrenDependencies['image']) childrenDependencies['image'] = [];
-
-    // Check for duplicates.
-    const images = childrenDependencies['image'].map((d) => d.to);
-    if (images.find((i: Image) => i.imageId === image.imageId)) {
-      throw new ModelError('Image already exists!', this);
-    }
-    this.addChild('name', image, 'imageId');
   }
 
   /**

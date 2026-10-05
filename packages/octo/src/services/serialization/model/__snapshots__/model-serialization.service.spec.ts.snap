@@ -27,23 +27,6 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
           "forAction": "delete",
           "onAction": "delete",
           "onField": "name",
-          "toField": "imageId",
-        },
-      ],
-      "from": "app=test-app",
-      "relationship": {
-        "onField": "name",
-        "toField": "imageId",
-        "type": "parent",
-      },
-      "to": "image=test/image,app=test-app",
-    },
-    {
-      "behaviors": [
-        {
-          "forAction": "delete",
-          "onAction": "delete",
-          "onField": "name",
           "toField": "serverKey",
         },
       ],
@@ -83,29 +66,6 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
         {
           "forAction": "add",
           "onAction": "add",
-          "onField": "imageId",
-          "toField": "name",
-        },
-        {
-          "forAction": "update",
-          "onAction": "add",
-          "onField": "imageId",
-          "toField": "name",
-        },
-      ],
-      "from": "image=test/image,app=test-app",
-      "relationship": {
-        "onField": "imageId",
-        "toField": "name",
-        "type": "child",
-      },
-      "to": "app=test-app",
-    },
-    {
-      "behaviors": [
-        {
-          "forAction": "add",
-          "onAction": "add",
           "onField": "accountId",
           "toField": "name",
         },
@@ -123,6 +83,23 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
         "type": "child",
       },
       "to": "app=test-app",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "delete",
+          "onAction": "delete",
+          "onField": "accountId",
+          "toField": "imageId",
+        },
+      ],
+      "from": "account=account,app=test-app",
+      "relationship": {
+        "onField": "accountId",
+        "toField": "imageId",
+        "type": "parent",
+      },
+      "to": "image=test/image,account=account,app=test-app",
     },
     {
       "behaviors": [
@@ -204,6 +181,29 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
       },
       "to": "region=region-1,account=account,app=test-app",
     },
+    {
+      "behaviors": [
+        {
+          "forAction": "add",
+          "onAction": "add",
+          "onField": "imageId",
+          "toField": "accountId",
+        },
+        {
+          "forAction": "update",
+          "onAction": "add",
+          "onField": "imageId",
+          "toField": "accountId",
+        },
+      ],
+      "from": "image=test/image,account=account,app=test-app",
+      "relationship": {
+        "onField": "imageId",
+        "toField": "accountId",
+        "type": "child",
+      },
+      "to": "account=account,app=test-app",
+    },
   ],
   "models": {
     "account=account,app=test-app": {
@@ -226,7 +226,7 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
         "environmentVariables": {},
       },
     },
-    "image=test/image,app=test-app": {
+    "image=test/image,account=account,app=test-app": {
       "className": "@octo/Image",
       "model": {
         "imageFamily": "test",

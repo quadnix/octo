@@ -2,6 +2,7 @@ import { strict as assert } from 'assert';
 import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
 import { ModelError } from '../../errors/index.js';
+import { Image } from '../image/image.model.js';
 import { AModel } from '../model.abstract.js';
 import { Region } from '../region/region.model.js';
 import { AccountSchema, AccountType } from './account.schema.js';
@@ -51,6 +52,22 @@ export class Account extends AModel<AccountSchema, Account> {
     assert(!!deReferenceContext);
 
     return new Account(account.accountType, account.accountId);
+  }
+
+  /**
+   * To add an {@link Image}. The image is used only inside this account. A module links it to the
+   * regions it is published into, and those links leave the image's own place unchanged.
+   */
+  addImage(image: Image): void {
+    const childrenDependencies = this.getChildren('image');
+    if (!childrenDependencies['image']) childrenDependencies['image'] = [];
+
+    // Check for duplicates.
+    const images = childrenDependencies['image'].map((d) => d.to);
+    if (images.find((i: Image) => i.imageId === image.imageId)) {
+      throw new ModelError('Image already exists!', this);
+    }
+    this.addChild('accountId', image, 'imageId');
   }
 
   /**

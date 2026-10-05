@@ -136,8 +136,8 @@ export function create({
     const imageFamily = imageParts.length > 1 ? imageParts[0] : 'test';
     const imageName = imageParts.length > 1 ? imageParts[1] : id;
     const image = new Image(imageFamily, imageName);
-    const app = result.app[i];
-    app.addImage(image);
+    const account = result.account[i];
+    account.addImage(image);
 
     getSchemaInstance(ImageSchema, image.synth());
     result.image[index] = image;
