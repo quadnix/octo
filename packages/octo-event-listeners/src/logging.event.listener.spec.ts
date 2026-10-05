@@ -33,6 +33,7 @@ const modelDiff = (): DiffMetadata =>
 const validateReport = (): ValidateModeCompletedEvent['payload']['report'] => ({
   attributedChanges: [],
   confidence: 'approximate',
+  dataLoss: [],
   drift: [],
   failures: [],
   intentChanges: [
@@ -44,6 +45,7 @@ const validateReport = (): ValidateModeCompletedEvent['payload']['report'] => ({
       terraformChanges: [{ address: 'aws_s3_bucket.site', changedFields: [], tfActions: ['create'] }],
     },
   ],
+  moves: [],
   notes: [],
   uncertain: [],
 });

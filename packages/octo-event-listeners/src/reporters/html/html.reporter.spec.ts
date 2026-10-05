@@ -4,12 +4,14 @@ import { renderReportHtml } from './html.reporter.js';
 function report(overrides: Partial<OctoReport> = {}): OctoReport {
   return {
     app: 'test-app',
+    dataLoss: [],
     drift: [],
     durationInMs: 1200,
     failures: [],
     finishedAt: 1_786_761_271_000,
     headline: 'headline',
     mode: 'validate',
+    moves: [],
     notes: [],
     outcome: 'changes',
     startedAt: 1_786_761_270_000,

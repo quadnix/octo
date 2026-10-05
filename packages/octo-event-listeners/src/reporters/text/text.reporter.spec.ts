@@ -4,12 +4,14 @@ import { renderReportText } from './text.reporter.js';
 function report(overrides: Partial<OctoReport> = {}): OctoReport {
   return {
     app: 'test-app',
+    dataLoss: [],
     drift: [],
     durationInMs: 1200,
     failures: [],
     finishedAt: 1_786_761_271_000,
     headline: 'You changed dynamodb-service-module.',
     mode: 'validate',
+    moves: [],
     notes: [],
     outcome: 'changes',
     startedAt: 1_786_761_270_000,
@@ -173,6 +175,28 @@ describe('renderReportText()', () => {
     expect(text).toContain('MODULES THAT NO LONGER RENDER ANYTHING');
     expect(text).toContain('old-website-module');
     expect(text).toContain('@octo/s3=b arn: arn:old → arn:new');
+  });
+
+  it('lists the destroys that lose data, and the resources moving between module folders', () => {
+    const text = renderReportText(
+      report({
+        dataLoss: [
+          {
+            address: 'aws_efs_file_system.efs-1',
+            message:
+              'Terraform plans to destroy "aws_efs_file_system.efs-1", and the data resource "efs-1" holds is lost with it.',
+            moduleId: 'efs-module',
+            resourceId: 'efs-1',
+          },
+        ],
+        moves: [{ fromModuleId: 'region-east', moduleId: 'region-us-east', resourceId: 'vpc-1' }],
+      }),
+    );
+
+    expect(text).toContain('DATA LOSS — destroying these loses the data they hold');
+    expect(text).toContain('[efs-module] Terraform plans to destroy "aws_efs_file_system.efs-1"');
+    expect(text).toContain('MOVED BETWEEN MODULE FOLDERS — their terraform state moves with them');
+    expect(text).toContain('vpc-1: region-east → region-us-east');
   });
 
   it('omits every section that has no rows', () => {

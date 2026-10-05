@@ -190,6 +190,14 @@ export class LoggingEventListener {
       for (const failure of report.failures) {
         this.logger.log.withMetadata({ moduleId: failure.moduleId }).error(failure.message);
       }
+      for (const entry of report.dataLoss) {
+        this.logger.log.withMetadata({ address: entry.address, moduleId: entry.moduleId }).warn(entry.message);
+      }
+      for (const move of report.moves) {
+        this.logger.log
+          .withMetadata({ fromModuleId: move.fromModuleId, moduleId: move.moduleId, resourceId: move.resourceId })
+          .info(`Resource "${move.resourceId}" moves from module "${move.fromModuleId}" to "${move.moduleId}".`);
+      }
       for (const note of report.notes) {
         this.logger.log.withMetadata({ moduleId: note.moduleId }).debug(note.message);
       }

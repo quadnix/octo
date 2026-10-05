@@ -33,9 +33,11 @@ function emptyValidateReport(overrides: Partial<ValidateReport> = {}): ValidateR
   return {
     attributedChanges: [],
     confidence: 'exact',
+    dataLoss: [],
     drift: [],
     failures: [],
     intentChanges: [],
+    moves: [],
     notes: [],
     uncertain: [],
     ...overrides,

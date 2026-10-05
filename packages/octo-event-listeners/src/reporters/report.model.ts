@@ -142,6 +142,10 @@ export interface OctoReport {
   commit?: RunObservation['commit'];
   confidence?: 'approximate' | 'exact';
   /**
+   * Planned destroys of resources whose destroy loses the data they hold.
+   */
+  dataLoss: { address: string; message: string; moduleId: string; resourceId: string }[];
+  /**
    * Terraform changes nothing in intent explains.
    */
   drift: ReportUnexplained[];
@@ -153,6 +157,10 @@ export interface OctoReport {
    */
   headline: string;
   mode: 'commit' | 'validate';
+  /**
+   * Resources whose terraform state moves into another module folder with them.
+   */
+  moves: { fromModuleId: string; moduleId: string; resourceId: string }[];
   notes: { message: string; moduleId?: string }[];
   outcome: 'changes' | 'clean' | 'drift' | 'failed';
   startedAt: number;

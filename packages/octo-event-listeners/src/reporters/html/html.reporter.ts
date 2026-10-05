@@ -289,6 +289,48 @@ function renderFailures(report: OctoReport): string {
 }
 
 /**
+ * Planned destroys of resources whose destroy loses the data they hold.
+ */
+function renderDataLoss(report: OctoReport): string {
+  if (report.dataLoss.length === 0) {
+    return '';
+  }
+  return (
+    '<h2>Data loss — destroying these loses the data they hold</h2>' +
+    '<div class="card">' +
+    report.dataLoss
+      .map(
+        (entry) =>
+          `<div class="zone-row"><b>${HtmlUtility.escapeHtml(entry.moduleId)}</b> ` +
+          `${HtmlUtility.escapeHtml(entry.message)}</div>`,
+      )
+      .join('') +
+    '</div>'
+  );
+}
+
+/**
+ * Resources whose terraform state moves into another module folder with them.
+ */
+function renderMoves(report: OctoReport): string {
+  if (report.moves.length === 0) {
+    return '';
+  }
+  return (
+    '<h2>Moved between module folders — their terraform state moves with them</h2>' +
+    '<div class="card">' +
+    report.moves
+      .map(
+        (move) =>
+          `<div class="zone-row"><code>${HtmlUtility.escapeHtml(move.resourceId)}</code> ` +
+          `${HtmlUtility.escapeHtml(move.fromModuleId)} → ${HtmlUtility.escapeHtml(move.moduleId)}</div>`,
+      )
+      .join('') +
+    '</div>'
+  );
+}
+
+/**
  * Modules that had a terraform folder at the last commit and render nothing now.
  *
  * Logged since the rewrite, but never on the page — which left the most consequential outcome a
@@ -482,6 +524,8 @@ export function renderReportHtml(report: OctoReport): string {
       : '<div class="card"><div class="empty">No changes.</div></div>'
   }
 
+  ${renderDataLoss(report)}
+  ${renderMoves(report)}
   ${renderDrift(report)}
   ${renderUncertain(report)}
   ${renderEmptiedModules(report)}

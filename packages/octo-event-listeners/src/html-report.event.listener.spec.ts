@@ -59,6 +59,7 @@ describe('HtmlReportEventListener', () => {
         report: {
           attributedChanges: [],
           confidence: 'approximate',
+          dataLoss: [],
           drift: [],
           failures: [],
           intentChanges: [
@@ -70,6 +71,7 @@ describe('HtmlReportEventListener', () => {
               terraformChanges: [{ address: 'aws_s3_bucket.site', changedFields: [], tfActions: ['create'] }],
             },
           ],
+          moves: [],
           notes: [],
           uncertain: [],
         },

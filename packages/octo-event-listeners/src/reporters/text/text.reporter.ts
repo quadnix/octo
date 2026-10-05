@@ -173,6 +173,18 @@ export function renderReportText(report: OctoReport): string {
     report.stories.length > 0 ? report.stories.flatMap(storyLines) : ['  nothing'],
   );
 
+  section(
+    lines,
+    'DATA LOSS — destroying these loses the data they hold',
+    report.dataLoss.map((entry) => `  [${entry.moduleId}] ${entry.message}`),
+  );
+
+  section(
+    lines,
+    'MOVED BETWEEN MODULE FOLDERS — their terraform state moves with them',
+    report.moves.map((move) => `  ${move.resourceId}: ${move.fromModuleId} → ${move.moduleId}`),
+  );
+
   section(lines, 'DRIFT — nothing in your intent explains this', unexplainedLines(report.drift));
 
   if (report.drift.length > 0) {
