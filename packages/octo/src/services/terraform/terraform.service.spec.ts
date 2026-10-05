@@ -838,7 +838,7 @@ describe('TerraformService UT', () => {
       roleTf.addTerraformResource('aws_iam_role', 'role-2', {});
       roleTf.addTerraformResource('aws_iam_role_policy', 'role-2_policy-a', {});
 
-      service.moveResource('m1', 'role-1', 'role-2');
+      service.moveResource('m1', 'role-1', 'm1', 'role-2');
 
       const mainTf = service.renderAllModules().get('m1')!.mainTf;
       expect(mainTf).toContain('moved {\n  from = aws_iam_role.role-1\n  to = aws_iam_role.role-2\n}');
@@ -852,7 +852,7 @@ describe('TerraformService UT', () => {
       const role = new TestTerraformResource('role/2', {});
       scope.addOctoTerraformResource(role).addTerraformResource('aws_iam_role', 'role/2', {});
 
-      service.moveResource('m1', 'role/1', 'role/2');
+      service.moveResource('m1', 'role/1', 'm1', 'role/2');
 
       expect(service.renderAllModules().get('m1')!.mainTf).toContain(
         'moved {\n  from = aws_iam_role.role_1\n  to = aws_iam_role.role_2\n}',
@@ -864,16 +864,82 @@ describe('TerraformService UT', () => {
       const role = new TestTerraformResource('role-2', {});
       scope.addOctoTerraformResource(role).addTerraformResource('aws_iam_role', 'shared-role', {});
 
-      service.moveResource('m1', 'role-1', 'role-2');
+      service.moveResource('m1', 'role-1', 'm1', 'role-2');
 
       expect(service.renderAllModules().get('m1')!.mainTf).not.toContain('moved {');
+    });
+
+    it('should record a move from another folder in the folder record, and render no moved block', () => {
+      const scope = service.scope('m2');
+      const role = new TestTerraformResource('role-1', {});
+      const roleTf = scope.addOctoTerraformResource(role);
+      roleTf.addTerraformResource('aws_iam_role', 'role-1', {});
+      roleTf.addTerraformResource('aws_iam_role_policy', 'role-1_policy-a', {});
+      roleTf.output({ Arn: scope.raw('aws_iam_role.role-1.arn') });
+
+      service.moveResource('m1', 'role-1', 'm2', 'role-1');
+
+      expect(service.renderAllModules().get('m2')!.mainTf).not.toContain('moved {');
+      expect(service.getFolderRecords()).toEqual([
+        {
+          hasExternalResources: false,
+          moduleId: 'm2',
+          moves: [
+            {
+              addresses: [
+                { from: 'aws_iam_role.role-1', to: 'aws_iam_role.role-1' },
+                { from: 'aws_iam_role_policy.role-1_policy-a', to: 'aws_iam_role_policy.role-1_policy-a' },
+              ],
+              fromModuleId: 'm1',
+              outputs: [{ from: 'role-1-Arn', to: 'role-1-Arn' }],
+              resourceId: 'role-1',
+            },
+          ],
+          providers: [],
+        },
+      ]);
+    });
+
+    it('should rename the addresses of a resource moving from another folder under a new id', () => {
+      const scope = service.scope('m2');
+      const role = new TestTerraformResource('role-2', {});
+      const roleTf = scope.addOctoTerraformResource(role);
+      roleTf.addTerraformResource('aws_iam_role', 'role-2', {});
+      roleTf.output({ Arn: scope.raw('aws_iam_role.role-2.arn') });
+
+      service.moveResource('m1', 'role-1', 'm2', 'role-2');
+
+      expect(service.getFolderRecords()[0].moves).toEqual([
+        {
+          addresses: [{ from: 'aws_iam_role.role-1', to: 'aws_iam_role.role-2' }],
+          fromModuleId: 'm1',
+          outputs: [{ from: 'role-1-Arn', to: 'role-2-Arn' }],
+          resourceId: 'role-2',
+        },
+      ]);
+    });
+
+    it('should move the null_resource of an external resource, and not its data source', () => {
+      const scope = service.scope('m2');
+      scope.addOctoTerraformExternalResource(new TestExternalResource('image-1', {}));
+
+      service.moveResource('m1', 'image-1', 'm2', 'image-1');
+
+      expect(service.getFolderRecords()[0].moves).toEqual([
+        {
+          addresses: [{ from: 'null_resource.image-1', to: 'null_resource.image-1' }],
+          fromModuleId: 'm1',
+          outputs: [{ from: 'image-1', to: 'image-1' }],
+          resourceId: 'image-1',
+        },
+      ]);
     });
 
     it('should forget moves on reset', () => {
       const scope = service.scope('m1');
       const role = new TestTerraformResource('role-2', {});
       scope.addOctoTerraformResource(role).addTerraformResource('aws_iam_role', 'role-2', {});
-      service.moveResource('m1', 'role-1', 'role-2');
+      service.moveResource('m1', 'role-1', 'm1', 'role-2');
 
       service.resetTransactionState();
       service.scope('m1').addOctoTerraformResource(role).addTerraformResource('aws_iam_role', 'role-2', {});
@@ -896,6 +962,7 @@ describe('TerraformService UT', () => {
 
       expect(service.getOctoTerraformResourceMappings()).toEqual([
         {
+          destroyLosesData: false,
           moduleId: 'm1',
           outputMappings: [{ key: 'VpcId', outputName: 'vpc-1-VpcId' }],
           resourceContext: vpc.getContext(),
@@ -903,6 +970,7 @@ describe('TerraformService UT', () => {
           terraformAddresses: ['aws_vpc.vpc-1'],
         },
         {
+          destroyLosesData: false,
           entireResponseOutput: 'igw-1',
           moduleId: 'm1',
           outputMappings: [],

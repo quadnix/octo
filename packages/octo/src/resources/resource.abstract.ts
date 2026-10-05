@@ -31,6 +31,13 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
   implements IResource<S, T>
 {
   /**
+   * Whether destroying a resource of this class loses data octo cannot put back. Set by {@link Resource}.
+   *
+   * @internal
+   */
+  static readonly DESTROY_LOSES_DATA: boolean;
+
+  /**
    * The names this class declares unique, each by the properties whose values form its domain. Set by
    * {@link Resource}.
    *

@@ -126,6 +126,7 @@ provisioner
 quadnix
 qwen
 readdir
+realpath
 redis
 referer
 renderer

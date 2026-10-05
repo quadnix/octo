@@ -88,6 +88,26 @@ export class TerraformStateService {
   }
 
   /**
+   * The state moves the last generate recorded, each from one module folder into another.
+   */
+  async getRecordedMoves(): Promise<
+    {
+      addresses: { from: string; to: string }[];
+      fromModuleId: string;
+      moduleId: string;
+      outputs: { from: string; to: string }[];
+    }[]
+  > {
+    const { userData } = await this.stateManagementService.getModelState(
+      this.stateManagementService.modelStateFileName,
+    );
+
+    return (userData.terraformFolders ?? []).flatMap(({ moduleId, moves = [] }) =>
+      moves.map(({ addresses, fromModuleId, outputs }) => ({ addresses, fromModuleId, moduleId, outputs })),
+    );
+  }
+
+  /**
    * Starts checking state in every `intervalInMs`, bounding what a killed runner loses to one interval.
    */
   startPeriodicCheckIn(terragruntDir: string, moduleIds: string[], intervalInMs: number): void {

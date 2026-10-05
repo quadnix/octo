@@ -323,6 +323,16 @@ export type ResourceSerializedOutput = {
 export type TerraformFolderOutput = {
   hasExternalResources: boolean;
   moduleId: string;
+  /**
+   * The resources whose terraform state moves into this folder from another before terraform runs,
+   * each with the addresses and output names it moves from and to.
+   */
+  moves?: {
+    addresses: { from: string; to: string }[];
+    fromModuleId: string;
+    outputs: { from: string; to: string }[];
+    resourceId: string;
+  }[];
   providers: {
     accountId: string;
     blockHcl: string;
@@ -339,6 +349,10 @@ export type TerraformFolderOutput = {
  * @group Types
  */
 export type TerraformResourceOutput = {
+  /**
+   * Set when destroying the resource loses data, as its class declares.
+   */
+  destroyLosesData?: true;
   moduleId: string;
   resourceContext: string;
   resourceId: string;

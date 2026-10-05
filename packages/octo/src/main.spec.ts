@@ -6,6 +6,7 @@ import { Container } from './functions/container/container.js';
 import type { App } from './models/app/app.model.js';
 import { BaseResourceSchema } from './resources/resource.schema.js';
 import { ATerraformResource } from './resources/terraform-resource.abstract.js';
+import { InputService } from './services/input/input.service.js';
 import type { TerraformModuleScope } from './services/terraform/terraform.service.js';
 import { TransactionService } from './services/transaction/transaction.service.js';
 import { ExternalIgwResource, TestModes, TfVpcResource } from './utilities/test-helpers/test-modes.js';
@@ -439,7 +440,7 @@ describe('Main UT', () => {
       return readFile(join(testModes.outputDir, moduleId, 'main.tf'), 'utf-8');
     }
 
-    it('should throw when the deleted resource is in another module folder', async () => {
+    it('should record a move when the deleted resource is in another module folder', async () => {
       const app = await commitResources([
         ['module-1', new NamedTfResource('named-1', { names: ['accounts'], regionId: 'us-east-1' })],
       ]);
@@ -448,10 +449,20 @@ describe('Main UT', () => {
         'module-2',
         new NamedTfResource('named-2', { names: ['accounts'], regionId: 'us-east-1' }),
       );
+      await testModes.generate(app, { outputDir: testModes.outputDir });
 
-      await expect(testModes.generate(app, { outputDir: testModes.outputDir })).rejects.toThrow(
-        'Resource "@octo/test-named-tf-resource=named-2" of module "module-2" takes a name of "@octo/test-named-tf-resource=named-1" of module "module-1", and terraform cannot move infrastructure between module folders!',
-      );
+      expect(await readMainTf('module-2')).not.toContain('moved {');
+      expect((await testModes.getTerraformFolderRecords()).find((r) => r.moduleId === 'module-2')!.moves).toEqual([
+        {
+          addresses: [
+            { from: 'test_named.named-1', to: 'test_named.named-2' },
+            { from: 'test_named_policy.named-1_policy', to: 'test_named_policy.named-2_policy' },
+          ],
+          fromModuleId: 'module-1',
+          outputs: [],
+          resourceId: 'named-2',
+        },
+      ]);
     });
 
     it('should throw when one resource takes the names of two deleted resources', async () => {
@@ -577,6 +588,91 @@ describe('Main UT', () => {
 
       expect(await readMainTf('module-1')).toContain('resource "test_named" "named-2"');
       expect(await readMainTf('module-1')).not.toContain('moved {');
+    });
+  });
+
+  describe('generate() — a resource changing module folder', () => {
+    async function commitResources(resources: [string, UnknownResource][]): Promise<App> {
+      const {
+        app: [app],
+      } = await testModes['testModuleContainer'].createTestModels('app-module', { app: ['test-app'] });
+      for (const [moduleId, resource] of resources) {
+        await testModes.addResource(moduleId, resource);
+        testModes.writeTfState(moduleId, {});
+      }
+      await testModes.generate(app as App, { outputDir: testModes.outputDir });
+      await testModes.commit(app as App, { outputs: testModes.outputs });
+      return app as App;
+    }
+
+    async function moveResource(fromModuleId: string, toModuleId: string, resource: UnknownResource): Promise<void> {
+      const inputService = await Container.getInstance().get(InputService);
+      delete inputService['resources'][`${fromModuleId}.resource.${resource.localResourceId}`];
+      inputService.registerResource(toModuleId, resource);
+    }
+
+    async function getMoves(): Promise<{ [moduleId: string]: unknown }> {
+      const records = await testModes.getTerraformFolderRecords();
+      return Object.fromEntries(records.filter((r) => r.moves).map((r) => [r.moduleId, r.moves]));
+    }
+
+    it('should record a move for a resource that keeps its id in another module folder', async () => {
+      const app = await commitResources([
+        ['module-1', new NamedTfResource('named-1', { names: ['accounts'], regionId: 'us-east-1' })],
+      ]);
+
+      const named1 = new NamedTfResource('named-1', { names: ['accounts'], regionId: 'us-east-1' });
+      testModes.resourceDataRepository.addNewResource(named1);
+      await moveResource('module-1', 'module-2', named1);
+      await testModes.generate(app, { outputDir: testModes.outputDir });
+
+      expect(await getMoves()).toEqual({
+        'module-2': [
+          {
+            addresses: [
+              { from: 'test_named.named-1', to: 'test_named.named-1' },
+              { from: 'test_named_policy.named-1_policy', to: 'test_named_policy.named-1_policy' },
+            ],
+            fromModuleId: 'module-1',
+            outputs: [],
+            resourceId: 'named-1',
+          },
+        ],
+      });
+    });
+
+    it('should record a move each way when two module folders swap resources', async () => {
+      const app = await commitResources([
+        ['module-1', new NamedTfResource('named-1', { names: ['accounts'], regionId: 'us-east-1' })],
+        ['module-2', new NamedTfResource('named-2', { names: ['orders'], regionId: 'us-east-1' })],
+      ]);
+
+      const named1 = new NamedTfResource('named-1', { names: ['accounts'], regionId: 'us-east-1' });
+      const named2 = new NamedTfResource('named-2', { names: ['orders'], regionId: 'us-east-1' });
+      testModes.resourceDataRepository.addNewResource(named1);
+      testModes.resourceDataRepository.addNewResource(named2);
+      await moveResource('module-1', 'module-2', named1);
+      await moveResource('module-2', 'module-1', named2);
+      await testModes.generate(app, { outputDir: testModes.outputDir });
+
+      const moves = await getMoves();
+      expect(moves['module-1']).toEqual([expect.objectContaining({ fromModuleId: 'module-2', resourceId: 'named-2' })]);
+      expect(moves['module-2']).toEqual([expect.objectContaining({ fromModuleId: 'module-1', resourceId: 'named-1' })]);
+    });
+
+    it('should record no move once the resource is back in its committed folder', async () => {
+      const app = await commitResources([
+        ['module-1', new NamedTfResource('named-1', { names: ['accounts'], regionId: 'us-east-1' })],
+      ]);
+      const named1 = new NamedTfResource('named-1', { names: ['accounts'], regionId: 'us-east-1' });
+      testModes.resourceDataRepository.addNewResource(named1);
+      await moveResource('module-1', 'module-2', named1);
+      await testModes.generate(app, { outputDir: testModes.outputDir });
+
+      await moveResource('module-2', 'module-1', named1);
+      await testModes.generate(app, { outputDir: testModes.outputDir });
+
+      expect(await getMoves()).toEqual({});
     });
   });
 

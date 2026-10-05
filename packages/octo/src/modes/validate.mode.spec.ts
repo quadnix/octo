@@ -1,5 +1,7 @@
 import type { TerraformResourceOutput } from '../app.type.js';
+import { Container } from '../functions/container/container.js';
 import type { App } from '../models/app/app.model.js';
+import { TerraformService } from '../services/terraform/terraform.service.js';
 import {
   ExternalIgwResource,
   ReplacingTfVpcResource,
@@ -165,9 +167,11 @@ describe('validate()', () => {
         expect.objectContaining({
           attributedChanges: [],
           confidence: 'exact',
+          dataLoss: [],
           drift: [],
           failures: [],
           intentChanges: [],
+          moves: [],
           uncertain: [],
         }),
       );
@@ -698,6 +702,75 @@ describe('validate()', () => {
         'igw-1',
         'igw-2abandoned',
       ]);
+    });
+  });
+
+  describe('destroys that lose data', () => {
+    afterEach(() => {
+      Object.assign(TfSgResource, { DESTROY_LOSES_DATA: undefined });
+      Object.assign(TfVpcResource, { DESTROY_LOSES_DATA: undefined });
+    });
+
+    it('marks the destroy of a deleted resource whose class loses data on destroy', async () => {
+      const { app, persisted } = await stageDeletedIgwAndSg();
+      Object.assign(TfSgResource, { DESTROY_LOSES_DATA: true });
+
+      testModes.writePlan('region-module', [
+        { actions: ['no-op'], address: 'aws_vpc.vpc-1' },
+        { actions: ['delete'], address: 'null_resource.igw-1' },
+      ]);
+      testModes.writePlan('sg-module', [{ actions: ['delete'], address: 'aws_security_group.sg-1' }]);
+
+      const report = await runValidate(app, {
+        persistedMappings: persisted,
+        plans: testModes.plans,
+        previousFolders: [{ hasExternalResources: false, moduleId: 'sg-module', providers: [] }],
+      });
+
+      expect(report.dataLoss).toEqual([
+        {
+          address: 'aws_security_group.sg-1',
+          message:
+            'Terraform plans to destroy "aws_security_group.sg-1", and the data resource "sg-1" holds is lost with it.',
+          moduleId: 'sg-module',
+          resourceId: 'sg-1',
+        },
+      ]);
+    });
+
+    it('marks the replacement of a resource whose class loses data on destroy', async () => {
+      Object.assign(TfVpcResource, { DESTROY_LOSES_DATA: true });
+      const { app } = await testModes.createResourceGraph({ save: true });
+      await commitResources({ skipAddActualResource: true });
+      await recreateGraph({ changeVpc: true });
+
+      testModes.writePlan('region-module', [
+        { actions: ['create', 'delete'], address: 'aws_vpc.vpc-1' },
+        { actions: ['update'], address: 'null_resource.igw-1' },
+      ]);
+      testModes.writePlan('sg-module', [{ actions: ['no-op'], address: 'aws_security_group.sg-1' }]);
+
+      const report = await runValidate(app, { persistedMappings: persistedGraph(), plans: testModes.plans });
+
+      expect(report.dataLoss.map((entry) => entry.address)).toEqual(['aws_vpc.vpc-1']);
+    });
+  });
+
+  describe('resources moving between folders', () => {
+    it('reports each resource whose terraform state moves into another folder', async () => {
+      const { app } = await testModes.createResourceGraph();
+      testModes.writePlan('region-module', [
+        { actions: ['create'], address: 'aws_vpc.vpc-1' },
+        { actions: ['create'], address: 'null_resource.igw-1' },
+      ]);
+      testModes.writePlan('sg-module', [{ actions: ['create'], address: 'aws_security_group.sg-1' }]);
+
+      const transaction = await applyModelTransaction(app);
+      const terraformService = await Container.getInstance().get(TerraformService);
+      terraformService.moveResource('old-sg-module', 'sg-1', 'sg-module', 'sg-1');
+      const report = await validate({ persistedMappings: noPersisted(), plans: testModes.plans, transaction });
+
+      expect(report.moves).toEqual([{ fromModuleId: 'old-sg-module', moduleId: 'sg-module', resourceId: 'sg-1' }]);
     });
   });
 

@@ -579,6 +579,7 @@ export class Octo {
         terraformFolders: this.terraformService.getFolderRecords(),
         terraformResources: this.terraformService.getOctoTerraformResourceMappings().map(
           (m): TerraformResourceOutput => ({
+            ...(m.destroyLosesData ? { destroyLosesData: true } : {}),
             moduleId: m.moduleId,
             resourceContext: m.resourceContext,
             resourceId: m.resourceId,

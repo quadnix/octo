@@ -535,7 +535,9 @@ export class TestModuleContainer {
 
     // In production octo runs generate/validate/commit as three separate processes, each of which
     // derives the resource graph once from intent. runModules drives all three in one process, so it
-    // builds the model transaction once and hands the same result to each mode.
+    // builds the model transaction once and hands the same result to each mode. The previous run's
+    // sweep is cleared first, as a new process would start without it.
+    terraformService.resetTransactionState();
     const transaction = await applyModelTransaction(app);
 
     // Generate.

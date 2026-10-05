@@ -57,6 +57,8 @@ describe('Resource UT', () => {
 
   afterEach(async () => {
     // @ts-expect-error static members are readonly.
+    TestResource['DESTROY_LOSES_DATA'] = undefined;
+    // @ts-expect-error static members are readonly.
     TestResource['NODE_NAME'] = undefined;
     // @ts-expect-error static members are readonly.
     TestResource['NODE_PACKAGE'] = undefined;
@@ -114,7 +116,14 @@ describe('Resource UT', () => {
       expect(TestResource.NODE_PACKAGE).toEqual('@octo');
       expect(TestResource.NODE_SCHEMA).toEqual(TestResourceSchema);
       expect(TestResource.NODE_TYPE).toEqual(NodeType.RESOURCE);
+      expect(TestResource.DESTROY_LOSES_DATA).toBe(false);
       expect(TestResource.UNIQUE_PROPERTIES).toEqual([]);
+    });
+
+    it('should set that destroying the resource loses data', async () => {
+      Resource<TestResource>('@octo', 'test', TestResourceSchema, { destroyLosesData: true })(TestResource);
+
+      expect(TestResource.DESTROY_LOSES_DATA).toBe(true);
     });
 
     it('should set the unique names', async () => {

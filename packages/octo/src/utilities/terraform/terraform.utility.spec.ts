@@ -1,5 +1,5 @@
 import type { ExecFileOptionsWithStringEncoding } from 'node:child_process';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { jest } from '@jest/globals';
@@ -158,14 +158,14 @@ describe('TerraformUtility UT', () => {
   });
 
   describe('validate()/apply()/destroy()', () => {
-    it('composes "run --all -- validate"', async () => {
+    it('composes "run --all -- validate" in the real path of the directory', async () => {
       await terraform.validate(terragruntDir);
 
       expect(argvOf(0)).toEqual([
         '--non-interactive',
         '--no-color',
         '--working-dir',
-        terragruntDir,
+        await realpath(terragruntDir),
         'run',
         '--all',
         '--',

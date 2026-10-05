@@ -8,6 +8,7 @@ import {
 } from '../../app.type.js';
 import { Factory } from '../../decorators/factory.decorator.js';
 import { getSchemaDefaults } from '../../functions/schema/schema.js';
+import type { AResource } from '../../resources/resource.abstract.js';
 import type { BaseResourceSchema } from '../../resources/resource.schema.js';
 import { StringUtility } from '../../utilities/string/string.utility.js';
 import {
@@ -37,6 +38,11 @@ import {
  * - Commit (tfstate outputs -> response population).
  */
 interface OctoTerraformResourceMapping {
+  /**
+   * Whether destroying the octo resource loses data, as its class declares.
+   */
+  destroyLosesData: boolean;
+
   /**
    * Set for external resources only: the single output carrying the entire response map.
    */
@@ -353,6 +359,7 @@ class OctoTerraformResource<TResponse extends BaseResourceSchema['response'] = B
     readonly resourceId: string,
     readonly resourceContext: string,
     readonly moduleId: string,
+    readonly destroyLosesData: boolean,
     readonly explicitParentResourceIds: string[] = [],
     private readonly providerRef?: string, // Fully-qualified provider reference (`aws._111111111-us-east-1`).
     readonly externalResultExpression?: string, // External resource marker with `data.external.<name>.result` value.
@@ -423,7 +430,7 @@ class OctoTerraformResource<TResponse extends BaseResourceSchema['response'] = B
 class TerraformModule {
   readonly dataSources: TerraformData[] = [];
   hasExternalResources: boolean = false; // True when folder has external resources requiring null/external configs.
-  readonly moves: { fromResourceId: string; toResourceId: string }[] = []; // Resources taking over another's state.
+  readonly moves: { fromModuleId: string; fromResourceId: string; toResourceId: string }[] = []; // Resources taking over a state.
   needsProjectRoot: boolean = false; // True when a resource named a local file, requiring the project root variable.
   readonly providerKeys: Set<string> = new Set(); // Specific providers this folder's resources require.
   readonly resources: OctoTerraformResource[] = [];
@@ -599,6 +606,7 @@ export class TerraformService {
       .map((module) => ({
         hasExternalResources: module.hasExternalResources,
         moduleId: module.moduleId,
+        ...this.getFolderMoves(module),
         providers: [...module.providerKeys].sort().map((key) => {
           const provider = this.providers.get(key)!;
           return {
@@ -627,6 +635,7 @@ export class TerraformService {
     return [...this.resourceRegistry.values()].map((r) => {
       const isExternal = r.externalResultExpression !== undefined;
       return {
+        destroyLosesData: r.destroyLosesData,
         entireResponseOutput: isExternal ? r.outputs.get(r.resourceId)!.name : undefined,
         moduleId: r.moduleId,
         outputMappings: isExternal ? [] : [...r.outputs.entries()].map(([key, o]) => ({ key, outputName: o.name })),
@@ -680,13 +689,14 @@ export class TerraformService {
   }
 
   /**
-   * Records that a resource takes over the terraform state of a deleted resource in the same folder.
-   * The folder then renders a `moved` block from each of the deleted resource's addresses to the new
-   * one's, so terraform updates or replaces the infrastructure in place instead of creating the new
-   * resource beside the old.
+   * Records that a resource takes over the terraform state of a resource octo committed, so terraform
+   * updates or replaces the infrastructure in place instead of creating the new resource beside the old.
+   * Within one folder, the folder renders a `moved` block from each of the old resource's addresses to
+   * the new one's. Between folders, the folder record lists the move, and `TerraformUtility`
+   * moves the state before terraform runs.
    */
-  moveResource(moduleId: string, fromResourceId: string, toResourceId: string): void {
-    this.module(moduleId).moves.push({ fromResourceId, toResourceId });
+  moveResource(fromModuleId: string, fromResourceId: string, toModuleId: string, toResourceId: string): void {
+    this.module(toModuleId).moves.push({ fromModuleId, fromResourceId, toResourceId });
   }
 
   /**
@@ -961,6 +971,7 @@ export class TerraformService {
       octoResource.resourceId,
       octoResource.getContext(),
       moduleId,
+      (octoResource.constructor as typeof AResource).DESTROY_LOSES_DATA ?? false,
       explicitParentResourceIds,
       providerRef,
       options.externalResultExpression,
@@ -1211,29 +1222,55 @@ export class TerraformService {
   }
 
   /**
-   * The `moved` addresses of a folder. A block named `<resourceId><suffix>` moves from the block the
-   * deleted resource named `<its resourceId><suffix>`; terraform ignores a `from` its state does not hold.
+   * The moves of a folder's record: the resources whose state moves in from another folder, with the
+   * outputs their consumers in other folders read.
    */
-  private getMovedAddresses(module: TerraformModule): { from: string; to: string }[] {
-    const movedAddresses: { from: string; to: string }[] = [];
+  private getFolderMoves(module: TerraformModule): Pick<TerraformFolderOutput, 'moves'> {
+    const moves = module.moves
+      .filter(({ fromModuleId }) => fromModuleId !== module.moduleId)
+      .map(({ fromModuleId, fromResourceId, toResourceId }) => {
+        const fromName = StringUtility.sanitizeForIdentifier(fromResourceId);
+        const toName = StringUtility.sanitizeForIdentifier(toResourceId);
+        return {
+          addresses: this.getMoveAddresses(fromResourceId, toResourceId),
+          fromModuleId,
+          outputs: [...this.resourceRegistry.get(toResourceId)!.outputs.values()]
+            .filter(({ name }) => name.startsWith(toName))
+            .map(({ name }) => ({ from: `${fromName}${name.slice(toName.length)}`, to: name })),
+          resourceId: toResourceId,
+        };
+      });
 
-    for (const { fromResourceId, toResourceId } of module.moves) {
-      const fromName = StringUtility.sanitizeForIdentifier(fromResourceId);
-      const toName = StringUtility.sanitizeForIdentifier(toResourceId);
+    return moves.length > 0 ? { moves } : {};
+  }
 
-      for (const { address } of this.resourceRegistry.get(toResourceId)!.terraformResources) {
-        const typeLength = address.indexOf('.') + 1;
-        const name = address.slice(typeLength);
-        if (name.startsWith(toName)) {
-          movedAddresses.push({
-            from: `${address.slice(0, typeLength)}${fromName}${name.slice(toName.length)}`,
-            to: address,
-          });
-        }
+  /**
+   * The addresses a resource's state moves between. A block named `<resourceId><suffix>` moves from the
+   * block the old resource named `<its resourceId><suffix>`; a `from` the state does not hold moves nothing.
+   */
+  private getMoveAddresses(fromResourceId: string, toResourceId: string): { from: string; to: string }[] {
+    const fromName = StringUtility.sanitizeForIdentifier(fromResourceId);
+    const toName = StringUtility.sanitizeForIdentifier(toResourceId);
+    const addresses: { from: string; to: string }[] = [];
+
+    for (const { address } of this.resourceRegistry.get(toResourceId)!.terraformResources) {
+      const typeLength = address.indexOf('.') + 1;
+      const name = address.slice(typeLength);
+      if (name.startsWith(toName)) {
+        addresses.push({ from: `${address.slice(0, typeLength)}${fromName}${name.slice(toName.length)}`, to: address });
       }
     }
 
-    return movedAddresses;
+    return addresses;
+  }
+
+  /**
+   * The `moved` addresses of a folder, for the resources taking over a state the same folder holds.
+   */
+  private getMovedAddresses(module: TerraformModule): { from: string; to: string }[] {
+    return module.moves
+      .filter(({ fromModuleId }) => fromModuleId === module.moduleId)
+      .flatMap(({ fromResourceId, toResourceId }) => this.getMoveAddresses(fromResourceId, toResourceId));
   }
 
   /**

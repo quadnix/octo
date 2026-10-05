@@ -6,6 +6,7 @@ import {
 } from '../functions/diff/aggregate-resource-actions.js';
 import { DiffAction } from '../functions/diff/diff.js';
 import { ResourceDataRepository } from '../resources/resource-data.repository.js';
+import type { AResource } from '../resources/resource.abstract.js';
 import { TerraformService } from '../services/terraform/terraform.service.js';
 import type { ModelTransactionResult } from './apply-transaction.js';
 
@@ -81,6 +82,12 @@ export interface ValidateReport {
   confidence: 'approximate' | 'exact';
 
   /**
+   * Destroys terraform plans of a resource whose class declares that destroying it loses data, whatever
+   * the cause.
+   */
+  dataLoss: { address: string; message: string; moduleId: string; resourceId: string }[];
+
+  /**
    * Terraform changes nothing in octo explains: the infrastructure moved out from under intent.
    */
   drift: { address: string; moduleId: string; tfActions: string[] }[];
@@ -103,6 +110,12 @@ export interface ValidateReport {
     resourceId: string;
     terraformChanges: ValidateTerraformChange[];
   }[];
+
+  /**
+   * Resources rendered into another module folder than the one holding their terraform state. The state
+   * moves with them before terraform runs, so terraform updates them in place.
+   */
+  moves: { fromModuleId: string; moduleId: string; resourceId: string }[];
 
   /**
    * Observations that judge nothing: a folder octo does not track, a delete it cannot correlate.
@@ -356,9 +369,15 @@ export async function validate({
   const report: ValidateReport = {
     attributedChanges: [],
     confidence: allDiffs.length === 0 ? 'exact' : 'approximate',
+    dataLoss: [],
     drift: [],
     failures: [],
     intentChanges: [],
+    moves: terraformService
+      .getFolderRecords()
+      .flatMap(({ moduleId, moves = [] }) =>
+        moves.map(({ fromModuleId, resourceId }) => ({ fromModuleId, moduleId, resourceId })),
+      ),
     notes: [],
     uncertain: [],
   };
@@ -782,6 +801,37 @@ export async function validate({
         });
       } else {
         report.drift.push({ address, moduleId, tfActions });
+      }
+    }
+  }
+
+  // Find the addresses of every resource whose destroy loses data, deleted ones by their committed class.
+  const dataLossResourceIds = new Map<string, string>();
+  for (const mapping of mappings.filter((m) => m.destroyLosesData)) {
+    for (const address of mapping.terraformAddresses) {
+      dataLossResourceIds.set(`${mapping.moduleId} ${address}`, mapping.resourceId);
+    }
+  }
+  for (const persisted of persistedMappings.values()) {
+    const committed = resourceDataRepository.getActualResourceByContext(persisted.resourceContext);
+    if (committed && (committed.constructor as typeof AResource).DESTROY_LOSES_DATA) {
+      for (const address of persisted.terraformAddresses) {
+        dataLossResourceIds.set(`${persisted.moduleId} ${address}`, persisted.resourceId);
+      }
+    }
+  }
+
+  // Mark each planned destroy of one.
+  for (const [moduleId, planChanges] of planChangesByModule.entries()) {
+    for (const [address, { tfActions }] of planChanges.entries()) {
+      const resourceId = dataLossResourceIds.get(`${moduleId} ${address}`);
+      if (resourceId !== undefined && tfActions.includes('delete')) {
+        report.dataLoss.push({
+          address,
+          message: `Terraform plans to destroy "${address}", and the data resource "${resourceId}" holds is lost with it.`,
+          moduleId,
+          resourceId,
+        });
       }
     }
   }

@@ -50,6 +50,15 @@ type NamePath<T, Depth extends unknown[] = []> = Depth['length'] extends 6
  * export class MyTable extends AResource<MyTableSchema, MyTable> { ... }
  * ```
  *
+ * A resource holding data octo cannot put back from its inputs - a table's rows, a filesystem's files -
+ * sets `options.destroyLosesData`, and every destroy terraform plans of it is reported as losing data.
+ *
+ * @example
+ * ```ts
+ * @Resource<MyTable>('@example', 'my-table', MyTableSchema, { destroyLosesData: true })
+ * export class MyTable extends AResource<MyTableSchema, MyTable> { ... }
+ * ```
+ *
  * @group Decorators
  *
  * @param packageName - The name of the package under which the resource is registered.
@@ -58,6 +67,9 @@ type NamePath<T, Depth extends unknown[] = []> = Depth['length'] extends 6
  * @param resourceName - a string that uniquely represents the name of the resource.
  * @param schema - The schema of the resource.
  * @param options - Optional settings of the resource.
+ * `destroyLosesData` marks the resource as holding data that is lost when it is destroyed. Validate,
+ * and apply's check for destroys, add a message to each destroy of it, whatever the cause.
+ *
  * `uniqueProperties` lists the names the cloud requires unique, one entry per name.
  * - `path` is a dot path through the resource's properties, with `[]` after a key holding an array.
  *   A resource with no value at `path` is not checked.
@@ -75,8 +87,10 @@ export function Resource<T extends UnknownResource>(
   resourceName: string,
   schema: Constructable<ResourceSchema<T>>,
   {
+    destroyLosesData = false,
     uniqueProperties = [],
   }: {
+    destroyLosesData?: boolean;
     uniqueProperties?: {
       path: NamePath<ResourceSchema<T>['properties']>;
       within: (keyof ResourceSchema<T>['properties'] & string)[];
@@ -96,6 +110,7 @@ export function Resource<T extends UnknownResource>(
       throw new Error(`Class "${constructor.name}" must extend the AResource class!`);
     }
 
+    constructor.DESTROY_LOSES_DATA = destroyLosesData;
     constructor.NODE_NAME = resourceName;
     constructor.NODE_PACKAGE = packageName;
     constructor.NODE_SCHEMA = schema;

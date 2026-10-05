@@ -760,7 +760,7 @@ export class TransactionService {
       }
     }
 
-    this.moveRenamedResources(resources);
+    this.moveResources(resources);
   }
 
   /**
@@ -896,15 +896,25 @@ export class TransactionService {
   }
 
   /**
-   * Hands each deleted resource's terraform state to the added resource of its class that takes one of
-   * its names, so the two are one piece of infrastructure, updated or replaced in place. Without it
-   * terraform creates the added resource while the deleted one still holds the name, and the provider
-   * refuses. External resources are left out: octo runs their actions itself, and a move would skip them.
+   * Hands each committed resource's terraform state to the resource taking it over, so the two are one
+   * piece of infrastructure, updated or replaced in place: a resource now rendered into another module's
+   * folder, and an added resource taking a name of a deleted resource of its class. Without it terraform
+   * creates the new one while the old one is destroyed, and the provider refuses a name still held.
+   * A renamed external resource is left out: octo runs its actions itself, and a move would skip them.
    */
-  private moveRenamedResources(resources: UnknownResource[]): void {
+  private moveResources(resources: UnknownResource[]): void {
     const actualResources = this.resourceDataRepository.getActualResourcesByProperties();
     const actualContexts = new Set(actualResources.map((r) => r.getContext()));
     const newContexts = new Set(resources.map((r) => r.getContext()));
+
+    // Move each resource whose folder changed.
+    for (const resource of resources) {
+      const moduleId = this.inputService.getModuleIdFromResource(resource)!;
+      const actualModuleId = this.resourceSerializationService.getActualResourceModuleId(resource);
+      if (actualModuleId !== undefined && actualModuleId !== moduleId) {
+        this.terraformService.moveResource(actualModuleId, resource.resourceId, moduleId, resource.resourceId);
+      }
+    }
 
     // Index the names of every deleted terraform resource.
     const deletedResourcesByName = new Map<string, UnknownResource>();
@@ -952,16 +962,9 @@ export class TransactionService {
       }
       takenBy.set(deletedResource, resource);
 
-      // Terraform moves state only within one folder.
       const moduleId = this.inputService.getModuleIdFromResource(resource)!;
-      const deletedModuleId = this.resourceSerializationService.getActualResourceModuleId(deletedResource);
-      if (deletedModuleId !== undefined && deletedModuleId !== moduleId) {
-        throw new TransactionError(
-          `Resource "${resource.getContext()}" of module "${moduleId}" takes a name of "${deletedResource.getContext()}" of module "${deletedModuleId}", and terraform cannot move infrastructure between module folders! Delete one in an apply, and add the other in the next.`,
-        );
-      }
-
-      this.terraformService.moveResource(moduleId, deletedResource.resourceId, resource.resourceId);
+      const deletedModuleId = this.resourceSerializationService.getActualResourceModuleId(deletedResource) ?? moduleId;
+      this.terraformService.moveResource(deletedModuleId, deletedResource.resourceId, moduleId, resource.resourceId);
     }
   }
 

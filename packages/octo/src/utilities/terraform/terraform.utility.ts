@@ -1,8 +1,8 @@
 import { type ExecFileOptionsWithStringEncoding, execFile } from 'node:child_process';
-import type { Dirent } from 'node:fs';
-import { mkdtemp, readdir, rm } from 'node:fs/promises';
+import { type Dirent, existsSync } from 'node:fs';
+import { mkdtemp, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { Factory } from '../../decorators/factory.decorator.js';
 import { TerraformCommandError } from '../../errors/index.js';
 import { TerraformCommandFinishedEvent, TerraformCommandStartedEvent } from '../../events/index.js';
@@ -15,6 +15,7 @@ import { PROJECT_ROOT_VARIABLE_NAME } from '../../services/terraform/terraform.t
 
 const DEFAULT_STATE_CHECK_IN_INTERVAL_IN_MS = 10 * 1000;
 const DEFAULT_TIMEOUT_IN_MS = 60 * 60 * 1000; // 60 minutes.
+const TERRAFORM_STATE_FILE_NAME = 'terraform.tfstate';
 
 /**
  * The commands that change infrastructure, and so are left unbounded unless the caller asks for a
@@ -211,11 +212,12 @@ export class TerraformUtility {
     }
 
     const composedArgs = this.consumeArgs();
-    return this.withTerraformState(terragruntDir, async (moduleIds) =>
+    const realTerragruntDir = await this.resolveRealPath(terragruntDir);
+    return this.withTerraformState(realTerragruntDir, async (moduleIds) =>
       this.emitAround('output', terragruntDir, async () => {
         const outputs = new Map<string, TerraformOutputs>();
         for (const moduleId of moduleIds) {
-          const moduleOutputs = await this.readOutputs(join(terragruntDir, moduleId), composedArgs);
+          const moduleOutputs = await this.readOutputs(join(realTerragruntDir, moduleId), composedArgs);
           if (moduleOutputs !== undefined) {
             outputs.set(moduleId, moduleOutputs);
           }
@@ -250,13 +252,14 @@ export class TerraformUtility {
     }
 
     const composedArgs = this.consumeArgs();
-    return this.withTerraformState(terragruntDir, async (moduleIds) =>
+    const realTerragruntDir = await this.resolveRealPath(terragruntDir);
+    return this.withTerraformState(realTerragruntDir, async (moduleIds) =>
       this.emitAround('plan', terragruntDir, async () => {
         const errors = new Map<string, string>();
         const plans = new Map<string, TerraformPlan>();
 
         for (const moduleId of moduleIds) {
-          const result = await this.readPlan(join(terragruntDir, moduleId), composedArgs);
+          const result = await this.readPlan(join(realTerragruntDir, moduleId), composedArgs);
           if ('plan' in result) {
             plans.set(moduleId, result.plan);
           } else {
@@ -447,6 +450,99 @@ export class TerraformUtility {
   }
 
   /**
+   * Moves the terraform state of every move the last generate recorded out of its old module folder
+   * into its new one, with `terraform state mv`, and copies the moved resources' outputs along, since
+   * folders depending on the new one read them there. An address the old folder's state does not hold,
+   * or the new one's already holds, is skipped, which is what a move already made leaves behind.
+   * Records in `originalStates` what each state file held before its first move, `undefined` where none
+   * existed.
+   */
+  private async moveStates(
+    terragruntDir: string,
+    moduleIds: string[],
+    originalStates: Map<string, Buffer | undefined>,
+  ): Promise<void> {
+    const terraformStateService = await Container.getInstance().get(TerraformStateService);
+    const moves = await terraformStateService.getRecordedMoves();
+
+    const readAddresses = async (stateFilePath: string): Promise<Set<string>> => {
+      try {
+        const state = JSON.parse(await readFile(stateFilePath, 'utf-8')) as {
+          resources?: { mode: string; name: string; type: string }[];
+        };
+        return new Set((state.resources ?? []).filter((r) => r.mode === 'managed').map((r) => `${r.type}.${r.name}`));
+      } catch {
+        return new Set();
+      }
+    };
+
+    let tempDir: string | undefined;
+    try {
+      for (const { addresses, fromModuleId, moduleId, outputs } of moves) {
+        if (!moduleIds.includes(fromModuleId) || !moduleIds.includes(moduleId)) {
+          continue;
+        }
+
+        // Find the addresses still to move.
+        const fromStateFilePath = resolve(terragruntDir, fromModuleId, TERRAFORM_STATE_FILE_NAME);
+        const toStateFilePath = resolve(terragruntDir, moduleId, TERRAFORM_STATE_FILE_NAME);
+        const [fromAddresses, toAddresses] = await Promise.all([
+          readAddresses(fromStateFilePath),
+          readAddresses(toStateFilePath),
+        ]);
+        const movableAddresses = addresses.filter(({ from, to }) => fromAddresses.has(from) && !toAddresses.has(to));
+        if (movableAddresses.length === 0) {
+          continue;
+        }
+
+        // Keep what both state files held before their first move.
+        for (const stateFilePath of [fromStateFilePath, toStateFilePath]) {
+          if (!originalStates.has(stateFilePath)) {
+            originalStates.set(stateFilePath, existsSync(stateFilePath) ? await readFile(stateFilePath) : undefined);
+          }
+        }
+
+        // Move each address, writing terraform's backups outside the module folders.
+        tempDir ??= await mkdtemp(join(tmpdir(), 'octo-tfstate-'));
+        for (const { from, to } of movableAddresses) {
+          await this.runIn(tempDir, this.options.terraformBinary ?? 'terraform', [
+            'state',
+            'mv',
+            '-lock=false',
+            `-state=${fromStateFilePath}`,
+            `-state-out=${toStateFilePath}`,
+            `-backup=${join(tempDir, `${fromModuleId}-${from}.backup`)}`,
+            `-backup-out=${join(tempDir, `${moduleId}-${to}.backup`)}`,
+            from,
+            to,
+          ]);
+        }
+
+        // Copy the outputs the moved resources published.
+        const fromState = JSON.parse(await readFile(fromStateFilePath, 'utf-8')) as {
+          outputs?: Record<string, unknown>;
+        };
+        const toState = JSON.parse(await readFile(toStateFilePath, 'utf-8')) as {
+          outputs?: Record<string, unknown>;
+          serial: number;
+        };
+        toState.outputs ??= {};
+        for (const { from, to } of outputs) {
+          if (fromState.outputs?.[from] !== undefined && toState.outputs[to] === undefined) {
+            toState.outputs[to] = fromState.outputs[from];
+          }
+        }
+        toState.serial++;
+        await writeFile(toStateFilePath, JSON.stringify(toState, null, 2));
+      }
+    } finally {
+      if (tempDir) {
+        await rm(tempDir, { force: true, recursive: true });
+      }
+    }
+  }
+
+  /**
    * Runs `terragrunt output -json` in one module folder.
    *
    * A folder whose output fails is reported as `undefined`, not thrown — one bad module folder must not
@@ -490,22 +586,40 @@ export class TerraformUtility {
   }
 
   /**
+   * The directory with every symbolic link on its path resolved, or the directory as given when it does
+   * not exist. Terragrunt drops `dependency` blocks when its working directory is reached through a
+   * symbolic link, as macOS's temporary directory is.
+   */
+  private async resolveRealPath(dir: string): Promise<string> {
+    try {
+      return await realpath(dir);
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        return dir;
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Writes back what each state file held before {@link TerraformUtility.moveStates}, deleting one that
+   * did not exist.
+   */
+  private async restoreStates(originalStates: Map<string, Buffer | undefined>): Promise<void> {
+    for (const [stateFilePath, data] of originalStates.entries()) {
+      if (data === undefined) {
+        await rm(stateFilePath, { force: true });
+      } else {
+        await writeFile(stateFilePath, data);
+      }
+    }
+  }
+
+  /**
    * Runs one terragrunt command in a single module folder (`cwd` = that folder).
    */
   private async run(moduleDir: string, args: string[]): Promise<TerraformRawResult> {
-    const binary = this.options.terragruntBinary;
-
-    try {
-      const { stderr, stdout } = await this.execFileAsync(binary, args, {
-        cwd: moduleDir,
-        env: this.buildEnv(),
-        maxBuffer: MAX_BUFFER,
-        timeout: this.options.timeoutInMs,
-      });
-      return { args, exitCode: 0, stderr, stdout };
-    } catch (error) {
-      throw this.toTerraformCommandError(binary, args, moduleDir, error);
-    }
+    return this.runIn(moduleDir, this.options.terragruntBinary, args);
   }
 
   /**
@@ -518,9 +632,29 @@ export class TerraformUtility {
     commandArgs: string[],
     { onOutput }: { onOutput?: (chunk: string, stream: 'stderr' | 'stdout') => void } = {},
   ): Promise<TerraformRawResult> {
-    return this.withTerraformState(terragruntDir, () =>
-      this.invokeRunAll(terragruntDir, command, commandArgs, { onOutput }),
+    const realTerragruntDir = await this.resolveRealPath(terragruntDir);
+    return this.withTerraformState(
+      realTerragruntDir,
+      () => this.invokeRunAll(realTerragruntDir, command, commandArgs, { onOutput }),
+      { keepMoves: MUTATING_COMMANDS.has(command) },
     );
+  }
+
+  /**
+   * Runs `binary` with `args` in `dir`.
+   */
+  private async runIn(dir: string, binary: string, args: string[]): Promise<TerraformRawResult> {
+    try {
+      const { stderr, stdout } = await this.execFileAsync(binary, args, {
+        cwd: dir,
+        env: this.buildEnv(),
+        maxBuffer: MAX_BUFFER,
+        timeout: this.options.timeoutInMs,
+      });
+      return { args, exitCode: 0, stderr, stdout };
+    } catch (error) {
+      throw this.toTerraformCommandError(binary, args, dir, error);
+    }
   }
 
   /**
@@ -536,24 +670,39 @@ export class TerraformUtility {
   }
 
   /**
-   * Checks every module folder's terraform state out of Octo's state provider, runs `body`, and
-   * checks it back in.
+   * Checks every module folder's terraform state out of Octo's state provider, moves the state of every
+   * resource generate moved between folders, runs `body`, and checks the state back in.
+   *
+   * Only a command that changes infrastructure (`keepMoves`) checks the moves in. Any other runs on them
+   * and puts back what the state files held before, so a move nobody applied never reaches the provider.
    *
    * The check-in runs on the way out of a failure as much as a success, because what terraform has
    * already built is real whether or not the command that built it returned cleanly. A timer checks
    * in through the command as well, bounding what a killed runner loses.
    */
-  private async withTerraformState<T>(terragruntDir: string, body: (moduleIds: string[]) => Promise<T>): Promise<T> {
+  private async withTerraformState<T>(
+    terragruntDir: string,
+    body: (moduleIds: string[]) => Promise<T>,
+    { keepMoves = false }: { keepMoves?: boolean } = {},
+  ): Promise<T> {
     const terraformStateService = await Container.getInstance().get(TerraformStateService);
     const moduleIds = await this.listModuleFolders(terragruntDir);
+    const originalStates = new Map<string, Buffer | undefined>();
 
     await terraformStateService.checkOut(terragruntDir, moduleIds);
-    terraformStateService.startPeriodicCheckIn(terragruntDir, moduleIds, this.options.stateCheckInIntervalInMs);
 
     try {
+      await this.moveStates(terragruntDir, moduleIds, originalStates);
+      if (keepMoves || originalStates.size === 0) {
+        terraformStateService.startPeriodicCheckIn(terragruntDir, moduleIds, this.options.stateCheckInIntervalInMs);
+      }
+
       return await body(moduleIds);
     } finally {
       terraformStateService.stopPeriodicCheckIn();
+      if (!keepMoves) {
+        await this.restoreStates(originalStates);
+      }
       await terraformStateService.checkIn(terragruntDir, moduleIds);
     }
   }
