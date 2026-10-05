@@ -5,6 +5,9 @@ import type { ArgumentsCamelCase } from 'yargs';
 
 type TerraformRawResult = { args: string[]; exitCode: number; stderr: string; stdout: string };
 type OnOutput = (chunk: string, stream: 'stderr' | 'stdout') => void;
+type TerraformResourceOutput = NonNullable<
+  Awaited<ReturnType<StateManagementService['getResourceState']>>['userData']['terraformResources']
+>[number];
 
 type TerraformPlanResult = {
   errors: Map<string, string>;
@@ -44,7 +47,11 @@ describe('applyCommand UT', () => {
     findPlannedDestroys: TerraformUtility['findPlannedDestroys'];
     plan: jest.Mock<() => Promise<TerraformPlanResult>>;
   };
-  let stateManagementServiceMock: { isAppLocked: jest.Mock<(lockId: string) => Promise<boolean>> };
+  let stateManagementServiceMock: {
+    actualResourceStateFileName: string;
+    getResourceState: jest.Mock<() => Promise<{ userData: { terraformResources?: TerraformResourceOutput[] } }>>;
+    isAppLocked: jest.Mock<(lockId: string) => Promise<boolean>>;
+  };
   let processExitSpy: jest.SpiedFunction<typeof process.exit>;
   let consoleErrorSpy: jest.SpiedFunction<typeof console.error>;
   let consoleLogSpy: jest.SpiedFunction<typeof console.log>;
@@ -64,6 +71,10 @@ describe('applyCommand UT', () => {
         .mockResolvedValue({ errors: new Map(), plans: new Map([['module-a', { resource_changes: [] }]]) }),
     };
     stateManagementServiceMock = {
+      actualResourceStateFileName: 'resources-actual.json',
+      getResourceState: jest
+        .fn<() => Promise<{ userData: { terraformResources?: TerraformResourceOutput[] } }>>()
+        .mockResolvedValue({ userData: {} }),
       isAppLocked: jest.fn<(lockId: string) => Promise<boolean>>().mockResolvedValue(true),
     };
     await TestContainer.create({
@@ -151,6 +162,31 @@ describe('applyCommand UT', () => {
         expect.stringContaining('[region-module] aws_efs_file_system.efs-1'),
       );
       expect(processExitSpy).toHaveBeenCalledWith(1);
+    });
+
+    it('marks each destroy of a resource whose destroy loses data', async () => {
+      terraformUtilityMock.plan.mockResolvedValue(planWithDestroy());
+      stateManagementServiceMock.getResourceState.mockResolvedValue({
+        userData: {
+          terraformResources: [
+            {
+              destroyLosesData: true,
+              moduleId: 'region-module',
+              resourceContext: '@octo/efs=efs-1',
+              resourceId: 'efs-1',
+              terraformAddresses: ['aws_efs_file_system.efs-1'],
+            },
+          ],
+        },
+      });
+
+      await applyCommand.handler(argv);
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining(
+          '[region-module] aws_efs_file_system.efs-1 (create, delete) - the data it holds is lost with it',
+        ),
+      );
     });
 
     it('applies a destructive plan when the user opts in', async () => {

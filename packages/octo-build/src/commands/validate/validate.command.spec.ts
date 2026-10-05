@@ -17,9 +17,11 @@ type TerraformPlanResult = {
 const emptyReport = (): ValidateReport => ({
   attributedChanges: [],
   confidence: 'exact',
+  dataLoss: [],
   drift: [],
   failures: [],
   intentChanges: [],
+  moves: [],
   notes: [],
   uncertain: [],
 });

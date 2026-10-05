@@ -14,12 +14,17 @@ type ApplyCommandArguments = {
 };
 
 /**
- * Plans the directory and prints anything the apply would destroy.
+ * Plans the directory and prints anything the apply would destroy, marking each destroy of a resource
+ * the last commit recorded as losing data.
  *
  * Returns true when the apply must not proceed: something would be destroyed, or a folder would not
  * plan and so nothing can be said about what it would destroy.
  */
-async function isBlockedByDestroys(terraformUtility: TerraformUtility, resolvedDir: string): Promise<boolean> {
+async function isBlockedByDestroys(
+  terraformUtility: TerraformUtility,
+  stateManagementService: StateManagementService,
+  resolvedDir: string,
+): Promise<boolean> {
   const { errors, plans } = await terraformUtility.plan(resolvedDir, { json: true });
 
   if (errors.size > 0) {
@@ -42,10 +47,23 @@ async function isBlockedByDestroys(terraformUtility: TerraformUtility, resolvedD
     return false;
   }
 
+  // Find the addresses whose destroy loses data.
+  const { userData } = await stateManagementService.getResourceState(
+    stateManagementService.actualResourceStateFileName,
+  );
+  const dataLossAddresses = new Set(
+    (userData.terraformResources ?? [])
+      .filter((mapping) => mapping.destroyLosesData)
+      .flatMap((mapping) => mapping.terraformAddresses.map((address) => `${mapping.moduleId} ${address}`)),
+  );
+
   console.error(chalk.red('This apply would DESTROY:'));
 
   for (const destroy of destroys.sort((a, b) => a.address.localeCompare(b.address))) {
-    console.error(chalk.red(`  [${destroy.moduleId}] ${destroy.address} (${destroy.tfActions.join(', ')})`));
+    const dataLoss = dataLossAddresses.has(`${destroy.moduleId} ${destroy.address}`)
+      ? ' - the data it holds is lost with it'
+      : '';
+    console.error(chalk.red(`  [${destroy.moduleId}] ${destroy.address} (${destroy.tfActions.join(', ')})${dataLoss}`));
   }
 
   console.error(
@@ -128,7 +146,7 @@ export const applyCommand = {
       // opt-in, plan first and refuse to destroy anything the user has not been shown. What is at
       // stake is the data inside a resource terraform recreates; octo's own state stays consistent
       // either way.
-      if (!autoApprove && (await isBlockedByDestroys(terraformUtility, resolvedDir))) {
+      if (!autoApprove && (await isBlockedByDestroys(terraformUtility, stateManagementService, resolvedDir))) {
         process.exit(1);
       } else {
         // Streamed, not printed at the end: an ECS apply runs for tens of minutes, and terragrunt's
