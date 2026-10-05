@@ -23,7 +23,7 @@ export type DynamoDBGlobalDiff = {
 /**
  * @internal
  */
-@Resource<DynamoDBGlobal>('@octo', 'dynamodb-global', DynamoDBGlobalSchema)
+@Resource<DynamoDBGlobal>('@octo', 'dynamodb-global', DynamoDBGlobalSchema, { destroyLosesData: true })
 export class DynamoDBGlobal extends ATerraformResource<DynamoDBGlobalSchema, DynamoDBGlobal> {
   declare parents: [MatchingResource<DynamoDBSchema>];
   declare properties: DynamoDBGlobalSchema['properties'];

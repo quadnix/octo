@@ -19,7 +19,10 @@ import { type IS3StoragePrincipalType, type PrincipalResourceSchema, S3StorageSc
 /**
  * @internal
  */
-@Resource<S3Storage>('@octo', 's3-storage', S3StorageSchema, { uniqueProperties: [{ path: 'Bucket', within: [] }] })
+@Resource<S3Storage>('@octo', 's3-storage', S3StorageSchema, {
+  destroyLosesData: true,
+  uniqueProperties: [{ path: 'Bucket', within: [] }],
+})
 export class S3Storage extends ATerraformResource<S3StorageSchema, S3Storage> {
   declare parents: MatchingResource<PrincipalResourceSchema>[];
   declare properties: S3StorageSchema['properties'];

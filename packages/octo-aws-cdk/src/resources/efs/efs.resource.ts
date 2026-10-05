@@ -4,7 +4,7 @@ import { EfsSchema } from './index.schema.js';
 /**
  * @internal
  */
-@Resource<Efs>('@octo', 'efs', EfsSchema)
+@Resource<Efs>('@octo', 'efs', EfsSchema, { destroyLosesData: true })
 export class Efs extends ATerraformResource<EfsSchema, Efs> {
   declare properties: EfsSchema['properties'];
   declare response: EfsSchema['response'];
