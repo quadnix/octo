@@ -93,7 +93,12 @@ into around the apply.
 Verifies the lock before planning, so a run without it fails having done nothing. It does not
 release the lock, because the apply is the middle of a run and `commit` is the end of it.
 
-Plans first and refuses if anything would be destroyed, or if a folder could not be planned.
+Plans first and refuses if anything would be destroyed, or if a folder could not be planned. Each
+destroy of a resource holding data, a table or a bucket, is marked `- the data it holds is lost with it`.
+
+A resource `generate` moved into another module folder, because its `moduleId` was renamed, has its
+Terraform state moved into the new folder before the plan, so it is not listed. Only the apply checks
+that move into the state provider; a plan or a validate runs on it and puts the state back.
 
 An apply that fails part way prints the `octo commit --partial` that records what it did build,
 with this run's directory and lock ID already in it. A run that fails before applying anything does

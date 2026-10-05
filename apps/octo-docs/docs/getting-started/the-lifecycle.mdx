@@ -99,12 +99,13 @@ It runs `terragrunt run --all -- apply` over the directory and streams the outpu
 because an ECS apply can run for tens of minutes and its progress is the only sign it is alive.
 
 Terragrunt is given `-auto-approve`, so there is no prompt to answer. Octo puts its own gate in
-front instead: apply plans first, and refuses to run if anything would be destroyed.
+front instead: apply plans first, and refuses to run if anything would be destroyed. A destroy that
+takes data with it, the bucket's objects here, says so on its line.
 
 ```text
 This apply would DESTROY:
   [region-module] aws_internet_gateway.igw-eu-west-1 (delete)
-  [receipts-module] aws_s3_bucket.bucket-shop-receipts (delete)
+  [receipts-module] aws_s3_bucket.bucket-shop-receipts (delete) - the data it holds is lost with it
 
 Refusing to apply. Run "octo validate" to see why each of these is being destroyed, then re-run with --auto-approve to proceed.
 ```

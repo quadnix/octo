@@ -284,7 +284,8 @@ one app's state, and nothing on the Octo side raises them.
 
 Working as intended. `octo apply` plans first and refuses when anything would be destroyed. Read the
 list, run `octo validate` for the reason behind each one, then re-run with `--auto-approve` and the
-same lock ID. The lock is still held, so if you are not going ahead, release it with
+same lock ID. A line ending `- the data it holds is lost with it` destroys a table's rows, a bucket's
+objects, a filesystem's files, or a repository's images along with the resource. The lock is still held, so if you are not going ahead, release it with
 `octo unlock --lockId`.
 
 **`Cannot check this apply for destroys because the folders above would not plan.`**

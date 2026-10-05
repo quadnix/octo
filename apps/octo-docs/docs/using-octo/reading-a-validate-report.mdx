@@ -32,6 +32,8 @@ That creates 3 new things.
 
 FAILURES — octo could not read these, so everything else is incomplete
 WHAT WILL CHANGE
+DATA LOSS — destroying these loses the data they hold
+MOVED BETWEEN MODULE FOLDERS — their terraform state moves with them
 DRIFT — nothing in your intent explains this
 UNCERTAIN — planned against a placeholder, so not judged as drift
 NOTES
@@ -141,6 +143,29 @@ moved, and shows it under the same card.
 
 Field values are rendered and truncated rather than dumped, and anything Terraform marked sensitive
 prints as `(sensitive)`. A report is meant to be read, not replayed.
+
+## Data loss
+
+```text
+DATA LOSS — destroying these loses the data they hold
+```
+
+Every destroy Terraform plans of something that holds data Octo cannot put back from your definition
+file: a table's rows, a bucket's objects, a filesystem's files, a repository's images. It lists them
+whatever the cause, a module you removed or a change that forces a replacement, because the cause
+does not change what is lost. The same destroys are already counted under `-` and `±` above; this
+section only says which of them cost more than the infrastructure.
+
+## Moved between module folders
+
+```text
+MOVED BETWEEN MODULE FOLDERS — their terraform state moves with them
+```
+
+Resources now generated into a different module folder than the one holding their Terraform state,
+because you renamed a `moduleId` or a resource moved from one module to another. Octo moves their
+Terraform state into the new folder before Terraform plans, so they show up here and nowhere else:
+no destroy, no create.
 
 ## Confidence
 

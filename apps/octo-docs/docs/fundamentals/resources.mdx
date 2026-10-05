@@ -97,5 +97,10 @@ that name while the first still exists. Octo writes a Terraform `moved` block in
 resource's blocks to the new one's, so Terraform treats the two as one: it updates the
 infrastructure in place, or destroys it before it creates the replacement, never beside it.
 
-Octo tells you before it happens: `octo apply` lists what would be destroyed and refuses to go on
-until you pass `--auto-approve`.
+Renaming a module is not a rename of its resources at all. Their IDs come from the models, so they
+stay, and only the folder their Terraform lives in changes. Octo moves their Terraform state into
+the new folder before Terraform plans, so Terraform sees the same infrastructure where it left it.
+
+Octo tells you before anything is destroyed: `octo apply` lists what would be destroyed and refuses to
+go on until you pass `--auto-approve`, and marks each destroy that loses data, a table's rows or a
+bucket's objects.

@@ -92,7 +92,7 @@ npm run octo:apply -- --lockId $LOCK_ID
 ```text
 This apply would DESTROY:
   [checkout-server-module] aws_iam_role.iam-role-ServerRole-checkout (delete)
-  [receipts-module] aws_s3_bucket.bucket-shop-receipts (delete)
+  [receipts-module] aws_s3_bucket.bucket-shop-receipts (delete) - the data it holds is lost with it
   [region-module] aws_vpc.vpc-eu-west-1 (delete)
   ...
 
@@ -101,7 +101,7 @@ Refusing to apply. Run "octo validate" to see why each of these is being destroy
 
 Terragrunt is always given `-auto-approve`, so there is no prompt to answer during an apply. This
 check is what stands in for one: `octo apply` plans first, and refuses if anything would be
-destroyed.
+destroyed. A destroy that takes data with it, like the bucket's objects, says so on its line.
 
 ```bash
 npm run octo:apply -- --lockId $LOCK_ID --auto-approve
@@ -153,8 +153,10 @@ A rename is a destroy and a create, because a resource's identity is derived fro
 For a bucket that means the objects inside it. The report tells you before it happens, and the apply
 refuses without `--auto-approve`, but nothing will stop you if you insist.
 
-The same is true of a `moduleId`. Rename `receipts-module` and Octo sees one module gone and another
-arrived.
+A `moduleId` is different. Rename `receipts-module` and the bucket keeps its resource ID, because the
+ID comes from the models, not from the module; only its folder changes. Octo moves the bucket's
+Terraform state from `receipts-module/` into the new folder before Terraform plans, so the apply
+destroys nothing and needs no `--auto-approve`, and the old folder is left empty.
 
 ## Taking everything down
 

@@ -230,6 +230,30 @@ The check compares resources of one class with each other, and nothing else:
 - A name already taken outside the app, such as a bucket name somebody else owns, still fails at
   `octo apply`.
 
+## Data a destroy loses
+
+Deleting a queue deletes the messages waiting in it, and nothing in `octo.yaml` can put them back.
+Say so with the `destroyLosesData` option of `@Resource`:
+
+```typescript title="src/resources/shop-queue/shop-queue.resource.ts"
+@Resource<ShopQueue>('@shop', 'shop-queue', ShopQueueSchema, {
+  destroyLosesData: true,
+  uniqueProperties: [{ path: 'queueName', within: ['awsAccountId', 'awsRegionId'] }],
+})
+export class ShopQueue extends ATerraformResource<ShopQueueSchema, ShopQueue> {
+  // ... the class body is unchanged
+}
+```
+
+Every destroy Terraform plans of a queue is then marked as losing data, in the validate report and in
+the list `octo apply` prints before it refuses, whether a module was removed or a property forced a
+replacement. It adds a message and nothing else: `octo apply` already refuses every destroy until
+`--auto-approve` is passed.
+
+Set it where the resource holds what Octo cannot rebuild from its inputs: rows, files, objects,
+messages, images. A bucket Octo fills from a folder on every apply loses nothing it cannot restore,
+and leaves it unset.
+
 ## Choosing parents
 
 A resource's parents are the resources the cloud provider needs to exist before this one can be

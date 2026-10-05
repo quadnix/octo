@@ -47,7 +47,8 @@ alternative is finding out partway through an apply with half a stack standing.
 ## Order
 
 The `moduleId` is yours to pick, and it does two things: it scopes everything that instance
-produces, and it names the folder that instance generates. Each module needs an id of its own, and
+produces, and it names the folder that instance generates. Renaming it renames the folder, and Octo
+carries the Terraform state of everything in it across, so nothing is rebuilt. Each module needs an id of its own, and
 an id cannot contain a dot, since a reference such as `${{region-module.model.region}}` is read by
 splitting it on dots. Load the same class twice under two IDs and you get two independent instances,
 which is how the shop would get several subnets out of one subnet module.
