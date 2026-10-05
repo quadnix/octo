@@ -30,7 +30,8 @@ import { AwsLambdaExecutionOverlay } from './overlays/aws-lambda-execution/index
  * them: an IAM role trusting Lambda and holding the server's grants, the function, and a URL that only
  * signed requests may call. The role gets no permission to write logs.
  *
- * The deployment must name an image octo publishes into ECR, set a memory from 128 to 10240 MiB and a
+ * The function runs outside a VPC, so it ignores the server's security group rules. The deployment
+ * must name an image octo publishes into ECR, set a memory from 128 to 10240 MiB and a
  * timeout from 1 to 900 seconds, and listen on at most one tcp port. A deployment that does not is
  * rejected before anything is created. The function runs on the processor the image is published for,
  * and the Lambda Web Adapter forwards each request to the deployment's port, as `AWS_LWA_PORT`.
@@ -190,6 +191,7 @@ export class AwsLambdaExecutionModule extends AModule<AwsLambdaExecutionModuleSc
         executionId: execution.executionId,
         grants,
         iamRoleName,
+        invokeMode: inputs.invokeMode!,
         serverKey: server.serverKey,
       },
       [lambdaExecutionAnchor, matchingEnvironmentAnchor, matchingServerAnchor, imageAnchor, ...grantAnchors],

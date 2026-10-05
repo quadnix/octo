@@ -142,6 +142,7 @@ async function setupLambdaFunction(
         environmentVariables: {},
         functionName: 'backend',
         imageCommand: [],
+        invokeMode: 'BUFFERED',
         invokerAccountIds: [],
         memoryInMegabytes: 512,
         timeoutInSeconds,

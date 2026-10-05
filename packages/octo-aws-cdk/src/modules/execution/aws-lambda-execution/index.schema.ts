@@ -86,6 +86,14 @@ export class AwsLambdaExecutionModuleSchema {
   executionId = Schema<string>();
 
   /**
+   * How the function's URL returns a response. `BUFFERED`, the default, returns it whole, up to 6 MB.
+   * `RESPONSE_STREAM` streams it as the server writes it, up to 200 MB, and tells the Lambda Web Adapter
+   * to stream as well.
+   */
+  @Validate({ options: { regex: /^(BUFFERED|RESPONSE_STREAM)$/ } })
+  invokeMode? = Schema<'BUFFERED' | 'RESPONSE_STREAM'>('BUFFERED');
+
+  /**
    * The AWS accounts allowed to call the function's URL.
    */
   @Validate({

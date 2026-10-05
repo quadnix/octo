@@ -80,7 +80,7 @@ not anything is running behind it.
 | `AwsEcsEnvironmentModule`        | `region`, `environmentName`, `environmentVariables?`                                                                                  | ECS cluster                                            |
 | `AwsServerlessEnvironmentModule` | `region`, `environmentName`, `environmentVariables?`                                                                                  |                                                        |
 | `AwsEcsExecutionModule`          | `deployments`, `environment`, `subnet`, `executionId`, `desiredCount`, `environmentVariables?`, `filesystems?`, `securityGroupRules?` | IAM role, ECS service, task definition, security group |
-| `AwsLambdaExecutionModule`       | `deployment`, `environment`, `subnet`, `executionId`, `environmentVariables?`, `invokerAccountIds?`                                   | IAM role, Lambda function, function URL                |
+| `AwsLambdaExecutionModule`       | `deployment`, `environment`, `subnet`, `executionId`, `environmentVariables?`, `invokeMode?`, `invokerAccountIds?`                    | IAM role, Lambda function, function URL                |
 
 These are one story told in parts. A server is the logical microservice: what its code may reach,
 and its network rules. A deployment is one version of its code: the container image, and what the
@@ -197,8 +197,14 @@ credentials, and `invokerAccountIds` names the accounts allowed to call it:
       subnet: "${{serverless-subnet-module.model.subnet}}"
 ```
 
+The URL returns each response whole, up to 6 MB. Set `invokeMode: RESPONSE_STREAM` to stream it as
+the server writes it, which lifts the limit to 200 MB; Octo then tells the adapter to stream as well,
+through `AWS_LWA_INVOKE_MODE`.
+
 The function's role is given no permission to write logs, so it writes none and Lambda creates no
-log group. `executionId` is at most fifty characters, because it names the role too.
+log group. `executionId` is at most fifty characters, because it names the role too. A function runs
+outside any VPC, so it ignores the server's `securityGroupRules`, which only an ECS execution
+applies. One server can run on both.
 
 A Lambda execution needs the `hashicorp/aws` provider 6.28.0 or later, so set `minVersion` under
 `terraform.requiredProviders` to at least that. An older provider fails the plan with

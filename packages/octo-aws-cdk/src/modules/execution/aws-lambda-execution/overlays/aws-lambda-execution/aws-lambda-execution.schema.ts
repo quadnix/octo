@@ -19,6 +19,7 @@ export class AwsLambdaExecutionOverlaySchema extends BaseOverlaySchema {
       ...value.grants.dynamodb.flatMap((g) => [g.awsRegionId, g.tableName]),
       ...value.grants.s3.map((g) => g.bucketName),
       value.iamRoleName,
+      value.invokeMode,
       value.serverKey,
     ],
     options: { minLength: 1 },
@@ -36,6 +37,7 @@ export class AwsLambdaExecutionOverlaySchema extends BaseOverlaySchema {
       s3: { accessPrefix: string; allowRead: boolean; allowWrite: boolean; bucketName: string }[];
     };
     iamRoleName: string;
+    invokeMode: LambdaFunctionSchema['properties']['invokeMode'];
     serverKey: string;
   }>();
 }

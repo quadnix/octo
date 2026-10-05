@@ -64,7 +64,7 @@ export class AddAwsCloudFrontLambdaOriginOverlayAction implements IModelAction<A
 
     // Admit the distribution to the function, and read the function's URL into the distribution.
     const lambdaFunction = matchingLambdaFunction.getActual() as LambdaFunction;
-    lambdaFunction.properties.allowCloudFrontOriginAccess = true;
+    lambdaFunction.allowCloudFrontOriginAccess();
     cloudFrontDistribution.addLambdaOrigin(originId, matchingLambdaFunction);
     actionOutputs[lambdaFunction.resourceId] = lambdaFunction;
     actionOutputs[cloudFrontDistribution.resourceId] = cloudFrontDistribution;

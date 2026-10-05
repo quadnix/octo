@@ -519,6 +519,40 @@ describe('AwsLambdaExecutionModule UT', () => {
     expect(hclRender).toContain('principal = "210987654321"');
   });
 
+  it('should buffer responses by default', async () => {
+    await setup(testModuleContainer);
+    const { hclRender } = (
+      await testModuleContainer
+        .runModules<AwsLambdaExecutionModule>(
+          { inputs: executionInputs(), moduleId: 'execution', type: AwsLambdaExecutionModule },
+          { filterByModuleIds: ['execution'], terraformTarget: 'skip' },
+        )
+        .next()
+    ).value!;
+
+    expect(hclRender).not.toContain('invoke_mode');
+    expect(hclRender).not.toContain('AWS_LWA_INVOKE_MODE');
+  });
+
+  it('should stream responses from the URL and the Lambda Web Adapter alike', async () => {
+    await setup(testModuleContainer);
+    const { hclRender } = (
+      await testModuleContainer
+        .runModules<AwsLambdaExecutionModule>(
+          {
+            inputs: executionInputs({ invokeMode: 'RESPONSE_STREAM' }),
+            moduleId: 'execution',
+            type: AwsLambdaExecutionModule,
+          },
+          { filterByModuleIds: ['execution'], terraformTarget: 'skip' },
+        )
+        .next()
+    ).value!;
+
+    expect(hclRender).toMatch(/invoke_mode\s*=\s*"RESPONSE_STREAM"/);
+    expect(hclRender).toMatch(/AWS_LWA_INVOKE_MODE\s*=\s*"response_stream"/);
+  });
+
   it('should run on the processor the image is published for', async () => {
     await setup(testModuleContainer, { publishedFor: 'x86_64' });
     const { hclRender } = (

@@ -67,6 +67,11 @@ export class AddAwsLambdaExecutionOverlayAction implements IModelAction<AwsLambd
       environmentVariables['AWS_LWA_PORT'] = String(properties.deploymentContainerProperties.port);
     }
 
+    // A streaming URL needs the adapter to stream too, or it answers with the adapter's own envelope.
+    if (properties.invokeMode === 'RESPONSE_STREAM') {
+      environmentVariables['AWS_LWA_INVOKE_MODE'] = 'response_stream';
+    }
+
     // Get the published image this function runs, through the image it is published into.
     const image = matchingImageAnchor.getActual().getParent();
     const [matchingEcrImageTagResource] = await image.getResourcesMatchingSchema(EcrImageTagSchema, [
@@ -178,6 +183,7 @@ export class AddAwsLambdaExecutionOverlayAction implements IModelAction<AwsLambd
         environmentVariables,
         functionName: lambdaExecutionAnchorProperties.functionName,
         imageCommand: properties.deploymentContainerProperties.imageCommand,
+        invokeMode: properties.invokeMode,
         invokerAccountIds: lambdaExecutionAnchorProperties.invokerAccountIds,
         memoryInMegabytes: properties.deploymentContainerProperties.memoryInMegabytes,
         timeoutInSeconds: properties.deploymentContainerProperties.timeoutInSeconds,

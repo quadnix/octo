@@ -40,6 +40,15 @@ export class LambdaFunction extends ATerraformResource<LambdaFunctionSchema, Lam
   }
 
   /**
+   * Admits CloudFront distributions of the function's own account to its URL.
+   *
+   * @internal
+   */
+  allowCloudFrontOriginAccess(): void {
+    this.properties.allowCloudFrontOriginAccess = true;
+  }
+
+  /**
    * @internal
    */
   override async diff(previous: LambdaFunction): Promise<Diff[]> {
@@ -140,6 +149,7 @@ export class LambdaFunction extends ATerraformResource<LambdaFunctionSchema, Lam
       {
         authorization_type: 'AWS_IAM',
         function_name: terraform.raw(`${lambdaFunctionTFResource.address}.function_name`),
+        ...(this.properties.invokeMode === 'RESPONSE_STREAM' ? { invoke_mode: 'RESPONSE_STREAM' } : {}),
       },
     );
     const functionUrl = terraform.raw(`${functionUrlTFResource.address}.function_url`);
