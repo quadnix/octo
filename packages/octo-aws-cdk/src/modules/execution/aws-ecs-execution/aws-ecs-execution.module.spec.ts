@@ -370,7 +370,7 @@ async function setup(
   if (publishedDeployments.length > 0) {
     const {
       image: [image],
-    } = await testModuleContainer.createTestModels('imageModule', { app: [app], image: ['family/image'] });
+    } = await testModuleContainer.createTestModels('imageModule', { account: [account], image: ['family/image'] });
     const imageAnchor = testModuleContainer.createTestAnchor<AwsEcrImageAnchorSchema>(
       'AwsEcrImageAnchor',
       { imageId: image.imageId },

@@ -102,7 +102,7 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
   await testModuleContainer.createTestOverlays('imageTagModule', [
     {
       anchors: [imageAnchor],
-      context: '@octo/aws-ecr-image-tag-overlay=aws-ecr-image-tag-overlay-family/image-0-0-1',
+      context: `@octo/aws-ecr-image-tag-overlay=aws-ecr-image-tag-overlay-${AWS_ACCOUNT_ID}-family/image-0-0-1`,
       properties: {
         architecture: 'arm64',
         dockerfileDirectory: 'images/backend',

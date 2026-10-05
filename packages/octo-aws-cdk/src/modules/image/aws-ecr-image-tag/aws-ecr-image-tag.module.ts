@@ -1,4 +1,4 @@
-import { AModule, Module, ModuleError } from '@quadnix/octo';
+import { AModule, type Account, Module, ModuleError } from '@quadnix/octo';
 import { AwsEcrImageAnchorSchema } from '../../../anchors/aws-ecr/aws-ecr-image.anchor.schema.js';
 import { AwsEcrImageTagModuleSchema } from './index.schema.js';
 import { AwsEcrImageTagOverlay } from './overlays/aws-ecr-image-tag/index.js';
@@ -56,11 +56,13 @@ export class AwsEcrImageTagModule extends AModule<AwsEcrImageTagModuleSchema, Aw
     // Publish a new version of the image. The tag is part of the overlay's id, so another tag is
     // another overlay, and editing this one is the old version leaving and the new one arriving.
     // The id takes no dots, which an image tag routinely has: octo addresses an overlay by a key it
-    // splits on dots, and an id carrying one is cut short of itself.
+    // splits on dots, and an id carrying one is cut short of itself. An overlay id is unique across
+    // the app, and an image only within its account, so the id names the account too.
     const imageTagId = inputs.imageTag.replace(/[^\w-]/g, '-');
+    const account = image.getParents()['account'][0].to as Account;
 
     return new AwsEcrImageTagOverlay(
-      `aws-ecr-image-tag-overlay-${image.imageId}-${imageTagId}`,
+      `aws-ecr-image-tag-overlay-${account.accountId}-${image.imageId}-${imageTagId}`,
       {
         architecture: inputs.architecture,
         dockerfileDirectory: inputs.dockerfileDirectory,

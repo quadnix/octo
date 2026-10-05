@@ -1,6 +1,6 @@
 import { DescribeImagesCommand, ECRClient, GetAuthorizationTokenCommand } from '@aws-sdk/client-ecr';
 import { jest } from '@jest/globals';
-import { type App, type Image, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import { type Account, type Image, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsEcrImageAnchorSchema } from '../../../anchors/aws-ecr/aws-ecr-image.anchor.schema.js';
 import { EcrImage } from '../../../resources/ecr/index.js';
 import { DockerService } from '../../../services/docker/docker.service.js';
@@ -48,19 +48,21 @@ function createPublishingMocks(): { mocks: Parameters<typeof TestContainer.creat
 async function setup(
   testModuleContainer: TestModuleContainer,
   {
-    app,
+    account,
     awsRegionIds = ['us-east-1'],
     imageName = 'image',
     moduleId = 'testModule',
-  }: { app?: App; awsRegionIds?: string[]; imageName?: string; moduleId?: string } = {},
-): Promise<App> {
+  }: { account?: Account; awsRegionIds?: string[]; imageName?: string; moduleId?: string } = {},
+): Promise<Account> {
   const {
-    app: [testApp],
+    account: [testAccount],
     image: [image],
-  } = await testModuleContainer.createTestModels(moduleId, {
-    app: [app ?? 'test-app'],
-    image: [`family/${imageName}`],
-  });
+  } = await testModuleContainer.createTestModels(
+    moduleId,
+    account
+      ? { account: [account], image: [`family/${imageName}`] }
+      : { account: ['aws,123'], app: ['test-app'], image: [`family/${imageName}`] },
+  );
 
   image.addAnchor(
     testModuleContainer.createTestAnchor<AwsEcrImageAnchorSchema>(
@@ -83,7 +85,7 @@ async function setup(
     { save: true },
   );
 
-  return testApp;
+  return testAccount;
 }
 
 const imageTagModule = (
@@ -153,7 +155,7 @@ describe('AwsEcrImageTagModule UT', () => {
     `);
     expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
-       "+ @octo/ecr-image-tag=ecr-image-tag-123-us-east-1-family/image-0-0-1-86a33f",
+       "+ @octo/ecr-image-tag=ecr-image-tag-us-east-1-family/image-0-0-1-b1f33b",
      ]
     `);
 
@@ -175,7 +177,7 @@ describe('AwsEcrImageTagModule UT', () => {
     ).value!;
     expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`
      [
-       "+ @octo/ecr-image-tag=ecr-image-tag-123-us-east-1-family/image-0-0-1-86a33f",
+       "+ @octo/ecr-image-tag=ecr-image-tag-us-east-1-family/image-0-0-1-b1f33b",
      ]
     `);
 
@@ -190,7 +192,7 @@ describe('AwsEcrImageTagModule UT', () => {
     expect(hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(resourceDiffsDelete)).toMatchInlineSnapshot(`
      [
-       "- @octo/ecr-image-tag=ecr-image-tag-123-us-east-1-family/image-0-0-1-86a33f",
+       "- @octo/ecr-image-tag=ecr-image-tag-us-east-1-family/image-0-0-1-b1f33b",
      ]
     `);
 
@@ -209,8 +211,8 @@ describe('AwsEcrImageTagModule UT', () => {
 
       expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "+ @octo/ecr-image-tag=ecr-image-tag-123-us-east-1-family/image-0-0-1-86a33f",
-         "+ @octo/ecr-image-tag=ecr-image-tag-123-us-west-2-family/image-0-0-1-86a33f",
+         "+ @octo/ecr-image-tag=ecr-image-tag-us-east-1-family/image-0-0-1-b1f33b",
+         "+ @octo/ecr-image-tag=ecr-image-tag-us-west-2-family/image-0-0-1-b1f33b",
        ]
       `);
     });
@@ -233,7 +235,7 @@ describe('AwsEcrImageTagModule UT', () => {
 
       expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "+ @octo/ecr-image-tag=ecr-image-tag-123-us-east-1-family/image-1-1-86a33f",
+         "+ @octo/ecr-image-tag=ecr-image-tag-us-east-1-family/image-1-1-b1f33b",
        ]
       `);
     });
@@ -259,7 +261,7 @@ describe('AwsEcrImageTagModule UT', () => {
 
       expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "- @octo/ecr-image-tag=ecr-image-tag-123-us-east-1-family/image-1-0-86a33f",
+         "- @octo/ecr-image-tag=ecr-image-tag-us-east-1-family/image-1-0-b1f33b",
        ]
       `);
     });
@@ -279,8 +281,8 @@ describe('AwsEcrImageTagModule UT', () => {
 
       expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "- @octo/ecr-image-tag=ecr-image-tag-123-us-east-1-family/image-0-0-1-86a33f",
-         "+ @octo/ecr-image-tag=ecr-image-tag-123-us-east-1-family/image-0-0-2-86a33f",
+         "- @octo/ecr-image-tag=ecr-image-tag-us-east-1-family/image-0-0-1-b1f33b",
+         "+ @octo/ecr-image-tag=ecr-image-tag-us-east-1-family/image-0-0-2-b1f33b",
        ]
       `);
     });
@@ -308,14 +310,18 @@ describe('AwsEcrImageTagModule UT', () => {
     });
 
     it('should republish into the new repository when the image is pointed at another one', async () => {
-      const app = await setup(testModuleContainer);
-      await setup(testModuleContainer, { app, imageName: 'other-image', moduleId: 'testOtherModule' });
+      const account = await setup(testModuleContainer);
+      await setup(testModuleContainer, { account, imageName: 'other-image', moduleId: 'testOtherModule' });
       await testModuleContainer
         .runModules<AwsEcrImageTagModule>(imageTagModule('image-tag', '0.0.1'), { terraformTarget: 'skip' })
         .next();
 
-      const appAgain = await setup(testModuleContainer);
-      await setup(testModuleContainer, { app: appAgain, imageName: 'other-image', moduleId: 'testOtherModule' });
+      const accountAgain = await setup(testModuleContainer);
+      await setup(testModuleContainer, {
+        account: accountAgain,
+        imageName: 'other-image',
+        moduleId: 'testOtherModule',
+      });
       const { resourceDiffs } = (
         await testModuleContainer
           .runModules<AwsEcrImageTagModule>(
@@ -327,8 +333,8 @@ describe('AwsEcrImageTagModule UT', () => {
 
       expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
-         "- @octo/ecr-image-tag=ecr-image-tag-123-us-east-1-family/image-0-0-1-86a33f",
-         "+ @octo/ecr-image-tag=ecr-image-tag-123-us-east-1-family/other-image-0-0-1-86a33f",
+         "- @octo/ecr-image-tag=ecr-image-tag-us-east-1-family/image-0-0-1-b1f33b",
+         "+ @octo/ecr-image-tag=ecr-image-tag-us-east-1-family/other-image-0-0-1-b1f33b",
        ]
       `);
     });
@@ -336,7 +342,11 @@ describe('AwsEcrImageTagModule UT', () => {
 
   describe('validation', () => {
     it('should validate the image is one whose repositories are in ECR', async () => {
-      await testModuleContainer.createTestModels('testModule', { app: ['test-app'], image: ['family/image'] });
+      await testModuleContainer.createTestModels('testModule', {
+        account: ['aws,123'],
+        app: ['test-app'],
+        image: ['family/image'],
+      });
 
       await expect(
         testModuleContainer
@@ -348,7 +358,11 @@ describe('AwsEcrImageTagModule UT', () => {
     it('should validate the image has a repository to publish into', async () => {
       const {
         image: [image],
-      } = await testModuleContainer.createTestModels('testModule', { app: ['test-app'], image: ['family/image'] });
+      } = await testModuleContainer.createTestModels('testModule', {
+        account: ['aws,123'],
+        app: ['test-app'],
+        image: ['family/image'],
+      });
       image.addAnchor(
         testModuleContainer.createTestAnchor<AwsEcrImageAnchorSchema>(
           'AwsEcrImageAnchor',

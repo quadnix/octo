@@ -1,4 +1,4 @@
-import { AModule, type Account, type App, Module, ModuleError } from '@quadnix/octo';
+import { AModule, type Account, Module, ModuleError } from '@quadnix/octo';
 import { AwsEcrImageAnchor } from '../../../anchors/aws-ecr/aws-ecr-image.anchor.js';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import { AwsServerlessRegionAnchorSchema } from '../../../anchors/aws-region/aws-serverless-region.anchor.schema.js';
@@ -38,14 +38,21 @@ import { AwsEcrImage } from './models/image/index.js';
 @Module<AwsEcrImageModule>('@octo', AwsEcrImageModuleSchema)
 export class AwsEcrImageModule extends AModule<AwsEcrImageModuleSchema, AwsEcrImage> {
   /**
-   * Creates the image, and registers one ECR repository per account and region it is used in.
+   * Creates the image in the account of its regions, and registers one ECR repository per AWS region
+   * it is used in.
    */
   async onInit(inputs: AwsEcrImageModuleSchema): Promise<AwsEcrImage> {
-    const { app } = await this.registerMetadata(inputs);
+    const { account } = await this.registerMetadata(inputs);
 
     // Create a new image.
     const image = new AwsEcrImage(inputs.imageFamily, inputs.imageName);
-    app.addImage(image);
+    account.addImage(image);
+
+    // Link the image to each region it is published into. A link is not a parent, so adding or
+    // removing a region leaves the image's place, and so the id of every repository and tag, as it is.
+    for (const region of inputs.regions) {
+      image.addRelationship(region);
+    }
 
     // Advertise the repositories, so a module publishing a version into them can find this image.
     image.addAnchor(new AwsEcrImageAnchor('AwsEcrImageAnchor', { imageId: image.imageId }, image));
@@ -54,20 +61,24 @@ export class AwsEcrImageModule extends AModule<AwsEcrImageModuleSchema, AwsEcrIm
   }
 
   /**
-   * Resolves the app, and the distinct account/region pairs an ECR repository is needed in.
+   * Resolves the account the image sits in, and the distinct AWS regions an ECR repository is needed in.
    */
   override async registerMetadata(
     inputs: AwsEcrImageModuleSchema,
-  ): Promise<{ app: App; uniqueImageRepositories: { awsAccountId: string; awsRegionId: string }[] }> {
+  ): Promise<{ account: Account; uniqueImageRepositories: { awsAccountId: string; awsRegionId: string }[] }> {
     const metadata: Awaited<ReturnType<AwsEcrImageModule['registerMetadata']>> = {
-      app: undefined as unknown as App,
+      account: inputs.regions[0].getParents()['account'][0].to as Account,
       uniqueImageRepositories: [],
     };
 
     for (const region of inputs.regions) {
+      // An image is used only inside its own account, so every region must sit in that account.
       const account = region.getParents()['account'][0].to as Account;
-      if (!metadata.app) {
-        metadata.app = account.getParents()['app'][0].to as App;
+      if (account.accountId !== metadata.account.accountId) {
+        throw new ModuleError(
+          `Region "${region.regionId}" is in account "${account.accountId}", but the image is in account "${metadata.account.accountId}"!`,
+          this.constructor.name,
+        );
       }
 
       // Get AWS Region ID, of a region with a network or of a serverless one.

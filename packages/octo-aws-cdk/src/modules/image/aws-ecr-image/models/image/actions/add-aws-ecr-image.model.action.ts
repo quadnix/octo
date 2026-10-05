@@ -43,8 +43,8 @@ export class AddAwsEcrImageModelAction implements IModelAction<AwsEcrImageModule
     const { uniqueImageRepositories } = actionInputs.metadata;
 
     for (const { awsAccountId, awsRegionId } of uniqueImageRepositories) {
-      // Create ECR.
-      const ecrImage = new EcrImage(`ecr-${awsAccountId}-${awsRegionId}-${image.imageId}`, {
+      // Create ECR. The image's place names the account, so the id adds only the AWS region.
+      const ecrImage = new EcrImage(`ecr-${awsRegionId}-${image.imageId}`, {
         awsAccountId,
         awsRegionId,
         imageId: image.imageId,

@@ -12,6 +12,7 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
     image: [image],
     server: [server],
   } = await testModuleContainer.createTestModels('testModule', {
+    account: ['aws,123'],
     app: ['test-app'],
     image: ['family/image'],
     server: ['backend'],

@@ -3,6 +3,7 @@ import {
   type ActionOutputs,
   type Diff,
   DiffAction,
+  type EnhancedModuleSchema,
   Factory,
   type IModelAction,
   hasNodeName,
@@ -11,8 +12,8 @@ import type { AwsDynamoDBGlobalServiceModule } from '../../../aws-dynamodb-globa
 import { AwsDynamoDBGlobalService } from '../aws-dynamodb-global-service.model.js';
 
 /**
- * Accepts the edge to a replica region. It creates nothing: `AddAwsDynamoDBGlobalServiceModelAction`
- * creates every replica.
+ * A link to a replica region creates nothing. `AddAwsDynamoDBGlobalServiceModelAction` creates every
+ * replica.
  *
  * @internal
  */
@@ -35,8 +36,12 @@ export class AddAwsDynamoDBGlobalServiceReplicaRegionModelAction
   /**
    * @internal
    */
-  async handle(): Promise<ActionOutputs> {
-    return {};
+  async handle(
+    _diff: Diff<AwsDynamoDBGlobalService>,
+    _actionInputs: EnhancedModuleSchema<AwsDynamoDBGlobalServiceModule>,
+    actionOutputs: ActionOutputs,
+  ): Promise<ActionOutputs> {
+    return actionOutputs;
   }
 }
 
