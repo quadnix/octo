@@ -88,20 +88,31 @@ export class OctoCliUtility {
 
   /**
    * The responses octo committed, keyed by the resource name inside the context
-   * (`@octo/lambda-function`). Reads the local state a template's definition names.
+   * (`@octo/lambda-function`). Reads the local state a template's definition names. Of two resources
+   * with one name, only one is kept; {@link readCommittedResponsesOf} returns them all.
    */
   static async readCommittedResponses(
     projectDirectory: string,
   ): Promise<{ [resourceName: string]: Record<string, string> }> {
-    const state = JSON.parse(
-      await readFile(join(projectDirectory, STATE_DIRECTORY, 'resources-actual.json'), 'utf8'),
-    ) as {
-      data: { resources: { [context: string]: { resource: { response: Record<string, string> } } } };
-    };
+    const state = await this.readCommittedState(projectDirectory);
 
     return Object.fromEntries(
       Object.entries(state.data.resources).map(([context, entry]) => [context.split('=')[0], entry.resource.response]),
     );
+  }
+
+  /**
+   * The responses octo committed for every resource of one name, such as `@octo/lambda-function`.
+   */
+  static async readCommittedResponsesOf(
+    projectDirectory: string,
+    resourceName: string,
+  ): Promise<Record<string, string>[]> {
+    const state = await this.readCommittedState(projectDirectory);
+
+    return Object.entries(state.data.resources)
+      .filter(([context]) => context.split('=')[0] === resourceName)
+      .map(([, entry]) => entry.resource.response);
   }
 
   /**
@@ -179,5 +190,14 @@ export class OctoCliUtility {
     await writeFile(definitionFilePath, dump(definition));
 
     return definitionFilePath;
+  }
+
+  /**
+   * The resources octo committed, from the local state a template's definition names.
+   */
+  private static async readCommittedState(projectDirectory: string): Promise<{
+    data: { resources: { [context: string]: { resource: { response: Record<string, string> } } } };
+  }> {
+    return JSON.parse(await readFile(join(projectDirectory, STATE_DIRECTORY, 'resources-actual.json'), 'utf8'));
   }
 }

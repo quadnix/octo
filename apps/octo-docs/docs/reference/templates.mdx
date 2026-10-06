@@ -122,12 +122,15 @@ so it asks its questions of one live distribution rather than creating several: 
 to change nothing, a content change that has to invalidate exactly once, and a price class edit that
 has to come back with the same distribution id.
 
-`aws-lambda-function` publishes an image and runs it on Lambda, in a serverless region, behind a
-CloudFront distribution. It needs Docker, and builds the image for `arm64`, the processor the
-function is declared to run on. It calls the function's URL with a signed request, calls it again
-through the distribution, and changes an environment variable to see the function answer
-differently. Its server and deployment create nothing; the execution creates the function, its URL,
-and the role it runs as.
+`aws-lambda-api` publishes one image and runs it on Lambda as three functions, in a serverless
+region, two of them behind a CloudFront distribution. It needs Docker, and builds the image for
+`arm64`, the processor the functions are declared to run on. It calls a function's URL with a signed
+request, calls it again through the distribution, and changes an environment variable to see the
+function answer differently. One function streams a response past Lambda's 6 MB buffered limit. Another
+is not behind the distribution and its URL admits no one, so the only way in is the IAM statements
+the first function's server grants: the suite calls through them, then takes the invoke away and sees
+the call refused. Its servers and deployments create nothing; each execution creates its function, its
+URL, and the role it runs as.
 
 If you are writing modules of your own, these are the closest thing to a worked example of testing
 them against something real. [Testing a Module](/docs/building-modules/testing-a-module) is the page
