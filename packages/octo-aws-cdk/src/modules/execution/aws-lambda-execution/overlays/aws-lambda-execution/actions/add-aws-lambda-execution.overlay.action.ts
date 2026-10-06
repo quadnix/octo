@@ -191,6 +191,7 @@ export class AddAwsLambdaExecutionOverlayAction implements IModelAction<AwsLambd
         invokeMode: properties.invokeMode,
         invokerAccountIds: lambdaExecutionAnchorProperties.invokerAccountIds,
         memoryInMegabytes: properties.deploymentContainerProperties.memoryInMegabytes,
+        reservedConcurrency: properties.reservedConcurrency,
         timeoutInSeconds: properties.deploymentContainerProperties.timeoutInSeconds,
       },
       [new MatchingResource(iamRole), matchingEcrImageTagResource],

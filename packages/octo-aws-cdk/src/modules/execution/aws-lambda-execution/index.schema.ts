@@ -103,6 +103,19 @@ export class AwsLambdaExecutionModuleSchema {
   invokerAccountIds? = Schema<string[]>([]);
 
   /**
+   * How many instances of the function may run at once. They are reserved out of the account's
+   * concurrency, so other functions cannot take them, and `0` stops the function from running. Left
+   * out, nothing is reserved and nothing is capped. AWS keeps 10 of an account's concurrency
+   * unreserved, so an account whose limit is 10 can reserve none.
+   */
+  @Validate({
+    destruct: (value: AwsLambdaExecutionModuleSchema['reservedConcurrency']): number[] =>
+      value === null || value === undefined ? [] : [value],
+    options: { minLength: 0 },
+  })
+  reservedConcurrency? = Schema<number | null>(null);
+
+  /**
    * The subnet of the serverless region to run in.
    */
   @Validate([

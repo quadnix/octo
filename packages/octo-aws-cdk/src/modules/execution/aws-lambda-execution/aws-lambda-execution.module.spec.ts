@@ -156,6 +156,8 @@ async function setup(
           architecture: publishedFor,
           awsAccountId: '123',
           awsRegionId: publishedIn,
+          buildArguments: {},
+          buildSecrets: {},
           dockerfileDirectory: 'images/backend',
           dockerfileName: 'Dockerfile',
           imageId: image.imageId,
@@ -453,7 +455,7 @@ describe('AwsLambdaExecutionModule UT', () => {
 
      resource "null_resource" "ecr-image-tag-us-east-1-family_image-0-0-1" {
        triggers = {
-         octo_properties_hash = "40cce927f1b77b10"
+         octo_properties_hash = "5170865005910ebd"
        }
        provisioner "local-exec" {
          command = "octo run-action --resourceId=ecr-image-tag-us-east-1-family/image-0-0-1"
@@ -554,6 +556,34 @@ describe('AwsLambdaExecutionModule UT', () => {
 
     expect(hclRender).toMatch(/invoke_mode\s*=\s*"RESPONSE_STREAM"/);
     expect(hclRender).toMatch(/AWS_LWA_INVOKE_MODE\s*=\s*"response_stream"/);
+  });
+
+  it('should reserve no concurrency by default', async () => {
+    await setup(testModuleContainer);
+    const { hclRender } = (
+      await testModuleContainer
+        .runModules<AwsLambdaExecutionModule>(
+          { inputs: executionInputs(), moduleId: 'execution', type: AwsLambdaExecutionModule },
+          { filterByModuleIds: ['execution'], terraformTarget: 'skip' },
+        )
+        .next()
+    ).value!;
+
+    expect(hclRender).not.toContain('reserved_concurrent_executions');
+  });
+
+  it('should reserve the concurrency asked for', async () => {
+    await setup(testModuleContainer);
+    const { hclRender } = (
+      await testModuleContainer
+        .runModules<AwsLambdaExecutionModule>(
+          { inputs: executionInputs({ reservedConcurrency: 5 }), moduleId: 'execution', type: AwsLambdaExecutionModule },
+          { filterByModuleIds: ['execution'], terraformTarget: 'skip' },
+        )
+        .next()
+    ).value!;
+
+    expect(hclRender).toMatch(/reserved_concurrent_executions\s*=\s*5/);
   });
 
   it('should run on the processor the image is published for', async () => {

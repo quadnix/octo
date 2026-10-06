@@ -192,6 +192,7 @@ export class AwsLambdaExecutionModule extends AModule<AwsLambdaExecutionModuleSc
         grants,
         iamRoleName,
         invokeMode: inputs.invokeMode!,
+        reservedConcurrency: inputs.reservedConcurrency!,
         serverKey: server.serverKey,
       },
       [lambdaExecutionAnchor, matchingEnvironmentAnchor, matchingServerAnchor, imageAnchor, ...grantAnchors],

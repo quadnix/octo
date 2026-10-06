@@ -121,6 +121,8 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
           architecture: 'arm64',
           awsAccountId: AWS_ACCOUNT_ID,
           awsRegionId: AWS_REGION_ID,
+          buildArguments: {},
+          buildSecrets: {},
           dockerfileDirectory: 'images/backend',
           dockerfileName: 'Dockerfile',
           imageId: image.imageId,

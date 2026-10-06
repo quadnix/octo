@@ -21,6 +21,35 @@ export class AwsEcrImageTagModuleSchema {
   architecture = Schema<'arm64' | 'x86_64'>();
 
   /**
+   * Values passed to the build as `--build-arg`, read by the Dockerfile's `ARG` instructions.
+   * They are written into octo's state, so they must not be secrets; pass those as `buildSecrets`.
+   * Like `dockerfileDirectory`, editing them republishes nothing.
+   */
+  @Validate({
+    destruct: (value: Record<string, string>): string[] => Object.keys(value),
+    options: { regex: /^[a-zA-Z_]\w*$/ },
+  })
+  buildArguments? = Schema<Record<string, string>>({});
+
+  /**
+   * Secrets passed to the build as `--secret`, read by the Dockerfile's `RUN --mount=type=secret`.
+   * Each key is the secret's id, and each value is the name of the environment variable holding it
+   * when octo builds the image. Octo keeps only the names; a variable that is not set fails the build
+   * before anything is published. Like `dockerfileDirectory`, editing them republishes nothing.
+   */
+  @Validate([
+    {
+      destruct: (value: Record<string, string>): string[] => Object.keys(value),
+      options: { regex: /^[\w.-]+$/ },
+    },
+    {
+      destruct: (value: Record<string, string>): string[] => Object.values(value),
+      options: { regex: /^[a-zA-Z_]\w*$/ },
+    },
+  ])
+  buildSecrets? = Schema<Record<string, string>>({});
+
+  /**
    * The build context the image is built from, as a path relative to the octo project root.
    * It is relative because an absolute path differs on every machine, and this path is part of what
    * octo commits.

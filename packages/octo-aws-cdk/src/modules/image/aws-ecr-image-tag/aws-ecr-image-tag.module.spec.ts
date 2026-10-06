@@ -92,18 +92,33 @@ const imageTagModule = (
   moduleId: string,
   imageTag: string,
   {
+    buildArguments = {},
+    buildSecrets = {},
     dockerfileDirectory = 'images/nginx',
     hidden = false,
     image = '${{testModule.model.image}}',
-  }: { dockerfileDirectory?: string; hidden?: boolean; image?: string } = {},
+  }: {
+    buildArguments?: Record<string, string>;
+    buildSecrets?: Record<string, string>;
+    dockerfileDirectory?: string;
+    hidden?: boolean;
+    image?: string;
+  } = {},
 ): {
   hidden: boolean;
-  inputs: { architecture: 'arm64' | 'x86_64'; dockerfileDirectory: string; image: Image; imageTag: string };
+  inputs: {
+    architecture: 'arm64' | 'x86_64';
+    buildArguments: Record<string, string>;
+    buildSecrets: Record<string, string>;
+    dockerfileDirectory: string;
+    image: Image;
+    imageTag: string;
+  };
   moduleId: string;
   type: typeof AwsEcrImageTagModule;
 } => ({
   hidden,
-  inputs: { architecture: 'arm64', dockerfileDirectory, image: stub<Image>(image), imageTag },
+  inputs: { architecture: 'arm64', buildArguments, buildSecrets, dockerfileDirectory, image: stub<Image>(image), imageTag },
   moduleId,
   type: AwsEcrImageTagModule,
 });
@@ -165,6 +180,7 @@ describe('AwsEcrImageTagModule UT', () => {
       'linux/arm64',
       expect.stringMatching(/images\/nginx\/Dockerfile$/),
       expect.stringMatching(/images\/nginx$/),
+      { buildArguments: {}, buildSecrets: {} },
     );
   });
 
@@ -201,6 +217,44 @@ describe('AwsEcrImageTagModule UT', () => {
   });
 
   describe('publishing a version', () => {
+    it('should throw error if a build secret has no environment variable set', async () => {
+      await setup(testModuleContainer);
+
+      await expect(
+        testModuleContainer
+          .runModules<AwsEcrImageTagModule>(
+            imageTagModule('image-tag', '0.0.1', { buildSecrets: { NPM_TOKEN: 'OCTO_TEST_UNSET_NPM_TOKEN' } }),
+            { terraformTarget: 'skip' },
+          )
+          .next(),
+      ).rejects.toThrow('Build secrets need environment variables "OCTO_TEST_UNSET_NPM_TOKEN" to be set!');
+      expect(dockerService.build).not.toHaveBeenCalled();
+    });
+
+    it('should build with the build arguments and secrets given', async () => {
+      process.env['OCTO_TEST_NPM_TOKEN'] = 'token';
+      await setup(testModuleContainer);
+
+      await testModuleContainer
+        .runModules<AwsEcrImageTagModule>(
+          imageTagModule('image-tag', '0.0.1', {
+            buildArguments: { NODE_ENV: 'production' },
+            buildSecrets: { NPM_TOKEN: 'OCTO_TEST_NPM_TOKEN' },
+          }),
+          { terraformTarget: 'skip' },
+        )
+        .next();
+      delete process.env['OCTO_TEST_NPM_TOKEN'];
+
+      expect(dockerService.build).toHaveBeenCalledWith(
+        expect.any(String),
+        'linux/arm64',
+        expect.any(String),
+        expect.any(String),
+        { buildArguments: { NODE_ENV: 'production' }, buildSecrets: { NPM_TOKEN: 'OCTO_TEST_NPM_TOKEN' } },
+      );
+    });
+
     it('should publish into every repository the image has', async () => {
       await setup(testModuleContainer, { awsRegionIds: ['us-east-1', 'us-west-2'] });
       const { resourceDiffs } = (
@@ -297,7 +351,10 @@ describe('AwsEcrImageTagModule UT', () => {
       const { hclDiff, resourceDiffs } = (
         await testModuleContainer
           .runModules<AwsEcrImageTagModule>(
-            imageTagModule('image-tag', '0.0.1', { dockerfileDirectory: 'images/api' }),
+            imageTagModule('image-tag', '0.0.1', {
+              buildArguments: { NODE_ENV: 'production' },
+              dockerfileDirectory: 'images/api',
+            }),
             { terraformTarget: 'skip' },
           )
           .next()

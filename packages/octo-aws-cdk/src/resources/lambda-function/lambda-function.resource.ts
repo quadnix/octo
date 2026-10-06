@@ -137,6 +137,9 @@ export class LambdaFunction extends ATerraformResource<LambdaFunctionSchema, Lam
         image_uri: terraform.getRef(imageTagParent, 'imageUri'),
         memory_size: this.properties.memoryInMegabytes,
         package_type: 'Image',
+        ...(this.properties.reservedConcurrency === null
+          ? {}
+          : { reserved_concurrent_executions: this.properties.reservedConcurrency }),
         role: terraform.getRef(iamRoleParent, 'Arn'),
         timeout: this.properties.timeoutInSeconds,
       },

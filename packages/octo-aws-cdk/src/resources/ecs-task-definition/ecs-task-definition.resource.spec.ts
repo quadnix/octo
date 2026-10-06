@@ -22,6 +22,8 @@ function createEcrImageTag(): EcrImageTag {
       architecture: 'x86_64',
       awsAccountId: '123456789012',
       awsRegionId: 'us-east-1',
+      buildArguments: {},
+      buildSecrets: {},
       dockerfileDirectory: 'images/nginx',
       dockerfileName: 'Dockerfile',
       imageId: 'family/image',

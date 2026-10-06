@@ -21,6 +21,7 @@ function properties(overrides: Partial<Properties> = {}): Properties {
     invokeMode: 'BUFFERED',
     invokerAccountIds: [],
     memoryInMegabytes: 512,
+    reservedConcurrency: null,
     timeoutInSeconds: 30,
     ...overrides,
   };
@@ -45,6 +46,8 @@ function createParents(imageTag = '0.0.1'): [MatchingResource<IamRoleSchema>, Ma
       architecture: 'arm64',
       awsAccountId: '123456789012',
       awsRegionId: 'us-east-1',
+      buildArguments: {},
+      buildSecrets: {},
       dockerfileDirectory: 'images/backend',
       dockerfileName: 'Dockerfile',
       imageId: 'family/image',

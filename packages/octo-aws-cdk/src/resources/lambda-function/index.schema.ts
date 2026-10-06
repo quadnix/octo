@@ -42,6 +42,8 @@ export class LambdaFunctionSchema extends BaseResourceSchema {
    * * `properties.invokerAccountIds` - The AWS accounts allowed to call the function's URL.
    * * `properties.memoryInMegabytes` - How much memory the function gets, from 128 to 10240. It also
    * decides how much CPU the function gets.
+   * * `properties.reservedConcurrency` - How many instances of the function may run at once, reserved
+   * out of the account's concurrency. Left out, nothing is reserved.
    * * `properties.timeoutInSeconds` - How long an invocation may run before Lambda stops it, from 1 to 900.
    */
   @Validate<unknown>([
@@ -77,6 +79,11 @@ export class LambdaFunctionSchema extends BaseResourceSchema {
       options: { maxLength: 10240, minLength: 128 },
     },
     {
+      destruct: (value: LambdaFunctionSchema['properties']): number[] =>
+        value.reservedConcurrency === null ? [] : [value.reservedConcurrency],
+      options: { minLength: 0 },
+    },
+    {
       destruct: (value: LambdaFunctionSchema['properties']): number[] => [value.timeoutInSeconds],
       options: { maxLength: 900, minLength: 1 },
     },
@@ -96,6 +103,7 @@ export class LambdaFunctionSchema extends BaseResourceSchema {
     invokeMode: 'BUFFERED' | 'RESPONSE_STREAM';
     invokerAccountIds: string[];
     memoryInMegabytes: number;
+    reservedConcurrency: number | null;
     timeoutInSeconds: number;
   }>();
 

@@ -66,6 +66,8 @@ export class AddAwsEcrImageTagOverlayAction implements IModelAction<AwsEcrImageT
           architecture: properties.architecture,
           awsAccountId,
           awsRegionId,
+          buildArguments: properties.buildArguments,
+          buildSecrets: properties.buildSecrets,
           dockerfileDirectory: properties.dockerfileDirectory,
           dockerfileName: properties.dockerfileName,
           imageId,

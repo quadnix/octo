@@ -56,7 +56,7 @@ export class AddEcrImageTagResourceAction extends ANodeAction implements IResour
 
   /**
    * @internal
-   * @throws If docker is unavailable, the build fails, the push is rejected, or AWS reports no image
+   * @throws If a build secret's environment variable is not set, docker is unavailable, the build fails, the push is rejected, or AWS reports no image
    * under the tag afterwards.
    */
   async handle(diff: Diff<EcrImageTag>): Promise<EcrImageTagSchema['response']> {
@@ -65,6 +65,12 @@ export class AddEcrImageTagResourceAction extends ANodeAction implements IResour
     const properties = ecrImageTag.properties;
     const { response: ecrImageResponse } = ecrImageTag.parents[0].getSchemaInstanceInResourceAction();
     const imageUri = `${ecrImageResponse.repositoryUri}:${properties.imageTag}`;
+
+    // Check every build secret is set, before anything is published.
+    const unsetVariables = Object.values(properties.buildSecrets).filter((name) => process.env[name] === undefined);
+    if (unsetVariables.length > 0) {
+      throw new Error(`Build secrets need environment variables "${unsetVariables.join('", "')}" to be set!`);
+    }
 
     // Get instances.
     const [dockerService, ecrClient] = await Promise.all([
@@ -90,7 +96,10 @@ export class AddEcrImageTagResourceAction extends ANodeAction implements IResour
     this.log(`Publishing "${properties.imageId}:${properties.imageTag}"`);
     const contextDirectory = ProjectUtility.resolveFromProjectRoot(properties.dockerfileDirectory);
     const platform = properties.architecture === 'arm64' ? 'linux/arm64' : 'linux/amd64';
-    await dockerService.build(imageUri, platform, join(contextDirectory, properties.dockerfileName), contextDirectory);
+    await dockerService.build(imageUri, platform, join(contextDirectory, properties.dockerfileName), contextDirectory, {
+      buildArguments: properties.buildArguments,
+      buildSecrets: properties.buildSecrets,
+    });
     await dockerService.push(imageUri);
 
     // Read back the digest AWS assigned, which is the image's real identity.

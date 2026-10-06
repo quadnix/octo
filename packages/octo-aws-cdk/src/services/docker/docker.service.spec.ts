@@ -31,6 +31,7 @@ describe('DockerService UT', () => {
         'linux/arm64',
         '/context/Dockerfile',
         '/context',
+        { buildArguments: {}, buildSecrets: {} },
       );
 
       expect(await readArguments()).toEqual([
@@ -46,6 +47,27 @@ describe('DockerService UT', () => {
         '--tag',
         'registry/repository:0.0.1',
         '/context',
+      ]);
+    });
+
+    it('should pass build arguments, and each secret by the name of its environment variable', async () => {
+      const { binaryPath, readArguments } = await createRecordingBinary();
+
+      await new DockerService(binaryPath).build(
+        'registry/repository:0.0.1',
+        'linux/arm64',
+        '/context/Dockerfile',
+        '/context',
+        { buildArguments: { NODE_ENV: 'production' }, buildSecrets: { NPM_TOKEN: 'CI_NPM_TOKEN' } },
+      );
+
+      const commandArguments = await readArguments();
+      expect(commandArguments.slice(0, 5)).toEqual([
+        'build',
+        '--build-arg',
+        'NODE_ENV=production',
+        '--secret',
+        'id=NPM_TOKEN,env=CI_NPM_TOKEN',
       ]);
     });
   });

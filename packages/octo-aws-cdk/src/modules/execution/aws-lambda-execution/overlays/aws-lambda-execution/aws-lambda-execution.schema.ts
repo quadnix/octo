@@ -40,6 +40,7 @@ export class AwsLambdaExecutionOverlaySchema extends BaseOverlaySchema {
     };
     iamRoleName: string;
     invokeMode: LambdaFunctionSchema['properties']['invokeMode'];
+    reservedConcurrency: LambdaFunctionSchema['properties']['reservedConcurrency'];
     serverKey: string;
   }>();
 }

@@ -73,14 +73,14 @@ not anything is running behind it.
 
 ## Servers, deployments, and executions
 
-| Module                           | Inputs                                                                                                                                | Creates                                                |
-|----------------------------------|---------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------|
-| `AwsServerModule`                | `account`, `serverKey`, `s3?`, `dynamodb?`, `iamStatements?`, `securityGroupRules?`                                                   |                                                        |
-| `AwsDeploymentModule`            | `server`, `deploymentTag`, `image?` and `imageTag?` or `imageUri?`, `command?`, `ports?`, `cpu?`, `memory?`, `timeoutInSeconds?`      |                                                        |
-| `AwsEcsEnvironmentModule`        | `region`, `environmentName`, `environmentVariables?`                                                                                  | ECS cluster                                            |
-| `AwsServerlessEnvironmentModule` | `region`, `environmentName`, `environmentVariables?`                                                                                  |                                                        |
-| `AwsEcsExecutionModule`          | `deployments`, `environment`, `subnet`, `executionId`, `desiredCount`, `environmentVariables?`, `filesystems?`, `securityGroupRules?` | IAM role, ECS service, task definition, security group |
-| `AwsLambdaExecutionModule`       | `deployment`, `environment`, `subnet`, `executionId`, `environmentVariables?`, `invokeMode?`, `invokerAccountIds?`                    | IAM role, Lambda function, function URL                |
+| Module                           | Inputs                                                                                                                                     | Creates                                                |
+|----------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------|
+| `AwsServerModule`                | `account`, `serverKey`, `s3?`, `dynamodb?`, `iamStatements?`, `securityGroupRules?`                                                        |                                                        |
+| `AwsDeploymentModule`            | `server`, `deploymentTag`, `image?` and `imageTag?` or `imageUri?`, `command?`, `ports?`, `cpu?`, `memory?`, `timeoutInSeconds?`           |                                                        |
+| `AwsEcsEnvironmentModule`        | `region`, `environmentName`, `environmentVariables?`                                                                                       | ECS cluster                                            |
+| `AwsServerlessEnvironmentModule` | `region`, `environmentName`, `environmentVariables?`                                                                                       |                                                        |
+| `AwsEcsExecutionModule`          | `deployments`, `environment`, `subnet`, `executionId`, `desiredCount`, `environmentVariables?`, `filesystems?`, `securityGroupRules?`      | IAM role, ECS service, task definition, security group |
+| `AwsLambdaExecutionModule`       | `deployment`, `environment`, `subnet`, `executionId`, `environmentVariables?`, `invokeMode?`, `invokerAccountIds?`, `reservedConcurrency?` | IAM role, Lambda function, function URL                |
 
 These are one story told in parts. A server is the logical microservice: what its code may reach,
 and its network rules. A deployment is one version of its code: the container image, and what the
@@ -216,6 +216,11 @@ credentials, and `invokerAccountIds` names the accounts allowed to call it:
 The URL returns each response whole, up to 6 MB. Set `invokeMode: RESPONSE_STREAM` to stream it as
 the server writes it, which lifts the limit to 200 MB; Octo then tells the adapter to stream as well,
 through `AWS_LWA_INVOKE_MODE`.
+
+`reservedConcurrency` caps how many instances of the function run at once, and reserves them out of
+the account's concurrency so no other function can take them. Left out, nothing is reserved and
+nothing is capped. AWS keeps 10 of an account's concurrency unreserved, so an account whose limit is
+still 10, as a new account's often is, cannot reserve any: raise the limit first.
 
 The function's role is given no permission to write logs, so it writes none and Lambda creates no
 log group. `executionId` is at most fifty characters, because it names the role too. A function runs
@@ -381,11 +386,11 @@ A load balancer bills by the hour from the moment it exists, whether or not anyt
 
 ## Filesystems and images
 
-| Module                   | Inputs                                                                        | Creates                            |
-|--------------------------|-------------------------------------------------------------------------------|------------------------------------|
-| `AwsEfsFilesystemModule` | `region`, `filesystemName`                                                    | EFS filesystem                     |
-| `AwsEcrImageModule`      | `imageFamily`, `imageName`, `regions`                                         | ECR repository, one per AWS region |
-| `AwsEcrImageTagModule`   | `image`, `imageTag`, `architecture`, `dockerfileDirectory`, `dockerfileName?` | one published image per repository |
+| Module                   | Inputs                                                                                                            | Creates                            |
+|--------------------------|-------------------------------------------------------------------------------------------------------------------|------------------------------------|
+| `AwsEfsFilesystemModule` | `region`, `filesystemName`                                                                                        | EFS filesystem                     |
+| `AwsEcrImageModule`      | `imageFamily`, `imageName`, `regions`                                                                             | ECR repository, one per AWS region |
+| `AwsEcrImageTagModule`   | `image`, `imageTag`, `architecture`, `dockerfileDirectory`, `dockerfileName?`, `buildArguments?`, `buildSecrets?` | one published image per repository |
 
 An EFS filesystem belongs to a region; mounting it into a subnet is the subnet module's
 `localFilesystems` input, which is what produces the mount target.
@@ -403,8 +408,28 @@ commits and an absolute path would differ on every machine. One repository is po
 tag modules as you have versions, and adding or removing one leaves the others alone.
 
 `imageTag` is the only input that decides what is published. A repository's tags are immutable, so
-editing `architecture`, `dockerfileDirectory`, or `dockerfileName` publishes nothing: new content is a new tag, which
+editing `architecture`, `dockerfileDirectory`, `dockerfileName`, `buildArguments`, or `buildSecrets` publishes nothing: new content is a new tag, which
 is a new module. Changing the tag publishes the new one and deletes the old.
+
+`buildArguments` are passed to the build as `--build-arg`, for the Dockerfile's `ARG` instructions.
+They are kept in Octo's state, so a secret goes in `buildSecrets` instead, which maps each secret's
+id, as the Dockerfile's `RUN --mount=type=secret,id=...` names it, to the environment variable that
+holds it. Octo keeps only the variable's name and passes the secret as `--secret`, and an apply
+where the variable is not set fails before anything is published:
+
+```yaml
+  - moduleId: api-image-v1-module
+    moduleClass: AwsEcrImageTagModule
+    moduleInputs:
+      image: "${{api-image-module.model.image}}"
+      imageTag: 0.0.1
+      architecture: arm64
+      dockerfileDirectory: api
+      buildArguments:
+        NODE_ENV: production
+      buildSecrets:
+        NPM_TOKEN: NPM_TOKEN
+```
 
 This is one of the library's two [external
 resources](/docs/building-modules/create-an-external-resource), the other being the CloudFront

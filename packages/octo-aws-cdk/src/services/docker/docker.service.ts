@@ -28,15 +28,20 @@ export class DockerService {
    * @param platform The platform the image is built for.
    * @param dockerfilePath Absolute path of the Dockerfile.
    * @param contextDirectory Absolute path of the build context.
+   * @param options.buildArguments Values passed as `--build-arg`.
+   * @param options.buildSecrets Secret ids, each mapped to the environment variable docker reads it from.
    */
   async build(
     imageReference: string,
     platform: 'linux/amd64' | 'linux/arm64',
     dockerfilePath: string,
     contextDirectory: string,
+    options: { buildArguments: Record<string, string>; buildSecrets: Record<string, string> },
   ): Promise<void> {
     await this.run([
       'build',
+      ...Object.entries(options.buildArguments).flatMap(([name, value]) => ['--build-arg', `${name}=${value}`]),
+      ...Object.entries(options.buildSecrets).flatMap(([id, variable]) => ['--secret', `id=${id},env=${variable}`]),
       '--platform',
       platform,
       '--provenance',

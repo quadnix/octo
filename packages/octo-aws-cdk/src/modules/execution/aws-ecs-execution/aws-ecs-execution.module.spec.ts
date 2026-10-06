@@ -407,6 +407,8 @@ async function setup(
               architecture,
               awsAccountId: '123',
               awsRegionId: publishedIn,
+              buildArguments: {},
+              buildSecrets: {},
               dockerfileDirectory: 'images/backend',
               dockerfileName: 'Dockerfile',
               imageId: image.imageId,

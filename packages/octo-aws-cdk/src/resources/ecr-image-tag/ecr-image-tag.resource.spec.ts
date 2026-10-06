@@ -40,6 +40,8 @@ function createEcrImageTag(imageTag: string = '0.0.1'): EcrImageTag {
       architecture: 'arm64',
       awsAccountId: '123456789012',
       awsRegionId: 'us-east-1',
+      buildArguments: {},
+      buildSecrets: {},
       dockerfileDirectory: 'images/nginx',
       dockerfileName: 'Dockerfile',
       imageId: 'family/image',
@@ -200,6 +202,7 @@ describe('EcrImageTag UT', () => {
         'linux/arm64',
         expect.stringMatching(/images\/nginx\/Dockerfile$/),
         expect.stringMatching(/images\/nginx$/),
+        { buildArguments: {}, buildSecrets: {} },
       );
       expect(dockerService.push).toHaveBeenCalledWith(`${REPOSITORY_URI}:0.0.1`);
 
@@ -236,6 +239,7 @@ describe('EcrImageTag UT', () => {
           'linux/arm64',
           '/octo-project/images/nginx/Dockerfile',
           '/octo-project/images/nginx',
+          { buildArguments: {}, buildSecrets: {} },
         );
       } finally {
         delete process.env.TF_VAR_OCTO_PROJECT_ROOT;

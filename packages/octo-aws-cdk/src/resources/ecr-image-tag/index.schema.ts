@@ -27,6 +27,11 @@ export class EcrImageTagSchema extends BaseResourceSchema {
    * tag instead.
    * * `properties.awsAccountId` - The AWS account ID.
    * * `properties.awsRegionId` - The AWS region ID.
+   * * `properties.buildArguments` - Values passed to the build as `--build-arg`. Like the build
+   * context, changing them publishes nothing.
+   * * `properties.buildSecrets` - Secrets passed to the build as `--secret`, each id mapped to the
+   * name of the environment variable holding it. Only the names are kept. Like the build context,
+   * changing them publishes nothing.
    * * `properties.dockerfileDirectory` - The build context, as a path relative to the octo project
    * root. It is relative because an absolute path differs on every machine, and this path is part of
    * what octo commits. It says how the image was built rather than what it is, so moving it
@@ -59,6 +64,8 @@ export class EcrImageTagSchema extends BaseResourceSchema {
     architecture: 'arm64' | 'x86_64';
     awsAccountId: string;
     awsRegionId: string;
+    buildArguments: Record<string, string>;
+    buildSecrets: Record<string, string>;
     dockerfileDirectory: string;
     dockerfileName: string;
     imageId: string;
