@@ -39,7 +39,8 @@ const STACK_MODULES = [
 ];
 const TEARDOWN_MODULES = ['app-module', 'account-module'];
 
-const DRIFTED_ADDRESS = 'aws_route_table_association.rt-app-region-east-public-subnet_assoc';
+// The resource id in the address ends in a hash of its scope.
+const DRIFTED_ADDRESS = /^aws_route_table_association\.rt-app-region-east-public-subnet-[0-9a-f]+_assoc$/;
 
 jest.setTimeout(1_800_000);
 
@@ -107,9 +108,10 @@ describe('Drift E2E', () => {
       await testModuleContainer.runModules(buildModules(STACK_MODULES), { outputDir, terraformTarget: 'apply' }).next()
     ).value!;
 
-    const routeTable = responses['@octo/route-table=rt-app-region-east-public-subnet'] as {
-      subnetAssociationId: string;
-    };
+    // A resource id ends in a hash of its scope, so the route table is found by the id's readable part.
+    const routeTable = Object.entries(responses).find(([context]) =>
+      context.startsWith('@octo/route-table=rt-app-region-east-public-subnet-'),
+    )?.[1] as { subnetAssociationId: string };
     expect(routeTable.subnetAssociationId).toBeDefined();
     subnetAssociationId = routeTable.subnetAssociationId;
   });
@@ -136,7 +138,7 @@ describe('Drift E2E', () => {
     expect(validateReport!.confidence).toBe('exact');
     expect(validateReport!.uncertain).toEqual([]);
     expect(validateReport!.drift).toEqual([
-      { address: DRIFTED_ADDRESS, moduleId: 'public-subnet-module', tfActions: ['create'] },
+      { address: expect.stringMatching(DRIFTED_ADDRESS), moduleId: 'public-subnet-module', tfActions: ['create'] },
     ]);
   });
 

@@ -166,10 +166,10 @@ describe('Main E2E', () => {
   });
 
   it("should reach the private function from the greeter, by the IAM statements of the greeter's server", async () => {
-    // The private function's URL admits no one by its own policy: no account, and no distribution.
-    const signedByThisMachine = await callSigned(privateUrl, '/');
-    expect(signedByThisMachine.status).toBe(403);
-
+    // The private function's URL admits no one by its own policy, no account and no distribution, so
+    // the greeter gets through on its role's IAM statements alone. AWS admits a caller of the
+    // function's own account on its identity policy, so a call signed by this machine proves nothing
+    // either way; the next case removes the statements and is refused.
     const answer = await waitForAnswer<PrivateCallAnswer>(
       async () => {
         const response = await axios.get(`https://${distributionDomainName}/private`, { validateStatus: () => true });

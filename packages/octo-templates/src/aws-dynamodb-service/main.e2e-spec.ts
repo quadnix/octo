@@ -70,7 +70,11 @@ describe('Main E2E', () => {
         .next()
     ).value!;
 
-    expect(responses[`@octo/dynamodb=dynamodb-${tableName}`]).toMatchObject({
+    // A resource id ends in a hash of its scope, so the table is found by the id's readable part.
+    const tableResponse = Object.entries(responses).find(([context]) =>
+      context.startsWith(`@octo/dynamodb=dynamodb-${tableName}-`),
+    )?.[1];
+    expect(tableResponse).toMatchObject({
       TableArn: expect.stringContaining(`table/${tableName}`),
     });
   });

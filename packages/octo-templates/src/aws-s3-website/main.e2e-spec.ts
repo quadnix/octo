@@ -70,7 +70,11 @@ describe('Main E2E', () => {
         .next()
     ).value!;
 
-    expect(responses[`@octo/s3-website=bucket-${bucketNameNormalized}`]).toEqual({
+    // A resource id ends in a hash of its scope, so the bucket is found by the id's readable part.
+    const bucketResponse = Object.entries(responses).find(([context]) =>
+      context.startsWith(`@octo/s3-website=bucket-${bucketNameNormalized}-`),
+    )?.[1];
+    expect(bucketResponse).toEqual({
       Arn: `arn:aws:s3:::${bucketName}`,
       awsRegionId: AWS_REGION_ID,
       RegionalDomainName: `${bucketName}.s3.${AWS_REGION_ID}.amazonaws.com`,

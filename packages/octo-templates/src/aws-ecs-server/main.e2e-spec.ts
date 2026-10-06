@@ -127,11 +127,12 @@ describe('Main E2E', () => {
         // registered provider before it can be rendered, as a real edit would also have to do. An
         // unused provider is never emitted, so this affects nothing else.
         //
-        // Read the snapshot as octo's intent, not as a verified account migration: the accountId
-        // reaches terraform only as the provider *alias*, and both aliases resolve to the credentials
-        // this suite already runs under. Terraform therefore plans nothing, and the report says
-        // exactly that - every resource replaced, no terraform change. A real move needs
-        // `assume_role` or `profile` in the provider spec, and a second account to move into.
+        // Read the snapshot as octo's intent, not as a verified account migration: the account is part
+        // of every resource's scope, so every id and terraform address moves, and terraform plans to
+        // destroy each resource through the old account's provider, which the folder keeps from its
+        // record, and to create it through the new one. Both aliases resolve to the credentials this
+        // suite already runs under. A real move needs `assume_role` or `profile` in the provider
+        // spec, and a second account to move into.
         //
         // `allowed_account_ids` names the account the plan actually runs against, which is the one
         // this suite holds credentials for. Left to itself the guard would write
