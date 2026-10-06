@@ -161,6 +161,11 @@ generate rather than writing two provider blocks that answer to the same alias.
 there: `profile`, `assume_role`, `endpoints`. If your module produces resources in a region with no
 matching provider entry, generate fails rather than guessing.
 
+Moving resources to another account or region is one edit: point the modules at the new pair and
+replace the entry. Each folder keeps the provider block it last committed until the next commit, so
+the apply in between can destroy what the old provider created, and the old entry can leave
+`providers` in the same change.
+
 Every provider block gets `region = <regionId>` written onto it, except for the HashiCorp utility
 providers such as `null`, `external`, `random`, and `local`, which take no arguments at all and fail
 the plan with `An argument named "region" is not expected here`. Octo knows those by name. For a

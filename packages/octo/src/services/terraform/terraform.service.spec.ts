@@ -990,6 +990,48 @@ describe('TerraformService UT', () => {
     });
 
     describe('provider isolation', () => {
+      it('should keep a recorded provider the folder no longer uses, so terraform can destroy what it created', () => {
+        service.addTerraformConfig({ providers: { aws: { source: 'hashicorp/aws' } } });
+        service.addTerraformProvider('aws', '111111111', 'us-east-1');
+        service.addTerraformProvider('aws', '222222222', 'us-east-1');
+
+        const scope = service.scope('m1');
+        scope
+          .addOctoTerraformResource(new TestTerraformResource('vpc-1', {}), {
+            provider: { accountId: '222222222', regionId: 'us-east-1' },
+          })
+          .addTerraformResource('aws_vpc', 'vpc-1', {});
+
+        const previousFolders = [
+          {
+            hasExternalResources: false,
+            moduleId: 'm1',
+            providers: [
+              {
+                accountId: '111111111',
+                blockHcl: 'provider "aws" {\n  alias = "_111111111-us-east-1"\n}',
+                providerType: 'aws',
+                regionId: 'us-east-1',
+                requiredProvider: { source: 'hashicorp/aws' },
+              },
+              {
+                accountId: '222222222',
+                blockHcl: 'provider "aws" {\n  alias = "recorded-and-still-used"\n}',
+                providerType: 'aws',
+                regionId: 'us-east-1',
+                requiredProvider: { source: 'hashicorp/aws' },
+              },
+            ],
+          },
+        ];
+
+        const mainTf = service.renderAllModules(previousFolders).get('m1')!.mainTf;
+        expect(mainTf).toContain('alias = "_111111111-us-east-1"');
+        expect(mainTf).toContain('alias = "_222222222-us-east-1"');
+        // A provider still in use renders from its registration, not from the record.
+        expect(mainTf).not.toContain('recorded-and-still-used');
+      });
+
       it('should include only the providers used by each module in its config block', () => {
         service.addTerraformConfig({
           providers: {

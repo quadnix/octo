@@ -182,12 +182,27 @@ export class Octo {
         this.stateManagementService.getModelState(this.stateManagementService.modelStateFileName),
         this.stateManagementService.getResourceState(this.stateManagementService.actualResourceStateFileName),
       ]);
+      // The last commit's record says what terraform state holds; the last generate's may say what
+      // was never applied. A folder keeps the providers of both, so neither can strand the other's
+      // resources in terraform state without the provider to destroy them.
       const previousFolders = new Map<string, TerraformFolderOutput>();
       for (const record of [
         ...(actualResourceUserData.terraformFolders ?? []),
         ...(modelUserData.terraformFolders ?? []),
       ]) {
-        previousFolders.set(record.moduleId, record);
+        const providers = [...(previousFolders.get(record.moduleId)?.providers ?? [])];
+        for (const provider of record.providers) {
+          const isRecorded = providers.some(
+            (p) =>
+              p.providerType === provider.providerType &&
+              p.accountId === provider.accountId &&
+              p.regionId === provider.regionId,
+          );
+          if (!isRecorded) {
+            providers.push(provider);
+          }
+        }
+        previousFolders.set(record.moduleId, { ...record, providers });
       }
 
       // Build the transaction unless a single-process driver already built it and passed it in.

@@ -19,7 +19,8 @@ import type { ModelTransactionResult } from './apply-transaction.js';
  * `models.json` ∪ `resources.json`). A recorded folder the sweep does not produce was deleted from
  * intent, and is written **emptied** — no resources, but the recorded provider blocks intact — so
  * terragrunt still discovers it and a later apply destroys whatever its state holds (and cannot
- * redeploy it). Folders are emptied, never removed.
+ * redeploy it). Folders are emptied, never removed. A folder the sweep did produce keeps the
+ * recorded provider blocks its resources no longer use, for the same reason.
  *
  * Writes are gentle: each folder is overwritten in place, and `outputDir` is not wiped, so
  * `terraform.tfstate`, `.terragrunt-cache`, and any folder octo does not recognize (a user's own, or
@@ -40,7 +41,7 @@ export async function generate({
 
   const { resourceDiffs } = transaction;
 
-  const moduleFiles = terraformService.renderAllModules();
+  const moduleFiles = terraformService.renderAllModules(previousFolders);
 
   // Write rule: a recorded folder the sweep did not produce was deleted from intent — add it to
   // the write set emptied, with the providers recorded by the last run.

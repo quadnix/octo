@@ -703,8 +703,13 @@ export class TerraformService {
    * Phase 2 of rendering: prints the four files of every folder from the wiring computed in
    * phase 1. Makes no decisions — when a {@link RefHclNode} renders, its answer is looked up in the
    * folder's precomputed `resolvedRefs`. Cross-folder dependency cycles throw (in phase 1).
+   *
+   * A folder also keeps every provider block `previousFolders` recorded for it that none of its
+   * resources use any more, so terraform can still destroy what that provider created. A resource
+   * whose id moved to another account, for one, leaves its old address in the folder's state, bound
+   * to the old account's provider.
    */
-  renderAllModules(): Map<string, TerraformModuleFiles> {
+  renderAllModules(previousFolders: TerraformFolderOutput[] = []): Map<string, TerraformModuleFiles> {
     const wiring = this.computeWiring();
 
     const result = new Map<string, TerraformModuleFiles>();
@@ -721,6 +726,22 @@ export class TerraformService {
         const providerType = this.providers.get(key)!.providerType;
         requiredProviders[providerType] = this.requiredProviders[providerType];
       }
+      const retainedProviders = (
+        previousFolders.find((folder) => folder.moduleId === module.moduleId)?.providers ?? []
+      ).filter(
+        (recorded) =>
+          ![...module.providerKeys].some((key) => {
+            const provider = this.providers.get(key)!;
+            return (
+              provider.providerType === recorded.providerType &&
+              provider.accountId === recorded.accountId &&
+              provider.regionId === recorded.regionId
+            );
+          }),
+      );
+      for (const provider of retainedProviders) {
+        requiredProviders[provider.providerType] ??= provider.requiredProvider;
+      }
       if (module.hasExternalResources) {
         requiredProviders['null'] = this.requiredProviders['null'] ?? { source: 'hashicorp/null' };
         requiredProviders['external'] = this.requiredProviders['external'] ?? { source: 'hashicorp/external' };
@@ -729,6 +750,7 @@ export class TerraformService {
       const mainTf = [
         this.renderConfigBlock(requiredProviders, context),
         ...[...module.providerKeys].sort().map((key) => this.providers.get(key)!.block.render('', context)),
+        ...retainedProviders.map((provider) => provider.blockHcl),
         ...module.dataSources.map((d) => d.render(context)),
         ...module.resources.map((r) =>
           r.terraformResources.map((t) => t.render(context, moduleWiring.parentDependsOn.get(r) ?? [])).join('\n\n'),

@@ -399,6 +399,43 @@ describe('Main UT', () => {
       expect(await testModes.getTerraformFolderRecords()).toEqual([]);
     });
 
+    it('should keep the committed provider when an unapplied generate recorded another one', async () => {
+      testModes.registerTerraformConfig({ providers: { aws: { minVersion: '5.0.0', source: 'hashicorp/aws' } } });
+      testModes.registerTerraformProvider('aws', '111111111', 'us-east-1');
+      const { app } = await testModes.createProviderBoundResourceGraph({
+        accountId: '111111111',
+        regionId: 'us-east-1',
+      });
+      await testModes.generate(app, { outputDir: testModes.outputDir });
+      testModes.writeTfState('region-module', { 'vpc-1-VpcId': 'vpc-0real' });
+      await testModes.commit(app, { outputs: testModes.outputs });
+
+      // A generate moved the folder to another account and was never applied, so terraform state
+      // still holds the vpc under the committed account's provider.
+      await testModes.seedModelTerraformFolders([
+        {
+          hasExternalResources: false,
+          moduleId: 'region-module',
+          providers: [
+            {
+              accountId: '222222222',
+              blockHcl: 'provider "aws" {\n  alias = "_222222222-us-east-1"\n}',
+              providerType: 'aws',
+              regionId: 'us-east-1',
+              requiredProvider: { source: 'hashicorp/aws' },
+            },
+          ],
+        },
+      ]);
+
+      testModes.clearTerraformRegistrations();
+      await testModes.generate(app, { outputDir: testModes.outputDir });
+
+      const mainTf = await expectEmptiedFolder('region-module');
+      expect(mainTf).toContain('alias = "_111111111-us-east-1"');
+      expect(mainTf).toContain('alias = "_222222222-us-east-1"');
+    });
+
     it('should regenerate identical files when intent is unchanged', async () => {
       const { app } = await testModes.createResourceGraph();
       await testModes.generate(app, { outputDir: testModes.outputDir });
