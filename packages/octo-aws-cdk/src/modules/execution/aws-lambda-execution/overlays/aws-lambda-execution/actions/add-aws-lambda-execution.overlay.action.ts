@@ -172,6 +172,11 @@ export class AddAwsLambdaExecutionOverlayAction implements IModelAction<AwsLambd
       });
     }
 
+    // Grant the role the server's IAM statements, as written.
+    if (properties.grants.iamStatements.length > 0) {
+      iamRole.addIamStatementsPolicy(`${properties.iamRoleName}-iam-statements`, properties.grants.iamStatements);
+    }
+
     // Create Lambda Function.
     const lambdaFunction = new LambdaFunction(
       `lambda-function-${lambdaExecutionAnchorProperties.functionName}`,

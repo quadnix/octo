@@ -75,7 +75,7 @@ not anything is running behind it.
 
 | Module                           | Inputs                                                                                                                                | Creates                                                |
 |----------------------------------|---------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------|
-| `AwsServerModule`                | `account`, `serverKey`, `s3?`, `dynamodb?`, `securityGroupRules?`                                                                     |                                                        |
+| `AwsServerModule`                | `account`, `serverKey`, `s3?`, `dynamodb?`, `iamStatements?`, `securityGroupRules?`                                                   |                                                        |
 | `AwsDeploymentModule`            | `server`, `deploymentTag`, `image?` and `imageTag?` or `imageUri?`, `command?`, `ports?`, `cpu?`, `memory?`, `timeoutInSeconds?`      |                                                        |
 | `AwsEcsEnvironmentModule`        | `region`, `environmentName`, `environmentVariables?`                                                                                  | ECS cluster                                            |
 | `AwsServerlessEnvironmentModule` | `region`, `environmentName`, `environmentVariables?`                                                                                  |                                                        |
@@ -106,6 +106,22 @@ Each grant is an [overlay](/docs/fundamentals/overlays) joining the server to th
 and creates nothing on its own. The execution running the server turns it into a policy on its role,
 and for a bucket into a statement on the bucket. The role is created in the execution's account, so
 every bucket and table a server is granted must be in that account too.
+
+`iamStatements` grants what Octo does not manage, such as a function in another account or an SES
+identity made by hand. Each statement is a list of `actions` and a list of `resources`, by ARN, and is
+allowed as written: Octo checks neither, and the resources may be in any account. The execution writes
+all of a server's statements into one policy on its role:
+
+```yaml
+  - moduleId: checkout-server-module
+    moduleClass: AwsServerModule
+    moduleInputs:
+      account: "${{account-module.model.account}}"
+      serverKey: checkout
+      iamStatements:
+        - actions: [ses:SendEmail, ses:SendRawEmail]
+          resources: [arn:aws:ses:eu-west-1:123456789012:identity/shop.example.com]
+```
 
 A deployment names its image one of two ways. An image Octo publishes is named by `image`, from
 `AwsEcrImageModule`, and `imageTag`, from `AwsEcrImageTagModule`, which orders the push before

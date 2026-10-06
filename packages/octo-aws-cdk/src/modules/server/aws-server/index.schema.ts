@@ -84,6 +84,35 @@ export class AwsServerDynamoDBAccessSchema {
 }
 
 /**
+ * Schema for one IAM statement granting a server actions on resources octo does not manage, such as a
+ * function in another account or an SES identity made by hand. The statement allows what it names, as
+ * written; octo neither checks the actions nor reads the ARNs.
+ *
+ * @group Modules/Server/AwsServer
+ *
+ * @hideconstructor
+ */
+export class AwsServerIamStatementSchema {
+  /**
+   * The IAM actions allowed, e.g. `lambda:InvokeFunctionUrl`.
+   */
+  @Validate([
+    { options: { minLength: 1 } },
+    { destruct: (value: string[]): string[] => value, options: { minLength: 1 } },
+  ])
+  actions = Schema<string[]>();
+
+  /**
+   * The ARNs of the resources the actions are allowed on.
+   */
+  @Validate([
+    { options: { minLength: 1 } },
+    { destruct: (value: string[]): string[] => value, options: { minLength: 1 } },
+  ])
+  resources = Schema<string[]>();
+}
+
+/**
  * `AwsServerModuleSchema` is the input schema for the `AwsServerModule` module.
  * This schema defines what a server's code may reach, and its network rules.
  *
@@ -121,6 +150,17 @@ export class AwsServerModuleSchema {
     options: { isSchema: { schema: AwsServerDynamoDBAccessSchema } },
   })
   dynamodb? = Schema<AwsServerDynamoDBAccessSchema[]>([]);
+
+  /**
+   * Optional IAM statements for what the server's code may reach outside octo.
+   * Grant a table or bucket octo manages with `dynamodb` or `s3` instead.
+   * See {@link AwsServerIamStatementSchema} for options.
+   */
+  @Validate({
+    destruct: (value: AwsServerModuleSchema['iamStatements']): AwsServerIamStatementSchema[] => value!,
+    options: { isSchema: { schema: AwsServerIamStatementSchema } },
+  })
+  iamStatements? = Schema<AwsServerIamStatementSchema[]>([]);
 
   /**
    * Optional S3 storage access prefixes the server's code may reach.

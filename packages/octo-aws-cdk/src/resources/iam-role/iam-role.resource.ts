@@ -122,6 +122,23 @@ export class IamRole extends ATerraformResource<IamRoleSchema, IamRole> {
   }
 
   /**
+   * Allows this role the given IAM statements, as written. Neither the actions nor the resource ARNs are
+   * checked, and a resource may be in any account.
+   *
+   * @internal
+   */
+  addIamStatementsPolicy(policyId: string, statements: IIamRolePolicyTypes['iam-statements-policy']): void {
+    const policy = statements.map((s) => ({ actions: [...s.actions], resources: [...s.resources] }));
+
+    const index = this.properties.policies.findIndex((p) => p.policyId === policyId);
+    if (index === -1) {
+      this.properties.policies.push({ policy, policyId, policyType: 'iam-statements-policy' });
+    } else {
+      this.properties.policies[index].policy = policy;
+    }
+  }
+
+  /**
    * Grants this role read or write on a prefix of a bucket in its own account.
    *
    * The bucket is not a parent: IAM accepts a policy naming a bucket that does not exist yet. It is
@@ -359,6 +376,32 @@ export class IamRole extends ATerraformResource<IamRoleSchema, IamRole> {
           name: policy.policyId,
           policy: terraform.jsonencode({
             Statement: policyStatements,
+            Version: '2012-10-17',
+          }),
+        },
+      );
+
+      iamRoleOctoResource.addTerraformResource(
+        'aws_iam_role_policy_attachment',
+        `${this.resourceId}_${policy.policyId}_attach`,
+        {
+          policy_arn: terraform.raw(`${iamPolicyTFResource.address}.arn`),
+          role: terraform.raw(`${iamRoleTFResource.address}.name`),
+        },
+      );
+    }
+
+    const iamStatementsPolicies = this.properties.policies.filter((p) => p.policyType === 'iam-statements-policy');
+    for (const policy of iamStatementsPolicies) {
+      const statements = policy.policy as IIamRolePolicyTypes['iam-statements-policy'];
+
+      const iamPolicyTFResource = iamRoleOctoResource.addTerraformResource(
+        'aws_iam_policy',
+        `${this.resourceId}_${policy.policyId}`,
+        {
+          name: policy.policyId,
+          policy: terraform.jsonencode({
+            Statement: statements.map((s) => ({ Action: s.actions, Effect: 'Allow', Resource: s.resources })),
             Version: '2012-10-17',
           }),
         },

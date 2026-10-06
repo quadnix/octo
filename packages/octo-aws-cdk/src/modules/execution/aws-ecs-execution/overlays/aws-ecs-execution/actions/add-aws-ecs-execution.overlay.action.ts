@@ -175,6 +175,11 @@ export class AddAwsEcsExecutionOverlayAction implements IModelAction<AwsEcsExecu
       });
     }
 
+    // Grant the role the server's IAM statements, as written.
+    if (properties.grants.iamStatements.length > 0) {
+      iamRole.addIamStatementsPolicy(`${properties.iamRoleName}-iam-statements`, properties.grants.iamStatements);
+    }
+
     // Get matching EFS resources, each through the mount anchor this overlay joins and the filesystem
     // anchor that mount joins.
     const efsList: MatchingResource<EfsSchema>[] = [];

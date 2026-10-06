@@ -44,9 +44,10 @@ import { AwsEcsExecutionModule } from './index.js';
  *
  * `deployment` overrides what the main deployment's anchor holds.
  *
- * `withGrants` gives the server read access to a bucket prefix and read-write access to a table, as
- * `AwsServerModule` holds them. `bucketAccount` and `tableAccount` are the accounts those are created in,
- * and `tableRegion` the region the table sits in, a region of its own when it is not `us-east-1`.
+ * `withGrants` gives the server read access to a bucket prefix, read-write access to a table, and an IAM
+ * statement sending email, as `AwsServerModule` holds them. `bucketAccount` and `tableAccount` are the
+ * accounts those are created in, and `tableRegion` the region the table sits in, a region of its own when
+ * it is not `us-east-1`.
  *
  * `sidecar` adds a sidecar deployment `sidecar-v1` in module `sidecarModule`, on server `logger` or on
  * the main server. With `grants`, its server is granted a table of its own. With `publishedImageTag`,
@@ -184,6 +185,7 @@ async function setup(
             dynamodb: sidecar!.grants
               ? [{ allowRead: true, allowWrite: false, awsRegionId: 'us-east-1', tableName: 'logs' }]
               : [],
+            iamStatements: [],
             s3: [],
           },
           serverKey: 'logger',
@@ -240,9 +242,12 @@ async function setup(
       grants: withGrants
         ? {
             dynamodb: [{ allowRead: true, allowWrite: true, awsRegionId: tableRegion, tableName: 'accounts' }],
+            iamStatements: [
+              { actions: ['ses:SendEmail'], resources: ['arn:aws:ses:us-east-1:456:identity/example.com'] },
+            ],
             s3: [{ accessPrefix: 'uploads', allowRead: true, allowWrite: false, bucketName: 'test-bucket' }],
           }
-        : { dynamodb: [], s3: [] },
+        : { dynamodb: [], iamStatements: [], s3: [] },
       serverKey: 'backend',
     },
     server,
@@ -1804,6 +1809,7 @@ describe('AwsEcsExecutionModule UT', () => {
        "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
        "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
        "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
+       "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
        "+ @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet-94a6a9",
        "+ @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet-94a6a9",
        "* @octo/s3-storage=bucket-test-bucket",
@@ -1813,6 +1819,7 @@ describe('AwsEcsExecutionModule UT', () => {
     // The bucket admits the role by reference, and the role reads the table by name.
     expect(hclRender).toContain('AWS = [var.iam_role_ExecutionRole_backend_v1_region_qa_private_subnet_94a6a9_Arn]');
     expect(hclRender).toContain('"arn:aws:dynamodb:us-east-1:123:table/accounts/index/*"');
+    expect(hclRender).toContain('Resource = ["arn:aws:ses:us-east-1:456:identity/example.com"]');
   });
 
   it('should keep the task definition, service and role when its granted table moves to another region', async () => {

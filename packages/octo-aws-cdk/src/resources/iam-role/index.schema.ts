@@ -34,6 +34,11 @@ export type IIamRolePolicyTypes = {
   'dynamodb-table-access-policy': IIamRoleDynamoDBTablePolicy;
 
   /**
+   * You can provide IAM statements to allow, each as actions on resource ARNs, written into one policy.
+   */
+  'iam-statements-policy': { actions: string[]; resources: string[] }[];
+
+  /**
    * You can provide options to create a policy for accessing a S3 bucket.
    */
   's3-storage-access-policy': IIamRoleS3BucketPolicy;

@@ -36,6 +36,10 @@ import { AwsServerS3AccessOverlay } from './overlays/aws-server-s3-access/index.
  *     access: AwsServerAccessPermission.READ_WRITE,
  *     service: stub<Service>('${{my-table-module.model.service}}'),
  *   }],
+ *   iamStatements: [{
+ *     actions: ['ses:SendEmail', 'ses:SendRawEmail'],
+ *     resources: ['arn:aws:ses:us-east-1:123456789012:identity/example.com'],
+ *   }],
  *   s3: [{
  *     accessPrefixes: [{
  *       access: AwsServerAccessPermission.READ_WRITE,
@@ -64,8 +68,9 @@ import { AwsServerS3AccessOverlay } from './overlays/aws-server-s3-access/index.
 export class AwsServerModule extends AModule<AwsServerModuleSchema, AwsServer> {
   /**
    * Creates the server, and anchors what it may reach. Each bucket prefix and table it may reach is also
-   * joined to the server by a grant overlay, which creates nothing. A prefix or table granted more than
-   * once is granted once, with the access of all its grants.
+   * joined to the server by a grant overlay, which creates nothing; an IAM statement names nothing in
+   * the graph, and is only anchored. A prefix or table granted more than once is granted once, with the
+   * access of all its grants.
    */
   async onInit(
     inputs: AwsServerModuleSchema,
@@ -81,7 +86,14 @@ export class AwsServerModule extends AModule<AwsServerModuleSchema, AwsServer> {
     // Add anchors.
     const serverAnchor = new AwsServerAnchor(
       'AwsServerAnchor',
-      { grants: { dynamodb: [], s3: [] }, serverKey: server.serverKey },
+      {
+        grants: {
+          dynamodb: [],
+          iamStatements: (inputs.iamStatements || []).map((s) => ({ actions: s.actions, resources: s.resources })),
+          s3: [],
+        },
+        serverKey: server.serverKey,
+      },
       server,
     );
     server.addAnchor(serverAnchor);

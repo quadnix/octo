@@ -22,13 +22,14 @@ type DeploymentProperties = AwsDeploymentAnchorSchema['properties'];
  * `deployment` overrides what the deployment anchor holds. `publishedIn` is the region the tag is
  * published in. `withTableGrant` gives the server read-write access to a table `accounts` in each of
  * `tableRegions`, and `withBucketGrant` read access to a bucket prefix. `bucketAccount` and
- * `tableAccount` are the accounts those are created in.
+ * `tableAccount` are the accounts those are created in. `iamStatements` are the server's IAM statements.
  */
 async function setup(
   testModuleContainer: TestModuleContainer,
   {
     bucketAccount = '123',
     deployment: deploymentOverrides = {},
+    iamStatements = [],
     publishedFor = 'arm64',
     publishedIn = 'us-east-1',
     tableAccount = '123',
@@ -38,6 +39,7 @@ async function setup(
   }: {
     bucketAccount?: string;
     deployment?: Partial<DeploymentProperties>;
+    iamStatements?: AwsServerAnchorSchema['properties']['grants']['iamStatements'];
     publishedFor?: 'arm64' | 'x86_64';
     publishedIn?: string;
     tableAccount?: string;
@@ -100,6 +102,7 @@ async function setup(
               tableName: 'accounts',
             }))
           : [],
+        iamStatements,
         s3: withBucketGrant
           ? [{ accessPrefix: 'uploads', allowRead: true, allowWrite: false, bucketName: 'test-bucket' }]
           : [],
@@ -612,6 +615,31 @@ describe('AwsLambdaExecutionModule UT', () => {
     // The bucket admits the role by reference, and the role reads the prefix by name.
     expect(hclRender).toContain('AWS = [var.iam_role_ExecutionRole_backend_v1_qa_83d832_Arn]');
     expect(hclRender).toContain('"arn:aws:s3:::test-bucket/uploads/*"');
+  });
+
+  it("should allow the role the server's IAM statements, on resources in any account", async () => {
+    await setup(testModuleContainer, {
+      iamStatements: [
+        {
+          actions: ['lambda:InvokeFunction', 'lambda:InvokeFunctionUrl'],
+          resources: ['arn:aws:lambda:us-east-1:456:function:authentication'],
+        },
+        { actions: ['ses:SendEmail'], resources: ['arn:aws:ses:us-east-1:456:identity/example.com'] },
+      ],
+    });
+    const { hclRender } = (
+      await testModuleContainer
+        .runModules<AwsLambdaExecutionModule>(
+          { inputs: executionInputs(), moduleId: 'execution', type: AwsLambdaExecutionModule },
+          { filterByModuleIds: ['execution'], terraformTarget: 'skip' },
+        )
+        .next()
+    ).value!;
+
+    expect(hclRender).toContain('name = "ExecutionRole-backend-v1-qa-iam-statements"');
+    expect(hclRender).toContain('Action = ["lambda:InvokeFunction", "lambda:InvokeFunctionUrl"]');
+    expect(hclRender).toContain('Resource = ["arn:aws:lambda:us-east-1:456:function:authentication"]');
+    expect(hclRender).toContain('Resource = ["arn:aws:ses:us-east-1:456:identity/example.com"]');
   });
 
   it("should tell the Lambda Web Adapter the deployment's port, over the execution's own value", async () => {

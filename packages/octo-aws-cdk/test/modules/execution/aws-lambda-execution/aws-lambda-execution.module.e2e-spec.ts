@@ -70,6 +70,7 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
     {
       grants: {
         dynamodb: [{ allowRead: true, allowWrite: true, awsRegionId: AWS_REGION_ID, tableName: 'accounts' }],
+        iamStatements: [],
         s3: [],
       },
       serverKey: 'backend',

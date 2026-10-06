@@ -86,7 +86,7 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
   server.addAnchor(
     testModuleContainer.createTestAnchor<AwsServerAnchorSchema>(
       'AwsServerAnchor',
-      { grants: { dynamodb: [], s3: [] }, serverKey: 'backend' },
+      { grants: { dynamodb: [], iamStatements: [], s3: [] }, serverKey: 'backend' },
       server,
     ),
   );

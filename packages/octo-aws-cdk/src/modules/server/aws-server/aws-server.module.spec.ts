@@ -144,7 +144,7 @@ describe('AwsServerModule UT', () => {
       searchBoundaryMembers: false,
     });
     expect(serverAnchor.getSchemaInstance().properties).toEqual({
-      grants: { dynamodb: [], s3: [] },
+      grants: { dynamodb: [], iamStatements: [], s3: [] },
       serverKey: 'backend',
     });
     expect(securityGroupAnchor.getSchemaInstance().properties).toEqual({
@@ -162,6 +162,9 @@ describe('AwsServerModule UT', () => {
             inputs: {
               account: stub('${{testModule.model.account}}'),
               dynamodb: [{ access: AwsServerAccessPermission.READ, service: stub('${{tableModule.model.service}}') }],
+              iamStatements: [
+                { actions: ['ses:SendEmail'], resources: ['arn:aws:ses:us-east-1:456:identity/example.com'] },
+              ],
               s3: [
                 {
                   accessPrefixes: [{ access: AwsServerAccessPermission.READ_WRITE, accessPrefix: 'uploads' }],
@@ -184,6 +187,7 @@ describe('AwsServerModule UT', () => {
     });
     expect(serverAnchor.getSchemaInstance().properties.grants).toEqual({
       dynamodb: [{ allowRead: true, allowWrite: false, awsRegionId: 'us-east-1', tableName: 'accounts' }],
+      iamStatements: [{ actions: ['ses:SendEmail'], resources: ['arn:aws:ses:us-east-1:456:identity/example.com'] }],
       s3: [{ accessPrefix: 'uploads', allowRead: true, allowWrite: true, bucketName: 'test-bucket' }],
     });
 
@@ -254,6 +258,7 @@ describe('AwsServerModule UT', () => {
     });
     expect(serverAnchor.getSchemaInstance().properties.grants).toEqual({
       dynamodb: [{ allowRead: true, allowWrite: true, awsRegionId: 'us-east-1', tableName: 'accounts' }],
+      iamStatements: [],
       s3: [{ accessPrefix: 'uploads', allowRead: true, allowWrite: true, bucketName: 'test-bucket' }],
     });
     expect(modelTransaction.flat().filter((d) => d.field === 'overlayId')).toHaveLength(2);
@@ -337,6 +342,32 @@ describe('AwsServerModule UT', () => {
           )
           .next(),
       ).rejects.toThrow('Cannot find access prefix in S3Storage service!');
+    });
+
+    it.each([
+      ['no actions', { actions: [], resources: ['arn:aws:ses:us-east-1:456:identity/example.com'] }],
+      ['an empty action', { actions: [''], resources: ['arn:aws:ses:us-east-1:456:identity/example.com'] }],
+      ['no resources', { actions: ['ses:SendEmail'], resources: [] }],
+      ['an empty resource', { actions: ['ses:SendEmail'], resources: [''] }],
+    ])('should reject an IAM statement with %s', async (_name, statement) => {
+      await setup(testModuleContainer);
+
+      await expect(
+        testModuleContainer
+          .runModules<AwsServerModule>(
+            {
+              inputs: {
+                account: stub('${{testModule.model.account}}'),
+                iamStatements: [statement],
+                serverKey: 'backend',
+              },
+              moduleId: 'server',
+              type: AwsServerModule,
+            },
+            { terraformTarget: 'skip' },
+          )
+          .next(),
+      ).rejects.toThrow('Property "iamStatements" in schema could not be validated!');
     });
   });
 });

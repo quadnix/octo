@@ -209,7 +209,7 @@ export class AwsEcsExecutionModule extends AModule<AwsEcsExecutionModuleSchema, 
       }
 
       const { grants: sidecarGrants } = matchingSidecarServerAnchor.getSchemaInstance().properties;
-      if (sidecarGrants.dynamodb.length > 0 || sidecarGrants.s3.length > 0) {
+      if (sidecarGrants.dynamodb.length > 0 || sidecarGrants.iamStatements.length > 0 || sidecarGrants.s3.length > 0) {
         throw new ModuleError(
           `Server "${server.serverKey}" of a sidecar cannot grant anything! A sidecar runs with the grants of server "${mainServer.serverKey}".`,
           this.constructor.name,

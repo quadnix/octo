@@ -210,6 +210,46 @@ describe('IamRole UT', () => {
       const statements = emitted.find((e) => e.type === 'aws_iam_policy')!.spec.policy.Statement;
       expect(statements.map((s: any) => s.Sid)).toEqual(['Allowreadfromtableaccounts']);
     });
+
+    it('should allow each IAM statement as written, in one policy', async () => {
+      const { emitted, terraform } = createRecordingScope();
+      const iamRole = createIamRole();
+      iamRole.addIamStatementsPolicy('test-role-iam-statements', [
+        { actions: ['lambda:InvokeFunctionUrl'], resources: ['arn:aws:lambda:us-east-1:123456789012:function:auth'] },
+        { actions: ['ses:SendEmail'], resources: ['arn:aws:ses:us-east-1:123456789012:identity/example.com'] },
+      ]);
+      await iamRole.toHCL(terraform);
+
+      expect(emitted.map((e) => `${e.type} ${e.name}`)).toMatchInlineSnapshot(`
+       [
+         "aws_iam_role iam-role-test-role",
+         "aws_iam_policy iam-role-test-role_test-role-iam-statements",
+         "aws_iam_role_policy_attachment iam-role-test-role_test-role-iam-statements_attach",
+       ]
+      `);
+      expect(emitted.find((e) => e.type === 'aws_iam_policy')!.spec.policy.Statement).toMatchInlineSnapshot(`
+       [
+         {
+           "Action": [
+             "lambda:InvokeFunctionUrl",
+           ],
+           "Effect": "Allow",
+           "Resource": [
+             "arn:aws:lambda:us-east-1:123456789012:function:auth",
+           ],
+         },
+         {
+           "Action": [
+             "ses:SendEmail",
+           ],
+           "Effect": "Allow",
+           "Resource": [
+             "arn:aws:ses:us-east-1:123456789012:identity/example.com",
+           ],
+         },
+       ]
+      `);
+    });
   });
 
   describe('addS3BucketPolicy()', () => {
