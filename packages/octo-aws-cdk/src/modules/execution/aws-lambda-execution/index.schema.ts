@@ -94,7 +94,8 @@ export class AwsLambdaExecutionModuleSchema {
   invokeMode? = Schema<'BUFFERED' | 'RESPONSE_STREAM'>('BUFFERED');
 
   /**
-   * The AWS accounts allowed to call the function's URL.
+   * The AWS accounts allowed to call the function's URL. A caller in the function's own account needs
+   * no entry here: AWS admits it on its own IAM permissions to invoke the function.
    */
   @Validate({
     destruct: (value: AwsLambdaExecutionModuleSchema['invokerAccountIds']): string[] => value!,
