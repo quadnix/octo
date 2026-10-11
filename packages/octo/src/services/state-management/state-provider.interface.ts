@@ -65,7 +65,7 @@ export interface IStateProvider {
    *
    * The lock is taken atomically, so of two callers racing for it exactly one wins. With `lockId`,
    * resumes the run already holding that lock instead, which is how a run that died is finished.
-   * `commitId` names the record the cycle writes into, where the provider keeps one.
+   * `commitId` names the record the run writes into, where the provider keeps one.
    *
    * A provider sharing state names where a resume took the state directory from in `resumedFrom`:
    * `directory`, the directory the lock was taken in, left as it was; `run`, what the run uploaded so

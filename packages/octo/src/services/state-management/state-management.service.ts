@@ -274,12 +274,12 @@ export class StateManagementService {
    * Takes the app lock and returns its id. With `lockId`, resumes the run already holding it.
    *
    * A new lock is refused while the state holds a journal file of any command but `generate`,
-   * `validate` or `lock`: a cycle that finished without its journal being archived.
+   * `validate` or `lock`: a run that finished without its journal being archived.
    *
    * @throws {@link AppLockError}
    * * When a lock is held, naming the id that holds it.
    * * When `lockId` is given and is not the lock held.
-   * * When the state holds journal files of an unfinished cycle.
+   * * When the state holds journal files of an unfinished run.
    */
   async lockApp(lockId?: string): ReturnType<IStateProvider['lockApp']> {
     const eventService = EventService.getInstance();
@@ -293,7 +293,7 @@ export class StateManagementService {
         );
         if (unfinishedStateFileNames.length > 0) {
           throw new AppLockError(
-            `State holds the journal of a cycle that was never archived: ${unfinishedStateFileNames.join(', ')}! ` +
+            `State holds the journal of a run that was never archived: ${unfinishedStateFileNames.join(', ')}! ` +
               'Move or delete these files, then lock again.',
             { reason: 'unfinished', stateFileNames: unfinishedStateFileNames },
           );
@@ -392,11 +392,11 @@ export class StateManagementService {
   }
 
   /**
-   * Releases the app lock, then archives the cycle's journal. Unlocking an app that is not locked is
+   * Releases the app lock, then archives the run's journal. Unlocking an app that is not locked is
    * not an error.
    *
-   * In order: listeners of {@link AppUnlockingEvent} write the last of the cycle, and a failure there
-   * keeps the lock held; the lock is released, which seals the cycle; every journal file moves to
+   * In order: listeners of {@link AppUnlockingEvent} write the last of the run, and a failure there
+   * keeps the lock held; the lock is released, which seals the run; every journal file moves to
    * `archives/<lockId>/`, a cleanup on this machine whose failure is reported on stderr rather than
    * thrown.
    *
@@ -418,7 +418,7 @@ export class StateManagementService {
 
     await this.stateProvider.unlockApp(lockId);
 
-    // Archive the cycle's journal, names unchanged.
+    // Archive the run's journal, names unchanged.
     try {
       const stateFiles: Parameters<StateManagementService['saveStates']>[0] = [];
       for (const stateFileName of await this.stateProvider.listStates(JOURNAL_STATE_FILE_NAME_PREFIX)) {

@@ -21,7 +21,7 @@ export class TransactionError extends Error {
 /**
  * Thrown when the app lock is refused: another run holds it (`held`), the lock to resume is not the
  * one held (`not-held`), the state moved since it was last refreshed (`state-moved`), or the state
- * holds journal files of a cycle that was never archived (`unfinished`), named in `stateFileNames`.
+ * holds journal files of a run that was never archived (`unfinished`), named in `stateFileNames`.
  *
  * @group Errors/Transaction
  */

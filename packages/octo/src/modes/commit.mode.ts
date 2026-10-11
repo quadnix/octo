@@ -13,8 +13,8 @@ import type { ModelTransactionResult } from './apply-transaction.js';
 export type TerraformOutputs = Record<string, { value: unknown }>;
 
 /**
- * Records a terraform apply back into octo's state: Committed ← Cloud. The catch-up step of the
- * cycle, not a drift resolver.
+ * Records a terraform apply back into octo's state: Committed ← Cloud. The catch-up step of a
+ * run, not a drift resolver.
  *
  * Operates on the resource graph the `transaction` already built: reads every module folder's outputs
  * from the caller-supplied `outputs` map (keyed by module id), populates resource responses by the

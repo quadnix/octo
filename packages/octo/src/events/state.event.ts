@@ -37,7 +37,7 @@ export class AppLockTakenEvent extends StateEvent<{
 }> {}
 
 /**
- * This event is emitted after the app lock is released. The cycle's journal files are archived, and
+ * This event is emitted after the app lock is released. The run's journal files are archived, and
  * with a remote state provider its record is sealed, by then. Nothing is written after it.
  *
  * @group Events/State
@@ -46,7 +46,7 @@ export class AppUnlockedEvent extends StateEvent<{ lockId: string }> {}
 
 /**
  * This event is emitted before the app lock is released. A listener that returns a promise is
- * awaited, so what it writes lands in the cycle's record before the record is sealed. A listener that
+ * awaited, so what it writes lands in the run's record before the record is sealed. A listener that
  * fails keeps the lock held.
  *
  * @group Events/State

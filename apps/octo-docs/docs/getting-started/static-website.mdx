@@ -327,7 +327,7 @@ Three things go wrong often enough to name, and each surfaces at a different ste
 
 2. `apply` fails when the bucket name is taken. A plan cannot know that, because names are checked
    at creation, so `validate` passes and AWS rejects the create with `BucketAlreadyExists`. Pick
-   another name in `AWS_S3_WEBSITE_BUCKET_NAME` and run the cycle again from `generate`.
+   another name in `AWS_S3_WEBSITE_BUCKET_NAME` and start again from `generate`.
 
 3. The site answers 403 to everyone, with the apply having succeeded, when S3 Block Public Access is
    turned on for the whole account. The module opens the block on its own bucket, and the
@@ -374,7 +374,7 @@ Reload the page and the new line is there.
 
 ## Tear it down
 
-Removing infrastructure is the same cycle. Comment out the region and website modules in
+Removing infrastructure takes the same commands. Comment out the region and website modules in
 `octo.yaml`, leaving the app and account modules:
 
 ```yaml title="octo.yaml"

@@ -52,7 +52,7 @@ function toFlatStringResponse(resourceId: string, response: Record<string, unkno
 /**
  * Runs a single resource action, invoked by terraform mid-apply for an external resource.
  *
- * Octo-internal: not a step of the user's generate → validate → apply → commit cycle — terraform
+ * Octo-internal: not a step of the user's generate → validate → apply → commit run — terraform
  * shells back into it from a generated `local-exec` provisioner; users never run it by hand.
  *
  * Boots normally, computes the full resource diff, filters to `resourceId` — the diff decides

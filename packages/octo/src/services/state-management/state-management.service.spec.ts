@@ -205,7 +205,7 @@ describe('StateManagementService UT', () => {
 
       expect(error).toBeInstanceOf(AppLockError);
       expect(error.message).toBe(
-        'State holds the journal of a cycle that was never archived: ' +
+        'State holds the journal of a run that was never archived: ' +
           'journal.20261011T100000000Z-00000002.commit.json, journal.20261011T100000000Z-00000002.commit.terraform.json! ' +
           'Move or delete these files, then lock again.',
       );

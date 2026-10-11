@@ -92,8 +92,8 @@ Two words are used throughout:
 - A **command** is one `octo` process, such as one `octo apply`. Its id, the `commandId`, is a UTC
   timestamp to the millisecond and 8 random hex (`20261010T190051184Z-fac00463`), so ids sort in the
   order commands started.
-- A **cycle** is one lock: the `generate` and `validate` commands before it, and every command under
-  it, until it is released. A cycle has no id of its own. Its lock id names it.
+- A **run** is one lock: the `generate` and `validate` commands before it, and every command under
+  it, until it is released. A run has no id of its own. Its lock id names it.
 
 The journal is optional. It exists when `octo.yaml` lists `JournalEventListener`, and the
 `create-app` templates list it.
@@ -113,7 +113,7 @@ journal.<commandId>.<command>.<md5>.json       a copy of a state file the comman
 Copies are taken of `models.json`, `resources-actual.json`, `resources-old.json` and every
 `resource-state-*.json`, once per command per content.
 
-When the cycle's lock is released, every journal file moves, names unchanged, to
+When the run's lock is released, every journal file moves, names unchanged, to
 `.octo/archives/<lockId>/`.
 
 ### Who does what
@@ -123,14 +123,14 @@ The work is split across three packages, and each part stays in its lane:
 - **The listener** (`JournalEventListener`, in `@quadnix/octo-event-listeners`) only creates files.
   It holds the command's events in memory and writes them through
   `StateManagementService.saveStates`. It never moves, deletes or uploads a file, and never decides
-  which cycle a file belongs to.
+  which run a file belongs to.
 - **`StateManagementService`** decides everything else, the same way for every provider: whether a
   new lock may be taken over the journal files present, and moving them into the archive.
 - **The CLI** (`OctoUtility.runCommand`, in `@quadnix/octo-build`) announces each command with
   `CommandStartedEvent`, then `CommandFinishedEvent` or `CommandFailedEvent`, and awaits the last
   before the process exits.
 
-Nothing else is remembered between commands. The lock is the cycle, and the journal files present in
+Nothing else is remembered between commands. The lock is the run, and the journal files present in
 `.octo/` are its record.
 
 The listener is registered while octo boots, after `runCommand` has already emitted
@@ -157,7 +157,7 @@ a failure in the first two is reported on stderr and the command carries on.
 to pick up new state file versions to copy.
 
 A command that runs under a lock writes nothing when no lock is held, because its files would belong
-to no cycle. `octo apply` before `octo lock`, or `octo unlock` on an unlocked app, leaves no file.
+to no run. `octo apply` before `octo lock`, or `octo unlock` on an unlocked app, leaves no file.
 The commands that run before a lock are listed once, in `JOURNAL_COMMANDS_BEFORE_LOCK`, which the
 listener and `StateManagementService` share. A lock that cannot be read counts as held, so a failure
 is still recorded.
@@ -173,10 +173,10 @@ are unaffected.
 1. Emit `AppUnlockingEvent` and await it: the journal's last write.
 2. Read the held lock. None held: stop. A different lock held: throw `Invalid lock ID!`, before
    anything moves.
-3. Release the lock. With remote state, this seals the cycle's record as last uploaded, journal
+3. Release the lock. With remote state, this seals the run's record as last uploaded, journal
    included.
 4. Move every `journal.*` file to `archives/<lockId>/`, on disk only. A failure is reported on
-   stderr, not thrown: the cycle is already sealed.
+   stderr, not thrown: the run is already sealed.
 5. Emit `AppUnlockedEvent`.
 
 The release must come before the move. While a lock is held, a remote save uploads `.octo/` as it
@@ -191,11 +191,11 @@ command but `generate`, `validate` or `lock` throws an `AppLockError` with reaso
 naming the files: "Move or delete these files, then lock again."
 
 - `generate` and `validate` files are expected. They are written before the lock and belong to the
-  cycle it starts.
+  run it starts.
 - `lock` files are allowed because a refused `lock` writes one too, and counting them would let one
   refusal block every lock after it.
 - Every other command writes only while a lock is held, so one present with no lock held belongs to
-  a cycle whose step 4 failed. Taking a lock over it would archive it under the wrong lock id.
+  a run whose step 4 failed. Taking a lock over it would archive it under the wrong lock id.
 
 With local state, these files are the journal's only copy. Remote state already holds them, sealed.
 
@@ -212,9 +212,9 @@ A journal file is always uploaded, and downloaded only when resuming the lock it
 
 |                                               | journal files in `.octo/`          | journal files the backend holds                                  |
 |-----------------------------------------------|------------------------------------|------------------------------------------------------------------|
-| refresh (`generate`)                          | kept                               | not taken: they are the previous cycle's                         |
+| refresh (`generate`)                          | kept                               | not taken: they are the previous run's                           |
 | resume in the directory the lock was taken in | kept, and uploaded with the record | nothing is downloaded                                            |
-| resume a lock that uploaded something         | kept, and uploaded with the record | taken: they are this cycle's                                     |
+| resume a lock that uploaded something         | kept, and uploaded with the record | taken: they are this run's                                       |
 | resume a lock that uploaded nothing           | kept                               | not taken: the newest sealed state is read as a refresh reads it |
 
 `RemoteStateProvider.unlockApp` uploads nothing before releasing. The record it seals is the one
