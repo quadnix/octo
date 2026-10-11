@@ -19,6 +19,46 @@ export class TransactionError extends Error {
 }
 
 /**
+ * Thrown when the app lock is refused: another run holds it (`held`), the lock to resume is not the
+ * one held (`not-held`), the state moved since it was last refreshed (`state-moved`), or the state
+ * holds journal files of a cycle that was never archived (`unfinished`), named in `stateFileNames`.
+ *
+ * @group Errors/Transaction
+ */
+export class AppLockError extends TransactionError {
+  readonly holder?: { commitId?: string; context?: string; lockId: string; takenAt?: number };
+  readonly newestCommitId?: string;
+  readonly reason: 'held' | 'not-held' | 'state-moved' | 'unfinished';
+  readonly refreshedCommitId?: string;
+  readonly stateFileNames?: string[];
+
+  /**
+   * @param message The error message.
+   * @param details Why the lock was refused, and what the state provider knows about it.
+   */
+  constructor(
+    message: string,
+    details: {
+      holder?: AppLockError['holder'];
+      newestCommitId?: string;
+      reason: AppLockError['reason'];
+      refreshedCommitId?: string;
+      stateFileNames?: string[];
+    },
+  ) {
+    super(message);
+
+    this.holder = details.holder;
+    this.newestCommitId = details.newestCommitId;
+    this.reason = details.reason;
+    this.refreshedCommitId = details.refreshedCommitId;
+    this.stateFileNames = details.stateFileNames;
+
+    Object.setPrototypeOf(this, AppLockError.prototype);
+  }
+}
+
+/**
  * Thrown when a run tries to change resources that a previous run left in an unsettled state. Commit or resolve those first.
  *
  * @group Errors/Transaction

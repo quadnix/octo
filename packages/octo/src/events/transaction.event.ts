@@ -10,11 +10,11 @@ import { Event } from './event.model.js';
 export class TransactionEvent<T> extends Event<T> {}
 
 /**
- * This event is emitted when a model action in a transaction is done executing.
+ * This event is emitted when a model action in a transaction is done executing, with the diff it handled.
  *
  * @group Events/Transaction
  */
-export class ModelActionTransactionEvent extends TransactionEvent<void> {}
+export class ModelActionTransactionEvent extends TransactionEvent<DiffMetadata> {}
 
 /**
  * This event is emitted when transaction prepares a model diff.

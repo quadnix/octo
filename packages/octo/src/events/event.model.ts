@@ -1,5 +1,7 @@
 import type { EventService } from '../services/event/event.service.js';
 
+let nextSequence = 0;
+
 /**
  * The superclass of every event Octo emits.
  *
@@ -17,9 +19,11 @@ import type { EventService } from '../services/event/event.service.js';
  */
 export class Event<T = undefined> {
   /**
-   * When the event was created.
+   * When the event was created. `sequence` counts every event this process created, so it orders
+   * two events created in the same millisecond, and events a late listener receives replayed.
    */
   readonly header: {
+    sequence: number;
     timestamp: number;
   };
 
@@ -40,6 +44,7 @@ export class Event<T = undefined> {
    */
   constructor(name?: string, payload?: T) {
     this.header = {
+      sequence: nextSequence++,
       timestamp: Date.now(),
     };
     this.name = name || '';

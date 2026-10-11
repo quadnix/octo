@@ -4,7 +4,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { jest } from '@jest/globals';
 import { TerraformCommandError } from '../../errors/index.js';
+import { type Event, TerraformCommandOutputEvent } from '../../events/index.js';
 import { Container } from '../../functions/container/container.js';
+import { EventService } from '../../services/event/event.service.js';
 import {
   StateManagementService,
   type StateManagementServiceFactory,
@@ -218,6 +220,60 @@ describe('TerraformUtility UT', () => {
 
       expect(terraform.execFileAsyncMock).toHaveBeenCalledTimes(1);
       expect(argvOf(0).slice(-1)).toEqual(['output']);
+    });
+  });
+
+  describe('process output', () => {
+    let outputs: TerraformCommandOutputEvent['payload'][];
+
+    beforeEach(() => {
+      outputs = [];
+      jest.spyOn(EventService.getInstance(), 'emit').mockImplementation((event: Event<unknown>) => {
+        if (event instanceof TerraformCommandOutputEvent) {
+          outputs.push(event.payload);
+        }
+      });
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('should emit everything a failed process wrote', async () => {
+      await createModuleFolder('module-a');
+      terraform.execFileAsyncMock.mockRejectedValue(
+        Object.assign(new Error('failed'), { code: 1, stderr: 'Error: bad', stdout: 'planning' }),
+      );
+
+      await terraform.plan(terragruntDir, { json: true });
+
+      expect(outputs).toEqual([
+        {
+          args: expect.arrayContaining(['plan']),
+          binary: 'terragrunt',
+          dir: join(await realpath(terragruntDir), 'module-a'),
+          exitCode: 1,
+          stderr: 'Error: bad',
+          stdout: 'planning',
+        },
+      ]);
+    });
+
+    it('should emit everything a run over every folder wrote', async () => {
+      terraform.execFileAsyncMock.mockResolvedValue({ stderr: 'warning', stdout: 'Apply complete!' });
+
+      await terraform.apply(terragruntDir);
+
+      expect(outputs).toEqual([
+        {
+          args: expect.arrayContaining(['apply']),
+          binary: 'terragrunt',
+          dir: await realpath(terragruntDir),
+          exitCode: 0,
+          stderr: 'warning',
+          stdout: 'Apply complete!',
+        },
+      ]);
     });
   });
 

@@ -37,3 +37,19 @@ export class TerraformCommandFinishedEvent extends TerraformEvent<{
   durationInMs: number;
   exitCode: number;
 }> {}
+
+/**
+ * This event is emitted after every terraform or terragrunt process exits, whatever its exit code,
+ * with everything it wrote. One command can run several processes: a JSON plan runs a plan and a show
+ * in every folder.
+ *
+ * @group Events/Terraform
+ */
+export class TerraformCommandOutputEvent extends TerraformEvent<{
+  args: string[];
+  binary: string;
+  dir: string;
+  exitCode: number;
+  stderr: string;
+  stdout: string;
+}> {}

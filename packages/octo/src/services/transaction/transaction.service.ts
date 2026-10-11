@@ -515,7 +515,7 @@ export class TransactionService {
             d.updateOutputs(outputs);
           });
 
-          this.eventService.emit(new ModelActionTransactionEvent(a.constructor.name));
+          this.eventService.emit(new ModelActionTransactionEvent(a.constructor.name, duplicateDiffs[0]));
         }
 
         // Include the diff to process in the list of diffs processed in the same level.

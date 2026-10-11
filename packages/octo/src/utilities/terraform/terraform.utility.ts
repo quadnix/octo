@@ -5,7 +5,11 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { Factory } from '../../decorators/factory.decorator.js';
 import { TerraformCommandError } from '../../errors/index.js';
-import { TerraformCommandFinishedEvent, TerraformCommandStartedEvent } from '../../events/index.js';
+import {
+  TerraformCommandFinishedEvent,
+  TerraformCommandOutputEvent,
+  TerraformCommandStartedEvent,
+} from '../../events/index.js';
 import { Container } from '../../functions/container/container.js';
 import type { TerraformOutputs } from '../../modes/commit.mode.js';
 import type { TerraformPlan } from '../../modes/validate.mode.js';
@@ -426,6 +430,9 @@ export class TerraformUtility {
       );
 
       eventService.emit(
+        new TerraformCommandOutputEvent(command, { args, binary, dir: terragruntDir, exitCode: 0, stderr, stdout }),
+      );
+      eventService.emit(
         new TerraformCommandFinishedEvent(command, {
           command,
           dir: terragruntDir,
@@ -437,6 +444,16 @@ export class TerraformUtility {
       return { args, exitCode: 0, stderr, stdout };
     } catch (error) {
       const commandError = this.toTerraformCommandError(binary, args, terragruntDir, error);
+      eventService.emit(
+        new TerraformCommandOutputEvent(command, {
+          args,
+          binary,
+          dir: terragruntDir,
+          exitCode: commandError.exitCode,
+          stderr: commandError.stderr,
+          stdout: commandError.stdout,
+        }),
+      );
       eventService.emit(
         new TerraformCommandFinishedEvent(command, {
           command,
@@ -644,6 +661,8 @@ export class TerraformUtility {
    * Runs `binary` with `args` in `dir`.
    */
   private async runIn(dir: string, binary: string, args: string[]): Promise<TerraformRawResult> {
+    const eventService = EventService.getInstance();
+
     try {
       const { stderr, stdout } = await this.execFileAsync(binary, args, {
         cwd: dir,
@@ -651,9 +670,21 @@ export class TerraformUtility {
         maxBuffer: MAX_BUFFER,
         timeout: this.options.timeoutInMs,
       });
+      eventService.emit(new TerraformCommandOutputEvent(args[0], { args, binary, dir, exitCode: 0, stderr, stdout }));
       return { args, exitCode: 0, stderr, stdout };
     } catch (error) {
-      throw this.toTerraformCommandError(binary, args, dir, error);
+      const commandError = this.toTerraformCommandError(binary, args, dir, error);
+      eventService.emit(
+        new TerraformCommandOutputEvent(args[0], {
+          args,
+          binary,
+          dir,
+          exitCode: commandError.exitCode,
+          stderr: commandError.stderr,
+          stdout: commandError.stdout,
+        }),
+      );
+      throw commandError;
     }
   }
 

@@ -66,7 +66,11 @@ export { LocalStateProvider } from './services/state-management/local.state-prov
 export { RemoteStateProvider } from './services/state-management/remote.state-provider.js';
 export { LocalEncryptionStateProvider } from './services/state-management/local-encryption.state-provider.js';
 export { StateManagementService } from './services/state-management/state-management.service.js';
-export { type IStateProvider } from './services/state-management/state-provider.interface.js';
+export {
+  type IStateProvider,
+  JOURNAL_COMMANDS_BEFORE_LOCK,
+  JOURNAL_STATE_FILE_NAME_PREFIX,
+} from './services/state-management/state-provider.interface.js';
 export { TestStateProvider } from './services/state-management/test.state-provider.js';
 
 export type { OctoTerraformResourceScope, TerraformModuleScope } from './services/terraform/terraform.service.js';

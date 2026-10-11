@@ -118,9 +118,10 @@ export class ModuleContainer {
         this.inputService.registerModule(i.moduleId, instance);
 
         i.applied = true;
+        this.eventService.emit(
+          new ModuleEvent(module.name, { inputs: { ...resolvedModuleSchema }, moduleId: i.moduleId }),
+        );
       }
-
-      this.eventService.emit(new ModuleEvent(module.name));
     }
 
     return result;
