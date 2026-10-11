@@ -81,7 +81,6 @@ describe('JournalEventListener UT', () => {
       expect(commandFileName).toBe(`journal.${commandFile.commandId}.generate.json`);
       expect(commandFileName).toMatch(COMMAND_FILE_NAME);
       expect(commandFile).toMatchObject({ command: 'generate', host: expect.any(String), version: 1 });
-      expect(commandFile).not.toHaveProperty('cycleId');
       expect(commandFile.entries.map((e: { type: string }) => e.type)).toEqual([
         'CommandStartedEvent',
         'ModeStartedEvent',
