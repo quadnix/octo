@@ -130,6 +130,29 @@ describe('YamlDefinitionUtility UT', () => {
     });
   });
 
+  describe('resolveJournalListener()', () => {
+    it('should return nothing when the definition does not list the journal', async () => {
+      const definition = new YamlDefinitionUtility(fixture('env-kinds-definition.yml'));
+
+      await expect(definition.resolveJournalListener()).resolves.toBeUndefined();
+    });
+
+    it('should return the journal listener when the definition lists it', async () => {
+      const definitionFilePath = join(await mkdtemp(join(tmpdir(), 'octo-definition-')), 'octo.yml');
+      const definition = await readFile(fixture('env-kinds-definition.yml'), 'utf-8');
+      await writeFile(
+        definitionFilePath,
+        definition.replace("    - type: 'LoggingEventListener'", "    - type: 'JournalEventListener'"),
+      );
+
+      const journalListener = await new YamlDefinitionUtility(definitionFilePath).resolveJournalListener();
+      expect(journalListener?.name).toBe('JournalEventListener');
+      await expect(new YamlDefinitionUtility(definitionFilePath).resolveListeners()).resolves.toEqual([
+        { type: journalListener },
+      ]);
+    });
+  });
+
   describe('resolveListeners()', () => {
     let originalStdoutIsTerminal: boolean | undefined;
 

@@ -25,7 +25,7 @@ export const lockCommand = {
   command: 'lock',
   describe: 'Take the app state lock, printing its ID. Required before apply and commit.',
   handler: async (argv: ArgumentsCamelCase<LockCommandArguments>): Promise<void> => {
-    try {
+    await OctoUtility.runCommand('lock', async () => {
       await OctoUtility.bootStateProvider();
       const stateManagementService = await Container.getInstance().get(StateManagementService);
 
@@ -33,9 +33,6 @@ export const lockCommand = {
 
       console.error(chalk.green(argv.lockId ? 'App lock is resumed.' : 'App is locked.'));
       console.log(lockId);
-    } catch (error) {
-      OctoUtility.reportError(error);
-      process.exit(1);
-    }
+    });
   },
 };

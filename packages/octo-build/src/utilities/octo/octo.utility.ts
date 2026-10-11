@@ -1,6 +1,15 @@
 import { existsSync } from 'fs';
 import { delimiter, dirname, resolve } from 'path';
-import { type App, Container, Octo, StateManagementService } from '@quadnix/octo';
+import {
+  type App,
+  CommandFailedEvent,
+  CommandFinishedEvent,
+  CommandStartedEvent,
+  Container,
+  type Event,
+  Octo,
+  StateManagementService,
+} from '@quadnix/octo';
 import chalk from 'chalk';
 import { YamlDefinitionUtility } from '../definition/yaml/yaml-definition.utility.js';
 
@@ -80,7 +89,8 @@ export class OctoUtility {
 
   /**
    * Boots only the state provider the definition names, without loading a single module, and returns
-   * how often terraform state is checked into it during a terraform command.
+   * how often terraform state is checked into it during a terraform command. Loads the journal, the
+   * one listener such a command records with, when the definition lists it.
    *
    * `apply` is a terraform action rather than an octo mode, so it has no reason to compose a model
    * graph - but terraform state is checked out of the state provider and back into it around every
@@ -93,6 +103,11 @@ export class OctoUtility {
     await Container.getInstance().get<StateManagementService, any>(StateManagementService, {
       args: [stateProvider.type],
     });
+
+    const journalListener = await definition.resolveJournalListener();
+    if (journalListener) {
+      await Container.getInstance().get(journalListener);
+    }
 
     return { stateCheckInIntervalInMs: definition.resolveStateCheckInIntervalInMs() };
   }
@@ -157,6 +172,53 @@ export class OctoUtility {
     for (let i = 0; i < failures.length; i++) {
       console.error(chalk.red(`${i + 1}. ${failures[i]}`));
     }
+  }
+
+  /**
+   * Runs one lifecycle command: announces it, runs `body`, and exits with the code `body` returns, or
+   * with 1 after reporting what it threw. The command's end is announced, and awaited by listeners
+   * such as the journal, before the process exits.
+   */
+  static async runCommand(command: string, body: () => Promise<number | void>): Promise<void> {
+    const eventService = (await Container.getInstance().get('EventService')) as {
+      emit(event: Event<unknown>): void;
+      emitAndWait(event: Event<unknown>): Promise<void>;
+    };
+    const startedAt = Date.now();
+
+    eventService.emit(new CommandStartedEvent(undefined, { command }));
+
+    // Run the command, announcing how it ended.
+    let exitCode: number | void;
+    try {
+      exitCode = await body();
+    } catch (error) {
+      await eventService.emitAndWait(
+        new CommandFailedEvent(undefined, {
+          command,
+          durationInMs: Date.now() - startedAt,
+          error: error?.message ?? String(error),
+        }),
+      );
+      OctoUtility.reportError(error);
+      process.exit(1);
+      return;
+    }
+    if (exitCode) {
+      await eventService.emitAndWait(
+        new CommandFailedEvent(undefined, {
+          command,
+          durationInMs: Date.now() - startedAt,
+          error: `Exited with code ${exitCode}.`,
+        }),
+      );
+      process.exit(exitCode);
+      return;
+    }
+
+    await eventService.emitAndWait(
+      new CommandFinishedEvent(undefined, { command, durationInMs: Date.now() - startedAt }),
+    );
   }
 
   /**

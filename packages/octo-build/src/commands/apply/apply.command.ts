@@ -128,7 +128,7 @@ export const applyCommand = {
 
     OctoUtility.prepareCallbackEnvironment();
 
-    try {
+    await OctoUtility.runCommand('apply', async () => {
       const { stateCheckInIntervalInMs } = await OctoUtility.bootStateProvider();
 
       // The lock is verified before anything is planned, so a run without it fails having done
@@ -147,11 +147,11 @@ export const applyCommand = {
       // stake is the data inside a resource terraform recreates; octo's own state stays consistent
       // either way.
       if (!autoApprove && (await isBlockedByDestroys(terraformUtility, stateManagementService, resolvedDir))) {
-        process.exit(1);
+        return 1;
       } else {
         // Streamed, not printed at the end: an ECS apply runs for tens of minutes, and terragrunt's
-        // own progress is the only sign it is alive. `apply` boots no octo and so has no listeners,
-        // which makes this the only writer here - nothing to interleave with.
+        // own progress is the only sign it is alive. `apply` boots no octo, and the journal is the only
+        // listener it may load, which writes nothing here - nothing to interleave with.
         try {
           await terraformUtility.apply(resolvedDir, {
             onOutput: (chunk, stream): void => {
@@ -179,9 +179,6 @@ export const applyCommand = {
 
         console.log(chalk.green('==== Apply complete ===='));
       }
-    } catch (error) {
-      OctoUtility.reportError(error);
-      process.exit(1);
-    }
+    });
   },
 };

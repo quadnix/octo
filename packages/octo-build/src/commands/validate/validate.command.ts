@@ -44,7 +44,7 @@ export const validateCommand = {
     const { terraformBinary, terragruntBinary, terragruntDir, timeoutInMs } = argv;
     const resolvedDir = resolve(process.cwd(), terragruntDir);
 
-    try {
+    await OctoUtility.runCommand('validate', async () => {
       // A plan reads every `data "external"`, and each one shells back out to `octo get-response`.
       OctoUtility.prepareCallbackEnvironment();
 
@@ -70,11 +70,8 @@ export const validateCommand = {
       // code, which is the CLI's own job, and the failure line on stderr.
       if (report.failures.length > 0) {
         console.error(chalk.red('\nValidation could not complete!'));
-        process.exit(1);
+        return 1;
       }
-    } catch (error) {
-      OctoUtility.reportError(error);
-      process.exit(1);
-    }
+    });
   },
 };

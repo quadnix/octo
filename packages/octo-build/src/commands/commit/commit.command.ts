@@ -61,7 +61,7 @@ export const commitCommand = {
     const { lockId, partial, terraformBinary, terragruntBinary, terragruntDir, timeoutInMs } = argv;
     const resolvedDir = resolve(process.cwd(), terragruntDir);
 
-    try {
+    await OctoUtility.runCommand('commit', async () => {
       const { app, octo } = await OctoUtility.bootOcto();
       const terraformUtility = await Container.getInstance().get<TerraformUtility, any>(TerraformUtility, {
         args: [{ terraformBinary, terragruntBinary, timeoutInMs }, true],
@@ -91,9 +91,6 @@ export const commitCommand = {
 
       // No verdict printed here - the listeners own stdout and render the commit report there.
       // The warnings above stay, on stderr: a different fd, so they cannot interleave with pino.
-    } catch (error) {
-      OctoUtility.reportError(error);
-      process.exit(1);
-    }
+    });
   },
 };

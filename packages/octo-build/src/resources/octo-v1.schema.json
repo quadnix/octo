@@ -95,6 +95,17 @@
               {
                 "additionalProperties": false,
                 "properties": {
+                  "type": {
+                    "const": "JournalEventListener",
+                    "type": "string"
+                  }
+                },
+                "required": ["type"],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
                   "colorize": {
                     "type": "boolean"
                   },

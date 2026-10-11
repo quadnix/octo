@@ -27,7 +27,7 @@ export const unlockCommand = {
   handler: async (argv: ArgumentsCamelCase<UnlockCommandArguments>): Promise<void> => {
     const { lockId } = argv;
 
-    try {
+    await OctoUtility.runCommand('unlock', async () => {
       await OctoUtility.bootStateProvider();
       const stateManagementService = await Container.getInstance().get(StateManagementService);
 
@@ -38,9 +38,6 @@ export const unlockCommand = {
 
       await stateManagementService.unlockApp(lockId);
       console.error(chalk.green(`App was unlocked, releasing lock ID "${lockId}".`));
-    } catch (error) {
-      OctoUtility.reportError(error);
-      process.exit(1);
-    }
+    });
   },
 };

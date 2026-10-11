@@ -28,7 +28,7 @@ export const generateCommand = {
   handler: async (argv: ArgumentsCamelCase<GenerateCommandArguments>): Promise<void> => {
     const { outputDir } = argv;
 
-    try {
+    await OctoUtility.runCommand('generate', async () => {
       await OctoUtility.bootStateProvider();
       await (await Container.getInstance().get(StateManagementService)).refreshState();
 
@@ -41,9 +41,6 @@ export const generateCommand = {
       // and they are the only writer on stdout - a `console.log` alongside them lands out of order,
       // because pino's stream and this one flush independently. Failures still reach stderr via
       // `reportError`, so a silent run is a successful one.
-    } catch (error) {
-      OctoUtility.reportError(error);
-      process.exit(1);
-    }
+    });
   },
 };

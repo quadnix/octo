@@ -15,6 +15,17 @@ jest.unstable_mockModule('../../utilities/octo/octo.utility.js', () => ({
   OctoUtility: {
     bootOcto: mockedBootOcto,
     reportError: mockedReportError,
+    runCommand: async (_command: string, body: () => Promise<number | void>): Promise<void> => {
+      try {
+        const exitCode = await body();
+        if (exitCode) {
+          process.exit(exitCode);
+        }
+      } catch (error) {
+        mockedReportError(error);
+        process.exit(1);
+      }
+    },
   },
 }));
 

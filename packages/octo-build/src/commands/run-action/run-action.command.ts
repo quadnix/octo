@@ -26,7 +26,7 @@ export const runActionCommand = {
   handler: async (argv: ArgumentsCamelCase<RunActionCommandArguments>): Promise<void> => {
     const { input, resourceId } = argv;
 
-    try {
+    await OctoUtility.runCommand('run-action', async () => {
       const inputs: Record<string, string> = {};
       for (const entry of input ?? []) {
         const separatorIndex = entry.indexOf('=');
@@ -47,9 +47,6 @@ export const runActionCommand = {
 
       // stdout carries ONLY the response JSON — terraform's `data "external"` consumes it.
       process.stdout.write(JSON.stringify(result.response));
-    } catch (error) {
-      OctoUtility.reportError(error);
-      process.exit(1);
-    }
+    });
   },
 };

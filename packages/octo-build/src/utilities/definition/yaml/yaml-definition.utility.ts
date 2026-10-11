@@ -11,6 +11,7 @@ import {
   TestStateProvider,
 } from '@quadnix/octo';
 import type { HtmlReportEventListener } from '@quadnix/octo-event-listeners/html-report';
+import type { JournalEventListener } from '@quadnix/octo-event-listeners/journal';
 import type { LoggingEventListener } from '@quadnix/octo-event-listeners/logging';
 import { Ajv2020 as Ajv } from 'ajv/dist/2020.js';
 import { load } from 'js-yaml';
@@ -37,6 +38,9 @@ interface IYamlDefinition {
       | {
           reportDir?: string;
           type: 'HtmlReportEventListener';
+        }
+      | {
+          type: 'JournalEventListener';
         }
       | {
           colorize?: boolean;
@@ -204,6 +208,19 @@ export class YamlDefinitionUtility {
   }
 
   /**
+   * The journal listener, when the definition lists it, imported without any other listener. For the
+   * commands that boot no octo, and so no listeners.
+   */
+  async resolveJournalListener(): Promise<Constructable<JournalEventListener> | undefined> {
+    if (!this.definition.settings?.listeners?.some((l) => l.type === 'JournalEventListener')) {
+      return undefined;
+    }
+
+    const imported = await import('@quadnix/octo-event-listeners/journal');
+    return imported.JournalEventListener;
+  }
+
+  /**
    * @param logDestination Where the logging listener writes. `run-action` passes `stderr`, because
    * terraform's `data "external"` protocol requires that command's stdout to carry only the response
    * JSON.
@@ -212,7 +229,7 @@ export class YamlDefinitionUtility {
     {
       args?: unknown[];
       metadata?: Record<string, string>;
-      type: Constructable<HtmlReportEventListener | LoggingEventListener>;
+      type: Constructable<HtmlReportEventListener | JournalEventListener | LoggingEventListener>;
     }[]
   > {
     const listeners: Awaited<ReturnType<YamlDefinitionUtility['resolveListeners']>> = [];
@@ -228,6 +245,8 @@ export class YamlDefinitionUtility {
           args: [{ reportDir: listenerDef.reportDir }],
           type: imported.HtmlReportEventListener,
         });
+      } else if (listenerDef.type === 'JournalEventListener') {
+        listeners.push({ type: (await this.resolveJournalListener())! });
       } else if (listenerDef.type === 'LoggingEventListener') {
         const imported = await import('@quadnix/octo-event-listeners/logging');
         // Default to whether the destination is a terminal, so a redirected log carries no escape
