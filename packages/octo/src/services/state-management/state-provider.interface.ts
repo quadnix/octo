@@ -1,4 +1,20 @@
 /**
+ * The prefix of the state files the journal writes. A remote state provider uploads them while the
+ * lock is held, and never replaces them when it refreshes.
+ *
+ * @internal
+ */
+export const JOURNAL_STATE_FILE_NAME_PREFIX = 'journal.';
+
+/**
+ * The commands that run before a lock. Every other command runs under one, and its journal files
+ * belong to the lock held.
+ *
+ * @internal
+ */
+export const JOURNAL_COMMANDS_BEFORE_LOCK = ['generate', 'lock', 'validate'];
+
+/**
  * Where Octo's state files live.
  *
  * Octo has no database - it records what it built in state files, and reads them back on the next run
@@ -49,22 +65,31 @@ export interface IStateProvider {
    *
    * The lock is taken atomically, so of two callers racing for it exactly one wins. With `lockId`,
    * resumes the run already holding that lock instead, which is how a run that died is finished.
+   * `commitId` names the record the cycle writes into, where the provider keeps one.
    *
-   * @throws {@link TransactionError} When a lock is held, naming the id that holds it. When `lockId`
-   * is given and is not the lock held.
+   * A provider sharing state names where a resume took the state directory from in `resumedFrom`:
+   * `directory`, the directory the lock was taken in, left as it was; `run`, what the run uploaded so
+   * far; `sealed`, the newest sealed state, because the run uploaded nothing.
+   *
+   * @throws {@link AppLockError} When a lock is held, naming the id that holds it. When `lockId` is
+   * given and is not the lock held.
    */
-  lockApp(lockId?: string): Promise<{ lockId: string }>;
+  lockApp(
+    lockId?: string,
+  ): Promise<{ commitId?: string; lockId: string; resumedFrom?: 'directory' | 'run' | 'sealed' }>;
 
   /**
    * Brings the state up to the newest a run may plan against. `generate` calls it before reading any.
    *
-   * A provider whose state is always the newest does nothing here.
+   * A provider whose state is always the newest does nothing here, and returns `replaced: false`.
+   * One that replaced the state files names the commit it replaced them with, and the one before.
    */
-  refreshState(): Promise<void>;
+  refreshState(): Promise<{ commitId?: string; previousCommitId?: string; replaced: boolean }>;
 
   /**
    * Writes state files as one change, overwriting whatever was there and deleting each one given no
-   * `data`. Deleting one that is not there is not an error.
+   * `data`. Deleting one that is not there is not an error. A name holding `/` is the machine's own:
+   * a provider sharing state keeps it on the machine.
    *
    * A provider that pays per write makes one write of the whole change rather than one per file.
    */

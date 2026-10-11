@@ -60,4 +60,14 @@ describe('LocalEncryptionStateProvider UT', () => {
       await expect(localEncryptionStateProvider.listStates('resource-state-')).resolves.toEqual([]);
     });
   });
+
+  describe('saveStates()', () => {
+    it('should write a nested name into a directory beneath the state directory', async () => {
+      await localEncryptionStateProvider.saveStates([
+        { data: Buffer.from('saved'), stateFileName: 'archives/c/r.json' },
+      ]);
+
+      await expect(localEncryptionStateProvider.getState('archives/c/r.json')).resolves.toEqual(Buffer.from('saved'));
+    });
+  });
 });

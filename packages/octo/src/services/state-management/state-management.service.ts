@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import type {
   ModelSerializedOutput,
   ResourceSerializedOutput,
@@ -5,8 +6,22 @@ import type {
   TerraformResourceOutput,
 } from '../../app.type.js';
 import { Factory } from '../../decorators/factory.decorator.js';
-import { TransactionError } from '../../errors/index.js';
-import type { IStateProvider } from './state-provider.interface.js';
+import { AppLockError, TransactionError } from '../../errors/index.js';
+import {
+  AppLockRefusedEvent,
+  AppLockTakenEvent,
+  AppUnlockedEvent,
+  AppUnlockingEvent,
+  StateFilesSavedEvent,
+  StateFilesSavingEvent,
+  StateRefreshedEvent,
+} from '../../events/index.js';
+import { EventService } from '../event/event.service.js';
+import {
+  type IStateProvider,
+  JOURNAL_COMMANDS_BEFORE_LOCK,
+  JOURNAL_STATE_FILE_NAME_PREFIX,
+} from './state-provider.interface.js';
 
 /**
  * The `userData` persisted alongside the model graph in `models.json`.
@@ -68,6 +83,12 @@ export class StateManagementService {
   readonly actualResourceStateFileName: string = 'resources-actual.json';
 
   /**
+   * The prefix of each record an external resource's action writes, until `commit` folds it into
+   * the resource graph.
+   */
+  readonly externalResourceStateFileNamePrefix: string = 'resource-state-';
+
+  /**
    * The model graph as it stands after the last commit.
    */
   readonly modelStateFileName: string = 'models.json';
@@ -76,8 +97,6 @@ export class StateManagementService {
    * The resource graph as intent described it on the last commit.
    */
   readonly oldResourceStateFileName: string = 'resources-old.json';
-
-  private readonly externalResourceStateFileNamePrefix: string = 'resource-state-';
 
   private readonly stateProvider: IStateProvider;
 
@@ -245,20 +264,76 @@ export class StateManagementService {
   }
 
   /**
+   * The names of the state files whose name starts with `prefix`. See {@link IStateProvider.listStates}.
+   */
+  async listStates(prefix: string): Promise<string[]> {
+    return this.stateProvider.listStates(prefix);
+  }
+
+  /**
    * Takes the app lock and returns its id. With `lockId`, resumes the run already holding it.
    *
-   * @throws {@link TransactionError} When a lock is held, naming the id that holds it. When `lockId`
-   * is given and is not the lock held.
+   * A new lock is refused while the state holds a journal file of any command but `generate`,
+   * `validate` or `lock`: a cycle that finished without its journal being archived.
+   *
+   * @throws {@link AppLockError}
+   * * When a lock is held, naming the id that holds it.
+   * * When `lockId` is given and is not the lock held.
+   * * When the state holds journal files of an unfinished cycle.
    */
-  async lockApp(lockId?: string): Promise<{ lockId: string }> {
-    return this.stateProvider.lockApp(lockId);
+  async lockApp(lockId?: string): ReturnType<IStateProvider['lockApp']> {
+    const eventService = EventService.getInstance();
+
+    let lock: Awaited<ReturnType<IStateProvider['lockApp']>>;
+    try {
+      // Refuse a new lock over journal files no lock owns.
+      if (!lockId && !(await this.stateProvider.getAppLock())) {
+        const unfinishedStateFileNames = (await this.stateProvider.listStates(JOURNAL_STATE_FILE_NAME_PREFIX)).filter(
+          (stateFileName) => !JOURNAL_COMMANDS_BEFORE_LOCK.includes(stateFileName.split('.')[2]),
+        );
+        if (unfinishedStateFileNames.length > 0) {
+          throw new AppLockError(
+            `State holds the journal of a cycle that was never archived: ${unfinishedStateFileNames.join(', ')}! ` +
+              'Move or delete these files, then lock again.',
+            { reason: 'unfinished', stateFileNames: unfinishedStateFileNames },
+          );
+        }
+      }
+
+      lock = await this.stateProvider.lockApp(lockId);
+    } catch (error) {
+      if (error instanceof AppLockError) {
+        await eventService.emitAndWait(
+          new AppLockRefusedEvent(undefined, {
+            holder: error.holder,
+            newestCommitId: error.newestCommitId,
+            reason: error.reason,
+            refreshedCommitId: error.refreshedCommitId,
+            stateFileNames: error.stateFileNames,
+          }),
+        );
+      }
+      throw error;
+    }
+
+    await eventService.emitAndWait(
+      new AppLockTakenEvent(undefined, {
+        commitId: lock.commitId,
+        lockId: lock.lockId,
+        resumed: !!lockId,
+        resumedFrom: lock.resumedFrom,
+      }),
+    );
+    return lock;
   }
 
   /**
    * Brings the state up to the newest a run may plan against. See {@link IStateProvider.refreshState}.
    */
-  async refreshState(): Promise<void> {
-    return this.stateProvider.refreshState();
+  async refreshState(): Promise<Awaited<ReturnType<IStateProvider['refreshState']>>> {
+    const refreshed = await this.stateProvider.refreshState();
+    await EventService.getInstance().emitAndWait(new StateRefreshedEvent(undefined, refreshed));
+    return refreshed;
   }
 
   /**
@@ -296,19 +371,73 @@ export class StateManagementService {
   }
 
   /**
-   * Writes state files as-is and as one change, deleting each one given no `data`.
+   * Writes state files as-is and as one change, deleting each one given no `data`. Listeners of
+   * {@link StateFilesSavingEvent} may add files to the change first.
    */
   async saveStates(stateFiles: { data: Buffer | undefined; stateFileName: string }[]): Promise<void> {
-    return this.stateProvider.saveStates(stateFiles);
+    const eventService = EventService.getInstance();
+
+    await eventService.emitAndWait(new StateFilesSavingEvent(undefined, { stateFiles }));
+    await this.stateProvider.saveStates(stateFiles);
+
+    eventService.emit(
+      new StateFilesSavedEvent(undefined, {
+        stateFiles: stateFiles.map(({ data, stateFileName }) => ({
+          data,
+          md5: data === undefined ? undefined : createHash('md5').update(data).digest('hex'),
+          stateFileName,
+        })),
+      }),
+    );
   }
 
   /**
-   * Releases the app lock. Unlocking an app that is not locked is not an error.
+   * Releases the app lock, then archives the cycle's journal. Unlocking an app that is not locked is
+   * not an error.
+   *
+   * In order: listeners of {@link AppUnlockingEvent} write the last of the cycle, and a failure there
+   * keeps the lock held; the lock is released, which seals the cycle; every journal file moves to
+   * `archives/<lockId>/`, a cleanup on this machine whose failure is reported on stderr rather than
+   * thrown.
    *
    * @throws {@link TransactionError} With the message `Invalid lock ID!` when a different lock is held.
    */
   async unlockApp(lockId: string): Promise<void> {
-    return this.stateProvider.unlockApp(lockId);
+    const eventService = EventService.getInstance();
+
+    await eventService.emitAndWait(new AppUnlockingEvent(undefined, { lockId }));
+
+    // Stop when no lock is held, and refuse to touch the journal of another.
+    const heldLockId = await this.stateProvider.getAppLock();
+    if (!heldLockId) {
+      return;
+    }
+    if (heldLockId !== lockId) {
+      throw new TransactionError('Invalid lock ID!');
+    }
+
+    await this.stateProvider.unlockApp(lockId);
+
+    // Archive the cycle's journal, names unchanged.
+    try {
+      const stateFiles: Parameters<StateManagementService['saveStates']>[0] = [];
+      for (const stateFileName of await this.stateProvider.listStates(JOURNAL_STATE_FILE_NAME_PREFIX)) {
+        stateFiles.push(
+          {
+            data: await this.stateProvider.getState(stateFileName),
+            stateFileName: `archives/${lockId}/${stateFileName}`,
+          },
+          { data: undefined, stateFileName },
+        );
+      }
+      if (stateFiles.length > 0) {
+        await this.saveStates(stateFiles);
+      }
+    } catch (error) {
+      process.stderr.write(`Failed to archive the journal of lock "${lockId}": ${error?.message ?? String(error)}\n`);
+    }
+
+    await eventService.emitAndWait(new AppUnlockedEvent(undefined, { lockId }));
   }
 
   /**

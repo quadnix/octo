@@ -1,12 +1,12 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import { hostname } from 'node:os';
-import { extname, join, resolve } from 'node:path';
-import { TransactionError } from '../../errors/index.js';
+import { basename, dirname, extname, join, resolve } from 'node:path';
+import { AppLockError, TransactionError } from '../../errors/index.js';
 import { FileUtility } from '../../utilities/file/file.utility.js';
 import { HttpUtility } from '../../utilities/http/http.utility.js';
 import { LocalStateProvider } from './local.state-provider.js';
-import type { IStateProvider } from './state-provider.interface.js';
+import { type IStateProvider, JOURNAL_STATE_FILE_NAME_PREFIX } from './state-provider.interface.js';
 
 const APP_LOCK_SCOPE = ['app'];
 const LOCK_FILE_NAME = 'remote-state.lock';
@@ -179,13 +179,15 @@ export class RemoteStateProvider implements IStateProvider {
    *
    * With `lockId`, resumes the run already holding that lock instead - from any machine, as the
    * account that took it or an organization administrator. The state directory is replaced with
-   * what that run wrote so far, and every write after lands in its record.
+   * what that run wrote so far, its journal included, keeping this machine's journal files, which join
+   * the record, and every write after lands in its record. A run that wrote nothing is resumed from the
+   * newest sealed state, without that state's journal.
    *
-   * @throws {@link TransactionError} When a lock is held, naming the id that holds it. When the
-   * newest sealed state moved since {@link RemoteStateProvider.refreshState} last ran. When
-   * `lockId` is given and is not held.
+   * @throws {@link AppLockError} When a lock is held, naming the id that holds it. When the newest
+   * sealed state moved since {@link RemoteStateProvider.refreshState} last ran. When `lockId` is
+   * given and is not held.
    */
-  async lockApp(lockId?: string): Promise<{ lockId: string }> {
+  async lockApp(lockId?: string): ReturnType<IStateProvider['lockApp']> {
     if (lockId) {
       return this.resumeAppLock(lockId);
     }
@@ -204,9 +206,18 @@ export class RemoteStateProvider implements IStateProvider {
         const message = await HttpUtility.readErrorMessage(response);
         const [holder] = response.status === 409 ? await this.readAppLocks() : [];
         if (holder) {
-          throw new TransactionError(
+          throw new AppLockError(
             `App already locked with lock ID "${holder.lockId}", taken by "${holder.context}" ` +
               `since ${new Date(holder.takenAt).toISOString()}!`,
+            {
+              holder: {
+                commitId: holder.commitId,
+                context: holder.context,
+                lockId: holder.lockId,
+                takenAt: holder.takenAt,
+              },
+              reason: 'held',
+            },
           );
         }
         throw new TransactionError(`Failed to lock the app: ${message}`);
@@ -218,7 +229,11 @@ export class RemoteStateProvider implements IStateProvider {
       try {
         const newestState = await this.readNewestState();
         if (newestState?.commitId !== lockFile.refreshedCommitId || (newestState && newestState.phase !== 'commit')) {
-          throw new TransactionError('App state moved since it was last refreshed! Run "octo generate" again.');
+          throw new AppLockError('App state moved since it was last refreshed! Run "octo generate" again.', {
+            newestCommitId: newestState?.commitId,
+            reason: 'state-moved',
+            refreshedCommitId: lockFile.refreshedCommitId,
+          });
         }
 
         const run = { commitId: lock.commitId, lockId: lock.lockId, stateFiles: {} };
@@ -229,7 +244,7 @@ export class RemoteStateProvider implements IStateProvider {
         throw error;
       }
 
-      return { lockId: lock.lockId };
+      return { commitId: lock.commitId, lockId: lock.lockId };
     });
   }
 
@@ -238,17 +253,17 @@ export class RemoteStateProvider implements IStateProvider {
    *
    * A directory an open run is still writing is left alone. A directory the backend holds nothing
    * for is left alone too: that is a first run, or a project arriving from another provider, and the
-   * files on disk are the only copy there is.
+   * files on disk are the only copy there is. Journal files are neither replaced nor taken.
    */
-  async refreshState(): Promise<void> {
-    await this.withUploadLock(async () => {
+  async refreshState(): Promise<{ commitId?: string; previousCommitId?: string; replaced: boolean }> {
+    return this.withUploadLock(async () => {
       const lockFile = await this.readLockFile();
 
       // Keep the directory of a run whose lock is still held.
       if (lockFile.run) {
         const locks = await this.readAppLocks();
         if (locks.some((lock) => lock.lockId === lockFile.run!.lockId)) {
-          return;
+          return { replaced: false };
         }
       }
 
@@ -256,7 +271,7 @@ export class RemoteStateProvider implements IStateProvider {
       const newestState = await this.readNewestState();
       if (newestState?.phase === 'commit' && newestState.commitId === lockFile.refreshedCommitId) {
         await this.writeLockFile({ refreshedCommitId: lockFile.refreshedCommitId });
-        return;
+        return { commitId: lockFile.refreshedCommitId, replaced: false };
       }
 
       const response = await HttpUtility.send(`${this.appStateUrl()}/latest`, {
@@ -264,20 +279,22 @@ export class RemoteStateProvider implements IStateProvider {
       });
       if (response.status === 404) {
         await this.deleteLockFile();
-        return;
+        return { replaced: false };
       }
       if (!response.ok) {
         throw new TransactionError(`Failed to read the app state: ${await HttpUtility.readErrorMessage(response)}`);
       }
 
-      const { state } = await this.replaceStateFiles(response);
+      const { state } = await this.replaceStateFiles(response, { takeJournal: false });
       await this.writeLockFile({ refreshedCommitId: state.commitId });
+      return { commitId: state.commitId, previousCommitId: lockFile.refreshedCommitId, replaced: true };
     });
   }
 
   /**
    * Writes state files, deleting each one given no `data`, and then writes the run's record once for
-   * all of them when a run is open.
+   * all of them when a run is open. A name holding `/` is the machine's own: it is written beneath
+   * the state directory and never reaches the record.
    *
    * @throws {@link TransactionError} When the backend would refuse a file: a name it does not accept,
    * a file over 5MB, or one file more than the 200 a state may hold. Nothing is written then.
@@ -288,6 +305,9 @@ export class RemoteStateProvider implements IStateProvider {
 
     // Refuse the whole change before any of it lands on disk.
     for (const { data, stateFileName } of stateFiles) {
+      if (stateFileName.includes('/')) {
+        continue;
+      }
       if (data === undefined) {
         stateFileNames.delete(stateFileName);
         continue;
@@ -320,15 +340,14 @@ export class RemoteStateProvider implements IStateProvider {
         await this.writeStateFile(stateFileName, data);
       }
     }
-    await this.pushRun();
+    if (stateFiles.some(({ stateFileName }) => !stateFileName.includes('/'))) {
+      await this.pushRun();
+    }
   }
 
   /**
-   * Seals the run's record and releases the app lock. Unlocking an app that is not locked is not an
-   * error.
-   *
-   * Taken or resumed in this state directory, the lock seals what the directory holds. Otherwise it
-   * seals the record as it stands.
+   * Seals the run's record as it was last written, and releases the app lock. Unlocking an app that
+   * is not locked is not an error.
    *
    * @throws {@link TransactionError} With the message `Invalid lock ID!` when a different lock is held.
    */
@@ -336,12 +355,6 @@ export class RemoteStateProvider implements IStateProvider {
     await this.withUploadLock(async () => {
       const lockFile = await this.readLockFile();
       const run = lockFile.run?.lockId === lockId ? lockFile.run : undefined;
-
-      // Write the last of the run before its record is sealed.
-      if (run) {
-        run.stateFiles = await this.writeRunState(run);
-        await this.writeLockFile(lockFile);
-      }
 
       const released = await this.releaseAppLock(lockId);
       if (!released && (await this.readAppLocks()).length > 0) {
@@ -453,18 +466,25 @@ export class RemoteStateProvider implements IStateProvider {
 
   /**
    * Replaces every state file in the directory with the ones a multi-part state body carries, and
-   * returns the record it describes.
+   * returns the record it describes. The directory's journal files are kept; with `takeJournal`, the
+   * body's are written beside them.
    */
-  private async replaceStateFiles(response: Response): Promise<{ state: RemoteState }> {
+  private async replaceStateFiles(
+    response: Response,
+    { takeJournal }: { takeJournal: boolean },
+  ): Promise<{ state: RemoteState }> {
     const formData = await response.formData();
     const statePart = formData.get('state')!;
     const state = JSON.parse(typeof statePart === 'string' ? statePart : await statePart.text()) as RemoteState;
+    const isJournal = (stateFileName: string): boolean => stateFileName.startsWith(JOURNAL_STATE_FILE_NAME_PREFIX);
 
     // Take the state the backend holds over whatever the directory held, file for file.
-    for (const stateFileName of await this.stateFileNames()) {
+    for (const stateFileName of (await this.stateFileNames()).filter((n) => !isJournal(n))) {
       await rm(join(this.localStateDirectoryPath, stateFileName), { force: true });
     }
-    for (const stateFile of formData.getAll('stateFiles') as File[]) {
+    for (const stateFile of (formData.getAll('stateFiles') as File[]).filter(
+      (f) => takeJournal || !isJournal(f.name),
+    )) {
       await this.writeStateFile(stateFile.name, Buffer.from(await stateFile.arrayBuffer()));
     }
 
@@ -474,11 +494,13 @@ export class RemoteStateProvider implements IStateProvider {
   /**
    * Resumes the run holding `lockId` in this state directory.
    */
-  private async resumeAppLock(lockId: string): Promise<{ lockId: string }> {
+  private async resumeAppLock(
+    lockId: string,
+  ): Promise<{ commitId: string; lockId: string; resumedFrom: 'directory' | 'run' | 'sealed' }> {
     return this.withUploadLock(async () => {
       const lock = (await this.readAppLocks()).find((l) => l.lockId === lockId);
       if (!lock) {
-        throw new TransactionError(`App is not locked with lock ID "${lockId}"!`);
+        throw new AppLockError(`App is not locked with lock ID "${lockId}"!`, { reason: 'not-held' });
       }
       const lockFile = await this.readLockFile();
 
@@ -486,14 +508,16 @@ export class RemoteStateProvider implements IStateProvider {
       if (lockFile.run?.lockId === lockId) {
         lockFile.run.stateFiles = await this.writeRunState(lockFile.run);
         await this.writeLockFile(lockFile);
-        return { lockId };
+        return { commitId: lock.commitId, lockId, resumedFrom: 'directory' };
       }
 
-      // Read what the run wrote so far. A run that wrote nothing started from the newest sealed state.
+      // Read what the run wrote so far. A run that wrote nothing started from the newest sealed state,
+      // which is read as a refresh reads it, without its journal.
       let response = await HttpUtility.send(`${this.appStateUrl()}/commit/${lock.commitId}/files`, {
         headers: this.authorizationHeader(),
       });
-      if (response.status === 404) {
+      const isRunWritten = response.status !== 404;
+      if (!isRunWritten) {
         response = await HttpUtility.send(`${this.appStateUrl()}/latest`, { headers: this.authorizationHeader() });
       }
       if (!response.ok && response.status !== 404) {
@@ -502,7 +526,7 @@ export class RemoteStateProvider implements IStateProvider {
 
       const run = { commitId: lock.commitId, lockId, stateFiles: {} as { [stateFileName: string]: string } };
       if (response.ok) {
-        const { state } = await this.replaceStateFiles(response);
+        const { state } = await this.replaceStateFiles(response, { takeJournal: isRunWritten });
         if (state.commitId === lock.commitId) {
           for (const stateFile of state.stateFiles) {
             run.stateFiles[stateFile.filename] = stateFile.md5;
@@ -512,7 +536,7 @@ export class RemoteStateProvider implements IStateProvider {
       run.stateFiles = await this.writeRunState(run);
       await this.writeLockFile({ refreshedCommitId: lockFile.refreshedCommitId, run });
 
-      return { lockId };
+      return { commitId: lock.commitId, lockId, resumedFrom: isRunWritten ? 'run' : 'sealed' };
     });
   }
 
@@ -649,10 +673,11 @@ export class RemoteStateProvider implements IStateProvider {
    * Writes one file into the state directory whole, so a process reading it never reads half of it.
    */
   private async writeStateFile(stateFileName: string, data: Buffer): Promise<void> {
-    await FileUtility.ensureDirectory(this.localStateDirectoryPath);
+    const stateFilePath = join(this.localStateDirectoryPath, stateFileName);
+    await FileUtility.ensureDirectory(dirname(stateFilePath));
 
-    const temporaryFilePath = join(this.localStateDirectoryPath, `.${stateFileName}.${process.pid}.tmp`);
+    const temporaryFilePath = join(dirname(stateFilePath), `.${basename(stateFilePath)}.${process.pid}.tmp`);
     await writeFile(temporaryFilePath, data);
-    await rename(temporaryFilePath, join(this.localStateDirectoryPath, stateFileName));
+    await rename(temporaryFilePath, stateFilePath);
   }
 }

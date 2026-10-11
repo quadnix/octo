@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { readFile, rm, writeFile } from 'node:fs/promises';
-import { TransactionError } from '../../errors/index.js';
+import { AppLockError, TransactionError } from '../../errors/index.js';
 
 /**
  * What the lock file holds: the id that proves ownership, and when it was taken.
@@ -54,7 +54,7 @@ export class FileAppLockUtility {
     // Resume the run holding the lock, which on one machine holds nothing more to read.
     if (resumeLockId) {
       if ((await this.getAppLock(lockFilePath)) !== resumeLockId) {
-        throw new TransactionError(`App is not locked with lock ID "${resumeLockId}"!`);
+        throw new AppLockError(`App is not locked with lock ID "${resumeLockId}"!`, { reason: 'not-held' });
       }
       return { lockId: resumeLockId };
     }
@@ -70,8 +70,14 @@ export class FileAppLockUtility {
         // separate command to ask, and how long it has been held without one either.
         const holder = await this.readLock(lockFilePath);
         const heldFor = holder?.startedAt ? this.describeAge(holder.startedAt) : undefined;
-        throw new TransactionError(
+        throw new AppLockError(
           `App already locked with lock ID "${holder?.lockId}"${heldFor ? `, held for ${heldFor}` : ''}!`,
+          {
+            holder: holder
+              ? { lockId: holder.lockId, takenAt: holder.startedAt ? Date.parse(holder.startedAt) : undefined }
+              : undefined,
+            reason: 'held',
+          },
         );
       }
       throw error;

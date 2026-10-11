@@ -1,5 +1,5 @@
 import { readFile, readdir, rm, writeFile } from 'fs/promises';
-import { join, resolve } from 'path';
+import { dirname, join, resolve } from 'path';
 import { TransactionError } from '../../errors/index.js';
 import { FileUtility } from '../../utilities/file/file.utility.js';
 import { FileAppLockUtility } from '../../utilities/file-app-lock/file-app-lock.utility.js';
@@ -97,21 +97,22 @@ export class LocalStateProvider implements IStateProvider {
   /**
    * Does nothing: the directory is the only copy of the state, so it is always the newest.
    */
-  async refreshState(): Promise<void> {
-    return;
+  async refreshState(): Promise<{ replaced: boolean }> {
+    return { replaced: false };
   }
 
   /**
-   * Writes state files, overwriting whatever was there and deleting each one given no `data`.
+   * Writes state files, overwriting whatever was there and deleting each one given no `data`. A name
+   * holding `/` is written into a directory beneath the state directory.
    */
   async saveStates(stateFiles: { data: Buffer | undefined; stateFileName: string }[]): Promise<void> {
-    await FileUtility.ensureDirectory(this.localStateDirectoryPath);
-
     for (const { data, stateFileName } of stateFiles) {
+      const stateFilePath = join(this.localStateDirectoryPath, stateFileName);
       if (data === undefined) {
-        await rm(join(this.localStateDirectoryPath, stateFileName), { force: true });
+        await rm(stateFilePath, { force: true });
       } else {
-        await writeFile(join(this.localStateDirectoryPath, stateFileName), data);
+        await FileUtility.ensureDirectory(dirname(stateFilePath));
+        await writeFile(stateFilePath, data);
       }
     }
   }

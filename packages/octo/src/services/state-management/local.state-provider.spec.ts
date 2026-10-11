@@ -322,5 +322,15 @@ describe('LocalStateProvider UT', () => {
         `"No state found!"`,
       );
     });
+
+    it('should write a nested name into a directory beneath the state directory', async () => {
+      const stateDirectoryPath = await mkdtemp(join(tmpdir(), 'octo-local-state-'));
+      const localStateProvider = new LocalStateProvider(stateDirectoryPath);
+
+      await localStateProvider.saveStates([{ data: Buffer.from('saved'), stateFileName: 'archives/c/r.json' }]);
+
+      await expect(localStateProvider.getState('archives/c/r.json')).resolves.toEqual(Buffer.from('saved'));
+      await rm(stateDirectoryPath, { force: true, recursive: true });
+    });
   });
 });

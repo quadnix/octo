@@ -1,13 +1,39 @@
+import { jest } from '@jest/globals';
+import { AppLockError, TransactionError } from '../../errors/index.js';
+import {
+  AppLockRefusedEvent,
+  AppLockTakenEvent,
+  AppUnlockedEvent,
+  AppUnlockingEvent,
+  type Event,
+  StateFilesSavedEvent,
+  StateFilesSavingEvent,
+  StateRefreshedEvent,
+} from '../../events/index.js';
+import { EventService } from '../event/event.service.js';
 import { StateManagementService } from './state-management.service.js';
 import { TestStateProvider } from './test.state-provider.js';
 
 describe('StateManagementService UT', () => {
+  let emitted: Event<unknown>[];
   let service: StateManagementService;
   let stateProvider: TestStateProvider;
 
   beforeEach(() => {
+    emitted = [];
+    jest.spyOn(EventService.getInstance(), 'emit').mockImplementation((event) => {
+      emitted.push(event);
+    });
+    jest.spyOn(EventService.getInstance(), 'emitAndWait').mockImplementation(async (event) => {
+      emitted.push(event);
+    });
+
     stateProvider = new TestStateProvider();
     service = new StateManagementService(stateProvider);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   describe('getResourceResponse()', () => {
@@ -155,6 +181,199 @@ describe('StateManagementService UT', () => {
       await service.saveExternalResourceState('igw-1', { inputs: {}, properties: {}, response: {} });
 
       await expect(service.listExternalResourceStateIds()).resolves.toEqual(['igw-1']);
+    });
+  });
+
+  describe('lockApp()', () => {
+    it('should emit the refusal and rethrow when the lock is held', async () => {
+      const { lockId } = await service.lockApp();
+
+      await expect(service.lockApp()).rejects.toThrow(`App already locked with lock ID "${lockId}"!`);
+
+      const refusal = emitted.find((e) => e instanceof AppLockRefusedEvent) as AppLockRefusedEvent;
+      expect(refusal.payload).toMatchObject({ holder: { lockId }, reason: 'held' });
+    });
+
+    it('should refuse a new lock over journal files of a command after lock, naming them', async () => {
+      await service.saveStates([
+        { data: Buffer.from('{}'), stateFileName: 'journal.20261011T100000000Z-00000001.generate.json' },
+        { data: Buffer.from('{}'), stateFileName: 'journal.20261011T100000000Z-00000002.commit.json' },
+        { data: Buffer.from('{}'), stateFileName: 'journal.20261011T100000000Z-00000002.commit.terraform.json' },
+      ]);
+
+      const error = await service.lockApp().catch((e) => e);
+
+      expect(error).toBeInstanceOf(AppLockError);
+      expect(error.message).toBe(
+        'State holds the journal of a cycle that was never archived: ' +
+          'journal.20261011T100000000Z-00000002.commit.json, journal.20261011T100000000Z-00000002.commit.terraform.json! ' +
+          'Move or delete these files, then lock again.',
+      );
+      const refusal = emitted.find((e) => e instanceof AppLockRefusedEvent) as AppLockRefusedEvent;
+      expect(refusal.payload).toMatchObject({
+        reason: 'unfinished',
+        stateFileNames: [
+          'journal.20261011T100000000Z-00000002.commit.json',
+          'journal.20261011T100000000Z-00000002.commit.terraform.json',
+        ],
+      });
+      await expect(stateProvider.getAppLock()).resolves.toBeUndefined();
+    });
+
+    it('should take a new lock over journal files of generate, validate and lock', async () => {
+      await service.saveStates([
+        { data: Buffer.from('{}'), stateFileName: 'journal.20261011T100000000Z-00000001.generate.json' },
+        { data: Buffer.from('{}'), stateFileName: 'journal.20261011T100000000Z-00000002.validate.terraform.json' },
+        { data: Buffer.from('{}'), stateFileName: 'journal.20261011T100000000Z-00000003.lock.json' },
+      ]);
+
+      await expect(service.lockApp()).resolves.toMatchObject({ lockId: expect.any(String) });
+    });
+
+    it('should not check the journal when resuming a lock', async () => {
+      const { lockId } = await service.lockApp();
+      await service.saveStates([
+        { data: Buffer.from('{}'), stateFileName: 'journal.20261011T100000000Z-00000002.apply.json' },
+      ]);
+
+      await expect(service.lockApp(lockId)).resolves.toEqual({ lockId });
+    });
+
+    it('should emit the lock taken, and the lock resumed', async () => {
+      const { lockId } = await service.lockApp();
+      await service.lockApp(lockId);
+
+      expect(emitted.filter((e) => e instanceof AppLockTakenEvent).map((e) => e.payload)).toEqual([
+        { commitId: undefined, lockId, resumed: false },
+        { commitId: undefined, lockId, resumed: true },
+      ]);
+    });
+
+    it('should emit where a resume took the state directory from', async () => {
+      const { lockId } = await service.lockApp();
+      jest.spyOn(stateProvider, 'lockApp').mockResolvedValueOnce({ lockId, resumedFrom: 'run' });
+      await service.lockApp(lockId);
+
+      expect(emitted.filter((e) => e instanceof AppLockTakenEvent).at(-1)!.payload).toMatchObject({
+        resumed: true,
+        resumedFrom: 'run',
+      });
+    });
+  });
+
+  describe('refreshState()', () => {
+    it('should emit what the provider refreshed', async () => {
+      await service.refreshState();
+
+      expect(emitted.find((e) => e instanceof StateRefreshedEvent)!.payload).toEqual({ replaced: false });
+    });
+  });
+
+  describe('saveStates()', () => {
+    it('should write the files a listener adds before the save, in the same change', async () => {
+      jest.spyOn(EventService.getInstance(), 'emitAndWait').mockImplementation(async (event) => {
+        if (event instanceof StateFilesSavingEvent) {
+          event.payload.stateFiles.push({ data: Buffer.from('added'), stateFileName: 'journal.1.apply.json' });
+        }
+      });
+      const saveStates = jest.spyOn(stateProvider, 'saveStates');
+
+      await service.saveStates([{ data: Buffer.from('saved'), stateFileName: 'a.tfstate' }]);
+
+      expect(saveStates).toHaveBeenCalledTimes(1);
+      expect(saveStates.mock.calls[0][0].map((f) => f.stateFileName)).toEqual(['a.tfstate', 'journal.1.apply.json']);
+    });
+
+    it('should emit every file written with its digest, and every file deleted', async () => {
+      await service.saveStates([
+        { data: Buffer.from('saved'), stateFileName: 'a.json' },
+        { data: undefined, stateFileName: 'b.json' },
+      ]);
+
+      expect(emitted.map((e) => e.constructor)).toEqual([StateFilesSavingEvent, StateFilesSavedEvent]);
+      expect((emitted[1] as StateFilesSavedEvent).payload.stateFiles).toEqual([
+        { data: Buffer.from('saved'), md5: '536a056b710e94b16169efd17a4a657b', stateFileName: 'a.json' },
+        { data: undefined, md5: undefined, stateFileName: 'b.json' },
+      ]);
+    });
+  });
+
+  describe('unlockApp()', () => {
+    const journalFileNames = [
+      'journal.20261011T100000000Z-00000001.generate.json',
+      'journal.20261011T100000000Z-00000002.commit.json',
+    ];
+
+    const saveJournal = async (): Promise<void> => {
+      await service.saveStates(journalFileNames.map((stateFileName) => ({ data: Buffer.from('{}'), stateFileName })));
+    };
+
+    it('should throw when a different lock is held, moving nothing', async () => {
+      await service.lockApp();
+      await saveJournal();
+
+      await expect(service.unlockApp('other')).rejects.toThrow(new TransactionError('Invalid lock ID!'));
+      await expect(stateProvider.listStates('journal.')).resolves.toEqual(journalFileNames);
+    });
+
+    it('should keep the lock and move nothing when the last journal write fails', async () => {
+      const { lockId } = await service.lockApp();
+      await saveJournal();
+      jest.spyOn(EventService.getInstance(), 'emitAndWait').mockImplementation(async (event) => {
+        if (event instanceof AppUnlockingEvent) {
+          throw new Error('refused');
+        }
+      });
+
+      await expect(service.unlockApp(lockId)).rejects.toThrow('refused');
+      await expect(stateProvider.getAppLock()).resolves.toBe(lockId);
+      await expect(stateProvider.listStates('journal.')).resolves.toEqual(journalFileNames);
+    });
+
+    it('should stop when no lock is held', async () => {
+      await saveJournal();
+      emitted = [];
+
+      await service.unlockApp('gone');
+
+      expect(emitted.map((e) => e.constructor)).toEqual([AppUnlockingEvent]);
+      await expect(stateProvider.listStates('journal.')).resolves.toEqual(journalFileNames);
+    });
+
+    it('should release, then archive every journal file under the lock id', async () => {
+      const { lockId } = await service.lockApp();
+      await saveJournal();
+      emitted = [];
+      const unlockApp = jest.spyOn(stateProvider, 'unlockApp');
+      const saveStates = jest.spyOn(stateProvider, 'saveStates');
+
+      await service.unlockApp(lockId);
+
+      expect(unlockApp.mock.invocationCallOrder[0]).toBeLessThan(saveStates.mock.invocationCallOrder[0]);
+      expect(emitted.map((e) => e.constructor)).toEqual([
+        AppUnlockingEvent,
+        StateFilesSavingEvent,
+        StateFilesSavedEvent,
+        AppUnlockedEvent,
+      ]);
+      await expect(stateProvider.listStates('journal.')).resolves.toEqual([]);
+      await expect(stateProvider.listStates('archives/')).resolves.toEqual(
+        journalFileNames.map((stateFileName) => `archives/${lockId}/${stateFileName}`),
+      );
+      await expect(stateProvider.getAppLock()).resolves.toBeUndefined();
+    });
+
+    it('should release, reporting on stderr, when the journal cannot be archived', async () => {
+      const { lockId } = await service.lockApp();
+      await saveJournal();
+      jest.spyOn(stateProvider, 'saveStates').mockRejectedValue(new Error('disk full'));
+      const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+      await service.unlockApp(lockId);
+
+      expect(stderr).toHaveBeenCalledWith(`Failed to archive the journal of lock "${lockId}": disk full\n`);
+      await expect(stateProvider.getAppLock()).resolves.toBeUndefined();
+      await expect(stateProvider.listStates('journal.')).resolves.toEqual(journalFileNames);
     });
   });
 });

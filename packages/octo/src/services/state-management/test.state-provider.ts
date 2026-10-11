@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { TransactionError } from '../../errors/index.js';
+import { AppLockError, TransactionError } from '../../errors/index.js';
 import type { IStateProvider } from './state-provider.interface.js';
 
 /**
@@ -62,15 +62,18 @@ export class TestStateProvider implements IStateProvider {
    * @throws {@link TransactionError} When a lock is held, naming the id that holds it. When `lockId`
    * is given and is not the lock held.
    */
-  async lockApp(lockId?: string): Promise<{ lockId: string }> {
+  async lockApp(lockId?: string): ReturnType<IStateProvider['lockApp']> {
     if (lockId) {
       if (this.lockId !== lockId) {
-        throw new TransactionError(`App is not locked with lock ID "${lockId}"!`);
+        throw new AppLockError(`App is not locked with lock ID "${lockId}"!`, { reason: 'not-held' });
       }
       return { lockId };
     }
     if (this.lockId) {
-      throw new TransactionError(`App already locked with lock ID "${this.lockId}"!`);
+      throw new AppLockError(`App already locked with lock ID "${this.lockId}"!`, {
+        holder: { lockId: this.lockId },
+        reason: 'held',
+      });
     }
     this.lockId = randomUUID();
 
@@ -80,8 +83,8 @@ export class TestStateProvider implements IStateProvider {
   /**
    * Does nothing: the state lives in this process alone, so it is always the newest.
    */
-  async refreshState(): Promise<void> {
-    return;
+  async refreshState(): Promise<{ replaced: boolean }> {
+    return { replaced: false };
   }
 
   /**

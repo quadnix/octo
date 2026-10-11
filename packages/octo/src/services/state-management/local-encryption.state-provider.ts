@@ -1,5 +1,5 @@
 import { readdir, rm } from 'fs/promises';
-import { join, resolve } from 'path';
+import { dirname, join, resolve } from 'path';
 import { TransactionError } from '../../errors/index.js';
 import { FileUtility } from '../../utilities/file/file.utility.js';
 import { FileAppLockUtility } from '../../utilities/file-app-lock/file-app-lock.utility.js';
@@ -124,25 +124,22 @@ export class LocalEncryptionStateProvider implements IStateProvider {
   /**
    * Does nothing: the directory is the only copy of the state, so it is always the newest.
    */
-  async refreshState(): Promise<void> {
-    return;
+  async refreshState(): Promise<{ replaced: boolean }> {
+    return { replaced: false };
   }
 
   /**
-   * Writes state files, overwriting whatever was there and deleting each one given no `data`.
+   * Writes state files, overwriting whatever was there and deleting each one given no `data`. A name
+   * holding `/` is written into a directory beneath the state directory.
    */
   async saveStates(stateFiles: { data: Buffer | undefined; stateFileName: string }[]): Promise<void> {
-    await FileUtility.ensureDirectory(this.localStateDirectoryPath);
-
     for (const { data, stateFileName } of stateFiles) {
+      const stateFilePath = join(this.localStateDirectoryPath, stateFileName + '.enc');
       if (data === undefined) {
-        await rm(join(this.localStateDirectoryPath, stateFileName + '.enc'), { force: true });
+        await rm(stateFilePath, { force: true });
       } else {
-        await FileUtility.encryptBufferToFile(
-          data,
-          join(this.localStateDirectoryPath, stateFileName + '.enc'),
-          this.encryptionKey,
-        );
+        await FileUtility.ensureDirectory(dirname(stateFilePath));
+        await FileUtility.encryptBufferToFile(data, stateFilePath, this.encryptionKey);
       }
     }
   }
