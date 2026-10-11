@@ -221,7 +221,7 @@ export class LoggingEventListener {
    */
   @OnEvent(ModuleEvent)
   onModule(event: ModuleEvent): void {
-    this.logger.log.withMetadata({ name: event.name }).debug('Module loaded.');
+    this.logger.log.withMetadata({ moduleId: event.payload.moduleId, name: event.name }).debug('Module loaded.');
   }
 
   /**
