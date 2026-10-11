@@ -157,7 +157,9 @@ LOCK_ID=$(npm run --silent octo:lock)
 Fails if a lock is already held, naming the ID that holds it. Nothing else runs, so a second runner
 stops before it reads state or plans anything. With
 [`RemoteStateProvider`](/docs/techniques/state-providers#remote-state) it also fails when another
-run finished after your `generate`, so there `generate` comes first.
+run finished after your `generate`, so there `generate` comes first. It also fails while the state
+directory holds [journal](/docs/using-octo/what-octo-saves-and-when#the-journal) files a released
+lock could not archive, naming them.
 
 | Flag       |                                                               |
 |------------|---------------------------------------------------------------|
@@ -192,7 +194,8 @@ Finishes a run as it stands and releases its lock.
 
 A successful `commit` releases its own lock, so this is for a run that will not reach one: a run
 that never applied, or one somebody finished by hand. With a remote state provider, unlocking makes
-what the run wrote the newest state, which the next `generate` plans against.
+what the run wrote the newest state, which the next `generate` plans against. Like `commit`, it
+moves the journal into `archives/<lockId>/` before releasing.
 
 ## Scaffolding
 

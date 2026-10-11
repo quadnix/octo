@@ -101,6 +101,8 @@ back in after, so whoever can reach Octo state can reach Terraform state with it
 
 `generate` saves the model graph because the run has established what your intent is. Resource state
 waits for `commit`, because until an apply has happened there is nothing to record.
+[What Octo Saves and When](/docs/using-octo/what-octo-saves-and-when) follows every command,
+Terraform's state and the lock included.
 
 Commit is all or nothing. If an expected Terraform output is missing, it throws before touching any
 file rather than writing half a record, so a commit that failed can be re-run once you have fixed
@@ -119,8 +121,7 @@ settings:
 ```
 
 `LocalStateProvider` writes plain JSON to a directory, which is what the shop uses. [State
-Providers](/docs/techniques/state-providers) covers the other three, and how far each one carries as
-a team grows.
+Providers](/docs/techniques/state-providers) covers the other three, and which one a team needs.
 
 ## Losing it
 

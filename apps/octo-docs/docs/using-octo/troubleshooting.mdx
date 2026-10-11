@@ -273,10 +273,22 @@ the shell. Run `octo lock` to see which ID holds it.
 checkout, so this directory holds none of what that run wrote. Resume it here with
 `octo lock --lockId` first.
 
+**`State holds the journal of a cycle that was never archived: journal.20261011T042121268Z-593d89e5.commit.json! Move or delete these files, then lock again.`**
+
+The state directory holds a [journal](/docs/using-octo/what-octo-saves-and-when#the-journal) file of
+a command that only runs under a lock, and no lock is held, so the file belongs to no cycle. Either
+somebody finished your lock from another machine, with `octo lock --lockId`, and the files are this
+machine's copies of what that lock already uploaded; or the last cycle released its lock but could
+not move its journal into `archives/`, which `commit` or `unlock` reported on stderr as `Failed to
+archive the journal of lock "..."`. The lock was not taken.
+
+The files are a record and nothing reads them back. Move them anywhere you want to keep them, or
+delete them, then lock again.
+
 **`State file "..." is larger than 5MB!`**, **`State cannot hold more than 200 files!`**
 
 `RemoteStateProvider` only, refused before anything was written. These are the backend's limits on
-one app's state, and nothing on the Octo side raises them.
+one app's state, and nothing on the Octo side raises them. Journal files count toward both.
 
 ## While applying
 

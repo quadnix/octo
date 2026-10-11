@@ -35,6 +35,7 @@ terraform:
 settings:
   listeners:
     - type: HtmlReportEventListener
+    - type: JournalEventListener
     - type: LoggingEventListener
   stateProvider:
     type: LocalStateProvider
@@ -184,6 +185,7 @@ settings:
   listeners:
     - type: HtmlReportEventListener
       reportDir: .octo/reports
+    - type: JournalEventListener
     - type: LoggingEventListener
       level: info
       colorize: true
@@ -191,6 +193,11 @@ settings:
     type: LocalStateProvider
     statePath: .octo
 ```
+
+`listeners` names what watches each command: the HTML report, the
+[journal](/docs/using-octo/what-octo-saves-and-when#the-journal), and the terminal log. Each is
+optional, and [Events and Listeners](/docs/techniques/events-and-listeners#registering-a-listener)
+covers their options.
 
 `stateProvider` is required, and picks where state is kept: Octo's own, the Terraform state Octo
 checks in and out around every Terraform command, and the app lock that `apply` and `commit` both

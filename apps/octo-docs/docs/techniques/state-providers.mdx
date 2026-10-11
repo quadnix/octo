@@ -33,8 +33,7 @@ outputs Octo maps. Reports are the exception and need nothing done to them: the 
 directory they are written to.
 
 `LocalEncryptionStateProvider` writes the same files encrypted, with an `.enc` suffix, and takes an
-`encryptionKey`. The point is that the result is safe to commit, which gives a small team shared
-state with nothing to run:
+`encryptionKey`. The point is that the result is safe to commit:
 
 ```yaml
 settings:
@@ -56,10 +55,8 @@ first apply.
 `TestStateProvider` keeps everything in memory, and is what the test harness uses.
 
 `RemoteStateProvider` keeps state in a backend a whole team reaches, and has a
-[section of its own](#remote-state).
-
-Without a backend, the arrangement a team can share is `LocalEncryptionStateProvider` with the
-files committed to the repository.
+[section of its own](#remote-state). It is the only provider for a team: the two local providers are
+for one person.
 
 ## It holds the lock
 
@@ -163,9 +160,14 @@ against the last finished run and cannot take the lock until somebody finishes t
 machine can, as the account that took the lock or as an organization administrator:
 [Recovering a Failed Run](/docs/using-octo/recovering-a-failed-run#with-remote-state) has the steps.
 
-Everything in the directory is uploaded, so the provider holds it to what the backend accepts, and
-refuses a write before it lands on disk: a file of at most 5 MB, at most 200 files, and names
-made of letters, digits, `_`, `-`, and `.`, ending in `.json` or `.tfstate`.
+Every file at the top of the directory is uploaded, so the provider holds it to what the backend
+accepts, and refuses a write before it lands on disk: a file of at most 5 MB, at most 200 files, and
+names made of letters, digits, `_`, `-`, and `.`, ending in `.json` or `.tfstate`. That includes the
+[journal](/docs/using-octo/what-octo-saves-and-when#the-journal) of the lock under way, so the
+record a lock seals holds every command that led to it. `generate` never replaces journal
+files when it refreshes the directory, resuming a lock on another machine keeps that machine's
+journal files and uploads them with the rest, and the `archives/` they move to once the lock is
+released is never uploaded.
 
 The directory is scratch space, and the backend is the copy that counts, so add `.octo/` to your
 `.gitignore`. Two files of the provider's own live there beside the state, `remote-state.lock` and
@@ -178,9 +180,9 @@ directory alone, and the lock uploads what it holds as the run's starting point.
 ## What a provider does not do
 
 **It does not give you a way back.** Octo writes each file whole, every time, and has no command
-that restores an earlier version. The local providers keep no history at all, so going back has to
-come from wherever the files live: a repository's history for state you commit, or versioning on the
-storage the directory sits on. The backend behind `RemoteStateProvider` keeps the record of every
-finished run, but nothing in Octo reads an old one back. Restoring old state does not undo
-infrastructure either. It makes Terraform forget what exists, and the next apply tries to build it
-again.
+that restores an earlier version. The journal keeps a copy of each version a command wrote, but
+nothing in Octo reads one back, so going back has to come from wherever the files live: a
+repository's history for state you commit, or versioning on the storage the directory sits on. The
+backend behind `RemoteStateProvider` keeps the record of every finished run, but nothing in Octo
+reads an old one back. Restoring old state does not undo infrastructure either. It makes Terraform
+forget what exists, and the next apply tries to build it again.

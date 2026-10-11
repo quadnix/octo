@@ -135,6 +135,11 @@ const sidebars: SidebarsConfig = {
           type: 'doc',
         },
         {
+          id: 'using-octo/what-octo-saves-and-when',
+          label: 'What Octo Saves and When',
+          type: 'doc',
+        },
+        {
           id: 'using-octo/recovering-a-failed-run',
           label: 'Recovering a Failed Run',
           type: 'doc',

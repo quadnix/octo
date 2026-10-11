@@ -1,0 +1,190 @@
+---
+title: What Octo Saves and When
+---
+
+One change to your infrastructure goes through five `octo` commands, and an apply in the middle of
+them can take a minute or an hour. Any of them can stop part way: an error from AWS, a closed
+terminal, a CI job somebody cancelled. Whether that costs you anything depends on what was already
+saved when it stopped, and on whether the next command can tell what happened.
+
+This page follows one change to the [shop](/docs/getting-started/shop-stack) through the commands,
+and says at each one what lands in the state directory, `.octo/`, and what a stop there leaves
+behind. The change is a new receipts bucket for checkout.
+
+## One change, five commands
+
+| Command    | Needs the lock | Saves to `.octo/`                                                         |
+|------------|----------------|---------------------------------------------------------------------------|
+| `generate` | No             | `models.json`, your intent as the definition file now describes it        |
+| `validate` | No             | Terraform's state, after each plan                                        |
+| `lock`     | Takes it       | `local-state.lock`, or a lock in the backend with remote state            |
+| `apply`    | Yes            | Terraform's state, every ten seconds and at the end, and a record for each external resource it creates |
+| `commit`   | Releases it    | `models.json`, `resources-actual.json`, `resources-old.json`, then unlock |
+
+Every command also writes its [journal](#the-journal) file, if your definition file lists the
+journal.
+
+`generate` and `validate` plan and change nothing in your AWS account, so they need no lock and can
+be run as often as you like. They read the state directory and write intent and Terraform's record
+of what exists; neither is a promise that anything will be built.
+
+`lock` is where a change starts for real. From the lock until the `commit` or `unlock` that releases
+it, nobody else can apply or commit, and every command passes the lock ID it printed:
+
+```bash
+LOCK_ID=$(npm run --silent octo:lock)
+npm run octo:apply -- --lockId $LOCK_ID
+npm run octo:commit -- --lockId $LOCK_ID
+```
+
+## During the apply
+
+`octo apply` hands your generated Terraform to Terragrunt, and Terraform records what it creates in
+its own state file, inside each module folder under `.octo-tf/`. That folder is a working copy.
+Octo copies each module's state into `.octo/<moduleId>.tfstate` before Terraform starts, every ten
+seconds while it runs, and once more when it stops, whether it succeeded or failed. With
+[remote state](/docs/techniques/state-providers#remote-state), each of those copies is uploaded,
+and `checkInIntervalInSeconds` sets how often.
+
+So an apply that stops for any reason has saved Terraform's record up to its last copy. One that
+failed with an error saved all of it. One that was killed outright lost at most its last ten
+seconds.
+
+Octo's own record, `resources-actual.json`, is not written during an apply. Terraform knows the
+receipts bucket exists the moment it is created; Octo learns it at `commit`, which reads Terraform's
+outputs and records them against the module that asked for the bucket.
+
+## At the commit
+
+`octo commit` writes Octo's record in one go: if a Terraform output it expects is missing, it throws
+before writing anything, and the lock stays held so you can run it again. Once the record is
+written, it releases the lock in three steps:
+
+1. The journal writes the commit's own file. If that fails, the commit fails and the lock stays
+   held, so running the commit again retries it.
+2. The lock is released. With remote state, this seals the change's record in the backend, journal
+   included.
+3. Every journal file in `.octo/` moves into `.octo/archives/<lockId>/`, on this machine only. If
+   that fails, the commit prints `Failed to archive the journal of lock "..."` and carries on.
+
+Nothing about your infrastructure or its state changes after the release; moving the journal is a
+cleanup. `octo unlock`, which gives a change up rather than finishing
+it, takes the same three steps.
+
+## The journal
+
+The journal records what each command did: every step it took, the inputs each module ran with,
+each error, everything Terraform and Terragrunt printed, and a copy of each version of Octo's state
+it wrote. Octo's state says what your infrastructure is now; the journal says how it got there,
+which is what you need when the terminal that ran a command is gone.
+
+It is a listener, on when `octo.yaml` lists it, as a new project does:
+
+```yaml
+settings:
+  listeners:
+    - type: HtmlReportEventListener
+    - type: JournalEventListener
+    - type: LoggingEventListener
+```
+
+Each command writes its files into `.octo/`, named after the command and an ID that starts with the
+time the command started, so they sort in order. After `generate`, `validate` and `lock`:
+
+```text
+journal.20261011T041723700Z-a690d91d.generate.f793c0d6cea01dba9aa521449489482f.json
+journal.20261011T041723700Z-a690d91d.generate.json
+journal.20261011T041724187Z-30dd727f.validate.json
+journal.20261011T041724187Z-30dd727f.validate.terraform.json
+journal.20261011T041733700Z-032b3e64.lock.json
+```
+
+| File                                    | Holds                                                     |
+|-----------------------------------------|-----------------------------------------------------------|
+| `journal.<id>.<command>.json`           | Every step of the command, in order, and how it ended     |
+| `journal.<id>.<command>.terraform.json` | What each Terraform and Terragrunt process printed        |
+| `journal.<id>.<command>.<md5>.json`     | A copy of `models.json` or a resource graph it wrote      |
+
+A command's files are saved when it ends, and also every time it saves state, so an apply's journal
+goes out with each ten-second copy of Terraform's state. An apply that is killed keeps its journal
+up to its last copy. What the killed Terraform process printed is not in it, because Octo records a
+process's output when the process exits; the apply's own log is where that is.
+
+The files of one lock stay together. `generate` and `validate` files wait in `.octo/` until the
+next `lock`, and when that lock is released, everything moves into a folder named after it:
+
+```text
+.octo/archives/5bbc6995-66eb-4252-9ccd-169d469522b0/
+├── journal.20261011T041723700Z-a690d91d.generate.json
+├── journal.20261011T041724187Z-30dd727f.validate.json
+├── journal.20261011T041733700Z-032b3e64.lock.json
+├── journal.20261011T041737972Z-3e0cd513.apply.json
+├── journal.20261011T041747354Z-d74b1acd.commit.json
+└── ...
+```
+
+A change that needed three tries at `apply` before its commit has all three `apply` files in that
+folder.
+
+Each file is JSON, so [jq](https://jqlang.org) reads it. The steps a commit took:
+
+```bash
+jq -r '.entries[].type' .octo/archives/$LOCK_ID/journal.*.commit.json | uniq -c
+```
+
+```text
+   1 CommandStartedEvent
+   4 ModuleEvent
+   1 TerraformCommandStartedEvent
+   1 TerraformCommandOutputEvent
+   1 TerraformCommandFinishedEvent
+   1 StateFilesSavedEvent
+   1 ModeStartedEvent
+   1 ModelDiffsTransactionEvent
+   5 ModelActionTransactionEvent
+   1 ModelTransactionTransactionEvent
+   1 ResourceDiffsTransactionEvent
+   3 StateFilesSavedEvent
+   1 CommitModeCompletedEvent
+   1 ModeFinishedEvent
+   1 AppUnlockingEvent
+```
+
+[Events and Listeners](/docs/techniques/events-and-listeners#the-stream) says what each of those is.
+The error a command failed with:
+
+```bash
+jq -r '.entries[]? | select(.type == "CommandFailedEvent") | .payload.error' .octo/journal.*.json
+```
+
+The journal is gitignored in a new project, both the files in `.octo/` and `archives/`. The inputs
+each module ran with are recorded as given, so a secret passed as a module input is in the journal
+in plain text. Nothing in Octo reads the journal back: deleting it, or the archive, changes nothing
+about your infrastructure or what Octo knows of it.
+
+With [remote state](/docs/techniques/state-providers#remote-state), the journal files in `.octo/`
+are uploaded with the rest of the state while the lock is held, so the record a lock seals holds
+every command that led to it. `archives/` stays on the machine.
+
+## When it stops part way
+
+| Where it stopped                         | What is saved                                 | What to do                                                              |
+|------------------------------------------|-----------------------------------------------|-------------------------------------------------------------------------|
+| `generate` or `validate`                 | Nothing is locked                             | Fix what the error names and run it again                               |
+| `apply`, with an error                   | Terraform's record of everything it built     | [The apply failed](/docs/using-octo/recovering-a-failed-run#the-apply-failed) |
+| `apply`, killed                          | Terraform's record, but its last ten seconds  | [The run died](/docs/using-octo/recovering-a-failed-run#the-run-died)   |
+| `commit`, with an error                  | Nothing new; the lock is still held           | [The commit failed](/docs/using-octo/recovering-a-failed-run#the-commit-failed) |
+| `commit`, after `Failed to archive`      | Everything; the lock is released              | Move or delete the journal files left in `.octo/`                       |
+
+The last row needs nothing but tidying, and `octo lock` points it out: it refuses to start a new
+change while `.octo/` holds a journal file of a command that only runs under a lock, and no lock is
+held:
+
+```text
+Error: State holds the journal of a cycle that was never archived: journal.20261011T042121268Z-593d89e5.commit.json! Move or delete these files, then lock again.
+```
+
+Move the files it names somewhere you want to keep them, or delete them, and lock again.
+
+A command that only runs under a lock writes no journal file when no lock is held, so running
+`octo apply` before `octo lock`, or `octo unlock` on an app already unlocked, leaves nothing behind.
