@@ -162,7 +162,7 @@ function attachTerraformChanges(
 
     // Drift and uncertain are deliberately kept out of `totals`. `totals` answers "what does my
     // change do", and it is what the headline counts; a change nobody made must not be attributed
-    // to the user. Both get their own counters on the page.
+    // to the user. Both get their own counters in the report.
     for (const change of observation.validate.uncertain) {
       uncertain.push({
         address: change.address,
@@ -319,7 +319,7 @@ function buildStories(
 }
 
 /**
- * The generated sentence at the top of the page.
+ * The generated sentence the report opens with.
  */
 function buildHeadline(report: Omit<OctoReport, 'headline'>): string {
   if (report.failures.length > 0) {

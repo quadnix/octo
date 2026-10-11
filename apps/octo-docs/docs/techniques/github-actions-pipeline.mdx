@@ -16,7 +16,7 @@ applied from that pull request when somebody asks, and merged only once the appl
 
 ```mermaid
 flowchart TD
-  PR["Pull request<br/>generate, validate, comment the report"]
+  PR["Pull request<br/>generate, validate"]
   R["Review<br/>approve the change and its report"]
   C["Comment<br/>/octo apply"]
   A["Apply workflow<br/>check, generate, lock, apply, commit"]
@@ -29,8 +29,8 @@ flowchart TD
 
 Two workflows, and each one has a job the other cannot do.
 
-The **plan workflow** runs `generate` and `validate` on every push to a pull request and posts the
-report as a comment. It writes nothing anywhere, so it runs with credentials that can only read.
+The **plan workflow** runs `generate` and `validate` on every push to a pull request, and the report
+is in its log. It writes nothing anywhere, so it runs with credentials that can only read.
 
 The **apply workflow** runs when somebody comments `/octo apply` on an approved pull request. It
 checks the pull request is up to date with `main`, applies it, and merges it. A concurrency group
@@ -101,7 +101,6 @@ jobs:
     permissions:
       contents: read
       id-token: write        # for OIDC role assumption
-      pull-requests: write   # to comment the report
     env:
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
       OCTO_SESSION: ${{ secrets.OCTO_SESSION }}
@@ -137,36 +136,6 @@ jobs:
 
       - name: Validate
         run: npm run octo:validate
-
-      - name: Comment the report
-        if: always()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            const dir = '.octo/reports';
-            const latest = fs.readdirSync(dir)
-              .filter((f) => f.endsWith('-validate.json'))
-              .sort()
-              .pop();
-            const report = JSON.parse(fs.readFileSync(`${dir}/${latest}`, 'utf8'));
-            const t = report.totals;
-            const body = [
-              `### Octo plan, \`${report.confidence}\` confidence`,
-              '',
-              report.headline,
-              '',
-              `\`- ${t.delete} destroy\`  \`± ${t.recreate} replace\`  \`+ ${t.create} create\`  \`~ ${t.update} update\``,
-              report.drift.length > 0
-                ? `\n⚠️ **${report.drift.length} drift**, infrastructure changed outside Octo.`
-                : '',
-            ].join('\n');
-            await github.rest.issues.createComment({
-              body,
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-            });
 ```
 
 Four things about that are easy to get wrong.
@@ -179,10 +148,6 @@ provider, so the job needs a role. Give it one that can only read.
 
 `generate` reads the newest state the backend holds before it plans, so the report is against what
 exists now, not against whatever was on the branch when it was cut.
-
-The [HTML report listener](/docs/using-octo/reading-a-validate-report#the-html-report) is what
-writes the JSON the script reads. Register it in `octo.yaml` or there will be no `.octo/reports/`
-directory to look in.
 
 Terragrunt is installed by hand because the action Gruntwork publishes for it runs in a container,
 which leaves nothing on the runner for the steps below to call. Expect a run to download a few

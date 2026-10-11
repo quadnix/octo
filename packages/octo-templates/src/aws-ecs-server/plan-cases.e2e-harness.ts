@@ -21,7 +21,6 @@ import {
   stub,
 } from '@quadnix/octo';
 import { AwsMultiAzRegionId } from '@quadnix/octo-aws-cdk/modules/region/aws-multi-az-region/schema';
-import { HtmlReportEventListener } from '@quadnix/octo-event-listeners/html-report';
 import { LoggingEventListener } from '@quadnix/octo-event-listeners/logging';
 import { config } from './app.config.js';
 import { ModuleDefinitions } from './module-definitions.js';
@@ -265,7 +264,6 @@ describe('Plan cases', () => {
     testModuleContainer = new TestModuleContainer(container);
     await testModuleContainer.initialize(new LocalStateProvider(stateDir), [
       { options: { args: [{ level: 'info' }] }, type: LoggingEventListener },
-      { options: { args: [{ reportDir: join(workDir, 'reports') }] }, type: HtmlReportEventListener },
     ]);
 
     testModuleContainer.registerTerraformConfig({

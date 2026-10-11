@@ -195,12 +195,10 @@ Sit back and watch the magic happen! Octo will create:
 6. **Multi-AZ Setup** - High availability across multiple availability zones.
 
 ### Access Your Live Server
-Once the deployment is complete, you'll see the ALB DNS name in the HTML report output or in your AWS console.
+Once the deployment is complete, find the ALB DNS name in your AWS console, under EC2 → Load Balancers.
 Your containerized server is now live and accessible through the load balancer!
 
-Within the HTML report, you can find your ALB DNS name under
-`@octo/alb=alb-region-module-app-region-east-qa-api-alb` resource.<br/>
-The `DNSName` key looks like `qa-api-alb-<random_id>.us-east-1.elb.amazonaws.com`.
+The DNS name looks like `qa-api-alb-<random_id>.us-east-1.elb.amazonaws.com`.
 
 Visit this URL in your browser:
 ```bash
@@ -215,15 +213,6 @@ without writing a single line of infrastructure code.
 If you run the deployment steps again, Octo will detect that your infrastructure already exists and won't recreate it.
 If you modify the `octo.yaml` file and re-run, Octo will intelligently detect and apply the changes.
 Pretty cool, right?
-
-## HTML Reports
-After each deployment, Octo generates a comprehensive HTML report showing exactly what infrastructure was created.
-You'll find this report in your project root directory - open it in any web browser to see:
-- All AWS resources that were created.
-- Resource relationships and dependencies.
-- Configuration details for each component.
-
-This report is invaluable for understanding your infrastructure and ensuring everything was deployed correctly.
 
 ## Customizing Your ECS Server
 The template comes with a sample echo server, but you can easily customize it for your own application.
@@ -272,7 +261,7 @@ modules:
 
 :::info
 Let's again redeploy the app using `octo run` command.
-The HTML report will show you the changes you made.
+`octo validate` will show you the changes you made.
 
 Heading in the AWS console, you will see that the task definition has been updated,
 and momentarily ECS server will start to pick up the new task definition.
@@ -329,7 +318,7 @@ In certain cases, the cleanup has been known to take >20 minutes.
 Octo is still in its early phases, so if you encounter a bug creating or deleting resources,
 please help us by opening an issue on GitHub.
 
-In worst case, to avoid unwanted AWS charges, reference the HTML report and manually delete the resources.
+In worst case, to avoid unwanted AWS charges, find the resources in your AWS console and delete them manually.
 :::
 
 ## Why This Matters

@@ -11,7 +11,6 @@ import {
   stub,
 } from '@quadnix/octo';
 import { AwsMultiAzRegionId } from '@quadnix/octo-aws-cdk/modules/region/aws-multi-az-region/schema';
-import { HtmlReportEventListener } from '@quadnix/octo-event-listeners/html-report';
 import { LoggingEventListener } from '@quadnix/octo-event-listeners/logging';
 import axios from 'axios';
 import axiosRetry from 'axios-retry';
@@ -46,7 +45,6 @@ describe('Main E2E', () => {
     testModuleContainer = new TestModuleContainer(container);
     await testModuleContainer.initialize(stateProvider, [
       { options: { args: [{ level: 'info' }] }, type: LoggingEventListener },
-      { options: { args: [{ reportDir: join(__dirname, '.octo', 'reports') }] }, type: HtmlReportEventListener },
     ]);
 
     testModuleContainer.registerTerraformConfig({

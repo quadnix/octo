@@ -66,21 +66,18 @@ the process moves on.
 
 ## Registering a listener
 
-From the definition file, for the three Octo ships:
+From the definition file, for the two Octo ships:
 
 ```yaml
 settings:
   listeners:
-    - type: HtmlReportEventListener
-      reportDir: .octo/reports
     - type: JournalEventListener
     - type: LoggingEventListener
       level: info
 ```
 
-`LoggingEventListener` is the terminal output. `HtmlReportEventListener` writes each run as a
-browsable page plus the same report as JSON, and maintains an index of runs. `JournalEventListener`
-is the journal, below. A new project lists all three.
+`LoggingEventListener` is the terminal output. `JournalEventListener` is the journal, below. A new
+project lists both.
 
 A listener of your own is registered at boot, which means driving Octo from TypeScript:
 
@@ -89,7 +86,7 @@ await octo.initialize(stateProvider, [{ type: ShopAuditListener }]);
 ```
 
 There is no way to name your own listener class from `octo.yaml` today; the definition file's
-`listeners` block accepts the three built-in types only.
+`listeners` block accepts the two built-in types only.
 
 ## The journal
 

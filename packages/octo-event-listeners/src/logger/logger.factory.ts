@@ -65,10 +65,9 @@ export class Logger {
   /**
    * The one logger for the process.
    *
-   * Every listener must share it. `pino-pretty` runs in a worker thread, so two Logger instances are
-   * two workers writing to the same file descriptor with no ordering between them — which showed up
-   * as a report's "written to …" line printing before the "Started validate" line that preceded it
-   * by 5ms. One instance, one stream, correct order.
+   * Everything that logs must share it. `pino-pretty` runs in a worker thread, so two Logger instances
+   * are two workers writing to the same file descriptor with no ordering between them. One instance,
+   * one stream, correct order.
    *
    * Options {@link configure} it; a call without options takes whatever is already running.
    */

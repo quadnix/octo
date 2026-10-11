@@ -10,7 +10,6 @@ import {
   RemoteStateProvider,
   TestStateProvider,
 } from '@quadnix/octo';
-import type { HtmlReportEventListener } from '@quadnix/octo-event-listeners/html-report';
 import type { JournalEventListener } from '@quadnix/octo-event-listeners/journal';
 import type { LoggingEventListener } from '@quadnix/octo-event-listeners/logging';
 import { Ajv2020 as Ajv } from 'ajv/dist/2020.js';
@@ -35,10 +34,6 @@ interface IYamlDefinition {
   }>;
   settings: {
     listeners?: (
-      | {
-          reportDir?: string;
-          type: 'HtmlReportEventListener';
-        }
       | {
           type: 'JournalEventListener';
         }
@@ -229,7 +224,7 @@ export class YamlDefinitionUtility {
     {
       args?: unknown[];
       metadata?: Record<string, string>;
-      type: Constructable<HtmlReportEventListener | JournalEventListener | LoggingEventListener>;
+      type: Constructable<JournalEventListener | LoggingEventListener>;
     }[]
   > {
     const listeners: Awaited<ReturnType<YamlDefinitionUtility['resolveListeners']>> = [];
@@ -239,13 +234,7 @@ export class YamlDefinitionUtility {
     }
 
     for (const listenerDef of this.definition.settings.listeners) {
-      if (listenerDef.type === 'HtmlReportEventListener') {
-        const imported = await import('@quadnix/octo-event-listeners/html-report');
-        listeners.push({
-          args: [{ reportDir: listenerDef.reportDir }],
-          type: imported.HtmlReportEventListener,
-        });
-      } else if (listenerDef.type === 'JournalEventListener') {
+      if (listenerDef.type === 'JournalEventListener') {
         listeners.push({ type: (await this.resolveJournalListener())! });
       } else if (listenerDef.type === 'LoggingEventListener') {
         const imported = await import('@quadnix/octo-event-listeners/logging');

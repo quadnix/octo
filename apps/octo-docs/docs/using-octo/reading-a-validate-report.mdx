@@ -288,18 +288,3 @@ account that no run will remove, because Octo deletes only what it has recorded.
 the resource left your definition file, or when its resource ID changed, before any commit recorded
 the first version.
 [Troubleshooting](/docs/using-octo/troubleshooting) has the two ways out.
-
-## The HTML report
-
-If your definition file registers `HtmlReportEventListener`, each run also writes a browsable page:
-
-```text
-.octo/reports/
-├── 20260819T015404-commit.html
-├── 20260819T015404-commit.json
-└── index.html
-```
-
-`index.html` lists the runs, newest first. The JSON alongside each page is the same report as data,
-which is what to parse if you want to post a summary onto a pull request. These are output, not
-state, and the scaffolded `.gitignore` excludes them.

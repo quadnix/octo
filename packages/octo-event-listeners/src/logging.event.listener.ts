@@ -65,8 +65,8 @@ import { renderReportText } from './reporters/text/text.reporter.js';
  *
  * - `error` - a mode failed.
  * - `warn`  - drift, commit warnings, a non-zero terraform exit.
- * - `info`  - mode boundaries, folders written, terraform commands, mode results, report paths,
- *             SDK resource actions, and the run's report in full.
+ * - `info`  - mode boundaries, folders written, terraform commands, mode results,
+ *             SDK resource actions, and the mode's report in full.
  * - `debug` - diffs, transactions, serialization, hooks, author `log()` calls.
  * - `trace` - class registration.
  *
@@ -74,7 +74,7 @@ import { renderReportText } from './reporters/text/text.reporter.js';
  */
 export class LoggingEventListener {
   /**
-   * Collects the run so the mode can be closed with the whole report, not just a count.
+   * Collects the mode so it can be closed with the whole report, not just a count.
    */
   private readonly observer = new RunObserver();
   /**
@@ -342,10 +342,8 @@ export class LoggingEventListener {
   /**
    * The whole report for the mode that just ended, as plain text.
    *
-   * Rendered from the same {@link OctoReport} the HTML page is built from, so the terminal and the
-   * page cannot disagree; the page is only the more concise and pleasant of the two. It goes through
-   * the logger rather than straight to stdout, which is what makes it obey the configured level and
-   * destination — `run-action` routes the logger to stderr because terraform's `data "external"`
+   * Rendered from {@link OctoReport}. It goes through the logger rather than straight to stdout,
+   * which is what makes it obey the configured level and destination — `run-action` routes the logger to stderr because terraform's `data "external"`
    * protocol needs that command's stdout to carry only its response JSON.
    *
    * `generate` and `run-action` produce no report, and nothing is printed for them.

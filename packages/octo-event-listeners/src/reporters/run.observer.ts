@@ -8,12 +8,7 @@ import { buildReport } from './report.builder.js';
 import type { OctoReport, RunObservation } from './report.model.js';
 
 /**
- * Collects one run from octo's event stream, and turns it into a report.
- *
- * Held by each listener that reports, rather than shared between them: listeners are dispatched in
- * no guaranteed order, so a single instance read by one listener and written by another would race.
- * Two instances see the same events and build the same report, which is what lets the terminal and
- * the HTML page agree without being coupled to each other.
+ * Collects one mode from octo's event stream, and turns it into a report.
  */
 export class RunObserver {
   /**

@@ -80,7 +80,6 @@ Octo's memory of what your infrastructure is.
 | `<moduleId>.tfstate`               | One module's Terraform state, checked out into its folder before a Terraform command and back in after.                         |
 | `resource-state-<resourceId>.json` | What an external resource's action produced, from the moment it ran until the commit that records it.                           |
 | `local-state.lock`                 | The app lock, present only while a run holds it. `apply` and `commit` require it; a commit that succeeds releases it.           |
-| `reports/`                         | HTML and JSON from each validate and commit. Generated output, not state, and gitignored.                                       |
 | `journal.<commandId>.<command>.*`  | The [journal](/docs/using-octo/what-octo-saves-and-when#the-journal) of the change under way, a few files per command.          |
 | `archives/<lockId>/`               | The journal of each lock already released, moved out of the way. Kept on the machine, and gitignored.                           |
 
@@ -182,7 +181,6 @@ move and when an environment model is.
 | `.octo/models.json`, `.octo/resources-*.json`  | Yes    | Octo's state. Without it the next run starts from nothing.         |
 | `.octo/*.tfstate`, `.octo/*.tfstate.enc`       | Yes    | Terraform's state. Without it the next apply rebuilds what exists. |
 | `.octo/local-state.lock`                       | No     | The app lock. It exists only while a run holds it.                 |
-| `.octo/reports/`                               | No     | Output of a run.                                                   |
 | `.octo/journal.*`, `.octo/archives/`           | No     | The journal. A file per command would land in every change.        |
 | `.octo-tf/**/*.tf`, `terragrunt.hcl`           | Yes    | The Terraform your change produced, reviewable next to the change. |
 | `.octo-tf/**/*.tfstate*`, `.terragrunt-cache/` | No     | Terraform's own working files, written during an apply.            |

@@ -17,7 +17,6 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { jest } from '@jest/globals';
 import { LocalStateProvider, TestContainer, TestModuleContainer } from '@quadnix/octo';
-import { HtmlReportEventListener } from '@quadnix/octo-event-listeners/html-report';
 import { LoggingEventListener } from '@quadnix/octo-event-listeners/logging';
 import { config } from './app.config.js';
 import { ModuleDefinitions } from './module-definitions.js';
@@ -75,7 +74,6 @@ describe(`Incremental E2E [stage=${STAGE} phase=${PHASE} nat=${NAT ? 'on' : 'off
     testModuleContainer = new TestModuleContainer(container);
     await testModuleContainer.initialize(new LocalStateProvider(stateDir), [
       { options: { args: [{ level: 'info' }] }, type: LoggingEventListener },
-      { options: { args: [{ reportDir: join(workDir, 'reports') }] }, type: HtmlReportEventListener },
     ]);
 
     testModuleContainer.registerTerraformConfig({

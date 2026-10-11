@@ -30,7 +30,6 @@ terraform:
 
 settings:
   listeners:
-    - type: HtmlReportEventListener
     - type: LoggingEventListener
 
   stateProvider:

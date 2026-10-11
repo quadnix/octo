@@ -81,20 +81,6 @@
               {
                 "additionalProperties": false,
                 "properties": {
-                  "reportDir": {
-                    "type": "string"
-                  },
-                  "type": {
-                    "const": "HtmlReportEventListener",
-                    "type": "string"
-                  }
-                },
-                "required": ["type"],
-                "type": "object"
-              },
-              {
-                "additionalProperties": false,
-                "properties": {
                   "type": {
                     "const": "JournalEventListener",
                     "type": "string"

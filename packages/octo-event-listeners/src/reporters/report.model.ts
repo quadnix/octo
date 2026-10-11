@@ -43,7 +43,7 @@ export const CHANGE_SYMBOLS: Record<ChangeKind, string> = {
 export const CHANGE_ORDER: ChangeKind[] = ['delete', 'recreate', 'create', 'update', 'other'];
 
 /**
- * What terraform calls each kind. Shared so the page and the terminal never label one differently.
+ * What terraform calls each kind. Every label the report prints comes from here.
  */
 export const CHANGE_LABELS: Record<ChangeKind, string> = {
   create: 'create',
@@ -153,7 +153,7 @@ export interface OctoReport {
   failures: { message: string; moduleId?: string }[];
   finishedAt: number;
   /**
-   * A generated one-sentence summary, for the top of the page.
+   * A generated one-sentence summary, printed first.
    */
   headline: string;
   mode: 'commit' | 'validate';

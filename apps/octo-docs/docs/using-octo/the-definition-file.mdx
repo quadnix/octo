@@ -34,7 +34,6 @@ terraform:
 
 settings:
   listeners:
-    - type: HtmlReportEventListener
     - type: JournalEventListener
     - type: LoggingEventListener
   stateProvider:
@@ -183,8 +182,6 @@ alongside an AWS one in the same region needs an `accountId` of its own.
 ```yaml
 settings:
   listeners:
-    - type: HtmlReportEventListener
-      reportDir: .octo/reports
     - type: JournalEventListener
     - type: LoggingEventListener
       level: info
@@ -194,7 +191,7 @@ settings:
     statePath: .octo
 ```
 
-`listeners` names what watches each command: the HTML report, the
+`listeners` names what watches each command: the
 [journal](/docs/using-octo/what-octo-saves-and-when#the-journal), and the terminal log. Each is
 optional, and [Events and Listeners](/docs/techniques/events-and-listeners#registering-a-listener)
 covers their options.
@@ -234,10 +231,8 @@ See [State](/docs/fundamentals/state).
 
 `listeners` decides what a run prints. `LoggingEventListener` is the console output every command
 produces; its `level` is one of `trace`, `debug`, `info`, `warn`, `error`, `fatal`, `silent`, and
-`colorize` defaults to whether the output is a terminal. `HtmlReportEventListener` writes the same
-report as a browsable page under `reportDir`, which defaults to `.octo/reports`. Without any
-listeners a run is silent. [Events and Listeners](/docs/techniques/events-and-listeners) covers
-writing your own.
+`colorize` defaults to whether the output is a terminal. Without any listeners a run is silent.
+[Events and Listeners](/docs/techniques/events-and-listeners) covers writing your own.
 
 ## env
 

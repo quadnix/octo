@@ -5,6 +5,5 @@ plugins/typedoc-api/lib
 .octo-tf/
 
 .octo/local-state.lock
-.octo/reports/
 .octo/journal.*
 .octo/archives/

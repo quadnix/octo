@@ -10,7 +10,7 @@ import {
 } from '../report.model.js';
 
 /**
- * How long the run took, terraform named separately. See {@link OctoReport.terraformInMs}.
+ * How long the mode took, terraform named separately. See {@link OctoReport.terraformInMs}.
  */
 function duration(report: OctoReport): string {
   const readable = (ms: number): string => (ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(1)}s`);
@@ -129,11 +129,9 @@ function section(lines: string[], heading: string, rows: string[]): void {
 /**
  * The report as plain text, for a terminal.
  *
- * Built from {@link OctoReport} — the same data the HTML page renders, and every section it has.
- * The page's job is to be concise and pleasant to read, not to know more; so anything the terminal
- * cannot say is a gap in the report model rather than a reason to keep a second one. This replaced
- * a renderer in `octo-build` that read `validate`'s return value directly, which meant every
- * finding had to be implemented twice and the two drifted.
+ * Built from {@link OctoReport}, and prints every section of it. This replaced a renderer in
+ * `octo-build` that read `validate`'s return value directly, which meant every finding had to be
+ * implemented twice and the two drifted.
  */
 export function renderReportText(report: OctoReport): string {
   const lines: string[] = [

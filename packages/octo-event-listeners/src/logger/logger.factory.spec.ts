@@ -1,5 +1,3 @@
-import { HtmlReportEventListener } from '../html-report.event.listener.js';
-import { LoggingEventListenerFactory } from '../logging.event.listener.js';
 import { Logger } from './logger.factory.js';
 
 /**
@@ -45,18 +43,6 @@ describe('Logger UT', () => {
 
       // A rebuild would start a second pino-pretty worker for no reason.
       expect(logger.log).toBe(log);
-    });
-  });
-
-  describe('listener boot order', () => {
-    it('lets LoggingEventListener set the level even when HtmlReportEventListener booted first', async () => {
-      // The definition lists the report listener first, so it takes the logger before the logging
-      // listener is asked for one.
-      new HtmlReportEventListener({ reportDir: '.octo/reports' });
-
-      await LoggingEventListenerFactory.create({ colorize: false, destination: 'stderr', level: 'trace' });
-
-      expect(pinoLevelOf(Logger.shared())).toBe('trace');
     });
   });
 });

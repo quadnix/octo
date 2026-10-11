@@ -84,7 +84,7 @@ describe('LoggingEventListener UT', () => {
     );
   };
 
-  it('prints the run report when the mode finishes', async () => {
+  it('prints the report when the mode finishes', async () => {
     await runValidate();
 
     expect(printed()).toContain('test-app — octo validate');

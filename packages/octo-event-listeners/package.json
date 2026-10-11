@@ -12,7 +12,6 @@
     "node": ">=18.18.0"
   },
   "exports": {
-    "./html-report": "./dist/html-report.event.listener.js",
     "./journal": "./dist/journal.event.listener.js",
     "./logging": "./dist/logging.event.listener.js"
   },
