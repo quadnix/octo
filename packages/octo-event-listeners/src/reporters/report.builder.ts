@@ -407,26 +407,5 @@ export function buildReport(observation: RunObservation): OctoReport {
     uncertain,
   };
 
-  // Rebuilt in key order rather than spread-with-headline-appended: the report is written to disk as
-  // JSON, and appending left `headline` last in every file on disk.
-  return {
-    app: report.app,
-    commit: report.commit,
-    confidence: report.confidence,
-    dataLoss: report.dataLoss,
-    drift: report.drift,
-    durationInMs: report.durationInMs,
-    failures: report.failures,
-    finishedAt: report.finishedAt,
-    headline: buildHeadline(report),
-    mode: report.mode,
-    moves: report.moves,
-    notes: report.notes,
-    outcome: report.outcome,
-    startedAt: report.startedAt,
-    stories: report.stories,
-    terraformInMs: report.terraformInMs,
-    totals: report.totals,
-    uncertain: report.uncertain,
-  };
+  return { ...report, headline: buildHeadline(report) };
 }

@@ -346,7 +346,7 @@ describe('App Modes E2E Test', () => {
   });
 
   describe('user journeys around deletion and unrecognized folders', () => {
-    it('runs the full committed-delete cycle: verified destroy, destroy commit, benign leftover, re-add', async () => {
+    it('walks the full committed-delete journey: verified destroy, destroy commit, benign leftover, re-add', async () => {
       // Committed baseline, then the user deletes igw and sg from the yaml.
       const app = await commitBaseline();
       setDesiredGraph({ withChildren: false });

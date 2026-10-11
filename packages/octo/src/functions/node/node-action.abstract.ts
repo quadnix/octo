@@ -7,7 +7,7 @@ import { Container } from '../container/container.js';
  *
  * Extending it is a convenience, not a requirement - an action only has to implement
  * {@link IModelAction} or {@link IResourceAction}. What you get here is the {@link Container},
- * and a `log()` that goes through Octo's event stream so your output lands in the run's report
+ * and a `log()` that goes through Octo's event stream so your output lands in the command's report
  * alongside everything else.
  *
  * @example
@@ -35,7 +35,7 @@ export abstract class ANodeAction {
 
   /**
    * To report what the action is doing. The message is emitted as an {@link ActionEvent}, so it is
-   * picked up by whatever listeners the run has, rather than written straight to the console.
+   * picked up by whatever listeners the command has, rather than written straight to the console.
    */
   log(message: string, metadata: Record<string, unknown> = {}): void {
     this.eventService

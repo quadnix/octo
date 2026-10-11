@@ -542,8 +542,8 @@ export class RemoteStateProvider implements IStateProvider {
 
   /**
    * Every state file the directory holds, which is every file in it but the provider's two lock
-   * files and a write still in progress, and none of the directories a run writes beside them - a
-   * report directory, or a generated terragrunt folder.
+   * files and a write still in progress, and none of the directories a run writes beside them, such
+   * as a generated terragrunt folder.
    */
   private async stateFileNames(): Promise<string[]> {
     try {

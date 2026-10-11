@@ -112,7 +112,7 @@ export class Octo {
     options: { lockId: string; outputs: Map<string, TerraformOutputs>; partial?: boolean },
     transaction?: ModelTransactionResult,
   ): Promise<Pick<Awaited<ReturnType<typeof runCommit>>, 'warnings'>> {
-    // Checked before the mode starts, so a run without the lock reads no state and writes none.
+    // Checked before the mode starts, so a commit without the lock reads no state and writes none.
     if (!(await this.stateManagementService.isAppLocked(options.lockId))) {
       throw new TransactionError('App is not locked!');
     }
@@ -376,7 +376,7 @@ export class Octo {
    * To apply tags to resources in bulk, so that individual modules do not each have to be told about
    * your organization's tagging policy.
    *
-   * Each entry's `scope` decides its reach: empty tags every resource of the run, `moduleId` tags
+   * Each entry's `scope` decides its reach: empty tags every resource of the app, `moduleId` tags
    * every resource of one module, and `resourceContext` tags a single resource.
    */
   registerTags(

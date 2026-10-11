@@ -109,9 +109,9 @@ describe('validateCommand UT', () => {
     expect(processExitSpy).not.toHaveBeenCalled();
   });
 
-  // The report itself is rendered by the registered listeners, from the same OctoReport the HTML
-  // page uses — including the verdict. The handler writes nothing to stdout at all, so that pino
-  // is its only writer and the output cannot come out interleaved.
+  // The report itself, verdict included, is rendered by the registered listeners. The handler writes
+  // nothing to stdout at all, so that pino is its only writer and the output cannot come out
+  // interleaved.
   it('leaves rendering the report to the listeners', async () => {
     await validateCommand.handler(argv);
 
