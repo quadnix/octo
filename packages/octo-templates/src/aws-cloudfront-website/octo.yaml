@@ -12,6 +12,7 @@ env:
 
 settings:
   listeners:
+    - type: JournalEventListener
     - type: LoggingEventListener
       level: info
 
