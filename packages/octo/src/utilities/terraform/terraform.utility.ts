@@ -710,6 +710,10 @@ export class TerraformUtility {
    * The check-in runs on the way out of a failure as much as a success, because what terraform has
    * already built is real whether or not the command that built it returned cleanly. A timer checks
    * in through the command as well, bounding what a killed runner loses.
+   *
+   * A failed command keeps its own error when the check-in after it fails too; the check-in's error
+   * is printed on stderr. The folder's state is ahead of the provider's then, and the next run keeps
+   * it and checks it in.
    */
   private async withTerraformState<T>(
     terragruntDir: string,
@@ -722,20 +726,32 @@ export class TerraformUtility {
 
     await terraformStateService.checkOut(terragruntDir, moduleIds);
 
+    const checkIn = async (): Promise<void> => {
+      terraformStateService.stopPeriodicCheckIn();
+      if (!keepMoves) {
+        await this.restoreStates(originalStates);
+      }
+      await terraformStateService.checkIn(terragruntDir, moduleIds);
+    };
+
+    let result: T;
     try {
       await this.moveStates(terragruntDir, moduleIds, originalStates);
       if (keepMoves || originalStates.size === 0) {
         terraformStateService.startPeriodicCheckIn(terragruntDir, moduleIds, this.options.stateCheckInIntervalInMs);
       }
 
-      return await body(moduleIds);
-    } finally {
-      terraformStateService.stopPeriodicCheckIn();
-      if (!keepMoves) {
-        await this.restoreStates(originalStates);
-      }
-      await terraformStateService.checkIn(terragruntDir, moduleIds);
+      result = await body(moduleIds);
+    } catch (error) {
+      // Keep the error of the command, which is the one the user has to act on.
+      await checkIn().catch((checkInError) => {
+        process.stderr.write(`Failed to check terraform state in: ${checkInError?.message ?? String(checkInError)}\n`);
+      });
+      throw error;
     }
+
+    await checkIn();
+    return result;
   }
 }
 

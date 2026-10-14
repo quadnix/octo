@@ -536,6 +536,31 @@ describe('TerraformUtility UT', () => {
 
       expect((await stateProvider.getState('module-a.tfstate')).toString()).toBe('{"resources":[{"halfBuilt":true}]}');
     });
+
+    it('should keep the command error when the state cannot be written back either', async () => {
+      await createModuleFolder('module-a');
+      terraform.execFileAsyncMock.mockRejectedValue(
+        Object.assign(new Error('exit 1'), { code: 1, stderr: 'boom', stdout: '' }),
+      );
+      jest.spyOn(stateProvider, 'saveStates').mockRejectedValue(new Error('Failed to write the app state: refused!'));
+      const stderrWrite = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+      try {
+        await expect(terraform.apply(terragruntDir)).rejects.toMatchObject({ stderr: 'boom' });
+        expect(stderrWrite).toHaveBeenCalledWith(
+          'Failed to check terraform state in: Failed to write the app state: refused!\n',
+        );
+      } finally {
+        stderrWrite.mockRestore();
+      }
+    });
+
+    it('should throw the error of writing the state back when the command succeeds', async () => {
+      await createModuleFolder('module-a');
+      jest.spyOn(stateProvider, 'saveStates').mockRejectedValue(new Error('Failed to write the app state: refused!'));
+
+      await expect(terraform.apply(terragruntDir)).rejects.toThrow('Failed to write the app state: refused!');
+    });
   });
 
   describe('findPlannedDestroys()', () => {

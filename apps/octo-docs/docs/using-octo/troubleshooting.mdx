@@ -336,6 +336,13 @@ finishes, and the skipped ones run for the first time.
 A `validate` in that state exits zero, because a skipped folder plans against `mock_outputs` rather
 than against nothing. Read it as approximate until a run completes.
 
+**`Failed to check terraform state in: ...`, just before the apply's own error**
+
+The apply failed, and copying Terraform's state into Octo's state afterwards failed too, usually
+because remote state refused the write. Fix the error the apply ended with, printed right after this
+line. Nothing is lost: Terraform's state is still in each module folder, and the next command that
+runs Terraform copies it in.
+
 **`Could not run "docker build"!` or `"docker build" exited with 1!`, from inside an apply**
 
 Publishing a container image is an external resource, and its action runs the local `docker` CLI on
