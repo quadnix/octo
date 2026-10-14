@@ -1,148 +1,119 @@
 # Octo
 
-https://octo.quadnix.com/
+Infrastructure as code written as intent: you describe an app and what it needs, modules turn that
+into Terraform, and your own Terragrunt applies it. Users start at
+[octo.quadnix.com](https://octo.quadnix.com/).
 
-Octo is an infrastructure-as-code framework where you write intent, and the cloud resources are
-derived from it. You describe an app, the accounts and regions it runs in, its environments, and the
-servers and services it needs. Modules turn that description into Terraform, and your existing
-Terraform or OpenTofu toolchain applies it.
+> Octo is in `0.x`. Version `1.x` will mark it ready for production.
 
-> Disclaimer,
-> This library is still under development and is currently in version `0.x.x`.
-> We plan to release version `1.x.x` when it is deemed ready for production use.
+**This README is a set of procedures for working on the repository.** `docs/ARCHITECTURE.md`
+explains what exists, and `docs/CODING-STANDARDS.md` how to add to it.
 
-## The idea
+Requires Node 20 or newer, Terraform or OpenTofu 1.6 or newer, and Terragrunt 0.78 or newer. The
+integration suites also need Docker, and the e2e suites AWS credentials.
 
-Terraform describes infrastructure as an inventory of cloud primitives: VPCs, subnets, roles,
-policies. Reading it tells you what exists, not what it is for. Octo splits that description into two
-layers.
+---
 
-**The model graph is the intent.** It is a picture of the infrastructure that someone who is not a
-DevOps engineer can read: an app, running in a region, with a server deployed into an environment,
-reading from a storage service. Every model is a node, and the graph is what Octo diffs, stores, and
-reports on.
+## A — Set up this machine
 
-**Modules are the delivery.** A module is an opinionated answer to one question, such as what a
-region is made of, or what it takes to run a server. It reads the models it is given and produces
-the cloud resources behind them.
-
-```mermaid
-graph LR
-    subgraph intent["Model graph (intent)"]
-        direction TB
-        app[app: shop] --> region[region: eu-west-1]
-        region --> subnet[subnet: private]
-        region --> env[environment: staging]
-        app --> server[server: checkout]
-        server --> deployment[deployment: v42]
-        deployment --> execution[execution]
-        env --> execution
-        subnet --> execution
-        app --> storage[service: receipts]
-        server -. " reads and writes /uploads " .-> storage
-    end
-    subgraph delivered["Resources (one possible delivery)"]
-        direction TB
-        vpc[VPC, internet gateway]
-        cluster[ECS cluster]
-        role[IAM role + bucket policy]
-        task[task definition, ECS service]
-        bucket[S3 bucket]
-    end
-    region ==> vpc
-    env ==> cluster
-    server ==> role
-    execution ==> task
-    storage ==> bucket
-```
-
-Nothing on the left mentions AWS. The same graph could be delivered by a different set of modules:
-other AWS services, or another cloud. Changing the delivery means changing which modules the project
-uses. The intent stays as it is, and so does its history.
-
-### What belongs in the graph
-
-The vocabulary of models is fixed on purpose, so every Octo graph reads the same way. It grows only
-when a new kind of node earns its place.
-
-| Model         | What it represents                                                                            |
-|---------------|-----------------------------------------------------------------------------------------------|
-| `app`         | The root of the graph.                                                                        |
-| `account`     | A cloud account the app runs in.                                                              |
-| `region`      | A physical or logical boundary that separates one set of infrastructure from another.         |
-| `subnet`      | A subdivision of a region, such as its public and private halves. A region may have just one. |
-| `environment` | A stage the app runs in, such as staging or production.                                       |
-| `server`      | Something that runs your code.                                                                |
-| `deployment`  | One version of a server.                                                                      |
-| `execution`   | A deployment running in an environment and a subnet.                                          |
-| `service`     | Something the app uses without running it, such as a database or a bucket.                    |
-| `image`       | A container image that servers run.                                                           |
-| `filesystem`  | A filesystem that executions mount.                                                           |
-| `pipeline`    | A build or delivery pipeline.                                                                 |
-
-A few rules follow from treating the graph as intent:
-
-- **A model does not have to become a resource.** It holds its meaning even when a module creates
-  nothing for it. An `app` never becomes a resource. For a serverless platform, a single `subnet` can
-  cover the whole region.
-- **Components are not models.** VPCs, internet gateways, certificates, and private links exist to
-  make the infrastructure work. Modules create them, and the graph does not show them.
-- **Properties are overlays.** "This server sits behind HTTPS" or "checkout can read the receipts
-  bucket" is an overlay on existing nodes. The module turns it into a certificate or an IAM policy.
-- **Behavior is documentation.** Cold starts, request size limits, and pricing are properties of the
-  technology a module chooses. They are described in the module's docs, never in the graph.
-
-### Modules are opinionated
-
-A module is not meant to fit every case. The ALB module in `@quadnix/octo-aws-cdk` routes to ECS
-executions and nothing else. A generic module needs an option for every case, and those options grow
-until it is as hard to use as the raw resources. Octo prefers narrow modules with clear boundaries.
-
-Modules publish **anchors**, which describe what they created and what they expect from each other.
-Octo checks those anchors before anything reaches the cloud, so pairing two modules that were not
-built to work together fails with a message instead of halfway through an apply.
-
-`@quadnix/octo-aws-cdk` is Quadnix's own module library for AWS. It shows how a real set of modules is
-built, and you can use it as it is, extend it, or replace any part of it with your own. A library for
-another cloud would share nothing with it except the model graph.
-
-## How a change runs
-
-Octo splits a change into four steps. Each one is its own command.
-
-```bash
-octo generate -o .octo-tf      # intent -> one Terragrunt folder per module
-octo validate ...              # a report of the planned changes, read against intent (optional)
-octo apply ...                 # Terragrunt applies the folders
-octo commit ...                # the outputs are recorded in Octo's state
-```
-
-Nothing reaches the cloud before `apply`, and a pipeline can put a human between any two steps. Octo
-works out a change by comparing the graph you describe now with the one it stored after the last
-run. It does not read your cloud account to find out what exists.
-
-## Getting started
-
-You need Node.js 20 or newer, Terraform or OpenTofu 1.6 or newer, Terragrunt 0.78 or newer, and AWS
-credentials if you deploy to AWS.
+Once.
 
 ```sh
-npx @quadnix/octo-build create-app -t aws-s3-website -n hello-website
+corepack enable
+pnpm install
+pnpm run prepare
 ```
 
-The [documentation](https://octo.quadnix.com/) walks through deploying it, then covers the
-fundamentals, the AWS module catalog, and how to build your own modules.
+`prepare` installs the pre-commit hook, which runs lint.
 
-## Repository layout
+## B — Build, lint and test
 
-This is an NX monorepo.
+```sh
+pnpm run build
+pnpm run lint
+pnpm test
+```
 
-| Path                            | What it is                                                                   |
-|---------------------------------|------------------------------------------------------------------------------|
-| `packages/octo`                 | The framework: models, modules, overlays, anchors, resources, and the graph. |
-| `packages/octo-aws-cdk`         | Quadnix's AWS modules and resources.                                         |
-| `packages/octo-build`           | The `octo` CLI.                                                              |
-| `packages/octo-event-listeners` | Logging and change reports.                                                  |
-| `packages/octo-templates`       | Tested starting projects, used by `create-app`.                              |
-| `apps/octo-docs`                | The documentation site.                                                      |
-| `docs/`                         | Internal plans, standards, and open items.                                   |
+`octo-aws-cdk`, `octo-event-listeners`, `octo-build` and `octo-templates` import `octo` from its
+`dist`, and `octo-templates` imports `octo-aws-cdk` the same way. **Rebuild what you changed before
+testing what depends on it**, or the suite runs against the old code and still passes.
+
+Before submitting, also type-check every package the change reaches:
+
+```sh
+npx tsc --noEmit -p packages/<package>
+```
+
+`pnpm run lint:fix` sorts imports, members and keys. A flag passed through `pnpm run` is written
+without `--`: pnpm forwards the separator, and the script then drops the flag.
+
+## C — Run integration tests
+
+Integration specs run real Terraform; `octo-templates`' start LocalStack in Docker.
+
+```sh
+pnpm run test:integration
+```
+
+## D — Run an e2e suite
+
+**Every e2e suite reaches a live AWS account.** `octo-aws-cdk`'s plan and apply nothing;
+`octo-templates`' create real resources and tear them down.
+
+1. Copy the `.env.defaults` beside the suite to `.env` and fill in real values. `.env` is ignored.
+2. Build the packages the suite imports:
+
+   ```sh
+   npx nx run-many -t build --projects=octo,octo-event-listeners,octo-aws-cdk
+   ```
+
+3. Run one spec, by path, from its package:
+
+   ```sh
+   cd packages/octo-templates
+   NODE_OPTIONS=--experimental-vm-modules npx jest --runTestsByPath src/<template>/main.e2e-spec.ts
+   ```
+
+Never `pnpm run test:e2e` — it runs every suite live at once. Never combine `-u` with `-t`: jest then
+deletes the snapshots of every test it skipped. A template's own `README.md`, where it has one,
+holds what is particular to it.
+
+## E — Work in a worktree
+
+For a large change or a hands-free agent run:
+
+```sh
+git worktree add ../ai-worktrees/octo-worktree-<branch> -b ai/<branch>
+WORKTREE=../ai-worktrees/octo-worktree-<branch>
+find . -maxdepth 4 -name node_modules -type d ! -path "*/node_modules/*/node_modules" | \
+  while read src; do
+    mkdir -p "$WORKTREE/$(dirname $src)"
+    ln -s "$(pwd)/$src" "$WORKTREE/$src"
+  done
+```
+
+The symlinks let Nx and Jest resolve packages. Run lint and tests from inside the worktree.
+
+## F — Release
+
+1. Merge to `main` with PR titles per `.github/jobs/validate-pr-title.job.sh`. The commit type sets
+   the bump: `chore` releases nothing.
+2. Run the **Manual Release** workflow on `main`. It versions every changed package, tags, writes
+   the changelog, and publishes to npm.
+
+## Environment variables
+
+Everything outside the code that governs how this repository behaves. A suite's `.env` is read
+through `env-smart`, falling back to the `.env.defaults` beside it.
+
+| Variable                                                                                            | Set by                                        | What it does                                                                                                                                                                                                        |
+|-----------------------------------------------------------------------------------------------------|-----------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `AWS_ACCOUNT_ID`                                                                                    | a suite's `.env`                              | The account every e2e suite plans or applies into.                                                                                                                                                                  |
+| `AWS_REGION_ID`                                                                                     | `packages/octo-aws-cdk/test/.env`             | The region the module e2es plan into. Template suites hardcode `us-east-1`.                                                                                                                                         |
+| `OCTO_DEFINITION_FILE_PATH`                                                                         | the user, or a `create-app` project's scripts | The `octo.yaml` every lifecycle command boots from. `OctoCliUtility` sets it for the CLI-driven template suites. A relative path is resolved once against the working directory, so `run-action` callbacks find it. |
+| `TF_VAR_OCTO_PROJECT_ROOT`                                                                          | `TerraformUtility`, unless already set        | The working directory, so `terraform.localPath()` paths resolve inside Terragrunt's cache copy of a folder.                                                                                                         |
+| `TG_PROVIDER_CACHE`                                                                                 | `TerraformUtility`, unless already set        | `1`, so Terragrunt shares one provider cache across folders.                                                                                                                                                        |
+| `TG_TF_PATH`                                                                                        | `TerraformUtility`, from `--terraformBinary`  | Which Terraform or OpenTofu binary Terragrunt runs.                                                                                                                                                                 |
+| `NODE_OPTIONS`                                                                                      | every package's test scripts                  | `--experimental-vm-modules`, which Jest needs to run ESM. Set it yourself when running `jest` directly.                                                                                                             |
+| `OCTO_STAGE`, `OCTO_PHASE`, `OCTO_NAT`, `OCTO_TARGET`, `OCTO_WORK`, `OCTO_CASE`, `OCTO_PROBE_STATE` | you, by hand                                  | Drive the `aws-ecs-server` debugging harnesses; that template's `README.md` describes each.                                                                                                                         |
+| `GH_TOKEN`                                                                                          | a repository secret                           | Checkout and push in **Manual Release**, and the tags and GitHub releases `nx release` creates.                                                                                                                     |

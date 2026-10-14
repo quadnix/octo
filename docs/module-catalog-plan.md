@@ -120,6 +120,379 @@ user's chosen stack into their infra; Octo does not ingest telemetry itself.
 | `newrelic-observability` | overlay                                                               | Same shape as Datadog; second implementation proves the observability anchor contract is real.                                                                                                                                      |
 | `elk-stack`              | composite (`database`-ish OpenSearch + `queue` firehose + dashboards) | Self-hosted/managed OpenSearch + ingestion (◂ Firehose from Wave A) + Kibana behind ◂ identity/loadbalancer anchors. Also the natural artifact store for Part III's log features.                                                   |
 
+## Wave E — Serverless edge, gateways, private networking and accounts
+
+Added 2026-10-06 from deciding how octo's own backends deploy. Everything octo could build that
+came up is here, whether or not those backends use it. E.0 is where those backends are headed;
+the pieces it needs are marked **(target)**; the rest is demand-driven. E.7 records how the
+backends grow past E.0. The facts below were checked against AWS documentation in October 2026
+unless marked unverified.
+
+### E.0 The target for Quadnix's own backends
+
+Where `octo-backend` and `quadnix-commons` are headed, decided 2026-10-05 and revised 2026-10-06.
+They go live first on the $0 design in `docs/serverless-backend-plan.md`, built from what octo
+already has, and move here one piece at a time as the pieces below are built, so the change of
+infrastructure under a live product is itself exercised.
+
+A request pays for itself; nothing runs while idle. No ALB, NAT gateway, Fargate task or anything else
+billed by the hour.
+
+```mermaid
+graph LR
+    subgraph backend["Backend AWS account (one per environment)"]
+        cf[CloudFront<br>api domain] -- " origin mTLS " --> bgw[REST API Gateway<br>per shard]
+        bgw -- " /account/* " --> a[Lambda: account]
+        bgw -- " /state/* " --> s[Lambda: state]
+        a & s --> bddb[(DynamoDB)]
+        s --> s3[(S3: state files)]
+    end
+    subgraph commons["Commons AWS account (one per environment)"]
+        gw[REST API Gateway<br>IAM, backend account only]
+        gw -- " /authentication/* " --> l1[Lambda: authentication] --> ses[SES]
+        gw -- " /authorization/* " --> l2[Lambda: authorization]
+        gw -- " /billing/* " --> l3[Lambda: billing]
+        l1 & l2 & l3 --> cddb[(DynamoDB)]
+    end
+    cli[octo CLI / web app] --> cf
+    a & s -- " signed requests (IAM) " --> gw
+```
+
+No function has a URL: each gateway is the only way into its functions. QA and prod run the same
+design, so QA tests what prod runs.
+
+**The organization — decided 2026-10-05.** Quadnix is one AWS organization with consolidated
+billing, created by hand. The root account holds the organization and `quadnix.com`'s DNS (NS, MX),
+and delegates one subdomain per product (`octo.quadnix.com`, `bodhi.quadnix.com`, and deeper ones
+like `chat.bodhi.quadnix.com`). Each product has one account per environment (`qa`, `prod`), which
+keeps AWS limits and security apart. One octo project describes a whole product: its app holds every
+environment's account. Commons is a product of its own, internal, in its own accounts. Commons will
+later host the shared systems that relay data between products (Redis, Kafka or other event systems,
+perhaps Temporal); SES may become an endpoint of commons that products call. Neither is planned yet.
+
+**Two octo projects.** `octo-backend` runs behind CloudFront. `quadnix-commons` is called only by other
+products' services. Two octo projects cannot reference each other, so each side names the other by a
+literal: commons admits the backend's **account id**, and the backend is configured with commons'
+URL.
+
+**Commons authenticates no caller today.** None of its three services registers a guard, so the
+gateway's IAM check is its *only* protection.
+
+**How requests are protected — decided 2026-10-06** (replaces the 2026-10-05 ruling, which had
+CloudFront in front of function URLs). Every hop refuses anything that is not from its one caller,
+with no shared secret, and nothing is billed by the hour:
+
+- **Backend:** CloudFront presents a client certificate to the shard's REST gateway (origin mTLS,
+  CloudFront since 2026-01). The gateway checks it against a truststore in S3, on its custom domain,
+  and its default `execute-api` URL is turned off, or anyone could skip the check. The certificate
+  comes from a CA of our own, imported into ACM (free); an ACM public certificate cannot be used,
+  and AWS Private CA costs $50–400 a month.
+- **Commons:** a public **REST** gateway with IAM auth, and a resource policy admitting only the
+  backend account. The backend signs every request with its function's role (SigV4, one axios
+  interceptor), so commons' code sees a plain HTTP call.
+- **Each function** has no URL, and its resource policy lets only its gateway invoke it.
+
+Why this and not the alternatives:
+
+- **Why a gateway behind CloudFront at all.** WebSockets, later: a function URL cannot hold one,
+  and an API Gateway WebSocket API can. CloudFront carries a WebSocket to its origin but never sees
+  the messages, so it cannot turn them into calls. A shard gateway also gives each shard a regional
+  endpoint of its own, which a WebSocket client may connect to directly.
+- **Why CloudFront in front of the gateways.** Any edge takes the request, and a CloudFront Function
+  routes it to the right shard (see *Shards* below). Use `PriceClass_All`: `PriceClass_100` serves only
+  North America and Europe, so an Indian user lands in Europe.
+- **Not CloudFront with an origin access control.** It cannot sign for API Gateway, which supports
+  only S3, Lambda function URLs and two media services. Lambda@Edge could sign with a role, but it
+  is billed on every request, floods included, and cannot read a body over 1 MB.
+- **No secret header.** Origin mTLS replaces it.
+- **CloudFront cannot front commons.** An origin access control would re-sign every request as
+  CloudFront, so commons would never see the backend's signature.
+- **REST, not HTTP API.** Only REST has a resource policy (to admit another account), a private mode,
+  WAF, and mTLS for this; HTTP API is $1 per million against $3.50.
+- **Not private yet.** A private gateway is reachable only through an `execute-api` endpoint in the
+  caller's VPC: the backend's functions would move into a VPC and pay about $7 a month per AZ for
+  that endpoint, plus endpoints or NAT for everything else they call. CloudFront cannot reach a
+  private gateway at all: its VPC origins are ALBs, NLBs and EC2 only. See E.7.
+- **Not a Lambda invoke.** The backend calling commons through the Lambda API would make the call
+  look like a Lambda call in code, and change again on a move to servers.
+- **Not QA on function URLs and prod on gateways.** QA would stop testing prod's limits.
+
+**What a flood costs.** Requests a gateway refuses (failed authorization, no matching route,
+throttled) are not billed. A refused mTLS handshake fails before any request exists, so is expected
+not to be (unverified). CloudFront bills every request it receives (about $1 per million, plus $0.10
+for a CloudFront Function); that is the one exposure left. Gateway throttling and reserved
+concurrency on each function cap the rest. CloudFront's flat-rate plans remove it (no overage,
+attacks included, WAF bundled), but Terraform cannot select them yet (AWS added the API in
+2026-09); adopt one when it can. Until then, a Budgets alert in every account. WAF alone does not
+lower the bill: CloudFront still bills what WAF blocks, and WAF adds about $5 a month, $1 per rule
+and $0.60 per million.
+
+**Shards — decided 2026-10-05.** One shard to start. When a product has more than one, a CloudFront
+Function picks the origin per request (`cf.updateRequestOrigin()`, viewer request only, with a
+KeyValueStore mapping organization to shard gateway). An organization moves between shards without
+its URLs changing; no shard prefix appears in any URL or id. Not yet checked: how routes without an
+organization id (login, sign-up, `/account/*`) pick a shard, and KeyValueStore's size limit against
+the number of organizations.
+
+**A NestJS app runs on Lambda unchanged.** Each Dockerfile adds AWS's Lambda Web Adapter
+(`COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:<version> /lambda-adapter
+/opt/extensions/lambda-adapter`). It turns each REST gateway event into a plain HTTP request to the
+app's own port. `main.ts` and docker-compose do not change. WebSocket events are the exception: the
+adapter does not translate them and POSTs them raw to `/events` (see E.1).
+
+**Limits.**
+
+- **Uploads: about 4.5 MB per request**, in any design. Lambda caps a buffered invocation at 6 MB and
+  binary bodies arrive base64-encoded; the gateway's own 10 MB cap (hard) never comes into play.
+  State files no longer pass through it: the state service signs S3 URLs both ways, and holds each
+  app to its own limits (by default 20 MB a file, 1000 files a write, 100 MB in all).
+- **Downloads past 6 MB need streaming.** REST gateways stream Lambda responses since 2025-11, for up
+  to 15 minutes (5 minutes idle), past 10 MB but throttled to 2 MB/s beyond the first 10 MB.
+  Unproven: one older source says Lambda proxy integrations cannot stream.
+- **Timeouts.** 29 s per buffered request by default; a regional or private gateway can be raised by
+  a quota request, which may lower the account's throttle quota. A streamed response runs up to
+  15 minutes.
+- **Cold starts.** A first request after a quiet period can take 5–8 s, since a state call wakes four
+  functions in turn.
+
+**Cost.** Idle is about $1 a month (Route 53 zone, ECR storage). Beyond the free tiers, roughly $12 per
+million public API calls, because each state call is 5 invocations, plus about $1 per million at
+CloudFront and $3.50 per million at each gateway a call passes.
+
+---
+
+
+### E.1 API Gateway
+
+Three API types, three module families. `service` with type `gateway`.
+
+**REST API (v1)** **(target)** — $3.50 per million calls, nothing idle.
+
+- Lambda proxy integration: the gateway invokes a function through the Lambda API, so the function
+  needs no URL, and its resource policy admits only that gateway. The Lambda Web Adapter translates
+  REST events, so a web app runs unchanged.
+- IAM auth (SigV4), and a resource policy, which is how another account is admitted and how a private
+  gateway names the endpoints it accepts (`aws:SourceVpce`). Only REST has a resource policy.
+- Endpoint types: regional, edge-optimized, private. A private gateway has no public address and is
+  reachable only through an `execute-api` interface endpoint in the caller's VPC, across accounts
+  too (E.4 prices it).
+- Custom domain, base path mappings, and turning off the default `execute-api` URL. mTLS lives on the
+  custom domain (truststore in S3), so the default URL left on lets anyone skip it.
+- Response streaming from Lambda since 2025-11: up to 15 minutes, idle limit 5 minutes (regional,
+  private) or 30 s (edge-optimized), past 10 MB but throttled to 2 MB/s beyond the first 10 MB.
+  Unverified: one older source says Lambda proxy integrations cannot stream; prove it with a
+  download over 10 MB.
+- 29 s integration timeout by default; a quota request raises it for regional and private gateways,
+  never edge-optimized, and may lower the account's throttle quota.
+- Request payload 10 MB, hard. Behind it Lambda's own 6 MB applies first (E.3).
+- Throttling per stage and method, and per client through usage plans and API keys. Requests that
+  fail authorization, match no route or are throttled are not billed.
+- WAF attachable; response caching and request validation exist.
+- A VPC link to an NLB or ALB, for when compute moves to servers: the gateway, its URL and its
+  callers' signatures stay.
+
+**HTTP API (v2)** — $1 per million, a little faster, fewer features. IAM auth and JWT authorizers.
+No resource policy, so another account's caller must first assume a role in the API's account; no
+private type; no WAF. The cheap default when neither matters.
+
+**WebSocket API** — the only way to serve WebSockets on Lambda: a function cannot hold a connection,
+and CloudFront only carries one (E.2).
+
+- Routes by a field of the message (route selection expression, e.g. `$request.body.action`), plus
+  `$connect`, `$disconnect` and `$default`. Each message is one Lambda invocation.
+- Auth happens once, by an authorizer on `$connect`; clients reaching it directly cannot carry mTLS.
+  Unverified: whether WebSocket APIs support mTLS at all (believed not).
+- The backend pushes to a client through the `@connections/{id}` API, which needs
+  `execute-api:ManageConnections`; the user-to-connection map is the app's, in a table the module
+  could provision.
+- About $1 per million messages and $0.25 per million connection-minutes; nothing idle.
+- **Quirk for the app:** the Lambda Web Adapter does not translate WebSocket events (its
+  `lambda_http` build leaves out `apigw_websockets`). It POSTs each event raw to
+  `AWS_LWA_PASS_THROUGH_PATH` (`/events`), so the app dispatches on `routeKey` in an ordinary
+  controller; NestJS's `@WebSocketGateway` does not apply, and local development needs a shim that
+  plays the gateway. Module documentation should say so.
+
+### E.2 CloudFront
+
+Extends `aws-cloudfront-service`.
+
+- **API Gateway as an origin kind** **(target)**, with **origin mTLS** (CloudFront since 2026-01,
+  for API Gateway and ALB origins): CloudFront presents a client certificate from ACM, issued by AWS
+  Private CA ($50–400 a month) or by a CA of your own imported into ACM (free), never an ACM public
+  certificate. Unverified: Terraform provider support. If the module makes the CA with terraform's
+  `tls` provider, the CA's private key lands in terraform state.
+- **Origin access control supports S3, Lambda function URLs, MediaStore and MediaPackage v2 only**,
+  never API Gateway. It re-signs every request as CloudFront, so it must never front a service that
+  checks *who* its caller is. A function URL behind it makes clients send the body's SHA-256 as
+  `x-amz-content-sha256` on `POST` and `PUT`.
+- **Price class** **(target)**: `PriceClass_100` serves North America and Europe only;
+  `PriceClass_All` serves every edge for slightly higher per-request rates, nothing fixed.
+- **Flat-rate pricing plans**: Free, Pro ($15), Business ($200), Premium ($1,000) a month, bundling
+  WAF, DDoS protection, Route 53 and more, with no overage charges: attacks and requests WAF blocks
+  never count, and traffic past the allowance is served more slowly instead of billed. AWS added
+  the API in 2026-09; the Terraform provider cannot select them yet. Add when it can. Pay-as-you-go
+  bills every request, about $1 per million in the US and Europe.
+- **CloudFront Functions**: $0.10 per million, sub-millisecond, JavaScript. Origin switching per
+  request with `cf.updateRequestOrigin()` (runtime 2.0, viewer request only), reading a
+  **KeyValueStore**: the tenant-to-shard routing pattern. No network calls, no AWS credentials, no
+  request body. Unverified: KeyValueStore's size limit.
+- **Lambda@Edge**: can call the network, sign requests with its role and change origins, but is
+  billed on every request (floods included) and sees at most 1 MB of body.
+- **WebSockets**: CloudFront carries them to a custom origin. Functions run on the upgrade request
+  only, never on messages.
+- **VPC origins** reach ALBs, NLBs and EC2 instances in a VPC only, not `execute-api` endpoints, so
+  CloudFront cannot reach a private API Gateway without an ALB or NLB between them.
+- **The ALB origin is wired but not safe** (wired 2026-10-01, never applied live). CloudFront reads the
+  ALB's DNS name and routes to it; nothing else is done. Two gaps, to close before anything relies on
+  it:
+  1. **Anyone can skip CloudFront.** The ALB's security group admits port 80 from `0.0.0.0/0`, so its
+     DNS name answers the whole internet directly. Fixes, not decided: a secret header CloudFront
+     adds and an ALB listener rule requires (both halves exist: `customHeaders` on the origin,
+     `AlbListenerRuleHttpHeaderConditionSchema` on the listener), or a security group rule from AWS's
+     managed CloudFront prefix list (security group rules take only `CidrBlock` today). A third
+     since 2026-01: origin mTLS, which ALBs accept, once the ALB has an HTTPS listener (gap 2) and
+     the API Gateway origin has built the client certificate.
+  2. **CloudFront reaches the ALB over plain HTTP.** The ALB has only an HTTP listener, so the origin
+     is `http-only` on port 80 and the hop crosses the internet unencrypted. Closing it needs an HTTPS
+     listener and a certificate on the ALB.
+- **WAF web ACL** (on CloudFront, REST gateways or ALBs): about $5 a month, $1 per rule, $0.60 per
+  million requests. Rate rules and header checks. It does not lower CloudFront's bill: blocked
+  requests are still billed there.
+
+### E.3 Lambda
+
+Extends the Lambda execution.
+
+- **No function URL** **(target)**, invoked only by a gateway that its resource policy names.
+- **Reserved concurrency** **(target)**, the cap on what a flood can spend; provisioned concurrency,
+  aliases, versions and layers are listed under *Lambda features not built* in E.7.
+- Limits module documentation should state: a buffered invocation carries at most 6 MB each way,
+  about 4.5 MB of binary body once base64-encoded, whatever sits in front; streaming lifts the
+  response to 200 MB. A function URL refuses a bad signature before invoking, so a flood of
+  unsigned calls is not billed (third-party source, consistent with how Lambda bills).
+- In a VPC, a function never gets a public IP, even in a public subnet: every AWS service it calls
+  needs an endpoint, and everything else needs NAT (E.4). Its image is still pulled by the Lambda
+  service, never through the VPC, so it needs no ECR endpoint.
+
+### E.4 Private networking
+
+Everything here is billed by the hour, which is why the backends do without it for now.
+
+- **Gateway endpoints** for S3 and DynamoDB: free.
+- **Interface endpoints** (PrivateLink): about $7 a month per AZ each, for every other service a
+  VPC must reach privately (`execute-api`, SES, SQS, SNS, EventBridge, STS, Secrets Manager, KMS,
+  Lambda). Endpoint policies restrict what passes. PrivateLink always ends in a VPC: something with
+  no VPC cannot use it.
+- **NAT gateway**: about $32 a month per AZ, plus data. The only way out to non-AWS addresses.
+- **Between VPCs**: peering (no hourly charge, data only, no transitive routing), Transit Gateway
+  (about $36 a month per attachment), VPC Lattice (per service per hour), and PrivateLink endpoint
+  services (fronted by an NLB).
+- **Private hosted zones** (Route 53) change what a name resolves to inside a VPC; they do not make
+  a public service private.
+
+### E.5 Organization, accounts and DNS
+
+- **AWS Organizations**: member accounts, organizational units, service control policies,
+  consolidated billing. Ours is made by hand for now.
+- **Several accounts in one app** **(target)**: one account per environment under a product's app.
+  The account modules take credentials and never assume a role into a member account
+  (`OrganizationAccountAccessRole`); no e2e builds two accounts in one app.
+- **Delegated DNS** **(target)**: the root zone in one account, a product's subdomain zone in
+  another, joined by an NS record in the root zone, which crosses projects and so is a literal.
+  Extends Wave A's `aws-route53-dns`.
+- **Certificates** **(target)**: CloudFront's must be in `us-east-1`; a regional gateway's custom
+  domain takes one in its own region; DNS validation records may have to go into a zone in another
+  account. Extends Wave A's `aws-acm-https`. The first release of the backends requests its
+  certificate by hand, in the backend account, validated in the zone in the management account
+  (see `docs/serverless-backend-plan.md`).
+- **SES sending domain**: domain identity, DKIM and MAIL FROM records in the zone. Leaving the SES
+  sandbox is a request to AWS by hand. Commons goes live inside the sandbox, sending only to
+  verified addresses (decided 2026-10-06), and leaves it once everything else is proven.
+- **AWS Budgets alerts**: one per account, the early warning for a flood that costs money.
+
+### E.6 Cross-account messaging and data
+
+- **Events between products**, e.g. a customer deletion one product publishes and others consume:
+  EventBridge buses that admit other accounts, and SNS topics and SQS queues whose resource policies
+  admit other accounts. No VPC, nothing idle. Extends the SQS and SNS modules with policies naming
+  other accounts by literal.
+- **Presigned S3 URLs**: clients upload and download objects directly, past every Lambda and gateway
+  limit. The app signs them; the module side is the function's grant on the bucket and, for
+  browsers, the bucket's CORS rules. S3 has not billed requests refused with a 403 from outside
+  the account or organization since 2024.
+- **Temporal**: a candidate for commons' shared systems, alongside Wave B's Redis and Kafka.
+
+### E.7 Later: how the backends grow
+
+Not steps. They record how this setup grows, so nothing built now blocks it.
+
+**More regions and data residency.** Lambda, tables, buckets and function URLs are regional;
+CloudFront and IAM are global. Residency means a full stack per region and one home region per
+organization, with a small global directory (`hash(email)` and `organizationId` → region, nothing
+personal) as a DynamoDB global table. An idle region costs about $0. Keep these true now (also
+listed in `docs/serverless-backend-plan.md`):
+
+1. Every table's partition key starts with the organization or account, wherever the data belongs to
+   one.
+2. No personal data in a global table, ever.
+3. Region is configuration. The services hard-code `us-east-1` in `local.environment.ts`; production
+   config must read it from the environment.
+4. Keep `organizationId` in the path of every org-scoped endpoint.
+
+**Lambda code as a zip.** The Lambda family runs container images only (see *Lambda family rulings* in
+`docs/serverless-backend-plan.md`): the backend is images, and an image keeps a deployment portable between ECS and Lambda. We do not need zip, but users will, so it gets built. What it takes:
+
+- **The hard part is getting the zip to terraform.** Terragrunt runs from a cache directory and the
+  generated `.octo-tf` is committed, so neither a relative nor an absolute path in the HCL works on
+  every machine. The likely fix mirrors `EcrImageTag`: an external resource that, at apply, zips a
+  directory relative to the project root, uploads it to S3, and outputs its key and hash. The
+  function references it, so the code always exists before the function.
+- **Which bucket holds the archives** is a decision of its own: one passed in, or one per serverless
+  region.
+- **The deployment** gets a third code kind, `{ kind: 'zip', directory, handler, runtime }`, likely
+  renaming `image` to `code`. ECS executions reject it at generate.
+- **`LambdaFunction`** gets a zip branch: `package_type = "Zip"`, `handler`, `runtime`, `s3_bucket`,
+  `s3_key`, `source_code_hash` in place of `image_uri` and `image_config`. `command` means nothing
+  for a zip, so the Lambda execution rejects it.
+- **Bundling stays the user's job**, as the Dockerfile is today: octo zips the directory as it is.
+- **Check the state size.** Whatever carries the zip must not put its content into terraform state:
+  a state file is held to 20 MB by default. A resource like `aws_s3_object` with inline `content_base64`
+  would store the whole archive in state; an upload done by the external resource's action stores
+  only the key and hash. Measure the state of a real zip function before calling it done.
+
+**Lambda logs.** Lambda functions write no logs: the role gets no permission to, so Lambda creates
+no log group behind octo's back (see *Lambda family rulings* in `docs/serverless-backend-plan.md`). The CloudWatch log group
+becomes a resource of its own once CloudWatch is settled. Until then, an out-of-memory kill or a
+timeout leaves no trace, and neither does the `REPORT` line with the memory a call used, so memory
+cannot be tuned. Left out of the first release on purpose (decided 2026-10-06); revisit before the
+backend carries real traffic. The fork: the permission alone (Lambda creates its own log group, kept
+forever unless someone sets retention), or a log group resource with retention.
+
+**Lambda features not built.** Provisioned concurrency, aliases and versions, and
+layers. Nothing here needs them: a new version is a new deployment and execution, side by side, and
+traffic moves by repointing the CloudFront origin.
+
+**VPC Lambdas, and so Redis.** ElastiCache lives in a VPC, and a Lambda in a VPC needs a NAT gateway
+to reach the internet, which is billed hourly. The backend uses DynamoDB only. A VPC Lambda needs
+the execution to take subnets and security groups, which the serverless subnet does not carry.
+
+**Private commons.** Make commons' gateway private once its cost is worth paying: the backend's
+functions move into a VPC with an `execute-api` endpoint (about $7 a month per AZ), the gateway's
+policy admits only that endpoint, and the backend needs endpoints or NAT for anything else it calls
+beyond S3 and DynamoDB (free gateway endpoints). Commons' functions stay outside any VPC.
+
+**A private backend gateway.** CloudFront cannot reach a private gateway: its VPC origins are ALBs,
+NLBs and EC2 only. The backend's gateway stays public behind origin mTLS until servers bring an ALB
+anyway.
+
+**Moving off Lambda.** Price is rarely the reason; the crossover is about 30–50M API calls a month per
+region. Latency per hop, cold starts at the tail, websockets, or a relational database are likelier
+triggers. Application code and data do not change. In octo it is a change of modules under the same
+intent graph. Commons' gateway stays: it becomes private and reaches an internal ALB through a VPC link, and the
+backend keeps calling the same URL with the same signature. The backend's CloudFront reaches its
+ALB as a VPC origin. Keep the `app-e2e` suites running against concurrent servers (docker-compose), so code
+that is only safe one-request-per-instance stays visible while production runs on Lambda.
+
 ---
 
 # Part III — Platform features riding on the catalog
@@ -486,7 +859,7 @@ threat model that "safe to commit" assumes.
 
 **What exists.** Octo narrates its whole run as events, and the stream is public: forty-five event
 classes in nine families, `@OnEvent` subscribes by class, and subscribing to a base class catches
-its subclasses. Two listeners ship, `LoggingEventListener` and `HtmlReportEventListener`, and
+its subclasses. Two listeners ship, `LoggingEventListener` and `JournalEventListener`, and
 `settings.listeners` names them by type.
 
 **What does not.** `settings.listeners` accepts those two types and nothing else. Registering a
@@ -495,7 +868,7 @@ driving Octo from TypeScript, and there is no path from a definition file to tha
 `techniques/events-and-listeners.mdx` says so plainly today rather than teaching the call, which is
 the right treatment for an unreachable extension point, and it leaves the three things the page
 suggests building (a pull request comment, an audit trail, a gate) reachable only by parsing the
-JSON the HTML listener writes.
+terminal report out of the log.
 
 **Why it matters more than it looks.** The events stream is the seam the platform's own features are
 meant to ride on, and a seam nobody outside the framework can attach to is a seam in name only.
@@ -608,6 +981,9 @@ declaration instead of naming the gap.
 13. **IV.7** and **IV.8** — together, and with IV.2, since all three add a top-level key to
     octo.yaml and the shape of one informs the others. No dependency on any wave, but IV.8 wants to
     be in hand before Part I, whose vocabulary split is itself a breaking shape change.
+14. **Wave E** — after octo's own backends are live on the $0 design (`docs/serverless-backend-plan.md`),
+    the items marked **(target)** one at a time, each moving those backends a step toward E.0; the
+    rest when a user asks, or alongside the piece they extend.
 
 Every module lands with: schema-documented decision surface, anchors declared, actions
 single-responsibility, localstack/moto module tests + snapshots, and one end-to-end verification

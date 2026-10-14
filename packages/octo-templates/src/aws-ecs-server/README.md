@@ -21,8 +21,7 @@ NODE_OPTIONS=--experimental-vm-modules npx jest --testRegex "drift\.e2e-spec\.ts
 NODE_OPTIONS=--experimental-vm-modules npx jest --testRegex "aws-ecs-server/main\.e2e-spec\.ts$" --runInBand
 ```
 
-**Do not use `pnpm test:e2e`.** It matches all four template e2e specs and builds three unrelated
-stacks at once.
+**Do not use `pnpm test:e2e`.** It matches every template's e2e spec and builds every stack at once.
 
 `main.e2e-spec.ts` is one sequence sharing a single state provider: the first test applies the stack,
 the 22 `input changes` tests plan against it, the last tears it down. Filtering with `-t` plans

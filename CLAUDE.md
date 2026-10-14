@@ -1,6 +1,7 @@
 # Octo Agent Governance
 
 - For every request, you MUST first read the protocol in @AGENTS.md.
+- Before changing any code, you MUST read @docs/CODING-STANDARDS.md and follow it.
 
 # Autonomy Rules
 
@@ -8,3 +9,4 @@
   Do not ask for permission to edit files or run terminal commands once the initial Plan is approved.
 - If you are working in the `../ai-worktrees/` git worktree, you have full permission to manage that
   worktree.
+- Never commit anything under `docs/` without explicit permission.

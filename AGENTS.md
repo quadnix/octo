@@ -1,97 +1,47 @@
 # Octo Agent Governance
 
-## Before you change any code
+## Start here
 
-Read `@docs/CODING-STANDARDS.md`. Every change under `packages/` must follow it.
+Each file holds one thing, and none repeats another. A fact belongs to exactly one row; the others
+link to it.
 
-If the user corrects your code or your approach, update `@docs/CODING-STANDARDS.md` in the same
-session so the correction sticks. You do not need permission to do this — you need permission only
-to *remove* a rule.
+| File                               | Holds                                                    | Change it when                                              |
+|------------------------------------|----------------------------------------------------------|-------------------------------------------------------------|
+| `@README.md`                       | the developer's workflow, as procedures                  | a command, prerequisite, test setup or release step changes |
+| `@AGENTS.md`                       | governance: what this repo is and the workflow to follow | the workflow or a constraint changes                        |
+| `@CLAUDE.md`                       | the harness entry point and autonomy rules               | autonomy or permission rules change                         |
+| `@docs/ARCHITECTURE.md`            | the pieces and how they fit                              | a package, a boundary, the lifecycle or CI changes          |
+| `@docs/CODING-STANDARDS.md`        | the rules for writing code here                          | a correction lands, or a rule stops being true              |
+| `@docs/DOCUMENTATION-STANDARDS.md` | the rules for writing `apps/octo-docs`                   | a correction to a docs page lands                           |
+| `@docs/OPEN-ITEMS.md`              | what is broken, undecided, or unbuilt                    | one is found, fixed, or decided                             |
+| `packages/<package>/README.md`     | what a maintainer must know before reading that code     | something non-obvious about it changes                      |
+| `apps/octo-docs`                   | everything a user reads                                  | a change moves something a user can see or type             |
 
-## What is Octo
+Read `@docs/CODING-STANDARDS.md` before changing anything under `packages/`, and update every file
+above in the same change that makes it untrue.
 
-An IaC tool for writing clean infrastructure code as intent, rather than against cloud resources
-directly. Fundamentals live in `@apps/octo-docs/docs/fundamentals`.
+## What this is
 
-## Project structure
-
-NX monorepo. NX controls `packages` only; `apps` manages its own dependencies.
-
-- `packages/octo` — the base framework: decorators, services, transactions, modes, utilities.
-- `packages/octo-aws-cdk` — AWS modules and resources built on octo.
-- `packages/octo-build` — the octo CLI.
-- `packages/octo-event-listeners` — logging and transaction reports.
-- `packages/octo-templates` — pre-tested infrastructure templates.
-- `apps/octo-docs` — Docusaurus documentation site.
-
-`@package.json` has consolidated `build`, `format`, `lint`, and `test` scripts; each project has the
-same scripts. `@nx.json` holds NX options and the release strategy.
-
-## Pre-approved plans
-
-`@docs/agent-plans` holds task recipes. Read the matching one before starting; it is also your
-note-taking space — add what you learn.
+Infrastructure as code written as intent: models describe what an app needs, modules turn them into
+Terraform, and the user's own Terragrunt applies it. `@docs/ARCHITECTURE.md` explains the pieces.
 
 ## Workflow
 
-1. **Initiate.** Small refactor: stay local. Large feature or hands-free run: create a worktree **with permission**.
+1. **Plan.** Research `@packages` and `@apps/octo-docs`. Write the plan in chat and wait for
+   approval. A large or hands-free task runs in a worktree, with permission (`@README.md`).
+2. **Execute.** Follow `@docs/CODING-STANDARDS.md`. Lint clean, unit tests pass, `tsc --noEmit` clean
+   on every package the change reaches.
+3. **Feedback.** Fold every correction into `@docs/CODING-STANDARDS.md` — only if it passes the bar
+   at the top of that file. A structural fact goes to `@docs/ARCHITECTURE.md` instead. Adding or
+   amending needs no permission; removing a rule does.
+4. **Submit.** Push the branch and open a PR titled per `@.github/jobs/validate-pr-title.job.sh`.
 
-   ```bash
-   git worktree add ../ai-worktrees/octo-worktree-<branch-name> -b ai/<branch-name>
-   ```
+## Decisions
 
-   Then symlink `node_modules` into it so NX and Jest resolve packages, and run lint and tests from
-   inside the worktree:
+Write the trade-offs into the relevant doc before asking for a decision. Never ask someone to choose
+between options they cannot weigh.
 
-   ```bash
-   WORKTREE=../ai-worktrees/octo-worktree-<branch-name>
-   find . -maxdepth 4 -name node_modules -type d ! -path "*/node_modules/*/node_modules" | \
-     while read src; do
-       mkdir -p "$WORKTREE/$(dirname $src)"
-       ln -s "$(pwd)/$src" "$WORKTREE/$src"
-     done
-   ```
+## Verification
 
-2. **Plan.** Research `@packages` and `@apps/octo-docs`. Write the plan in chat and wait for
-   approval. Use a pre-approved plan when one fits.
-3. **Execute.** Follow the coding standards. All unit tests pass, lint is clean. Do not ask for
-   permission again once the plan is approved.
-4. **Feedback.** Fold every correction back into `@docs/CODING-STANDARDS.md` or the relevant
-   agent plan.
-5. **Submit.** Push the branch, open a PR titled per `@.github/jobs/validate-pr-title.job.sh`, with
-   a description of what changed and how it was verified.
-
-## Skills
-
-`@.claude/skills` holds procedures an agent runs rather than reads. Claude Code discovers them
-automatically and picks one by its `description`; you can also invoke one by name, as
-`/<skill-name>`.
-
-- `octo-docs-validation` - build what every documentation page says, against real AWS, in
-  `../octo-examples`, and fix whatever disagrees. Its `reference/coverage.md` says which pages have
-  been run and which have not.
-
-## Documentation
-
-Octo's docs grow with its feature set.
-
-- Read `@docs/DOCUMENTATION-STANDARDS.md` before writing or editing anything under
-  `@apps/octo-docs/docs`. Same rule as the coding standards: fold every correction back into it, and
-  ask before removing a rule.
-- `packages` use JSDoc for behavior, parameters, and examples.
-- `apps/octo-docs` holds the high-level feature docs; `@apps/octo-docs/package.json` runs
-  `plugin:pre-script`, `plugin:build`, and `plugin:post-script` to generate API docs from JSDoc.
-
-## Releasing
-
-`@nx.json` maps the commit *type* to the semver bump: `chore` releases nothing, and `patch`,
-`minor`, and `major` bump as named. The scope is the category;
-`@.github/jobs/validate-pr-title.job.sh` holds the matrix of which categories may carry which bump.
-
-NX picks the project to bump from the files a commit touches, not from the package named in the
-subject. A scoped commit touching only root files is ignored; an unscoped commit touching a root
-file counts for every project.
-
-The highest bump among the commits since a package's last tag wins. The `Manual Release` workflow
-versions, tags, writes the changelog, and publishes; dependents' version ranges are rewritten for
-you.
+Run what `@README.md` prescribes for what you changed. Report the real numbers — if you did not run
+something, say so, and never claim a live or e2e run you did not do.

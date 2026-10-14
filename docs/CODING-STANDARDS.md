@@ -1,379 +1,255 @@
 # Coding standards
 
-How this repo writes code. Read this before changing anything under `packages/`.
+How code is written here. `ARCHITECTURE.md` holds what exists, `README.md` the commands,
+`OPEN-ITEMS.md` what is broken or unbuilt.
 
-These rules are deduced from the code. Where code and this doc disagree, the code wins — fix the doc.
+Where the code and this file disagree, the code wins — fix the file. A rule belongs here only if it
+changes what someone writes and is not already enforced by lint, prettier, the compiler, or a test.
 
 ---
 
 ## Naming
 
-- Full US English words, everywhere. Shorthands like `r` for `resource`, `d` for `dependency` applies only to lambda
-  parameters, loop variables, and test locals. But things like `addr` for `address` is not fine.
-- Never add shorthand to `dictionary.dic` to get it past spellcheck.
-- A word earns a `dictionary.dic` entry once it appears three times or more. Below that, silence the
-  one or two places with `// eslint-disable-next-line spellcheck/spell-checker`, or reword the
-  sentence around it. Count the warnings the linter actually raises, not the substring — `grep`
-  counts every `cloudfront` inside `CloudFrontDistribution` too.
-- `A` prefixes abstract classes — `AModel`, `AResource`, `ATerraformResource`.
-- `I` prefixes interfaces — `IStateProvider`, `IModelAction`.
-- `Schema` suffixes schema classes — `VpcSchema`, `RegionSchema`.
-- PascalCase for classes, interfaces, and types. camelCase for everything else.
-- Do not rename something that works. A rename costs review and gains nothing unless the old name
-  is wrong.
+Full US English words. `address`, not `addr`. Single letters only in a lambda, a loop, or a test
+local.
 
-## Files and folders
+- `A` prefixes an abstract class, `I` an interface, `Schema` a schema class.
+- **`dictionary.dic` is for names we do not control** — a package, an AWS id segment, a Terraform
+  attribute — added at first sighting, **and for our own words once they recur three times.** Below
+  that, silence the line with `// eslint-disable-next-line spellcheck/spell-checker`. Never add a
+  shorthand to get it past spellcheck. A file that is not prose turns the rule off in its project's
+  `eslint.config.js`.
+- **"Run" means one lock**, from the `generate` before it to its release. One `octo` process is a
+  **command**. **Cycle** means a dependency loop and nothing else. The files a command records are
+  the **journal**.
+- **Do not rename something that works.**
 
-One concept per folder. The file suffix carries the meaning.
+---
 
-| Suffix                           | Holds                                                                                                   |
-|----------------------------------|---------------------------------------------------------------------------------------------------------|
-| `*.model.ts`                     | one model class                                                                                         |
-| `*.resource.ts`                  | one resource class                                                                                      |
-| `*.module.ts`                    | one module class                                                                                        |
-| `*.anchor.ts`, `*.overlay.ts`    | one anchor / overlay class                                                                              |
-| `*.schema.ts`, `index.schema.ts` | schema classes only                                                                                     |
-| `*.action.ts`                    | one node action, named `<verb>-<node>.<kind>.action.ts` where kind is `model`, `overlay`, or `resource` |
-| `*.service.ts`                   | one container-registered service plus its `*ServiceFactory`                                             |
-| `*.utility.ts`                   | one `static`-only utility class                                                                         |
-| `*.setup.ts`                     | one jest `setupFilesAfterEnv` module, registered in that package's `package.json`                       |
-| `*.rule.ts`                      | one redaction rule, typed by `IRedactionRule`                                                           |
-| `*.command.ts`                   | one octo-build CLI command                                                                              |
-| `*.error.ts`                     | the error classes of one area                                                                           |
-| `*.factory.ts`                   | container factories for third-party classes octo does not own, e.g. an SDK client                       |
-| `index.ts`                       | re-exports, nothing else                                                                                |
+## Files
 
-- Schemas live in their own file, never beside the class that consumes them.
-- Actions live under `models/<node>/actions/` or `overlays/<node>/actions/`.
+One concept per folder; the suffix carries the meaning. One class per file, except an area's errors
+and a service's factory.
 
-## Classes
+| Suffix                                               | Holds                                                                    |
+|------------------------------------------------------|--------------------------------------------------------------------------|
+| `*.model.ts`, `*.overlay.ts`, `*.anchor.ts`          | one node class                                                           |
+| `*.resource.ts`, `*.module.ts`                       | one resource / module class                                              |
+| `*.schema.ts`                                        | schema classes only, never beside the class that consumes them           |
+| `<verb>-<node>.<model\|overlay\|resource>.action.ts` | one action, under `models/<node>/actions/` or `overlays/<node>/actions/` |
+| `*.service.ts`                                       | one container-registered service plus its `*ServiceFactory`              |
+| `*.factory.ts`                                       | container factories for third-party classes, such as an SDK client       |
+| `*.utility.ts`                                       | one class of `static` methods, holding no state                          |
+| `*.error.ts`                                         | the error classes of one area                                            |
+| `index.ts`                                           | re-exports, nothing else                                                 |
 
-Prefer a class. Write a bare function only where a class cannot work — decorators, and type-level
-helpers.
+**Prefer a class.** A bare function only where a class cannot work: decorators and type helpers.
 
-Categorize by role and keep the roles apart:
+---
 
-- **Models** declare intent. **Resources** declare infrastructure. **Anchors and overlays** join them.
-- **Actions** are the only place a model diff becomes resources.
-- **A module composes the graph offline, and only an action reaches the network.** A module runs in
-  every mode, including once per `octo run-action` callback terraform makes mid-apply, so a call it
-  makes is paid by `generate` — which touches no cloud at all. Nothing a module could learn from the
-  cloud is worth that price: credentials that resolve are not permission to act, and the SDK chain a
-  module would check is not the chain terraform applies with. An action that needs the cloud fails on
-  its first call, before it has changed anything, and the deferral and recovery rules below are what
-  make that safe.
-- **A resource owns one thing, and never derives another resource.** Where one thing holds many of
-  another — a repository holding images — the container is a model and each thing inside it is an
-  overlay pointing at that model, with a module of its own. The overlay's module takes the
-  container's model as an input, matched on its anchor, and finds the container's resources through
-  it. One container module is then pointed at by many of these, and adding or dropping one leaves
-  its siblings alone. Reach for an overlay before a new base model: adding to octo's default models
-  is a much larger change than adding to a library.
-- **A resource outside terraform still declares its place in the graph.** Terraform cannot order what
-  it does not manage, so octo creates and deletes an external resource itself. Declare its parents
-  and their dependency behaviors anyway: octo orders its own diffs by them, and a resource a
-  dependent still points at cannot leave the graph. Where neither can know whether the world still
-  points at it — an apply that stopped short — defer the deletion rather than guess.
-- **Name another resource's output, never a copy of it.** A value a resource holds only because
-  another resource produced it — an image URI, an ARN — renders as `terraform.getRef(parent, key)`.
-  The literal is the same string and orders nothing: terraform builds its graph from references, so
-  a copied value leaves two resources it believes are unrelated, free to be created in either order,
-  and across folders leaves out the terragrunt dependency entirely. Only where the producer has no
-  resource to point at is the literal all there is. The other exception is a reference that would
-  close a cycle between two folders, which terragrunt cannot order and octo refuses to render: a
-  queue's policy names the topic allowed to send to it by ARN, because the topic's own module
-  already references the queue. Where a literal is used for either reason, the resource says so.
-- **A resource's identity belongs in its resource id, and what is not identity is not a diff.** Two
-  resources sharing an id are the same thing, so decide up front which inputs name the thing and put
-  those in the id: changing one is then an add and a delete of two different resources, which needs
-  no third kind of action. Inputs that only describe *how* the thing was made are not changes to it,
-  and a resource whose subject cannot be edited in place — anything write-once — reports nothing for
-  them. Do not make a diff react to a weak signal of change while ignoring a stronger one it cannot
-  see: report on both or neither.
-- **An external resource's diff and its terraform trigger hash answer the same question.**
-  `octo_properties_hash` comes from `AResource.getExternalTriggerProperties()`, which defaults to
-  every property. A resource whose `diffProperties` ignores a property overrides it to drop that
-  property too, or terraform plans a replacement octo reports no change for.
-- **An action does one verb.** An add action adds. Where the cloud makes one verb look like two —
-  a registry that will not overwrite — that is the other action's work on its own resource, not a
-  branch inside this one.
-- **Services** hold runtime state and are resolved through `Container`. **Utilities** are stateless
-  `static` methods.
-- **A factory for a global service supplies its own region.** A client is cached per account and
-  region, but the region a global service is reached at — `us-east-1` for CloudFront, for IAM — is a
-  fact about that service rather than something a caller chooses. Such a factory overrides `create()`
-  to pass the region itself, so callers name the account alone and no call site repeats a constant it
-  does not own.
-- **A resource registers the factories it needs, in its own `index.ts`.** The registration is a
-  side-effect import, so it looks like something to hoist somewhere common — and the common places
-  are all a layer above. An account module importing every SDK client some resource might one day
-  need points the dependency the wrong way round. Keep it with the resource that resolves the client.
-- One class per file. The exceptions are error subclasses of one area, and a service's factory.
+## Models, anchors and overlays
+
+- **An anchor reports its model.** Read every property off the model, even one that never varies —
+  `subnetName: subnet.subnetName`, never `'default'`. A marker telling two anchor schemas apart
+  (`serverless: true`) is the only exception.
+- **An overlay's anchors are typed to the anchors it takes**: each position names its anchor or
+  `MatchingAnchor<Schema>`, never `AAnchor<BaseAnchorSchema, any>`.
+- **An overlay's id is unique across the app.** Overlays get no scope, so build the id from keys that
+  differ wherever the overlay can repeat — a regional name carries its region.
+- **Two modules implementing the same model shape their inputs and overlays alike.** Compare with
+  the sibling before adding a field.
+- **A module reaches another family only through anchors** (lint forbids the imports). To touch the
+  other module's resources, join its model's anchor with an overlay of your own. Two families
+  sharing resource logic each keep their copy.
+- **A module composes offline. Only an action reaches the network.** A module runs in every
+  command, `generate` and every `run-action` callback included.
+- **Do not ask the user for what octo knows.** Derive an input that repeats a known fact, drop an
+  input where one value is always safe, and check a limit one module imposes on another where they
+  meet.
+
+---
+
+## Resources
+
+**A resource owns one thing, and never derives another.** Where one thing holds many — a repository
+holding images — the container is a model and each thing inside it an overlay with a module of its
+own. Prefer an overlay to a new base model.
+
+### Naming a resource
+
+- **`localResourceId` is a kind prefix, the creating node's key, then whatever the action fans out
+  over that the graph does not show** (a region, an account). Add nothing the scope already says:
+  `alb-<albName>`, not `alb-<regionId>-<albName>`. See "Resource scope" in `packages/octo/README.md`.
+- **What names the thing goes in the id; what does not is not a diff.** Changing an identity input is
+  an add and a delete. A write-once resource reports nothing for inputs that only describe how it was
+  made. Never react to a weak signal of change while ignoring a stronger one.
+- **Every terraform block a resource emits is named `this.resourceId` or `${this.resourceId}_<suffix>`**
+  — octo moves state only for blocks named that way.
+- **Declare every name the provider keeps unique in `@Resource({ uniqueProperties })`**, with
+  `within` set to the provider's domain for it, taken from the provider's documentation.
+- **Declare `destroyLosesData` on a resource holding data octo cannot put back** — rows, objects,
+  images. Not on content octo rewrites every apply, nor on a loss that breaks loudly.
+
+### Parents
+
+**A resource is a parent only if the provider needs it first.** Answer from the provider's API
+reference or a live call, never from memory:
+
+1. Does the call carry a value the provider assigns at creation (a `vpc-…` id, a function URL)? Read
+   it with `terraform.getRef(parent, key)`; it is a parent.
+2. Does the provider reject the call while the other is missing (a bucket policy naming a missing
+   role)? It is a parent — `getRef` where a value is used, `explicitParents` where none is.
+
+A parent is never a literal. Two noes mean it is not a parent: build what you need from names
+somebody chose, through a method on the resource that reads them (`IamRole.addS3BucketPolicy`), so
+the user names the model, never the ARN. This is what keeps grants acyclic.
+
+- **A parent may also be taken only to wait** where the result would otherwise be wrong. A parent
+  must never close a cycle; where it would, settle for something weaker and say so in the resource.
+- **A parent found after construction is added by a method on the child** that records why
+  (`EcsService.addLoadBalancer`). An action never calls `addChild` for a resource. `declare parents`
+  lists every kind; the constructor's `parents` lists only those passed at construction.
+- **Reach another module's resource through the node that owns it**, with
+  `searchBoundaryMembers: false`. A boundary search is acceptable only when it filters on a
+  `uniqueProperties` key.
+
+### Behaviors
+
+`addChild` already orders a child born or dying with its parent. Add a behavior only for **a child
+that survives while its parent comes or goes**:
+
+1. List the diffs each side really emits, from its `diff()` and `diffProperties()`.
+2. Each child UPDATE and REPLACE waits for the parent's ADD and REPLACE.
+3. The parent's DELETE waits for each child UPDATE and REPLACE.
+
+Never name a pair that cannot occur, and never the reverse of an existing wait. Each behavior gets a
+`// Before <action> <resource> must <action> <parent>.` comment and a `hasMatchingBehavior`
+assertion. `LambdaFunction` is the worked example.
+
+### External resources
+
+- **Declare its parents and behaviors anyway.** Octo orders it; terraform cannot. Where nobody can
+  know whether something still points at it, defer the deletion rather than guess.
+- **Its diff and its trigger hash agree.** A `diffProperties` that ignores a property means
+  `getExternalTriggerProperties()` drops it too.
+- **An action does one verb.** Where the cloud makes one look like two, the other half is another
+  action's work.
+- **Octo state is the authority for a response.** Record it in state when the action produces it;
+  never park it in a file — `.terragrunt-cache` belongs to one machine.
+- **A record kept outside the committed graph is enumerable** (`IStateProvider.listStates`) and
+  reported by `validate`. Never clear one to hide it; it is the only evidence the thing exists.
+
+---
+
+## Services, utilities and factories
+
+- **Services hold state and resolve through `Container`. Utilities are stateless `static` methods.**
+- **An exported utility is public whole**, every method documented; never part `@internal`. Export
+  one only when a module author would find it hard to write. Generic helpers go into `octo`.
+- **A factory for a global service passes its own region** (`us-east-1` for CloudFront, IAM).
+- **A resource registers the factories it needs, in its own `index.ts`.**
+
+---
 
 ## Functions
 
-- Medium, not tiny. A function covers one *scope of work*, not one statement. Splitting to a single
-  thing produces a swarm of functions that is harder to read than the code it replaced.
-  `AwsSimpleSubnetModule.onInit` is the reference — about 90 lines, one job, readable top to bottom.
-- Separate the work into blocks: a blank line between blocks, and a one-line `//` comment naming each.
-- Extract a helper when a second caller exists, not to hit a line count. Two call sites in the same
-  folder are not a second caller worth a `*.utility.ts` of its own: inline the work in both and let
-  the third occurrence be what pulls it out.
+- **A function carries one scope of work, and medium is fine.** `AwsSimpleSubnetModule.onInit` is
+  the reference. Never split to shorten.
+- Separate blocks with a blank line and a one-line `//` comment naming each.
+- **Extract on the third occurrence**, not to hit a line count.
 - Guard clauses first, then the work, then the return.
-- Explicit return type on every function (lint enforces this).
 
-Abridged from `AwsSimpleSubnetModule.onInit`:
+---
 
-```ts
-async
-onInit(inputs
-:
-AwsSimpleSubnetModuleSchema
-):
-Promise < AwsSimpleSubnet[] > {
-  const region = inputs.region;
-  const { awsAvailabilityZones, awsRegionVpcCidrBlock } = await this.registerMetadata(inputs);
+## Comments and JSDoc
 
-  // Validate subnet availability zone.
-  if (!
-awsAvailabilityZones.includes(inputs.subnetAvailabilityZone)
-)
-{
-  throw new ModuleError('Invalid subnet availability zone!', this.constructor.name);
-}
+- **Say what the code is**, never how it got there or why it was chosen. No "previously", "no
+  longer", "used to".
+- **A docblock is one or two lines**, longer only for a contract a caller cannot infer: a precedence
+  rule, an ordering, all-or-nothing behavior. Never restate the line below.
+- `packages/` JSDoc builds the API site: `@group <Area>/<Name>` on every exported class,
+  `@internal` on what users never call, `@example` on what a user constructs. Write what an item is
+  for, not how octo achieves it.
+- **`{@link X}` resolves only within a package.** Across packages, link the site:
+  `[ModuleError](/api/octo/class/ModuleError)`.
 
-// Validate subnet CIDR is within region CIDR.
-if (!contains([awsRegionVpcCidrBlock], [inputs.subnetCidrBlock])) {
-  throw new ModuleError('Subnet CIDR is not within region CIDR!', this.constructor.name);
-}
+---
 
-// Create a new subnet.
-const subnet = new AwsSimpleSubnet(region, inputs.subnetName);
-region.addSubnet(subnet);
+## Types and exports
 
-return [subnet];
-}
-```
+- **A closed set is a literal union**, on parameters as well as schemas — never `string`.
+- **Derive before declaring.** No new type that `Parameters`, `ReturnType` or an existing export
+  already gives.
+- **Export only what a consumer cannot derive.** Every export is a compatibility commitment.
+- **`packages/octo` holds no presentation.** It emits what it did; a label change ships in one
+  package, never in octo.
 
-## Comments
-
-- Describe what the code **is**, never how it got there.
-- Banned: any comparison to a former version — "previously," "used to," "no longer," "this was
-  broken," "an earlier cut." Rationale goes in the commit message or a `docs/` file.
-- Block comments inside a function: one line, imperative, naming the block. `// Add anchors.`
-- Docblocks: one or two lines. Longer only for a contract a caller cannot infer — a precedence rule,
-  an ordering constraint, all-or-nothing behavior.
-- Never restate the line below it.
-- Never justify a decision in a comment. If it needs defending, it is probably wrong.
-
-```ts
-// wrong
-/**
- * Collapses diffs into the one action a reader cares about. `reason` is carried from whichever diff
- * won, because that is the diff whose explanation applies, and it is the single most useful thing a
- * report can show. Shared by validate and the builder so they can never disagree.
- */
-
-// right
-/**
- * Collapses a resource's field-level diffs into one action per resource.
- *
- * Precedence: an add/delete of `resourceId` wins; a REPLACE beats an UPDATE; otherwise UPDATE.
- */
-```
-
-## JSDoc
-
-`packages/` JSDoc feeds the API docs site, so public classes carry it.
-
-- `@group <Area>/<Name>` on every exported class — this is how the docs site files it. A group is
-  one concept: two folders sharing a group name merge into one page.
-- `@internal` on anything not meant for users. The docs site builds with `excludeInternal`, so this
-  drops the item entirely. Use it on the framework plumbing of an exported class — serialization,
-  diffing, cloning — so the page shows only what a user calls.
-- `@example` with a fenced `ts` block on models, modules, and anything a user constructs. Nobody
-  compiles an example, so check its inputs against the schema when you touch too.
-- `@see`, `@link`, `@reference` to connect a module to the schemas and resources it touches.
-- `{@link X}` resolves only within the same package. Across packages, link the docs site instead —
-  `[ModuleError](/api/octo/class/ModuleError)`. A broken `{@link}` renders as bare text.
-- No `@returns` on a class, and no `@param` that restates the parameter's name.
-
-Write what the item is *for* and how to call it. Users do not read octo's internals, so an
-explanation of how the framework achieves something is noise to them; a signature they can already
-read is noise too.
-
-Verify with `typedoc --excludeInternal --excludePrivate --useTsLinkResolution` over the package's
-`src/index.ts`, and fix every `Failed to resolve link`.
-
-## Types and imports
-
-- ESM: every relative import ends in `.js`.
-- `import type` / inline `type` for type-only imports (lint enforces this).
-- `override` is required on every override.
-- Imports are alphabetically sorted and grouped; so are class members, interface members, object
-  literals, and JSON keys. Run `pnpm run lint:fix` rather than sorting by hand.
-- Do not add new interfaces or types unless they are unique and not defined anywhere else. Re-use if possible.
-- Do not export file internals unless someone actually needs them.
-- Do not export a type or interface if it can be derived easily by other means, such as TypeScript helpers like
-  Parameters, ReturnType, etc.
-- Max line length 120. Single quotes. Trailing commas.
+---
 
 ## Errors
 
-- One error class per failure kind, in the area's `*.error.ts`, exported through `errors/index.ts`.
-- Extend the area's base error (`NodeError`, `ResourceError`, …) when one fits.
-- Carry the subject as a readonly field, and call `Object.setPrototypeOf(this, X.prototype)` last.
+- One class per failure kind, in the area's `*.error.ts`, extending the area's base error.
+- Carry the subject as a readonly field; call `Object.setPrototypeOf(this, X.prototype)` last.
 - Messages are short, imperative, and end in `!` — `'Subnet already exists!'`.
+- **Refuse input only where accepting it breaks something.** Nonsensical but harmless input is the
+  author's business.
+
+---
 
 ## Tests
 
-Tests exist to catch breakage between releases, not to chase coverage.
+Tests catch breakage between releases; they do not chase coverage.
 
-| File            | Kind        | Cost                                                                 |
-|-----------------|-------------|----------------------------------------------------------------------|
-| `*.spec.ts`     | unit        | free, run constantly                                                 |
-| `*.ispec.ts`    | integration | slow                                                                 |
-| `*.e2e-spec.ts` | e2e         | creates real AWS resources in `octo-templates` — do not run casually |
+| File            | Kind        | Runs against                                                   |
+|-----------------|-------------|----------------------------------------------------------------|
+| `*.spec.ts`     | unit        | nothing                                                        |
+| `*.ispec.ts`    | integration | real terraform, locally or against LocalStack                  |
+| `*.e2e-spec.ts` | e2e         | real AWS — `octo-aws-cdk` plans only, `octo-templates` applies |
 
-- **A template holding an external resource is driven through the `octo` CLI.** `TestModuleContainer`
-  runs a lifecycle in one process and an external resource's action does not: terraform shells back
-  out to `octo run-action` mid-apply, and that second process finds the modules through the
-  definition file and the prior state through the state provider the definition names. An in-memory
-  state provider is invisible to it. Such a template therefore ships an `octo.yaml` naming a
-  `LocalStateProvider`, and its e2e drives `OctoCliUtility`. The state left on disk is the other half
-  of why: a run killed midway through creating something slow to destroy is one the next run can
-  still tear down.
+- Structure: `describe('<Subject> UT')`, one `describe('methodName()')` per method in class order,
+  every `it` starting with `should`, errors before happy paths.
+- **Build fixtures through `TestModuleContainer`**, never by hand.
+- **A framework guarantee is tested once, in `octo`**, through its public entry point. A library
+  does not re-test it per resource.
+- **An `octo-aws-cdk` e2e asserts inline, never with a snapshot.** It has no redaction serializer.
+- **A template with an external resource is driven through the CLI** (`OctoCliUtility`) with a
+  `LocalStateProvider`: `run-action` is a second process and cannot see in-memory state.
 
-Tests are written in sequence and read as a specification of the class:
-
-```ts
-describe('<Subject> UT', () => {
-  it('should set static members', () => {});
-
-  describe('schema validation', () => {});
-
-  describe('methodName()', () => {
-    it('should throw error if ...', () => {});
-    it('should ...', () => {});
-  });
-});
-```
-
-- Top-level describe is `'<Subject> UT'` or `'<Subject> E2E'`.
-- One `describe` per method, named `'methodName()'`, in the order the methods appear on the class.
-- Every `it` starts with `should`.
-- Error cases before happy paths within a method.
+---
 
 ## Secrets
 
-The repository is public and the e2e suites run against a live AWS account, so captured output
-carries that account.
+The repository is public and e2e suites run against a live account.
 
-- What must never be committed is declared once, as a rule under
-  `packages/octo-templates/src/utilities/redaction/rules`. Both enforcers read those rules: the jest
-  snapshot serializer redacts on the way into a snapshot, and `repository-secrets.spec.ts` fails the
-  build on any other tracked file. A new cloud is a new rule file, never a second copy of a pattern.
-- Never commit a real AWS account number. Add a placeholder to its rule rather than widening the
-  pattern.
-- Never commit an AWS-assigned identifier captured from a run under `packages/` — a `vpc-…`,
-  `subnet-…`, or a public address. Do not capture one in the first place: **a snapshot taken from a
-  live run holds what octo decides and not what the provider returned.** A validate report goes
-  through `ValidateReportUtility.summarize()`, which keeps the octo action per resource, the
-  terraform addresses, and the names of the arguments that moved, and drops their values. Secrecy is
-  the smaller half of the reason: an identifier AWS handed out on one run is new on the next, so a
-  snapshot holding one churns on every run and buries the drift it exists to show — and no
-  substitution closes that, because a list returned in a different order has no shape to match.
-  `apps/octo-docs` keeps captured ids on purpose — see `docs/DOCUMENTATION-STANDARDS.md`, which owns
-  that call.
-- A test fixture that needs an account number uses `123456789012`. One that needs a resource id
-  invents the hexadecimal rather than pasting a captured id, so aliasing has something to bite on.
-  Terragrunt's own mock outputs read `000000000000` and are left as the tool wrote them, as are
-  `…0123456789abcdef0` identifiers.
-- Real account values reach a suite through a gitignored `.env`, never through a source. The tracked
-  `.env.defaults` beside it carries a placeholder and documents the key.
-- Generated terraform is committed and reviewed, so nothing in it may name the machine that produced
-  it. A resource pointing at a file on disk emits `terraform.localPath(filePath)`, which renders the
-  path relative to the project root against `var.OCTO_PROJECT_ROOT`; octo declares that variable in
-  the folder's `variables.tf` and supplies it as `TF_VAR_OCTO_PROJECT_ROOT` on every terragrunt
-  command. An absolute path written straight into `source` or `filemd5()` renders differently on
-  every checkout and puts a developer's directory layout in the repository.
-- Generated terraform is the one committed artifact that carries an account number by design, as the
-  provider alias `aws._<accountId>-<regionId>`. `accountName` on a provider replaces the id with a
-  name a repository can show, and is the fix where that matters; the default stays the id, so a
-  generated `main.tf` holding one is expected rather than a leak. This is the only such exception —
-  everywhere else the rules above apply.
-- The same rule covers anything else that identifies the account or the operator: access key ids,
-  session tokens, non-default profile names, and absolute paths from the machine that ran a capture.
-  `docs/DOCUMENTATION-STANDARDS.md` holds the version of this rule that applies to `apps/octo-docs`.
+- **A snapshot of a live run holds what octo decides, not what the provider returned.** Summarize a
+  validate report through `ValidateReportUtility.summarize()`. A provider-assigned id churns every
+  run.
+- What must never be committed is a rule under `octo-templates/src/utilities/redaction/rules`;
+  `repository-secrets.spec.ts` enforces it. A new cloud is a new rule file.
+- Fixtures use account `123456789012` and invented hexadecimal ids. Real values come from a
+  gitignored `.env`; the tracked `.env.defaults` documents the key.
+- **A resource pointing at a file emits `terraform.localPath(filePath)`**, never an absolute path:
+  generated terraform is committed.
 
-## Public API
+---
 
-- `packages/octo` is a base library: no UI, no report shapes, no presentation policy. It emits what
-  it did; consumers decide what it means.
-- Do not add to a package's `index.ts` unless a consumer cannot derive the type. Every export is a
-  compatibility commitment.
-- Derive types from what is already exported.
+## Changing code
 
-```ts
-type Report = Awaited<ReturnType<Octo['validate']>>;
-type Payload = ValidateModeCompletedEvent['payload'];
-```
+- **Search first.** Most "missing" data is already computed and not returned.
+- **Do not duplicate data that already flows**, and do not invent state — every state write is a diff on every run.
+- **Do not build for a future caller.**
+- **Clean cuts over shims.** Delete the old path.
 
-- A file-level `export` so a sibling can name a type is fine; that is not a public API change.
-- A presentation change must ship one package. If a label needs an octo release, the layering is wrong.
-
-## Before you add anything
-
-- Search first. Most "missing" data is already computed somewhere and simply not returned.
-- Do not duplicate data that already flows. If two things carry the same fact, delete one.
-- Do not invent a state. Anything written to a state file changes it on every run — that is a cost.
-- **Octo state is the authority for what a resource produced.** A response reaches terraform through
-  octo state and nothing else. A file on disk is scratch: terragrunt runs terraform in a per-unit
-  `.terragrunt-cache` copy, which is gitignored and belongs to one machine, so anything left there
-  is gone on the next checkout. Where a response has to survive between the action that produced it
-  and the commit that records it, record it in octo state at that moment rather than parking it in a
-  file.
-- **A record octo keeps outside the committed graph is reachable only by the id that filed it.**
-  State is read by name, so a record filed under a resource id vanishes from view the moment intent
-  stops naming that id, while the thing it recorded outlives it untracked. Anything recorded outside
-  the committed graph is therefore enumerable — `IStateProvider.listStates(prefix)` — and reported
-  where a user reads before acting, which is `validate`: named as adopted by the next commit when
-  either graph still holds it, and as unreachable when neither does. Clearing the record is never
-  the fix for the second case; it is the only evidence the thing exists.
-- Do not build for a future caller. Write the second consumer before you generalize.
-- Clean cuts over shims. Delete the old path; do not keep both behind a flag.
-
-## Verification
-
-- `tsc --noEmit` on every changed package, not only the one you edited.
-- `pnpm run lint` must be clean — no errors, no warnings, no spelling errors.
-- Run the affected suites and report the real numbers. If you did not run something, say so.
-- Never claim a live or e2e run you did not do.
-- `octo-templates` and `octo-aws-cdk` import `octo` from `dist` — rebuild before running their tests.
-- A flag passed through `pnpm run` is written without npm's `--` separator. pnpm forwards the `--`
-  rather than consuming it, and the arg parser behind it reads it as the end of options and drops
-  the flag — which is how `octo-docs`'s `plugin:post-script` broke at the pnpm migration.
+---
 
 ## Commits
 
-Format is enforced by `.github/jobs/validate-pr-title.job.sh`:
+`<chore|major|minor|patch>(<docs|feat|fix|refactor|release|revert|test>): <package> | <sentence>.` —
+`.github/jobs/validate-pr-title.job.sh` holds which category may carry which bump.
 
-```
-<chore|major|minor|patch>(<docs|feat|fix|refactor|release|revert|test>): <package> | <sentence>.
-```
-
-- Lowercase sentence, ends in a period. `patch(fix): octo | stream terragrunt's output during an apply.`
-- One concern per commit. A bug fix never rides along with a refactor.
-
-## Docs
-
-- A change that moves something a reader can see or type ships its doc change in the same commit.
-  Decide which page with the map at the top of `docs/DOCUMENTATION-STANDARDS.md`: it asks one
-  question, and names the page that owns each surface. Do not read the docs looking for work — a
-  change that moves no surface needs no page, and the map says so in a sentence.
-- A doc change split into a follow-up commit is a doc change that does not happen. The commit that
-  renames the flag is the only one that knows the flag was renamed.
-- Living docs record what is, not what was. Delete a section once its issue is fixed.
-- Write the trade-offs into the doc before asking for a decision. Do not ask someone to choose
-  between options they cannot weigh.
-- Committing @docs requires explicit permissions. Do not commit anything in this folder automatically.
+- Never commit by `major` or `minor` unless told to do so.
+- The subject is lowercase, ends in a period, and stays under 80 characters. Everything else goes in
+  the body, one bullet per part.
+- One concern per commit. A fix never rides with a refactor.
+- **A change ships its doc change in the same commit** — `apps/octo-docs` per
+  `DOCUMENTATION-STANDARDS.md`, and any file in `AGENTS.md`'s map that it makes untrue.
