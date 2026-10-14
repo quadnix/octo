@@ -7,10 +7,24 @@ import { jest } from '@jest/globals';
 import { RemoteStateProvider } from './remote.state-provider.js';
 
 /**
- * What the backend holds for one app: its locks, and a record per commit.
+ * What the backend holds for one app: its locks, a record per commit, the uploads asked for and not
+ * yet claimed, and the objects S3 holds.
  */
 interface Backend {
+  /**
+   * Whether S3 serves bytes other than the ones stored, standing in for a download cut short.
+   */
+  corruptsDownloads?: boolean;
+  /**
+   * What the next upload asked for is refused with, standing in for the limits an app is held to.
+   */
+  limitRefusal?: string;
   locks: { commitId: string; context: string; lockId: string; scope: string[]; takenAt: number; takenBy: string }[];
+  objects: { [key: string]: string };
+  /**
+   * Whether S3 refuses every PUT, standing in for an upload that does not land.
+   */
+  refusesObjects?: boolean;
   requests: string[];
   states: {
     commitId: string;
@@ -19,16 +33,22 @@ interface Backend {
     phase: 'apply' | 'commit';
     sealedAt?: number;
   }[];
+  uploads: { [uploadId: string]: { commitId: string; files: { filename: string; sha256: string }[] } };
 }
 
+const sha256 = (content: string | Buffer): string => createHash('sha256').update(content).digest('base64');
+
 /**
- * A stand-in for the state management service, answering the routes the provider uses the way the
- * service does. It is a real server rather than a mocked `fetch`, because state travels as a
- * multi-part body in both directions and that is the half worth testing.
+ * A stand-in for the state management service and the bucket behind it, answering the routes the
+ * provider uses the way they do. It is a real server rather than a mocked `fetch`, because a write
+ * is three requests and a PUT to a URL the service signed, and that conversation is the half worth
+ * testing. S3 sits under `/s3`, outside the service's routes.
  */
 async function startBackend(backend: Backend): Promise<{ close: () => Promise<void>; url: string }> {
   let clock = 0;
+  let uploadCount = 0;
   const appUrl = '/state/organization/an-organization/app/an-app';
+  let origin = '';
 
   const server: Server = createServer(async (request, response) => {
     const chunks: Buffer[] = [];
@@ -36,8 +56,6 @@ async function startBackend(backend: Backend): Promise<{ close: () => Promise<vo
       chunks.push(chunk as Buffer);
     }
     const body = Buffer.concat(chunks);
-    const route = `${request.method} ${request.url!.slice(appUrl.length) || '/'}`;
-    backend.requests.push(route);
 
     const answer = (status: number, payload?: unknown): void => {
       response.writeHead(status, { 'Content-Type': 'application/json' });
@@ -45,24 +63,49 @@ async function startBackend(backend: Backend): Promise<{ close: () => Promise<vo
     };
     const refuse = (status: number, message: string): void =>
       answer(status, { error: 'Error', message, statusCode: status });
-    const describe = (state: Backend['states'][0]): object => ({
-      commitId: state.commitId,
-      phase: state.phase,
-      stateFiles: Object.entries(state.files).map(([filename, content]) => ({
-        filename,
-        md5: createHash('md5').update(content).digest('hex'),
-        size: content.length,
-      })),
-    });
-    const answerFiles = async (state: Backend['states'][0]): Promise<void> => {
-      const form = new FormData();
-      form.append('state', JSON.stringify(describe(state)));
-      for (const [stateFileName, content] of Object.entries(state.files)) {
-        form.append('stateFiles', new Blob([content], { type: 'application/json' }), stateFileName);
+
+    // Store and serve objects, refusing bytes that do not match the digest and size a PUT was signed
+    // with. S3 refuses a PUT without a length, which a streamed body has unless it is given one.
+    if (request.url!.startsWith('/s3/')) {
+      const key = decodeURIComponent(request.url!.slice('/s3/'.length));
+      backend.requests.push(`${request.method} /s3`);
+      if (request.method === 'PUT') {
+        if (
+          backend.refusesObjects ||
+          request.headers['content-length'] !== String(body.length) ||
+          request.headers['x-amz-checksum-sha256'] !== sha256(body)
+        ) {
+          refuse(400, 'BadDigest');
+          return;
+        }
+        backend.objects[key] = body.toString();
+        answer(200);
+      } else if (backend.objects[key] === undefined) {
+        refuse(404, 'NoSuchKey');
+      } else {
+        response.writeHead(200);
+        response.end(backend.corruptsDownloads ? backend.objects[key].slice(1) : backend.objects[key]);
       }
-      const multiPart = new Response(form);
-      response.writeHead(200, { 'Content-Type': multiPart.headers.get('content-type')! });
-      response.end(Buffer.from(await multiPart.arrayBuffer()));
+      return;
+    }
+
+    const route = `${request.method} ${request.url!.slice(appUrl.length) || '/'}`;
+    backend.requests.push(route);
+
+    const describe = (state: Backend['states'][0]): object => ({ commitId: state.commitId, phase: state.phase });
+    const answerFiles = (state: Backend['states'][0]): void => {
+      answer(200, {
+        state: describe(state),
+        stateFiles: Object.entries(state.files).map(([filename, content]) => {
+          backend.objects[`${state.commitId}/${filename}`] = content;
+          return {
+            downloadUrl: `${origin}/s3/${encodeURIComponent(`${state.commitId}/${filename}`)}`,
+            filename,
+            sha256: sha256(content),
+            sizeInBytes: content.length,
+          };
+        }),
+      });
     };
 
     if (route === 'POST /lock') {
@@ -108,11 +151,9 @@ async function startBackend(backend: Backend): Promise<{ close: () => Promise<vo
       return;
     }
 
-    if (route === 'PUT /') {
-      const form = await new Response(body, {
-        headers: { 'Content-Type': request.headers['content-type']! },
-      }).formData();
-      const lock = backend.locks.find((l) => l.lockId === form.get('lockId'));
+    const upload = route.match(/^POST \/lock\/(\w+)\/upload$/);
+    if (upload) {
+      const lock = backend.locks.find((l) => l.lockId === upload[1]);
       if (!lock) {
         refuse(404, 'Lock not found!');
         return;
@@ -122,26 +163,54 @@ async function startBackend(backend: Backend): Promise<{ close: () => Promise<vo
         refuse(409, 'State is sealed and cannot be written!');
         return;
       }
-
-      const uploads: { [stateFileName: string]: string } = {};
-      for (const file of form.getAll('stateFiles') as File[]) {
-        uploads[file.name] = await file.text();
+      if (backend.limitRefusal) {
+        refuse(400, backend.limitRefusal);
+        return;
       }
+
+      const { stateFiles } = JSON.parse(body.toString()) as { stateFiles: { filename: string; sha256: string }[] };
+      const uploadId = `upload-${++uploadCount}`;
+      backend.uploads[uploadId] = { commitId: lock.commitId, files: stateFiles };
+      answer(201, {
+        uploadId,
+        uploads: stateFiles
+          .filter(
+            (file) => state?.files[file.filename] === undefined || sha256(state.files[file.filename]) !== file.sha256,
+          )
+          .map((file) => ({
+            filename: file.filename,
+            headers: [{ name: 'x-amz-checksum-sha256', value: file.sha256 }],
+            url: `${origin}/s3/${encodeURIComponent(`${uploadId}/${file.filename}`)}`,
+          })),
+      });
+      return;
+    }
+
+    const claim = route.match(/^POST \/lock\/(\w+)\/upload\/([\w-]+)\/claim$/);
+    if (claim) {
+      const pending = backend.uploads[claim[2]];
+      if (!pending) {
+        refuse(404, 'Upload not found!');
+        return;
+      }
+      delete backend.uploads[claim[2]];
+      const state = backend.states.find((s) => s.commitId === pending.commitId);
+
       const files: { [stateFileName: string]: string } = {};
-      for (const stateFileName of (form.get('stateFileNames') as string).split(',')) {
-        const content = uploads[stateFileName] ?? state?.files[stateFileName];
-        if (content === undefined) {
-          refuse(400, `State file "${stateFileName}" was never uploaded!`);
+      for (const file of pending.files) {
+        const content = backend.objects[`${claim[2]}/${file.filename}`] ?? state?.files[file.filename];
+        if (content === undefined || sha256(content) !== file.sha256) {
+          refuse(400, `State file "${file.filename}" was not uploaded as declared!`);
           return;
         }
-        files[stateFileName] = content;
+        files[file.filename] = content;
       }
 
       if (state) {
         state.files = files;
         answer(200, describe(state));
       } else {
-        const openedState = { commitId: lock.commitId, createdAt: ++clock, files, phase: 'apply' as const };
+        const openedState = { commitId: pending.commitId, createdAt: ++clock, files, phase: 'apply' as const };
         backend.states.push(openedState);
         answer(200, describe(openedState));
       }
@@ -154,7 +223,7 @@ async function startBackend(backend: Backend): Promise<{ close: () => Promise<vo
         refuse(404, 'State not found!');
         return;
       }
-      await answerFiles(latest);
+      answerFiles(latest);
       return;
     }
 
@@ -165,7 +234,7 @@ async function startBackend(backend: Backend): Promise<{ close: () => Promise<vo
         refuse(404, 'State not found!');
         return;
       }
-      await answerFiles(state);
+      answerFiles(state);
       return;
     }
 
@@ -180,6 +249,7 @@ async function startBackend(backend: Backend): Promise<{ close: () => Promise<vo
 
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   const { port } = server.address() as { port: number };
+  origin = `http://127.0.0.1:${port}`;
 
   return {
     close: (): Promise<void> => new Promise((resolve) => server.close(() => resolve())),
@@ -214,7 +284,7 @@ describe('RemoteStateProvider UT', () => {
     (await readdir(path)).filter((name) => !name.startsWith('.') && !name.endsWith('.lock')).sort();
 
   beforeEach(async () => {
-    backend = { locks: [], requests: [], states: [] };
+    backend = { locks: [], objects: {}, requests: [], states: [], uploads: {} };
     ({ close, url } = await startBackend(backend));
 
     localStateDirectoryPath = await mkdtemp(join(tmpdir(), 'octo-remote-state-'));
@@ -426,6 +496,17 @@ describe('RemoteStateProvider UT', () => {
       expect((await remoteStateProvider.getState('a.json')).toString()).toBe('{"a":1}');
     });
 
+    it('should throw and leave the directory alone when a file does not download whole', async () => {
+      seal('commit-1', { 'a.json': '{"a":1}' });
+      await writeFile(join(localStateDirectoryPath, 'b.json'), '{}');
+      backend.corruptsDownloads = true;
+
+      await expect(remoteStateProvider.refreshState()).rejects.toThrow(
+        'Failed to read the app state: state file "a.json" did not download whole!',
+      );
+      expect(await readdir(localStateDirectoryPath)).toEqual(['b.json']);
+    });
+
     it('should neither replace nor take journal files', async () => {
       seal('commit-1', { 'a.json': '{"a":1}', 'journal.c.r.json': '{"j":1}' });
       await writeFile(join(localStateDirectoryPath, 'journal.d.r.json'), '{"j":2}');
@@ -494,12 +575,6 @@ describe('RemoteStateProvider UT', () => {
       ).rejects.toThrow('State file name "a.yaml" is not accepted by the remote state!');
     });
 
-    it('should throw on a file larger than 5MB', async () => {
-      await expect(
-        remoteStateProvider.saveStates([{ data: Buffer.alloc(5 * 1024 * 1024 + 1), stateFileName: 'a.json' }]),
-      ).rejects.toThrow('State file "a.json" is larger than 5MB!');
-    });
-
     it('should throw having written nothing when the backend would refuse one file', async () => {
       await expect(
         remoteStateProvider.saveStates([
@@ -511,24 +586,29 @@ describe('RemoteStateProvider UT', () => {
       expect(await stateFileNames(localStateDirectoryPath)).toEqual([]);
     });
 
-    it('should throw on the file past 200 across the whole change', async () => {
-      for (let i = 0; i < 199; i++) {
-        await writeFile(join(localStateDirectoryPath, `${i}.json`), '{}');
-      }
+    it('should throw the refusal of a write the backend holds the app back from', async () => {
+      await remoteStateProvider.lockApp();
+      backend.limitRefusal = 'An upload may name at most 1 files!';
 
       await expect(
         remoteStateProvider.saveStates([
           { data: Buffer.from('{}'), stateFileName: 'a.json' },
           { data: Buffer.from('{}'), stateFileName: 'b.json' },
         ]),
-      ).rejects.toThrow('State cannot hold more than 200 files!');
+      ).rejects.toThrow('Failed to write the app state: An upload may name at most 1 files!');
+    });
+
+    it('should throw without claiming the upload when a file does not upload', async () => {
+      await remoteStateProvider.saveStates([{ data: Buffer.from('{"a":1}'), stateFileName: 'a.json' }]);
+      await remoteStateProvider.lockApp();
+      backend.refusesObjects = true;
+
       await expect(
-        remoteStateProvider.saveStates([
-          { data: undefined, stateFileName: '0.json' },
-          { data: Buffer.from('{}'), stateFileName: 'a.json' },
-          { data: Buffer.from('{}'), stateFileName: 'b.json' },
-        ]),
-      ).resolves.toBeUndefined();
+        remoteStateProvider.saveStates([{ data: Buffer.from('{"b":1}'), stateFileName: 'b.json' }]),
+      ).rejects.toThrow('Failed to write the app state: state file "b.json" did not upload!');
+      expect(backend.states[0].files).toEqual({ 'a.json': '{"a":1}' });
+      expect(backend.requests.filter((r) => r.endsWith('/claim'))).toHaveLength(1);
+      expect(await readdir(localStateDirectoryPath)).toEqual(['a.json', 'b.json', 'remote-state.lock']);
     });
 
     it('should write only to the directory when no run is open', async () => {
@@ -546,7 +626,9 @@ describe('RemoteStateProvider UT', () => {
       await remoteStateProvider.saveStates([{ data: Buffer.from('{"b":1}'), stateFileName: 'b.json' }]);
 
       expect(backend.states[0].files).toEqual({ 'a.json': '{"a":1}', 'b.json': '{"b":1}' });
-      expect(backend.requests.filter((r) => r === 'PUT /')).toHaveLength(2);
+      expect(backend.requests.filter((r) => r.endsWith('/claim'))).toHaveLength(2);
+      expect(backend.requests.filter((r) => r === 'PUT /s3')).toHaveLength(2);
+      expect(await readdir(localStateDirectoryPath)).toEqual(['a.json', 'b.json', 'remote-state.lock']);
     });
 
     it('should write and delete in one upload into the open run', async () => {
@@ -560,7 +642,7 @@ describe('RemoteStateProvider UT', () => {
       ]);
 
       expect(backend.states[0].files).toEqual({ 'b.tfstate': '{"b":1}', 'c.tfstate': '{"c":1}' });
-      expect(backend.requests.filter((r) => r === 'PUT /')).toHaveLength(2);
+      expect(backend.requests.filter((r) => r.endsWith('/claim'))).toHaveLength(2);
     });
 
     it('should remove the file from the open run', async () => {
@@ -657,6 +739,35 @@ describe('RemoteStateProvider UT', () => {
         phase: 'commit',
       });
       expect(await stateFileNames(localStateDirectoryPath)).toEqual(['a.json', 'archives']);
+    });
+
+    it('should write the directory into the record before sealing it, when a write failed', async () => {
+      const { lockId } = await remoteStateProvider.lockApp();
+      backend.refusesObjects = true;
+      await expect(
+        remoteStateProvider.saveStates([{ data: Buffer.from('{"a":1}'), stateFileName: 'a.json' }]),
+      ).rejects.toThrow('Failed to write the app state: state file "a.json" did not upload!');
+      backend.refusesObjects = false;
+
+      await remoteStateProvider.unlockApp(lockId);
+
+      expect(backend.locks).toEqual([]);
+      expect(backend.states[0]).toMatchObject({ files: { 'a.json': '{"a":1}' }, phase: 'commit' });
+    });
+
+    it('should throw and keep the lock held when the directory cannot be written into the record', async () => {
+      await remoteStateProvider.saveStates([{ data: Buffer.from('{"b":1}'), stateFileName: 'b.json' }]);
+      const { lockId } = await remoteStateProvider.lockApp();
+      backend.refusesObjects = true;
+      await expect(
+        remoteStateProvider.saveStates([{ data: Buffer.from('{"a":1}'), stateFileName: 'a.json' }]),
+      ).rejects.toThrow('did not upload!');
+
+      await expect(remoteStateProvider.unlockApp(lockId)).rejects.toThrow(
+        'Failed to write the app state: state file "a.json" did not upload!',
+      );
+      expect(backend.locks.map((lock) => lock.lockId)).toEqual([lockId]);
+      expect(backend.states[0]).toMatchObject({ files: { 'b.json': '{"b":1}' }, phase: 'apply' });
     });
 
     it('should leave neither lock file behind, and upload neither', async () => {

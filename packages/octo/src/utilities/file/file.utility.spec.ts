@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { FileUtility } from './file.utility.js';
@@ -50,5 +50,14 @@ describe('FileUtility UT', () => {
     await FileUtility.encryptBufferToFile(data, filePath, key);
 
     await expect(FileUtility.decryptFileToBuffer(filePath, wrongKey)).rejects.toThrow();
+  });
+
+  describe('getSha256Digest()', () => {
+    it('should return the base64 SHA-256 of the file', async () => {
+      const filePath = join(tempDir, 'file.txt');
+      writeFileSync(filePath, 'hello');
+
+      expect(await FileUtility.getSha256Digest(filePath)).toBe('LPJNul+wow4m6DsqxbninhsWHlwfp0JecwQzYpOLmCQ=');
+    });
   });
 });

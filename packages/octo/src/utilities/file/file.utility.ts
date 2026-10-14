@@ -95,4 +95,16 @@ export class FileUtility {
   static async ensureDirectory(directoryPath: string): Promise<void> {
     await mkdir(directoryPath, { recursive: true });
   }
+
+  /**
+   * The SHA-256 of a file's bytes, base64 encoded. The file is read as a stream, so its size is not
+   * bounded by memory.
+   *
+   * @internal
+   */
+  static async getSha256Digest(filePath: string): Promise<string> {
+    const hash = createHash('sha256');
+    await pipeline(createReadStream(filePath), hash);
+    return hash.digest('base64');
+  }
 }

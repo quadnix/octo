@@ -152,7 +152,9 @@ exactly as `LocalStateProvider` would, and the provider keeps the backend in ste
   reaches it on the check-in described above, every `checkInIntervalInSeconds`. A run that dies has
   lost at most that interval.
 - A commit that succeeds, or `octo unlock`, finishes the record. From then on it is the state the
-  next `generate` reads.
+  next `generate` reads. A write that failed to reach the backend is still in the directory, so
+  both upload the directory once more before finishing, and when that fails too, the lock stays
+  held and the record unfinished.
 
 The backend keeps the finished record of every run, and never reads an unfinished one back into a
 plan. A run that died leaves its record unfinished and its lock held, so everybody else plans
@@ -160,9 +162,11 @@ against the last finished run and cannot take the lock until somebody finishes t
 machine can, as the account that took the lock or as an organization administrator:
 [Recovering a Failed Run](/docs/using-octo/recovering-a-failed-run#with-remote-state) has the steps.
 
-Every file at the top of the directory is uploaded, so the provider holds it to what the backend
-accepts, and refuses a write before it lands on disk: a file of at most 5 MB, at most 200 files, and
-names made of letters, digits, `_`, `-`, and `.`, ending in `.json` or `.tfstate`. That includes the
+Every file at the top of the directory is uploaded. The provider refuses a name the backend would
+refuse before the write lands on disk: names are made of letters, digits, `_`, `-`, and `.`, ending in
+`.json` or `.tfstate`. The backend holds your app to its own limits, 20 MB a file, 1000 files a state
+and 100 MB of state in all unless your app's limits were raised, and refuses a write past them
+before any file is uploaded. That includes the
 [journal](/docs/using-octo/what-octo-saves-and-when#the-journal) of the lock under way, so the
 record a lock seals holds every command that led to it. `generate` never replaces journal
 files when it refreshes the directory, resuming a lock on another machine keeps that machine's

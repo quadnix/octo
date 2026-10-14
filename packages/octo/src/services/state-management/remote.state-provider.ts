@@ -1,5 +1,5 @@
-import { createHash, randomBytes } from 'node:crypto';
-import { readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
+import { randomBytes } from 'node:crypto';
+import { link, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { hostname } from 'node:os';
 import { basename, dirname, extname, join, resolve } from 'node:path';
 import { AppLockError, TransactionError } from '../../errors/index.js';
@@ -10,9 +10,6 @@ import { type IStateProvider, JOURNAL_STATE_FILE_NAME_PREFIX } from './state-pro
 
 const APP_LOCK_SCOPE = ['app'];
 const LOCK_FILE_NAME = 'remote-state.lock';
-const MAXIMUM_STATE_FILES = 200;
-const MAXIMUM_STATE_FILE_SIZE_IN_BYTES = 5 * 1024 * 1024;
-const STATE_FILE_CONTENT_TYPE = 'application/json';
 const STATE_FILE_EXTENSIONS = ['.json', '.tfstate'];
 const STATE_FILE_NAME_MAX_LENGTH = 255;
 const STATE_FILE_NAME_PATTERN = /^[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*$/;
@@ -36,14 +33,21 @@ interface RemoteAppLock {
 interface RemoteState {
   commitId: string;
   phase: 'apply' | 'commit';
-  stateFiles: { filename: string; md5: string }[];
+}
+
+/**
+ * A state record and every file it holds, each with a URL its bytes can be read from for a while.
+ */
+interface RemoteStateFiles {
+  state: RemoteState;
+  stateFiles: { downloadUrl: string; filename: string; sha256: string }[];
 }
 
 /**
  * The provider's lock file, `remote-state.lock`, beside the state files. It is never uploaded.
  *
  * `refreshedCommitId` is the sealed record `refreshState` last brought the directory to. `run` is
- * the run the directory belongs to while one is open, with the digest of every file its record
+ * the run the directory belongs to while one is open, with the SHA-256 of every file its record
  * holds. Written by `refreshState`, completed by `lockApp`, deleted by `unlockApp`.
  */
 interface RemoteStateLockFile {
@@ -296,20 +300,13 @@ export class RemoteStateProvider implements IStateProvider {
    * all of them when a run is open. A name holding `/` is the machine's own: it is written beneath
    * the state directory and never reaches the record.
    *
-   * @throws {@link TransactionError} When the backend would refuse a file: a name it does not accept,
-   * a file over 5MB, or one file more than the 200 a state may hold. Nothing is written then.
+   * @throws {@link TransactionError} When the backend would refuse a file's name, before anything is
+   * written. When the backend refuses the write, which is where the limits it holds the app to apply.
    */
   async saveStates(stateFiles: { data: Buffer | undefined; stateFileName: string }[]): Promise<void> {
-    const existingStateFileNames = await this.stateFileNames();
-    const stateFileNames = new Set(existingStateFileNames);
-
     // Refuse the whole change before any of it lands on disk.
     for (const { data, stateFileName } of stateFiles) {
-      if (stateFileName.includes('/')) {
-        continue;
-      }
-      if (data === undefined) {
-        stateFileNames.delete(stateFileName);
+      if (stateFileName.includes('/') || data === undefined) {
         continue;
       }
 
@@ -320,16 +317,6 @@ export class RemoteStateProvider implements IStateProvider {
       ) {
         throw new TransactionError(`State file name "${stateFileName}" is not accepted by the remote state!`);
       }
-      if (data.length > MAXIMUM_STATE_FILE_SIZE_IN_BYTES) {
-        throw new TransactionError(`State file "${stateFileName}" is larger than 5MB!`);
-      }
-      stateFileNames.add(stateFileName);
-    }
-    if (
-      stateFileNames.size > MAXIMUM_STATE_FILES &&
-      [...stateFileNames].some((stateFileName) => !existingStateFileNames.includes(stateFileName))
-    ) {
-      throw new TransactionError(`State cannot hold more than ${MAXIMUM_STATE_FILES} files!`);
     }
 
     // Write the directory, then the run's record once.
@@ -346,15 +333,24 @@ export class RemoteStateProvider implements IStateProvider {
   }
 
   /**
-   * Seals the run's record as it was last written, and releases the app lock. Unlocking an app that
-   * is not locked is not an error.
+   * Writes the directory into the run's record, seals it, and releases the app lock. Unlocking an app
+   * that is not locked is not an error.
+   *
+   * A write that failed earlier left the directory ahead of the record, so the record is written once
+   * more before it is sealed: a sealed record is what every machine plans against next.
    *
    * @throws {@link TransactionError} With the message `Invalid lock ID!` when a different lock is held.
+   * When the directory cannot be written into the record, keeping the lock held.
    */
   async unlockApp(lockId: string): Promise<void> {
     await this.withUploadLock(async () => {
       const lockFile = await this.readLockFile();
       const run = lockFile.run?.lockId === lockId ? lockFile.run : undefined;
+
+      // Bring the record up to the directory, when this directory's run still holds the lock.
+      if (run && (await this.readAppLocks()).some((lock) => lock.lockId === lockId)) {
+        await this.writeRunState(run);
+      }
 
       const released = await this.releaseAppLock(lockId);
       if (!released && (await this.readAppLocks()).length > 0) {
@@ -465,30 +461,54 @@ export class RemoteStateProvider implements IStateProvider {
   }
 
   /**
-   * Replaces every state file in the directory with the ones a multi-part state body carries, and
-   * returns the record it describes. The directory's journal files are kept; with `takeJournal`, the
-   * body's are written beside them.
+   * Replaces every state file in the directory with the ones a state body names, downloading each
+   * from its URL and checking it against its SHA-256, and returns the body. The directory's journal
+   * files are kept; with `takeJournal`, the body's are written beside them.
+   *
+   * Each file is streamed to a temporary file beside it, so a state is not bounded by memory.
    */
   private async replaceStateFiles(
     response: Response,
     { takeJournal }: { takeJournal: boolean },
-  ): Promise<{ state: RemoteState }> {
-    const formData = await response.formData();
-    const statePart = formData.get('state')!;
-    const state = JSON.parse(typeof statePart === 'string' ? statePart : await statePart.text()) as RemoteState;
+  ): Promise<RemoteStateFiles> {
+    const stateFiles = (await response.json()) as RemoteStateFiles;
     const isJournal = (stateFileName: string): boolean => stateFileName.startsWith(JOURNAL_STATE_FILE_NAME_PREFIX);
+
+    // Download every file before the directory changes, so a failed download leaves it as it was.
+    await FileUtility.ensureDirectory(this.localStateDirectoryPath);
+    const downloads: { stateFileName: string; temporaryFilePath: string }[] = [];
+    try {
+      for (const stateFile of stateFiles.stateFiles.filter((f) => takeJournal || !isJournal(f.filename))) {
+        const temporaryFilePath = join(this.localStateDirectoryPath, `.${stateFile.filename}.${process.pid}.download`);
+        downloads.push({ stateFileName: stateFile.filename, temporaryFilePath });
+
+        if (!(await HttpUtility.downloadToFile(stateFile.downloadUrl, temporaryFilePath))) {
+          throw new TransactionError(
+            `Failed to read the app state: state file "${stateFile.filename}" did not download!`,
+          );
+        }
+        if ((await FileUtility.getSha256Digest(temporaryFilePath)) !== stateFile.sha256) {
+          throw new TransactionError(
+            `Failed to read the app state: state file "${stateFile.filename}" did not download whole!`,
+          );
+        }
+      }
+    } catch (error) {
+      for (const { temporaryFilePath } of downloads) {
+        await rm(temporaryFilePath, { force: true });
+      }
+      throw error;
+    }
 
     // Take the state the backend holds over whatever the directory held, file for file.
     for (const stateFileName of (await this.stateFileNames()).filter((n) => !isJournal(n))) {
       await rm(join(this.localStateDirectoryPath, stateFileName), { force: true });
     }
-    for (const stateFile of (formData.getAll('stateFiles') as File[]).filter(
-      (f) => takeJournal || !isJournal(f.name),
-    )) {
-      await this.writeStateFile(stateFile.name, Buffer.from(await stateFile.arrayBuffer()));
+    for (const { stateFileName, temporaryFilePath } of downloads) {
+      await rename(temporaryFilePath, join(this.localStateDirectoryPath, stateFileName));
     }
 
-    return { state };
+    return stateFiles;
   }
 
   /**
@@ -526,10 +546,10 @@ export class RemoteStateProvider implements IStateProvider {
 
       const run = { commitId: lock.commitId, lockId, stateFiles: {} as { [stateFileName: string]: string } };
       if (response.ok) {
-        const { state } = await this.replaceStateFiles(response, { takeJournal: isRunWritten });
+        const { state, stateFiles } = await this.replaceStateFiles(response, { takeJournal: isRunWritten });
         if (state.commitId === lock.commitId) {
-          for (const stateFile of state.stateFiles) {
-            run.stateFiles[stateFile.filename] = stateFile.md5;
+          for (const stateFile of stateFiles) {
+            run.stateFiles[stateFile.filename] = stateFile.sha256;
           }
         }
       }
@@ -617,10 +637,19 @@ export class RemoteStateProvider implements IStateProvider {
   }
 
   /**
-   * Writes the directory into the run's record as it stands, uploading only the files whose digest
-   * the record does not already hold, and returns the digests the record holds afterwards.
+   * Writes the directory into the run's record as it stands, and returns the SHA-256 of every file the
+   * record holds afterwards.
    *
-   * A directory holding nothing writes nothing, since the backend holds no empty state.
+   * A write is three requests: the upload is asked for naming every file and its digest, the files
+   * the backend does not already hold are PUT to the URLs it answered with, and the upload is
+   * claimed. A file that fails to upload stops the write before the claim, and a claim with a file
+   * missing is refused, so a write lands whole or not at all. An upload left unclaimed is thrown away by
+   * the backend at the next write or when the lock is released. A directory holding nothing writes
+   * nothing, since the backend holds no empty state.
+   *
+   * The files are hard linked into a snapshot directory first and streamed from there, so a state is
+   * not bounded by memory, and a file another process replaces meanwhile is uploaded as it was
+   * hashed: a write replaces a file by renaming over it, which leaves the linked one as it was.
    */
   private async writeRunState(run: NonNullable<RemoteStateLockFile['run']>): Promise<{ [name: string]: string }> {
     const stateFileNames = await this.stateFileNames();
@@ -628,45 +657,82 @@ export class RemoteStateProvider implements IStateProvider {
       return run.stateFiles;
     }
 
-    // Find what changed since the record was last written.
-    const changedStateFiles: { data: Buffer; stateFileName: string }[] = [];
-    for (const stateFileName of stateFileNames) {
-      const data = await readFile(join(this.localStateDirectoryPath, stateFileName));
-      if (run.stateFiles[stateFileName] !== createHash('md5').update(data).digest('hex')) {
-        changedStateFiles.push({ data, stateFileName });
+    const snapshotDirectoryPath = join(this.localStateDirectoryPath, `.remote-state-snapshot.${process.pid}`);
+    await rm(snapshotDirectoryPath, { force: true, recursive: true });
+    await FileUtility.ensureDirectory(snapshotDirectoryPath);
+    try {
+      // Describe every file, and stop where nothing changed since the record was last written.
+      const stateFiles: { filename: string; filePath: string; sha256: string; sizeInBytes: number }[] = [];
+      for (const stateFileName of stateFileNames) {
+        const filePath = join(snapshotDirectoryPath, stateFileName);
+        try {
+          await link(join(this.localStateDirectoryPath, stateFileName), filePath);
+        } catch (error) {
+          // Skip a file deleted since the directory was listed.
+          if (error.code === 'ENOENT') {
+            continue;
+          }
+          throw error;
+        }
+        stateFiles.push({
+          filename: stateFileName,
+          filePath,
+          sha256: await FileUtility.getSha256Digest(filePath),
+          sizeInBytes: (await stat(filePath)).size,
+        });
       }
-    }
-    if (changedStateFiles.length === 0 && stateFileNames.length === Object.keys(run.stateFiles).length) {
-      return run.stateFiles;
-    }
+      if (
+        stateFiles.length === Object.keys(run.stateFiles).length &&
+        stateFiles.every((stateFile) => run.stateFiles[stateFile.filename] === stateFile.sha256)
+      ) {
+        return run.stateFiles;
+      }
 
-    // Write the complete list of names, and the files that changed.
-    const body = new FormData();
-    body.append('lockId', run.lockId);
-    body.append('stateFileNames', stateFileNames.join(','));
-    for (const { data, stateFileName } of changedStateFiles) {
-      const bytes = new Uint8Array(data);
-      body.append('stateFiles', new Blob([bytes], { type: STATE_FILE_CONTENT_TYPE }), stateFileName);
-    }
+      // Ask for the upload, naming every file the record should hold.
+      const lockUrl = `${this.appStateUrl()}/lock/${run.lockId}`;
+      const created = await HttpUtility.sendJson(`${lockUrl}/upload`, {
+        body: {
+          stateFiles: stateFiles.map(({ filename, sha256, sizeInBytes }) => ({ filename, sha256, sizeInBytes })),
+        },
+        headers: this.authorizationHeader(),
+        method: 'POST',
+      });
+      if (created.status === 404) {
+        throw new TransactionError(`App is not locked with lock ID "${run.lockId}"!`);
+      }
+      if (!created.ok) {
+        throw new TransactionError(`Failed to write the app state: ${await HttpUtility.readErrorMessage(created)}`);
+      }
+      const { uploadId, uploads } = (await created.json()) as {
+        uploadId: string;
+        uploads: { filename: string; headers: { name: string; value: string }[]; url: string }[];
+      };
 
-    const response = await HttpUtility.send(this.appStateUrl(), {
-      body,
-      headers: this.authorizationHeader(),
-      method: 'PUT',
-    });
-    if (response.status === 404) {
-      throw new TransactionError(`App is not locked with lock ID "${run.lockId}"!`);
-    }
-    // Upload everything when the record does not hold a file the digests say it does.
-    if (response.status === 400 && Object.keys(run.stateFiles).length > 0) {
-      return this.writeRunState({ ...run, stateFiles: {} });
-    }
-    if (!response.ok) {
-      throw new TransactionError(`Failed to write the app state: ${await HttpUtility.readErrorMessage(response)}`);
-    }
+      // Upload each file the backend asked for, with the headers its URL was signed with.
+      for (const upload of uploads) {
+        const response = await HttpUtility.uploadFile(
+          upload.url,
+          stateFiles.find((f) => f.filename === upload.filename)!.filePath,
+          Object.fromEntries(upload.headers.map((header) => [header.name, header.value])),
+        );
+        if (!response.ok) {
+          throw new TransactionError(`Failed to write the app state: state file "${upload.filename}" did not upload!`);
+        }
+      }
 
-    const state = (await response.json()) as RemoteState;
-    return Object.fromEntries(state.stateFiles.map((stateFile) => [stateFile.filename, stateFile.md5]));
+      // Claim the upload, which the backend refuses and throws away where a file is missing.
+      const claimed = await HttpUtility.send(`${lockUrl}/upload/${uploadId}/claim`, {
+        headers: this.authorizationHeader(),
+        method: 'POST',
+      });
+      if (!claimed.ok) {
+        throw new TransactionError(`Failed to write the app state: ${await HttpUtility.readErrorMessage(claimed)}`);
+      }
+
+      return Object.fromEntries(stateFiles.map((stateFile) => [stateFile.filename, stateFile.sha256]));
+    } finally {
+      await rm(snapshotDirectoryPath, { force: true, recursive: true });
+    }
   }
 
   /**

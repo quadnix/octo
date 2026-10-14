@@ -285,10 +285,19 @@ archive the journal of lock "..."`. The lock was not taken.
 The files are a record and nothing reads them back. Move them anywhere you want to keep them, or
 delete them, then lock again.
 
-**`State file "..." is larger than 5MB!`**, **`State cannot hold more than 200 files!`**
+**`Failed to write the app state: State file "..." is larger than ... bytes!`**,
+**`Failed to write the app state: An upload may name at most ... files!`**
 
-`RemoteStateProvider` only, refused before anything was written. These are the backend's limits on
-one app's state, and nothing on the Octo side raises them. Journal files count toward both.
+`RemoteStateProvider` only. These are the limits the backend holds your app to — 20MB a file and
+1000 files a state unless your app's limits were raised — and the backend refused the write before
+any file was uploaded. The files are in your state directory; the run's record holds what it held
+before. Journal files count toward both.
+
+**`Failed to lock the app: App state storage is full!`**
+
+`RemoteStateProvider` only. The states your app holds have passed what it may store, 100MB unless
+its limit was raised. This is checked only when a lock is taken, so a run already holding a lock
+finishes, and the next one is refused. Nothing on the Octo side raises the limit.
 
 ## While applying
 
