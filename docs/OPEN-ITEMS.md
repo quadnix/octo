@@ -46,8 +46,11 @@ Two runs changing unrelated parts of the graph could hold separate locks: one ru
 another adding a Redis service. Today one run locks the whole app. It is a large piece of work, it
 may not succeed, and nothing needs it yet.
 
-The backend already supports it: a lock's scope is a list of opaque strings, and two locks conflict
-only when they share one. Octo sends a single member covering the whole app. What Octo would need:
+The backend grants it today but cannot hold it. A lock's scope is a list of opaque strings, and two
+locks conflict only when they share one, so two scoped runs are both granted. But the backend stores
+each commit's state as one snapshot of the whole app, and the newest sealed snapshot is what every
+run reads next. Octo sends a single member covering the whole app, which is why this has not bitten.
+What Octo would need:
 
 - **A scope from the graph.** `ANode.getBoundaryMembers()` is the starting point, but it mixes what
   a run changes with what it needs to exist, and every node's ancestors reach the app, so any two
@@ -61,12 +64,24 @@ only when they share one. Octo sends a single member covering the whole app. Wha
 - **The cloud.** Graph-disjoint is not cloud-disjoint: two scopes can still collide on a security
   group, an IAM policy, or an account quota.
 
-**Whether Octo's state has to be split first is an open question.** `models.json`,
+**The state has to be split first, in Octo and in the backend.** Two runs that each upload a
+snapshot of the whole app lose one run's change. Alice locks the bucket and Bob locks the VPC, both
+starting from a state holding bucket v1 and VPC v1. Alice seals bucket v2 with VPC v1. Bob then
+seals bucket v1 with VPC v2, which becomes the newest state, and Alice's change is gone: the next
+run plans from Bob's snapshot and sees her bucket as drift. No state ever holds both changes.
+
+Nothing in Terraform or Terragrunt merges two versions of one state either. Terraform locks a whole
+state file for every write and refuses a saved plan whose state has moved; teams get parallel work
+by splitting infrastructure into several roots, each with its own state and lock. Terragrunt makes
+that split systematic: every unit is its own root with its own state file and lock, and units meet
+only through each other's outputs.
+
+Octo is halfway there. Its terraform state is already one `.tfstate` per module. But `models.json`,
 `resources-actual.json` and `resources-old.json` each describe the whole app and are rewritten in
-full by every run, so two runs holding separate locks would still overwrite each other's records.
-Splitting them per module is one answer, and may not be the only one or a needed one. Decide it when
-this work starts. If it is split, the model serializer is already boundary-based; the resource
-record is where the work would be.
+full by every run. Partial locks need those split per scope, so that a run writes only the part it
+holds. The backend then needs a snapshot history per scope, each with its own newest state and its
+own lock, rather than one per app. The model serializer is already boundary-based; the resource
+record is where the Octo work would be.
 
 ## To do: rework every repo doc, then commit them
 
@@ -153,10 +168,11 @@ with it. That is a redesign of how events leave the process, so it was not attem
 
 ## To decide: the journal's limits on remote state
 
-- Journal files count toward the backend's 200-file and 5 MB limits, and ride in the same save as
-  terraform state, so a journal file over a limit fails that save and the command with it. Rahul
-  2026-10-11: that is the signal to raise the backend's limits, not to bypass them for the journal.
-  An apply printing more than 5 MB, or a run of many retries, hits this first.
+- Journal files count toward the limits the backend holds an app to — by default 20 MB a file and
+  1000 files a write, and 100 MB of state in all, checked when a lock is taken — and ride in the
+  same save as terraform state, so a journal file over a limit fails that save and the command with
+  it. Rahul 2026-10-11: that is the signal to raise the backend's limits, not to bypass them for the
+  journal. An apply printing more than 20 MB, or a run of many retries, hits this first.
 - Module inputs are journaled as each module ran with them. A secret passed as a module input
   (from `env`, say) lands in plain text in the journal, which remote state uploads with the run and
   local state keeps in `.octo/` (gitignored). Nothing redacts it.
