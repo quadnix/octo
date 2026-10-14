@@ -58,6 +58,7 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{ accoun
     awsRegionId: 'us-east-1',
     blockPublicAccess: true,
     Bucket: 'test-bucket',
+    lifecycleRules: [],
     permissions: [],
   });
   await testModuleContainer.createResources('testModule', [s3Storage], { save: true });

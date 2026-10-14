@@ -39,7 +39,7 @@ export class AddAwsS3StorageServiceModelAction implements IModelAction<AwsS3Stor
   ): Promise<ActionOutputs> {
     const { bucketName } = diff.node;
 
-    const { blockPublicAccess } = actionInputs.inputs;
+    const { blockPublicAccess, lifecycleRules } = actionInputs.inputs;
     const { awsAccountId, awsRegionId } = actionInputs.metadata;
 
     // Create S3 Bucket.
@@ -48,6 +48,7 @@ export class AddAwsS3StorageServiceModelAction implements IModelAction<AwsS3Stor
       awsRegionId,
       blockPublicAccess: blockPublicAccess ?? true,
       Bucket: bucketName,
+      lifecycleRules: JSON.parse(JSON.stringify(lifecycleRules ?? [])),
       permissions: [],
     });
 

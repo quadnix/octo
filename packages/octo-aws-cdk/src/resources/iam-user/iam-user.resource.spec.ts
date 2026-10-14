@@ -11,6 +11,7 @@ function createBucket(awsAccountId: string): MatchingResource<S3StorageSchema> {
     awsRegionId: 'us-east-1',
     blockPublicAccess: true,
     Bucket: 'receipts',
+    lifecycleRules: [],
     permissions: [],
   });
   return new MatchingResource(bucket);

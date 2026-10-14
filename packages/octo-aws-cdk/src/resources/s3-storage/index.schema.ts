@@ -55,6 +55,47 @@ export class S3StoragePermissionSchema {
 }
 
 /**
+ * Defines the schema for a lifecycle rule of the s3 storage, which expires the objects it matches
+ * some days after each was written.
+ *
+ * A rule matches the objects under its `prefix` that carry every one of its `tags`. With neither, it
+ * matches every object in the bucket.
+ *
+ * @group Resources/S3Storage
+ *
+ * @hideconstructor
+ */
+export class S3StorageLifecycleRuleSchema {
+  /**
+   * The number of days after an object was written that it expires and is deleted.
+   */
+  @Validate({ options: { minLength: 1 } })
+  expirationInDays = Schema<number>();
+
+  /**
+   * The key prefix the rule is limited to, e.g. `uploads/`. Omit it to match the whole bucket.
+   */
+  @Validate({
+    options: { custom: (value: unknown): boolean => typeof value === 'string' },
+  })
+  prefix? = Schema<string>('');
+
+  /**
+   * The tags an object must carry, every one of them, for the rule to match it, e.g. `{ upload: 'pending' }`.
+   */
+  @Validate({
+    options: {
+      custom: (value: unknown): boolean =>
+        typeof value === 'object' &&
+        value !== null &&
+        !Array.isArray(value) &&
+        Object.values(value).every((v) => typeof v === 'string'),
+    },
+  })
+  tags? = Schema<{ [key: string]: string }>({});
+}
+
+/**
  * @internal
  */
 export class PrincipalResourceSchema extends BaseResourceSchema {
@@ -85,7 +126,9 @@ export class PrincipalResourceSchema extends BaseResourceSchema {
  * [`aws_s3_object`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_object)
  * per uploaded file, and
  * [`aws_s3_bucket_policy`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_policy)
- * once a principal is admitted.
+ * once a principal is admitted, and
+ * [`aws_s3_bucket_lifecycle_configuration`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_lifecycle_configuration)
+ * once it has a lifecycle rule.
  *
  * @group Resources/S3Storage
  *
@@ -105,6 +148,7 @@ export class S3StorageSchema extends BaseResourceSchema {
    * * `properties.awsRegionId` - The AWS region id.
    * * `properties.blockPublicAccess` - Blocks every public ACL and public policy on the bucket.
    * * `properties.Bucket` - The name of the bucket.
+   * * `properties.lifecycleRules` - The rules expiring the bucket's objects. See {@link S3StorageLifecycleRuleSchema} for options.
    * * `properties.permissions` - The permissions for the bucket. See {@link S3StoragePermissionSchema} for options.
    */
   @Validate<unknown>([
@@ -121,6 +165,10 @@ export class S3StorageSchema extends BaseResourceSchema {
       options: { minLength: 1 },
     },
     {
+      destruct: (value: S3StorageSchema['properties']): S3StorageLifecycleRuleSchema[] => value.lifecycleRules,
+      options: { isSchema: { schema: S3StorageLifecycleRuleSchema } },
+    },
+    {
       destruct: (value: S3StorageSchema['properties']): S3StoragePermissionSchema[] => value.permissions,
       options: { isSchema: { schema: S3StoragePermissionSchema } },
     },
@@ -130,6 +178,7 @@ export class S3StorageSchema extends BaseResourceSchema {
     awsRegionId: string;
     blockPublicAccess: boolean;
     Bucket: string;
+    lifecycleRules: S3StorageLifecycleRuleSchema[];
     permissions: S3StoragePermissionSchema[];
   }>();
 

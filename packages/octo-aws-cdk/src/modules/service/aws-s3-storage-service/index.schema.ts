@@ -1,9 +1,10 @@
 import { type Region, RegionSchema, Schema, Validate } from '@quadnix/octo';
+import { S3StorageLifecycleRuleSchema } from '../../../resources/s3-storage/index.schema.js';
 
 /**
  * `AwsS3StorageServiceModuleSchema` is the input schema for the `AwsS3StorageServiceModule` module.
  * This schema defines the configuration for S3-based storage services including bucket naming,
- * region placement, access prefixes, and the local files to upload.
+ * region placement, access prefixes, lifecycle rules, and the local files to upload.
  *
  * @group Modules/Service/AwsS3StorageService
  *
@@ -70,6 +71,19 @@ export class AwsS3StorageServiceModuleSchema {
     },
   })
   filter? = Schema<((filePath: string) => boolean) | null>(null);
+
+  /**
+   * Optional rules expiring the bucket's objects some days after each was written. A rule matches
+   * the objects under its `prefix` that carry every one of its `tags`, or the whole bucket with
+   * neither. Without rules, the bucket keeps every object until it is deleted.
+   *
+   * Changing the rules updates the bucket in place.
+   */
+  @Validate({
+    destruct: (value: AwsS3StorageServiceModuleSchema['lifecycleRules']): S3StorageLifecycleRuleSchema[] => value!,
+    options: { isSchema: { schema: S3StorageLifecycleRuleSchema } },
+  })
+  lifecycleRules? = Schema<S3StorageLifecycleRuleSchema[]>([]);
 
   /**
    * The region the bucket is created in, as produced by any of the AWS region modules.

@@ -27,6 +27,7 @@ import { AwsS3StorageService } from './models/service/index.js';
  *   bucketName: 'my-app-storage',
  *   directoryPath: 'website',
  *   filter: (filePath) => !filePath.includes('.DS_Store'),
+ *   lifecycleRules: [{ expirationInDays: 1, tags: { upload: 'pending' } }],
  *   region: stub<Region>('${{my-region-module.model.region}}')
  * });
  * ```

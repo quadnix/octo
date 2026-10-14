@@ -9,6 +9,7 @@ import {
   MatchingResource,
   Resource,
   ResourceError,
+  StringUtility,
   type TerraformModuleScope,
 } from '@quadnix/octo';
 import mime from 'mime';
@@ -106,7 +107,13 @@ export class S3Storage extends ATerraformResource<S3StorageSchema, S3Storage> {
    * @internal
    */
   override async diffProperties(previous: S3Storage): Promise<Diff[]> {
-    if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties, ['blockPublicAccess', 'permissions'])) {
+    if (
+      !DiffUtility.isObjectDeepEquals(previous.properties, this.properties, [
+        'blockPublicAccess',
+        'lifecycleRules',
+        'permissions',
+      ])
+    ) {
       return [
         new Diff(
           this,
@@ -123,6 +130,23 @@ export class S3Storage extends ATerraformResource<S3StorageSchema, S3Storage> {
     // Propose a public access update when the block is turned on or off.
     if (previous.properties.blockPublicAccess !== this.properties.blockPublicAccess) {
       diffs.push(new Diff(this, DiffAction.UPDATE, 'blockPublicAccess', this.properties.blockPublicAccess));
+    }
+
+    // Propose a lifecycle update when the rules change.
+    if (
+      !DiffUtility.isObjectDeepEquals(
+        { lifecycleRules: previous.properties.lifecycleRules },
+        { lifecycleRules: this.properties.lifecycleRules },
+      )
+    ) {
+      diffs.push(
+        new Diff(
+          this,
+          DiffAction.UPDATE,
+          'update-lifecycle-rules',
+          JSON.parse(JSON.stringify(this.properties.lifecycleRules)),
+        ),
+      );
     }
 
     // Propose a policy update when the permissions change.
@@ -239,6 +263,44 @@ export class S3Storage extends ATerraformResource<S3StorageSchema, S3Storage> {
           restrict_public_buckets: true,
         },
       );
+    }
+
+    // Expire the objects each rule matches. A filter of two or more conditions must join them in `and`.
+    if (this.properties.lifecycleRules.length > 0) {
+      const lifecycleTFResource = s3StorageOctoResource.addTerraformResource(
+        'aws_s3_bucket_lifecycle_configuration',
+        `${this.resourceId}_lifecycle`,
+        { bucket: terraform.raw(`${s3StorageTFResource.address}.id`) },
+      );
+      for (const lifecycleRule of this.properties.lifecycleRules) {
+        const prefix = lifecycleRule.prefix ?? '';
+        const tags = lifecycleRule.tags ?? {};
+
+        const ruleBlock = lifecycleTFResource.block('rule');
+        ruleBlock.attribute(
+          'id',
+          `expire-${StringUtility.deterministicHash(JSON.stringify([lifecycleRule.expirationInDays, prefix, tags])).substring(0, 12)}`,
+        );
+        ruleBlock.attribute('status', 'Enabled');
+
+        const filterBlock = ruleBlock.block('filter');
+        const tagEntries = Object.entries(tags);
+        if (tagEntries.length + (prefix ? 1 : 0) > 1) {
+          const andBlock = filterBlock.block('and');
+          if (prefix) {
+            andBlock.attribute('prefix', prefix);
+          }
+          andBlock.attribute('tags', tags);
+        } else if (prefix) {
+          filterBlock.attribute('prefix', prefix);
+        } else if (tagEntries.length === 1) {
+          const tagBlock = filterBlock.block('tag');
+          tagBlock.attribute('key', tagEntries[0][0]);
+          tagBlock.attribute('value', tagEntries[0][1]);
+        }
+
+        ruleBlock.block('expiration').attribute('days', lifecycleRule.expirationInDays);
+      }
     }
 
     // Admit each principal to its access prefix, one statement per principal and verb.

@@ -312,6 +312,279 @@ describe('AwsS3StorageServiceModule UT', () => {
     `);
   });
 
+  it('should CUD lifecycle rules', async () => {
+    await setup(testModuleContainer);
+    const createRules = (
+      await testModuleContainer
+        .runModules<AwsS3StorageServiceModule>(
+          {
+            inputs: {
+              bucketName: 'test-bucket',
+              lifecycleRules: [
+                { expirationInDays: 1, tags: { upload: 'pending' } },
+                { expirationInDays: 7, prefix: 'tmp/' },
+                { expirationInDays: 30, prefix: 'logs/', tags: { kind: 'debug' } },
+                { expirationInDays: 365 },
+              ],
+              region: stub('${{testModule.model.region}}'),
+            },
+            moduleId: 'service',
+            type: AwsS3StorageServiceModule,
+          },
+          { terraformTarget: 'skip' },
+        )
+        .next()
+    ).value!;
+    expect(createRules.hclDiff).toMatchInlineSnapshot(`
+     "+ service/main.tf
+     provider "aws" {
+       alias = "_123-us-east-1"
+       region = "us-east-1"
+       allowed_account_ids = ["123"]
+     }
+
+     + service/main.tf
+     resource "aws_s3_bucket_lifecycle_configuration" "bucket-test-bucket-51fb32_lifecycle" {
+       provider = aws._123-us-east-1
+       bucket = aws_s3_bucket.bucket-test-bucket-51fb32.id
+       rule {
+         id = "expire-032a21d6c536"
+         status = "Enabled"
+         filter {
+           tag {
+             key = "upload"
+             value = "pending"
+           }
+         }
+         expiration {
+           days = 1
+         }
+       }
+       rule {
+         id = "expire-fc859d676b4d"
+         status = "Enabled"
+         filter {
+           prefix = "tmp/"
+         }
+         expiration {
+           days = 7
+         }
+       }
+       rule {
+         id = "expire-2589c3a3eedd"
+         status = "Enabled"
+         filter {
+           and {
+             prefix = "logs/"
+             tags = {
+               kind = "debug"
+             }
+           }
+         }
+         expiration {
+           days = 30
+         }
+       }
+       rule {
+         id = "expire-0ba62a037708"
+         status = "Enabled"
+         filter {
+
+         }
+         expiration {
+           days = 365
+         }
+       }
+
+       depends_on = [aws_s3_bucket_public_access_block.bucket-test-bucket-51fb32-public-access]
+     }
+
+     + service/main.tf
+     resource "aws_s3_bucket_public_access_block" "bucket-test-bucket-51fb32-public-access" {
+       provider = aws._123-us-east-1
+       block_public_acls = true
+       block_public_policy = true
+       bucket = aws_s3_bucket.bucket-test-bucket-51fb32.id
+       ignore_public_acls = true
+       restrict_public_buckets = true
+
+       depends_on = [aws_s3_bucket.bucket-test-bucket-51fb32]
+     }
+
+     + service/main.tf
+     resource "aws_s3_bucket" "bucket-test-bucket-51fb32" {
+       provider = aws._123-us-east-1
+       bucket = "test-bucket"
+     }
+
+     + service/main.tf
+     terraform {
+       required_version = ">= 1.6.0"
+       required_providers {
+         aws = {
+           source = "hashicorp/aws"
+           version = ">= 5.49"
+         }
+       }
+     }
+
+     + service/outputs.tf
+     output "bucket-test-bucket-51fb32-Arn" {
+       value = aws_s3_bucket.bucket-test-bucket-51fb32.arn
+     }
+
+     + service/outputs.tf
+     output "bucket-test-bucket-51fb32-awsRegionId" {
+       value = "us-east-1"
+     }
+
+     + service/outputs.tf
+     output "bucket-test-bucket-51fb32-Bucket" {
+       value = aws_s3_bucket.bucket-test-bucket-51fb32.id
+     }
+
+     + service/outputs.tf
+     output "bucket-test-bucket-51fb32-RegionalDomainName" {
+       value = aws_s3_bucket.bucket-test-bucket-51fb32.bucket_regional_domain_name
+     }
+
+     + service/terragrunt.hcl
+     remote_state {
+       backend = "local"
+       generate = {
+         path      = "backend.tf"
+         if_exists = "overwrite_terragrunt"
+       }
+       config = {
+         path = "\${get_terragrunt_dir()}/terraform.tfstate"
+       }
+     }
+
+     + service/variables.tf
+     <empty>"
+    `);
+    expect(testModuleContainer.digestDiffs(createRules.resourceDiffs)).toMatchInlineSnapshot(`
+     [
+       "+ @octo/s3-storage=bucket-test-bucket-51fb32",
+     ]
+    `);
+
+    await setup(testModuleContainer);
+    const updateRules = (
+      await testModuleContainer
+        .runModules<AwsS3StorageServiceModule>(
+          {
+            inputs: {
+              bucketName: 'test-bucket',
+              lifecycleRules: [{ expirationInDays: 2, tags: { upload: 'pending' } }],
+              region: stub('${{testModule.model.region}}'),
+            },
+            moduleId: 'service',
+            type: AwsS3StorageServiceModule,
+          },
+          { terraformTarget: 'skip' },
+        )
+        .next()
+    ).value!;
+    expect(updateRules.hclDiff).toMatchInlineSnapshot(`
+     "~ service/main.tf resource "aws_s3_bucket_lifecycle_configuration" "bucket-test-bucket-51fb32_lifecycle" {
+     @@ -4,3 +4,3 @@
+         rule {
+     -     id = "expire-032a21d6c536"
+     +     id = "expire-ad984dedc836"
+           status = "Enabled"
+     @@ -13,38 +13,3 @@
+           expiration {
+     -       days = 1
+     -     }
+     -   }
+     -   rule {
+     -     id = "expire-fc859d676b4d"
+     -     status = "Enabled"
+     -     filter {
+     -       prefix = "tmp/"
+     -     }
+     -     expiration {
+     -       days = 7
+     -     }
+     -   }
+     -   rule {
+     -     id = "expire-2589c3a3eedd"
+     -     status = "Enabled"
+     -     filter {
+     -       and {
+     -         prefix = "logs/"
+     -         tags = {
+     -           kind = "debug"
+     -         }
+     -       }
+     -     }
+     -     expiration {
+     -       days = 30
+     -     }
+     -   }
+     -   rule {
+     -     id = "expire-0ba62a037708"
+     -     status = "Enabled"
+     -     filter {
+     - 
+     -     }
+     -     expiration {
+     -       days = 365
+     +       days = 2
+           }"
+    `);
+    expect(testModuleContainer.digestDiffs(updateRules.resourceDiffs)).toMatchInlineSnapshot(`
+     [
+       "* @octo/s3-storage=bucket-test-bucket-51fb32",
+     ]
+    `);
+
+    await setup(testModuleContainer);
+    const deleteRules = (
+      await testModuleContainer
+        .runModules<AwsS3StorageServiceModule>(
+          {
+            inputs: {
+              bucketName: 'test-bucket',
+              region: stub('${{testModule.model.region}}'),
+            },
+            moduleId: 'service',
+            type: AwsS3StorageServiceModule,
+          },
+          { terraformTarget: 'skip' },
+        )
+        .next()
+    ).value!;
+    expect(deleteRules.hclDiff).toMatchInlineSnapshot(`
+     "- service/main.tf
+     resource "aws_s3_bucket_lifecycle_configuration" "bucket-test-bucket-51fb32_lifecycle" {
+       provider = aws._123-us-east-1
+       bucket = aws_s3_bucket.bucket-test-bucket-51fb32.id
+       rule {
+         id = "expire-ad984dedc836"
+         status = "Enabled"
+         filter {
+           tag {
+             key = "upload"
+             value = "pending"
+           }
+         }
+         expiration {
+           days = 2
+         }
+       }
+
+       depends_on = [aws_s3_bucket_public_access_block.bucket-test-bucket-51fb32-public-access]
+     }"
+    `);
+    expect(testModuleContainer.digestDiffs(deleteRules.resourceDiffs)).toMatchInlineSnapshot(`
+     [
+       "* @octo/s3-storage=bucket-test-bucket-51fb32",
+     ]
+    `);
+  });
+
   describe('uploads', () => {
     it('should call correct actions', async () => {
       await setup(testModuleContainer, { regionKind: 'serverless' });
@@ -719,6 +992,26 @@ describe('AwsS3StorageServiceModule UT', () => {
           )
           .next(),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "accessPrefixes" in schema could not be validated!"`);
+    });
+
+    it('should validate lifecycleRules expire after at least one day', async () => {
+      await setup(testModuleContainer);
+      await expect(
+        testModuleContainer
+          .runModules<AwsS3StorageServiceModule>(
+            {
+              inputs: {
+                bucketName: 'test-bucket',
+                lifecycleRules: [{ expirationInDays: 0 }],
+                region: stub('${{testModule.model.region}}'),
+              },
+              moduleId: 'service',
+              type: AwsS3StorageServiceModule,
+            },
+            { terraformTarget: 'skip' },
+          )
+          .next(),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "lifecycleRules" in schema could not be validated!"`);
     });
 
     it('should validate directoryPath is not empty', async () => {
