@@ -39,17 +39,37 @@ export class TerraformCommandFinishedEvent extends TerraformEvent<{
 }> {}
 
 /**
- * This event is emitted after every terraform or terragrunt process exits, whatever its exit code,
- * with everything it wrote. One command can run several processes: a JSON plan runs a plan and a show
- * in every folder.
+ * This event is emitted when octo starts a terraform or terragrunt process, before it writes anything.
+ * `processId` tells apart the processes of one octo process: a JSON plan runs a plan and a show in
+ * every folder.
  *
  * @group Events/Terraform
  */
-export class TerraformCommandOutputEvent extends TerraformEvent<{
+export class TerraformProcessStartedEvent extends TerraformEvent<{
   args: string[];
   binary: string;
   dir: string;
+  processId: number;
+}> {}
+
+/**
+ * This event is emitted for every chunk a terraform or terragrunt process writes, as it writes it.
+ *
+ * @group Events/Terraform
+ */
+export class TerraformProcessOutputEvent extends TerraformEvent<{
+  processId: number;
+  stream: 'stderr' | 'stdout';
+  text: string;
+}> {}
+
+/**
+ * This event is emitted after every terraform or terragrunt process exits, whatever its exit code.
+ * `exitCode` is -1 for a process that could not start or was killed.
+ *
+ * @group Events/Terraform
+ */
+export class TerraformProcessExitedEvent extends TerraformEvent<{
   exitCode: number;
-  stderr: string;
-  stdout: string;
+  processId: number;
 }> {}

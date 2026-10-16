@@ -1,9 +1,12 @@
+import { jest } from '@jest/globals';
 import type { UnknownResource } from '../app.type.js';
 import { Resource } from '../decorators/resource.decorator.js';
+import { TerraformProcessOutputEvent } from '../events/index.js';
 import { Container } from '../functions/container/container.js';
 import type { App } from '../models/app/app.model.js';
 import { BaseResourceSchema } from '../resources/resource.schema.js';
 import { ATerraformResource } from '../resources/terraform-resource.abstract.js';
+import { EventService } from '../services/event/event.service.js';
 import { InputService } from '../services/input/input.service.js';
 import type { TerraformModuleScope } from '../services/terraform/terraform.service.js';
 import { TerraformUtility } from '../utilities/terraform/terraform.utility.js';
@@ -64,14 +67,22 @@ describe('generate() IT', () => {
 
   async function applyAndCommit(app: App): Promise<{ applyLog: string; ids: Record<string, unknown> }> {
     await testModes.generate(app, { outputDir: testModes.outputDir });
-    const { stderr, stdout } = await terraformUtility.apply(testModes.outputDir);
+    // Read what the apply printed from its output events, the one channel terraform output goes out on.
+    const emit = jest.spyOn(EventService.getInstance(), 'emit');
+    await terraformUtility.apply(testModes.outputDir);
+    const applyLog = emit.mock.calls
+      .map(([event]) => event)
+      .filter((event): event is TerraformProcessOutputEvent => event instanceof TerraformProcessOutputEvent)
+      .map((event) => event.payload.text)
+      .join('');
+    emit.mockRestore();
     const outputs = (await terraformUtility.output(testModes.outputDir, { json: true })) as Parameters<
       TestModes['commit']
     >[1]['outputs'];
     await testModes.commit(app, { outputs });
 
     return {
-      applyLog: stdout + stderr,
+      applyLog,
       ids: Object.fromEntries(
         [...outputs.values()].flatMap((moduleOutputs) =>
           Object.entries(moduleOutputs).map(([name, { value }]) => [name, value]),

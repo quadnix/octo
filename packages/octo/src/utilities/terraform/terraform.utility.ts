@@ -1,4 +1,4 @@
-import { type ExecFileOptionsWithStringEncoding, execFile } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { type Dirent, existsSync } from 'node:fs';
 import { mkdtemp, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -7,8 +7,10 @@ import { Factory } from '../../decorators/factory.decorator.js';
 import { TerraformCommandError } from '../../errors/index.js';
 import {
   TerraformCommandFinishedEvent,
-  TerraformCommandOutputEvent,
   TerraformCommandStartedEvent,
+  TerraformProcessExitedEvent,
+  TerraformProcessOutputEvent,
+  TerraformProcessStartedEvent,
 } from '../../events/index.js';
 import { Container } from '../../functions/container/container.js';
 import type { TerraformOutputs } from '../../modes/commit.mode.js';
@@ -26,13 +28,16 @@ const TERRAFORM_STATE_FILE_NAME = 'terraform.tfstate';
  * bound. Everything else only reads, where a timeout costs nothing and catches a hang.
  */
 const MUTATING_COMMANDS = new Set(['apply', 'destroy']);
-const MAX_BUFFER = 256 * 1024 * 1024; // 256 KB.
+
+/**
+ * How much of a process's stderr is kept for the error a failure throws. Everything it wrote goes out
+ * as it is written, in {@link TerraformProcessOutputEvent}.
+ */
+const STDERR_TAIL_LENGTH = 64 * 1024;
 
 interface TerraformRawResult {
   readonly args: string[];
   readonly exitCode: number;
-  readonly stderr: string;
-  readonly stdout: string;
 }
 
 /**
@@ -68,6 +73,11 @@ interface TerraformPlanResult {
  * @group Utilities/Terraform
  */
 export class TerraformUtility {
+  /**
+   * The id of the last process any instance started, so ids never repeat within one octo process.
+   */
+  private static lastProcessId = 0;
+
   private onceArgs: string[] | undefined;
 
   private readonly options: {
@@ -120,15 +130,9 @@ export class TerraformUtility {
    * {@link TerraformUtility.findPlannedDestroys} beforehand if a destroy needs confirming.
    *
    * @param terragruntDir The directory octo generated the module folders into.
-   * @param onOutput Called with each chunk terragrunt writes, as it writes it. An apply can run for
-   * tens of minutes, and the buffered result only arrives at the end - without this the caller has
-   * nothing to show for the whole run. The chunks are also still accumulated into the result.
    */
-  async apply(
-    terragruntDir: string,
-    { onOutput }: { onOutput?: (chunk: string, stream: 'stderr' | 'stdout') => void } = {},
-  ): Promise<TerraformRawResult> {
-    return this.runAll(terragruntDir, 'apply', ['-input=false', '-auto-approve', ...this.consumeArgs()], { onOutput });
+  async apply(terragruntDir: string): Promise<TerraformRawResult> {
+    return this.runAll(terragruntDir, 'apply', ['-input=false', '-auto-approve', ...this.consumeArgs()]);
   }
 
   /**
@@ -197,7 +201,7 @@ export class TerraformUtility {
    *
    * @param terragruntDir The directory octo generated the module folders into.
    * @param options Pass `{ json: true }` to get the outputs parsed and keyed by `moduleId`, which is
-   * the shape {@link Octo.commit} takes. Without it, terragrunt's raw output is returned.
+   * the shape {@link Octo.commit} takes. Without it, terragrunt's output goes out only as events.
    */
   output(terragruntDir: string, options: { json: true }): Promise<Map<string, TerraformOutputs>>;
   /**
@@ -237,7 +241,7 @@ export class TerraformUtility {
    * @param terragruntDir The directory octo generated the module folders into.
    * @param options Pass `{ json: true }` to get the plans parsed and keyed by `moduleId`, which is
    * the shape {@link Octo.validate} takes - along with the `errors` of any folder that could not be
-   * planned. Without it, terragrunt's raw output is returned.
+   * planned. Without it, terragrunt's output goes out only as events.
    */
   plan(terragruntDir: string, options: { json: true }): Promise<TerraformPlanResult>;
   /**
@@ -291,31 +295,50 @@ export class TerraformUtility {
     return this.runAll(terragruntDir, 'validate', this.consumeArgs());
   }
   /**
-   * Runs `file` with `args`. `onOutput` receives each chunk as the child writes it; `execFile` keeps
-   * accumulating into its own buffers regardless, so the resolved result is the same either way.
+   * Runs `file` with `args`, handing each chunk it writes to `onChunk` as it arrives. Keeps its whole
+   * stdout only when `keepStdout` asks for it, and the last {@link STDERR_TAIL_LENGTH} characters of its
+   * stderr, so a process writing for an hour holds no more memory than one writing for a second.
    */
-  protected execFileAsync(
+  protected spawnAsync(
     file: string,
     args: string[],
-    options: ExecFileOptionsWithStringEncoding,
-    onOutput?: (chunk: string, stream: 'stderr' | 'stdout') => void,
-  ): Promise<{
-    stderr: string;
-    stdout: string;
-  }> {
+    options: { cwd?: string; env: NodeJS.ProcessEnv; keepStdout: boolean; timeout?: number },
+    onChunk: (text: string, stream: 'stderr' | 'stdout') => void,
+  ): Promise<{ stderr: string; stdout: string }> {
     return new Promise((resolve, reject) => {
-      const child = execFile(file, args, options, (error, stdout, stderr) => {
-        if (error) {
-          reject(Object.assign(error, { stderr: stderr ?? '', stdout: stdout ?? '' }));
-        } else {
-          resolve({ stderr: stderr ?? '', stdout: stdout ?? '' });
-        }
+      let stderr = '';
+      let stdout = '';
+
+      const child = spawn(file, args, {
+        cwd: options.cwd,
+        env: options.env,
+        stdio: ['ignore', 'pipe', 'pipe'],
+        timeout: options.timeout,
       });
 
-      if (onOutput) {
-        child.stdout?.on('data', (chunk) => onOutput(String(chunk), 'stdout'));
-        child.stderr?.on('data', (chunk) => onOutput(String(chunk), 'stderr'));
-      }
+      // Decode as text, so a character split across two chunks arrives whole.
+      child.stdout.setEncoding('utf8');
+      child.stderr.setEncoding('utf8');
+      child.stdout.on('data', (chunk: string) => {
+        if (options.keepStdout) {
+          stdout += chunk;
+        }
+        onChunk(chunk, 'stdout');
+      });
+      child.stderr.on('data', (chunk: string) => {
+        stderr = (stderr + chunk).slice(-STDERR_TAIL_LENGTH);
+        onChunk(chunk, 'stderr');
+      });
+
+      child.on('error', (error) => reject(Object.assign(error, { stderr, stdout })));
+      child.on('close', (code, signal) => {
+        if (code === 0) {
+          resolve({ stderr, stdout });
+        } else {
+          const reason = signal ? `killed by ${signal}` : `exit ${code}`;
+          reject(Object.assign(new Error(`Command failed (${reason})`), { code: code ?? undefined, stderr, stdout }));
+        }
+      });
     });
   }
 
@@ -398,9 +421,7 @@ export class TerraformUtility {
     terragruntDir: string,
     command: string,
     commandArgs: string[],
-    { onOutput }: { onOutput?: (chunk: string, stream: 'stderr' | 'stdout') => void } = {},
   ): Promise<TerraformRawResult> {
-    const binary = this.options.terragruntBinary;
     const args = [
       '--non-interactive',
       '--no-color',
@@ -417,52 +438,26 @@ export class TerraformUtility {
     const startedAt = Date.now();
     eventService.emit(new TerraformCommandStartedEvent(command, { command, dir: terragruntDir }));
 
+    let exitCode = 0;
     try {
-      const { stderr, stdout } = await this.execFileAsync(
-        binary,
-        args,
-        {
-          env: this.buildEnv(),
-          maxBuffer: MAX_BUFFER,
-          timeout: MUTATING_COMMANDS.has(command) ? this.requestedTimeoutInMs : this.options.timeoutInMs,
-        },
-        onOutput,
-      );
-
-      eventService.emit(
-        new TerraformCommandOutputEvent(command, { args, binary, dir: terragruntDir, exitCode: 0, stderr, stdout }),
-      );
-      eventService.emit(
-        new TerraformCommandFinishedEvent(command, {
-          command,
-          dir: terragruntDir,
-          durationInMs: Date.now() - startedAt,
-          exitCode: 0,
-        }),
-      );
-
-      return { args, exitCode: 0, stderr, stdout };
+      await this.runProcess(this.options.terragruntBinary, args, {
+        command,
+        dir: terragruntDir,
+        timeout: MUTATING_COMMANDS.has(command) ? this.requestedTimeoutInMs : this.options.timeoutInMs,
+      });
+      return { args, exitCode };
     } catch (error) {
-      const commandError = this.toTerraformCommandError(binary, args, terragruntDir, error);
-      eventService.emit(
-        new TerraformCommandOutputEvent(command, {
-          args,
-          binary,
-          dir: terragruntDir,
-          exitCode: commandError.exitCode,
-          stderr: commandError.stderr,
-          stdout: commandError.stdout,
-        }),
-      );
+      exitCode = (error as { exitCode?: number }).exitCode ?? -1;
+      throw error;
+    } finally {
       eventService.emit(
         new TerraformCommandFinishedEvent(command, {
           command,
           dir: terragruntDir,
           durationInMs: Date.now() - startedAt,
-          exitCode: (commandError as unknown as { exitCode?: number }).exitCode ?? -1,
+          exitCode,
         }),
       );
-      throw commandError;
     }
   }
 
@@ -635,7 +630,7 @@ export class TerraformUtility {
   /**
    * Runs one terragrunt command in a single module folder (`cwd` = that folder).
    */
-  private async run(moduleDir: string, args: string[]): Promise<TerraformRawResult> {
+  private async run(moduleDir: string, args: string[]): Promise<{ stdout: string }> {
     return this.runIn(moduleDir, this.options.terragruntBinary, args);
   }
 
@@ -647,44 +642,54 @@ export class TerraformUtility {
     terragruntDir: string,
     command: string,
     commandArgs: string[],
-    { onOutput }: { onOutput?: (chunk: string, stream: 'stderr' | 'stdout') => void } = {},
   ): Promise<TerraformRawResult> {
     const realTerragruntDir = await this.resolveRealPath(terragruntDir);
     return this.withTerraformState(
       realTerragruntDir,
-      () => this.invokeRunAll(realTerragruntDir, command, commandArgs, { onOutput }),
+      () => this.invokeRunAll(realTerragruntDir, command, commandArgs),
       { keepMoves: MUTATING_COMMANDS.has(command) },
     );
   }
 
   /**
-   * Runs `binary` with `args` in `dir`.
+   * Runs `binary` with `args` in `dir`. Its stdout is returned only when it is asked for JSON, which is
+   * the output octo reads; every other process's output goes out only as events.
    */
-  private async runIn(dir: string, binary: string, args: string[]): Promise<TerraformRawResult> {
-    const eventService = EventService.getInstance();
+  private async runIn(dir: string, binary: string, args: string[]): Promise<{ stdout: string }> {
+    return this.runProcess(binary, args, { command: args[0], cwd: dir, dir, timeout: this.options.timeoutInMs });
+  }
 
+  /**
+   * Runs one process. Every terraform and terragrunt process octo starts goes through here, and goes out
+   * as events: a {@link TerraformProcessStartedEvent}, a {@link TerraformProcessOutputEvent} for each
+   * chunk it writes, and a {@link TerraformProcessExitedEvent}, all named after `command`.
+   *
+   * @throws {@link TerraformCommandError} When the process cannot start or exits non-zero.
+   */
+  private async runProcess(
+    binary: string,
+    args: string[],
+    { command, cwd, dir, timeout }: { command: string; cwd?: string; dir: string; timeout?: number },
+  ): Promise<{ stdout: string }> {
+    const eventService = EventService.getInstance();
+    const processId = ++TerraformUtility.lastProcessId;
+    eventService.emit(new TerraformProcessStartedEvent(command, { args, binary, dir, processId }));
+
+    let exitCode = 0;
     try {
-      const { stderr, stdout } = await this.execFileAsync(binary, args, {
-        cwd: dir,
-        env: this.buildEnv(),
-        maxBuffer: MAX_BUFFER,
-        timeout: this.options.timeoutInMs,
-      });
-      eventService.emit(new TerraformCommandOutputEvent(args[0], { args, binary, dir, exitCode: 0, stderr, stdout }));
-      return { args, exitCode: 0, stderr, stdout };
+      const { stdout } = await this.spawnAsync(
+        binary,
+        args,
+        { cwd, env: this.buildEnv(), keepStdout: args.includes('-json'), timeout },
+        (text, stream) => eventService.emit(new TerraformProcessOutputEvent(command, { processId, stream, text })),
+      );
+      return { stdout };
     } catch (error) {
       const commandError = this.toTerraformCommandError(binary, args, dir, error);
-      eventService.emit(
-        new TerraformCommandOutputEvent(args[0], {
-          args,
-          binary,
-          dir,
-          exitCode: commandError.exitCode,
-          stderr: commandError.stderr,
-          stdout: commandError.stdout,
-        }),
-      );
+      exitCode = commandError.exitCode;
       throw commandError;
+    } finally {
+      eventService.emit(new TerraformProcessExitedEvent(command, { exitCode, processId }));
     }
   }
 

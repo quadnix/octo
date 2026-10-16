@@ -1,10 +1,14 @@
-import type { ExecFileOptionsWithStringEncoding } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { jest } from '@jest/globals';
 import { TerraformCommandError } from '../../errors/index.js';
-import { type Event, TerraformCommandOutputEvent } from '../../events/index.js';
+import {
+  type Event,
+  TerraformProcessExitedEvent,
+  TerraformProcessOutputEvent,
+  TerraformProcessStartedEvent,
+} from '../../events/index.js';
 import { Container } from '../../functions/container/container.js';
 import { EventService } from '../../services/event/event.service.js';
 import {
@@ -15,37 +19,39 @@ import { TerraformStateService } from '../../services/state-management/terraform
 import { TestStateProvider } from '../../services/state-management/test.state-provider.js';
 import { TerraformUtility } from './terraform.utility.js';
 
-type OnOutput = (chunk: string, stream: 'stderr' | 'stdout') => void;
+type OnChunk = Parameters<TerraformUtility['spawnAsync']>[3];
+
+type SpawnOptions = Parameters<TerraformUtility['spawnAsync']>[2];
 
 class TestableTerraformUtility extends TerraformUtility {
-  readonly execFileAsyncMock = jest
+  readonly spawnAsyncMock = jest
     .fn<
       (
         file: string,
         args: string[],
-        options: ExecFileOptionsWithStringEncoding,
-        onOutput?: OnOutput,
-      ) => ReturnType<TerraformUtility['execFileAsync']>
+        options: SpawnOptions,
+        onChunk: OnChunk,
+      ) => ReturnType<TerraformUtility['spawnAsync']>
     >()
     .mockResolvedValue({ stderr: '', stdout: '' });
 
-  protected override execFileAsync(
+  protected override spawnAsync(
     file: string,
     args: string[],
-    options: ExecFileOptionsWithStringEncoding,
-    onOutput?: OnOutput,
-  ): ReturnType<TerraformUtility['execFileAsync']> {
-    return this.execFileAsyncMock(file, args, options, onOutput);
+    options: SpawnOptions,
+    onChunk: OnChunk,
+  ): ReturnType<TerraformUtility['spawnAsync']> {
+    return this.spawnAsyncMock(file, args, options, onChunk);
   }
 }
 
 /**
- * Runs the real {@link TerraformUtility.execFileAsync}, so the streaming below is exercised against
- * an actual child process rather than a stub of one.
+ * Runs the real {@link TerraformUtility.spawnAsync}, so the streaming below is exercised against an
+ * actual child process rather than a stub of one.
  */
 class StreamingTerraformUtility extends TerraformUtility {
-  runReal(file: string, args: string[], onOutput: OnOutput): ReturnType<TerraformUtility['execFileAsync']> {
-    return this.execFileAsync(file, args, { encoding: 'utf8' }, onOutput);
+  runReal(script: string, keepStdout: boolean, onChunk: OnChunk): ReturnType<TerraformUtility['spawnAsync']> {
+    return this.spawnAsync(process.execPath, ['-e', script], { env: process.env, keepStdout }, onChunk);
   }
 }
 
@@ -72,7 +78,7 @@ describe('TerraformUtility UT', () => {
   });
 
   function argvOf(callIndex: number): string[] {
-    return terraform.execFileAsyncMock.mock.calls[callIndex][1];
+    return terraform.spawnAsyncMock.mock.calls[callIndex][1];
   }
 
   async function createModuleFolder(name: string): Promise<void> {
@@ -81,30 +87,29 @@ describe('TerraformUtility UT', () => {
     await writeFile(join(moduleDir, 'terragrunt.hcl'), '');
   }
 
-  // An apply can run for tens of minutes and the buffered result only arrives at the end, so
-  // without this the user watches a silent terminal for the whole run.
-  describe('apply() streaming', () => {
-    it('should pass the output callback down to the child process', async () => {
-      const onOutput = jest.fn<OnOutput>();
-
-      await terraform.apply(terragruntDir, { onOutput });
-
-      expect(terraform.execFileAsyncMock.mock.calls[0][3]).toBe(onOutput);
-    });
-
-    it('should pass no callback when the caller wants none', async () => {
+  describe('apply() output', () => {
+    it('should keep the stdout of a process asked for JSON only', async () => {
       await terraform.apply(terragruntDir);
 
-      expect(terraform.execFileAsyncMock.mock.calls[0][3]).toBeUndefined();
+      expect(terraform.spawnAsyncMock.mock.calls[0][2].keepStdout).toBe(false);
+    });
+  });
+
+  describe('spawnAsync()', () => {
+    const streaming = new StreamingTerraformUtility({});
+
+    it('should reject with the exit code of a process that fails', async () => {
+      await expect(
+        streaming.runReal('process.stderr.write("Error: bad"); process.exit(3);', false, () => undefined),
+      ).rejects.toMatchObject({ code: 3, stderr: 'Error: bad' });
     });
 
-    it('should stream each chunk while still accumulating the full result', async () => {
-      const streaming = new StreamingTerraformUtility({});
+    it('should stream each chunk and hold no stdout unless asked to', async () => {
       const chunks: [string, string][] = [];
 
       const result = await streaming.runReal(
-        process.execPath,
-        ['-e', 'process.stdout.write("out-chunk"); process.stderr.write("err-chunk");'],
+        'process.stdout.write("out-chunk"); process.stderr.write("err-chunk");',
+        false,
         (chunk, stream) => chunks.push([stream, chunk]),
       );
 
@@ -112,9 +117,24 @@ describe('TerraformUtility UT', () => {
         ['stdout', 'out-chunk'],
         ['stderr', 'err-chunk'],
       ]);
-      // Streaming must not consume the output the buffered result is built from.
-      expect(result.stdout).toBe('out-chunk');
-      expect(result.stderr).toBe('err-chunk');
+      expect(result).toEqual({ stderr: 'err-chunk', stdout: '' });
+    });
+
+    it('should keep the whole stdout when asked to', async () => {
+      const result = await streaming.runReal('process.stdout.write("{}");', true, () => undefined);
+
+      expect(result.stdout).toBe('{}');
+    });
+
+    it('should keep only the last 64 KB of stderr', async () => {
+      const result = await streaming.runReal(
+        'process.stderr.write("a".repeat(70 * 1024) + "end");',
+        false,
+        () => undefined,
+      );
+
+      expect(result.stderr).toHaveLength(64 * 1024);
+      expect(result.stderr.endsWith('end')).toBe(true);
     });
   });
 
@@ -135,7 +155,7 @@ describe('TerraformUtility UT', () => {
 
       await terraform.plan(terragruntDir, { json: true });
 
-      const showCall = terraform.execFileAsyncMock.mock.calls.find((call) => call[1][0] === 'show');
+      const showCall = terraform.spawnAsyncMock.mock.calls.find((call) => call[1][0] === 'show');
       expect(showCall![1]).not.toEqual(expect.arrayContaining(['-lock=false']));
     });
 
@@ -145,14 +165,14 @@ describe('TerraformUtility UT', () => {
       terraform.setArgsOnce(['-lock=false']);
 
       await terraform.plan(terragruntDir, { json: true });
-      const planCallsWithOnceArg = terraform.execFileAsyncMock.mock.calls.filter(
+      const planCallsWithOnceArg = terraform.spawnAsyncMock.mock.calls.filter(
         (call) => call[1][0] === 'plan' && call[1].includes('-lock=false'),
       );
       expect(planCallsWithOnceArg).toHaveLength(2);
 
-      terraform.execFileAsyncMock.mockClear();
+      terraform.spawnAsyncMock.mockClear();
       await terraform.plan(terragruntDir, { json: true });
-      const planCallsAfter = terraform.execFileAsyncMock.mock.calls.filter((call) => call[1][0] === 'plan');
+      const planCallsAfter = terraform.spawnAsyncMock.mock.calls.filter((call) => call[1][0] === 'plan');
       for (const call of planCallsAfter) {
         expect(call[1]).not.toEqual(expect.arrayContaining(['-lock=false']));
       }
@@ -210,27 +230,31 @@ describe('TerraformUtility UT', () => {
     it('plan() runs a single "run --all -- plan" shell-out with no folder enumeration', async () => {
       const result = await terraform.plan(terragruntDir);
 
-      expect(terraform.execFileAsyncMock).toHaveBeenCalledTimes(1);
+      expect(terraform.spawnAsyncMock).toHaveBeenCalledTimes(1);
       expect(argvOf(0).slice(-2)).toEqual(['plan', '-input=false']);
-      expect(result).toEqual({ args: argvOf(0), exitCode: 0, stderr: '', stdout: '' });
+      expect(result).toEqual({ args: argvOf(0), exitCode: 0 });
     });
 
     it('output() runs a single "run --all -- output" shell-out with no folder enumeration', async () => {
       await terraform.output(terragruntDir);
 
-      expect(terraform.execFileAsyncMock).toHaveBeenCalledTimes(1);
+      expect(terraform.spawnAsyncMock).toHaveBeenCalledTimes(1);
       expect(argvOf(0).slice(-1)).toEqual(['output']);
     });
   });
 
   describe('process output', () => {
-    let outputs: TerraformCommandOutputEvent['payload'][];
+    let events: (TerraformProcessExitedEvent | TerraformProcessOutputEvent | TerraformProcessStartedEvent)[];
 
     beforeEach(() => {
-      outputs = [];
+      events = [];
       jest.spyOn(EventService.getInstance(), 'emit').mockImplementation((event: Event<unknown>) => {
-        if (event instanceof TerraformCommandOutputEvent) {
-          outputs.push(event.payload);
+        if (
+          event instanceof TerraformProcessExitedEvent ||
+          event instanceof TerraformProcessOutputEvent ||
+          event instanceof TerraformProcessStartedEvent
+        ) {
+          events.push(event);
         }
       });
     });
@@ -239,41 +263,67 @@ describe('TerraformUtility UT', () => {
       jest.restoreAllMocks();
     });
 
-    it('should emit everything a failed process wrote', async () => {
+    it('should emit the start of a failed process, what it wrote, then its exit', async () => {
       await createModuleFolder('module-a');
-      terraform.execFileAsyncMock.mockRejectedValue(
-        Object.assign(new Error('failed'), { code: 1, stderr: 'Error: bad', stdout: 'planning' }),
-      );
+      terraform.spawnAsyncMock.mockImplementation(async (_file, _args, _options, onChunk) => {
+        onChunk('planning', 'stdout');
+        onChunk('Error: bad', 'stderr');
+        throw Object.assign(new Error('failed'), { code: 1, stderr: 'Error: bad', stdout: '' });
+      });
 
       await terraform.plan(terragruntDir, { json: true });
 
-      expect(outputs).toEqual([
-        {
-          args: expect.arrayContaining(['plan']),
-          binary: 'terragrunt',
-          dir: join(await realpath(terragruntDir), 'module-a'),
-          exitCode: 1,
-          stderr: 'Error: bad',
-          stdout: 'planning',
-        },
+      const dir = join(await realpath(terragruntDir), 'module-a');
+      const [{ processId }] = events.map((event) => event.payload);
+      expect(events.map((event) => [event.constructor.name, event.name, event.payload])).toEqual([
+        [
+          'TerraformProcessStartedEvent',
+          'plan',
+          { args: expect.arrayContaining(['plan']), binary: 'terragrunt', dir, processId },
+        ],
+        ['TerraformProcessOutputEvent', 'plan', { processId, stream: 'stdout', text: 'planning' }],
+        ['TerraformProcessOutputEvent', 'plan', { processId, stream: 'stderr', text: 'Error: bad' }],
+        ['TerraformProcessExitedEvent', 'plan', { exitCode: 1, processId }],
       ]);
     });
 
-    it('should emit everything a run over every folder wrote', async () => {
-      terraform.execFileAsyncMock.mockResolvedValue({ stderr: 'warning', stdout: 'Apply complete!' });
+    it('should give each process an id of its own', async () => {
+      await createModuleFolder('module-a');
+      terraform.spawnAsyncMock.mockImplementation(async (_file, args) => ({
+        stderr: '',
+        stdout: args[0] === 'show' ? JSON.stringify({ resource_changes: [] }) : '',
+      }));
 
+      await terraform.plan(terragruntDir, { json: true });
+
+      const processIds = events
+        .filter((event) => event instanceof TerraformProcessStartedEvent)
+        .map((event) => event.payload.processId);
+      expect(processIds).toHaveLength(2);
+      expect(new Set(processIds).size).toBe(2);
+    });
+
+    it('should emit the start and exit of a run over every folder, named after its command', async () => {
       await terraform.apply(terragruntDir);
 
-      expect(outputs).toEqual([
-        {
-          args: expect.arrayContaining(['apply']),
-          binary: 'terragrunt',
-          dir: await realpath(terragruntDir),
-          exitCode: 0,
-          stderr: 'warning',
-          stdout: 'Apply complete!',
-        },
+      const processId = expect.any(Number);
+      expect(events.map((event) => [event.name, event.payload])).toEqual([
+        [
+          'apply',
+          { args: expect.arrayContaining(['apply']), binary: 'terragrunt', dir: await realpath(terragruntDir), processId },
+        ],
+        ['apply', { exitCode: 0, processId }],
       ]);
+    });
+
+    it('should emit exit code -1 for a process that could not start', async () => {
+      terraform.spawnAsyncMock.mockRejectedValue(Object.assign(new Error('spawn terragrunt ENOENT'), { code: 'ENOENT' }));
+
+      await expect(terraform.apply(terragruntDir)).rejects.toBeInstanceOf(TerraformCommandError);
+
+      expect(events.filter((event) => event instanceof TerraformProcessExitedEvent).map((event) => event.payload)).toEqual(
+        [{ exitCode: -1, processId: expect.any(Number) }],
+      );
     });
   });
 
@@ -283,7 +333,7 @@ describe('TerraformUtility UT', () => {
       await createModuleFolder('module-b');
       await mkdir(join(terragruntDir, 'not-a-module'));
 
-      terraform.execFileAsyncMock.mockImplementation(async (_file, args) => {
+      terraform.spawnAsyncMock.mockImplementation(async (_file, args) => {
         if (args[0] === 'show') {
           return { stderr: '', stdout: JSON.stringify({ resource_changes: [] }) };
         }
@@ -299,7 +349,7 @@ describe('TerraformUtility UT', () => {
 
     it('runs the two-step plan-then-show-json per folder', async () => {
       await createModuleFolder('module-a');
-      terraform.execFileAsyncMock.mockImplementation(async (_file, args) => {
+      terraform.spawnAsyncMock.mockImplementation(async (_file, args) => {
         if (args[0] === 'show') {
           return { stderr: '', stdout: JSON.stringify({ resource_changes: [] }) };
         }
@@ -308,24 +358,24 @@ describe('TerraformUtility UT', () => {
 
       await terraform.plan(terragruntDir, { json: true });
 
-      expect(terraform.execFileAsyncMock.mock.calls.map((call) => call[1][0])).toEqual(['plan', 'show']);
+      expect(terraform.spawnAsyncMock.mock.calls.map((call) => call[1][0])).toEqual(['plan', 'show']);
       const planArgs = argvOf(0);
       expect(planArgs[0]).toBe('plan');
       expect(planArgs.some((a) => a.startsWith('-out='))).toBe(true);
     });
 
-    it('resolves an empty Map without invoking execFileAsync when there are no module folders', async () => {
+    it('resolves an empty Map without spawning a process when there are no module folders', async () => {
       const { plans } = await terraform.plan(terragruntDir, { json: true });
 
       expect(plans.size).toBe(0);
-      expect(terraform.execFileAsyncMock).not.toHaveBeenCalled();
+      expect(terraform.spawnAsyncMock).not.toHaveBeenCalled();
     });
 
     it('omits a folder whose show -json output is not valid JSON, but keeps the rest', async () => {
       await createModuleFolder('module-bad');
       await createModuleFolder('module-good');
 
-      terraform.execFileAsyncMock.mockImplementation(async (_file, args, options) => {
+      terraform.spawnAsyncMock.mockImplementation(async (_file, args, options) => {
         if (args[0] === 'show') {
           if ((options.cwd as string)?.endsWith('module-bad')) {
             return { stderr: '', stdout: 'not json' };
@@ -343,7 +393,7 @@ describe('TerraformUtility UT', () => {
 
     it('cleans up its per-folder temp directory even when show -json throws', async () => {
       await createModuleFolder('module-a');
-      terraform.execFileAsyncMock.mockImplementation(async (_file, args) => {
+      terraform.spawnAsyncMock.mockImplementation(async (_file, args) => {
         if (args[0] === 'show') {
           throw Object.assign(new Error('boom'), { stderr: 'boom', stdout: '' });
         }
@@ -357,7 +407,7 @@ describe('TerraformUtility UT', () => {
 
     it("carries terraform's own error for a folder that failed to plan", async () => {
       await createModuleFolder('region-module');
-      terraform.execFileAsyncMock.mockImplementation(async (_file, args) => {
+      terraform.spawnAsyncMock.mockImplementation(async (_file, args) => {
         if (args[0] === 'plan') {
           throw Object.assign(new Error('exit 1'), {
             stderr: 'Error: "10.0.1.0/16" is not a valid CIDR block: has host bits set\n',
@@ -375,7 +425,7 @@ describe('TerraformUtility UT', () => {
 
     it('falls back to the wrapped error message when the failure carried no stderr', async () => {
       await createModuleFolder('module-a');
-      terraform.execFileAsyncMock.mockImplementation(async (_file, args) => {
+      terraform.spawnAsyncMock.mockImplementation(async (_file, args) => {
         if (args[0] === 'show') {
           return { stderr: '', stdout: 'not json' };
         }
@@ -391,7 +441,7 @@ describe('TerraformUtility UT', () => {
   describe('output(dir, { json: true })', () => {
     it('reads per-folder "output -json" into a Map keyed by folder name', async () => {
       await createModuleFolder('module-a');
-      terraform.execFileAsyncMock.mockResolvedValue({
+      terraform.spawnAsyncMock.mockResolvedValue({
         stderr: '',
         stdout: JSON.stringify({ bucket: { value: 'my-bucket' } }),
       });
@@ -406,7 +456,7 @@ describe('TerraformUtility UT', () => {
       await createModuleFolder('module-bad');
       await createModuleFolder('module-good');
 
-      terraform.execFileAsyncMock.mockImplementation(async (_file, _args, options) => {
+      terraform.spawnAsyncMock.mockImplementation(async (_file, _args, options) => {
         if ((options.cwd as string)?.endsWith('module-bad')) {
           throw Object.assign(new Error('boom'), { stderr: 'boom', stdout: '' });
         }
@@ -424,29 +474,29 @@ describe('TerraformUtility UT', () => {
       terraform = new TestableTerraformUtility({ terragruntBinary: '/opt/bin/terragrunt' });
       await terraform.validate(terragruntDir);
 
-      expect(terraform.execFileAsyncMock.mock.calls[0][0]).toBe('/opt/bin/terragrunt');
+      expect(terraform.spawnAsyncMock.mock.calls[0][0]).toBe('/opt/bin/terragrunt');
     });
 
     it('passes terraformBinary through as TG_TF_PATH in the child-process env', async () => {
       terraform = new TestableTerraformUtility({ terraformBinary: '/opt/bin/terraform' });
       await terraform.validate(terragruntDir);
 
-      expect(terraform.execFileAsyncMock.mock.calls[0][2].env?.TG_TF_PATH).toBe('/opt/bin/terraform');
+      expect(terraform.spawnAsyncMock.mock.calls[0][2].env?.TG_TF_PATH).toBe('/opt/bin/terraform');
     });
 
     it('does not set TG_TF_PATH when terraformBinary is not configured', async () => {
       await terraform.validate(terragruntDir);
 
-      expect(terraform.execFileAsyncMock.mock.calls[0][2].env?.TG_TF_PATH).toBeUndefined();
+      expect(terraform.spawnAsyncMock.mock.calls[0][2].env?.TG_TF_PATH).toBeUndefined();
     });
 
     it('passes timeoutInMs as the timeout option, defaulting to 60 minutes', async () => {
       await terraform.validate(terragruntDir);
-      expect(terraform.execFileAsyncMock.mock.calls[0][2].timeout).toBe(60 * 60 * 1000);
+      expect(terraform.spawnAsyncMock.mock.calls[0][2].timeout).toBe(60 * 60 * 1000);
 
       const withCustom = new TestableTerraformUtility({ timeoutInMs: 1000 });
       await withCustom.validate(terragruntDir);
-      expect(withCustom.execFileAsyncMock.mock.calls[0][2].timeout).toBe(1000);
+      expect(withCustom.spawnAsyncMock.mock.calls[0][2].timeout).toBe(1000);
     });
 
     // Killing a command part way through a mutation is worse than letting a slow one finish, and no
@@ -454,7 +504,7 @@ describe('TerraformUtility UT', () => {
     it.each(['apply', 'destroy'] as const)('leaves %s unbounded when no timeout was asked for', async (command) => {
       await terraform[command](terragruntDir);
 
-      expect(terraform.execFileAsyncMock.mock.calls[0][2].timeout).toBeUndefined();
+      expect(terraform.spawnAsyncMock.mock.calls[0][2].timeout).toBeUndefined();
     });
 
     it.each(['apply', 'destroy'] as const)('bounds %s by the timeout the caller asked for', async (command) => {
@@ -462,7 +512,7 @@ describe('TerraformUtility UT', () => {
 
       await withCustom[command](terragruntDir);
 
-      expect(withCustom.execFileAsyncMock.mock.calls[0][2].timeout).toBe(1000);
+      expect(withCustom.spawnAsyncMock.mock.calls[0][2].timeout).toBe(1000);
     });
 
     it('checks terraform state in every stateCheckInIntervalInMs, defaulting to 10 seconds', async () => {
@@ -478,7 +528,7 @@ describe('TerraformUtility UT', () => {
 
   describe('errors', () => {
     it('throws a TerraformCommandError with stdout/stderr/exitCode/args on a nonzero exit', async () => {
-      terraform.execFileAsyncMock.mockRejectedValue(
+      terraform.spawnAsyncMock.mockRejectedValue(
         Object.assign(new Error('exit 1'), { code: 1, stderr: 'invalid config', stdout: 'partial' }),
       );
 
@@ -491,7 +541,7 @@ describe('TerraformUtility UT', () => {
     });
 
     it('throws a clearly distinguishable error naming the binary on a spawn-level failure', async () => {
-      terraform.execFileAsyncMock.mockRejectedValue(
+      terraform.spawnAsyncMock.mockRejectedValue(
         Object.assign(new Error('spawn terragrunt ENOENT'), { code: 'ENOENT' }),
       );
 
@@ -515,7 +565,7 @@ describe('TerraformUtility UT', () => {
 
     it('should write each module folder state back to the state provider after running', async () => {
       await createModuleFolder('module-a');
-      terraform.execFileAsyncMock.mockImplementation(async () => {
+      terraform.spawnAsyncMock.mockImplementation(async () => {
         await writeFile(join(terragruntDir, 'module-a', 'terraform.tfstate'), '{"resources":[{"applied":true}]}');
         return { stderr: '', stdout: '' };
       });
@@ -527,7 +577,7 @@ describe('TerraformUtility UT', () => {
 
     it('should write the state back even when the command fails', async () => {
       await createModuleFolder('module-a');
-      terraform.execFileAsyncMock.mockImplementation(async () => {
+      terraform.spawnAsyncMock.mockImplementation(async () => {
         await writeFile(join(terragruntDir, 'module-a', 'terraform.tfstate'), '{"resources":[{"halfBuilt":true}]}');
         throw Object.assign(new Error('exit 1'), { code: 1, stderr: 'boom', stdout: '' });
       });
@@ -539,7 +589,7 @@ describe('TerraformUtility UT', () => {
 
     it('should keep the command error when the state cannot be written back either', async () => {
       await createModuleFolder('module-a');
-      terraform.execFileAsyncMock.mockRejectedValue(
+      terraform.spawnAsyncMock.mockRejectedValue(
         Object.assign(new Error('exit 1'), { code: 1, stderr: 'boom', stdout: '' }),
       );
       jest.spyOn(stateProvider, 'saveStates').mockRejectedValue(new Error('Failed to write the app state: refused!'));
