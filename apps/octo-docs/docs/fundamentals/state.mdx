@@ -110,7 +110,7 @@ what made the apply incomplete.
 ## Where it is kept
 
 A **state provider** decides where these files live, and holds the lock that stops two runs writing
-at once. Four ship with Octo, chosen in the definition file:
+at once. Three ship with Octo, chosen in the definition file:
 
 ```yaml
 settings:
@@ -120,7 +120,7 @@ settings:
 ```
 
 `LocalStateProvider` writes plain JSON to a directory, which is what the shop uses. [State
-Providers](/docs/techniques/state-providers) covers the other three, and which one a team needs.
+Providers](/docs/techniques/state-providers) covers the other two, and which one a team needs.
 
 ## Losing it
 

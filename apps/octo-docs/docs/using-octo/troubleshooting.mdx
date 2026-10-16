@@ -194,8 +194,7 @@ the tag is part of the ID. Two ways out:
 - Put the resource back in the definition file as it was and run the lifecycle. The commit adopts
   the record, and removing it after that deletes it properly.
 - Delete the published thing yourself, then delete its record. The record is
-  `resource-state-<resource ID>.json` in the state directory, with any `/` in the ID written as `.`,
-  and with `.enc` on the end if you use `LocalEncryptionStateProvider`.
+  `resource-state-<resource ID>.json` in the state directory, with any `/` in the ID written as `.`.
 
 **A plan that fails on the account the credentials belong to**
 
@@ -218,16 +217,6 @@ provider spec already sets `allowed_account_ids`, which wins. And when it sets
 Expected. A folder planned before its dependency exists is planned against Terragrunt's
 `mock_outputs`, which is exactly what an approximate report means. Apply, commit, then validate
 again; the second report is exact.
-
-**`State "resources-actual.json" could not be read. The encryption key does not match the one this
-state was written with.`**
-
-`LocalEncryptionStateProvider` authenticates what it decrypts, so a key that does not match fails
-here rather than returning nonsense. Check that `OCTO_STATE_ENCRYPTION_KEY`, or whatever your
-`encryptionKey` reads, holds the same value the state was written with.
-
-The state itself is fine. Nothing rewrites it on a failed read, so the run stops without touching
-what is on disk, and it works again as soon as the right key is supplied.
 
 ## While taking the lock
 

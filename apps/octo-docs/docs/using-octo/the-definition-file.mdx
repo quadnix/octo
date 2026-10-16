@@ -200,15 +200,7 @@ covers their options.
 checks in and out around every Terraform command, and the app lock that `apply` and `commit` both
 require.
 
-`LocalStateProvider` writes plain JSON to `statePath`. `LocalEncryptionStateProvider` writes the
-same files encrypted, and takes an `encryptionKey` alongside the path:
-
-```yaml
-  stateProvider:
-    type: LocalEncryptionStateProvider
-    statePath: .octo
-    encryptionKey: "${env.OCTO_STATE_KEY}"
-```
+`LocalStateProvider` writes plain JSON to `statePath`.
 
 `RemoteStateProvider` keeps state in a backend every machine reaches, and takes the app it belongs
 to, the token to act as, and a directory to work in:

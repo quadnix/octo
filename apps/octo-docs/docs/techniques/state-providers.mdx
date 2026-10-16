@@ -7,10 +7,10 @@ and where they live decides who can run your infrastructure. On a laptop, one pe
 repository, whoever has the repository can, as long as they take the lock.
 
 A **state provider** is what makes that choice. It holds the files, it holds Terraform's own state,
-and it holds the lock that keeps two runs from writing at once. Four ship with Octo, and
+and it holds the lock that keeps two runs from writing at once. Three ship with Octo, and
 `settings.stateProvider` picks one.
 
-## The four that ship
+## The three that ship
 
 ```yaml title="octo.yaml"
 settings:
@@ -32,31 +32,11 @@ outputs Octo maps. Reports are the exception and need nothing done to them: the 
 `(sensitive)` in place of any value Terraform marked, and the scaffolded `.gitignore` excludes the
 directory they are written to.
 
-`LocalEncryptionStateProvider` writes the same files encrypted, with an `.enc` suffix, and takes an
-`encryptionKey`. The point is that the result is safe to commit:
-
-```yaml
-settings:
-  stateProvider:
-    type: LocalEncryptionStateProvider
-    encryptionKey: "${env.OCTO_STATE_ENCRYPTION_KEY}"
-    statePath: .octo
-```
-
-Keep the key out of the file. Declare it under `env` and let the shell supply it.
-
-The suffix lands on every file, Terraform's state included, so what you commit is
-`<moduleId>.tfstate.enc` rather than `<moduleId>.tfstate`. The scaffolded `.gitignore` re-includes
-both, because the `*.tfstate*` rule that excludes Terraform's working copies would otherwise catch
-the encrypted state as well. Committing state that a run cannot find is the failure that rebuilds
-infrastructure you already have, so it is worth confirming with `git status --ignored` after your
-first apply.
-
 `TestStateProvider` keeps everything in memory, and is what the test harness uses.
 
 `RemoteStateProvider` keeps state in a backend a whole team reaches, and has a
-[section of its own](#remote-state). It is the only provider for a team: the two local providers are
-for one person.
+[section of its own](#remote-state). It is the only provider for a team: `LocalStateProvider` is for
+one person.
 
 ## It holds the lock
 
@@ -67,7 +47,7 @@ and a commit that succeeds releases it. `generate` and `validate` never touch an
 neither writes shared state. A second run that tries to take a held lock fails immediately, naming
 the ID that holds it, before it reads state or plans anything.
 
-The two local providers keep the lock as a file beside the state, `local-state.lock`, created
+`LocalStateProvider` keeps the lock as a file beside the state, `local-state.lock`, created
 exclusively so that of two runs racing for it exactly one wins. The ID is what proves ownership:
 every check compares against the ID that was handed out, so one run can never release another's
 lock, and a caller holding a stale ID is told it is stale rather than told the app is free. The file

@@ -231,21 +231,6 @@ A folder whose Terraform reads files from your project also needs `TF_VAR_OCTO_P
 the project's root directory for that command. The next Octo command finds the folder's record
 newer than its own, keeps it, and saves it.
 
-### In CI with state in the repository
-
-A pipeline that commits encrypted state to the repository keeps the lock as a file on the runner,
-so a runner that dies takes its lock with it, and there is nothing to resume. Whatever the pipeline
-runs next takes a fresh lock and starts applying, and that apply is step 4 above, without the check
-that comes before it.
-
-1. Stop the next run before it applies: disable the workflow that applies, or hold back whatever
-   triggers it.
-2. On your own machine, at the commit the dead run was applying, with credentials that can read your
-   AWS account, follow step 3 and [When the machine is gone](#when-the-machine-is-gone), using the
-   log of the job that died. Neither `generate` nor `validate` needs the lock.
-3. Let the pipeline run again. It generates, applies what the dead run did not get to, and commits
-   the state as usual.
-
 ### With remote state
 
 With [`RemoteStateProvider`](/docs/techniques/state-providers#remote-state), the lock and everything

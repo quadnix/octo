@@ -179,7 +179,7 @@ move and when an environment model is.
 |------------------------------------------------|--------|--------------------------------------------------------------------|
 | `octo.yaml`                                    | Yes    | It is the intent.                                                  |
 | `.octo/models.json`, `.octo/resources-*.json`  | Yes    | Octo's state. Without it the next run starts from nothing.         |
-| `.octo/*.tfstate`, `.octo/*.tfstate.enc`       | Yes    | Terraform's state. Without it the next apply rebuilds what exists. |
+| `.octo/*.tfstate`                              | Yes    | Terraform's state. Without it the next apply rebuilds what exists. |
 | `.octo/local-state.lock`                       | No     | The app lock. It exists only while a run holds it.                 |
 | `.octo/journal.*`, `.octo/archives/`           | No     | The journal. A file per command would land in every change.        |
 | `.octo-tf/**/*.tf`, `terragrunt.hcl`           | Yes    | The Terraform your change produced, reviewable next to the change. |
@@ -189,6 +189,6 @@ move and when an environment model is.
 
 The scaffolded `.gitignore` already says all of this.
 
-State files hold the values Terraform returned, and some of those are secrets. [State
-Providers](/docs/techniques/state-providers) covers encrypting them before they go into a
-repository.
+State files hold the values Terraform returned, and some of those are secrets, so a repository
+holding `.octo/` is one only the people running Octo should read. [State
+Providers](/docs/techniques/state-providers) covers keeping state in a backend instead.
