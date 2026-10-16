@@ -60,8 +60,8 @@ resources with `uniqueProperties` move. Decide whether the app name belongs in t
 
 ## To do: switch state providers safely
 
-Rahul 2026-10-11: a user must be able to move between state providers — local, encrypted, remote,
-and back — safely. There is no path for it today.
+Rahul 2026-10-11: a user must be able to move between state providers — local, remote, and back —
+safely. There is no path for it today.
 
 ## To do: create-app and the templates have drifted apart
 

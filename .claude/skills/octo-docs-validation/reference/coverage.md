@@ -64,7 +64,7 @@ waits for a real library to publish.
 | `validation`              | run       | Every constraint in the table, `destruct`, several rules, and the transform argument, as a spec in the example project.                                                                                         |
 | `events-and-listeners`    | part      | The event count and families counted from source; both shipped listeners registered and their output checked. **Open:** a listener of your own, which the page itself says cannot be named from `octo.yaml`.    |
 | `hooks`                   | run       | The page's own example, both `postModelActionHooks` and `preCommitHooks`, through a real apply and commit.                                                                                                      |
-| `state-providers`         | run       | `LocalEncryptionStateProvider` end to end, the `.enc` suffix on every file, the key from the shell, the `.gitignore` re-inclusion, and the wrong-key path.                                                      |
+| `state-providers`         | part      | **Open:** re-run the page as it now stands.                                                                                                                                                                     |
 | `github-actions-pipeline` | elsewhere | Not to be exercised from here yet. `apps/octo-docs` releases through a pipeline of this shape. The part worth checking from a run is the report JSON its comment script parses, which has been, field by field. |
 
 ## Reference

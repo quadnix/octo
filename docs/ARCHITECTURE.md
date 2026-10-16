@@ -147,12 +147,11 @@ The state provider stores `models.json`, the resource graph (`resources-actual.j
 `resources-old.json`), per-resource records, and each folder's Terraform state, which octo checks in
 periodically during an apply.
 
-| Provider                       | For                                                                    |
-|--------------------------------|------------------------------------------------------------------------|
-| `LocalStateProvider`           | one person, state on disk                                              |
-| `LocalEncryptionStateProvider` | one person, encrypted on disk                                          |
-| `RemoteStateProvider`          | teams; uploads and downloads through the Quadnix backend's signed URLs |
-| `TestStateProvider`            | tests, in memory                                                       |
+| Provider              | For                                                                    |
+|-----------------------|------------------------------------------------------------------------|
+| `LocalStateProvider`  | one person, state on disk                                              |
+| `RemoteStateProvider` | teams; uploads and downloads through the Quadnix backend's signed URLs |
+| `TestStateProvider`   | tests, in memory                                                       |
 
 The lock is the unit of work: everything from the `generate` before it until its release is one
 run. With `JournalEventListener` listed, every command also writes a **journal** — its events,

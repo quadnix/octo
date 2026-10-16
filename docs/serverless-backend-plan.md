@@ -104,8 +104,7 @@ RESPONSE_STREAM` sets the function URL and the adapter to stream, which lets dow
    holds only this distribution; keep that account single-purpose.
 4. **Deploy credentials and state.** Deploy with a role or user in each member account, never with
    the management account's keys. `octo-backend`'s own octo state must not live in the state service
-   it deploys; if encrypted state is committed, its key must be long and random (catalog IV.6: the key
-   is not stretched).
+   it deploys, and no provider encrypts state, so wherever it is kept must be private.
 
 **How the member accounts use `quadnix.com` — 2026-10-06, path changed 2026-10-07.** The
 management account (`099…`) keeps the `quadnix.com` hosted zone, and no member account takes it
