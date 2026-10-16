@@ -88,10 +88,9 @@ Three consequences worth knowing:
 
 ## Remote state
 
-State in a repository is shared, and still written by one machine at a time: the lock is a file on
-that machine, and what a run records reaches everybody else only when somebody pushes it. A run
-that dies takes both with it. `RemoteStateProvider` keeps the state and the lock in a backend every
-machine reaches, and writes to it as the run goes. The
+`LocalStateProvider` keeps the state and the lock on one machine, and a run that dies there takes
+both with it. `RemoteStateProvider` keeps them in a backend every machine reaches, and writes to it
+as the run goes. The
 [GitHub Actions Pipeline](/docs/techniques/github-actions-pipeline) runs on it.
 
 ```yaml title="octo.yaml"
