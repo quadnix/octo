@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { link, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { copyFile, link, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { hostname } from 'node:os';
 import { basename, dirname, extname, join, resolve } from 'node:path';
 import { AppLockError, TransactionError } from '../../errors/index.js';
@@ -303,10 +303,11 @@ export class RemoteStateProvider implements IStateProvider {
    * @throws {@link TransactionError} When the backend would refuse a file's name, before anything is
    * written. When the backend refuses the write, which is where the limits it holds the app to apply.
    */
-  async saveStates(stateFiles: { data: Buffer | undefined; stateFileName: string }[]): Promise<void> {
+  async saveStates(stateFiles: Parameters<IStateProvider['saveStates']>[0]): Promise<void> {
     // Refuse the whole change before any of it lands on disk.
-    for (const { data, stateFileName } of stateFiles) {
-      if (stateFileName.includes('/') || data === undefined) {
+    for (const stateFile of stateFiles) {
+      const { stateFileName } = stateFile;
+      if (stateFileName.includes('/') || ('data' in stateFile && stateFile.data === undefined)) {
         continue;
       }
 
@@ -320,11 +321,13 @@ export class RemoteStateProvider implements IStateProvider {
     }
 
     // Write the directory, then the run's record once.
-    for (const { data, stateFileName } of stateFiles) {
-      if (data === undefined) {
-        await rm(join(this.localStateDirectoryPath, stateFileName), { force: true });
+    for (const stateFile of stateFiles) {
+      if ('filePath' in stateFile) {
+        await this.writeStateFile(stateFile.stateFileName, { filePath: stateFile.filePath });
+      } else if (stateFile.data === undefined) {
+        await rm(join(this.localStateDirectoryPath, stateFile.stateFileName), { force: true });
       } else {
-        await this.writeStateFile(stateFileName, data);
+        await this.writeStateFile(stateFile.stateFileName, { data: stateFile.data });
       }
     }
     if (stateFiles.some(({ stateFileName }) => !stateFileName.includes('/'))) {
@@ -633,7 +636,7 @@ export class RemoteStateProvider implements IStateProvider {
    * Writes the lock file.
    */
   private async writeLockFile(lockFile: RemoteStateLockFile): Promise<void> {
-    await this.writeStateFile(LOCK_FILE_NAME, Buffer.from(JSON.stringify(lockFile, null, 2)));
+    await this.writeStateFile(LOCK_FILE_NAME, { data: Buffer.from(JSON.stringify(lockFile, null, 2)) });
   }
 
   /**
@@ -736,14 +739,20 @@ export class RemoteStateProvider implements IStateProvider {
   }
 
   /**
-   * Writes one file into the state directory whole, so a process reading it never reads half of it.
+   * Writes one file into the state directory whole, from `data` or copied from `filePath`, so a process
+   * reading it never reads half of it. Replacing the file rather than writing into it is also what lets
+   * an upload freeze it with a hard link.
    */
-  private async writeStateFile(stateFileName: string, data: Buffer): Promise<void> {
+  private async writeStateFile(stateFileName: string, source: { data: Buffer } | { filePath: string }): Promise<void> {
     const stateFilePath = join(this.localStateDirectoryPath, stateFileName);
     await FileUtility.ensureDirectory(dirname(stateFilePath));
 
     const temporaryFilePath = join(dirname(stateFilePath), `.${basename(stateFilePath)}.${process.pid}.tmp`);
-    await writeFile(temporaryFilePath, data);
+    if ('filePath' in source) {
+      await copyFile(source.filePath, temporaryFilePath);
+    } else {
+      await writeFile(temporaryFilePath, source.data);
+    }
     await rename(temporaryFilePath, stateFilePath);
   }
 }

@@ -1,3 +1,4 @@
+import type { IStateProvider } from '../services/state-management/state-provider.interface.js';
 import { Event } from './event.model.js';
 
 /**
@@ -54,13 +55,14 @@ export class AppUnlockedEvent extends StateEvent<{ lockId: string }> {}
 export class AppUnlockingEvent extends StateEvent<{ lockId: string }> {}
 
 /**
- * This event is emitted after state files are written, with the bytes written and their MD5. A
+ * This event is emitted after state files are written, with the bytes written and their MD5. A file
+ * copied from a path carries only its path, which its saver may delete once this event is emitted, and a
  * deleted file has neither.
  *
  * @group Events/State
  */
 export class StateFilesSavedEvent extends StateEvent<{
-  stateFiles: { data: Buffer | undefined; md5: string | undefined; stateFileName: string }[];
+  stateFiles: { data: Buffer | undefined; filePath?: string; md5: string | undefined; stateFileName: string }[];
 }> {}
 
 /**
@@ -70,7 +72,7 @@ export class StateFilesSavedEvent extends StateEvent<{
  * @group Events/State
  */
 export class StateFilesSavingEvent extends StateEvent<{
-  stateFiles: { data: Buffer | undefined; stateFileName: string }[];
+  stateFiles: Parameters<IStateProvider['saveStates']>[0];
 }> {}
 
 /**

@@ -332,5 +332,17 @@ describe('LocalStateProvider UT', () => {
       await expect(localStateProvider.getState('archives/c/r.json')).resolves.toEqual(Buffer.from('saved'));
       await rm(stateDirectoryPath, { force: true, recursive: true });
     });
+
+    it('should copy a file given by its path', async () => {
+      const stateDirectoryPath = await mkdtemp(join(tmpdir(), 'octo-local-state-'));
+      const localStateProvider = new LocalStateProvider(stateDirectoryPath);
+      const filePath = join(stateDirectoryPath, 'source.json');
+      await writeFile(filePath, 'saved');
+
+      await localStateProvider.saveStates([{ filePath, stateFileName: 'archives/c/copied.json' }]);
+
+      await expect(localStateProvider.getState('archives/c/copied.json')).resolves.toEqual(Buffer.from('saved'));
+      await rm(stateDirectoryPath, { force: true, recursive: true });
+    });
   });
 });

@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import { readFile, readdir, rm, writeFile } from 'fs/promises';
+import { copyFile, readFile, readdir, rm, writeFile } from 'fs/promises';
 import { dirname, join, resolve } from 'path';
 import { AppLockError, TransactionError } from '../../errors/index.js';
 import { FileUtility } from '../../utilities/file/file.utility.js';
@@ -150,17 +150,21 @@ export class LocalStateProvider implements IStateProvider {
   }
 
   /**
-   * Writes state files, overwriting whatever was there and deleting each one given no `data`. A name
-   * holding `/` is written into a directory beneath the state directory.
+   * Writes state files, overwriting whatever was there, copying each one given a `filePath`, and
+   * deleting each one given no `data`. A name holding `/` is written into a directory beneath the state
+   * directory.
    */
-  async saveStates(stateFiles: { data: Buffer | undefined; stateFileName: string }[]): Promise<void> {
-    for (const { data, stateFileName } of stateFiles) {
-      const stateFilePath = join(this.localStateDirectoryPath, stateFileName);
-      if (data === undefined) {
+  async saveStates(stateFiles: Parameters<IStateProvider['saveStates']>[0]): Promise<void> {
+    for (const stateFile of stateFiles) {
+      const stateFilePath = join(this.localStateDirectoryPath, stateFile.stateFileName);
+      if ('filePath' in stateFile) {
+        await FileUtility.ensureDirectory(dirname(stateFilePath));
+        await copyFile(stateFile.filePath, stateFilePath);
+      } else if (stateFile.data === undefined) {
         await rm(stateFilePath, { force: true });
       } else {
         await FileUtility.ensureDirectory(dirname(stateFilePath));
-        await writeFile(stateFilePath, data);
+        await writeFile(stateFilePath, stateFile.data);
       }
     }
   }

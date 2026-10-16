@@ -638,11 +638,7 @@ export class TerraformUtility {
    * Runs `terragrunt run --all -- <command>` across every module folder under `terragruntDir`, with
    * the terraform state of every folder checked out around it.
    */
-  private async runAll(
-    terragruntDir: string,
-    command: string,
-    commandArgs: string[],
-  ): Promise<TerraformRawResult> {
+  private async runAll(terragruntDir: string, command: string, commandArgs: string[]): Promise<TerraformRawResult> {
     const realTerragruntDir = await this.resolveRealPath(terragruntDir);
     return this.withTerraformState(
       realTerragruntDir,

@@ -371,10 +371,10 @@ export class StateManagementService {
   }
 
   /**
-   * Writes state files as-is and as one change, deleting each one given no `data`. Listeners of
-   * {@link StateFilesSavingEvent} may add files to the change first.
+   * Writes state files as-is and as one change, copying each one given a `filePath` and deleting each
+   * one given no `data`. Listeners of {@link StateFilesSavingEvent} may add files to the change first.
    */
-  async saveStates(stateFiles: { data: Buffer | undefined; stateFileName: string }[]): Promise<void> {
+  async saveStates(stateFiles: Parameters<IStateProvider['saveStates']>[0]): Promise<void> {
     const eventService = EventService.getInstance();
 
     await eventService.emitAndWait(new StateFilesSavingEvent(undefined, { stateFiles }));
@@ -382,11 +382,15 @@ export class StateManagementService {
 
     eventService.emit(
       new StateFilesSavedEvent(undefined, {
-        stateFiles: stateFiles.map(({ data, stateFileName }) => ({
-          data,
-          md5: data === undefined ? undefined : createHash('md5').update(data).digest('hex'),
-          stateFileName,
-        })),
+        stateFiles: stateFiles.map((stateFile) =>
+          'filePath' in stateFile
+            ? { data: undefined, filePath: stateFile.filePath, md5: undefined, stateFileName: stateFile.stateFileName }
+            : {
+                data: stateFile.data,
+                md5: stateFile.data === undefined ? undefined : createHash('md5').update(stateFile.data).digest('hex'),
+                stateFileName: stateFile.stateFileName,
+              },
+        ),
       }),
     );
   }

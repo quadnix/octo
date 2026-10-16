@@ -87,13 +87,16 @@ export interface IStateProvider {
   refreshState(): Promise<{ commitId?: string; previousCommitId?: string; replaced: boolean }>;
 
   /**
-   * Writes state files as one change, overwriting whatever was there and deleting each one given no
-   * `data`. Deleting one that is not there is not an error. A name holding `/` is the machine's own:
+   * Writes state files as one change, overwriting whatever was there. A file comes from `data`, or is
+   * copied from the file at `filePath` without being read into memory; one given `data: undefined` is
+   * deleted. Deleting one that is not there is not an error. A name holding `/` is the machine's own:
    * a provider sharing state keeps it on the machine.
    *
    * A provider that pays per write makes one write of the whole change rather than one per file.
    */
-  saveStates(stateFiles: { data: Buffer | undefined; stateFileName: string }[]): Promise<void>;
+  saveStates(
+    stateFiles: ({ data: Buffer | undefined; stateFileName: string } | { filePath: string; stateFileName: string })[],
+  ): Promise<void>;
 
   /**
    * Releases the app lock. Unlocking an app that is not locked is not an error.

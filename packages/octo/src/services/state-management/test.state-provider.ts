@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
 import { AppLockError, TransactionError } from '../../errors/index.js';
 import type { IStateProvider } from './state-provider.interface.js';
 
@@ -90,12 +91,14 @@ export class TestStateProvider implements IStateProvider {
   /**
    * Writes state files, overwriting whatever was there and deleting each one given no `data`.
    */
-  async saveStates(stateFiles: { data: Buffer | undefined; stateFileName: string }[]): Promise<void> {
-    for (const { data, stateFileName } of stateFiles) {
-      if (data === undefined) {
-        delete this.localState[stateFileName];
+  async saveStates(stateFiles: Parameters<IStateProvider['saveStates']>[0]): Promise<void> {
+    for (const stateFile of stateFiles) {
+      if ('filePath' in stateFile) {
+        this.localState[stateFile.stateFileName] = await readFile(stateFile.filePath);
+      } else if (stateFile.data === undefined) {
+        delete this.localState[stateFile.stateFileName];
       } else {
-        this.localState[stateFileName] = data;
+        this.localState[stateFile.stateFileName] = stateFile.data;
       }
     }
   }

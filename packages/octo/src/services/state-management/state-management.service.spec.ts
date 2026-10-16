@@ -1,3 +1,6 @@
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { jest } from '@jest/globals';
 import { AppLockError, TransactionError } from '../../errors/index.js';
 import {
@@ -295,6 +298,20 @@ describe('StateManagementService UT', () => {
         { data: Buffer.from('saved'), md5: '536a056b710e94b16169efd17a4a657b', stateFileName: 'a.json' },
         { data: undefined, md5: undefined, stateFileName: 'b.json' },
       ]);
+    });
+
+    it('should write a file given by its path, and emit its path without its bytes or digest', async () => {
+      const directoryPath = await mkdtemp(join(tmpdir(), 'octo-state-'));
+      const filePath = join(directoryPath, 'log.json');
+      await writeFile(filePath, 'saved');
+
+      await service.saveStates([{ filePath, stateFileName: 'a.json' }]);
+
+      expect(await service.getState('a.json')).toEqual(Buffer.from('saved'));
+      expect((emitted[1] as StateFilesSavedEvent).payload.stateFiles).toEqual([
+        { data: undefined, filePath, md5: undefined, stateFileName: 'a.json' },
+      ]);
+      await rm(directoryPath, { force: true, recursive: true });
     });
   });
 

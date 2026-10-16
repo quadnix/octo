@@ -85,7 +85,9 @@ describe('TerraformStateService UT', () => {
       await terraformStateService.checkIn(terragruntDir, ['module-a', 'module-b']);
 
       expect(saveStates).toHaveBeenCalledTimes(1);
-      expect(saveStates.mock.calls[0][0].map((s) => [s.stateFileName, s.data?.toString()])).toEqual([
+      expect(
+        saveStates.mock.calls[0][0].map((s) => [s.stateFileName, 'data' in s ? s.data?.toString() : undefined]),
+      ).toEqual([
         ['module-a.tfstate', stateWithResources],
         ['module-b.tfstate', undefined],
       ]);

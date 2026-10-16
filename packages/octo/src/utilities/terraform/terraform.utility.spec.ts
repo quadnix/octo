@@ -310,20 +310,27 @@ describe('TerraformUtility UT', () => {
       expect(events.map((event) => [event.name, event.payload])).toEqual([
         [
           'apply',
-          { args: expect.arrayContaining(['apply']), binary: 'terragrunt', dir: await realpath(terragruntDir), processId },
+          {
+            args: expect.arrayContaining(['apply']),
+            binary: 'terragrunt',
+            dir: await realpath(terragruntDir),
+            processId,
+          },
         ],
         ['apply', { exitCode: 0, processId }],
       ]);
     });
 
     it('should emit exit code -1 for a process that could not start', async () => {
-      terraform.spawnAsyncMock.mockRejectedValue(Object.assign(new Error('spawn terragrunt ENOENT'), { code: 'ENOENT' }));
+      terraform.spawnAsyncMock.mockRejectedValue(
+        Object.assign(new Error('spawn terragrunt ENOENT'), { code: 'ENOENT' }),
+      );
 
       await expect(terraform.apply(terragruntDir)).rejects.toBeInstanceOf(TerraformCommandError);
 
-      expect(events.filter((event) => event instanceof TerraformProcessExitedEvent).map((event) => event.payload)).toEqual(
-        [{ exitCode: -1, processId: expect.any(Number) }],
-      );
+      expect(
+        events.filter((event) => event instanceof TerraformProcessExitedEvent).map((event) => event.payload),
+      ).toEqual([{ exitCode: -1, processId: expect.any(Number) }]);
     });
   });
 

@@ -611,6 +611,18 @@ describe('RemoteStateProvider UT', () => {
       expect(await readdir(localStateDirectoryPath)).toEqual(['a.json', 'b.json', 'remote-state.lock']);
     });
 
+    it('should copy a file given by its path into the open run, leaving the source as it is', async () => {
+      const filePath = join(localStateDirectoryPath, '..', `source-${process.pid}.json`);
+      await writeFile(filePath, '{"log":1}');
+      await remoteStateProvider.lockApp();
+
+      await remoteStateProvider.saveStates([{ filePath, stateFileName: 'journal.1.apply.terraform.json' }]);
+
+      expect(backend.states[0].files).toEqual({ 'journal.1.apply.terraform.json': '{"log":1}' });
+      expect(await readFile(filePath, 'utf-8')).toBe('{"log":1}');
+      await rm(filePath, { force: true });
+    });
+
     it('should write only to the directory when no run is open', async () => {
       await remoteStateProvider.saveStates([{ data: Buffer.from('{"a":1}'), stateFileName: 'a.json' }]);
 
