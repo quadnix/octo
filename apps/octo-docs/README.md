@@ -49,7 +49,6 @@ The account-bearing ones are secrets, because the repository is public.
 | `AWS_ACCOUNT_ID`                             | a repository secret                  | The account the site is deployed into.                                        |
 | `AWS_CLOUDFRONT_CERTIFICATE_ARN`             | a repository secret                  | The certificate the site is served with.                                      |
 | `AWS_S3_WEBSITE_BUCKET_NAME`                 | `octo.yaml`'s default                | The bucket the built site is uploaded to.                                     |
-| `OCTO_STATE_ENCRYPTION_KEY`                  | a repository secret                  | Encrypts the site's state, held by `LocalEncryptionStateProvider` in `.octo`. |
 | `AUTO_APPROVE`                               | the workflow's **autoApprove** input | `true` passes `--auto-approve` to `octo apply`, letting it destroy.           |
 | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | repository secrets                   | The workflow's AWS credentials.                                               |
 | `GH_TOKEN`                                   | a repository secret                  | Checkout, and pushing the state commit back to the branch.                    |
