@@ -4,7 +4,6 @@ import { dirname, join, resolve } from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
 import {
   type Constructable,
-  LocalEncryptionStateProvider,
   LocalStateProvider,
   type Octo,
   RemoteStateProvider,
@@ -44,7 +43,6 @@ interface IYamlDefinition {
         }
     )[];
     stateProvider:
-      | { encryptionKey: string; statePath: string; type: 'LocalEncryptionStateProvider' }
       | { statePath: string; type: 'LocalStateProvider' }
       | {
           appId: string;
@@ -305,26 +303,12 @@ export class YamlDefinitionUtility {
   /**
    * Builds the `IStateProvider` the definition asks for.
    */
-  resolveStateProvider():
-    | { type: LocalEncryptionStateProvider }
-    | { type: LocalStateProvider }
-    | { type: RemoteStateProvider }
-    | { type: TestStateProvider } {
+  resolveStateProvider(): { type: LocalStateProvider } | { type: RemoteStateProvider } | { type: TestStateProvider } {
     const stateProvider = this.definition.settings.stateProvider;
     // Anchored to the definition file for the same reason imports are: `run-action` runs with
     // terragrunt's cache directory as its cwd, and a state path resolved from there would point at
     // an empty directory - the action would read no prior state and write its result nowhere useful.
-    if (stateProvider.type === 'LocalEncryptionStateProvider') {
-      return {
-        type: new LocalEncryptionStateProvider(
-          resolve(this.definitionDir, stateProvider.statePath),
-          // Resolved like any other value, because the whole point of the key is that it comes
-          // from the shell. Passed raw, `"${env.KEY}"` is itself the key: a constant, written in
-          // the definition file, and committed beside the state it encrypts.
-          this.resolveEnvironmentValue<string>(stateProvider.encryptionKey),
-        ),
-      };
-    } else if (stateProvider.type === 'LocalStateProvider') {
+    if (stateProvider.type === 'LocalStateProvider') {
       return {
         type: new LocalStateProvider(resolve(this.definitionDir, stateProvider.statePath)),
       };
@@ -337,9 +321,8 @@ export class YamlDefinitionUtility {
             ? this.resolveEnvironmentValue<string>(stateProvider.lockContext)
             : undefined,
           organizationId: this.resolveEnvironmentValue<string>(stateProvider.organizationId),
-          // Resolved like an encryption key, and for the same reason: a session is a credential, and
-          // a credential written into the definition file is a credential committed beside the state
-          // it reaches.
+          // Resolved from the shell: a session is a credential, and a credential written into the
+          // definition file is a credential committed beside the state it reaches.
           sessionId: this.resolveEnvironmentValue<string>(stateProvider.sessionId),
           stateManagementServiceUrl: this.resolveEnvironmentValue<string>(stateProvider.stateManagementServiceUrl),
         }),
