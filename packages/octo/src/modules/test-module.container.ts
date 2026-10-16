@@ -13,6 +13,7 @@ import type {
 import { type Container } from '../functions/container/container.js';
 import type { DiffMetadata } from '../functions/diff/diff-metadata.js';
 import { DiffAction } from '../functions/diff/diff.js';
+import { ANodeAction } from '../functions/node/node-action.abstract.js';
 import { Octo } from '../main.js';
 import type { App } from '../models/app/app.model.js';
 import type { IModelAction } from '../models/model-action.interface.js';
@@ -82,7 +83,14 @@ class UniversalModelAction implements IModelAction<UniversalTestModule> {
 /**
  * @internal
  */
-class UniversalResourceAction implements IResourceAction<any> {
+class UniversalResourceAction extends ANodeAction implements IResourceAction<any> {
+  /**
+   * @internal
+   */
+  constructor() {
+    super();
+  }
+
   /**
    * @internal
    */

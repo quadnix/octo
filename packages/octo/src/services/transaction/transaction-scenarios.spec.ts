@@ -1,16 +1,12 @@
 import { jest } from '@jest/globals';
-import type { UnknownResource } from '../../app.type.js';
 import type { Container } from '../../functions/container/container.js';
 import { TestContainer } from '../../functions/container/test-container.js';
-import type { IResourceAction } from '../../resources/resource-action.interface.js';
+import { TestResourceAction } from '../../utilities/test-helpers/test-classes.js';
 import { commitResources, createTestResources } from '../../utilities/test-helpers/test-resources.js';
 import { TransactionService } from './transaction.service.js';
 
 describe('Transaction Scenarios UT', () => {
-  const universalResourceAction: IResourceAction<UnknownResource> = {
-    filter: () => true,
-    handle: jest.fn() as jest.Mocked<any>,
-  };
+  const universalResourceAction = new TestResourceAction(jest.fn() as jest.Mocked<any>);
 
   let container: Container;
 

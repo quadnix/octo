@@ -13,10 +13,9 @@ import type { IModelAction } from '../../models/model-action.interface.js';
 import { Region } from '../../models/region/region.model.js';
 import { TestModuleContainer } from '../../modules/test-module.container.js';
 import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
-import type { IResourceAction } from '../../resources/resource-action.interface.js';
 import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
 import { BaseResourceSchema } from '../../resources/resource.schema.js';
-import { TestOverlay } from '../../utilities/test-helpers/test-classes.js';
+import { TestOverlay, TestResourceAction } from '../../utilities/test-helpers/test-classes.js';
 import { create } from '../../utilities/test-helpers/test-models.js';
 import { createAppModule, createAppOverlayModule, runModule } from '../../utilities/test-helpers/test-modules.js';
 import { createAnchor, createTestOverlays } from '../../utilities/test-helpers/test-overlays.js';
@@ -323,15 +322,8 @@ describe('TransactionService UT', () => {
   });
 
   describe('applyResources()', () => {
-    const universalResourceAction: IResourceAction<UnknownResource> = {
-      filter: () => true,
-      handle: jest.fn() as jest.Mocked<any>,
-    };
-    const universalResourceActionWithTimeout: IResourceAction<UnknownResource> = {
-      actionTimeoutInMs: 100,
-      filter: () => true,
-      handle: jest.fn() as jest.Mocked<any>,
-    };
+    const universalResourceAction = new TestResourceAction(jest.fn() as jest.Mocked<any>);
+    const universalResourceActionWithTimeout = new TestResourceAction(jest.fn() as jest.Mocked<any>, 100);
 
     let applyResources: TransactionService['applyResources'];
 
@@ -458,7 +450,7 @@ describe('TransactionService UT', () => {
 
         await expect(async () => {
           await applyResources([diffMetadata2, diffMetadata1]);
-        }).rejects.toThrowErrorMatchingInlineSnapshot(`"Resource action Object timed out after 100ms!"`);
+        }).rejects.toThrowErrorMatchingInlineSnapshot(`"Resource action TestResourceAction timed out after 100ms!"`);
 
         expect(universalResourceAction.handle).toHaveBeenCalledTimes(0);
       });
@@ -1185,10 +1177,7 @@ describe('TransactionService UT', () => {
 
   describe('beginTransaction()', () => {
     describe('enableResourceValidation', () => {
-      const universalResourceAction: IResourceAction<UnknownResource> = {
-        filter: () => true,
-        handle: jest.fn() as jest.Mocked<any>,
-      };
+      const universalResourceAction = new TestResourceAction(jest.fn() as jest.Mocked<any>);
 
       afterEach(() => {
         (universalResourceAction.handle as jest.Mock).mockReset();
@@ -1217,10 +1206,7 @@ describe('TransactionService UT', () => {
     });
 
     describe('filterResourceDiffsByResourceId', () => {
-      const universalResourceAction: IResourceAction<UnknownResource> = {
-        filter: () => true,
-        handle: jest.fn() as jest.Mocked<any>,
-      };
+      const universalResourceAction = new TestResourceAction(jest.fn() as jest.Mocked<any>);
 
       afterEach(() => {
         (universalResourceAction.handle as jest.Mock).mockReset();
@@ -1410,10 +1396,7 @@ describe('TransactionService UT', () => {
     });
 
     describe('yieldResourceDiffs', () => {
-      const universalResourceAction: IResourceAction<UnknownResource> = {
-        filter: () => true,
-        handle: jest.fn() as jest.Mocked<any>,
-      };
+      const universalResourceAction = new TestResourceAction(jest.fn() as jest.Mocked<any>);
 
       afterEach(() => {
         (universalResourceAction.handle as jest.Mock).mockReset();
@@ -1442,10 +1425,7 @@ describe('TransactionService UT', () => {
     });
 
     describe('yieldResourceTransaction', () => {
-      const universalResourceAction: IResourceAction<UnknownResource> = {
-        filter: () => true,
-        handle: jest.fn() as jest.Mocked<any>,
-      };
+      const universalResourceAction = new TestResourceAction(jest.fn() as jest.Mocked<any>);
 
       afterEach(() => {
         (universalResourceAction.handle as jest.Mock).mockReset();

@@ -9,6 +9,7 @@ import { ATerraformResource } from './resources/terraform-resource.abstract.js';
 import { InputService } from './services/input/input.service.js';
 import type { TerraformModuleScope } from './services/terraform/terraform.service.js';
 import { TransactionService } from './services/transaction/transaction.service.js';
+import { TestResourceAction } from './utilities/test-helpers/test-classes.js';
 import { ExternalIgwResource, TestModes, TfVpcResource } from './utilities/test-helpers/test-modes.js';
 
 /**
@@ -585,7 +586,7 @@ describe('Main UT', () => {
     it('should not move an external resource', async () => {
       const transactionService = await Container.getInstance().get(TransactionService);
       transactionService.registerResourceActions(NamedExternalResource, [
-        { filter: (): boolean => true, handle: async (): Promise<BaseResourceSchema['response']> => ({}) },
+        new TestResourceAction(async (): Promise<BaseResourceSchema['response']> => ({})),
       ]);
       const {
         app: [app],

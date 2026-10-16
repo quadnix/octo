@@ -1,10 +1,12 @@
 import { NodeType, type UnknownAnchor, type UnknownModel, type UnknownResource } from '../../app.type.js';
 import type { Diff } from '../../functions/diff/diff.js';
+import { ANodeAction } from '../../functions/node/node-action.abstract.js';
 import { AModel } from '../../models/model.abstract.js';
 import { AAnchor } from '../../overlays/anchor.abstract.js';
 import type { BaseAnchorSchema } from '../../overlays/anchor.schema.js';
 import { AOverlay } from '../../overlays/overlay.abstract.js';
 import type { BaseOverlaySchema } from '../../overlays/overlay.schema.js';
+import type { IResourceAction } from '../../resources/resource-action.interface.js';
 import { AResource } from '../../resources/resource.abstract.js';
 import type { BaseResourceSchema } from '../../resources/resource.schema.js';
 
@@ -12,6 +14,30 @@ import type { BaseResourceSchema } from '../../resources/resource.schema.js';
  * @internal
  */
 export class TestAction {}
+
+/**
+ * A resource action handling every diff with `handle`.
+ *
+ * @internal
+ */
+export class TestResourceAction extends ANodeAction implements IResourceAction<UnknownResource> {
+  /**
+   * @internal
+   */
+  constructor(
+    readonly handle: IResourceAction<UnknownResource>['handle'] = async (): Promise<void> => {},
+    readonly actionTimeoutInMs?: number,
+  ) {
+    super();
+  }
+
+  /**
+   * @internal
+   */
+  filter(): boolean {
+    return true;
+  }
+}
 
 /**
  * @internal

@@ -1,9 +1,14 @@
+import type { DiffAction } from '../functions/diff/diff.js';
 import { Event } from './event.model.js';
 
 /**
- * The ActionEvent class is the superclass for all events within actions.
- * This can be used to emit log events within actions.
+ * This event is emitted for each `log()` an action makes. `diff` names what the action was running
+ * for: the context of its model, overlay or resource, and the diff's action and field.
  *
  * @group Events/Action
  */
-export class ActionEvent extends Event<{ message: string; metadata: Record<string, unknown> }> {}
+export class ActionEvent extends Event<{
+  diff: { action: DiffAction; field: string; node: string };
+  message: string;
+  metadata: Record<string, unknown>;
+}> {}

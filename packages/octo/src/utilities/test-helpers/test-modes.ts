@@ -12,6 +12,7 @@ import {
 import { ResourceError } from '../../errors/index.js';
 import { TestContainer } from '../../functions/container/test-container.js';
 import { Diff, DiffAction } from '../../functions/diff/diff.js';
+import { ANodeAction } from '../../functions/node/node-action.abstract.js';
 import type { Octo } from '../../main.js';
 import type { App } from '../../models/app/app.model.js';
 import type { TerraformPlan } from '../../modes/validate.mode.js';
@@ -26,6 +27,39 @@ import { TestStateProvider } from '../../services/state-management/test.state-pr
 import { type TerraformModuleScope, TerraformService } from '../../services/terraform/terraform.service.js';
 import { TransactionService } from '../../services/transaction/transaction.service.js';
 import { DiffUtility } from '../diff/diff.utility.js';
+
+/**
+ * The action of {@link ExternalIgwResource}, filtering, recording and answering each diff as its
+ * {@link TestModes} says.
+ *
+ * @internal
+ */
+class IgwResourceAction extends ANodeAction implements IResourceAction<ExternalIgwResource> {
+  /**
+   * @internal
+   */
+  constructor(private readonly testModes: TestModes) {
+    super();
+  }
+
+  /**
+   * @internal
+   */
+  filter(diff: Diff): boolean {
+    return this.testModes.igwActionFilter(diff);
+  }
+
+  /**
+   * @internal
+   */
+  async handle(diff: Diff): Promise<BaseResourceSchema['response']> {
+    this.testModes.igwActionHandledDiffs.push(diff);
+    if (this.testModes.igwActionHandler) {
+      return this.testModes.igwActionHandler(diff);
+    }
+    return diff.action === 'delete' ? {} : (this.testModes.igwResponse as BaseResourceSchema['response']);
+  }
+}
 
 /**
  * An external resource: lifecycle runs outside terraform via a resource action.
@@ -272,16 +306,7 @@ export class TestModes {
 
     // Registered after the instance exists so the action can read/append its mutable state. No
     // transaction runs during initialize(), so registering here is in time for the mode under test.
-    const igwResourceAction: IResourceAction<ExternalIgwResource> = {
-      filter: (diff: Diff): boolean => instance.igwActionFilter(diff),
-      handle: async (diff: Diff): Promise<BaseResourceSchema['response']> => {
-        instance.igwActionHandledDiffs.push(diff);
-        if (instance.igwActionHandler) {
-          return instance.igwActionHandler(diff);
-        }
-        return diff.action === 'delete' ? {} : (instance.igwResponse as BaseResourceSchema['response']);
-      },
-    };
+    const igwResourceAction = new IgwResourceAction(instance);
     transactionService.registerResourceActions(ExternalIgwResource, [igwResourceAction]);
 
     return instance;

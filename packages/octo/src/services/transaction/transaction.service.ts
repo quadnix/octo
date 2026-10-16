@@ -34,6 +34,7 @@ import {
 import { Container } from '../../functions/container/container.js';
 import { DiffMetadata } from '../../functions/diff/diff-metadata.js';
 import { type Diff, DiffAction } from '../../functions/diff/diff.js';
+import { ANodeAction } from '../../functions/node/node-action.abstract.js';
 import type { ANode } from '../../functions/node/node.abstract.js';
 import type { AModel } from '../../models/model.abstract.js';
 import { ModuleContainer } from '../../modules/module.container.js';
@@ -54,7 +55,14 @@ import { TerraformService } from '../terraform/terraform.service.js';
  *
  * @internal
  */
-class TerraformNoopResourceAction implements IUnknownResourceAction {
+class TerraformNoopResourceAction extends ANodeAction implements IUnknownResourceAction {
+  /**
+   * @internal
+   */
+  constructor() {
+    super();
+  }
+
   /**
    * @internal
    */
