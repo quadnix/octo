@@ -14,14 +14,19 @@ export type OctoMode = 'commit' | 'generate' | 'run-action' | 'validate';
  */
 export interface ModeEventPayload {
   /**
-   * Absent in `run-action`, which does not load an app.
+   * The name of the app the mode runs on.
    */
-  appName?: string;
+  appName: string;
 
   /**
    * The mode this event is about.
    */
   mode: OctoMode;
+
+  /**
+   * The resource a `run-action` runs the action of. Absent in every other mode.
+   */
+  resourceId?: string;
 }
 
 /**

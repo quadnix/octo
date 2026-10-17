@@ -427,7 +427,9 @@ export class Octo {
     app: App,
     options: { inputs?: Record<string, unknown>; resourceId: string },
   ): ReturnType<typeof runRunAction> {
-    return runRunAction(app, options);
+    return this.runMode('run-action', app.name, () => runRunAction(app, options), {
+      resourceId: options.resourceId,
+    });
   }
 
   /**
@@ -535,9 +537,14 @@ export class Octo {
    *
    * @internal
    */
-  private async runMode<T>(mode: OctoMode, appName: string | undefined, body: () => Promise<T>): Promise<T> {
+  private async runMode<T>(
+    mode: OctoMode,
+    appName: string,
+    body: () => Promise<T>,
+    { resourceId }: { resourceId?: string } = {},
+  ): Promise<T> {
     const startedAt = Date.now();
-    const payload: ModeEventPayload = { appName, mode };
+    const payload: ModeEventPayload = { appName, mode, ...(resourceId === undefined ? {} : { resourceId }) };
 
     this.eventService.emit(new ModeStartedEvent(mode, payload));
 
