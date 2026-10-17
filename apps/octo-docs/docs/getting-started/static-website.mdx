@@ -178,12 +178,9 @@ nothing outside your project. One folder comes out, because one of the four modu
 resources to create:
 
 ```text
-INFO: Started "generate" on "aws-s3-website".
-INFO: Wrote 1 terragrunt folder(s) to ".octo-tf".
-    written: [
-      "s3-website-service-module"
-    ]
-INFO: Finished "generate" in 7ms.
+INFO: Started "generate" on "aws-s3-website". {"appName":"aws-s3-website","mode":"generate"}
+INFO: Wrote 1 terragrunt folder(s) to ".octo-tf". {"emptied":[],"outputDir":".octo-tf","written":["s3-website-service-module"]}
+INFO: Finished "generate" in 7ms. {"appName":"aws-s3-website","durationInMs":7,"mode":"generate","terraformInMs":0}
 ```
 
 `validate` plans that folder and reports the plan back against your intent. This is the first
@@ -272,7 +269,7 @@ when it runs Terragrunt, so the folder reads the same for everyone who checks it
 
 `apply` creates them. It never stops to ask, because Terraform runs with `-auto-approve` underneath.
 What scrolls past is Terragrunt's own output, resource by resource, and the command ends with
-`==== Apply complete ====`; this stack takes under a minute, where one with a load balancer in it
+`Terraform "apply" finished in …ms.`; this stack takes under a minute, where one with a load balancer in it
 takes several. The one time apply stops is when something would be destroyed, which is Octo's check
 rather than Terraform's, and the teardown at the end of this page runs into it. If an apply stops
 part way, fix what it complained about and run it again with the same lock;

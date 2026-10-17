@@ -95,8 +95,10 @@ octo apply --terragruntDir .octo-tf --lockId $LOCK_ID
 The only step that changes live infrastructure. It verifies the lock before it plans anything, so a
 run without one fails having done nothing.
 
-It runs `terragrunt run --all -- apply` over the directory and streams the output as it goes,
-because an ECS apply can run for tens of minutes and its progress is the only sign it is alive.
+It runs `terragrunt run --all -- apply` over the directory, and the logging listener prints the
+output as it goes, because an ECS apply can run for tens of minutes and its progress is the only sign
+it is alive. Without `LoggingEventListener` in `listeners`, the apply prints nothing unless it fails
+or refuses a destroy.
 
 Terragrunt is given `-auto-approve`, so there is no prompt to answer. Octo puts its own gate in
 front instead: apply plans first, and refuses to run if anything would be destroyed. A destroy that

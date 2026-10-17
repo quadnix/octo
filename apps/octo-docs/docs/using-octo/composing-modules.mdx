@@ -83,7 +83,6 @@ Modules run in the order they are listed, and a module can only see what an earl
 Move the receipts module above the region module and the run stops before anything is written:
 
 ```text
-Definition file is valid and all modules were successfully imported.
 Error: Input "receipts-module.input.region" refers to "${{region-module.model.region}}", which does not exist!
     at InputService.refuseMissingReference (.../octo/dist/services/input/input.service.js:340:15)
     at InputService.resolve (.../octo/dist/services/input/input.service.js:242:18)

@@ -135,14 +135,9 @@ npm run octo:generate
 ```
 
 ```text
-Definition file is valid and all modules were successfully imported.
-INFO: Started "generate" on "shop".
-INFO: Wrote 2 terragrunt folder(s) to ".octo-tf".
-    written: [
-      "receipts-module",
-      "region-module"
-    ]
-INFO: Finished "generate" in 5ms.
+INFO: Started "generate" on "shop". {"appName":"shop","mode":"generate"}
+INFO: Wrote 2 terragrunt folder(s) to ".octo-tf". {"emptied":[],"outputDir":".octo-tf","written":["receipts-module","region-module"]}
+INFO: Finished "generate" in 5ms. {"appName":"shop","durationInMs":5,"mode":"generate","terraformInMs":0}
 ```
 
 Two folders for four modules. Every module contributes to the graph, but only some of them have
@@ -257,15 +252,15 @@ npm run octo:apply -- --lockId $LOCK_ID
 shared state, so both require it, which is what stops two people writing at once. The commit
 releases it, so you take it once per run and never think about it again.
 
-This is the only step that changes anything. It streams Terragrunt's own output, because an apply
-can run for a long time and its progress is the only sign it is alive. At the end:
+This is the only step that changes anything. The logging listener prints Terragrunt's own output as
+it arrives, because an apply can run for a long time and its progress is the only sign it is alive.
+At the end:
 
 ```text
-❯❯ Run Summary  2 units  6s
-   ────────────────────────────
-   Succeeded    2
-
-==== Apply complete ====
+INFO: ❯❯ Run Summary  2 units  6s {"command":"apply","processId":1,"stream":"stdout"}
+INFO:    ──────────────────────────── {"command":"apply","processId":1,"stream":"stdout"}
+INFO:    Succeeded    2 {"command":"apply","processId":1,"stream":"stdout"}
+INFO: Terraform "apply" finished in 6214ms. {"command":"apply","dir":"/home/you/shop/.octo-tf","durationInMs":6214,"exitCode":0}
 ```
 
 Then record what happened:

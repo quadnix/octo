@@ -43,7 +43,7 @@ needs a `@Factory` alongside it.
 
 ## The stream
 
-Fifty-eight event classes, in eleven families. You rarely want a specific one; you want a family.
+Sixty event classes, in eleven families. You rarely want a specific one; you want a family.
 
 | Family               | Emitted when                                                                                                                       |
 |----------------------|------------------------------------------------------------------------------------------------------------------------------------|
@@ -54,10 +54,10 @@ Fifty-eight event classes, in eleven families. You rarely want a specific one; y
 | `RegistrationEvent`  | A model, resource, anchor, overlay, or action registered itself at boot.                                                           |
 | `SerializationEvent` | The model or resource graph was turned into state, or read back from it.                                                           |
 | `StateEvent`         | State files are about to be written or were written, state was refreshed, and the lock was taken, refused, or released.            |
-| `TerraformEvent`     | A Terraform command started or finished, with everything each process wrote, and the folders were written.                         |
+| `TerraformEvent`     | A Terraform command started or finished, each process started, printed something, or exited, and the folders were written.         |
 | `HookEvent`          | A hook callback ran.                                                                                                               |
 | `ModuleEvent`        | A module's `onInit()` ran, carrying the module's ID and the inputs it ran with.                                                    |
-| `ActionEvent`        | A resource action called `this.log()`, carrying its message and metadata.                                                          |
+| `ActionEvent`        | An action called `this.log()`, carrying its message, its metadata, and the node and diff the action ran for.                       |
 
 Two are worth knowing by name. `ValidateModeCompletedEvent` carries the full validate report, which
 is what you want for posting a summary onto a pull request. `ModeFinishedEvent` carries the mode and
@@ -128,8 +128,6 @@ command, the duration, and the error, every time.
 
 ## Writing to the right stream
 
-If you print, print to stderr. Octo's logging listener owns stdout, and it flushes independently of
-`console.log`, so anything written to stdout alongside it lands out of order. Some commands rely on
-stdout carrying only their own output: `octo run-action` is read by Terraform as JSON, and Octo
-routes its own listeners to stderr for that reason. `octo get-response` is read the same way and
-loads no listeners at all, because it reads state and composes nothing.
+If you print, print to stderr. Octo's logging listener writes there too, and stdout carries only a
+command's own output: `octo lock` prints the lock ID for a shell to capture, and Terraform reads
+`octo run-action` and `octo get-response` as JSON. A line on stdout breaks all three.

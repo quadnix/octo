@@ -98,16 +98,23 @@ journal.20261011T041724187Z-30dd727f.validate.terraform.json
 journal.20261011T041733700Z-032b3e64.lock.json
 ```
 
-| File                                    | Holds                                                     |
-|-----------------------------------------|-----------------------------------------------------------|
-| `journal.<id>.<command>.json`           | Every step of the command, in order, and how it ended     |
-| `journal.<id>.<command>.terraform.json` | What each Terraform and Terragrunt process printed        |
-| `journal.<id>.<command>.<md5>.json`     | A copy of `models.json` or a resource graph it wrote      |
+| File                                    | Holds                                                                |
+|-----------------------------------------|----------------------------------------------------------------------|
+| `journal.<id>.<command>.json`           | Every step of the command, in order, and how it ended                |
+| `journal.<id>.<command>.terraform.json` | What each Terraform and Terragrunt process printed, as it printed it |
+| `journal.<id>.<command>.<md5>.json`     | A copy of `models.json` or a resource graph it wrote                 |
 
 A command's files are saved when it ends, and also every time it saves state, so an apply's journal
-goes out with each ten-second copy of Terraform's state. An apply that is killed keeps its journal
-up to its last copy. What the killed Terraform process printed is not in it, because Octo records a
-process's output when the process exits; the apply's own log is where that is.
+goes out with each ten-second copy of Terraform's state, Terraform's output so far included. An
+apply that is killed keeps its journal, and what Terraform printed, up to its last copy.
+
+The Terraform file is a list of records in the order they arrived: a process starting, each piece of
+output it printed, and its exit code. Nothing is left out, the JSON Octo reads from a plan or from
+Terraform's outputs included. While a command runs, the file is written to the system's temporary
+directory as each piece arrives, and that copy is deleted when the command ends.
+
+A `run-action` that Terraform starts in the middle of an apply writes files of its own, and names
+the apply that started it as `parentCommandId`.
 
 The files of one lock stay together. `generate` and `validate` files wait in `.octo/` until the
 next `lock`, and when that lock is released, everything moves into a folder named after it:
@@ -135,7 +142,8 @@ jq -r '.entries[].type' .octo/archives/$LOCK_ID/journal.*.commit.json | uniq -c
    1 CommandStartedEvent
    4 ModuleEvent
    1 TerraformCommandStartedEvent
-   1 TerraformCommandOutputEvent
+   1 TerraformProcessStartedEvent
+   1 TerraformProcessExitedEvent
    1 TerraformCommandFinishedEvent
    1 StateFilesSavedEvent
    1 ModeStartedEvent
