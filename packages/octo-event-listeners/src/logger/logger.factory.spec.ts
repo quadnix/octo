@@ -22,7 +22,7 @@ describe('Logger UT', () => {
       expect(pinoLevelOf(early)).toBe('info');
 
       // What octo.initialize() does with the definition's options.
-      const configured = Logger.shared({ destination: 'stderr', level: 'debug' });
+      const configured = Logger.shared({ level: 'debug' });
 
       expect(configured).toBe(early);
       expect(pinoLevelOf(configured)).toBe('debug');

@@ -48,7 +48,7 @@ import {
   TransactionEvent,
   ValidateModeCompletedEvent,
 } from '@quadnix/octo';
-import { type LogDestination, Logger, type LoggerOptions } from './logger/logger.factory.js';
+import { Logger, type LoggerOptions } from './logger/logger.factory.js';
 import { RunObserver } from './reporters/run.observer.js';
 import { renderReportText } from './reporters/text/text.reporter.js';
 
@@ -401,9 +401,8 @@ export class LoggingEventListener {
   /**
    * The whole report for the mode that just ended, as plain text.
    *
-   * Rendered from {@link OctoReport}. It goes through the logger rather than straight to stdout,
-   * which is what makes it obey the configured level and destination — `run-action` routes the logger to stderr because terraform's `data "external"`
-   * protocol needs that command's stdout to carry only its response JSON.
+   * Rendered from {@link OctoReport}. It goes through the logger rather than straight to the terminal,
+   * which is what makes it obey the configured level.
    *
    * `generate` and `run-action` produce no report, and nothing is printed for them.
    */
@@ -443,4 +442,4 @@ export class LoggingEventListenerFactory {
   }
 }
 
-export type { LogDestination, LoggerOptions };
+export type { LoggerOptions };

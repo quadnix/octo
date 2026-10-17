@@ -3,31 +3,16 @@ import { LogLayer } from 'loglayer';
 import { type LevelWithSilentOrString, pino } from 'pino';
 
 /**
- * Where log records are written.
- *
- * `stderr` exists for `octo run-action`: terraform's `data "external"` protocol requires that
- * command's **stdout** to carry only the response JSON. Writing to stderr keeps stdout clean while
- * still making the run observable — terraform surfaces provisioner stderr in the apply log.
- */
-export type LogDestination = 'stderr' | 'stdout';
-
-/**
- * How {@link LoggingEventListener} writes.
+ * How {@link LoggingEventListener} writes. It always writes to stderr, so stdout carries only a
+ * command's own output, such as the lock id `octo lock` prints or the JSON terraform reads from `octo run-action`.
  *
  * @group Event Listeners
  */
 export interface LoggerOptions {
   /**
-   * Whether to emit ANSI colors. Defaults to whether the destination is a terminal.
+   * Whether to emit ANSI colors. Defaults to whether stderr is a terminal.
    */
   colorize?: boolean;
-
-  /**
-   * Which stream to write to.
-   *
-   * @defaultValue `'stdout'`
-   */
-  destination?: LogDestination;
 
   /**
    * The minimum level to emit. See {@link LoggingEventListener} for what each level carries.
@@ -87,11 +72,11 @@ export class Logger {
    * Reconfiguring rather than replacing is required: `EventService` resolves a listener on its first
    * event, which is a no-argument factory call, and octo replays buffered registration events the
    * moment `@OnEvent` runs. So the shared logger is always built with defaults before boot options
-   * exist. First-caller-wins would make `level` and `destination` un-settable.
+   * exist. First-caller-wins would make `level` un-settable.
    */
-  configure({ colorize = true, destination = 'stdout', level = 'info' }: LoggerOptions = {}): void {
+  configure({ colorize = true, level = 'info' }: LoggerOptions = {}): void {
     // A new pino means a new pino-pretty worker, so only rebuild on a real change.
-    const configuration = JSON.stringify({ colorize, destination, level });
+    const configuration = JSON.stringify({ colorize, level });
     if (configuration === this.configuration) {
       return;
     }
@@ -105,7 +90,7 @@ export class Logger {
             options: {
               colorize,
               // pino-pretty writes to fd 1 by default; 2 is stderr.
-              destination: destination === 'stderr' ? 2 : 1,
+              destination: 2,
             },
             target: 'pino-pretty',
           },
