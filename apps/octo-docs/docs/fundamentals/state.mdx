@@ -22,8 +22,10 @@ Commit them. This is not a cache.
 ```
 
 **`models.json`** is the [model](/docs/fundamentals/models) graph: every model, anchor, overlay, and
-edge between them. The shop's receipts service is in there as a service in the region, with the
-bucket name somebody typed and the access prefix it was told to declare.
+edge between them, each model and overlay with the module that produced it. The shop's receipts
+service is in there as a service in the region, with the bucket name somebody typed and the access
+prefix it was told to declare. Beside the graph, it lists every module that ran, with the inputs
+`octo.yaml` gave it.
 
 **`resources-actual.json`** is what Octo believes exists. Here is the receipts bucket, after an
 apply and a commit:
@@ -31,6 +33,9 @@ apply and a commit:
 ```json
 "@octo/s3-storage=bucket-shop-receipts": {
   "className": "@octo/S3Storage",
+  "kind": "terraform",
+  "models": ["service=shop-receipts-s3-storage,region=eu-west-1,account=123456789012,app=shop"],
+  "moduleId": "receipts-module",
   "resource": {
     "parents": [
       {
@@ -55,10 +60,13 @@ apply and a commit:
       "Arn": "arn:aws:s3:::shop-receipts"
     },
     "tags": {}
-  },
-  "moduleId": "receipts-module"
+  }
 }
 ```
+
+The first lines say where the bucket came from: the receipts service's action made it, in the
+receipts module, and Terraform owns it. A resource Octo creates itself, through an action of its own
+rather than through Terraform, is `external`.
 
 Checkout's grant is in there twice over: as the permission the bucket carries, and as the parent
 edge that puts the role before the bucket.

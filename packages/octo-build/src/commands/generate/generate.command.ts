@@ -38,9 +38,8 @@ export const generateCommand = {
       await octo.generate(app, { outputDir: resolvedOutputDir });
 
       // Nothing is printed here. The listeners report what was written and that the mode finished,
-      // and they are the only writer on stdout - a `console.log` alongside them lands out of order,
-      // because pino's stream and this one flush independently. Failures still reach stderr via
-      // `reportError`, so a silent run is a successful one.
+      // on stderr, and failures reach stderr via `reportError`. Generate has no output of its own, so
+      // stdout stays empty.
     });
   },
 };

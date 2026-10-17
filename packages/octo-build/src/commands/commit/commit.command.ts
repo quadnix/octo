@@ -89,8 +89,8 @@ export const commitCommand = {
       const stateManagementService = await Container.getInstance().get(StateManagementService);
       await stateManagementService.unlockApp(lockId);
 
-      // No verdict printed here - the listeners own stdout and render the commit report there.
-      // The warnings above stay, on stderr: a different fd, so they cannot interleave with pino.
+      // No verdict printed here - the listeners render the commit report on stderr, beside the
+      // warnings above.
     });
   },
 };

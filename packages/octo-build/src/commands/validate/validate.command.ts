@@ -66,8 +66,8 @@ export const validateCommand = {
       // findings to act on, not exit codes.
       //
       // The verdict itself is not printed here - the listeners render the report, drift included,
-      // on stdout, and a `console.log` alongside pino lands out of order. What is left is the exit
-      // code, which is the CLI's own job, and the failure line on stderr.
+      // on stderr. What is left is the exit code, which is the CLI's own job, and the failure line on
+      // stderr.
       if (report.failures.length > 0) {
         console.error(chalk.red('\nValidation could not complete!'));
         return 1;
