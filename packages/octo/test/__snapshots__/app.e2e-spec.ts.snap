@@ -1,7 +1,13 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`App E2E Test should generate app diff 1`] = `
 [
+  {
+    "action": "add",
+    "field": "imageId",
+    "node": "image=test/image,account=account,app=test-app",
+    "value": "test/image",
+  },
   {
     "action": "add",
     "field": "executionId",
@@ -43,12 +49,6 @@ exports[`App E2E Test should generate app diff 1`] = `
     "field": "accountId",
     "node": "account=account,app=test-app",
     "value": "account",
-  },
-  {
-    "action": "add",
-    "field": "imageId",
-    "node": "image=test/image,app=test-app",
-    "value": "test/image",
   },
   {
     "action": "add",

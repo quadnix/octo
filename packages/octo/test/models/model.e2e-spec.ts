@@ -205,7 +205,7 @@ describe('Model E2E Test', () => {
         app.addRelationship(overlay1);
 
         const diff = await app.diff();
-        expect(diff.map((d) => d.value)).toEqual(['account', 'test/image', 'app']);
+        expect(diff.map((d) => d.value)).toEqual(['test/image', 'account', 'app']);
       });
     });
   });
@@ -342,12 +342,12 @@ describe('Model E2E Test', () => {
        ]
       `);
       expect(app.getBoundaryMembers().map((m) => m.getContext())).toMatchInlineSnapshot(`
-        [
-          "app=app",
-          "@octo/test-overlay=test-overlay",
-          "image=test/image,app=app",
-          "account=account,app=app",
-        ]
+       [
+         "app=app",
+         "@octo/test-overlay=test-overlay",
+         "account=account,app=app",
+         "image=test/image,account=account,app=app",
+       ]
       `);
     });
 

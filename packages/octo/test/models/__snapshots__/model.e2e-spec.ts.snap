@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`Model E2E Test addRelationship() should create a uni-directional relationship 1`] = `
 [
@@ -29,11 +29,13 @@ exports[`Model E2E Test common functions Test common functions Test Account getB
   "deployment=v1,server=backend,app=test",
   "server=backend,app=test",
   "filesystem=filesystem,region=region,account=account,app=test",
+  "image=test/image,account=account,app=test",
 ]
 `;
 
 exports[`Model E2E Test common functions Test common functions Test Account getChildren() 1`] = `
 [
+  "image",
   "region",
 ]
 `;
@@ -74,14 +76,13 @@ exports[`Model E2E Test common functions Test common functions Test App getBound
   "account=account,app=test",
   "environment=qa,region=region,account=account,app=test",
   "pipeline=pipeline,app=test",
-  "image=test/image,app=test",
+  "image=test/image,account=account,app=test",
 ]
 `;
 
 exports[`Model E2E Test common functions Test common functions Test App getChildren() 1`] = `
 [
   "account",
-  "image",
   "pipeline",
   "server",
   "service",
@@ -285,25 +286,27 @@ exports[`Model E2E Test common functions Test common functions Test Filesystem s
 
 exports[`Model E2E Test common functions Test common functions Test Image getAncestors() 1`] = `
 [
-  "image=test/image,app=test",
+  "image=test/image,account=account,app=test",
+  "account=account,app=test",
   "app=test",
 ]
 `;
 
 exports[`Model E2E Test common functions Test common functions Test Image getBoundaryMembers() 1`] = `
 [
-  "image=test/image,app=test",
+  "image=test/image,account=account,app=test",
+  "account=account,app=test",
   "app=test",
 ]
 `;
 
 exports[`Model E2E Test common functions Test common functions Test Image getChildren() 1`] = `[]`;
 
-exports[`Model E2E Test common functions Test common functions Test Image getContext() 1`] = `"image=test/image,app=test"`;
+exports[`Model E2E Test common functions Test common functions Test Image getContext() 1`] = `"image=test/image,account=account,app=test"`;
 
 exports[`Model E2E Test common functions Test common functions Test Image getParents() 1`] = `
 [
-  "app",
+  "account",
 ]
 `;
 
@@ -526,7 +529,14 @@ exports[`Model E2E Test common functions Test common functions Test TestServiceC
 
 exports[`Model E2E Test common functions Test common functions Test TestServiceClass synth() 1`] = `
 {
+  "label": "service",
+  "parents": [
+    {
+      "context": "app=test",
+    },
+  ],
   "serviceId": "service",
+  "type": "other",
 }
 `;
 
@@ -628,6 +638,6 @@ exports[`Model E2E Test getBoundaryMembers() should not include sibling's siblin
   "region=region-1,account=account,app=app",
   "account=account,app=app",
   "app=app",
-  "image=test/imageName,app=app",
+  "image=test/imageName,account=account,app=app",
 ]
 `;
