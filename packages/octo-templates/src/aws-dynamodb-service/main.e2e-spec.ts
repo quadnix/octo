@@ -17,6 +17,27 @@ const outputDir = join(__dirname, '.octo', 'generated');
 
 const E2E_TAGS = { 'e2e-test': 'true', 'e2e-test-family': 'aws-dynamodb-service' };
 
+/**
+ * How long an item is given to reach a global secondary index. A GSI is read only eventually
+ * consistently, so an item written a moment ago may not be in it yet.
+ */
+const GSI_POLL_ATTEMPTS = 10;
+
+const GSI_POLL_INTERVAL_IN_MS = 1_000;
+
+/**
+ * Queries a global secondary index until it returns items, or gives up and returns the last answer.
+ */
+async function queryIndexUntilFound<T>(query: () => Promise<T[]>): Promise<T[]> {
+  let items = await query();
+  for (let attempt = 1; attempt < GSI_POLL_ATTEMPTS && items.length === 0; attempt++) {
+    await new Promise((resolve) => setTimeout(resolve, GSI_POLL_INTERVAL_IN_MS));
+    items = await query();
+  }
+
+  return items;
+}
+
 jest.setTimeout(1_200_000);
 
 describe('Main E2E', () => {
@@ -102,7 +123,7 @@ describe('Main E2E', () => {
     }).rejects.toThrow();
 
     // Can fetch by GSI index - UserId.
-    const accountsByUserIdGSI = await accountRepositoryUsEast1.getByUserId('test-user-1');
+    const accountsByUserIdGSI = await queryIndexUntilFound(() => accountRepositoryUsEast1.getByUserId('test-user-1'));
     expect(accountsByUserIdGSI.length).toBe(1);
 
     // Can fetch by LSI index.
@@ -149,7 +170,9 @@ describe('Main E2E', () => {
       ExpiresAt: createdAt + 5,
       UserId: 'test-user-1',
     });
-    const accountsByEmail = await accountRepositoryUsEast1.getByEmail('test-user-1@test.com');
+    const accountsByEmail = await queryIndexUntilFound(() =>
+      accountRepositoryUsEast1.getByEmail('test-user-1@test.com'),
+    );
     expect(accountsByEmail.length).toBe(1);
   });
 
