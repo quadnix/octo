@@ -578,7 +578,11 @@ describe('AwsLambdaExecutionModule UT', () => {
     const { hclRender } = (
       await testModuleContainer
         .runModules<AwsLambdaExecutionModule>(
-          { inputs: executionInputs({ reservedConcurrency: 5 }), moduleId: 'execution', type: AwsLambdaExecutionModule },
+          {
+            inputs: executionInputs({ reservedConcurrency: 5 }),
+            moduleId: 'execution',
+            type: AwsLambdaExecutionModule,
+          },
           { filterByModuleIds: ['execution'], terraformTarget: 'skip' },
         )
         .next()

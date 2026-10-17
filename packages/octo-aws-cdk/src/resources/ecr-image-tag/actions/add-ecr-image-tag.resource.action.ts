@@ -98,10 +98,17 @@ export class AddEcrImageTagResourceAction extends ANodeAction implements IResour
     this.log(diff, `Publishing "${properties.imageId}:${properties.imageTag}"`);
     const contextDirectory = ProjectUtility.resolveFromProjectRoot(properties.dockerfileDirectory);
     const platform = properties.architecture === 'arm64' ? 'linux/arm64' : 'linux/amd64';
-    await dockerService.build(imageUri, platform, join(contextDirectory, properties.dockerfileName), contextDirectory, {
-      buildArguments: properties.buildArguments,
-      buildSecrets: properties.buildSecrets,
-    }, log);
+    await dockerService.build(
+      imageUri,
+      platform,
+      join(contextDirectory, properties.dockerfileName),
+      contextDirectory,
+      {
+        buildArguments: properties.buildArguments,
+        buildSecrets: properties.buildSecrets,
+      },
+      log,
+    );
     await dockerService.push(imageUri, log);
 
     // Read back the digest AWS assigned, which is the image's real identity.

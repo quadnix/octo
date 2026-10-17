@@ -118,7 +118,14 @@ const imageTagModule = (
   type: typeof AwsEcrImageTagModule;
 } => ({
   hidden,
-  inputs: { architecture: 'arm64', buildArguments, buildSecrets, dockerfileDirectory, image: stub<Image>(image), imageTag },
+  inputs: {
+    architecture: 'arm64',
+    buildArguments,
+    buildSecrets,
+    dockerfileDirectory,
+    image: stub<Image>(image),
+    imageTag,
+  },
   moduleId,
   type: AwsEcrImageTagModule,
 });

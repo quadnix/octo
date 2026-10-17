@@ -67,7 +67,6 @@ export class AwsMultiAzRegion extends Region {
     return new AwsMultiAzRegion(region.regionId, region.awsRegionAZs.map((az) => `aws-${az}`) as AwsMultiAzRegionId[]);
   }
 
-
   /**
    * @internal
    */

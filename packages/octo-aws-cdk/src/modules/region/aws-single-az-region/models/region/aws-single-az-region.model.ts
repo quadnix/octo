@@ -55,7 +55,6 @@ export class AwsSingleAzRegion extends Region {
     return new AwsSingleAzRegion(region.regionId, `aws-${region.awsRegionAZs[0]}` as AwsSingleAzRegionId);
   }
 
-
   /**
    * @internal
    */
