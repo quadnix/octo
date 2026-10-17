@@ -42,6 +42,9 @@ import {
   TerraformCommandStartedEvent,
   TerraformEvent,
   TerraformFoldersWrittenEvent,
+  TerraformProcessExitedEvent,
+  TerraformProcessOutputEvent,
+  TerraformProcessStartedEvent,
   TransactionEvent,
   ValidateModeCompletedEvent,
 } from '@quadnix/octo';
@@ -65,9 +68,12 @@ import { renderReportText } from './reporters/text/text.reporter.js';
  *
  * - `error` - a mode failed.
  * - `warn`  - drift, commit warnings, a non-zero terraform exit.
- * - `info`  - mode boundaries, folders written, terraform commands, mode results,
- *             SDK resource actions, and the mode's report in full.
- * - `debug` - diffs, transactions, serialization, hooks, author `log()` calls.
+ * - `info`  - mode boundaries, folders written, terraform commands and every line they print,
+ *             mode results, SDK resource actions, and the mode's report in full.
+ * - `debug` - diffs, transactions, serialization, hooks, author `log()` calls, terraform processes
+ *             starting and exiting.
+ *
+ * The JSON a terraform process asked for JSON prints is data octo reads, and is never printed.
  * - `trace` - class registration.
  *
  * @group Event Listeners
@@ -85,6 +91,13 @@ export class LoggingEventListener {
    * Terraform time since the last mode finished, which that mode's own duration does not cover.
    */
   private terraformInMs = 0;
+  /**
+   * Every running terraform process, with the end of each stream not yet printed because it is not a whole line.
+   */
+  private readonly terraformProcesses = new Map<
+    number,
+    { command: string; isJson: boolean; partialLines: { stderr: string; stdout: string } }
+  >();
 
   /**
    * @param logger The process logger, whose level and destination this listener owns.
@@ -126,11 +139,13 @@ export class LoggingEventListener {
    */
   @OnEvent(ModeEvent)
   onMode(event: ModeEvent): void {
-    const { appName, mode } = event.payload;
+    const { appName, mode, resourceId } = event.payload;
 
     if (event instanceof ModeStartedEvent) {
       this.observer.modeStarted(event.payload);
-      this.logger.log.withMetadata({ appName, mode }).info(`Started "${mode}"${appName ? ` on "${appName}"` : ''}.`);
+      this.logger.log
+        .withMetadata({ appName, mode, resourceId })
+        .info(`Started "${mode}" on "${appName}"${resourceId ? ` for resource "${resourceId}"` : ''}.`);
     } else if (event instanceof ModeFinishedEvent) {
       // Terraform is named separately because it runs *outside* the mode: the plan is taken first
       // and handed to `octo.validate()`, so the mode measures only the correlating. Reporting the
@@ -289,6 +304,42 @@ export class LoggingEventListener {
       } else {
         this.logger.log.withMetadata(metadata).warn(`Terraform "${command}" exited ${exitCode}.`);
       }
+    } else if (event instanceof TerraformProcessStartedEvent) {
+      const { args, binary, dir, processId } = event.payload;
+      this.terraformProcesses.set(processId, {
+        command: event.name ?? binary,
+        isJson: args.includes('-json'),
+        partialLines: { stderr: '', stdout: '' },
+      });
+      this.logger.log.withMetadata({ args, binary, dir, processId }).debug(`Started ${binary} "${event.name}".`);
+    } else if (event instanceof TerraformProcessOutputEvent) {
+      const { processId, stream, text } = event.payload;
+      const terraformProcess = this.terraformProcesses.get(processId);
+      if (!terraformProcess || (terraformProcess.isJson && stream === 'stdout')) {
+        return;
+      }
+
+      // Print each whole line, holding back the end of the chunk until the line it starts is whole.
+      const lines = (terraformProcess.partialLines[stream] + text).split('\n');
+      terraformProcess.partialLines[stream] = lines.pop()!;
+      for (const line of lines) {
+        this.logTerraformLine(processId, stream, line);
+      }
+    } else if (event instanceof TerraformProcessExitedEvent) {
+      const { exitCode, processId } = event.payload;
+      const terraformProcess = this.terraformProcesses.get(processId);
+      if (!terraformProcess) {
+        return;
+      }
+
+      // Print what is left of each stream, which ended without a newline.
+      for (const stream of ['stdout', 'stderr'] as const) {
+        if (terraformProcess.partialLines[stream]) {
+          this.logTerraformLine(processId, stream, terraformProcess.partialLines[stream]);
+        }
+      }
+      this.terraformProcesses.delete(processId);
+      this.logger.log.withMetadata({ exitCode, processId }).debug(`Exited "${terraformProcess.command}" ${exitCode}.`);
     }
   }
 
@@ -337,6 +388,14 @@ export class LoggingEventListener {
     } else if (event instanceof ResourceTransactionTransactionEvent) {
       this.logger.log.debug('Resource transactions executed.');
     }
+  }
+
+  /**
+   * One line a terraform process printed, tagged with the process and the stream.
+   */
+  private logTerraformLine(processId: number, stream: 'stderr' | 'stdout', line: string): void {
+    const { command } = this.terraformProcesses.get(processId)!;
+    this.logger.log.withMetadata({ command, processId, stream }).info(line);
   }
 
   /**

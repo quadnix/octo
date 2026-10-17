@@ -8,6 +8,9 @@ import {
   ModeStartedEvent,
   ModelTransactionTransactionEvent,
   TerraformCommandFinishedEvent,
+  TerraformProcessExitedEvent,
+  TerraformProcessOutputEvent,
+  TerraformProcessStartedEvent,
   ValidateModeCompletedEvent,
 } from '@quadnix/octo';
 import { Logger } from './logger/logger.factory.js';
@@ -127,5 +130,58 @@ describe('LoggingEventListener UT', () => {
 
     expect(printed()).toContain('MODULES THAT NO LONGER RENDER ANYTHING');
     expect(printed()).toContain('old-website-module');
+  });
+
+  describe('terraform output', () => {
+    let lines: [string, Record<string, unknown>, string][];
+
+    beforeEach(() => {
+      lines = [];
+      const record =
+        (level: string, metadata: Record<string, unknown>) =>
+        (message: string): void => {
+          lines.push([level, metadata, message]);
+        };
+      jest.spyOn(Logger.shared().log, 'withMetadata').mockImplementation(
+        (metadata) =>
+          ({
+            debug: record('debug', metadata as Record<string, unknown>),
+            info: record('info', metadata as Record<string, unknown>),
+          }) as never,
+      );
+    });
+
+    const startProcess = (processId: number, args: string[]): void => {
+      eventService.emit(
+        new TerraformProcessStartedEvent(args[0], { args, binary: 'terragrunt', dir: '/tf', processId }),
+      );
+    };
+
+    it('prints each whole line a process wrote, tagged with its process and stream', async () => {
+      startProcess(1, ['apply']);
+      eventService.emit(new TerraformProcessOutputEvent('apply', { processId: 1, stream: 'stdout', text: 'Creat' }));
+      eventService.emit(
+        new TerraformProcessOutputEvent('apply', { processId: 1, stream: 'stdout', text: 'ing...\nDone' }),
+      );
+      eventService.emit(new TerraformProcessOutputEvent('apply', { processId: 1, stream: 'stderr', text: 'warn\n' }));
+      await eventService.emitAndWait(new TerraformProcessExitedEvent('apply', { exitCode: 0, processId: 1 }));
+
+      expect(lines.filter(([level]) => level === 'info')).toEqual([
+        ['info', { command: 'apply', processId: 1, stream: 'stdout' }, 'Creating...'],
+        ['info', { command: 'apply', processId: 1, stream: 'stderr' }, 'warn'],
+        ['info', { command: 'apply', processId: 1, stream: 'stdout' }, 'Done'],
+      ]);
+    });
+
+    it('ignores the JSON a process asked for JSON wrote, and prints its stderr', async () => {
+      startProcess(2, ['show', '-json', 'plan']);
+      eventService.emit(new TerraformProcessOutputEvent('show', { processId: 2, stream: 'stdout', text: '{"a":' }));
+      eventService.emit(new TerraformProcessOutputEvent('show', { processId: 2, stream: 'stderr', text: 'warn\n' }));
+      await eventService.emitAndWait(new TerraformProcessExitedEvent('show', { exitCode: 0, processId: 2 }));
+
+      expect(lines.filter(([, metadata]) => 'stream' in metadata)).toEqual([
+        ['info', { command: 'show', processId: 2, stream: 'stderr' }, 'warn'],
+      ]);
+    });
   });
 });
