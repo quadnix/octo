@@ -69,9 +69,8 @@ import { renderReportText } from './reporters/text/text.reporter.js';
  * - `error` - a mode failed.
  * - `warn`  - drift, commit warnings, a non-zero terraform exit.
  * - `info`  - mode boundaries, folders written, terraform commands and every line they print,
- *             mode results, SDK resource actions, and the mode's report in full.
- * - `debug` - diffs, transactions, serialization, hooks, author `log()` calls, terraform processes
- *             starting and exiting.
+ *             mode results, SDK resource actions, author `log()` calls, and the mode's report in full.
+ * - `debug` - diffs, transactions, serialization, hooks, terraform processes starting and exiting.
  *
  * The JSON a terraform process asked for JSON prints is data octo reads, and is never printed.
  * - `trace` - class registration.
@@ -111,7 +110,7 @@ export class LoggingEventListener {
   onAction(event: ActionEvent): void {
     this.logger.log
       .withMetadata({ name: event.name, payload: event.payload?.metadata || {} })
-      .debug(event.payload?.message || 'Action event.');
+      .info(event.payload?.message || 'Action event.');
   }
 
   /**
