@@ -26,11 +26,6 @@ still in use, the next generate drops the old one, and Terraform refuses to plan
 configuration not present`. Commit should keep a recorded provider while Terraform state still holds
 anything of it.
 
-## To fix: the `aws-s3-website` integration test expects an old bucket response
-
-`packages/octo-templates/src/aws-s3-website/main.ispec.ts` "should create the website" expects
-`{ Arn, awsRegionId }`; the bucket also reports `RegionalDomainName` since `8a53050f`..`e622c564`.
-
 ## To check: a rename may recreate an ECS service or security group under its own name
 
 Renaming anything a resource sits under changes its `resourceId`. Octo turns that into a `moved`
