@@ -1,3 +1,5 @@
+import { existsSync, readdirSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { jest } from '@jest/globals';
 import {
   CommandFinishedEvent,
@@ -7,7 +9,9 @@ import {
   ModeStartedEvent,
   ModuleEvent,
   StateManagementService,
-  TerraformCommandOutputEvent,
+  TerraformProcessExitedEvent,
+  TerraformProcessOutputEvent,
+  TerraformProcessStartedEvent,
   TestStateProvider,
 } from '@quadnix/octo';
 import { JournalEventListener, JournalEventListenerFactory } from './journal.event.listener.js';
@@ -52,6 +56,7 @@ describe('JournalEventListener UT', () => {
     });
     eventService = (await Container.getInstance().get('EventService')) as TestEventService;
 
+    delete process.env.OCTO_JOURNAL_COMMAND_ID;
     await startCommand();
   });
 
@@ -125,39 +130,113 @@ describe('JournalEventListener UT', () => {
       ).toEqual(['models.json', 'models.json', 'models.json', 'web.tfstate']);
     });
 
-    it('should keep what terraform wrote in the terraform log, without the output of a JSON command', async () => {
+    it('should keep every process terraform ran in the terraform log, the output of a JSON command included', async () => {
       await stateManagementService.lockApp();
       eventService.emit(new CommandStartedEvent(undefined, { command: 'apply' }));
       eventService.emit(
-        new TerraformCommandOutputEvent('apply', {
-          args: ['apply'],
-          binary: 'terragrunt',
-          dir: '/tf',
-          exitCode: 1,
-          stderr: 'Error: bad',
-          stdout: 'Applying...',
-        }),
+        new TerraformProcessStartedEvent('apply', { args: ['apply'], binary: 'terragrunt', dir: '/tf', processId: 1 }),
       );
       eventService.emit(
-        new TerraformCommandOutputEvent('show', {
+        new TerraformProcessOutputEvent('apply', { processId: 1, stream: 'stdout', text: 'Applying...' }),
+      );
+      eventService.emit(
+        new TerraformProcessOutputEvent('apply', { processId: 1, stream: 'stderr', text: 'Error: bad' }),
+      );
+      eventService.emit(new TerraformProcessExitedEvent('apply', { exitCode: 1, processId: 1 }));
+      eventService.emit(
+        new TerraformProcessStartedEvent('show', {
           args: ['show', '-json', 'plan'],
           binary: 'terragrunt',
           dir: '/tf/a',
-          exitCode: 0,
-          stderr: '',
-          stdout: '{"resource_changes":[]}',
+          processId: 2,
         }),
       );
+      eventService.emit(new TerraformProcessOutputEvent('show', { processId: 2, stream: 'stdout', text: '{"a":1}' }));
+      eventService.emit(new TerraformProcessExitedEvent('show', { exitCode: 0, processId: 2 }));
       await finishCommand('apply');
 
       const [logFileName] = (await stateProvider.listStates('journal.')).filter((n) => n.endsWith('.terraform.json'));
       expect(logFileName).toMatch(/^journal\.[^.]+\.apply\.terraform\.json$/);
       const log = await readJson(logFileName);
-      expect(log.outputs).toEqual([
-        expect.objectContaining({ exitCode: 1, stderr: 'Error: bad', stdout: 'Applying...' }),
-        expect.objectContaining({ args: ['show', '-json', 'plan'], stderr: '' }),
+      expect(log).toMatchObject({ command: 'apply', version: 1 });
+      expect(log.outputs.map(({ sequence, time, ...record }: { sequence: number; time: string }) => record)).toEqual([
+        { args: ['apply'], binary: 'terragrunt', dir: '/tf', process: 1, type: 'started' },
+        { process: 1, stream: 'stdout', text: 'Applying...', type: 'output' },
+        { process: 1, stream: 'stderr', text: 'Error: bad', type: 'output' },
+        { exitCode: 1, process: 1, type: 'exited' },
+        { args: ['show', '-json', 'plan'], binary: 'terragrunt', dir: '/tf/a', process: 2, type: 'started' },
+        { process: 2, stream: 'stdout', text: '{"a":1}', type: 'output' },
+        { exitCode: 0, process: 2, type: 'exited' },
       ]);
-      expect(log.outputs[1]).not.toHaveProperty('stdout');
+    });
+
+    it('should carry the terraform log as it stands at every save before the command ends', async () => {
+      await stateManagementService.lockApp();
+      eventService.emit(new CommandStartedEvent(undefined, { command: 'apply' }));
+      eventService.emit(
+        new TerraformProcessStartedEvent('apply', { args: ['apply'], binary: 'terragrunt', dir: '/tf', processId: 1 }),
+      );
+      const readLog = async (): Promise<any> => {
+        const [logFileName] = (await stateProvider.listStates('journal.')).filter((n) => n.endsWith('.terraform.json'));
+        return readJson(logFileName);
+      };
+
+      eventService.emit(new TerraformProcessOutputEvent('apply', { processId: 1, stream: 'stdout', text: 'a' }));
+      await stateManagementService.saveStates([{ data: Buffer.from('{}'), stateFileName: 'web.tfstate' }]);
+      expect((await readLog()).outputs.map((record: { type: string }) => record.type)).toEqual(['started', 'output']);
+
+      eventService.emit(new TerraformProcessOutputEvent('apply', { processId: 1, stream: 'stdout', text: 'b' }));
+      await stateManagementService.saveStates([{ data: Buffer.from('{}'), stateFileName: 'web.tfstate' }]);
+      expect((await readLog()).outputs.map((record: { text?: string }) => record.text)).toEqual([undefined, 'a', 'b']);
+    });
+
+    it('should delete the terraform log file when the command ends', async () => {
+      await stateManagementService.lockApp();
+      eventService.emit(new CommandStartedEvent(undefined, { command: 'apply' }));
+      eventService.emit(new TerraformProcessOutputEvent('apply', { processId: 1, stream: 'stdout', text: 'a' }));
+      await stateManagementService.saveStates([{ data: Buffer.from('{}'), stateFileName: 'web.tfstate' }]);
+      const listener = await Container.getInstance().get(JournalEventListener);
+      const { filePath } = (listener as unknown as { terraformLog: { filePath: string } }).terraformLog;
+      expect(existsSync(filePath)).toBe(true);
+
+      await finishCommand('apply');
+
+      expect(existsSync(filePath)).toBe(false);
+    });
+
+    it('should hand a save a copy of the terraform log by its path, and delete the copy once saved', async () => {
+      await stateManagementService.lockApp();
+      const saveStates = jest.spyOn(stateProvider, 'saveStates');
+      eventService.emit(new CommandStartedEvent(undefined, { command: 'apply' }));
+      eventService.emit(new TerraformProcessOutputEvent('apply', { processId: 1, stream: 'stdout', text: 'a' }));
+
+      await stateManagementService.saveStates([{ data: Buffer.from('{}'), stateFileName: 'web.tfstate' }]);
+
+      const logStateFile = saveStates.mock.calls[0][0].find((f) => f.stateFileName.endsWith('.terraform.json'))!;
+      expect(logStateFile).toEqual({
+        filePath: expect.stringMatching(/snapshot-1\.json$/),
+        stateFileName: expect.any(String),
+      });
+      const { filePath } = logStateFile as { filePath: string };
+      // The copy is deleted when the saved event reaches the listener, which is not awaited.
+      for (let attempt = 0; attempt < 50 && existsSync(filePath); attempt++) {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+      expect(existsSync(filePath)).toBe(false);
+      expect(readdirSync(dirname(filePath))).toEqual(['terraform.json']);
+    });
+
+    it('should name the command of the process that started it', async () => {
+      const listener = await Container.getInstance().get(JournalEventListener);
+      const parentCommandId = (listener as unknown as { commandId: string }).commandId;
+      expect(process.env.OCTO_JOURNAL_COMMAND_ID).toBe(parentCommandId);
+
+      await startCommand();
+      await stateManagementService.lockApp();
+      await runCommand('run-action');
+
+      const [journalFileName] = await stateProvider.listStates('journal.');
+      expect(await readJson(journalFileName)).toMatchObject({ command: 'run-action', parentCommandId });
     });
 
     it('should name each mode a command of its own where no command runs it', async () => {
@@ -167,7 +246,9 @@ describe('JournalEventListener UT', () => {
         new ModeFinishedEvent('generate', { appName: 'app', durationInMs: 1, mode: 'generate' }),
       );
       eventService.emit(new ModeStartedEvent('commit', { appName: 'app', mode: 'commit' }));
-      await eventService.emitAndWait(new ModeFinishedEvent('commit', { appName: 'app', durationInMs: 1, mode: 'commit' }));
+      await eventService.emitAndWait(
+        new ModeFinishedEvent('commit', { appName: 'app', durationInMs: 1, mode: 'commit' }),
+      );
 
       const journalFileNames = await stateProvider.listStates('journal.');
       expect(journalFileNames.map((n) => n.split('.')[2]).sort()).toEqual(['commit', 'generate']);

@@ -1,7 +1,8 @@
 import { randomBytes } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync } from 'node:fs';
+import { type FileHandle, copyFile, mkdtemp, open, rm } from 'node:fs/promises';
 import { createRequire } from 'node:module';
-import { hostname } from 'node:os';
+import { hostname, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import {
   AppUnlockingEvent,
@@ -22,11 +23,25 @@ import {
   StateFilesSavedEvent,
   StateFilesSavingEvent,
   StateManagementService,
-  TerraformCommandOutputEvent,
+  TerraformProcessExitedEvent,
+  TerraformProcessOutputEvent,
+  TerraformProcessStartedEvent,
 } from '@quadnix/octo';
 import { JournalUtility } from './utilities/journal/journal.utility.js';
 
 const JOURNAL_VERSION = 1;
+
+/**
+ * What closes the terraform log. Each record is written over it, followed by it again, so the file
+ * is valid JSON after every record.
+ */
+const TERRAFORM_LOG_END = '\n]}\n';
+
+/**
+ * The environment variable naming the command a process runs, set for the processes it starts. A
+ * `run-action` that terraform starts mid-apply reads it as the command that started it.
+ */
+const COMMAND_ID_VARIABLE_NAME = 'OCTO_JOURNAL_COMMAND_ID';
 
 /**
  * One event, as the journal holds it.
@@ -55,42 +70,40 @@ interface JournalEntry {
 }
 
 /**
- * Everything one terraform or terragrunt process wrote. `stdout` is left out of a process asked for
- * JSON, whose output is data rather than a log.
+ * One record of the terraform log: a process starting, a chunk it wrote, or its exit. `sequence` is
+ * the record's place among the command's events, and `process` tells apart the command's processes.
  */
-interface TerraformLogEntry {
+type TerraformLogRecord =
+  | { args: string[]; binary: string; dir: string; process: number; sequence: number; time: string; type: 'started' }
+  | { process: number; sequence: number; stream: 'stderr' | 'stdout'; text: string; time: string; type: 'output' }
+  | { exitCode: number; process: number; sequence: number; time: string; type: 'exited' };
+
+/**
+ * The terraform log file a command is writing.
+ */
+interface TerraformLogFile {
   /**
-   * The arguments the process ran with.
+   * The temporary directory holding the file, removed with it.
    */
-  args: string[];
+  directory: string;
+  file: FileHandle;
+  filePath: string;
   /**
-   * The binary, terragrunt or terraform.
+   * Whether no record was written yet.
    */
-  binary: string;
+  isEmpty: boolean;
   /**
-   * The directory it ran in.
+   * Where {@link TERRAFORM_LOG_END} starts, which is where the next record goes.
    */
-  dir: string;
+  position: number;
   /**
-   * Its exit code; anything but 0 is a failure.
+   * Removes the directory if the process exits before the file is closed.
    */
-  exitCode: number;
+  removeOnExit: () => void;
   /**
-   * The `sequence` of its entry in the command's file.
+   * How many snapshots of the file were taken for a save, which names the next.
    */
-  sequence: number;
-  /**
-   * Everything it wrote to stderr.
-   */
-  stderr: string;
-  /**
-   * Everything it wrote to stdout, absent for a process asked for JSON.
-   */
-  stdout?: string;
-  /**
-   * When it exited, as an ISO timestamp.
-   */
-  time: string;
+  snapshotCount: number;
 }
 
 /**
@@ -98,10 +111,10 @@ interface TerraformLogEntry {
  *
  * A command is one process, named after the CLI command it runs, or the mode where no command runs
  * it. Its events go to `journal.<commandId>.<command>.json`, and what terraform and terragrunt wrote to
- * `journal.<commandId>.<command>.terraform.json`. A copy of every model and resource state file
- * written is kept as `journal.<commandId>.<command>.<md5>.json`, so each version a command wrote
- * survives the next command overwriting it. Ids start with the time they were made, so files sort in
- * the order their commands started.
+ * `journal.<commandId>.<command>.terraform.json`, each chunk as it arrives.
+ * A copy of every model and resource state file written is kept as `journal.<commandId>.<command>.<md5>.json`,
+ * so each version a command wrote survives the next command overwriting it.
+ * Ids start with the time they were made, so files sort in the order their commands started.
  *
  * The listener only creates files: {@link StateManagementService} archives them when the lock is
  * released. A command that runs under a lock, run when none is held, writes nothing, because its
@@ -109,6 +122,14 @@ interface TerraformLogEntry {
  * and before the lock is released, after which nothing more is recorded. It never fails a command: a write that
  * fails is reported on stderr. The one write that fails loudly is the one before the release, which
  * keeps the lock held.
+ *
+ * The terraform log is written to a temporary file as each chunk arrives, and holds nothing in memory.
+ * That file is valid JSON after every chunk. Each state save takes a copy of it on disk and hands the
+ * state provider that copy's path, so an apply's output reaches the state provider at every terraform
+ * state check-in without ever being read into memory. It is deleted when the command ends.
+ *
+ * A command that another one started, such as a `run-action` terraform starts mid-apply, names that
+ * command as `parentCommandId`.
  *
  * @group Event Listeners
  */
@@ -147,6 +168,10 @@ export class JournalEventListener {
    */
   private readonly ownStateFiles = new WeakSet<object>();
   /**
+   * The command of the process that started this one, when there is one.
+   */
+  private readonly parentCommandId = process.env[COMMAND_ID_VARIABLE_NAME];
+  /**
    * The last write queued, so the next one waits for it.
    */
   private pending: Promise<void> = Promise.resolve();
@@ -159,13 +184,28 @@ export class JournalEventListener {
    */
   private startedAt = new Date().toISOString();
   /**
-   * Everything each terraform or terragrunt process wrote.
+   * The terraform log file this command is writing, opened at its first record.
    */
-  private terraformLog: TerraformLogEntry[] = [];
+  private terraformLog: TerraformLogFile | undefined;
+  /**
+   * The last change to the terraform log queued, so the next one waits for it.
+   */
+  private terraformLogQueue: Promise<void> = Promise.resolve();
+  /**
+   * The snapshots of the terraform log a save carries and has not finished with.
+   */
+  private readonly terraformLogSnapshotPaths = new Set<string>();
   /**
    * The MD5 of every copy this command already wrote.
    */
   private readonly writtenCopies = new Set<string>();
+
+  /**
+   * Names this command to every process it starts.
+   */
+  constructor() {
+    process.env[COMMAND_ID_VARIABLE_NAME] = this.commandId;
+  }
 
   /**
    * A new command id: a UTC timestamp to the millisecond, then 8 random hex.
@@ -202,7 +242,7 @@ export class JournalEventListener {
       if (!this.ownStateFiles.has(event.payload.stateFiles)) {
         try {
           if (await this.isWrittenAtAll()) {
-            event.payload.stateFiles.push(...this.buildStateFiles());
+            event.payload.stateFiles.push(...(await this.buildStateFiles()));
           }
         } catch (error) {
           this.warn(error);
@@ -216,6 +256,7 @@ export class JournalEventListener {
       this.pending = lastWrite.catch(() => undefined);
       await lastWrite;
       this.isReleased = true;
+      await this.closeTerraformLog();
       return;
     }
     if (
@@ -225,26 +266,54 @@ export class JournalEventListener {
     ) {
       this.pending = this.pending.then(() => this.write()).catch((error) => this.warn(error));
       await this.pending;
+      await this.closeTerraformLog();
     }
+  }
+
+  /**
+   * Adds a record to the terraform log, opening it at the first. Each is written over the end of the
+   * file, followed by the end again, so the file stays valid JSON.
+   */
+  private appendTerraformLog(record: TerraformLogRecord): void {
+    const header = this.buildHeader();
+    this.terraformLogQueue = this.terraformLogQueue
+      .then(async () => {
+        this.terraformLog ??= await this.openTerraformLog(header);
+        const log = this.terraformLog;
+
+        const data = Buffer.from(`${log.isEmpty ? '' : ',\n'}${JSON.stringify(record)}${TERRAFORM_LOG_END}`);
+        await log.file.write(data, 0, data.length, log.position);
+        log.isEmpty = false;
+        log.position += data.length - Buffer.byteLength(TERRAFORM_LOG_END);
+      })
+      .catch((error) => this.warn(error));
+  }
+
+  /**
+   * What every journal file of this command starts with.
+   */
+  private buildHeader(): Record<string, unknown> {
+    return {
+      command: this.command,
+      commandId: this.commandId,
+      host: hostname(),
+      octoVersion: this.octoVersion,
+      ...(this.parentCommandId === undefined ? {} : { parentCommandId: this.parentCommandId }),
+      startedAt: this.startedAt,
+      version: JOURNAL_VERSION,
+    };
   }
 
   /**
    * The command's journal, its terraform log, and the state file copies not written yet. Empty before
    * a command begins.
    */
-  private buildStateFiles(): Parameters<StateManagementService['saveStates']>[0] {
+  private async buildStateFiles(): Promise<Parameters<StateManagementService['saveStates']>[0]> {
     if (!this.command) {
       return [];
     }
 
-    const header = {
-      command: this.command,
-      commandId: this.commandId,
-      host: hostname(),
-      octoVersion: this.octoVersion,
-      startedAt: this.startedAt,
-      version: JOURNAL_VERSION,
-    };
+    const header = this.buildHeader();
     const stateFiles: Parameters<StateManagementService['saveStates']>[0] = [
       {
         data: Buffer.from(
@@ -253,17 +322,35 @@ export class JournalEventListener {
         stateFileName: this.fileName('json'),
       },
     ];
-    if (this.terraformLog.length > 0) {
-      stateFiles.push({
-        data: Buffer.from(JSON.stringify({ ...header, outputs: this.terraformLog }, null, 2)),
-        stateFileName: this.fileName('terraform.json'),
-      });
+    const terraformLogSnapshotPath = await this.snapshotTerraformLog();
+    if (terraformLogSnapshotPath) {
+      stateFiles.push({ filePath: terraformLogSnapshotPath, stateFileName: this.fileName('terraform.json') });
     }
     for (const [md5, data] of this.pendingCopies.entries()) {
       stateFiles.push({ data, stateFileName: this.fileName(`${md5}.json`) });
     }
 
     return stateFiles;
+  }
+
+  /**
+   * Closes the terraform log and deletes it, once every record queued is written.
+   */
+  private async closeTerraformLog(): Promise<void> {
+    this.terraformLogQueue = this.terraformLogQueue
+      .then(async () => {
+        const log = this.terraformLog;
+        this.terraformLog = undefined;
+        if (!log) {
+          return;
+        }
+
+        process.off('exit', log.removeOnExit);
+        await log.file.close();
+        await rm(log.directory, { force: true, recursive: true });
+      })
+      .catch((error) => this.warn(error));
+    await this.terraformLogQueue;
   }
 
   /**
@@ -337,6 +424,24 @@ export class JournalEventListener {
   }
 
   /**
+   * Opens a new terraform log in a temporary directory, holding the header and no records, and
+   * removes it if the process exits before it is closed.
+   */
+  private async openTerraformLog(header: Record<string, unknown>): Promise<TerraformLogFile> {
+    const directory = await mkdtemp(join(tmpdir(), 'octo-journal-'));
+    const filePath = join(directory, 'terraform.json');
+    const removeOnExit = (): void => rmSync(directory, { force: true, recursive: true });
+    process.once('exit', removeOnExit);
+
+    const file = await open(filePath, 'w');
+    const start = Buffer.from(`${JSON.stringify(header).slice(0, -1)},"outputs":[\n`);
+    const data = Buffer.concat([start, Buffer.from(TERRAFORM_LOG_END)]);
+    await file.write(data, 0, data.length, 0);
+
+    return { directory, file, filePath, isEmpty: true, position: start.length, removeOnExit, snapshotCount: 0 };
+  }
+
+  /**
    * The version of `@quadnix/octo` this command uses, read from its `package.json`.
    */
   private readOctoVersion(): string | undefined {
@@ -381,6 +486,13 @@ export class JournalEventListener {
     if (event instanceof StateFilesSavedEvent) {
       void this.holdCopies(event.payload.stateFiles).catch((error) => this.warn(error));
 
+      // Delete the terraform log snapshots the save carried, which it no longer needs.
+      for (const { filePath } of event.payload.stateFiles) {
+        if (filePath && this.terraformLogSnapshotPaths.delete(filePath)) {
+          void rm(filePath, { force: true }).catch((error) => this.warn(error));
+        }
+      }
+
       // Keep the files a command wrote, leaving out the journal's own.
       const stateFiles = event.payload.stateFiles.filter(
         ({ stateFileName }) =>
@@ -390,25 +502,71 @@ export class JournalEventListener {
         return;
       }
       entry.payload = { stateFiles: stateFiles.map(({ md5, stateFileName }) => ({ md5, stateFileName })) };
-    } else if (event instanceof TerraformCommandOutputEvent) {
-      // Keep what the process wrote in the terraform log, and its place in the journal.
-      const { args, binary, dir, exitCode, stderr, stdout } = event.payload;
-      this.terraformLog.push({
+    } else if (event instanceof TerraformProcessStartedEvent) {
+      // Open the process in the terraform log, and keep its place in the journal.
+      const { args, binary, dir, processId } = event.payload;
+      this.appendTerraformLog({
         args,
         binary,
         dir,
-        exitCode,
+        process: processId,
         sequence: entry.sequence,
-        stderr,
-        stdout: args.includes('-json') ? undefined : stdout,
         time: entry.time,
+        type: 'started',
       });
-      entry.payload = { args, binary, dir, exitCode };
+      entry.payload = { args, binary, dir, processId };
+    } else if (event instanceof TerraformProcessOutputEvent) {
+      // Keep each chunk in the terraform log rather than the journal.
+      const { processId, stream, text } = event.payload;
+      this.appendTerraformLog({
+        process: processId,
+        sequence: entry.sequence,
+        stream,
+        text,
+        time: entry.time,
+        type: 'output',
+      });
+      return;
+    } else if (event instanceof TerraformProcessExitedEvent) {
+      // Close the process in the terraform log, and keep its place in the journal.
+      const { exitCode, processId } = event.payload;
+      this.appendTerraformLog({
+        exitCode,
+        process: processId,
+        sequence: entry.sequence,
+        time: entry.time,
+        type: 'exited',
+      });
+      entry.payload = { exitCode, processId };
     } else {
       entry.payload = JournalUtility.toPlain(event.payload);
     }
 
     this.entries.push(entry);
+  }
+
+  /**
+   * Copies the terraform log as it stands, once every record queued is written, beside it, and returns
+   * the copy's path, or `undefined` when nothing was recorded. A save uploads the copy while the log
+   * keeps growing; the copy is deleted once the save is done, or with the log.
+   */
+  private async snapshotTerraformLog(): Promise<string | undefined> {
+    const snapshot = this.terraformLogQueue.then(async () => {
+      const log = this.terraformLog;
+      if (!log) {
+        return undefined;
+      }
+
+      const snapshotPath = join(log.directory, `snapshot-${++log.snapshotCount}.json`);
+      await copyFile(log.filePath, snapshotPath);
+      this.terraformLogSnapshotPaths.add(snapshotPath);
+      return snapshotPath;
+    });
+    this.terraformLogQueue = snapshot.then(
+      () => undefined,
+      () => undefined,
+    );
+    return snapshot;
   }
 
   /**
@@ -421,8 +579,9 @@ export class JournalEventListener {
       this.entries = [];
       this.isWritten = undefined;
       this.startedAt = new Date().toISOString();
-      this.terraformLog = [];
       this.writtenCopies.clear();
+      void this.closeTerraformLog();
+      process.env[COMMAND_ID_VARIABLE_NAME] = this.commandId;
     }
     this.command = command;
   }
@@ -447,7 +606,7 @@ export class JournalEventListener {
       return;
     }
 
-    const stateFiles = this.buildStateFiles();
+    const stateFiles = await this.buildStateFiles();
     if (stateFiles.length === 0) {
       return;
     }
