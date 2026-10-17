@@ -95,6 +95,7 @@ describe('Main IT', () => {
     expect(bucketResponse).toEqual({
       Arn: `arn:aws:s3:::${bucketName}`,
       awsRegionId: AWS_REGION_ID,
+      RegionalDomainName: `${bucketName}.s3.${AWS_REGION_ID}.amazonaws.com`,
     });
 
     const indexContent = await axios.get(`${LOCALSTACK_ENDPOINT}/${bucketName}/index.html`);
