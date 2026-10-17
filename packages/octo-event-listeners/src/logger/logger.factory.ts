@@ -91,6 +91,8 @@ export class Logger {
               colorize,
               // pino-pretty writes to fd 1 by default; 2 is stderr.
               destination: 2,
+              // Metadata goes on the line it describes, so one line logged is one line printed.
+              singleLine: true,
             },
             target: 'pino-pretty',
           },
