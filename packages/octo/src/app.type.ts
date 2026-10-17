@@ -291,6 +291,7 @@ export type Constructable<T> = new (...args: any[]) => T;
 
 /**
  * The model graph as written to state.
+ * * `modules` record inputs before references resolve.
  *
  * @group Types
  */
@@ -300,18 +301,27 @@ export type ModelSerializedOutput = {
     location: IModelReference & { type: NodeType };
   })[];
   dependencies: IDependency[];
-  models: { [p: string]: { className: string; model: IUnknownModel; moduleId?: string } };
-  overlays: { className: string; overlay: OverlaySchema<UnknownOverlay> }[];
+  models: { [p: string]: { className: string; model: IUnknownModel; moduleId: string } };
+  modules: { [p: string]: { className: string; inputs: { [p: string]: unknown } } };
+  overlays: { className: string; context: string; moduleId: string; overlay: OverlaySchema<UnknownOverlay> }[];
 };
 
 /**
  * The resource graph as written to state.
- *
+ * * `models` record the context of every model and overlay whose action produced the resource.
  * @group Types
  */
 export type ResourceSerializedOutput = {
   dependencies: IDependency[];
-  resources: { [p: string]: { className: string; moduleId?: string; resource: BaseResourceSchema } };
+  resources: {
+    [p: string]: {
+      className: string;
+      kind: 'external' | 'terraform';
+      models: string[];
+      moduleId: string;
+      resource: BaseResourceSchema;
+    };
+  };
 };
 
 /**

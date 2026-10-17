@@ -56,6 +56,9 @@ exports[`Resource Serialization Service UT serialize() should not serialize dele
   "resources": {
     "@octo/test-resource=resource-1": {
       "className": "@octo/test-resource",
+      "kind": "external",
+      "models": [],
+      "moduleId": "test-module",
       "resource": {
         "localResourceId": "resource-1",
         "parents": [],
@@ -134,6 +137,9 @@ exports[`Resource Serialization Service UT serialize() should serialize dependen
   "resources": {
     "@octo/test-resource=resource-1": {
       "className": "@octo/test-resource",
+      "kind": "external",
+      "models": [],
+      "moduleId": "test-module",
       "resource": {
         "localResourceId": "resource-1",
         "parents": [],
@@ -150,6 +156,9 @@ exports[`Resource Serialization Service UT serialize() should serialize dependen
     },
     "@octo/test-resource=resource-2": {
       "className": "@octo/test-resource",
+      "kind": "external",
+      "models": [],
+      "moduleId": "test-module",
       "resource": {
         "localResourceId": "resource-2",
         "parents": [
@@ -225,6 +234,9 @@ exports[`Resource Serialization Service UT serialize() should serialize multiple
   "resources": {
     "@octo/test-resource=resource-1": {
       "className": "@octo/test-resource",
+      "kind": "external",
+      "models": [],
+      "moduleId": "test-module",
       "resource": {
         "localResourceId": "resource-1",
         "parents": [],
@@ -241,6 +253,9 @@ exports[`Resource Serialization Service UT serialize() should serialize multiple
     },
     "@octo/test-resource=resource-2": {
       "className": "@octo/test-resource",
+      "kind": "external",
+      "models": [],
+      "moduleId": "test-module",
       "resource": {
         "localResourceId": "resource-2",
         "parents": [
@@ -269,6 +284,9 @@ exports[`Resource Serialization Service UT serialize() should serialize non-empt
   "resources": {
     "@octo/test-resource=resource-1": {
       "className": "@octo/test-resource",
+      "kind": "external",
+      "models": [],
+      "moduleId": "test-module",
       "resource": {
         "localResourceId": "resource-1",
         "parents": [],

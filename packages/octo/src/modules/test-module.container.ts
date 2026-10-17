@@ -162,22 +162,14 @@ export class TestModuleContainer {
     args: Parameters<typeof createResources>[0],
     options?: Parameters<typeof createResources>[1],
   ): Promise<ReturnType<typeof createResources>> {
-    const [inputService, moduleContainer] = await Promise.all([
-      this.container.get(InputService),
-      this.container.get(ModuleContainer),
-    ]);
+    const moduleContainer = await this.container.get(ModuleContainer);
 
     // Register new moduleId as instance of the universal module.
     moduleContainer.load(UniversalTestModule, moduleId, {});
     // Immediately unload the universal module to ensure it does not run in apply().
     moduleContainer.unload(UniversalTestModule);
 
-    const result = await createResources(args, options);
-    for (const resource of Object.values(result)) {
-      inputService.registerResource(moduleId, resource);
-    }
-
-    return result;
+    return createResources(args, { ...options, moduleId });
   }
 
   /**
@@ -247,11 +239,7 @@ export class TestModuleContainer {
     moduleId: string,
     args: Parameters<typeof createTestOverlays>[0],
   ): Promise<ReturnType<typeof createTestOverlays>> {
-    const container = this.container;
-    const [inputService, moduleContainer] = await Promise.all([
-      container.get(InputService),
-      container.get(ModuleContainer),
-    ]);
+    const moduleContainer = await this.container.get(ModuleContainer);
 
     // Register new moduleId as instance of the universal module.
     moduleContainer.load(UniversalTestModule, moduleId, {});
@@ -271,12 +259,7 @@ export class TestModuleContainer {
       }
     }
 
-    const result = await createTestOverlays(args);
-    for (const overlay of Object.values(result)) {
-      inputService.registerOverlay(moduleId, overlay);
-    }
-
-    return result;
+    return createTestOverlays(args, { moduleId });
   }
 
   /**
@@ -288,11 +271,7 @@ export class TestModuleContainer {
     args: Parameters<typeof createTestResources<S>>[0],
     options?: Parameters<typeof createTestResources>[1],
   ): Promise<ReturnType<typeof createTestResources<S>>> {
-    const container = this.container;
-    const [inputService, moduleContainer] = await Promise.all([
-      container.get(InputService),
-      container.get(ModuleContainer),
-    ]);
+    const moduleContainer = await this.container.get(ModuleContainer);
 
     // Register new moduleId as instance of the universal module.
     moduleContainer.load(UniversalTestModule, moduleId, {});
@@ -313,12 +292,7 @@ export class TestModuleContainer {
       }
     }
 
-    const result = await createTestResources(args, options);
-    for (const resource of Object.values(result)) {
-      inputService.registerResource(moduleId, resource);
-    }
-
-    return result;
+    return createTestResources(args, { ...options, moduleId });
   }
 
   /**

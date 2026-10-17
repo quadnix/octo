@@ -143,7 +143,7 @@ export class TestContainer {
     if (force) {
       const eventService = await container.get(EventService);
 
-      const modelSerializationService = new ModelSerializationService(inputService);
+      const modelSerializationService = new ModelSerializationService(inputService, moduleContainer);
       container.unRegisterFactory(ModelSerializationService);
       container.registerValue(ModelSerializationService, modelSerializationService);
 

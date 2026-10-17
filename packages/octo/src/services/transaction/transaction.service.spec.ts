@@ -299,6 +299,36 @@ describe('TransactionService UT', () => {
       expect(resource1.tags).toEqual({ owner: 'app' });
     });
 
+    it('should record every model and overlay whose action produced a resource', async () => {
+      const resource1 = new TestResource('resource1');
+      (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({ resource1 });
+
+      const { 'moduleId.model.app': app } = await runModule(container, {
+        inputs: { name: 'app' },
+        moduleId: 'moduleId',
+        type: TestAppModule,
+      });
+      app.addAnchor(new TestAnchor('anchor-1', {}, app));
+      await runModule(container, {
+        inputs: { anchorName: 'anchor-1', app: stub('${{moduleId.model.app}}') },
+        moduleId: 'overlayModuleId',
+        type: TestAppOverlayModule,
+      });
+      const overlay = (await container.get(OverlayDataRepository)).getByContext('@octo/test-overlay=test-overlay')!;
+
+      const appDiffMetadata = new DiffMetadata(new Diff(app, DiffAction.ADD, 'name', 'app'), [universalModelAction]);
+      appDiffMetadata.applyOrder = 0;
+      const overlayDiffMetadata = new DiffMetadata(new Diff(overlay, DiffAction.ADD, 'overlayId', 'test-overlay'), [
+        universalModelAction,
+      ]);
+      overlayDiffMetadata.applyOrder = 1;
+
+      await applyModels([appDiffMetadata, overlayDiffMetadata]);
+
+      const inputService = await container.get(InputService);
+      expect(inputService.getModelsFromResource(resource1)).toEqual(['@octo/test-overlay=test-overlay', 'app=app']);
+    });
+
     it('should process diffs in different levels', async () => {
       (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({});
 
@@ -790,7 +820,8 @@ describe('TransactionService UT', () => {
 
     it('should throw when a resource is not attributed to any module', async () => {
       // Added straight to the repository, bypassing module registration.
-      await createTestResources([{ resourceContext: '@octo/test-resource=orphan-1' }]);
+      const resourceDataRepository = await container.get(ResourceDataRepository);
+      resourceDataRepository.addNewResource(new TestResource('orphan-1'));
 
       await expect(generateTerraform()).rejects.toThrow('Resource "orphan-1" is not associated with any module!');
     });

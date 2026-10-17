@@ -1,4 +1,10 @@
-import type { Constructable, ModuleSchemaInputs, UnknownModel, UnknownModule } from '../app.type.js';
+import type {
+  Constructable,
+  ModelSerializedOutput,
+  ModuleSchemaInputs,
+  UnknownModel,
+  UnknownModule,
+} from '../app.type.js';
 import { Factory } from '../decorators/factory.decorator.js';
 import { InputRegistrationError, ModuleError } from '../errors/index.js';
 import { ModuleEvent } from '../events/index.js';
@@ -25,7 +31,7 @@ type ModuleOptions = {
 export class ModuleContainer {
   private modules: {
     hidden: boolean;
-    instances: { applied: boolean; inputKeys: string[]; inputs: unknown; moduleId: string }[];
+    instances: { applied: boolean; inputKeys: string[]; inputs: { [key: string]: unknown }; moduleId: string }[];
     module: Constructable<UnknownModule>;
     properties: ModuleOptions;
   }[] = [];
@@ -153,6 +159,26 @@ export class ModuleContainer {
       throw new ModuleError(`Module "${moduleId}" not yet loaded!`, moduleId);
     }
     return this.modules[moduleIndex].instances.find((i) => i.moduleId === moduleId)!.inputKeys;
+  }
+
+  /**
+   * Every module that ran, by module id, with the inputs it was given before references resolved.
+   *
+   * @internal
+   */
+  getModuleInstances(): ModelSerializedOutput['modules'] {
+    const modules: ModelSerializedOutput['modules'] = {};
+    for (const { instances, module, properties } of this.modules) {
+      for (const { applied, inputs, moduleId } of instances) {
+        if (applied) {
+          modules[moduleId] = {
+            className: `${properties.packageName}/${module.name}`,
+            inputs,
+          };
+        }
+      }
+    }
+    return modules;
   }
 
   /**

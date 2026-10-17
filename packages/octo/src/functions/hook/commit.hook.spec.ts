@@ -3,6 +3,7 @@ import { Octo } from '../../main.js';
 import { App } from '../../models/app/app.model.js';
 import { TestStateProvider } from '../../services/state-management/test.state-provider.js';
 import { TransactionService } from '../../services/transaction/transaction.service.js';
+import { attributeToModule } from '../../utilities/test-helpers/test-models.js';
 import { Container } from '../container/container.js';
 
 describe('CommitHook UT', () => {
@@ -35,8 +36,10 @@ describe('CommitHook UT', () => {
       postCommitHooks: [{ handle: postCommitHookMock as any }],
       preCommitHooks: [{ handle: preCommitHookMock as any }],
     });
+    const app = new App('test-app');
+    await attributeToModule([app]);
     const { lockId } = await stateProvider.lockApp();
-    await octo.commit(new App('test-app'), { lockId, outputs: new Map() });
+    await octo.commit(app, { lockId, outputs: new Map() });
 
     expect(postCommitHookMock).toHaveBeenCalledTimes(1);
     expect(preCommitHookMock).toHaveBeenCalledTimes(1);

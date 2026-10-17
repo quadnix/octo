@@ -4,7 +4,7 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import type { Container } from '../../functions/container/container.js';
 import { TestContainer } from '../../functions/container/test-container.js';
-import { create } from '../../utilities/test-helpers/test-models.js';
+import { attributeToModule, create } from '../../utilities/test-helpers/test-models.js';
 import { createTestResources } from '../../utilities/test-helpers/test-resources.js';
 import { ModelSerializationService } from '../serialization/model/model-serialization.service.js';
 import { ResourceSerializationService } from '../serialization/resource/resource-serialization.service.js';
@@ -147,6 +147,7 @@ describe('LocalStateProvider UT', () => {
          "anchors": [],
          "dependencies": [],
          "models": {},
+         "modules": {},
          "overlays": [],
        }
       `);
@@ -160,6 +161,7 @@ describe('LocalStateProvider UT', () => {
       const {
         app: [app],
       } = create({ app: ['test'] });
+      await attributeToModule([app]);
 
       const serializedOutput = await modelSerializationService.serialize(app);
 

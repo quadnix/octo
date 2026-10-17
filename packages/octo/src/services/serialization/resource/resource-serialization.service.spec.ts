@@ -2,8 +2,17 @@ import type { ResourceSerializedOutput, UnknownResource } from '../../../app.typ
 import type { Container } from '../../../functions/container/container.js';
 import { TestContainer } from '../../../functions/container/test-container.js';
 import { ResourceDataRepository } from '../../../resources/resource-data.repository.js';
-import { commitResources, createTestResources } from '../../../utilities/test-helpers/test-resources.js';
+import { create } from '../../../utilities/test-helpers/test-models.js';
+import { TEST_MODULE_ID } from '../../../utilities/test-helpers/test-modules.js';
+import {
+  commitResources,
+  createResource,
+  createTestResources,
+} from '../../../utilities/test-helpers/test-resources.js';
+import { InputService } from '../../input/input.service.js';
 import { ResourceSerializationService } from './resource-serialization.service.js';
+
+const TestResource = createResource('test-resource').setClassName('TestResource');
 
 describe('Resource Serialization Service UT', () => {
   let container: Container;
@@ -25,6 +34,9 @@ describe('Resource Serialization Service UT', () => {
         resources: {
           'resource-1': {
             className: 'ClassNotExist',
+            kind: 'external',
+            models: [],
+            moduleId: TEST_MODULE_ID,
             resource: {
               localResourceId: 'resource=resource-1',
               parents: [],
@@ -222,6 +234,17 @@ describe('Resource Serialization Service UT', () => {
   });
 
   describe('serialize()', () => {
+    it('should throw error when a resource is not associated with any module', async () => {
+      const resourceDataRepository = await container.get(ResourceDataRepository);
+      resourceDataRepository.addNewResource(new TestResource('resource-1'));
+
+      const service = await container.get(ResourceSerializationService);
+
+      await expect(async () => {
+        await service.serializeNewResources();
+      }).rejects.toMatchInlineSnapshot(`[Error: Resource is not associated with any module!]`);
+    });
+
     it('should serialize an empty array', async () => {
       const service = await container.get(ResourceSerializationService);
 
@@ -234,6 +257,64 @@ describe('Resource Serialization Service UT', () => {
       const service = await container.get(ResourceSerializationService);
 
       expect(await service.serializeNewResources()).toMatchSnapshot();
+    });
+
+    it('should serialize a resource terraform owns as terraform', async () => {
+      await createTestResources([{ resourceContext: '@octo/test-resource=resource-1', terraform: true }]);
+
+      const service = await container.get(ResourceSerializationService);
+
+      expect((await service.serializeNewResources()).resources['@octo/test-resource=resource-1'].kind).toBe(
+        'terraform',
+      );
+    });
+
+    it('should serialize every model whose action produced a resource', async () => {
+      const inputService = await container.get(InputService);
+      const {
+        account: [account],
+        app: [app],
+      } = create({ account: ['aws,account'], app: ['test-app'] });
+      const { '@octo/test-resource=resource-1': resource1 } = await createTestResources([
+        { resourceContext: '@octo/test-resource=resource-1' },
+      ]);
+      inputService.registerResourceModel(resource1, app);
+      inputService.registerResourceModel(resource1, account);
+      inputService.registerResourceModel(resource1, app);
+
+      const service = await container.get(ResourceSerializationService);
+
+      expect((await service.serializeNewResources()).resources['@octo/test-resource=resource-1'].models).toEqual([
+        'account=account,app=test-app',
+        'app=test-app',
+      ]);
+    });
+
+    it('should keep the module and models a committed resource recorded when no command produced it', async () => {
+      await createTestResources([{ resourceContext: '@octo/test-resource=resource-1' }]);
+      const record: ResourceSerializedOutput['resources'][string] = {
+        className: '@octo/test-resource',
+        kind: 'external',
+        models: ['app=old-app'],
+        moduleId: 'old-module',
+        resource: {
+          localResourceId: 'resource-2',
+          parents: [],
+          properties: {},
+          resourceId: 'resource-2',
+          response: {},
+          scope: [],
+          tags: {},
+        },
+      };
+
+      const service = await container.get(ResourceSerializationService);
+      await service.deserialize(
+        { dependencies: [], resources: { '@octo/test-resource=resource-2': record } },
+        { dependencies: [], resources: {} },
+      );
+
+      expect((await service.serializeActualResources()).resources['@octo/test-resource=resource-2']).toEqual(record);
     });
 
     it('should not serialize deleted resources', async () => {

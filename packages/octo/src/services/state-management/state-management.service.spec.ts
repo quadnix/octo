@@ -49,6 +49,9 @@ describe('StateManagementService UT', () => {
           resources: {
             [`ExternalIgwResource=${resourceId}`]: {
               className: '@octo/ExternalIgwResource',
+              kind: 'external',
+              models: [],
+              moduleId: 'igw-module',
               resource: {
                 localResourceId: resourceId,
                 parents: [],
@@ -178,7 +181,7 @@ describe('StateManagementService UT', () => {
       await service.saveResourceState(service.actualResourceStateFileName, { dependencies: [], resources: {} }, {});
       await service.saveModelState(
         service.modelStateFileName,
-        { anchors: [], dependencies: [], models: {}, overlays: [] },
+        { anchors: [], dependencies: [], models: {}, modules: {}, overlays: [] },
         {},
       );
       await service.saveExternalResourceState('igw-1', { inputs: {}, properties: {}, response: {} });

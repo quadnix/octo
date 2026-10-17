@@ -212,12 +212,14 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
         "accountId": "account",
         "accountType": "aws",
       },
+      "moduleId": "test-module",
     },
     "app=test-app": {
       "className": "@octo/App",
       "model": {
         "name": "test-app",
       },
+      "moduleId": "test-module",
     },
     "environment=qa,region=region-1,account=account,app=test-app": {
       "className": "@octo/Environment",
@@ -225,6 +227,7 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
         "environmentName": "qa",
         "environmentVariables": {},
       },
+      "moduleId": "test-module",
     },
     "image=test/image,account=account,app=test-app": {
       "className": "@octo/Image",
@@ -233,20 +236,24 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
         "imageId": "test/image",
         "imageName": "image",
       },
+      "moduleId": "test-module",
     },
     "region=region-1,account=account,app=test-app": {
       "className": "@octo/Region",
       "model": {
         "regionId": "region-1",
       },
+      "moduleId": "test-module",
     },
     "server=backend,app=test-app": {
       "className": "@octo/Server",
       "model": {
         "serverKey": "backend",
       },
+      "moduleId": "test-module",
     },
   },
+  "modules": {},
   "overlays": [],
 }
 `;
@@ -261,8 +268,10 @@ exports[`Model Serialization Service UT serialize() should serialize an empty ap
       "model": {
         "name": "test-app",
       },
+      "moduleId": "test-module",
     },
   },
+  "modules": {},
   "overlays": [],
 }
 `;
@@ -378,17 +387,22 @@ exports[`Model Serialization Service UT serialize() should serialize anchor with
         "accountId": "account",
         "accountType": "aws",
       },
+      "moduleId": "test-module",
     },
     "app=test-app": {
       "className": "@octo/App",
       "model": {
         "name": "test-app",
       },
+      "moduleId": "test-module",
     },
   },
+  "modules": {},
   "overlays": [
     {
       "className": "@octo/test-overlay",
+      "context": "@octo/test-overlay=overlay-1",
+      "moduleId": "test-module",
       "overlay": {
         "anchors": [
           {
@@ -432,8 +446,10 @@ exports[`Model Serialization Service UT serialize() should serialize model ancho
       "model": {
         "name": "test-app",
       },
+      "moduleId": "test-module",
     },
   },
+  "modules": {},
   "overlays": [],
 }
 `;
@@ -570,12 +586,14 @@ exports[`Model Serialization Service UT serialize() should serialize only bounda
         "accountId": "account",
         "accountType": "aws",
       },
+      "moduleId": "test-module",
     },
     "app=test-app": {
       "className": "@octo/App",
       "model": {
         "name": "test-app",
       },
+      "moduleId": "test-module",
     },
     "environment=qa,region=region-1,account=account,app=test-app": {
       "className": "@octo/Environment",
@@ -583,14 +601,17 @@ exports[`Model Serialization Service UT serialize() should serialize only bounda
         "environmentName": "qa",
         "environmentVariables": {},
       },
+      "moduleId": "test-module",
     },
     "region=region-1,account=account,app=test-app": {
       "className": "@octo/Region",
       "model": {
         "regionId": "region-1",
       },
+      "moduleId": "test-module",
     },
   },
+  "modules": {},
   "overlays": [],
 }
 `;
@@ -706,17 +727,22 @@ exports[`Model Serialization Service UT serialize() should serialize overlay wit
         "accountId": "account",
         "accountType": "aws",
       },
+      "moduleId": "test-module",
     },
     "app=test-app": {
       "className": "@octo/App",
       "model": {
         "name": "test-app",
       },
+      "moduleId": "test-module",
     },
   },
+  "modules": {},
   "overlays": [
     {
       "className": "@octo/test-overlay",
+      "context": "@octo/test-overlay=overlay-1",
+      "moduleId": "test-module",
       "overlay": {
         "anchors": [
           {
@@ -899,17 +925,22 @@ exports[`Model Serialization Service UT serialize() should serialize two overlay
         "accountId": "account",
         "accountType": "aws",
       },
+      "moduleId": "test-module",
     },
     "app=test-app": {
       "className": "@octo/App",
       "model": {
         "name": "test-app",
       },
+      "moduleId": "test-module",
     },
   },
+  "modules": {},
   "overlays": [
     {
       "className": "@octo/test-overlay",
+      "context": "@octo/test-overlay=overlay-2",
+      "moduleId": "test-module",
       "overlay": {
         "anchors": [
           {
@@ -927,6 +958,8 @@ exports[`Model Serialization Service UT serialize() should serialize two overlay
     },
     {
       "className": "@octo/test-overlay",
+      "context": "@octo/test-overlay=overlay-1",
+      "moduleId": "test-module",
       "overlay": {
         "anchors": [
           {

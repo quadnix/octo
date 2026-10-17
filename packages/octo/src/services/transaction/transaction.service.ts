@@ -495,6 +495,9 @@ export class TransactionService {
               );
             }
 
+            // Record the node whose action produced the resource.
+            this.inputService.registerResourceModel(resource, diffToProcess.node as UnknownModel | UnknownOverlay);
+
             // A resource already in the graph is one the action changed, not created: it keeps the module
             // that created it, and that module's tags.
             const existingResource = this.resourceDataRepository.getNewResourceByContext(resource.getContext());

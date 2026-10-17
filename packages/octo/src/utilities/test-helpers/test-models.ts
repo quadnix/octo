@@ -25,7 +25,9 @@ import { Service } from '../../models/service/service.model.js';
 import { ServiceSchema, ServiceType } from '../../models/service/service.schema.js';
 import { Subnet } from '../../models/subnet/subnet.model.js';
 import { SubnetSchema } from '../../models/subnet/subnet.schema.js';
+import { InputService } from '../../services/input/input.service.js';
 import { ModelSerializationService } from '../../services/serialization/model/model-serialization.service.js';
+import { TEST_MODULE_ID } from './test-modules.js';
 
 /**
  * @internal
@@ -33,6 +35,19 @@ import { ModelSerializationService } from '../../services/serialization/model/mo
 export async function commit<T extends UnknownModel>(model: T): Promise<T> {
   const modelSerializationService = await Container.getInstance().get(ModelSerializationService);
   return (await modelSerializationService.deserialize(await modelSerializationService.serialize(model))) as T;
+}
+
+/**
+ * Attributes models to a module, as though the module had produced them. A module produces one model
+ * of each kind.
+ *
+ * @internal
+ */
+export async function attributeToModule(models: UnknownModel[], moduleId: string = TEST_MODULE_ID): Promise<void> {
+  const inputService = await Container.getInstance().get(InputService);
+  for (const model of models) {
+    inputService.registerModel(moduleId, model);
+  }
 }
 
 /**

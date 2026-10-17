@@ -1,4 +1,4 @@
-import type { ModelSerializedOutput } from '../../../app.type.js';
+import type { ModelSerializedOutput, UnknownModule } from '../../../app.type.js';
 import type { Container } from '../../../functions/container/container.js';
 import { TestContainer } from '../../../functions/container/test-container.js';
 import type { IDependency } from '../../../functions/dependency/dependency.js';
@@ -8,19 +8,27 @@ import { Image } from '../../../models/image/image.model.js';
 import { Region } from '../../../models/region/region.model.js';
 import { Service } from '../../../models/service/service.model.js';
 import { Subnet } from '../../../models/subnet/subnet.model.js';
+import { TestModuleContainer } from '../../../modules/test-module.container.js';
 import { OverlayDataRepository } from '../../../overlays/overlay-data.repository.js';
 import { commit, create } from '../../../utilities/test-helpers/test-models.js';
+import { TEST_MODULE_ID, createAppModule, runModule } from '../../../utilities/test-helpers/test-modules.js';
 import { createAnchor, createOverlay, createTestOverlays } from '../../../utilities/test-helpers/test-overlays.js';
+import { TestStateProvider } from '../../state-management/test.state-provider.js';
 
 const TestAnchor = createAnchor().setClassName('TestAnchor');
 const TestOverlay = createOverlay('test-overlay').setClassName('TestOverlay');
+const TestAppModule = createAppModule().setClassName('TestAppModule');
 import { ModelSerializationService } from './model-serialization.service.js';
 
 describe('Model Serialization Service UT', () => {
   let container: Container;
+  let testModuleContainer: TestModuleContainer;
 
   beforeEach(async () => {
     container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500, force: true });
+
+    testModuleContainer = new TestModuleContainer(container);
+    await testModuleContainer.initialize(new TestStateProvider());
 
     const modelSerializationService = await container.get(ModelSerializationService);
     modelSerializationService.registerClass('@octo/Account', Account);
@@ -34,6 +42,7 @@ describe('Model Serialization Service UT', () => {
   });
 
   afterEach(async () => {
+    await testModuleContainer.reset();
     await TestContainer.reset();
   });
 
@@ -51,6 +60,7 @@ describe('Model Serialization Service UT', () => {
         models: {
           'app=name': { className: 'ClassNotExist', model: null },
         } as any,
+        modules: {},
         overlays: [],
       };
 
@@ -72,6 +82,7 @@ describe('Model Serialization Service UT', () => {
         models: {
           'app=name': { className: '@octo/Service', model: null },
         } as any,
+        modules: {},
         overlays: [],
       };
 
@@ -83,7 +94,7 @@ describe('Model Serialization Service UT', () => {
     it('should be able to register classes and deserialize', async () => {
       const {
         app: [app],
-      } = create({ account: ['aws,account'], app: ['test-app'] });
+      } = await testModuleContainer.createTestModels(TEST_MODULE_ID, { account: ['aws,account'], app: ['test-app'] });
 
       const app_1 = await commit(app);
 
@@ -93,7 +104,7 @@ describe('Model Serialization Service UT', () => {
     it('should deserialize a single model', async () => {
       const {
         app: [app],
-      } = create({ app: ['test-app'] });
+      } = await testModuleContainer.createTestModels(TEST_MODULE_ID, { app: ['test-app'] });
 
       const app_1 = await commit(app);
 
@@ -103,7 +114,11 @@ describe('Model Serialization Service UT', () => {
     it('should return the serialized root on deserialization', async () => {
       const {
         region: [region],
-      } = create({ account: ['aws,account'], app: ['test-app'], region: ['region'] });
+      } = await testModuleContainer.createTestModels(TEST_MODULE_ID, {
+        account: ['aws,account'],
+        app: ['test-app'],
+        region: ['region'],
+      });
 
       const region_1 = await commit(region);
 
@@ -115,13 +130,15 @@ describe('Model Serialization Service UT', () => {
 
       const {
         app: [app],
-      } = create({
+        region: [region],
+      } = await testModuleContainer.createTestModels(TEST_MODULE_ID, {
         account: ['aws,account'],
         app: ['test'],
         image: ['image'],
         region: ['region'],
-        subnet: ['private', 'public:-1'],
+        subnet: ['private'],
       });
+      await testModuleContainer.createTestModels('public-subnet-module', { region: [region], subnet: ['public'] });
 
       const app_1 = await commit(app);
 
@@ -137,7 +154,7 @@ describe('Model Serialization Service UT', () => {
     it('should deserialize anchor with overlay parent homed in model', async () => {
       const {
         app: [app],
-      } = create({ account: ['aws,account'], app: ['test-app'] });
+      } = await testModuleContainer.createTestModels(TEST_MODULE_ID, { account: ['aws,account'], app: ['test-app'] });
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
 
@@ -160,7 +177,7 @@ describe('Model Serialization Service UT', () => {
 
       const {
         app: [app],
-      } = create({ account: ['aws,account'], app: ['test-app'] });
+      } = await testModuleContainer.createTestModels(TEST_MODULE_ID, { account: ['aws,account'], app: ['test-app'] });
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
       const anchor2 = new TestAnchor('anchor-2', {}, app);
@@ -191,7 +208,11 @@ describe('Model Serialization Service UT', () => {
       const {
         account: [account],
         app: [app],
-      } = create({ account: ['aws,account'], app: ['test-app'], image: ['image'] });
+      } = await testModuleContainer.createTestModels(TEST_MODULE_ID, {
+        account: ['aws,account'],
+        app: ['test-app'],
+        image: ['image'],
+      });
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
 
@@ -215,10 +236,39 @@ describe('Model Serialization Service UT', () => {
   });
 
   describe('serialize()', () => {
-    it('should serialize an empty app', async () => {
+    it('should throw error when a model is not associated with any module', async () => {
       const {
         app: [app],
       } = create({ app: ['test-app'] });
+
+      const service = await container.get(ModelSerializationService);
+
+      await expect(async () => {
+        await service.serialize(app);
+      }).rejects.toMatchInlineSnapshot(`[Error: Model is not associated with any module!]`);
+    });
+
+    it('should throw error when an overlay is not associated with any module', async () => {
+      const overlayDataRepository = await container.get(OverlayDataRepository);
+
+      const {
+        app: [app],
+      } = await testModuleContainer.createTestModels(TEST_MODULE_ID, { app: ['test-app'] });
+      const anchor1 = new TestAnchor('anchor-1', {}, app);
+      app.addAnchor(anchor1);
+      overlayDataRepository.add(new TestOverlay('overlay-1', {}, [anchor1]));
+
+      const service = await container.get(ModelSerializationService);
+
+      await expect(async () => {
+        await service.serialize(app);
+      }).rejects.toMatchInlineSnapshot(`[Error: Overlay is not associated with any module!]`);
+    });
+
+    it('should serialize an empty app', async () => {
+      const {
+        app: [app],
+      } = await testModuleContainer.createTestModels(TEST_MODULE_ID, { app: ['test-app'] });
 
       const service = await container.get(ModelSerializationService);
 
@@ -228,7 +278,7 @@ describe('Model Serialization Service UT', () => {
     it('should serialize a non-empty app', async () => {
       const {
         app: [app],
-      } = create({
+      } = await testModuleContainer.createTestModels(TEST_MODULE_ID, {
         account: ['aws,account'],
         app: ['test-app'],
         environment: ['qa'],
@@ -245,7 +295,7 @@ describe('Model Serialization Service UT', () => {
     it('should serialize model anchors', async () => {
       const {
         app: [app],
-      } = create({ app: ['test-app'] });
+      } = await testModuleContainer.createTestModels(TEST_MODULE_ID, { app: ['test-app'] });
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
 
@@ -256,12 +306,18 @@ describe('Model Serialization Service UT', () => {
 
     it('should serialize only boundary members', async () => {
       const {
+        account: [account],
         region: [region1],
-      } = create({
+      } = await testModuleContainer.createTestModels(TEST_MODULE_ID, {
         account: ['aws,account'],
         app: ['test-app'],
-        environment: ['qa', 'qa'],
-        region: ['region-1', 'region-2:-1'],
+        environment: ['qa'],
+        region: ['region-1'],
+      });
+      await testModuleContainer.createTestModels('region-2-module', {
+        account: [account],
+        environment: ['qa'],
+        region: ['region-2'],
       });
 
       const service = await container.get(ModelSerializationService);
@@ -272,7 +328,7 @@ describe('Model Serialization Service UT', () => {
     it('should serialize overlay with multiple anchors of same parent', async () => {
       const {
         app: [app],
-      } = create({ account: ['aws,account'], app: ['test-app'] });
+      } = await testModuleContainer.createTestModels(TEST_MODULE_ID, { account: ['aws,account'], app: ['test-app'] });
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
       const anchor2 = new TestAnchor('anchor-2', {}, app);
@@ -288,7 +344,7 @@ describe('Model Serialization Service UT', () => {
     it('should serialize anchor with overlay parent homed in model', async () => {
       const {
         app: [app],
-      } = create({ account: ['aws,account'], app: ['test-app'] });
+      } = await testModuleContainer.createTestModels(TEST_MODULE_ID, { account: ['aws,account'], app: ['test-app'] });
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
 
@@ -307,7 +363,7 @@ describe('Model Serialization Service UT', () => {
     it('should serialize two overlay dependencies with each other', async () => {
       const {
         app: [app],
-      } = create({ account: ['aws,account'], app: ['test-app'] });
+      } = await testModuleContainer.createTestModels(TEST_MODULE_ID, { account: ['aws,account'], app: ['test-app'] });
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
       const anchor2 = new TestAnchor('anchor-2', {}, app);
@@ -326,10 +382,24 @@ describe('Model Serialization Service UT', () => {
       expect(await service.serialize(app)).toMatchSnapshot();
     });
 
+    it('should serialize every module that ran with the inputs it was given', async () => {
+      const { 'app-module.model.app': app } = await runModule<UnknownModule>(container, {
+        inputs: { name: 'test-app' },
+        moduleId: 'app-module',
+        type: TestAppModule,
+      });
+
+      const service = await container.get(ModelSerializationService);
+
+      expect((await service.serialize(app)).modules).toEqual({
+        'app-module': { className: '@octo/TestAppModule', inputs: { name: 'test-app' } },
+      });
+    });
+
     it('should throw error when an anchor of an overlay is not held by a model', async () => {
       const {
         app: [app],
-      } = create({ account: ['aws,account'], app: ['test-app'] });
+      } = await testModuleContainer.createTestModels(TEST_MODULE_ID, { account: ['aws,account'], app: ['test-app'] });
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
 

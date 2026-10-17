@@ -146,6 +146,7 @@ export class StateManagementService {
         anchors: [],
         dependencies: [],
         models: {},
+        modules: {},
         overlays: [],
       },
       userData: {},

@@ -21,6 +21,8 @@ export class InputService {
 
   private overlays: { [key: string]: string } = {};
 
+  private resourceModels: { [key: string]: Set<string> } = {}; // Resource context -> producing node contexts.
+
   private resources: { [key: string]: string } = {};
 
   private tags: { [key: string]: { [key: string]: string | { [key: string]: string } } } = {
@@ -67,6 +69,13 @@ export class InputService {
    */
   getMetadataKeys(moduleId: string): string[] {
     return Object.keys(this.metadata).filter((key) => key.startsWith(`${moduleId}.metadata`));
+  }
+
+  /**
+   * @internal
+   */
+  getModelsFromResource(resource: UnknownResource): string[] {
+    return [...(this.resourceModels[resource.getContext()] ?? [])].sort();
   }
 
   /**
@@ -222,6 +231,16 @@ export class InputService {
       );
     }
     this.resources[resourceKey] = resource.getContext();
+  }
+
+  /**
+   * Records that the action of a model or overlay produced a resource, which may already have been
+   * produced by another.
+   */
+  registerResourceModel(resource: UnknownResource, node: UnknownModel | UnknownOverlay): void {
+    const context = resource.getContext();
+    this.resourceModels[context] ??= new Set();
+    this.resourceModels[context].add(node.getContext());
   }
 
   /**
@@ -484,6 +503,7 @@ export class InputServiceFactory {
       this.instance['models'] = {};
       this.instance['modules'] = {};
       this.instance['overlays'] = {};
+      this.instance['resourceModels'] = {};
       this.instance['resources'] = {};
       this.instance['tags'] = {
         _global: {},

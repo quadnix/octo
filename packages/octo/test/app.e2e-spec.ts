@@ -1,4 +1,5 @@
-import { commit, create } from '../src/utilities/test-helpers/test-models.js';
+import type { UnknownModel } from '../src/app.type.js';
+import { attributeToModule, commit, create } from '../src/utilities/test-helpers/test-models.js';
 
 describe('App E2E Test', () => {
   it('should generate app diff', async () => {
@@ -20,6 +21,7 @@ describe('App E2E Test', () => {
       subnet: ['public'],
     });
     environment.environmentVariables.set('env', 'QA');
+    await attributeToModule(app.getBoundaryMembers() as UnknownModel[]);
 
     await commit(app);
 

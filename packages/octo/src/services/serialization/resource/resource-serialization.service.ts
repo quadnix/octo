@@ -1,6 +1,7 @@
 import type { ActionOutputs, ResourceSerializedOutput, UnknownResource } from '../../../app.type.js';
 import { EventSource } from '../../../decorators/event-source.decorator.js';
 import { Factory } from '../../../decorators/factory.decorator.js';
+import { ResourceError } from '../../../errors/index.js';
 import {
   ActualResourceSerializedEvent,
   NewResourceSerializedEvent,
@@ -14,6 +15,7 @@ import {
   type ResourceDataRepositoryFactory,
 } from '../../../resources/resource-data.repository.js';
 import type { AResource } from '../../../resources/resource.abstract.js';
+import { ATerraformResource } from '../../../resources/terraform-resource.abstract.js';
 import { ObjectUtility } from '../../../utilities/object/object.utility.js';
 import { InputService } from '../../input/input.service.js';
 
@@ -21,7 +23,7 @@ import { InputService } from '../../input/input.service.js';
  * @internal
  */
 export class ResourceSerializationService {
-  private actualResourceModuleIds = new Map<string, string>(); // Resource context -> module recorded in state.
+  private actualResources = new Map<string, { models: string[]; moduleId: string }>(); // Resource context -> record in state.
   private readonly classMapping: { [key: string]: any } = {};
 
   private readonly RESOURCE_DESERIALIZATION_TIMEOUT_IN_MS = 3000;
@@ -43,10 +45,11 @@ export class ResourceSerializationService {
     oldSerializedOutput: ResourceSerializedOutput,
   ): Promise<void> {
     const actualResources = await this._deserialize(JSON.parse(JSON.stringify(actualSerializedOutput)), false);
-    this.actualResourceModuleIds = new Map(
-      Object.entries(actualSerializedOutput.resources)
-        .filter(([, { moduleId }]) => moduleId !== undefined)
-        .map(([context, { moduleId }]) => [context, moduleId!]),
+    this.actualResources = new Map(
+      Object.entries(actualSerializedOutput.resources).map(([context, { models, moduleId }]) => [
+        context,
+        { models, moduleId },
+      ]),
     );
     const oldResources = await this._deserialize(JSON.parse(JSON.stringify(oldSerializedOutput)), true);
 
@@ -63,7 +66,7 @@ export class ResourceSerializationService {
    * The module that produced a committed resource, as the state it was loaded from records it.
    */
   getActualResourceModuleId(resource: UnknownResource): string | undefined {
-    return this.actualResourceModuleIds.get(resource.getContext());
+    return this.actualResources.get(resource.getContext())?.moduleId;
   }
 
   /**
@@ -181,17 +184,21 @@ export class ResourceSerializationService {
         .sort((a, b) => (a.from + a.to > b.from + b.to ? 1 : b.from + b.to > a.from + a.to ? -1 : 0));
       dependencies.push(...resourceDependencies);
 
+      // Take the module and models of a resource this command did not produce from the state it was loaded from.
+      const actualResource = this.actualResources.get(resource.getContext());
+      const moduleId = this.inputService.getModuleIdFromResource(resource) ?? actualResource?.moduleId;
+      if (moduleId === undefined) {
+        throw new ResourceError('Resource is not associated with any module!', resource);
+      }
+      const models = this.inputService.getModelsFromResource(resource);
+
       serializedResources[resource.getContext()] = {
         className: `${(resource.constructor as typeof AResource).NODE_PACKAGE}/${resource.constructor.name}`,
+        kind: resource instanceof ATerraformResource ? 'terraform' : 'external',
+        models: models.length > 0 ? models : (actualResource?.models ?? []),
+        moduleId,
         resource: resource.synth(),
       };
-
-      // Record which module produced this resource. A resource not registered with the input service
-      // has no owning module — leave moduleId unset.
-      const moduleId = this.inputService.getModuleIdFromResource(resource);
-      if (moduleId !== undefined) {
-        serializedResources[resource.getContext()].moduleId = moduleId;
-      }
     }
 
     return { dependencies, resources: serializedResources };

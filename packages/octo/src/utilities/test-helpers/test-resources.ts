@@ -4,10 +4,12 @@ import { ResourceDataRepository } from '../../resources/resource-data.repository
 import { AResource } from '../../resources/resource.abstract.js';
 import type { BaseResourceSchema } from '../../resources/resource.schema.js';
 import { ATerraformResource } from '../../resources/terraform-resource.abstract.js';
+import { InputService } from '../../services/input/input.service.js';
 import { ResourceSerializationService } from '../../services/serialization/resource/resource-serialization.service.js';
 import type { TerraformModuleScope } from '../../services/terraform/terraform.service.js';
 import { TransactionService } from '../../services/transaction/transaction.service.js';
 import { NodeUtility } from '../node/node.utility.js';
+import { TEST_MODULE_ID } from './test-modules.js';
 
 /**
  * @internal
@@ -118,10 +120,11 @@ export function createTerraformResource(nodeName: string): Constructable<ATerraf
  */
 export async function createResources(
   args: UnknownResource[],
-  options?: { save?: boolean },
+  { moduleId = TEST_MODULE_ID, save = false }: { moduleId?: string; save?: boolean } = {},
 ): Promise<{ [key: string]: UnknownResource }> {
   const container = Container.getInstance();
-  const [resourceDataRepository, resourceSerializationService] = await Promise.all([
+  const [inputService, resourceDataRepository, resourceSerializationService] = await Promise.all([
+    container.get(InputService),
     container.get(ResourceDataRepository),
     container.get(ResourceSerializationService),
   ]);
@@ -133,7 +136,10 @@ export async function createResources(
   const resources: { [key: string]: UnknownResource } = {};
   for (const resource of args) {
     resourceDataRepository.addNewResource(resource);
-    if (options?.save) {
+    if (inputService.getModuleIdFromResource(resource) === undefined) {
+      inputService.registerResource(moduleId, resource);
+    }
+    if (save) {
       // A resource saved by an earlier call keeps what the runs since then made of it.
       if (!resourceDataRepository.getActualResourceByContext(resource.getContext())) {
         resourceDataRepository.addActualResource(await AResource.cloneResource(resource, deReferenceResource));
@@ -168,10 +174,11 @@ export async function createTestResources<S extends BaseResourceSchema[]>(
       terraform?: boolean;
     };
   },
-  options?: { save?: boolean },
+  { moduleId = TEST_MODULE_ID, save = false }: { moduleId?: string; save?: boolean } = {},
 ): Promise<{ [key: string]: AResource<S[number], any> }> {
   const container = Container.getInstance();
-  const [resourceDataRepository, resourceSerializationService, transactionService] = await Promise.all([
+  const [inputService, resourceDataRepository, resourceSerializationService, transactionService] = await Promise.all([
+    container.get(InputService),
     container.get(ResourceDataRepository),
     container.get(ResourceSerializationService),
     container.get(TransactionService),
@@ -247,7 +254,10 @@ export async function createTestResources<S extends BaseResourceSchema[]>(
       }
     }
     resourceDataRepository.addNewResource(resource);
-    if (options?.save) {
+    if (inputService.getModuleIdFromResource(resource) === undefined) {
+      inputService.registerResource(moduleId, resource);
+    }
+    if (save) {
       // A resource saved by an earlier call keeps what the runs since then made of it.
       if (!resourceDataRepository.getActualResourceByContext(resource.getContext())) {
         resourceDataRepository.addActualResource(await AResource.cloneResource(resource, deReferenceResource));

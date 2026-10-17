@@ -1,3 +1,5 @@
+import { NodeType, type UnknownModel } from '../src/app.type.js';
+import type { ANode } from '../src/functions/node/node.abstract.js';
 import {
   Account,
   App,
@@ -13,6 +15,7 @@ import {
   Subnet,
   TestContainer,
 } from '../src/index.js';
+import { ModuleContainer } from '../src/modules/module.container.js';
 import { InputService } from '../src/services/input/input.service.js';
 import { ModelSerializationService } from '../src/services/serialization/model/model-serialization.service.js';
 import { create } from '../src/utilities/test-helpers/test-models.js';
@@ -27,8 +30,11 @@ describe('App Serialization and Deserialization E2E Test', () => {
   beforeEach(async () => {
     container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
 
-    const inputService = await container.get(InputService);
-    const modelSerializationService = new ModelSerializationService(inputService);
+    const [inputService, moduleContainer] = await Promise.all([
+      container.get(InputService),
+      container.get(ModuleContainer),
+    ]);
+    const modelSerializationService = new ModelSerializationService(inputService, moduleContainer);
     modelSerializationService.registerClass('@octo/Account', Account);
     modelSerializationService.registerClass('@octo/App', App);
     modelSerializationService.registerClass('@octo/Deployment', Deployment);
@@ -112,6 +118,14 @@ describe('App Serialization and Deserialization E2E Test', () => {
     await createTestOverlays([
       { anchors: [account1OverlayTestAnchor], context: '@octo/test-overlay=environment1-overlay' },
     ]);
+
+    // Attribute each model to a module of its own, since a module produces one model of each kind.
+    const inputService = await container.get(InputService);
+    for (const [index, model] of app.getBoundaryMembers().entries()) {
+      if ((model.constructor as typeof ANode).NODE_TYPE === NodeType.MODEL) {
+        inputService.registerModel(`module-${index}`, model as UnknownModel);
+      }
+    }
 
     const modelSerializationService = await Container.getInstance().get(ModelSerializationService);
     const appSerializedOutput = await modelSerializationService.serialize(app);

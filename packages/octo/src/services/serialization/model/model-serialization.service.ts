@@ -9,7 +9,7 @@ import {
 } from '../../../app.type.js';
 import { EventSource } from '../../../decorators/event-source.decorator.js';
 import { Factory } from '../../../decorators/factory.decorator.js';
-import { NodeUnsynthError, OverlayError } from '../../../errors/index.js';
+import { ModelError, NodeUnsynthError, OverlayError } from '../../../errors/index.js';
 import {
   AnchorRegistrationEvent,
   ModelDeserializedEvent,
@@ -20,6 +20,7 @@ import {
 import { Container } from '../../../functions/container/container.js';
 import { Dependency } from '../../../functions/dependency/dependency.js';
 import type { ANode } from '../../../functions/node/node.abstract.js';
+import { ModuleContainer } from '../../../modules/module.container.js';
 import type { AAnchor } from '../../../overlays/anchor.abstract.js';
 import { OverlayDataRepository, type OverlayDataRepositoryFactory } from '../../../overlays/overlay-data.repository.js';
 import { ObjectUtility } from '../../../utilities/object/object.utility.js';
@@ -36,7 +37,10 @@ export class ModelSerializationService {
   /**
    * @internal
    */
-  constructor(private readonly inputService: InputService) {}
+  constructor(
+    private readonly inputService: InputService,
+    private readonly moduleContainer: ModuleContainer,
+  ) {}
 
   /**
    * @internal
@@ -97,17 +101,16 @@ export class ModelSerializationService {
       if ((model.constructor as typeof ANode).NODE_TYPE === NodeType.MODEL) {
         const context = model.getContext();
         if (!models[context]) {
+          const moduleId = this.inputService.getModuleIdFromModel(model as UnknownModel);
+          if (moduleId === undefined) {
+            throw new ModelError('Model is not associated with any module!', model as UnknownModel);
+          }
+
           models[context] = {
             className: `${(model.constructor as typeof ANode).NODE_PACKAGE}/${model.constructor.name}`,
             model: model.synth() as IUnknownModel,
+            moduleId,
           };
-
-          // Record which module produced this model. A model not registered with the input service
-          // (e.g. a synthetic test model) has no owning module — leave moduleId unset.
-          const moduleId = this.inputService.getModuleIdFromModel(model as UnknownModel);
-          if (moduleId !== undefined) {
-            models[context].moduleId = moduleId;
-          }
         }
 
         for (const a of (model as UnknownModel).getAnchors()) {
@@ -121,8 +124,15 @@ export class ModelSerializationService {
           });
         }
       } else if ((model.constructor as typeof ANode).NODE_TYPE === NodeType.OVERLAY) {
+        const moduleId = this.inputService.getModuleIdFromOverlay(model as UnknownOverlay);
+        if (moduleId === undefined) {
+          throw new OverlayError('Overlay is not associated with any module!', model as UnknownOverlay);
+        }
+
         overlays.push({
           className: `${(model.constructor as typeof ANode).NODE_PACKAGE}/${model.constructor.name}`,
+          context: model.getContext(),
+          moduleId,
           overlay: (model as UnknownOverlay).synth(),
         });
       }
@@ -143,7 +153,7 @@ export class ModelSerializationService {
       }
     }
 
-    return { anchors, dependencies, models, overlays };
+    return { anchors, dependencies, models, modules: this.moduleContainer.getModuleInstances(), overlays };
   }
 
   /**
@@ -281,9 +291,10 @@ export class ModelSerializationServiceFactory {
    */
   static async create(): Promise<ModelSerializationService> {
     const inputService = await Container.getInstance().get(InputService);
+    const moduleContainer = await Container.getInstance().get(ModuleContainer);
 
     if (!this.instance) {
-      this.instance = new ModelSerializationService(inputService);
+      this.instance = new ModelSerializationService(inputService, moduleContainer);
     }
 
     return this.instance;

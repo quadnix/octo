@@ -12,8 +12,10 @@ import type { BaseAnchorSchema } from '../../overlays/anchor.schema.js';
 import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
 import { AOverlay } from '../../overlays/overlay.abstract.js';
 import type { BaseOverlaySchema } from '../../overlays/overlay.schema.js';
+import { InputService } from '../../services/input/input.service.js';
 import { ModelSerializationService } from '../../services/serialization/model/model-serialization.service.js';
 import { TransactionService } from '../../services/transaction/transaction.service.js';
+import { TEST_MODULE_ID } from './test-modules.js';
 
 /**
  * @internal
@@ -80,9 +82,11 @@ export async function createTestOverlays(
     overlayActions?: IUnknownModelAction[];
     properties?: { [key: string]: unknown };
   }[],
+  { moduleId = TEST_MODULE_ID }: { moduleId?: string } = {},
 ): Promise<{ [key: string]: UnknownOverlay }> {
   const container = Container.getInstance();
-  const [modelSerializationService, overlayDataRepository, transactionService] = await Promise.all([
+  const [inputService, modelSerializationService, overlayDataRepository, transactionService] = await Promise.all([
+    container.get(InputService),
     container.get(ModelSerializationService),
     container.get(OverlayDataRepository),
     container.get(TransactionService),
@@ -111,6 +115,9 @@ export async function createTestOverlays(
       }
     }
     overlayDataRepository.add(overlay);
+    if (inputService.getModuleIdFromOverlay(overlay) === undefined) {
+      inputService.registerOverlay(moduleId, overlay);
+    }
 
     const overlayClassName = `${(overlay.constructor as typeof AOverlay).NODE_PACKAGE}/${overlay.constructor.name}`;
     try {

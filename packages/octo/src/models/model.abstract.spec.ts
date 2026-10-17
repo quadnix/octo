@@ -23,7 +23,17 @@ describe('Model UT', () => {
     container = await TestContainer.create(
       {
         mocks: [
-          { type: InputService, value: { getModuleIdFromModel: jest.fn(), getModuleResources: jest.fn() } },
+          {
+            type: InputService,
+            value: {
+              getModuleIdFromModel: jest.fn(),
+              getModuleIdFromOverlay: jest.fn(),
+              getModuleIdFromResource: jest.fn(),
+              getModuleResources: jest.fn(),
+              registerOverlay: jest.fn(),
+              registerResource: jest.fn(),
+            },
+          },
           { type: SchemaTranslationService, value: new SchemaTranslationService() },
         ],
       },

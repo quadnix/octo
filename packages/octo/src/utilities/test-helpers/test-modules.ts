@@ -7,6 +7,13 @@ import { ModuleContainer } from '../../modules/module.container.js';
 import { TestOverlay } from './test-classes.js';
 
 /**
+ * The module a test helper ties a node to when its caller names none.
+ *
+ * @internal
+ */
+export const TEST_MODULE_ID = 'test-module';
+
+/**
  * @internal
  */
 class TestAppModuleSchema {
