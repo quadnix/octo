@@ -54,9 +54,14 @@ resources with `uniqueProperties` move. Decide whether the app name belongs in t
   (20 MB a file, 1000 files a write, 100 MB in all). One over a limit fails that save and the command.
   Rahul 2026-10-11: raise the backend's limits rather than exempt the journal.
 - A secret passed as a module input is journaled in plain text, uploaded with remote state and kept
-  in `.octo/` locally. Nothing redacts it.
+  in `.octo/` locally. Nothing redacts it. E.g. `AwsCredentialsAccountModule` takes `secretAccessKey` as input.
 - A refused `octo apply` is journaled only as `Exited with code 1.`; its destroy list is in the
   Terraform log, not an event.
+- The Terraform log is uploaded whole at every save, so a long apply sends its growing output again
+  at each Terraform state check-in, and an apply printing more than 20 MB fails the save that carries
+  it.
+- Archiving at release reads every journal file whole into memory (`StateManagementService.unlockApp`
+  through `getState`), the Terraform log included. Every other path copies the log by its path.
 
 ## To do: switch state providers safely
 
