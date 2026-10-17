@@ -34,8 +34,10 @@ interface ModelStateUserData {
 /**
  * The `userData` persisted alongside the resource graph in `resources-actual.json` /
  * `resources-old.json`.
+ *
+ * @group Services/State Management
  */
-interface ResourceStateUserData {
+export interface ResourceStateUserData {
   terraformFolders?: TerraformFolderOutput[];
   terraformResources?: TerraformResourceOutput[];
   version?: number;

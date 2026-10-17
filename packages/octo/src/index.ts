@@ -64,7 +64,10 @@ export { ATerraformResource } from './resources/terraform-resource.abstract.js';
 
 export { LocalStateProvider } from './services/state-management/local.state-provider.js';
 export { RemoteStateProvider } from './services/state-management/remote.state-provider.js';
-export { StateManagementService } from './services/state-management/state-management.service.js';
+export {
+  type ResourceStateUserData,
+  StateManagementService,
+} from './services/state-management/state-management.service.js';
 export {
   type IStateProvider,
   JOURNAL_COMMANDS_BEFORE_LOCK,
@@ -95,6 +98,7 @@ export {
   type OverlaySchema,
   type ResourceSchema,
   type ResourceSerializedOutput,
+  type TerraformResourceOutput,
   hasNodeName,
   stub,
 } from './app.type.js';
