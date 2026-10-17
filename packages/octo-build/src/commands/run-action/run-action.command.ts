@@ -36,9 +36,7 @@ export const runActionCommand = {
         inputs[entry.slice(0, separatorIndex)] = entry.slice(separatorIndex + 1);
       }
 
-      // stdout carries ONLY the response JSON (terraform's `data "external"` consumes it), so suppress
-      // boot output and route this command's own diagnostics to stderr.
-      const { app, octo } = await OctoUtility.bootOcto({ quietStdout: true });
+      const { app, octo } = await OctoUtility.bootOcto();
 
       const result = await octo.runAction(app, {
         inputs,

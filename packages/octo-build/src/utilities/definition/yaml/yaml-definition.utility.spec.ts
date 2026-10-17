@@ -130,11 +130,15 @@ describe('YamlDefinitionUtility UT', () => {
     });
   });
 
-  describe('resolveJournalListener()', () => {
-    it('should return nothing when the definition does not list the journal', async () => {
-      const definition = new YamlDefinitionUtility(fixture('env-kinds-definition.yml'));
+  describe('resolveListeners()', () => {
+    let originalStderrIsTerminal: boolean | undefined;
 
-      await expect(definition.resolveJournalListener()).resolves.toBeUndefined();
+    beforeEach(() => {
+      originalStderrIsTerminal = process.stderr.isTTY;
+    });
+
+    afterEach(() => {
+      process.stderr.isTTY = originalStderrIsTerminal as boolean;
     });
 
     it('should return the journal listener when the definition lists it', async () => {
@@ -145,33 +149,18 @@ describe('YamlDefinitionUtility UT', () => {
         definition.replace("    - type: 'LoggingEventListener'", "    - type: 'JournalEventListener'"),
       );
 
-      const journalListener = await new YamlDefinitionUtility(definitionFilePath).resolveJournalListener();
-      expect(journalListener?.name).toBe('JournalEventListener');
-      await expect(new YamlDefinitionUtility(definitionFilePath).resolveListeners()).resolves.toEqual([
-        { type: journalListener },
-      ]);
-    });
-  });
-
-  describe('resolveListeners()', () => {
-    let originalStdoutIsTerminal: boolean | undefined;
-
-    beforeEach(() => {
-      originalStdoutIsTerminal = process.stdout.isTTY;
+      const listeners = await new YamlDefinitionUtility(definitionFilePath).resolveListeners();
+      expect(listeners.map(({ type }) => type.name)).toEqual(['JournalEventListener']);
     });
 
-    afterEach(() => {
-      process.stdout.isTTY = originalStdoutIsTerminal as boolean;
-    });
-
-    it('should default colorize to whether the destination is a terminal', async () => {
+    it('should default colorize to whether stderr is a terminal', async () => {
       const definition = new YamlDefinitionUtility(fixture('env-kinds-definition.yml'));
 
-      process.stdout.isTTY = false;
+      process.stderr.isTTY = false;
       const whenRedirected = await definition.resolveListeners();
       expect((whenRedirected[0].args![0] as { colorize: boolean }).colorize).toBe(false);
 
-      process.stdout.isTTY = true;
+      process.stderr.isTTY = true;
       const whenATerminal = await definition.resolveListeners();
       expect((whenATerminal[0].args![0] as { colorize: boolean }).colorize).toBe(true);
     });

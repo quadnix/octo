@@ -6,7 +6,7 @@ type RunActionResult = { action: string; resourceId: string; response: Record<st
 
 const mockedReportError = jest.fn<(error: unknown) => void>();
 const mockedRunAction = jest.fn<(app: unknown, options: unknown) => Promise<RunActionResult>>();
-const mockedBootOcto = jest.fn<(options?: { quietStdout?: boolean }) => Promise<unknown>>();
+const mockedBootOcto = jest.fn<() => Promise<unknown>>();
 
 // Real ESM (`--experimental-vm-modules`) doesn't support `jest.mock()`'s hoisted auto-mocking of
 // named function exports the way Jest's CJS mode does — `jest.unstable_mockModule` + a dynamic
@@ -66,12 +66,6 @@ describe('runActionCommand UT', () => {
       expect(stdoutWriteSpy).toHaveBeenCalledTimes(1);
       expect(stdoutWriteSpy).toHaveBeenCalledWith('{"igwId":"igw-0real"}');
       expect(consoleLogSpy).not.toHaveBeenCalled();
-    });
-
-    it('should route the logging listener to stderr by booting quiet', async () => {
-      await runActionCommand.handler(argv());
-
-      expect(mockedBootOcto).toHaveBeenCalledWith({ quietStdout: true });
     });
 
     it('should write nothing to stdout when the action fails', async () => {

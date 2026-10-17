@@ -149,19 +149,9 @@ export const applyCommand = {
       if (!autoApprove && (await isBlockedByDestroys(terraformUtility, stateManagementService, resolvedDir))) {
         return 1;
       } else {
-        // Streamed, not printed at the end: an ECS apply runs for tens of minutes, and terragrunt's
-        // own progress is the only sign it is alive. `apply` boots no octo, and the journal is the only
-        // listener it may load, which writes nothing here - nothing to interleave with.
+        // Terragrunt's output goes out as events as it is written, which the listeners print and record.
         try {
-          await terraformUtility.apply(resolvedDir, {
-            onOutput: (chunk, stream): void => {
-              if (stream === 'stdout') {
-                process.stdout.write(chunk);
-              } else {
-                process.stderr.write(chunk);
-              }
-            },
-          });
+          await terraformUtility.apply(resolvedDir);
         } catch (error) {
           // An apply that got this far may have built some of what was asked for, and only a commit
           // records that. The rule belongs here rather than in every pipeline that calls this: the
@@ -176,8 +166,6 @@ export const applyCommand = {
           );
           throw error;
         }
-
-        console.log(chalk.green('==== Apply complete ===='));
       }
     });
   },

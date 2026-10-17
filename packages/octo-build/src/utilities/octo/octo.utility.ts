@@ -19,13 +19,10 @@ import { YamlDefinitionUtility } from '../definition/yaml/yaml-definition.utilit
  */
 export class OctoUtility {
   /**
-   * @param quietStdout Keeps **stdout** free of everything but the command's own output. Set by
-   * `run-action`, whose stdout is consumed by terraform's `data "external"` as JSON.
-   *
-   * It does not disable listeners — it routes them to stderr, so that the SDK resource-action path,
-   * the only place resource actions actually execute, stays observable.
+   * Boots octo with every listener, hook, module and terraform provider the definition lists, and
+   * composes the app. Prints nothing, so stdout carries only the command's own output.
    */
-  static async bootOcto({ quietStdout = false }: { quietStdout?: boolean } = {}): Promise<{
+  static async bootOcto(): Promise<{
     app: App;
     octo: Octo;
   }> {
@@ -33,15 +30,11 @@ export class OctoUtility {
 
     const hooks = await definition.resolveHooks();
     const imports = await definition.resolveImports();
-    const listeners = await definition.resolveListeners({ logDestination: quietStdout ? 'stderr' : 'stdout' });
+    const listeners = await definition.resolveListeners();
     const modules = definition.resolveModules(imports);
     const stateProvider = definition.resolveStateProvider();
     const tags = definition.resolveTags();
     const terraformOptions = definition.resolveTerraformOptions();
-
-    if (!quietStdout) {
-      console.log(chalk.green('Definition file is valid and all modules were successfully imported.'));
-    }
 
     // Initialize.
     const octo = new Octo();
@@ -89,12 +82,12 @@ export class OctoUtility {
 
   /**
    * Boots only the state provider the definition names, without loading a single module, and returns
-   * how often terraform state is checked into it during a terraform command. Loads the journal, the
-   * one listener such a command records with, when the definition lists it.
+   * how often terraform state is checked into it during a terraform command. Loads every listener the definition lists.
    *
    * `apply` is a terraform action rather than an octo mode, so it has no reason to compose a model
    * graph - but terraform state is checked out of the state provider and back into it around every
-   * terraform command, so the provider still has to be there.
+   * terraform command, so the provider still has to be there, and terraform's output reaches the
+   * terminal only through the listeners.
    */
   static async bootStateProvider(): Promise<{ stateCheckInIntervalInMs: number | undefined }> {
     const definition = new YamlDefinitionUtility(OctoUtility.resolveDefinitionFilePath());
@@ -104,9 +97,11 @@ export class OctoUtility {
       args: [stateProvider.type],
     });
 
-    const journalListener = await definition.resolveJournalListener();
-    if (journalListener) {
-      await Container.getInstance().get(journalListener);
+    for (const listener of await definition.resolveListeners()) {
+      await Container.getInstance().get<unknown, any>(listener.type, {
+        args: listener.args,
+        metadata: listener.metadata,
+      });
     }
 
     return { stateCheckInIntervalInMs: definition.resolveStateCheckInIntervalInMs() };

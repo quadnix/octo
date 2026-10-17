@@ -7,7 +7,7 @@ type GenerateArguments = { outputDir: string };
 
 const mockedReportError = jest.fn<(error: unknown) => void>();
 const mockedGenerate = jest.fn<(app: unknown, options: { outputDir: string }) => Promise<void>>();
-const mockedBootOcto = jest.fn<(options?: { quietStdout?: boolean }) => Promise<unknown>>();
+const mockedBootOcto = jest.fn<() => Promise<unknown>>();
 const mockedBootStateProvider = jest.fn<() => Promise<void>>().mockResolvedValue();
 
 // Real ESM (`--experimental-vm-modules`) doesn't support `jest.mock()`'s hoisted auto-mocking of

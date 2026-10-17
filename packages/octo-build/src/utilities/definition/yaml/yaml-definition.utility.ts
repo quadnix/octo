@@ -201,24 +201,10 @@ export class YamlDefinitionUtility {
   }
 
   /**
-   * The journal listener, when the definition lists it, imported without any other listener. For the
-   * commands that boot no octo, and so no listeners.
+   * The listeners the definition lists. The logging listener writes to stderr, so stdout carries only
+   * a command's own output.
    */
-  async resolveJournalListener(): Promise<Constructable<JournalEventListener> | undefined> {
-    if (!this.definition.settings?.listeners?.some((l) => l.type === 'JournalEventListener')) {
-      return undefined;
-    }
-
-    const imported = await import('@quadnix/octo-event-listeners/journal');
-    return imported.JournalEventListener;
-  }
-
-  /**
-   * @param logDestination Where the logging listener writes. `run-action` passes `stderr`, because
-   * terraform's `data "external"` protocol requires that command's stdout to carry only the response
-   * JSON.
-   */
-  async resolveListeners({ logDestination = 'stdout' }: { logDestination?: 'stderr' | 'stdout' } = {}): Promise<
+  async resolveListeners(): Promise<
     {
       args?: unknown[];
       metadata?: Record<string, string>;
@@ -233,17 +219,16 @@ export class YamlDefinitionUtility {
 
     for (const listenerDef of this.definition.settings.listeners) {
       if (listenerDef.type === 'JournalEventListener') {
-        listeners.push({ type: (await this.resolveJournalListener())! });
+        const imported = await import('@quadnix/octo-event-listeners/journal');
+        listeners.push({ type: imported.JournalEventListener });
       } else if (listenerDef.type === 'LoggingEventListener') {
         const imported = await import('@quadnix/octo-event-listeners/logging');
-        // Default to whether the destination is a terminal, so a redirected log carries no escape
-        // codes. An explicit `colorize:` in the definition still wins.
-        const destinationStream = logDestination === 'stderr' ? process.stderr : process.stdout;
+        // Default to whether stderr is a terminal, so a redirected log carries no escape codes. An
+        // explicit `colorize:` in the definition still wins.
         listeners.push({
           args: [
             {
-              colorize: listenerDef.colorize ?? Boolean(destinationStream.isTTY),
-              destination: logDestination,
+              colorize: listenerDef.colorize ?? Boolean(process.stderr.isTTY),
               level: listenerDef.level ?? 'info',
             },
           ],
