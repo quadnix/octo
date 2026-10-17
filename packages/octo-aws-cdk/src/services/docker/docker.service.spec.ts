@@ -32,6 +32,7 @@ describe('DockerService UT', () => {
         '/context/Dockerfile',
         '/context',
         { buildArguments: {}, buildSecrets: {} },
+        () => undefined,
       );
 
       expect(await readArguments()).toEqual([
@@ -59,6 +60,7 @@ describe('DockerService UT', () => {
         '/context/Dockerfile',
         '/context',
         { buildArguments: { NODE_ENV: 'production' }, buildSecrets: { NPM_TOKEN: 'CI_NPM_TOKEN' } },
+        () => undefined,
       );
 
       const commandArguments = await readArguments();
@@ -76,7 +78,7 @@ describe('DockerService UT', () => {
     it('should keep the password off the command line', async () => {
       const { binaryPath, readArguments } = await createRecordingBinary();
 
-      await new DockerService(binaryPath).login('https://registry', 'AWS', 'password');
+      await new DockerService(binaryPath).login('https://registry', 'AWS', 'password', () => undefined);
 
       const commandArguments = await readArguments();
       expect(commandArguments).toEqual(['login', '--username', 'AWS', '--password-stdin', 'https://registry']);
@@ -91,15 +93,36 @@ describe('DockerService UT', () => {
       await writeFile(binaryPath, '#!/bin/sh\necho "tag is immutable" >&2\nexit 1\n');
       await chmod(binaryPath, 0o755);
 
-      await expect(new DockerService(binaryPath).push('registry/repository:0.0.1')).rejects.toThrow(
+      await expect(new DockerService(binaryPath).push('registry/repository:0.0.1', () => undefined)).rejects.toThrow(
         /docker push" exited with 1!\ntag is immutable/,
       );
+    });
+
+    it('should log each line docker prints, with its command and stream, as it prints it', async () => {
+      const directory = await mkdtemp(join(tmpdir(), 'octo-docker-'));
+      const binaryPath = join(directory, 'docker');
+      await writeFile(binaryPath, '#!/bin/sh\nprintf "layer 1\\nlayer 2\\npushed"\nprintf "a warning\\n" >&2\n');
+      await chmod(binaryPath, 0o755);
+      const lines: [string, { command: string; stream: string }][] = [];
+
+      await new DockerService(binaryPath).push('registry/repository:0.0.1', (line, metadata) =>
+        lines.push([line, metadata]),
+      );
+
+      expect(lines.filter(([, { stream }]) => stream === 'stdout')).toEqual([
+        ['layer 1', { command: 'push', stream: 'stdout' }],
+        ['layer 2', { command: 'push', stream: 'stdout' }],
+        ['pushed', { command: 'push', stream: 'stdout' }],
+      ]);
+      expect(lines.filter(([, { stream }]) => stream === 'stderr')).toEqual([
+        ['a warning', { command: 'push', stream: 'stderr' }],
+      ]);
     });
 
     it('should push the given image reference', async () => {
       const { binaryPath, readArguments } = await createRecordingBinary();
 
-      await new DockerService(binaryPath).push('registry/repository:0.0.1');
+      await new DockerService(binaryPath).push('registry/repository:0.0.1', () => undefined);
 
       expect(await readArguments()).toEqual(['push', 'registry/repository:0.0.1']);
     });

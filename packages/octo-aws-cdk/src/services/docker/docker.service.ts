@@ -2,6 +2,18 @@ import { spawn } from 'node:child_process';
 import { Factory } from '@quadnix/octo';
 
 /**
+ * How much of docker's stderr is kept for the error a failure throws. Every line it prints goes to
+ * the caller's log as it is printed.
+ */
+const STDERR_TAIL_LENGTH = 64 * 1024;
+
+/**
+ * Receives each line docker prints, with the docker command and the stream it came from. A resource
+ * action passes its own `log()`.
+ */
+type DockerLog = (line: string, metadata: { command: string; stream: 'stderr' | 'stdout' }) => void;
+
+/**
  * Runs the local docker CLI on behalf of a resource action.
  *
  * Terraform has no way to build or push a container image, so the resource that publishes one is an
@@ -28,8 +40,10 @@ export class DockerService {
    * @param platform The platform the image is built for.
    * @param dockerfilePath Absolute path of the Dockerfile.
    * @param contextDirectory Absolute path of the build context.
+   * @param options What the build is given besides its context.
    * @param options.buildArguments Values passed as `--build-arg`.
    * @param options.buildSecrets Secret ids, each mapped to the environment variable docker reads it from.
+   * @param log Receives each line docker prints.
    */
   async build(
     imageReference: string,
@@ -37,8 +51,9 @@ export class DockerService {
     dockerfilePath: string,
     contextDirectory: string,
     options: { buildArguments: Record<string, string>; buildSecrets: Record<string, string> },
+    log: DockerLog,
   ): Promise<void> {
-    await this.run([
+    await this.run(log, [
       'build',
       ...Object.entries(options.buildArguments).flatMap(([name, value]) => ['--build-arg', `${name}=${value}`]),
       ...Object.entries(options.buildSecrets).flatMap(([id, variable]) => ['--secret', `id=${id},env=${variable}`]),
@@ -60,40 +75,62 @@ export class DockerService {
    * Authenticates the docker CLI against a registry.
    *
    * The password is written to the child's stdin rather than passed as an argument, so it never
-   * appears in the process list or in terraform's echo of the `local-exec` command.
+   * appears in the process list, in terraform's echo of the `local-exec` command, or in `log`.
    */
-  async login(registryUri: string, username: string, password: string): Promise<void> {
-    await this.run(['login', '--username', username, '--password-stdin', registryUri], password);
+  async login(registryUri: string, username: string, password: string, log: DockerLog): Promise<void> {
+    await this.run(log, ['login', '--username', username, '--password-stdin', registryUri], password);
   }
 
   /**
    * Pushes an already built image reference to its registry.
    */
-  async push(imageReference: string): Promise<void> {
-    await this.run(['push', imageReference]);
+  async push(imageReference: string, log: DockerLog): Promise<void> {
+    await this.run(log, ['push', imageReference]);
   }
 
   /**
-   * @throws If docker is not on the PATH, or exits non-zero. The error carries docker's own stderr,
-   * which is the only thing that explains a failed build.
+   * Runs docker, handing each line it prints to `log` as it is printed, and keeping only the last
+   * {@link STDERR_TAIL_LENGTH} characters of its stderr.
+   *
+   * @throws If docker is not on the PATH, or exits non-zero. The error carries the end of docker's own
+   * stderr, which is the only thing that explains a failed build.
    */
-  private run(args: string[], stdin?: string): Promise<string> {
+  private run(log: DockerLog, args: string[], stdin?: string): Promise<void> {
     return new Promise((resolve, reject) => {
       const child = spawn(this.dockerBinary, args, { stdio: ['pipe', 'pipe', 'pipe'] });
 
-      let stdout = '';
-      let stderr = '';
-      child.stdout.on('data', (chunk) => (stdout += chunk.toString()));
-      child.stderr.on('data', (chunk) => (stderr += chunk.toString()));
+      // Log each whole line, holding back the end of a chunk until the line it starts is whole.
+      const partialLines = { stderr: '', stdout: '' };
+      let stderrTail = '';
+      for (const stream of ['stdout', 'stderr'] as const) {
+        child[stream].setEncoding('utf8');
+        child[stream].on('data', (chunk: string) => {
+          if (stream === 'stderr') {
+            stderrTail = (stderrTail + chunk).slice(-STDERR_TAIL_LENGTH);
+          }
+          const lines = (partialLines[stream] + chunk).split('\n');
+          partialLines[stream] = lines.pop()!;
+          for (const line of lines) {
+            log(line, { command: args[0], stream });
+          }
+        });
+      }
 
       child.on('error', (error) => {
         reject(new Error(`Could not run "${this.dockerBinary} ${args[0]}"! ${error.message}`));
       });
       child.on('close', (exitCode) => {
+        // Log what is left of each stream, which ended without a newline.
+        for (const stream of ['stdout', 'stderr'] as const) {
+          if (partialLines[stream]) {
+            log(partialLines[stream], { command: args[0], stream });
+          }
+        }
+
         if (exitCode === 0) {
-          resolve(stdout);
+          resolve();
         } else {
-          reject(new Error(`"${this.dockerBinary} ${args[0]}" exited with ${exitCode}!\n${stderr || stdout}`));
+          reject(new Error(`"${this.dockerBinary} ${args[0]}" exited with ${exitCode}!\n${stderrTail}`));
         }
       });
 

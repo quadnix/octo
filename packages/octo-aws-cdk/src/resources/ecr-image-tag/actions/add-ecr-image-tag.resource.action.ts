@@ -89,18 +89,20 @@ export class AddEcrImageTagResourceAction extends ANodeAction implements IResour
       throw new Error('ECR returned no authorization token!');
     }
     const [username, password] = Buffer.from(authorizationToken, 'base64').toString('utf8').split(':');
-    await dockerService.login(proxyEndpoint, username, password);
+    const log = (line: string, metadata: { command: string; stream: 'stderr' | 'stdout' }): void =>
+      this.log(diff, line, metadata);
+    await dockerService.login(proxyEndpoint, username, password, log);
 
     // Build the image and push it. The build context is resolved against the octo project root
     // rather than the working directory: terraform runs this from a terragrunt cache directory.
-    this.log(`Publishing "${properties.imageId}:${properties.imageTag}"`);
+    this.log(diff, `Publishing "${properties.imageId}:${properties.imageTag}"`);
     const contextDirectory = ProjectUtility.resolveFromProjectRoot(properties.dockerfileDirectory);
     const platform = properties.architecture === 'arm64' ? 'linux/arm64' : 'linux/amd64';
     await dockerService.build(imageUri, platform, join(contextDirectory, properties.dockerfileName), contextDirectory, {
       buildArguments: properties.buildArguments,
       buildSecrets: properties.buildSecrets,
-    });
-    await dockerService.push(imageUri);
+    }, log);
+    await dockerService.push(imageUri, log);
 
     // Read back the digest AWS assigned, which is the image's real identity.
     const { imageDetails } = await ecrClient.send(

@@ -56,7 +56,7 @@ export class UpdateCloudFrontInvalidationResourceAction
     // Drop what the edges are holding. This does not wait for the invalidation to finish: AWS takes
     // minutes to propagate one, the API answers as soon as it is accepted, and nothing downstream
     // reads the result, so holding an apply open for it would buy nothing.
-    this.log(`Invalidating ${properties.paths.join(', ')} on "${distributionResponse.DistributionId}"`);
+    this.log(diff, `Invalidating ${properties.paths.join(', ')} on "${distributionResponse.DistributionId}"`);
     const { Invalidation } = await cloudFrontClient.send(
       new CreateInvalidationCommand({
         DistributionId: distributionResponse.DistributionId,

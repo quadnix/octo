@@ -181,6 +181,7 @@ describe('AwsEcrImageTagModule UT', () => {
       expect.stringMatching(/images\/nginx\/Dockerfile$/),
       expect.stringMatching(/images\/nginx$/),
       { buildArguments: {}, buildSecrets: {} },
+      expect.any(Function),
     );
   });
 
@@ -252,6 +253,7 @@ describe('AwsEcrImageTagModule UT', () => {
         expect.any(String),
         expect.any(String),
         { buildArguments: { NODE_ENV: 'production' }, buildSecrets: { NPM_TOKEN: 'OCTO_TEST_NPM_TOKEN' } },
+        expect.any(Function),
       );
     });
 

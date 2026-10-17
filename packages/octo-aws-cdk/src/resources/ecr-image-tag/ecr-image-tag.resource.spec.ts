@@ -196,6 +196,7 @@ describe('EcrImageTag UT', () => {
         'https://123456789012.dkr.ecr.us-east-1.amazonaws.com',
         'AWS',
         'password',
+        expect.any(Function),
       );
       expect(dockerService.build).toHaveBeenCalledWith(
         `${REPOSITORY_URI}:0.0.1`,
@@ -203,8 +204,9 @@ describe('EcrImageTag UT', () => {
         expect.stringMatching(/images\/nginx\/Dockerfile$/),
         expect.stringMatching(/images\/nginx$/),
         { buildArguments: {}, buildSecrets: {} },
+        expect.any(Function),
       );
-      expect(dockerService.push).toHaveBeenCalledWith(`${REPOSITORY_URI}:0.0.1`);
+      expect(dockerService.push).toHaveBeenCalledWith(`${REPOSITORY_URI}:0.0.1`, expect.any(Function));
 
       expect(response).toEqual({
         imageDigest: IMAGE_DIGEST,
@@ -240,6 +242,7 @@ describe('EcrImageTag UT', () => {
           '/octo-project/images/nginx/Dockerfile',
           '/octo-project/images/nginx',
           { buildArguments: {}, buildSecrets: {} },
+          expect.any(Function),
         );
       } finally {
         delete process.env.TF_VAR_OCTO_PROJECT_ROOT;

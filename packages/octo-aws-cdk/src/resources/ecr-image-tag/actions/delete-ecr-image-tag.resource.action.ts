@@ -49,7 +49,7 @@ export class DeleteEcrImageTagResourceAction extends ANodeAction implements IRes
     });
 
     // Delete the image.
-    this.log(`Deleting "${properties.imageId}:${properties.imageTag}"`);
+    this.log(diff, `Deleting "${properties.imageId}:${properties.imageTag}"`);
     try {
       await ecrClient.send(
         new BatchDeleteImageCommand({
