@@ -518,7 +518,7 @@ export class TransactionService {
             }
 
             this.resourceDataRepository.addNewResource(resource);
-            this.inputService.registerResource(moduleId, resource);
+            this.inputService.registerResource(moduleId, resource, diffToProcess.node as UnknownModel | UnknownOverlay);
           }
 
           duplicateDiffs.forEach((d) => {

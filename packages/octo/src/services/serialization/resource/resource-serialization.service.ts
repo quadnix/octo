@@ -23,7 +23,7 @@ import { InputService } from '../../input/input.service.js';
  * @internal
  */
 export class ResourceSerializationService {
-  private actualResources = new Map<string, { models: string[]; moduleId: string }>(); // Resource context -> record in state.
+  private actualResources = new Map<string, { createdBy?: string; models: string[]; moduleId: string }>(); // Resource context -> record in state.
   private readonly classMapping: { [key: string]: any } = {};
 
   private readonly RESOURCE_DESERIALIZATION_TIMEOUT_IN_MS = 3000;
@@ -46,9 +46,9 @@ export class ResourceSerializationService {
   ): Promise<void> {
     const actualResources = await this._deserialize(JSON.parse(JSON.stringify(actualSerializedOutput)), false);
     this.actualResources = new Map(
-      Object.entries(actualSerializedOutput.resources).map(([context, { models, moduleId }]) => [
+      Object.entries(actualSerializedOutput.resources).map(([context, { createdBy, models, moduleId }]) => [
         context,
-        { models, moduleId },
+        { createdBy, models, moduleId },
       ]),
     );
     const oldResources = await this._deserialize(JSON.parse(JSON.stringify(oldSerializedOutput)), true);
@@ -184,16 +184,18 @@ export class ResourceSerializationService {
         .sort((a, b) => (a.from + a.to > b.from + b.to ? 1 : b.from + b.to > a.from + a.to ? -1 : 0));
       dependencies.push(...resourceDependencies);
 
-      // Take the module and models of a resource this command did not produce from the state it was loaded from.
+      // Take the module, creator and models of a resource this command did not produce from the state it was loaded from.
       const actualResource = this.actualResources.get(resource.getContext());
       const moduleId = this.inputService.getModuleIdFromResource(resource) ?? actualResource?.moduleId;
       if (moduleId === undefined) {
         throw new ResourceError('Resource is not associated with any module!', resource);
       }
+      const createdBy = this.inputService.getCreatorFromResource(resource) ?? actualResource?.createdBy;
       const models = this.inputService.getModelsFromResource(resource);
 
       serializedResources[resource.getContext()] = {
         className: `${(resource.constructor as typeof AResource).NODE_PACKAGE}/${resource.constructor.name}`,
+        ...(createdBy === undefined ? {} : { createdBy }),
         kind: resource instanceof ATerraformResource ? 'terraform' : 'external',
         models: models.length > 0 ? models : (actualResource?.models ?? []),
         moduleId,

@@ -299,7 +299,7 @@ describe('TransactionService UT', () => {
       expect(resource1.tags).toEqual({ owner: 'app' });
     });
 
-    it('should record every model and overlay whose action produced a resource', async () => {
+    it('should record every model and overlay whose action produced a resource, and the one that created it', async () => {
       const resource1 = new TestResource('resource1');
       (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({ resource1 });
 
@@ -327,6 +327,7 @@ describe('TransactionService UT', () => {
 
       const inputService = await container.get(InputService);
       expect(inputService.getModelsFromResource(resource1)).toEqual(['@octo/test-overlay=test-overlay', 'app=app']);
+      expect(inputService.getCreatorFromResource(resource1)).toBe('app=app');
     });
 
     it('should process diffs in different levels', async () => {

@@ -308,6 +308,7 @@ export type ModelSerializedOutput = {
 
 /**
  * The resource graph as written to state.
+ * * `createdBy` is the context of the model or overlay whose action created the resource.
  * * `models` record the context of every model and overlay whose action produced the resource.
  * @group Types
  */
@@ -316,6 +317,7 @@ export type ResourceSerializedOutput = {
   resources: {
     [p: string]: {
       className: string;
+      createdBy?: string;
       kind: 'external' | 'terraform';
       models: string[];
       moduleId: string;

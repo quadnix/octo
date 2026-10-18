@@ -290,10 +290,11 @@ describe('Resource Serialization Service UT', () => {
       ]);
     });
 
-    it('should keep the module and models a committed resource recorded when no command produced it', async () => {
+    it('should keep the module, creator and models a committed resource recorded when no command produced it', async () => {
       await createTestResources([{ resourceContext: '@octo/test-resource=resource-1' }]);
       const record: ResourceSerializedOutput['resources'][string] = {
         className: '@octo/test-resource',
+        createdBy: 'app=old-app',
         kind: 'external',
         models: ['app=old-app'],
         moduleId: 'old-module',

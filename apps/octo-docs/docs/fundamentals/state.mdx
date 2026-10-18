@@ -33,6 +33,7 @@ apply and a commit:
 ```json
 "@octo/s3-storage=bucket-shop-receipts": {
   "className": "@octo/S3Storage",
+  "createdBy": "service=shop-receipts-s3-storage,region=eu-west-1,account=123456789012,app=shop",
   "kind": "terraform",
   "models": ["service=shop-receipts-s3-storage,region=eu-west-1,account=123456789012,app=shop"],
   "moduleId": "receipts-module",
@@ -64,8 +65,9 @@ apply and a commit:
 }
 ```
 
-The first lines say where the bucket came from: the receipts service's action made it, in the
-receipts module, and Terraform owns it. A resource Octo creates itself, through an action of its own
+The first lines say where the bucket came from: the receipts service's action created it, in the
+receipts module, and Terraform owns it. `models` lists every model and overlay whose action returned
+the bucket; here that is the service alone. A resource Octo creates itself, through an action of its own
 rather than through Terraform, is `external`.
 
 Checkout's grant is in there twice over: as the permission the bucket carries, and as the parent
