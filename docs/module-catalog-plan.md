@@ -2,9 +2,8 @@
 
 > Working document (2026-07-12, amended 2026-08-26). Plans two things: (1) splitting the
 > overloaded `service` model into a richer — but still small and fixed — model vocabulary, and
-> (2) the next waves of octo-aws-cdk modules. Then two platform features that ride on the catalog
-> (out-of-the-box advanced debugging, AI log-expectation learning), and three shippable units that
-> ride alongside it (the migration planner, capture, and guards on the terraform JSON Octo parses).
+> (2) the next waves of octo-aws-cdk modules. Then the platform features that ride on the catalog
+> and the three planes they share (Part III), and the shippable units that ride alongside it (Part IV).
 >
 > Altitude: planning, not full design. Each wave gets a detailed design (schemas, anchors,
 > actions, tests) when it is scheduled, following the anatomy of existing modules
@@ -88,7 +87,7 @@ Small, self-contained, high leverage — most later modules consume these anchor
 | `aws-sqs-queue` / `aws-sns-queue`              | `queue`                                                            | Queues/topics + DLQs, subscriptions; IAM policies wired to consuming executions via overlays.                                                                                                                                          |
 | `aws-msk-queue`                                | `queue`                                                            | Managed Kafka. The "aws kafka" ask — recommend MSK **before** self-hosted Kafka (group 3); same model kind, so consumers can later swap modules (the Octo wedge).                                                                      |
 | `aws-firehose-queue`                           | `queue`                                                            | Delivery streams; ▸ into `storage`/ELK targets. Pairs with observability wave.                                                                                                                                                         |
-| `aws-codebuild-cicd` + `aws-codepipeline-cicd` | `pipeline` (model exists)                                          | Finally gives `Pipeline.instructionSet` meaning: build projects, pipeline stages, source hooks. This is *app* CI/CD provisioning — distinct from the platform's infra-CICD view (frontend plan 09), which observes Octo's own applies. |
+| `aws-codebuild-cicd` + `aws-codepipeline-cicd` | `pipeline` (model exists)                                          | Finally gives `Pipeline.instructionSet` meaning: build projects, pipeline stages, source hooks. This is *app* CI/CD provisioning — distinct from Octo's run history (III.9), which records Octo's own applies.                         |
 
 ## Wave B — Data & compute expansion (group 3)
 
@@ -106,7 +105,7 @@ Small, self-contained, high leverage — most later modules consume these anchor
 | Module              | Kind                       | Notes                                                                                                                                                                                                                                                                                                                                                                    |
 |---------------------|----------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `tilt-on-eks`       | dev-environment capability | The motivating example: your local dev loop running in the cluster. Provisions a dev namespace, registry access (◂ ECR image anchors), RBAC-scoped kubeconfig, and emits Tiltfile scaffolding for the user's repo. ◂ EKS. Novelty: the module's output is partly *developer-machine config*, not only cloud resources — a new module output type to design deliberately. |
-| `opa-policy`        | overlay                    | OPA sidecar/admission (on EKS) or OPA-as-authorizer for gateways; policy bundles from user repo. Also a candidate *internal* consumer: compliance rules (frontend plan 09 §9.9) could compile to OPA policies — keep the door open.                                                                                                                                      |
+| `opa-policy`        | overlay                    | OPA sidecar/admission (on EKS) or OPA-as-authorizer for gateways; policy bundles from user repo. Also a candidate *internal* consumer: compliance rules (III.11) could compile to OPA policies — keep the door open.                                                                                                                                                     |
 | `keycloak-identity` | `identity` (new kind)      | Keycloak on ECS/EKS + `database` dependency + realm/client provisioning. ▸ `OidcProviderAnchor` consumed by gateways/ALB auth rules — composes with the "auth in front of everything" feed example.                                                                                                                                                                      |
 
 ## Wave D — Observability integrations (group 5)
@@ -497,6 +496,40 @@ that is only safe one-request-per-instance stays visible while production runs o
 
 # Part III — Platform features riding on the catalog
 
+None of these is an Octo-hosted runtime the user's traffic passes through. Real teams reach every
+one of these outcomes today by changing their own infrastructure — a canary is weighted target
+groups on a load balancer, a nightly shutdown is a scheduled scale to zero. What no tool has is an
+understanding of the infrastructure good enough to apply the pattern for them. Octo has the intent
+graph, so each feature here is an industry pattern a module codes into the user's own resources.
+Three rules follow for every feature in this part:
+
+1. It is realized as model-graph changes that modules compile into the user's own resources.
+2. A change Octo makes on its own goes through the same commit → generate → apply → commit pipeline
+   as a person's: the same diff, the same review, the same record.
+3. It is optional. An app that does not use a plane does not get the features built on it.
+
+Each feature below is a definition, not a design. Each needs its own design when it is scheduled.
+
+## The three planes every feature shares
+
+- **Actuation plane (the operator).** A service holding a bot identity that edits the model code in
+  the user's repository, runs Octo's commands, and records every run. Change classes a policy
+  pre-approves — a flag's percentage ramp — commit and apply on their own; everything else becomes a
+  proposal for review. Long, multi-step changes run on a durable workflow engine.
+- **Telemetry plane.** AWS's own signals — load balancer and gateway access logs, CloudWatch metrics,
+  X-Ray — queried on demand and joined to the intent graph through the tags Octo already writes. No
+  mesh, no time-series store, no ingestion pipeline. The join from a context to the cloud resources
+  it produced is the product: nobody else can organize CloudWatch by intent. A mesh is a later step,
+  only if AWS's primitives run out.
+- **Domain event stream.** An organization's append-only record of what happened: a run started or
+  finished, a flag changed, a rollout advanced, a secret rotated, a threshold was crossed, a member
+  joined. Written by the backend's services and by the operator, so it is buildable before any
+  telemetry exists.
+
+One capability decision rides on them: **traffic splitting is ALB weighted target groups and
+listener rules.** Percentage splits, header and path routing and sticky sessions are all AWS-native,
+which covers canaries, debug-request routing and capped trace sampling without a mesh.
+
 ## III.1 Out-of-the-box advanced debugging (flame graphs, heap dumps, memory snapshots)
 
 **What it is:** any server provisioned through Octo can produce profiling artifacts without the
@@ -507,12 +540,12 @@ team building a profiling pipeline.
 - **Continuous profiling:** agent sidecar (Pyroscope/Parca-style, or language agents) enabled by
   a module input; flame graphs always available at low sampling overhead.
 - **On-demand capture:** heap dump / memory snapshot / thermal CPU profile triggered per
-  execution. The trigger is an actuation-plane action (frontend plan 09): UI button → operator
+  execution. The trigger is an actuation-plane action: a person asks → the operator
   runs the capture (SSM command via ◂ ShellAccessAnchor from Wave A) → artifact lands in a
   module-provisioned S3 diagnostics bucket with retention policy.
 - **Surfacing:** artifacts are keyed by context string → the platform UI lists them on the
   node's inspector; flame graph viewer in the FE reads from the diagnostics bucket via the BE.
-- **Composes with:** the debug-routing feature-flag flow (frontend plan 09 §9.2) — route one
+- **Composes with:** the debug-routing flag (III.3) — route one
   request to a debug-enabled execution, capture everything about it.
 
 **Flags:** per-language agent matrix is real work (start Node.js + JVM); captures on production
@@ -547,9 +580,142 @@ failure before a human reads anything. Auto-adapts as paths and logs evolve.
 **Flags:** logs contain PII → template mining must run on the user's side of the boundary or
 under explicit opt-in with masking; log-scan cost must be bounded (sample successful requests,
 don't read everything); step 3+ needs the telemetry plane and the event stream (deploy markers)
-from the platform plan. This feature is far downstream — but step 1 (correlation convention) is
+(the planes, above). This feature is far downstream — but step 1 (correlation convention) is
 cheap and should be baked into every Wave A/B module from day one, because retrofitting it is
 painful.
+
+## III.3 Traffic splitting and infrastructure flags
+
+**What it is:** flags that live in the infrastructure, two kinds through one mechanism — both are
+intent changes, so a flag flip is a commit with a model diff, reviewed and recorded like any other.
+
+- **Traffic-split flags:** a model node or overlay between two executions (working name
+  `TrafficSplit`), which a module compiles into ALB weighted target groups and listener rules. A
+  percentage change rides the operator's pre-approved lane, a commit and an apply taking minutes,
+  which keeps the generated Terraform free of drift. Targeting rules on the same node give the
+  marquee cases: a header match routes one request to a debug-enabled execution (III.1), and N % of
+  traffic goes to a trace-enabled execution, for capped full-trace sampling.
+- **Environment-variable flags:** the flag *is* a model property, an execution's
+  `environmentVariables`. Changing it is an ordinary change through the operator; nothing new in the
+  model.
+
+**Flags:** routing real traffic to a server that can be paused at a breakpoint, holding production
+data, needs an answer to who may do it before it ships. A flag that changes in under a minute needs
+something evaluating it at runtime, which is out of scope.
+
+## III.4 Rules: timers and events
+
+**What it is:** one automation engine. A *timer* is a trigger in time; an *event* is a trigger on a
+condition — a metric condition over the telemetry plane, or a CloudWatch alarm forwarded in. Either
+fires a **rule**, which makes one intent change or runs a durable workflow through the operator.
+
+- **Progressive rollout:** raise a `TrafficSplit`'s percentage, wait, check an error guard, then
+  advance or roll back.
+- **Scheduled release:** apply a prepared intent change at a set time.
+- **Nightly scale-down:** a scheduled move between two variants of the whole app's intent, beyond
+  per-service autoscaling because it acts on the entire graph.
+
+**Flag, in Octo's core:** shutting a whole app down needs a model-level notion of a *stoppable
+subset* — what scales to zero, what is destroyed, what must persist (a data store cannot be recycled
+nightly). It is a vocabulary addition, with Part I.
+
+## III.5 Flows: what a request passes through
+
+**What it is:** the infrastructure seen by traffic — the routes exposed to users, the services each
+touches, and with telemetry the latency, error rate and volume at each hop; after a change, the new
+paths and the measured before and after.
+
+- **Declared flows** need no telemetry: entry points come from the resource graph (load balancers,
+  gateways), service-to-service intent from overlays and anchors. A flow graph is one more graph
+  derived from state.
+- **Observed flows** decorate the same graph with the telemetry plane's numbers. The paths a change
+  adds are the model diff applied to the flow graph, priced by III.10.
+
+**Flag:** a latency measured before and after: yes. Predicting the latency of a path not yet
+deployed is research, and not promised.
+
+## III.6 Change feed and impact analysis
+
+**What it is:** the domain event stream as everyone's record of how the infrastructure is changing —
+what changed, which environment updated, which flag was set, what launched. Notifications are
+subscriptions to it.
+
+The deep part is **impact**: graph reachability from a change's nodes to the modules and teams that
+depend on them annotates the entry with what it may affect — auth added in front of every Redis
+warns every team whose servers call one. The first cut is direct dependents; only an intent graph
+can answer it.
+
+## III.7 Managed secrets
+
+**What it is:** secret values Octo keeps for the user — a Datadog API key, a third party's
+credentials — so a team does not stand up secret storage of its own.
+
+A secrets service in the backend: KMS envelope encryption, versioned, write-only (a value is never
+read back; only its metadata and its audit), every access on the event stream. Modules consume
+*references*; at apply Octo injects ARNs or values into task definitions or SSM in the user's
+account. Related to IV.5: a secret marked in one folder never leaving it.
+
+**Flag:** never hold a customer's long-lived AWS IAM keys. Push assume-role and OIDC federation
+instead; holding the keys multiplies a breach's reach for little gain.
+
+## III.8 Logs and metrics by intent
+
+**What it is:** infrastructure-level observability — CloudWatch, organized by the intent graph. Not a
+competitor to application monitoring: Octo re-keys AWS's platform rather than replacing it.
+
+A node or a flow resolves through the telemetry plane's join to its log groups (tail, search) and its
+metrics, queried on demand and cached. No ingestion, no time-series store. A cheap first step: the
+resource fields Octo already records that name a console page become links to it.
+
+## III.9 Run history
+
+**What it is:** a record of runs, not a runner — Terraform still deploys.
+
+- **Infrastructure runs** (primary): the operator's history — each run's plan, apply, diff and log.
+  It falls out of the actuation plane.
+- **Application pipelines** (secondary): GitHub Actions or CodeBuild runs, read only and linked, as
+  context for the feed and the AI.
+
+## III.10 Cost
+
+**What it is:** cost wherever a decision is made, since other features feed on it.
+
+- **Projected:** static analysis of the generated Terraform against a pricing catalog (Infracost is
+  prior art, and runs over Terraform, which Octo writes). It belongs on every change's review: this
+  change adds $140 a month.
+- **Actual:** AWS Cost Explorer and the Cost and Usage Report, mapped back through the tags Octo
+  writes to a cost per model node, module and environment.
+- **Per flow:** later, through allocation heuristics; not promised early.
+
+## III.11 Security and compliance analysis
+
+**What it is:** the infrastructure checked for its security posture and against a compliance regime —
+"is this HIPAA compliant?" Kept coarse until it is scheduled.
+
+The same shape as projected cost: **static analysis over the graphs**. A framework (HIPAA, SOC 2,
+CIS AWS) is a rule set evaluated against the model and resource graphs — encryption at rest on every
+storage node, public subnets reaching data stores, audit logging on, only BAA-eligible services.
+Findings are keyed by context, and each links to the industry-standard fix, which Octo can code as a
+proposed intent change through the operator. Lean on checkov- and tfsec-style engines over the
+generated Terraform, plus model-level rules those tools cannot express; the rules could compile to
+`opa-policy` (Wave C).
+
+**Open:** which frameworks first; whether a finding blocks an apply or only informs; drift checks
+at runtime or static analysis only.
+
+## III.12 AI over the whole record
+
+**What it is:** the consumer of everything above — state, events, telemetry, cost and findings, all
+keyed by context, which makes them one joinable, grounded corpus. In order: questions answered over
+state; scheduled reports; commentary on anomalies ("errors on flow X rose after commit Y, which
+changed Z"); and suggestions that become proposals through the operator — through review, never
+around it. The catalog is its action space (see "Why this catalog matters").
+
+## III.13 Designing infrastructure by editing intent
+
+**What it is:** a person edits the intent graph directly, constrained by Octo's typed vocabulary, and
+the edit becomes a proposal for review that the operator carries out. It waits on a stable surface
+for proposing a change to a project's intent.
 
 ---
 
@@ -892,7 +1058,15 @@ declaration instead of naming the gap.
 5. **Wave D** — after the anchor contracts from A/B are stable; Datadog first, New Relic proves
    the contract, ELK last (largest composite).
 6. **Part III** — III.1 after Wave A (`aws-ssh`) + actuation plane; III.2 steps 2–5 after the
-   telemetry plane; step 1 immediately (convention, not a system).
+   telemetry plane; step 1 immediately (convention, not a system). The rest in this order:
+   tag discipline and projected cost (III.10), static and cheap; the event stream and the feed
+   (III.6), needing no telemetry; the operator's smallest end-to-end proof — an environment-variable
+   flag changed, committed, applied and recorded (III.3), the keystone of the whole part; declared
+   flows, then observed ones (III.5); traffic-split flags (III.3); rules and rollouts (III.4);
+   secrets (III.7), in parallel, after a security review; security and compliance (III.11), once
+   the graphs and the generated Terraform are stable inputs; logs, metrics and actual cost (III.8,
+   III.10); the AI (III.12) on top of all of it. III.9 falls out of the operator, and III.13 waits on
+   a stable surface for proposing a change.
 7. **IV.1** — after Wave B's EKS family. A separate product layer, sequenced outside octo.
 8. **IV.2** — demand-driven: it is worth nothing until a team with an existing estate wants in,
    and worth everything the day one does. Design its state-rewriting step with Part I.

@@ -58,10 +58,37 @@ resources with `uniqueProperties` move. Decide whether the app name belongs in t
 - Archiving at release reads every journal file whole into memory (`StateManagementService.unlockApp`
   through `getState`), the Terraform log included. Every other path copies the log by its path.
 
+## To decide: whether a run reads its state by its lock
+
+The backend's `GET /lock/:lockId` (`getStateByLock`, 3 credits) answers the record a live lock is
+writing, for the lock's holder or an administrator. No client calls it: not `RemoteStateProvider`,
+not the web app, only the backend's own end-to-end suite.
+
+`RemoteStateProvider.resumeAppLock` reaches the same record in two requests instead: `GET /locks`
+(2 credits) to find the lock's commit and confirm it is held, then `GET /commit/:commitId/files`
+(3 credits) for the record and its files — 5 credits. Swapping the first for `GET /lock/:lockId`
+saves nothing, since it answers the record without its files and costs 3. It saves a request and
+2 credits only if the backend answers the record **and its files** by lock, as
+`GET /commit/:commitId/files` does, with a 404 for a lock not held that is told apart from a record
+nothing was written to yet. The other reads of `GET /locks` need every lock, to name a conflicting
+holder or see whether any is held, and gain nothing.
+
+Decide whether Octo resumes by lock, and the backend widens the endpoint to answer the files, or
+the backend removes it.
+
 ## To do: switch state providers safely
 
 Rahul 2026-10-11: a user must be able to move between state providers — local, remote, and back —
 safely. There is no path for it today.
+
+## To do: a bucket cannot be given a CORS rule
+
+`S3Storage` and `S3Website` take no CORS rule, and nor does any module over them; only CloudFront's
+response headers policy knows CORS. A page on another origin that reads a bucket directly — through
+a presigned URL, say — is refused by the browser, and the rule has to be set outside Octo. Add
+`corsRules` to `AwsS3StorageServiceModule` and `S3Storage`, provisioned as
+[`aws_s3_bucket_cors_configuration`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_cors_configuration)
+once the bucket has a rule, and updated in place when the rules change.
 
 ## To do: create-app and the templates have drifted apart
 
@@ -79,6 +106,30 @@ Still to rework, as the rest of the repository docs were on 2026-10-14:
 - `docs/DOCUMENTATION-STANDARDS.md`, with the `apps/octo-docs` pass it governs.
 - The open plans, `docs/module-catalog-plan.md` and `docs/serverless-backend-plan.md`: verify each
   against `main` and delete what is done.
+
+## To do: publish the shapes Octo writes
+
+Octo exports TypeScript types for what it writes, but nothing a consumer can check a file against.
+`octo-frontend-web`'s app and its libraries draw `models.json`, `resources-actual.json`,
+`resources-old.json`, the journals, the Terraform log, and the events and errors a command records.
+Each reads a file and casts it to Octo's type, so a fixture written by hand, an older file, or a
+type that moved ahead of what Octo writes (as `createdBy` did) passes the typecheck and is wrong.
+
+Publish each shape Octo writes, versioned with the package, as something a consumer validates data
+against: the state files, each journal and its entries, the Terraform log, and every event and error
+a command can record. A consumer then checks its fixtures and the files it is given against the
+shape it draws, and a change to one is a change to the published contract.
+
+## To do: write every timestamp as a Unix timestamp
+
+An event's header carries `Date.now()`, but the journal turns it into an ISO string on the way out:
+a journal entry's `time` and the journal's `startedAt` in `journal.event.listener.ts`, a `Date` in a
+payload through `JournalUtility`, and a lock record's `startedAt` in `LocalStateProvider`. A
+consumer, `octo-frontend-web` among them, then parses a string to get back the instant Octo had.
+
+Write every timestamp Octo records as Unix time in milliseconds, as the event header already is,
+and leave the time zone to whoever displays it. `TimestampUtility` formats a time for the text
+report and stays. An id that embeds a time, such as a commit id, is an id and stays.
 
 ## To explore: every e2e written in `octo.yaml`
 
