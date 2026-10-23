@@ -1,3 +1,9 @@
 #!/bin/sh
+set -e
 
-npm run lint
+pnpm run format:check
+pnpm run lint
+pnpm run build
+pnpm run check:circular-dependency
+pnpm --filter @quadnix/octo-templates run test:secrets
+pnpm run check:docs-code

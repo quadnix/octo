@@ -56,6 +56,12 @@
   "targetDefaults": {
     "build": {
       "dependsOn": ["^build"]
+    },
+    "check:circular-dependency": {
+      "dependsOn": ["build"]
+    },
+    "check:types": {
+      "dependsOn": ["^build"]
     }
   },
   "tasksRunnerOptions": {

@@ -12,7 +12,6 @@ import importPlugin from 'eslint-plugin-import';
 import jsdoc from 'eslint-plugin-jsdoc';
 import jsonc from 'eslint-plugin-jsonc';
 import perfectionist from 'eslint-plugin-perfectionist';
-import prettier from 'eslint-plugin-prettier';
 import spellcheck from 'eslint-plugin-spellcheck';
 import globals from 'globals';
 
@@ -146,7 +145,6 @@ export default [
       '@typescript-eslint': tseslint,
       boundaries: boundaries,
       import: importPlugin,
-      prettier,
     },
     rules: {
       '@typescript-eslint/consistent-type-imports': ['error', { fixStyle: 'inline-type-imports' }],
@@ -159,7 +157,6 @@ export default [
       '@typescript-eslint/no-unused-vars': 'off',
       '@typescript-eslint/prefer-nullish-coalescing': 'off',
       '@typescript-eslint/prefer-optional-chain': 'error',
-      'prettier/prettier': 'error',
     },
   },
 

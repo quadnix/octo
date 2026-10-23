@@ -26,7 +26,6 @@
     "eslint-plugin-jsdoc": "~62.9.0",
     "eslint-plugin-jsonc": "~2.20.1",
     "eslint-plugin-perfectionist": "~5.7.0",
-    "eslint-plugin-prettier": "~5.5.4",
     "eslint-plugin-spellcheck": "~0.0.20",
     "glob": "~11.0.3",
     "globals": "~16.3.0",
@@ -60,9 +59,11 @@
     "url": "git+https://github.com/quadnix/octo.git"
   },
   "scripts": {
-    "build": "nx run-many -t build",
+    "build": "nx run-many -t build check:types",
+    "check:circular-dependency": "nx run-many -t check:circular-dependency",
     "check:docs-code": "node apps/octo-docs/scripts/check-code-blocks.mjs",
     "format": "nx run-many -t format",
+    "format:check": "nx run-many -t format:check",
     "generate:jsdoc": "node --loader ts-node/esm utilities/generate-jsdoc.utility.ts",
     "lint": "nx run-many -t lint && pnpm run lint:root",
     "lint:fix": "nx run-many -t lint:fix",

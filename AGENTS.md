@@ -29,8 +29,7 @@ Terraform, and the user's own Terragrunt applies it. `@docs/ARCHITECTURE.md` exp
 
 1. **Plan.** Research `@packages` and `@apps/octo-docs`. Write the plan in chat and wait for
    approval. A large or hands-free task runs in a worktree, with permission (`@README.md`).
-2. **Execute.** Follow `@docs/CODING-STANDARDS.md`. Lint clean, unit tests pass, `tsc --noEmit` clean
-   on every package the change reaches.
+2. **Execute.** Follow `@docs/CODING-STANDARDS.md`. Format check, lint and build clean, unit tests pass.
 3. **Feedback.** Fold every correction into `@docs/CODING-STANDARDS.md` — only if it passes the bar
    at the top of that file. A structural fact goes to `@docs/ARCHITECTURE.md` instead. Adding or
    amending needs no permission; removing a rule does.

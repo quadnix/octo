@@ -24,7 +24,8 @@ pnpm install
 pnpm run prepare
 ```
 
-`prepare` installs the pre-commit hook, which runs lint.
+`prepare` installs the pre-commit hook, which runs the format check, lint, the build with its type
+check, the circular-dependency check, the secrets spec and the docs code-block check.
 
 ## B — Build, lint and test
 
@@ -38,11 +39,10 @@ pnpm test
 `dist`, and `octo-templates` imports `octo-aws-cdk` the same way. **Rebuild what you changed before
 testing what depends on it**, or the suite runs against the old code and still passes.
 
-Before submitting, also type-check every package the change reaches:
+`pnpm run build` also type-checks every package, tests included, through each package's
+`check:types`.
 
-```sh
-npx tsc --noEmit -p packages/<package>
-```
+`pnpm run format` writes what `pnpm run format:check` checks. Lint does not check formatting.
 
 `pnpm run lint:fix` sorts imports, members and keys. A flag passed through `pnpm run` is written
 without `--`: pnpm forwards the separator, and the script then drops the flag.

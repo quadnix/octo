@@ -191,8 +191,11 @@ versions independently.
 `major` bump as named. Nx picks the project from the files a commit touches, not from the package
 named in the subject, and the highest bump since a package's last tag wins.
 
-- **Pull Request Workflow**: title check, lint, the secrets spec, the docs code-block check, build,
-  unit tests. No integration or e2e suite runs in CI.
+- **Pre-commit hook**: format check, lint, build with its type check, circular-dependency check, the
+  secrets spec, the docs code-block check.
+- **Pull Request Workflow**: title check, format check, lint, the secrets spec, the docs code-block
+  check, build with its type check, circular-dependency check, unit tests. No integration or e2e
+  suite runs in CI.
 - **Manual Release**: build, version and tag, write the changelog, publish to npm. Dependents'
   ranges are rewritten.
 - **Manual Documentation Release** publishes `apps/octo-docs`.

@@ -66,8 +66,10 @@
   "scripts": {
     "build": "rimraf dist && tsc -p tsconfig.build.json && pnpm run copy-assets && chmod +x ./dist/index.js",
     "check:circular-dependency": "dpdm --no-tree --exit-code circular:1 --no-warning ./dist/index.js",
+    "check:types": "tsc --noEmit -p tsconfig.json",
     "copy-assets": "copyfiles -u 1 \"src/**/*.{ejs,json}\" dist/",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
     "lint": "eslint .",
     "lint:fix": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --testRegex=\"\\.spec.ts$\"",

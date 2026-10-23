@@ -57,6 +57,7 @@
   "private": true,
   "scripts": {
     "build": "docusaurus build && cp build/404.html build/error.html",
+    "check:types": "tsc",
     "clear": "docusaurus clear",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "lint": "eslint .",
@@ -73,7 +74,6 @@
     "serve": "docusaurus serve",
     "start": "docusaurus start",
     "swizzle": "docusaurus swizzle",
-    "typecheck": "tsc",
     "write-heading-ids": "docusaurus write-heading-ids",
     "write-translations": "docusaurus write-translations"
   },

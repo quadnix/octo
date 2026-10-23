@@ -508,7 +508,7 @@ alone on a line — which parses, renders, and destroys a reader's trust in the 
 code block is written by hand, from the source it quotes.
 
 ```sh
-# every typescript block parses, and none carries a formatter's damage — also runs in CI
+# every typescript block parses, and none carries a formatter's damage — also runs in the hook and CI
 pnpm run check:docs-code
 
 # wraps at 100, code blocks, table rows, and diagram node lines excluded
