@@ -24,7 +24,7 @@ interface TestEventService {
   emitAndWait(event: unknown): Promise<void>;
 }
 
-const COMMAND_FILE_NAME = /^journal\.\d{8}T\d{9}Z-[0-9a-f]{8}\.[a-z-]+\.json$/;
+const COMMAND_FILE_NAME = /^journal\.\d{13}-[0-9a-f]{8}\.[a-z-]+\.json$/;
 
 describe('JournalEventListener UT', () => {
   let eventService: TestEventService;
@@ -159,7 +159,7 @@ describe('JournalEventListener UT', () => {
       expect(logFileName).toMatch(/^journal\.[^.]+\.apply\.terraform\.json$/);
       const log = await readJson(logFileName);
       expect(log).toMatchObject({ command: 'apply', version: 1 });
-      expect(log.outputs.map(({ sequence, time, ...record }: { sequence: number; time: string }) => record)).toEqual([
+      expect(log.outputs.map(({ sequence, time, ...record }: { sequence: number; time: number }) => record)).toEqual([
         { args: ['apply'], binary: 'terragrunt', dir: '/tf', process: 1, type: 'started' },
         { process: 1, stream: 'stdout', text: 'Applying...', type: 'output' },
         { process: 1, stream: 'stderr', text: 'Error: bad', type: 'output' },

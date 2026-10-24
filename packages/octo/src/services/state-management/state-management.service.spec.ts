@@ -202,9 +202,9 @@ describe('StateManagementService UT', () => {
 
     it('should refuse a new lock over journal files of a command after lock, naming them', async () => {
       await service.saveStates([
-        { data: Buffer.from('{}'), stateFileName: 'journal.20261011T100000000Z-00000001.generate.json' },
-        { data: Buffer.from('{}'), stateFileName: 'journal.20261011T100000000Z-00000002.commit.json' },
-        { data: Buffer.from('{}'), stateFileName: 'journal.20261011T100000000Z-00000002.commit.terraform.json' },
+        { data: Buffer.from('{}'), stateFileName: 'journal.1791712800000-00000001.generate.json' },
+        { data: Buffer.from('{}'), stateFileName: 'journal.1791712800000-00000002.commit.json' },
+        { data: Buffer.from('{}'), stateFileName: 'journal.1791712800000-00000002.commit.terraform.json' },
       ]);
 
       const error = await service.lockApp().catch((e) => e);
@@ -212,15 +212,15 @@ describe('StateManagementService UT', () => {
       expect(error).toBeInstanceOf(AppLockError);
       expect(error.message).toBe(
         'State holds the journal of a run that was never archived: ' +
-          'journal.20261011T100000000Z-00000002.commit.json, journal.20261011T100000000Z-00000002.commit.terraform.json! ' +
+          'journal.1791712800000-00000002.commit.json, journal.1791712800000-00000002.commit.terraform.json! ' +
           'Move or delete these files, then lock again.',
       );
       const refusal = emitted.find((e) => e instanceof AppLockRefusedEvent) as AppLockRefusedEvent;
       expect(refusal.payload).toMatchObject({
         reason: 'unfinished',
         stateFileNames: [
-          'journal.20261011T100000000Z-00000002.commit.json',
-          'journal.20261011T100000000Z-00000002.commit.terraform.json',
+          'journal.1791712800000-00000002.commit.json',
+          'journal.1791712800000-00000002.commit.terraform.json',
         ],
       });
       await expect(stateProvider.getAppLock()).resolves.toBeUndefined();
@@ -228,9 +228,9 @@ describe('StateManagementService UT', () => {
 
     it('should take a new lock over journal files of generate, validate and lock', async () => {
       await service.saveStates([
-        { data: Buffer.from('{}'), stateFileName: 'journal.20261011T100000000Z-00000001.generate.json' },
-        { data: Buffer.from('{}'), stateFileName: 'journal.20261011T100000000Z-00000002.validate.terraform.json' },
-        { data: Buffer.from('{}'), stateFileName: 'journal.20261011T100000000Z-00000003.lock.json' },
+        { data: Buffer.from('{}'), stateFileName: 'journal.1791712800000-00000001.generate.json' },
+        { data: Buffer.from('{}'), stateFileName: 'journal.1791712800000-00000002.validate.terraform.json' },
+        { data: Buffer.from('{}'), stateFileName: 'journal.1791712800000-00000003.lock.json' },
       ]);
 
       await expect(service.lockApp()).resolves.toMatchObject({ lockId: expect.any(String) });
@@ -239,7 +239,7 @@ describe('StateManagementService UT', () => {
     it('should not check the journal when resuming a lock', async () => {
       const { lockId } = await service.lockApp();
       await service.saveStates([
-        { data: Buffer.from('{}'), stateFileName: 'journal.20261011T100000000Z-00000002.apply.json' },
+        { data: Buffer.from('{}'), stateFileName: 'journal.1791712800000-00000002.apply.json' },
       ]);
 
       await expect(service.lockApp(lockId)).resolves.toEqual({ lockId });
@@ -320,8 +320,8 @@ describe('StateManagementService UT', () => {
 
   describe('unlockApp()', () => {
     const journalFileNames = [
-      'journal.20261011T100000000Z-00000001.generate.json',
-      'journal.20261011T100000000Z-00000002.commit.json',
+      'journal.1791712800000-00000001.generate.json',
+      'journal.1791712800000-00000002.commit.json',
     ];
 
     const saveJournal = async (): Promise<void> => {

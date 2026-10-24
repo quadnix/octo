@@ -59,7 +59,7 @@ journal.<commandId>.<command>.terraform.json   Terraform and Terragrunt output
 journal.<commandId>.<command>.<md5>.json       a copy of a state file the command wrote
 ```
 
-`commandId` is a UTC timestamp plus 8 random hex, so ids sort by start. When the lock is released,
+`commandId` is the Unix time in milliseconds plus 8 random hex, so ids sort by start. When the lock is released,
 every journal file moves to `.octo/archives/<lockId>/`.
 
 ### Three packages, three lanes

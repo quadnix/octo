@@ -30,7 +30,7 @@ export class JournalUtility {
       return undefined;
     }
     if (value instanceof Date) {
-      return value.toISOString();
+      return value.getTime();
     }
     if (value instanceof Error) {
       return { message: value.message, name: value.name };

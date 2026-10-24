@@ -60,9 +60,9 @@ interface JournalEntry {
    */
   sequence: number;
   /**
-   * When the event was created, as an ISO timestamp.
+   * When the event was created, in Unix milliseconds.
    */
-  time: string;
+  time: number;
   /**
    * The event's class name, such as `CommandStartedEvent`.
    */
@@ -74,9 +74,9 @@ interface JournalEntry {
  * the record's place among the command's events, and `process` tells apart the command's processes.
  */
 type TerraformLogRecord =
-  | { args: string[]; binary: string; dir: string; process: number; sequence: number; time: string; type: 'started' }
-  | { process: number; sequence: number; stream: 'stderr' | 'stdout'; text: string; time: string; type: 'output' }
-  | { exitCode: number; process: number; sequence: number; time: string; type: 'exited' };
+  | { args: string[]; binary: string; dir: string; process: number; sequence: number; time: number; type: 'started' }
+  | { process: number; sequence: number; stream: 'stderr' | 'stdout'; text: string; time: number; type: 'output' }
+  | { exitCode: number; process: number; sequence: number; time: number; type: 'exited' };
 
 /**
  * The terraform log file a command is writing.
@@ -180,9 +180,9 @@ export class JournalEventListener {
    */
   private readonly pendingCopies = new Map<string, Buffer>();
   /**
-   * When this command started, as an ISO timestamp.
+   * When this command started, in Unix milliseconds.
    */
-  private startedAt = new Date().toISOString();
+  private startedAt = Date.now();
   /**
    * The terraform log file this command is writing, opened at its first record.
    */
@@ -208,10 +208,10 @@ export class JournalEventListener {
   }
 
   /**
-   * A new command id: a UTC timestamp to the millisecond, then 8 random hex.
+   * A new command id: the Unix time in milliseconds, then 8 random hex.
    */
   private static createCommandId(): string {
-    return `${new Date().toISOString().replace(/[-:.]/g, '')}-${randomBytes(4).toString('hex')}`;
+    return `${Date.now()}-${randomBytes(4).toString('hex')}`;
   }
 
   /**
@@ -479,7 +479,7 @@ export class JournalEventListener {
       name: event.name,
       payload: undefined,
       sequence: event.header.sequence,
-      time: new Date(event.header.timestamp).toISOString(),
+      time: event.header.timestamp,
       type: event.constructor.name,
     };
 
@@ -578,7 +578,7 @@ export class JournalEventListener {
       this.commandId = JournalEventListener.createCommandId();
       this.entries = [];
       this.isWritten = undefined;
-      this.startedAt = new Date().toISOString();
+      this.startedAt = Date.now();
       this.writtenCopies.clear();
       void this.closeTerraformLog();
       process.env[COMMAND_ID_VARIABLE_NAME] = this.commandId;

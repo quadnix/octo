@@ -35,13 +35,14 @@ describe('JournalUtility UT', () => {
       expect(
         JournalUtility.toPlain({
           bytes: Buffer.from('a'),
+          // eslint-disable-next-line no-restricted-syntax
           date: new Date(0),
           error: new Error('bad'),
           map: new Map([['a', new Set([1])]]),
         }),
       ).toEqual({
         bytes: undefined,
-        date: '1970-01-01T00:00:00.000Z',
+        date: 0,
         error: { message: 'bad', name: 'Error' },
         map: { a: [1] },
       });

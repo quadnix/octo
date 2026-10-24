@@ -91,11 +91,11 @@ Each command writes its files into `.octo/`, named after the command and an ID t
 time the command started, so they sort in order. After `generate`, `validate` and `lock`:
 
 ```text
-journal.20261011T041723700Z-a690d91d.generate.f793c0d6cea01dba9aa521449489482f.json
-journal.20261011T041723700Z-a690d91d.generate.json
-journal.20261011T041724187Z-30dd727f.validate.json
-journal.20261011T041724187Z-30dd727f.validate.terraform.json
-journal.20261011T041733700Z-032b3e64.lock.json
+journal.1791692243700-a690d91d.generate.f793c0d6cea01dba9aa521449489482f.json
+journal.1791692243700-a690d91d.generate.json
+journal.1791692244187-30dd727f.validate.json
+journal.1791692244187-30dd727f.validate.terraform.json
+journal.1791692253700-032b3e64.lock.json
 ```
 
 | File                                    | Holds                                                                |
@@ -121,11 +121,11 @@ next `lock`, and when that lock is released, everything moves into a folder name
 
 ```text
 .octo/archives/5bbc6995-66eb-4252-9ccd-169d469522b0/
-├── journal.20261011T041723700Z-a690d91d.generate.json
-├── journal.20261011T041724187Z-30dd727f.validate.json
-├── journal.20261011T041733700Z-032b3e64.lock.json
-├── journal.20261011T041737972Z-3e0cd513.apply.json
-├── journal.20261011T041747354Z-d74b1acd.commit.json
+├── journal.1791692243700-a690d91d.generate.json
+├── journal.1791692244187-30dd727f.validate.json
+├── journal.1791692253700-032b3e64.lock.json
+├── journal.1791692257972-3e0cd513.apply.json
+├── journal.1791692267354-d74b1acd.commit.json
 └── ...
 ```
 
@@ -188,7 +188,7 @@ change while `.octo/` holds a journal file of a command that only runs under a l
 held:
 
 ```text
-Error: State holds the journal of a run that was never archived: journal.20261011T042121268Z-593d89e5.commit.json! Move or delete these files, then lock again.
+Error: State holds the journal of a run that was never archived: journal.1791692481268-593d89e5.commit.json! Move or delete these files, then lock again.
 ```
 
 Move the files it names somewhere you want to keep them, or delete them, and lock again.
