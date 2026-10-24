@@ -200,7 +200,7 @@ export class RemoteStateProvider implements IStateProvider {
       const lockFile = await this.readLockFile();
 
       // Take the lock, naming a commit no run has used, since a sealed commit cannot be locked again.
-      const commitId = `${new Date().toISOString().replace(/[-:.]/g, '')}-${randomBytes(4).toString('hex')}`;
+      const commitId = `${Date.now()}-${randomBytes(4).toString('hex')}`;
       const response = await HttpUtility.sendJson(`${this.appStateUrl()}/lock`, {
         body: { commitId, context: this.lockContext, scope: APP_LOCK_SCOPE },
         headers: this.authorizationHeader(),
@@ -210,9 +210,10 @@ export class RemoteStateProvider implements IStateProvider {
         const message = await HttpUtility.readErrorMessage(response);
         const [holder] = response.status === 409 ? await this.readAppLocks() : [];
         if (holder) {
+          const heldFor = this.describeAge(holder.takenAt);
           throw new AppLockError(
-            `App already locked with lock ID "${holder.lockId}", taken by "${holder.context}" ` +
-              `since ${new Date(holder.takenAt).toISOString()}!`,
+            `App already locked with lock ID "${holder.lockId}", taken by "${holder.context}"` +
+              `${heldFor ? `, held for ${heldFor}` : ''}!`,
             {
               holder: {
                 commitId: holder.commitId,
@@ -386,6 +387,32 @@ export class RemoteStateProvider implements IStateProvider {
    */
   private async deleteLockFile(): Promise<void> {
     await rm(join(this.localStateDirectoryPath, LOCK_FILE_NAME), { force: true });
+  }
+
+  /**
+   * How long the lock has been held, as a short readable span. Undefined when the recorded time
+   * cannot be read as one, so a broken value is left out rather than reported as a negative age.
+   */
+  private describeAge(takenAt: number): string | undefined {
+    const heldForMs = Date.now() - takenAt;
+    if (!Number.isFinite(heldForMs) || heldForMs < 0) {
+      return undefined;
+    }
+
+    const seconds = Math.floor(heldForMs / 1000);
+    if (seconds < 60) {
+      return `${seconds}s`;
+    }
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) {
+      return `${minutes}m`;
+    }
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) {
+      return `${hours}h ${minutes % 60}m`;
+    }
+
+    return `${Math.floor(hours / 24)}d ${hours % 24}h`;
   }
 
   /**

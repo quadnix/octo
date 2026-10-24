@@ -55,7 +55,7 @@ describe('LocalStateProvider UT', () => {
     // How long it has been held is what says whether the holder is still working, which is the one
     // question a person answers before finishing the run through its lock.
     it('should report how long the lock has been held', async () => {
-      const startedAt = new Date(Date.now() - (4 * 60 * 60 * 1000 + 12 * 60 * 1000)).toISOString();
+      const startedAt = Date.now() - (4 * 60 * 60 * 1000 + 12 * 60 * 1000);
       await writeFile(join(__dirname, 'local-state.lock'), JSON.stringify({ lockId: 'a-held-lock-id', startedAt }));
 
       await expect(localStateProvider.lockApp()).rejects.toThrow(

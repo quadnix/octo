@@ -113,14 +113,14 @@ async function startBackend(backend: Backend): Promise<{ close: () => Promise<vo
       if (backend.states.find((s) => s.commitId === commitId)?.phase === 'commit') {
         refuse(409, `Commit "${commitId}" is already sealed!`);
       } else if (backend.locks.length > 0) {
-        refuse(409, `App lock conflicts on "app", held since ${new Date(0).toISOString()}!`);
+        refuse(409, 'App lock conflicts on "app"!');
       } else {
         const lock = {
           commitId,
           context,
           lockId: `${'a'.repeat(63)}${backend.requests.length % 10}`,
           scope,
-          takenAt: 0,
+          takenAt: Date.now(),
           takenBy: 'an-account',
         };
         backend.locks.push(lock);
@@ -342,10 +342,15 @@ describe('RemoteStateProvider UT', () => {
       const { lockId } = await remoteStateProvider.lockApp();
 
       await expect(build(otherLocalStateDirectoryPath).lockApp()).rejects.toThrow(
-        `App already locked with lock ID "${lockId}", taken by "a-context" since ${new Date(0).toISOString()}!`,
+        `App already locked with lock ID "${lockId}", taken by "a-context", held for 0s!`,
       );
       await expect(build(otherLocalStateDirectoryPath).lockApp()).rejects.toMatchObject({
-        holder: { commitId: backend.locks[0].commitId, context: 'a-context', lockId, takenAt: 0 },
+        holder: {
+          commitId: backend.locks[0].commitId,
+          context: 'a-context',
+          lockId,
+          takenAt: backend.locks[0].takenAt,
+        },
         reason: 'held',
       });
     });
@@ -375,7 +380,7 @@ describe('RemoteStateProvider UT', () => {
       await remoteStateProvider.unlockApp(firstLockId);
       await remoteStateProvider.lockApp();
 
-      expect(backend.locks[0].commitId).toMatch(/^\d{8}T\d{9}Z-[0-9a-f]{8}$/);
+      expect(backend.locks[0].commitId).toMatch(/^\d{13}-[0-9a-f]{8}$/);
       expect(backend.requests.filter((r) => r === 'POST /lock')).toHaveLength(2);
     });
 

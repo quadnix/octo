@@ -224,8 +224,8 @@ again; the second report is exact.
 
 Another run holds the lock. The message names it and says how long it has been held, which is what
 separates a run still working from one that died: seconds mean wait, hours on a job that takes
-minutes mean nobody is coming. With `RemoteStateProvider` the message says who took it and when
-instead, as `taken by "octo on ci-runner" since ...`.
+minutes mean nobody is coming. With `RemoteStateProvider` the message also says who took it, as
+`taken by "octo on ci-runner", held for 4h 12m`.
 
 A run that died is finished through its lock, never released:
 [Recovering a Failed Run](/docs/using-octo/recovering-a-failed-run#the-run-died) has the steps.

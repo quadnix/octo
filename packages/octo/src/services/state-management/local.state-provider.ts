@@ -10,7 +10,7 @@ import type { IStateProvider } from './state-provider.interface.js';
  */
 interface AppLockRecord {
   lockId: string;
-  startedAt?: string;
+  startedAt?: number;
 }
 
 /**
@@ -119,19 +119,17 @@ export class LocalStateProvider implements IStateProvider {
 
     // Take the lock with an exclusive create, so of two runs racing for it exactly one wins.
     const newLockId = randomUUID();
-    const record: AppLockRecord = { lockId: newLockId, startedAt: new Date().toISOString() };
+    const record: AppLockRecord = { lockId: newLockId, startedAt: Date.now() };
     try {
       await writeFile(this.lockFilePath, JSON.stringify(record), { flag: 'wx' });
     } catch (error) {
       if (error.code === 'EEXIST') {
         const holder = await this.readLock();
-        const heldFor = holder?.startedAt ? this.describeAge(holder.startedAt) : undefined;
+        const heldFor = holder?.startedAt === undefined ? undefined : this.describeAge(holder.startedAt);
         throw new AppLockError(
           `App already locked with lock ID "${holder?.lockId}"${heldFor ? `, held for ${heldFor}` : ''}!`,
           {
-            holder: holder
-              ? { lockId: holder.lockId, takenAt: holder.startedAt ? Date.parse(holder.startedAt) : undefined }
-              : undefined,
+            holder: holder ? { lockId: holder.lockId, takenAt: holder.startedAt } : undefined,
             reason: 'held',
           },
         );
@@ -191,8 +189,8 @@ export class LocalStateProvider implements IStateProvider {
    * How long the lock has been held, as a short readable span. Undefined when the recorded time
    * cannot be read as one, so a broken value is left out rather than reported as a negative age.
    */
-  private describeAge(startedAt: string): string | undefined {
-    const heldForMs = Date.now() - Date.parse(startedAt);
+  private describeAge(startedAt: number): string | undefined {
+    const heldForMs = Date.now() - startedAt;
     if (!Number.isFinite(heldForMs) || heldForMs < 0) {
       return undefined;
     }
