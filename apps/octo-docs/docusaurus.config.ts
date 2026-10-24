@@ -78,6 +78,7 @@ const config: Config = {
   projectName: 'Octo',
   themeConfig: {
     footer: {
+      // eslint-disable-next-line no-restricted-syntax
       copyright: `Copyright © ${new Date().getFullYear()} Quadnix.`,
       links: [
         {

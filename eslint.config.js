@@ -22,6 +22,16 @@ const dictionarySkipWords = readFileSync(__dirname + '/dictionary.dic')
   .toString()
   .split('\n');
 
+const TIME_MESSAGE = 'An instant is Unix milliseconds, from Date.now(). Only a leaf turns one into a date.';
+const TIME_PROPERTIES = [
+  { message: TIME_MESSAGE, object: 'Date', property: 'parse' },
+  { message: TIME_MESSAGE, object: 'Date', property: 'UTC' },
+  { message: TIME_MESSAGE, object: 'Intl', property: 'DateTimeFormat' },
+];
+const TIME_SYNTAX = [
+  { message: TIME_MESSAGE, selector: ":matches(NewExpression, CallExpression) > Identifier[name='Date']" },
+];
+
 export default [
   // Base JavaScript config
   js.configs.recommended,
@@ -85,6 +95,8 @@ export default [
       'max-len': ['error', { code: 120, ignoreStrings: true }],
       'no-async-promise-executor': 'off',
       'no-duplicate-imports': ['error', { includeExports: true }],
+      'no-restricted-properties': ['error', ...TIME_PROPERTIES],
+      'no-restricted-syntax': ['error', ...TIME_SYNTAX],
       'no-unused-vars': 'off',
       'perfectionist/sort-classes': [
         'error',

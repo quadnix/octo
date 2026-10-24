@@ -7,7 +7,7 @@ item here.
 
 ---
 
-## To fix: the documentation site returns 404 to crawlers
+## 1. To fix: the documentation site returns 404 to crawlers
 
 Every clean URL on octo.quadnix.com (`/docs/introduction`, `/blog`, `/api`) answers **HTTP 404** with
 the "Page Not Found" HTML; only `…/index.html` answers 200. A browser hydrates the real page, so
@@ -18,7 +18,7 @@ The S3 REST origin behind CloudFront does not resolve a directory to its `index.
 a CloudFront Function rewriting `/path/` to `/path/index.html`, Docusaurus `trailingSlash`, or the S3
 website endpoint as origin — because every site served this way has the same problem.
 
-## To fix: a failed apply can lose the provider a folder still needs
+## 2. To fix: a failed apply can lose the provider a folder still needs
 
 A folder keeps the provider block of an account or region it no longer uses until the next commit.
 If the apply in between fails partway and is committed anyway, the commit records only the providers
@@ -26,7 +26,7 @@ still in use, the next generate drops the old one, and Terraform refuses to plan
 configuration not present`. Commit should keep a recorded provider while Terraform state still holds
 anything of it.
 
-## To check: a rename may recreate an ECS service or security group under its own name
+## 3. To check: a rename may recreate an ECS service or security group under its own name
 
 Renaming anything a resource sits under changes its `resourceId`. Octo turns that into a `moved`
 block only for classes with `uniqueProperties`. `EcsService` and `SecurityGroup` have none, so a
@@ -37,13 +37,13 @@ subnet's `subnetName` and the app's `name`; none has been applied.
 Apply one live. If it fails, declare `uniqueProperties` on both (service name within its cluster,
 group name within its VPC).
 
-## To decide: renaming the app rebuilds the whole stack
+## 4. To decide: renaming the app rebuilds the whole stack
 
 The app's name is in every resource's scope, so renaming it changes every id. In the ECS server
 template it plans destroying and recreating the VPC, subnets, NAT gateway, ALB and service; only
 resources with `uniqueProperties` move. Decide whether the app name belongs in the scope.
 
-## To decide: the journal's limits on remote state
+## 5. To decide: the journal's limits on remote state
 
 - Journal files ride in the same save as Terraform state and count toward the backend's limits
   (20 MB a file, 1000 files a write, 100 MB in all). One over a limit fails that save and the command.
@@ -58,7 +58,7 @@ resources with `uniqueProperties` move. Decide whether the app name belongs in t
 - Archiving at release reads every journal file whole into memory (`StateManagementService.unlockApp`
   through `getState`), the Terraform log included. Every other path copies the log by its path.
 
-## To decide: whether a run reads its state by its lock
+## 6. To decide: whether a run reads its state by its lock
 
 The backend's `GET /lock/:lockId` (`getStateByLock`, 3 credits) answers the record a live lock is
 writing, for the lock's holder or an administrator. No client calls it: not `RemoteStateProvider`,
@@ -76,12 +76,12 @@ holder or see whether any is held, and gain nothing.
 Decide whether Octo resumes by lock, and the backend widens the endpoint to answer the files, or
 the backend removes it.
 
-## To do: switch state providers safely
+## 7. To do: switch state providers safely
 
 Rahul 2026-10-11: a user must be able to move between state providers — local, remote, and back —
 safely. There is no path for it today.
 
-## To do: a bucket cannot be given a CORS rule
+## 8. To do: a bucket cannot be given a CORS rule
 
 `S3Storage` and `S3Website` take no CORS rule, and nor does any module over them; only CloudFront's
 response headers policy knows CORS. A page on another origin that reads a bucket directly — through
@@ -90,7 +90,7 @@ a presigned URL, say — is refused by the browser, and the rule has to be set o
 [`aws_s3_bucket_cors_configuration`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_cors_configuration)
 once the bucket has a rule, and updated in place when the rules change.
 
-## To do: create-app and the templates have drifted apart
+## 9. To do: create-app and the templates have drifted apart
 
 `octo create-app` keeps its own `.ejs` copies of three templates (`aws-dynamodb-service`,
 `aws-ecs-server`, `aws-s3-website`) and hardcodes them as its `--template` choices. `octo-templates`
@@ -99,7 +99,7 @@ choices from `octo-templates`, or remove `--template`.
 
 Either way, open a **use cases** section in `apps/octo-docs`, one page per use case.
 
-## To do: finish the repository docs rework
+## 10. To do: finish the repository docs rework
 
 Still to rework, as the rest of the repository docs were on 2026-10-14:
 
@@ -107,7 +107,7 @@ Still to rework, as the rest of the repository docs were on 2026-10-14:
 - The open plans, `docs/module-catalog-plan.md` and `docs/serverless-backend-plan.md`: verify each
   against `main` and delete what is done.
 
-## To do: publish the shapes Octo writes
+## 11. To do: publish the shapes Octo writes
 
 Octo exports TypeScript types for what it writes, but nothing a consumer can check a file against.
 `octo-frontend-web`'s app and its libraries draw `models.json`, `resources-actual.json`,
@@ -120,32 +120,21 @@ against: the state files, each journal and its entries, the Terraform log, and e
 a command can record. A consumer then checks its fixtures and the files it is given against the
 shape it draws, and a change to one is a change to the published contract.
 
-## To do: write every timestamp as a Unix timestamp
-
-An event's header carries `Date.now()`, but the journal turns it into an ISO string on the way out:
-a journal entry's `time` and the journal's `startedAt` in `journal.event.listener.ts`, a `Date` in a
-payload through `JournalUtility`, and a lock record's `startedAt` in `LocalStateProvider`. A
-consumer, `octo-frontend-web` among them, then parses a string to get back the instant Octo had.
-
-Write every timestamp Octo records as Unix time in milliseconds, as the event header already is,
-and leave the time zone to whoever displays it. `TimestampUtility` formats a time for the text
-report and stays. An id that embeds a time, such as a commit id, is an id and stays.
-
-## To explore: every e2e written in `octo.yaml`
+## 12. To explore: every e2e written in `octo.yaml`
 
 `aws-cloudfront-website`, `aws-ecr-image` and `aws-lambda-api` drive `octo.yaml` through the CLI.
 `aws-dynamodb-service`, `aws-ecs-server`, `aws-s3-website` and the module e2es in `octo-aws-cdk`
 build modules in TypeScript through `TestModuleContainer`. Find out whether all can be written in
 `octo.yaml`, the surface users write, and what `TestModuleContainer` would still be for.
 
-## To explore: write the journal from outside the process
+## 13. To explore: write the journal from outside the process
 
 A killed `octo` process (SIGKILL, closed terminal, cancelled CI job) loses its journal entries since
 the last state save, and the running Terraform process's output. Rahul 2026-10-10: record from a
 separate process, so a dying command cannot take its journal with it. That is a redesign of how
 events leave the process.
 
-## Nice to have: lock part of the app
+## 14. Nice to have: lock part of the app
 
 Two runs on unrelated parts of the graph could hold separate locks. Today one run locks the whole
 app, and the backend could grant scoped locks but stores each commit as one snapshot of the whole
@@ -163,7 +152,7 @@ What it would take:
 - **The cloud is not the graph.** Two disjoint scopes can still collide on a security group, a
   policy, or a quota.
 
-## Parked: CodeBuild and CodePipeline
+## 15. Parked: CodeBuild and CodePipeline
 
 Branch `ai/pipeline-and-lambda` (tip `1e31b2f2`, local only). The design is unsettled;
 `docs/pipeline-and-lambda-handoff.md` on that branch says what was built and what is wrong with it.

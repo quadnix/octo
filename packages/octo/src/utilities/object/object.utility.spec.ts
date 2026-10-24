@@ -148,6 +148,7 @@ describe('Object Utility Test', () => {
     it('should return true for plain objects', () => {
       expect(ObjectUtility.isPlainObject({})).toBe(true);
       expect(ObjectUtility.isPlainObject({ key: 'value' })).toBe(true);
+      // eslint-disable-next-line no-restricted-syntax
       expect(ObjectUtility.isPlainObject(new Date())).toBe(true);
       expect(ObjectUtility.isPlainObject(new Map())).toBe(true);
       expect(ObjectUtility.isPlainObject(new Set())).toBe(true);
