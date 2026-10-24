@@ -21,6 +21,9 @@ import { PROJECT_ROOT_VARIABLE_NAME } from '../../services/terraform/terraform.t
 
 const DEFAULT_STATE_CHECK_IN_INTERVAL_IN_MS = 10 * 1000;
 const DEFAULT_TIMEOUT_IN_MS = 60 * 60 * 1000; // 60 minutes.
+const TERRAGRUNT_LOG_FORMAT =
+  // eslint-disable-next-line spellcheck/spell-checker
+  "%level(case=upper,width=6) %prefix(path=short-relative,prefix='[',suffix='] ')%tf-path(suffix=': ')%msg(path=relative)";
 const TERRAFORM_STATE_FILE_NAME = 'terraform.tfstate';
 
 /**
@@ -348,6 +351,9 @@ export class TerraformUtility {
   private buildEnv(): NodeJS.ProcessEnv {
     const env = { ...process.env };
     env.TG_PROVIDER_CACHE ??= '1'; // Enable Terragrunt shared provider cache by default.
+    // Lay out Terragrunt's log lines without a time of their own.
+    delete env.TG_LOG_FORMAT;
+    env.TG_LOG_CUSTOM_FORMAT = TERRAGRUNT_LOG_FORMAT;
     // Resolves the paths a generated folder names relative to the project root. Terragrunt runs
     // terraform from a copy of the folder, so terraform cannot work the root out for itself.
     env[`TF_VAR_${PROJECT_ROOT_VARIABLE_NAME}`] ??= process.cwd();
