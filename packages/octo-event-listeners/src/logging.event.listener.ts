@@ -161,10 +161,10 @@ export class LoggingEventListener {
             (terraformInMs > 0 ? `, after ${terraformInMs}ms in terraform.` : '.'),
         );
     } else if (event instanceof ModeFailedEvent) {
-      this.reportRun(event.payload.durationInMs, event.payload.error);
+      this.reportRun(event.payload.durationInMs, event.payload.error.message);
       this.logger.log
         .withMetadata({ appName, durationInMs: event.payload.durationInMs, mode })
-        .error(`Failed "${mode}" after ${event.payload.durationInMs}ms: ${event.payload.error}`);
+        .error(`Failed "${mode}" after ${event.payload.durationInMs}ms: ${event.payload.error.message}`);
     }
   }
 

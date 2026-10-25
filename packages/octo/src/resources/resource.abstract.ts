@@ -285,7 +285,7 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
         DependencyRelationship.CHILD,
       )!;
       for (const b of sourceChildToParentDependency.synth().behaviors) {
-        childToParentDependency.addBehavior(b.onField, b.onAction, b.toField, b.forAction);
+        childToParentDependency.addBehavior(b.onField, b.onAction as DiffAction, b.toField, b.forAction as DiffAction);
       }
 
       // Clone behaviors from parent to source.
@@ -294,7 +294,7 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
         DependencyRelationship.PARENT,
       )!;
       for (const b of sourceParentToChildDependency.synth().behaviors) {
-        parentToChildDependency.addBehavior(b.onField, b.onAction, b.toField, b.forAction);
+        parentToChildDependency.addBehavior(b.onField, b.onAction as DiffAction, b.toField, b.forAction as DiffAction);
       }
     }
 

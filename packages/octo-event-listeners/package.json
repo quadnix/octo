@@ -13,7 +13,8 @@
   },
   "exports": {
     "./journal": "./dist/journal.event.listener.js",
-    "./logging": "./dist/logging.event.listener.js"
+    "./logging": "./dist/logging.event.listener.js",
+    "./types": "./dist/index.type.js"
   },
   "files": [
     "dist",

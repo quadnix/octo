@@ -1,4 +1,4 @@
-import type { IUnknownModelAction, UnknownResource } from '../app.type.js';
+import type { IUnknownModelAction, ResourceSerializedSchema, UnknownResource } from '../app.type.js';
 import type { Diff } from '../functions/diff/diff.js';
 import type { ValidationService } from '../services/validation/validation.service.js';
 
@@ -65,7 +65,7 @@ export class AppLockError extends TransactionError {
  */
 export class DiffsOnDirtyResourcesTransactionError extends TransactionError {
   readonly diffs: ReturnType<Diff['toJSON']>[];
-  readonly dirtyResources: UnknownResource[];
+  readonly dirtyResources: ResourceSerializedSchema[];
 
   /**
    * @param message The error message.

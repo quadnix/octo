@@ -5,4 +5,4 @@ import { Event } from '../event.model.js';
  *
  * @group Events/Hooks
  */
-export class HookEvent extends Event<void> {}
+export class HookEvent extends Event<undefined> {}

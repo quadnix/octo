@@ -161,8 +161,17 @@ jq -r '.entries[].type' .octo/archives/$LOCK_ID/journal.*.commit.json | uniq -c
 The error a command failed with:
 
 ```bash
-jq -r '.entries[]? | select(.type == "CommandFailedEvent") | .payload.error' .octo/journal.*.json
+jq -r '.entries[]? | select(.type == "CommandFailedEvent") | .payload.error.message' .octo/journal.*.json
 ```
+
+Beside its `message`, an error of Octo's own carries its `className` and what it is about: an
+`AppLockError` names the `reason` and the `holder` of the lock, an error from an action names the
+action and the diff it ran for. Any other error carries only its `name`.
+
+To read these files from code, their shapes are TypeScript types:
+[`@quadnix/octo-event-listeners/types`](/api/octo-event-listeners-types) has `JournalFile` and
+`TerraformLogFile`, with each event's payload as the journal holds it, and
+[`@quadnix/octo/types`](/api/octo-types) has `ModelStateFile` and `ResourceStateFile`.
 
 The journal is gitignored in a new project, both the files in `.octo/` and `archives/`. The inputs
 each module ran with are recorded as given, so a secret passed as a module input is in the journal

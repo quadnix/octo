@@ -62,6 +62,20 @@ journal.<commandId>.<command>.<md5>.json       a copy of a state file the comman
 `commandId` is the Unix time in milliseconds plus 8 random hex, so ids sort by start. When the lock is released,
 every journal file moves to `.octo/archives/<lockId>/`.
 
+### Its shapes
+
+Every journal file has its shape in `journal.event.listener.ts`, published as
+`@quadnix/octo-event-listeners/types`; the state files it copies have theirs in
+`state-management.service.ts`, published as `@quadnix/octo/types`. The journal's shapes are derived,
+so they cannot fall behind what is written:
+
+- Each event's payload is `Plain<payload>` of its class: what `JournalUtility.toPlain` makes of it,
+  a diff with its actions, a node as its context, an error as its record.
+- An error of octo's own is recorded as its class name, message and own fields, but those
+  `OMITTED_ERROR_FIELDS` names; any other error as its name and message.
+- Only the classes in `JournalUtility.EVENT_CLASSES` and `ERROR_CLASSES` are recorded by name; a spec
+  fails when octo exports an event or an error class that is neither listed nor deliberately left out.
+
 ### Three packages, three lanes
 
 - **`JournalEventListener`** (`octo-event-listeners`) only creates files, through

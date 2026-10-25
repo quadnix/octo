@@ -57,4 +57,4 @@ export class ModeFinishedEvent extends ModeEvent<ModeEventPayload & { durationIn
  *
  * @group Events/Mode
  */
-export class ModeFailedEvent extends ModeEvent<ModeEventPayload & { durationInMs: number; error: string }> {}
+export class ModeFailedEvent extends ModeEvent<ModeEventPayload & { durationInMs: number; error: Error }> {}

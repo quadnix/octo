@@ -45,4 +45,16 @@ export default [
       ],
     },
   },
+  {
+    files: ['src/index.type.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          message: 'index.type.ts publishes types only: re-export with `export type`.',
+          selector: 'Program > :not(ExportNamedDeclaration[exportKind="type"])',
+        },
+      ],
+    },
+  },
 ];

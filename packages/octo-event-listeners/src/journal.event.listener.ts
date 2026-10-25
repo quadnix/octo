@@ -18,8 +18,6 @@ import {
   ModeFinishedEvent,
   ModeStartedEvent,
   OnEvent,
-  RegistrationEvent,
-  SerializationEvent,
   StateFilesSavedEvent,
   StateFilesSavingEvent,
   StateManagementService,
@@ -27,9 +25,7 @@ import {
   TerraformProcessOutputEvent,
   TerraformProcessStartedEvent,
 } from '@quadnix/octo';
-import { JournalUtility } from './utilities/journal/journal.utility.js';
-
-const JOURNAL_VERSION = 1;
+import { JournalUtility, type Plain } from './utilities/journal/journal.utility.js';
 
 /**
  * What closes the terraform log. Each record is written over it, followed by it again, so the file
@@ -38,50 +34,124 @@ const JOURNAL_VERSION = 1;
 const TERRAFORM_LOG_END = '\n]}\n';
 
 /**
+ * Each event a journal records, by its class name, mapped to its payload as the journal holds it. An
+ * event without a payload has none in its entry.
+ *
+ * @group Event Listeners/Journal
+ */
+export type EventPayloads = {
+  [K in keyof typeof JournalUtility.EVENT_CLASSES]: K extends 'StateFilesSavedEvent'
+    ? {
+        /**
+         * Every state file the save wrote, but the journal's own; an entry is recorded only when one is
+         * left. A file copied from a path, or deleted, has no `md5`.
+         */
+        stateFiles: { md5?: string; stateFileName: string }[];
+      }
+    : Plain<InstanceType<(typeof JournalUtility.EVENT_CLASSES)[K]>['payload']>;
+};
+
+/**
+ * What every journal file of one command starts with.
+ *
+ * @group Event Listeners/Journal
+ */
+export type JournalHeader = {
+  /**
+   * The CLI command, such as `validate`, or the mode where no command ran it.
+   */
+  command: string;
+  /**
+   * Unix milliseconds when the command started, then 8 random hex: `1767225600000-0a1b2c3d`.
+   */
+  commandId: string;
+  host: string;
+  /**
+   * The version of `@quadnix/octo` the command ran, absent when it could not be read.
+   */
+  octoVersion?: string;
+  /**
+   * The command that started this one, such as the `apply` a `run-action` ran inside.
+   */
+  parentCommandId?: string;
+  /**
+   * When the command started, in Unix milliseconds.
+   */
+  startedAt: number;
+  /**
+   * The format of the journal files.
+   */
+  version: 1;
+};
+
+/**
+ * One event of a command, as its journal holds it. Narrow on `type` to read its payload.
+ *
+ * @group Event Listeners/Journal
+ */
+export type JournalEntry = {
+  [K in keyof EventPayloads]: {
+    /**
+     * The event's subject, where its type alone does not say, such as a module's class name; empty
+     * otherwise.
+     */
+    name: string;
+    /**
+     * The event's place among every event the command's process created, shared with the terraform log.
+     */
+    sequence: number;
+    /**
+     * When the event was created, in Unix milliseconds.
+     */
+    time: number;
+    type: K;
+  } & (EventPayloads[K] extends undefined ? { payload?: undefined } : { payload: EventPayloads[K] });
+}[keyof EventPayloads];
+
+/**
+ * `journal.<commandId>.<command>.json`: every event of one command, in the order it happened.
+ *
+ * Beside it, `journal.<commandId>.<command>.<md5>.json` keeps each version of `models.json`,
+ * `resources-actual.json`, `resources-old.json` or an external resource's record the command wrote,
+ * named by the MD5 of its contents, as its `StateFilesSavedEvent` entry names it.
+ *
+ * @group Event Listeners/Journal
+ */
+export type JournalFile = JournalHeader & {
+  entries: JournalEntry[];
+};
+
+/**
+ * One record of a terraform log: a process starting, a chunk it wrote, or its exit. `process` tells
+ * apart the command's processes, and `sequence` places the record among the command's events.
+ *
+ * @group Event Listeners/Journal
+ */
+export type TerraformLogRecord =
+  | { args: string[]; binary: string; dir: string; process: number; sequence: number; time: number; type: 'started' }
+  | { process: number; sequence: number; stream: 'stderr' | 'stdout'; text: string; time: number; type: 'output' }
+  | { exitCode: number; process: number; sequence: number; time: number; type: 'exited' };
+
+/**
+ * `journal.<commandId>.<command>.terraform.json`: everything terraform and terragrunt wrote during one
+ * command, chunk by chunk, in the order it arrived.
+ *
+ * @group Event Listeners/Journal
+ */
+export type TerraformLogFile = JournalHeader & {
+  outputs: TerraformLogRecord[];
+};
+
+/**
  * The environment variable naming the command a process runs, set for the processes it starts. A
  * `run-action` that terraform starts mid-apply reads it as the command that started it.
  */
 const COMMAND_ID_VARIABLE_NAME = 'OCTO_JOURNAL_COMMAND_ID';
 
 /**
- * One event, as the journal holds it.
- */
-interface JournalEntry {
-  /**
-   * The event's subject, where its type alone does not say, such as a module's class name.
-   */
-  name: string;
-  /**
-   * The event's data, as plain JSON.
-   */
-  payload: unknown;
-  /**
-   * The event's place among every event this process created.
-   */
-  sequence: number;
-  /**
-   * When the event was created, in Unix milliseconds.
-   */
-  time: number;
-  /**
-   * The event's class name, such as `CommandStartedEvent`.
-   */
-  type: string;
-}
-
-/**
- * One record of the terraform log: a process starting, a chunk it wrote, or its exit. `sequence` is
- * the record's place among the command's events, and `process` tells apart the command's processes.
- */
-type TerraformLogRecord =
-  | { args: string[]; binary: string; dir: string; process: number; sequence: number; time: number; type: 'started' }
-  | { process: number; sequence: number; stream: 'stderr' | 'stdout'; text: string; time: number; type: 'output' }
-  | { exitCode: number; process: number; sequence: number; time: number; type: 'exited' };
-
-/**
  * The terraform log file a command is writing.
  */
-interface TerraformLogFile {
+interface OpenTerraformLog {
   /**
    * The temporary directory holding the file, removed with it.
    */
@@ -186,7 +256,7 @@ export class JournalEventListener {
   /**
    * The terraform log file this command is writing, opened at its first record.
    */
-  private terraformLog: TerraformLogFile | undefined;
+  private terraformLog: OpenTerraformLog | undefined;
   /**
    * The last change to the terraform log queued, so the next one waits for it.
    */
@@ -272,10 +342,15 @@ export class JournalEventListener {
 
   /**
    * Adds a record to the terraform log, opening it at the first. Each is written over the end of the
-   * file, followed by the end again, so the file stays valid JSON.
+   * file, followed by the end again, so the file stays valid JSON. Nothing is recorded before a command
+   * is named, since a journal is only written for a command.
    */
   private appendTerraformLog(record: TerraformLogRecord): void {
-    const header = this.buildHeader();
+    if (!this.command) {
+      return;
+    }
+
+    const header = this.buildHeader(this.command);
     this.terraformLogQueue = this.terraformLogQueue
       .then(async () => {
         this.terraformLog ??= await this.openTerraformLog(header);
@@ -292,15 +367,15 @@ export class JournalEventListener {
   /**
    * What every journal file of this command starts with.
    */
-  private buildHeader(): Record<string, unknown> {
+  private buildHeader(command: string): JournalHeader {
     return {
-      command: this.command,
+      command,
       commandId: this.commandId,
       host: hostname(),
       octoVersion: this.octoVersion,
       ...(this.parentCommandId === undefined ? {} : { parentCommandId: this.parentCommandId }),
       startedAt: this.startedAt,
-      version: JOURNAL_VERSION,
+      version: 1,
     };
   }
 
@@ -313,7 +388,7 @@ export class JournalEventListener {
       return [];
     }
 
-    const header = this.buildHeader();
+    const header = this.buildHeader(this.command);
     const stateFiles: Parameters<StateManagementService['saveStates']>[0] = [
       {
         data: Buffer.from(
@@ -427,7 +502,7 @@ export class JournalEventListener {
    * Opens a new terraform log in a temporary directory, holding the header and no records, and
    * removes it if the process exits before it is closed.
    */
-  private async openTerraformLog(header: Record<string, unknown>): Promise<TerraformLogFile> {
+  private async openTerraformLog(header: JournalHeader): Promise<OpenTerraformLog> {
     const directory = await mkdtemp(join(tmpdir(), 'octo-journal-'));
     const filePath = join(directory, 'terraform.json');
     const removeOnExit = (): void => rmSync(directory, { force: true, recursive: true });
@@ -464,25 +539,26 @@ export class JournalEventListener {
   }
 
   /**
-   * Adds one event to the journal, as plain data taken the moment it arrives.
+   * Adds one event to the journal, as plain data taken the moment it arrives. An event of a class the
+   * journal does not record is left out.
    */
   private record(event: Event<unknown>): void {
-    if (
-      event instanceof RegistrationEvent ||
-      event instanceof SerializationEvent ||
-      event instanceof StateFilesSavingEvent
-    ) {
+    const { sequence, timestamp: time } = event.header;
+
+    // Keep each chunk in the terraform log rather than the journal.
+    if (event instanceof TerraformProcessOutputEvent) {
+      const { processId, stream, text } = event.payload;
+      this.appendTerraformLog({ process: processId, sequence, stream, text, time, type: 'output' });
       return;
     }
 
-    const entry: JournalEntry = {
-      name: event.name,
-      payload: undefined,
-      sequence: event.header.sequence,
-      time: event.header.timestamp,
-      type: event.constructor.name,
-    };
+    const eventClass: unknown = event.constructor;
+    const type = event.constructor.name as keyof EventPayloads;
+    if (JournalUtility.EVENT_CLASSES[type] !== eventClass) {
+      return;
+    }
 
+    let payload: unknown;
     if (event instanceof StateFilesSavedEvent) {
       void this.holdCopies(event.payload.stateFiles).catch((error) => this.warn(error));
 
@@ -501,48 +577,24 @@ export class JournalEventListener {
       if (stateFiles.length === 0) {
         return;
       }
-      entry.payload = { stateFiles: stateFiles.map(({ md5, stateFileName }) => ({ md5, stateFileName })) };
+      payload = {
+        stateFiles: stateFiles.map(({ md5, stateFileName }) => ({ md5, stateFileName })),
+      } satisfies EventPayloads['StateFilesSavedEvent'];
     } else if (event instanceof TerraformProcessStartedEvent) {
       // Open the process in the terraform log, and keep its place in the journal.
       const { args, binary, dir, processId } = event.payload;
-      this.appendTerraformLog({
-        args,
-        binary,
-        dir,
-        process: processId,
-        sequence: entry.sequence,
-        time: entry.time,
-        type: 'started',
-      });
-      entry.payload = { args, binary, dir, processId };
-    } else if (event instanceof TerraformProcessOutputEvent) {
-      // Keep each chunk in the terraform log rather than the journal.
-      const { processId, stream, text } = event.payload;
-      this.appendTerraformLog({
-        process: processId,
-        sequence: entry.sequence,
-        stream,
-        text,
-        time: entry.time,
-        type: 'output',
-      });
-      return;
+      this.appendTerraformLog({ args, binary, dir, process: processId, sequence, time, type: 'started' });
+      payload = { args, binary, dir, processId } satisfies EventPayloads['TerraformProcessStartedEvent'];
     } else if (event instanceof TerraformProcessExitedEvent) {
       // Close the process in the terraform log, and keep its place in the journal.
       const { exitCode, processId } = event.payload;
-      this.appendTerraformLog({
-        exitCode,
-        process: processId,
-        sequence: entry.sequence,
-        time: entry.time,
-        type: 'exited',
-      });
-      entry.payload = { exitCode, processId };
+      this.appendTerraformLog({ exitCode, process: processId, sequence, time, type: 'exited' });
+      payload = { exitCode, processId } satisfies EventPayloads['TerraformProcessExitedEvent'];
     } else {
-      entry.payload = JournalUtility.toPlain(event.payload);
+      payload = JournalUtility.toPlain(event.payload);
     }
 
-    this.entries.push(entry);
+    this.entries.push({ name: event.name, payload, sequence, time, type } as JournalEntry);
   }
 
   /**

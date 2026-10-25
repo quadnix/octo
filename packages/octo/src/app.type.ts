@@ -290,38 +290,68 @@ export type ObjectKeyValue<T> = { [K in keyof T]: { key: K; value: T[K] } }[keyo
 export type Constructable<T> = new (...args: any[]) => T;
 
 /**
- * The model graph as written to state.
+ * An anchor as written to state.
+ *
+ * @group Types
+ */
+export type AnchorSerializedOutput = {
+  anchorId: string;
+  parent: { context: string; type: `${NodeType}` };
+  properties: { [key: string]: unknown };
+};
+
+/**
+ * The model graph as written to `models.json`.
  * * `modules` record inputs before references resolve.
  *
  * @group Types
  */
 export type ModelSerializedOutput = {
-  anchors: (AnchorSchema<UnknownAnchor> & {
-    className: string;
-    location: IModelReference & { type: NodeType };
-  })[];
+  anchors: (AnchorSerializedOutput & { className: string; location: { context: string; type: `${NodeType}` } })[];
   dependencies: IDependency[];
-  models: { [p: string]: { className: string; model: IUnknownModel; moduleId: string } };
-  modules: { [p: string]: { className: string; inputs: { [p: string]: unknown } } };
-  overlays: { className: string; context: string; moduleId: string; overlay: OverlaySchema<UnknownOverlay> }[];
+  models: { [context: string]: { className: string; model: { [key: string]: unknown }; moduleId: string } };
+  modules: { [moduleId: string]: { className: string; inputs: { [key: string]: unknown } } };
+  overlays: {
+    className: string;
+    context: string;
+    moduleId: string;
+    overlay: { anchors: AnchorSerializedOutput[]; overlayId: string; properties: { [key: string]: unknown } };
+  }[];
 };
 
 /**
- * The resource graph as written to state.
+ * A resource as written to state.
+ * * `parentSchemaTranslator` is the source of the function a child reads that parent through.
+ *
+ * @group Types
+ */
+export type ResourceSerializedSchema = {
+  localResourceId: string;
+  parents: { context: string; parentSchemaTranslator?: string }[];
+  properties: { [key: string]: unknown };
+  resourceId: string;
+  response: { [key: string]: string };
+  scope: string[];
+  tags: { [key: string]: string };
+};
+
+/**
+ * The resource graph as written to `resources-actual.json` and `resources-old.json`.
  * * `createdBy` is the context of the model or overlay whose action created the resource.
  * * `models` record the context of every model and overlay whose action produced the resource.
+ *
  * @group Types
  */
 export type ResourceSerializedOutput = {
   dependencies: IDependency[];
   resources: {
-    [p: string]: {
+    [context: string]: {
       className: string;
       createdBy?: string;
       kind: 'external' | 'terraform';
       models: string[];
       moduleId: string;
-      resource: BaseResourceSchema;
+      resource: ResourceSerializedSchema;
     };
   };
 };

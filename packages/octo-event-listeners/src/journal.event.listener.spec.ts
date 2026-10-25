@@ -2,9 +2,12 @@ import { existsSync, readdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { jest } from '@jest/globals';
 import {
+  AppLockError,
+  CommandFailedEvent,
   CommandFinishedEvent,
   CommandStartedEvent,
   Container,
+  Event,
   ModeFinishedEvent,
   ModeStartedEvent,
   ModuleEvent,
@@ -14,7 +17,12 @@ import {
   TerraformProcessStartedEvent,
   TestStateProvider,
 } from '@quadnix/octo';
-import { JournalEventListener, JournalEventListenerFactory } from './journal.event.listener.js';
+import {
+  JournalEventListener,
+  JournalEventListenerFactory,
+  type JournalFile,
+  type TerraformLogFile,
+} from './journal.event.listener.js';
 
 /**
  * `EventService` is octo-internal, so it is resolved from the container by name.
@@ -112,6 +120,48 @@ describe('JournalEventListener UT', () => {
       });
     });
 
+    it('should record the error a command failed with, with the fields its class names', async () => {
+      eventService.emit(new CommandStartedEvent(undefined, { command: 'generate' }));
+      await eventService.emitAndWait(
+        new CommandFailedEvent(undefined, {
+          command: 'generate',
+          durationInMs: 1,
+          error: new AppLockError('App is locked!', { holder: { lockId: 'lock-1' }, reason: 'held' }),
+        }),
+      );
+
+      const [commandFileName] = await stateProvider.listStates('journal.');
+      const commandFile: JournalFile = await readJson(commandFileName);
+      expect(commandFile.entries.find((e) => e.type === 'CommandFailedEvent')?.payload).toEqual({
+        command: 'generate',
+        durationInMs: 1,
+        error: { className: 'AppLockError', holder: { lockId: 'lock-1' }, message: 'App is locked!', reason: 'held' },
+      });
+    });
+
+    it('should record any other error by its name and message', async () => {
+      eventService.emit(new CommandStartedEvent(undefined, { command: 'generate' }));
+      await eventService.emitAndWait(
+        new CommandFailedEvent(undefined, { command: 'generate', durationInMs: 1, error: new TypeError('bad') }),
+      );
+
+      const [commandFileName] = await stateProvider.listStates('journal.');
+      const commandFile: JournalFile = await readJson(commandFileName);
+      expect(commandFile.entries.find((e) => e.type === 'CommandFailedEvent')?.payload).toMatchObject({
+        error: { message: 'bad', name: 'TypeError' },
+      });
+    });
+
+    it('should leave out an event of a class it does not record', async () => {
+      class SomeLibraryEvent extends Event<{ value: string }> {}
+      eventService.emit(new SomeLibraryEvent(undefined, { value: 'a' }));
+      await runCommand('generate');
+
+      const [commandFileName] = await stateProvider.listStates('journal.');
+      const commandFile: JournalFile = await readJson(commandFileName);
+      expect(commandFile.entries.map((e) => e.type)).toEqual(['CommandStartedEvent', 'CommandFinishedEvent']);
+    });
+
     it('should copy each version of a graph file once, and mark every file written', async () => {
       eventService.emit(new CommandStartedEvent(undefined, { command: 'generate' }));
       await stateManagementService.saveStates([{ data: Buffer.from('{"a":1}'), stateFileName: 'models.json' }]);
@@ -157,9 +207,9 @@ describe('JournalEventListener UT', () => {
 
       const [logFileName] = (await stateProvider.listStates('journal.')).filter((n) => n.endsWith('.terraform.json'));
       expect(logFileName).toMatch(/^journal\.[^.]+\.apply\.terraform\.json$/);
-      const log = await readJson(logFileName);
+      const log: TerraformLogFile = await readJson(logFileName);
       expect(log).toMatchObject({ command: 'apply', version: 1 });
-      expect(log.outputs.map(({ sequence, time, ...record }: { sequence: number; time: number }) => record)).toEqual([
+      expect(log.outputs.map(({ sequence, time, ...record }) => record)).toEqual([
         { args: ['apply'], binary: 'terragrunt', dir: '/tf', process: 1, type: 'started' },
         { process: 1, stream: 'stdout', text: 'Applying...', type: 'output' },
         { process: 1, stream: 'stderr', text: 'Error: bad', type: 'output' },
@@ -168,6 +218,13 @@ describe('JournalEventListener UT', () => {
         { process: 2, stream: 'stdout', text: '{"a":1}', type: 'output' },
         { exitCode: 0, process: 2, type: 'exited' },
       ]);
+    });
+
+    it('should keep nothing in the terraform log before a command is named', async () => {
+      eventService.emit(new TerraformProcessOutputEvent('apply', { processId: 1, stream: 'stdout', text: 'early' }));
+      await runCommand('generate');
+
+      expect((await stateProvider.listStates('journal.')).filter((n) => n.endsWith('.terraform.json'))).toEqual([]);
     });
 
     it('should carry the terraform log as it stands at every save before the command ends', async () => {

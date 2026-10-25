@@ -183,6 +183,10 @@ assertion. `LambdaFunction` is the worked example.
 - **Export only what a consumer cannot derive.** Every export is a compatibility commitment.
 - **`packages/octo` holds no presentation.** It emits what it did; a label change ships in one
   package, never in octo.
+- **Declare the shape of what leaves the process beside the code that writes it**, and re-export it
+  from the package's `index.type.ts`.
+- **Type the writer against that shape.**
+- **Derive a shape the writer only transforms; never restate it.**
 
 ---
 

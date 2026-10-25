@@ -28,6 +28,7 @@ const config: Config = {
           {
             entry: {
               index: 'src/index.ts',
+              types: { label: 'Types', path: 'src/index.type.ts' },
             },
             includeProjectDocuments: true,
             path: 'packages/octo',
@@ -39,6 +40,15 @@ const config: Config = {
             },
             includeProjectDocuments: true,
             path: 'packages/octo-aws-cdk',
+            watchPattern: 'src/**/*.*',
+          },
+          {
+            entry: {
+              index: 'src/index.ts',
+              types: { label: 'Types', path: 'src/index.type.ts' },
+            },
+            includeProjectDocuments: true,
+            path: 'packages/octo-event-listeners',
             watchPattern: 'src/**/*.*',
           },
         ],

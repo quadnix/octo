@@ -28,13 +28,14 @@ describe('OctoUtility UT', () => {
       jest.restoreAllMocks();
     });
 
-    it('should announce the failure, report it, and exit with 1 when the command throws', async () => {
+    it('should announce the failure with the error thrown, report it, and exit with 1 when the command throws', async () => {
+      const error = new Error('App already locked!');
       await OctoUtility.runCommand('lock', async () => {
-        throw new Error('App already locked!');
+        throw error;
       });
 
       expect(emitted.map((e) => e.constructor)).toEqual([CommandStartedEvent, CommandFailedEvent]);
-      expect(emitted[1].payload).toMatchObject({ command: 'lock', error: 'App already locked!' });
+      expect(emitted[1].payload).toMatchObject({ command: 'lock', error });
       expect(console.error).toHaveBeenCalled();
       expect(processExitSpy).toHaveBeenCalledWith(1);
     });
@@ -43,7 +44,7 @@ describe('OctoUtility UT', () => {
       await OctoUtility.runCommand('validate', async () => 1);
 
       expect(emitted.map((e) => e.constructor)).toEqual([CommandStartedEvent, CommandFailedEvent]);
-      expect(emitted[1].payload).toMatchObject({ command: 'validate', error: 'Exited with code 1.' });
+      expect(emitted[1].payload).toMatchObject({ command: 'validate', error: new Error('Exited with code 1.') });
       expect(processExitSpy).toHaveBeenCalledWith(1);
     });
 

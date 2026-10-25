@@ -1,6 +1,5 @@
 import {
   type AnchorSchema,
-  type IUnknownModel,
   type ModelSerializedOutput,
   NodeType,
   type UnknownAnchor,
@@ -108,7 +107,7 @@ export class ModelSerializationService {
 
           models[context] = {
             className: `${(model.constructor as typeof ANode).NODE_PACKAGE}/${model.constructor.name}`,
-            model: model.synth() as IUnknownModel,
+            model: model.synth() as ModelSerializedOutput['models'][string]['model'],
             moduleId,
           };
         }

@@ -24,37 +24,61 @@ import {
 } from './state-provider.interface.js';
 
 /**
- * The `userData` persisted alongside the model graph in `models.json`.
+ * The `userData` written beside the model graph in `models.json`.
+ *
+ * @group Services/State Management
  */
-interface ModelStateUserData {
+export type ModelStateUserData = {
   terraformFolders?: TerraformFolderOutput[];
   version?: number;
-}
+};
 
 /**
- * The `userData` persisted alongside the resource graph in `resources-actual.json` /
+ * The `userData` written beside the resource graph in `resources-actual.json` and
  * `resources-old.json`.
  *
  * @group Services/State Management
  */
-export interface ResourceStateUserData {
+export type ResourceStateUserData = {
   terraformFolders?: TerraformFolderOutput[];
   terraformResources?: TerraformResourceOutput[];
   version?: number;
-}
+};
 
 /**
- * What an external resource's action made of it, recorded the moment the action succeeded: the
- * inputs it was given, the properties it was asked for, and the response it produced.
+ * `models.json`: the model graph as it stands after the last commit.
  *
- * It exists only between that moment and the `commit` that folds it into the resource graph, and
- * while it exists it is the truth about that resource - octo state has not caught up yet.
+ * @group Services/State Management
  */
-interface ExternalResourceState {
-  inputs: Record<string, unknown>;
-  properties: Record<string, unknown>;
-  response: Record<string, string>;
-}
+export type ModelStateFile = {
+  data: ModelSerializedOutput;
+  userData: ModelStateUserData;
+};
+
+/**
+ * `resources-actual.json`, the resource graph as it stands after the last commit, and
+ * `resources-old.json`, the resource graph as intent described it on the last commit.
+ *
+ * @group Services/State Management
+ */
+export type ResourceStateFile = {
+  data: ResourceSerializedOutput;
+  userData: ResourceStateUserData;
+};
+
+/**
+ * `resource-state-<resourceId>.json`, with each `/` of the id written as `.`: what an external
+ * resource's action made of it — the inputs it was given, the properties it was asked for, and the
+ * response it produced. It exists only between the action succeeding and the `commit` that folds it
+ * into the resource graph, and while it exists it is the truth about that resource.
+ *
+ * @group Services/State Management
+ */
+export type ExternalResourceStateFile = {
+  inputs: { [key: string]: unknown };
+  properties: { [key: string]: unknown };
+  response: { [key: string]: string };
+};
 
 /**
  * Serializes one state file.
@@ -63,11 +87,8 @@ interface ExternalResourceState {
  * reading the pull request that produced them sees which entries moved, and a merge conflict lands
  * on the entries that actually collide instead of on the whole file.
  */
-function serializeState(
-  data: ModelSerializedOutput | ResourceSerializedOutput,
-  userData: ModelStateUserData | ResourceStateUserData,
-): Buffer {
-  return Buffer.from(JSON.stringify({ data, userData }, null, 2));
+function serializeState(stateFile: ModelStateFile | ResourceStateFile): Buffer {
+  return Buffer.from(JSON.stringify(stateFile, null, 2));
 }
 
 /**
@@ -131,7 +152,7 @@ export class StateManagementService {
    *
    * @internal
    */
-  async getExternalResourceState(resourceId: string): Promise<ExternalResourceState | undefined> {
+  async getExternalResourceState(resourceId: string): Promise<ExternalResourceStateFile | undefined> {
     const recordedState = await this.getState(this.externalResourceStateFileName(resourceId), Buffer.from(''));
     return recordedState.length > 0 ? JSON.parse(recordedState.toString()) : undefined;
   }
@@ -139,11 +160,8 @@ export class StateManagementService {
   /**
    * Reads the model graph. Returns an empty graph when no state exists yet.
    */
-  async getModelState(
-    stateFileName: string,
-    { freeze = true }: { freeze?: boolean } = {},
-  ): Promise<{ data: ModelSerializedOutput; userData: ModelStateUserData }> {
-    const defaultValue: { data: ModelSerializedOutput; userData: ModelStateUserData } = {
+  async getModelState(stateFileName: string, { freeze = true }: { freeze?: boolean } = {}): Promise<ModelStateFile> {
+    const defaultValue: ModelStateFile = {
       data: {
         anchors: [],
         dependencies: [],
@@ -199,8 +217,8 @@ export class StateManagementService {
   async getResourceState(
     stateFileName: string,
     { freeze = true }: { freeze?: boolean } = {},
-  ): Promise<{ data: ResourceSerializedOutput; userData: ResourceStateUserData }> {
-    const defaultValue: { data: ResourceSerializedOutput; userData: ResourceStateUserData } = {
+  ): Promise<ResourceStateFile> {
+    const defaultValue: ResourceStateFile = {
       data: {
         dependencies: [],
         resources: {},
@@ -345,7 +363,7 @@ export class StateManagementService {
    *
    * @internal
    */
-  async saveExternalResourceState(resourceId: string, state: ExternalResourceState): Promise<void> {
+  async saveExternalResourceState(resourceId: string, state: ExternalResourceStateFile): Promise<void> {
     await this.saveStates([
       { data: Buffer.from(JSON.stringify(state)), stateFileName: this.externalResourceStateFileName(resourceId) },
     ]);
@@ -359,7 +377,7 @@ export class StateManagementService {
     data: ModelSerializedOutput,
     userData: ModelStateUserData,
   ): Promise<void> {
-    await this.saveStates([{ data: serializeState(data, userData), stateFileName }]);
+    await this.saveStates([{ data: serializeState({ data, userData }), stateFileName }]);
   }
 
   /**
@@ -370,7 +388,7 @@ export class StateManagementService {
     data: ResourceSerializedOutput,
     userData: ResourceStateUserData,
   ): Promise<void> {
-    await this.saveStates([{ data: serializeState(data, userData), stateFileName }]);
+    await this.saveStates([{ data: serializeState({ data, userData }), stateFileName }]);
   }
 
   /**

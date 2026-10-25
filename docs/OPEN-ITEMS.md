@@ -57,6 +57,9 @@ resources with `uniqueProperties` move. Decide whether the app name belongs in t
   it.
 - Archiving at release reads every journal file whole into memory (`StateManagementService.unlockApp`
   through `getState`), the Terraform log included. Every other path copies the log by its path.
+- A failed Terraform command's message carries everything the command wrote to stderr, which the
+  Terraform log already holds, so the `CommandFailedEvent` of a failed apply records that output a
+  second time.
 
 ## 6. To decide: whether a run reads its state by its lock
 
@@ -76,12 +79,24 @@ holder or see whether any is held, and gain nothing.
 Decide whether Octo resumes by lock, and the backend widens the endpoint to answer the files, or
 the backend removes it.
 
-## 7. To do: switch state providers safely
+## 7. To decide: a model's fields are not published
+
+`@quadnix/octo/types` types each model in `models.json` as `{ [key: string]: unknown }`. The fields of
+the twelve built-in models are known to Octo, but nothing in the file says which built-in model an
+entry is: `className` names the module's class, such as `@octo/AwsS3StorageService`, and only the
+first key of the context (`service=…`) gives the model away. So the Quadnix web app picks a
+service's icon by reading `type` off a model it finds by its context, a field it knows from Octo's
+source and not from the types.
+
+Decide whether `models.json` records each model's built-in kind, so `@quadnix/octo/types` can
+publish each built-in model's fields under it.
+
+## 8. To do: switch state providers safely
 
 Rahul 2026-10-11: a user must be able to move between state providers — local, remote, and back —
 safely. There is no path for it today.
 
-## 8. To do: a bucket cannot be given a CORS rule
+## 9. To do: a bucket cannot be given a CORS rule
 
 `S3Storage` and `S3Website` take no CORS rule, and nor does any module over them; only CloudFront's
 response headers policy knows CORS. A page on another origin that reads a bucket directly — through
@@ -90,7 +105,7 @@ a presigned URL, say — is refused by the browser, and the rule has to be set o
 [`aws_s3_bucket_cors_configuration`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_cors_configuration)
 once the bucket has a rule, and updated in place when the rules change.
 
-## 9. To do: create-app and the templates have drifted apart
+## 10. To do: create-app and the templates have drifted apart
 
 `octo create-app` keeps its own `.ejs` copies of three templates (`aws-dynamodb-service`,
 `aws-ecs-server`, `aws-s3-website`) and hardcodes them as its `--template` choices. `octo-templates`
@@ -99,26 +114,13 @@ choices from `octo-templates`, or remove `--template`.
 
 Either way, open a **use cases** section in `apps/octo-docs`, one page per use case.
 
-## 10. To do: finish the repository docs rework
+## 11. To do: finish the repository docs rework
 
 Still to rework, as the rest of the repository docs were on 2026-10-14:
 
 - `docs/DOCUMENTATION-STANDARDS.md`, with the `apps/octo-docs` pass it governs.
 - The open plans, `docs/module-catalog-plan.md` and `docs/serverless-backend-plan.md`: verify each
   against `main` and delete what is done.
-
-## 11. To do: publish the shapes Octo writes
-
-Octo exports TypeScript types for what it writes, but nothing a consumer can check a file against.
-`octo-frontend-web`'s app and its libraries draw `models.json`, `resources-actual.json`,
-`resources-old.json`, the journals, the Terraform log, and the events and errors a command records.
-Each reads a file and casts it to Octo's type, so a fixture written by hand, an older file, or a
-type that moved ahead of what Octo writes (as `createdBy` did) passes the typecheck and is wrong.
-
-Publish each shape Octo writes, versioned with the package, as something a consumer validates data
-against: the state files, each journal and its entries, the Terraform log, and every event and error
-a command can record. A consumer then checks its fixtures and the files it is given against the
-shape it draws, and a change to one is a change to the published contract.
 
 ## 12. To explore: every e2e written in `octo.yaml`
 

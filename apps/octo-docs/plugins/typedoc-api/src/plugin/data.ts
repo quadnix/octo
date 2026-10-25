@@ -387,15 +387,7 @@ function buildSourceFileNameMap(
   const map: Record<string, boolean> = {};
 
   Object.values(project.symbolIdMap).forEach((symbol) => {
-    const packageConfig = packageConfigs.find((p) => {
-      if (p.packageSlug === 'octo') {
-        return symbol.packageName === '@quadnix/octo';
-      } else if (p.packageSlug === 'octo-aws-cdk') {
-        return symbol.packageName === '@quadnix/octo-aws-cdk';
-      } else {
-        throw new Error(`"${p.packageSlug}" is an unknown package!`);
-      }
-    })!;
+    const packageConfig = packageConfigs.find((p) => symbol.packageName === `@quadnix/${p.packageSlug}`)!;
     map[path.normalize(path.join(packageConfig.packageRoot, packageConfig.packagePath))] = true;
   });
 

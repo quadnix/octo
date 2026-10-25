@@ -90,7 +90,7 @@ There is no way to name your own listener class from `octo.yaml` today; the defi
 
 ## The journal
 
-`JournalEventListener` records every event of every `octo` command into your state directory,
+`JournalEventListener` records every Octo event of every `octo` command into your state directory,
 failures included, along with everything Terraform printed and a copy of each state file a command
 wrote. Octo's state says what your infrastructure is now; the journal says how it got there. It is
 present when `listeners` names it, and absent otherwise, like the other two.
@@ -109,15 +109,16 @@ EventService.getInstance().emit(event);
 ```
 
 Useful from inside a module or an action when something happens that your own listeners should react
-to, and it costs nothing when nobody is listening.
+to, and it costs nothing when nobody is listening. The journal records Octo's own events only, so an
+event of yours reaches your listeners and nothing else.
 
 ## What to build on it
 
 The three that come up most, and what each needs.
 
 **A pull request comment.** Listen for `ValidateModeCompletedEvent`, take `event.payload.report`,
-and post it. The JSON the HTML listener writes alongside each page is the same data if you would
-rather parse a file than write a listener.
+and post it. The `validate` journal holds the same report in its `ValidateModeCompletedEvent` entry,
+if you would rather read a file than write a listener.
 
 **An audit trail.** The journal already is one, file by file. To send it somewhere else as it
 happens, listen for `CommandFinishedEvent` and `CommandFailedEvent`: between them you get the

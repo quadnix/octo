@@ -29,4 +29,4 @@ export class CommandFinishedEvent extends CommandEvent<{ command: string; durati
  *
  * @group Events/Command
  */
-export class CommandFailedEvent extends CommandEvent<{ command: string; durationInMs: number; error: string }> {}
+export class CommandFailedEvent extends CommandEvent<{ command: string; durationInMs: number; error: Error }> {}

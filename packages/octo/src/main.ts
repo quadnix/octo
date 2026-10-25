@@ -556,7 +556,7 @@ export class Octo {
         new ModeFailedEvent(mode, {
           ...payload,
           durationInMs: Date.now() - startedAt,
-          error: error?.message ?? String(error),
+          error: error instanceof Error ? error : new Error(String(error)),
         }),
       );
       throw error;

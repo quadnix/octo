@@ -38,6 +38,20 @@ export enum DiffAction {
 }
 
 /**
+ * A diff as it leaves the process: `node` is the context of the model, overlay or resource changed,
+ * and a `value` naming a node is its context, or `anchorId=<id>` for an anchor.
+ *
+ * @group Functions/Diff
+ */
+export type DiffSerializedOutput = {
+  action: `${DiffAction}`;
+  field: string;
+  node: string;
+  reason?: string;
+  value: unknown;
+};
+
+/**
  * One change to one field of one node.
  *
  * Diffs are the currency of Octo: comparing the graph you just described against the last committed
@@ -98,8 +112,8 @@ export class Diff<N extends UnknownNode = UnknownNode, V = unknown> {
    *
    * @internal
    */
-  toJSON(): { action: string; field: string; node: string; reason?: string; value: V | string } {
-    let value: V | string = this.value;
+  toJSON(): DiffSerializedOutput {
+    let value: unknown = this.value;
     if ((value as UnknownNode).getContext) {
       value = (value as UnknownNode).getContext();
     } else if ((value as UnknownAnchor).anchorId) {
@@ -108,7 +122,7 @@ export class Diff<N extends UnknownNode = UnknownNode, V = unknown> {
       value = value === undefined ? undefined : JSON.parse(JSON.stringify(value));
     }
 
-    const json: { action: string; field: string; node: string; reason?: string; value: V | string } = {
+    const json: DiffSerializedOutput = {
       action: this.action,
       field: this.field,
       node: this.node.getContext(),

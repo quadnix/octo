@@ -36,26 +36,15 @@ export enum DependencyRelationship {
 }
 
 /**
- * The serialized form of a {@link Dependency}, as it is written to state.
+ * The serialized form of a {@link Dependency}, as it is written to state. A behavior says that the
+ * `forAction` diff of `to`'s `toField` waits for the `onAction` diff of `from`'s `onField`.
  *
  * @group Functions/Dependency
  */
 export interface IDependency {
-  behaviors: {
-    forAction: DependencyBehavior['forAction'];
-    onAction: DependencyBehavior['onAction'];
-    onField: DependencyBehavior['onField'];
-    toField: DependencyBehavior['toField'];
-  }[];
-
+  behaviors: { forAction: `${DiffAction}`; onAction: `${DiffAction}`; onField: string; toField: string }[];
   from: string;
-
-  relationship?: {
-    onField: DependencyBehavior['onField'];
-    toField: DependencyBehavior['toField'];
-    type: DependencyRelationship;
-  };
-
+  relationship?: { onField: string; toField: string; type: `${DependencyRelationship}` };
   to: string;
 }
 
@@ -103,12 +92,16 @@ export class Dependency {
   static unSynth(from: UnknownNode, to: UnknownNode, dependency: IDependency): Dependency {
     const newDependency = new Dependency(from, to);
 
+    // Read the actions and the relationship back as the values they were written from.
     dependency.behaviors.forEach((b) => {
-      newDependency.addBehavior(b.onField, b.onAction, b.toField, b.forAction);
+      newDependency.addBehavior(b.onField, b.onAction as DiffAction, b.toField, b.forAction as DiffAction);
     });
 
     if (dependency.relationship) {
-      newDependency.relationship = { ...dependency.relationship };
+      newDependency.relationship = {
+        ...dependency.relationship,
+        type: dependency.relationship.type as DependencyRelationship,
+      };
     }
 
     return newDependency;

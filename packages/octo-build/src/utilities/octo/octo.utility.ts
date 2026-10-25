@@ -192,7 +192,7 @@ export class OctoUtility {
         new CommandFailedEvent(undefined, {
           command,
           durationInMs: Date.now() - startedAt,
-          error: error?.message ?? String(error),
+          error: error instanceof Error ? error : new Error(String(error)),
         }),
       );
       OctoUtility.reportError(error);
@@ -204,7 +204,7 @@ export class OctoUtility {
         new CommandFailedEvent(undefined, {
           command,
           durationInMs: Date.now() - startedAt,
-          error: `Exited with code ${exitCode}.`,
+          error: new Error(`Exited with code ${exitCode}.`),
         }),
       );
       process.exit(exitCode);

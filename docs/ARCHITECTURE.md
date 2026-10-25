@@ -165,6 +165,11 @@ Terraform's output, and copies of the state it overwrote — archived per lock.
 supplies the listeners an `octo.yaml` can list: `LoggingEventListener`, which also prints the CLI's
 validate report, and `JournalEventListener`. A presentation change ships in that package alone.
 
+**What leaves the process is a contract**, published by the package that writes it:
+`@quadnix/octo/types` holds the state files, and `@quadnix/octo-event-listeners/types` the journal,
+the Terraform log, each event's payload as the journal holds it, and the error a command failed with.
+The Quadnix web app reads Octo's files through these two entry points.
+
 ---
 
 ## Testing
