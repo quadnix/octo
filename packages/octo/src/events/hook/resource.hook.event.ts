@@ -5,7 +5,7 @@ import { HookEvent } from './hook.event.js';
  *
  * @group Events/Hooks/Resource
  */
-export class ResourceActionHookEvent extends HookEvent {}
+export abstract class ResourceActionHookEvent extends HookEvent {}
 
 /**
  * This hook event is emitted when a post-resource action hook callback is done executing.

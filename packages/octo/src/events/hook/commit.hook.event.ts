@@ -5,7 +5,7 @@ import { HookEvent } from './hook.event.js';
  *
  * @group Events/Hooks/Commit
  */
-export class CommitHookEvent extends HookEvent {}
+export abstract class CommitHookEvent extends HookEvent {}
 
 /**
  * This hook event is emitted when a post-commit hook callback is done executing.

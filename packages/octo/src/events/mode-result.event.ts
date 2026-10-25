@@ -7,7 +7,7 @@ import { Event } from './event.model.js';
  *
  * @group Events/ModeResult
  */
-export class ModeResultEvent<T> extends Event<T> {}
+export abstract class ModeResultEvent<T> extends Event<T> {}
 
 /**
  * This event is emitted when `validate` has correlated terraform's plans with octo's intent.

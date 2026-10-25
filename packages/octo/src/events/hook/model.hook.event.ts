@@ -5,7 +5,7 @@ import { HookEvent } from './hook.event.js';
  *
  * @group Events/Hooks/Model
  */
-export class ModelActionHookEvent extends HookEvent {}
+export abstract class ModelActionHookEvent extends HookEvent {}
 
 /**
  * This hook event is emitted when a post-model action hook callback is done executing.

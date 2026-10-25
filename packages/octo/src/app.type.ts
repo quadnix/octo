@@ -290,6 +290,13 @@ export type ObjectKeyValue<T> = { [K in keyof T]: { key: K; value: T[K] } }[keyo
 export type Constructable<T> = new (...args: any[]) => T;
 
 /**
+ * A class of `T`, abstract or not, i.e. what you pass to name a family of classes.
+ *
+ * @group Types
+ */
+export type AbstractConstructable<T> = abstract new (...args: any[]) => T;
+
+/**
  * An anchor as written to state.
  *
  * @group Types

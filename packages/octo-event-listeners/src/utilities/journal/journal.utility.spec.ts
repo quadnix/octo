@@ -6,7 +6,7 @@ describe('JournalUtility UT', () => {
   describe('EVENT_CLASSES', () => {
     it('should name every event octo emits that is not deliberately left out', () => {
       const leftOut = [
-        // Superclasses, never emitted themselves.
+        // Abstract superclasses.
         'CommandEvent',
         'CommitHookEvent',
         'Event',

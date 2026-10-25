@@ -6,7 +6,7 @@ import { Event } from './event.model.js';
  *
  * @group Events/Command
  */
-export class CommandEvent<T extends { command: string } = { command: string }> extends Event<T> {}
+export abstract class CommandEvent<T extends { command: string } = { command: string }> extends Event<T> {}
 
 /**
  * This event is emitted when a command begins.

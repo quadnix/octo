@@ -13,7 +13,7 @@ import { Event } from './event.model.js';
  *
  * @group Events/Registration
  */
-export class RegistrationEvent extends Event<void> {}
+export abstract class RegistrationEvent extends Event<void> {}
 
 /**
  * This event is emitted when a class with `@Anchor('my-package')` decorator is registered.

@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import type { Constructable } from '../../app.type.js';
+import type { AbstractConstructable } from '../../app.type.js';
 import { Factory } from '../../decorators/factory.decorator.js';
 import { Event } from '../../events/index.js';
 import { Container } from '../../functions/container/container.js';
@@ -15,12 +15,12 @@ export class EventService {
   private readonly EVENT_BUFFER_SIZE = 50;
 
   private readonly eventBuffer: {
-    [key: string]: { eventClass: Constructable<Event<unknown>>; events: Event<unknown>[] };
+    [key: string]: { eventClass: AbstractConstructable<Event<unknown>>; events: Event<unknown>[] };
   } = {};
 
   private readonly listeners: {
     [key: string]: {
-      eventClass: Constructable<Event<unknown>>;
+      eventClass: AbstractConstructable<Event<unknown>>;
       eventListeners: ((event: Event<unknown>) => Promise<any>)[];
     };
   } = {};
@@ -103,7 +103,11 @@ export class EventService {
   /**
    * @internal
    */
-  registerListeners(eventClass: Constructable<Event<unknown>>, target: any, descriptor: PropertyDescriptor): void {
+  registerListeners(
+    eventClass: AbstractConstructable<Event<unknown>>,
+    target: any,
+    descriptor: PropertyDescriptor,
+  ): void {
     if (!this.listeners[eventClass.name]) {
       this.listeners[eventClass.name] = { eventClass, eventListeners: [] };
     }

@@ -1,4 +1,4 @@
-import type { Constructable } from '../app.type.js';
+import type { AbstractConstructable } from '../app.type.js';
 import type { Event } from '../events/index.js';
 import { EventService } from '../services/event/event.service.js';
 
@@ -25,7 +25,7 @@ import { EventService } from '../services/event/event.service.js';
  * @returns The decorated method.
  */
 export function OnEvent(
-  ofType: Constructable<Event<unknown>>,
+  ofType: AbstractConstructable<Event<unknown>>,
 ): (target: any, propertyKey: string, descriptor: PropertyDescriptor) => void {
   return function (target: any, _propertyKey: string, descriptor: PropertyDescriptor) {
     EventService.getInstance().registerListeners(ofType, target, descriptor);

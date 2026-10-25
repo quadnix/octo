@@ -9,7 +9,7 @@ import { Event } from './event.model.js';
  *
  * @group Events/Serialization
  */
-export class SerializationEvent<T> extends Event<T> {}
+export abstract class SerializationEvent<T> extends Event<T> {}
 
 /**
  * This event is emitted when models are deserialized from serialized output.

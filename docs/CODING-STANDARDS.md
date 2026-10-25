@@ -13,7 +13,8 @@ changes what someone writes and is not already enforced by lint, prettier, the c
 Full US English words. `address`, not `addr`. Single letters only in a lambda, a loop, or a test
 local.
 
-- `A` prefixes an abstract class, `I` an interface, `Schema` a schema class.
+- `A` prefixes an abstract class, `I` an interface, `Schema` a schema class. An abstract event family
+  keeps its name: `ModeEvent`, not `AModeEvent`.
 - **`dictionary.dic` is for names we do not control** — a package, an AWS id segment, a Terraform
   attribute — added at first sighting, **and for our own words once they recur three times.** Below
   that, silence the line with `// eslint-disable-next-line spellcheck/spell-checker`. Never add a

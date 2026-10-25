@@ -44,6 +44,8 @@ needs a `@Factory` alongside it.
 ## The stream
 
 Sixty event classes, in eleven families. You rarely want a specific one; you want a family.
+`ModuleEvent` and `ActionEvent` are emitted as they are; every other family is abstract, so you
+listen for it and Octo emits its members.
 
 | Family               | Emitted when                                                                                                                       |
 |----------------------|------------------------------------------------------------------------------------------------------------------------------------|
@@ -103,9 +105,12 @@ through a change, and says when each is written.
 
 ## Emitting your own
 
+`Event` is abstract, so an event of your own is a class extending it:
+
 ```typescript
-const event = new Event<{ value: string }>('deploy approved', { value: approver });
-EventService.getInstance().emit(event);
+class DeployApprovedEvent extends Event<{ reviewer: string }> {}
+
+EventService.getInstance().emit(new DeployApprovedEvent('deploy approved', { reviewer }));
 ```
 
 Useful from inside a module or an action when something happens that your own listeners should react

@@ -5,7 +5,7 @@ import { Event } from './event.model.js';
  *
  * @group Events/Terraform
  */
-export class TerraformEvent<T = undefined> extends Event<T> {}
+export abstract class TerraformEvent<T = undefined> extends Event<T> {}
 
 /**
  * This event is emitted when generate finishes writing terragrunt module folders.

@@ -34,7 +34,7 @@ export interface ModeEventPayload {
  *
  * @group Events/Mode
  */
-export class ModeEvent<T extends ModeEventPayload = ModeEventPayload> extends Event<T> {}
+export abstract class ModeEvent<T extends ModeEventPayload = ModeEventPayload> extends Event<T> {}
 
 /**
  * This event is emitted when a mode begins, before any work is done.

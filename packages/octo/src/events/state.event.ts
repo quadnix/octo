@@ -6,7 +6,7 @@ import { Event } from './event.model.js';
  *
  * @group Events/State
  */
-export class StateEvent<T> extends Event<T> {}
+export abstract class StateEvent<T> extends Event<T> {}
 
 /**
  * This event is emitted when the app lock is refused, before the error is thrown. `holder` is the
