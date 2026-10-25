@@ -134,7 +134,7 @@ importers:
         specifier: ~3.743.0
         version: 3.743.0
       '@quadnix/octo':
-        specifier: ~0.1.0
+        specifier: ~0.2.0
         version: link:../octo
       '@smithy/types':
         specifier: ~4.1.0
@@ -153,10 +153,10 @@ importers:
   packages/octo-build:
     dependencies:
       '@quadnix/octo':
-        specifier: ~0.1.0
+        specifier: ~0.2.0
         version: link:../octo
       '@quadnix/octo-event-listeners':
-        specifier: ~0.1.0
+        specifier: ~0.2.0
         version: link:../octo-event-listeners
       ajv:
         specifier: ~8.17.1
@@ -190,7 +190,7 @@ importers:
         specifier: ~2.2.0
         version: 2.2.17(pino@9.6.0)
       '@quadnix/octo':
-        specifier: ~0.1.0
+        specifier: ~0.2.0
         version: link:../octo
       loglayer:
         specifier: ~6.4.0
@@ -229,13 +229,13 @@ importers:
         specifier: ~3.743.0
         version: 3.743.0(@aws-sdk/client-dynamodb@3.743.0)
       '@quadnix/octo':
-        specifier: ~0.1.0
+        specifier: ~0.2.0
         version: link:../octo
       '@quadnix/octo-aws-cdk':
-        specifier: ~0.2.0
+        specifier: ~0.2.1
         version: link:../octo-aws-cdk
       '@quadnix/octo-event-listeners':
-        specifier: ~0.1.0
+        specifier: ~0.2.0
         version: link:../octo-event-listeners
       env-smart:
         specifier: ~2.3.2
@@ -245,7 +245,7 @@ importers:
         version: 4.1.1
     devDependencies:
       '@quadnix/octo-build':
-        specifier: ~0.1.0
+        specifier: ~0.2.0
         version: link:../octo-build
 
 packages:

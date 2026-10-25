@@ -8,15 +8,15 @@
     "@aws-sdk/client-iam": "~3.743.0",
     "@aws-sdk/client-resource-groups-tagging-api": "~3.743.0",
     "@aws-sdk/lib-dynamodb": "~3.743.0",
-    "@quadnix/octo": "~0.1.0",
-    "@quadnix/octo-aws-cdk": "~0.2.0",
-    "@quadnix/octo-event-listeners": "~0.1.0",
+    "@quadnix/octo": "~0.2.0",
+    "@quadnix/octo-aws-cdk": "~0.2.1",
+    "@quadnix/octo-event-listeners": "~0.2.0",
     "env-smart": "~2.3.2",
     "js-yaml": "~4.1.0"
   },
   "description": "Octo-Templates are examples of end-to-end infrastructures.",
   "devDependencies": {
-    "@quadnix/octo-build": "~0.1.0"
+    "@quadnix/octo-build": "~0.2.0"
   },
   "engines": {
     "node": ">=18.18.0"
@@ -75,5 +75,5 @@
     "test:watch": "jest --watch"
   },
   "type": "module",
-  "version": "0.1.1"
+  "version": "0.2.0"
 }
