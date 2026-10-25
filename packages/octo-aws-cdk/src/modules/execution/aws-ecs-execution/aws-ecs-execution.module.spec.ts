@@ -461,6 +461,7 @@ async function setup(
           awsRegionId: 'us-east-1',
           blockPublicAccess: true,
           Bucket: 'test-bucket',
+          corsRules: [],
           lifecycleRules: [],
           permissions: [],
         }),

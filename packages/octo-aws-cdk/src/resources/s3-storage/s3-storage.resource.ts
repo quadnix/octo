@@ -110,6 +110,7 @@ export class S3Storage extends ATerraformResource<S3StorageSchema, S3Storage> {
     if (
       !DiffUtility.isObjectDeepEquals(previous.properties, this.properties, [
         'blockPublicAccess',
+        'corsRules',
         'lifecycleRules',
         'permissions',
       ])
@@ -130,6 +131,18 @@ export class S3Storage extends ATerraformResource<S3StorageSchema, S3Storage> {
     // Propose a public access update when the block is turned on or off.
     if (previous.properties.blockPublicAccess !== this.properties.blockPublicAccess) {
       diffs.push(new Diff(this, DiffAction.UPDATE, 'blockPublicAccess', this.properties.blockPublicAccess));
+    }
+
+    // Propose a CORS update when the rules change.
+    if (
+      !DiffUtility.isObjectDeepEquals(
+        { corsRules: previous.properties.corsRules },
+        { corsRules: this.properties.corsRules },
+      )
+    ) {
+      diffs.push(
+        new Diff(this, DiffAction.UPDATE, 'update-cors-rules', JSON.parse(JSON.stringify(this.properties.corsRules))),
+      );
     }
 
     // Propose a lifecycle update when the rules change.
@@ -263,6 +276,29 @@ export class S3Storage extends ATerraformResource<S3StorageSchema, S3Storage> {
           restrict_public_buckets: true,
         },
       );
+    }
+
+    // Answer the cross-origin requests each rule allows, in the order the rules are given.
+    if (this.properties.corsRules.length > 0) {
+      const corsTFResource = s3StorageOctoResource.addTerraformResource(
+        'aws_s3_bucket_cors_configuration',
+        `${this.resourceId}_cors`,
+        { bucket: terraform.raw(`${s3StorageTFResource.address}.id`) },
+      );
+      for (const corsRule of this.properties.corsRules) {
+        const ruleBlock = corsTFResource.block('cors_rule');
+        if ((corsRule.allowHeaders ?? []).length > 0) {
+          ruleBlock.attribute('allowed_headers', corsRule.allowHeaders);
+        }
+        ruleBlock.attribute('allowed_methods', corsRule.allowMethods);
+        ruleBlock.attribute('allowed_origins', corsRule.allowOrigins);
+        if ((corsRule.exposeHeaders ?? []).length > 0) {
+          ruleBlock.attribute('expose_headers', corsRule.exposeHeaders);
+        }
+        if (corsRule.maxAgeSeconds !== null && corsRule.maxAgeSeconds !== undefined) {
+          ruleBlock.attribute('max_age_seconds', corsRule.maxAgeSeconds);
+        }
+      }
     }
 
     // Expire the objects each rule matches. A filter of two or more conditions must join them in `and`.

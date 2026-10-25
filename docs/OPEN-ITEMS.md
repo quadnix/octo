@@ -84,16 +84,7 @@ the backend removes it.
 Rahul 2026-10-11: a user must be able to move between state providers — local, remote, and back —
 safely. There is no path for it today.
 
-## 8. To do: a bucket cannot be given a CORS rule
-
-`S3Storage` and `S3Website` take no CORS rule, and nor does any module over them; only CloudFront's
-response headers policy knows CORS. A page on another origin that reads a bucket directly — through
-a presigned URL, say — is refused by the browser, and the rule has to be set outside Octo. Add
-`corsRules` to `AwsS3StorageServiceModule` and `S3Storage`, provisioned as
-[`aws_s3_bucket_cors_configuration`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_cors_configuration)
-once the bucket has a rule, and updated in place when the rules change.
-
-## 9. To do: create-app and the templates have drifted apart
+## 8. To do: create-app and the templates have drifted apart
 
 `octo create-app` keeps its own `.ejs` copies of three templates (`aws-dynamodb-service`,
 `aws-ecs-server`, `aws-s3-website`) and hardcodes them as its `--template` choices. `octo-templates`
@@ -102,7 +93,7 @@ choices from `octo-templates`, or remove `--template`.
 
 Either way, open a **use cases** section in `apps/octo-docs`, one page per use case.
 
-## 10. To do: finish the repository docs rework
+## 9. To do: finish the repository docs rework
 
 Still to rework, as the rest of the repository docs were on 2026-10-14:
 
@@ -110,21 +101,21 @@ Still to rework, as the rest of the repository docs were on 2026-10-14:
 - The open plans, `docs/module-catalog-plan.md` and `docs/serverless-backend-plan.md`: verify each
   against `main` and delete what is done.
 
-## 11. To explore: every e2e written in `octo.yaml`
+## 10. To explore: every e2e written in `octo.yaml`
 
 `aws-cloudfront-website`, `aws-ecr-image` and `aws-lambda-api` drive `octo.yaml` through the CLI.
 `aws-dynamodb-service`, `aws-ecs-server`, `aws-s3-website` and the module e2es in `octo-aws-cdk`
 build modules in TypeScript through `TestModuleContainer`. Find out whether all can be written in
 `octo.yaml`, the surface users write, and what `TestModuleContainer` would still be for.
 
-## 12. To explore: write the journal from outside the process
+## 11. To explore: write the journal from outside the process
 
 A killed `octo` process (SIGKILL, closed terminal, cancelled CI job) loses its journal entries since
 the last state save, and the running Terraform process's output. Rahul 2026-10-10: record from a
 separate process, so a dying command cannot take its journal with it. That is a redesign of how
 events leave the process.
 
-## 13. Nice to have: lock part of the app
+## 12. Nice to have: lock part of the app
 
 Two runs on unrelated parts of the graph could hold separate locks. Today one run locks the whole
 app, and the backend could grant scoped locks but stores each commit as one snapshot of the whole
@@ -142,7 +133,7 @@ What it would take:
 - **The cloud is not the graph.** Two disjoint scopes can still collide on a security group, a
   policy, or a quota.
 
-## 14. Parked: CodeBuild and CodePipeline
+## 13. Parked: CodeBuild and CodePipeline
 
 Branch `ai/pipeline-and-lambda` (tip `1e31b2f2`, local only). The design is unsettled;
 `docs/pipeline-and-lambda-handoff.md` on that branch says what was built and what is wrong with it.

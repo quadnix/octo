@@ -1,5 +1,13 @@
 import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 
+const S3_STORAGE_CORS_METHODS = ['DELETE', 'GET', 'HEAD', 'POST', 'PUT'] as const;
+/**
+ * An HTTP method a CORS rule of the s3 storage may allow.
+ *
+ * @group Resources/S3Storage
+ */
+export type IS3StorageCorsMethod = (typeof S3_STORAGE_CORS_METHODS)[number];
+
 const S3_STORAGE_PRINCIPAL_TYPES = ['aws', 'cloudfront'] as const;
 /**
  * The kind of principal a permission admits.
@@ -52,6 +60,86 @@ export class S3StoragePermissionSchema {
     options: { custom: (value: string): boolean => (S3_STORAGE_PRINCIPAL_TYPES as readonly string[]).includes(value) },
   })
   principalType = Schema<IS3StoragePrincipalType>();
+}
+
+/**
+ * Defines the schema for a CORS rule of the s3 storage, which lets a page on another origin call the
+ * bucket from a browser, e.g. to upload through a presigned URL or read a range of an object.
+ *
+ * S3 answers a request with the first rule its origin, method and headers all match.
+ *
+ * @group Resources/S3Storage
+ *
+ * @hideconstructor
+ */
+export class S3StorageCorsRuleSchema {
+  /**
+   * The request headers the calling page may send, e.g. `['Range']` to read part of an object.
+   * A name may use one `*`, and `*` alone allows every header. Header names are not case-sensitive.
+   */
+  @Validate({
+    destruct: (value: S3StorageCorsRuleSchema['allowHeaders']): string[] => value!,
+    options: { minLength: 1 },
+  })
+  allowHeaders? = Schema<string[]>([]);
+
+  /**
+   * The methods the calling page may use. See {@link IS3StorageCorsMethod}.
+   */
+  @Validate<unknown>([
+    {
+      destruct: (value: S3StorageCorsRuleSchema['allowMethods']): string[][] => [value],
+      options: { minLength: 1 },
+    },
+    {
+      destruct: (value: S3StorageCorsRuleSchema['allowMethods']): string[] => value,
+      options: { custom: (value: string): boolean => (S3_STORAGE_CORS_METHODS as readonly string[]).includes(value) },
+    },
+  ])
+  allowMethods = Schema<IS3StorageCorsMethod[]>();
+
+  /**
+   * The origins allowed to call, each a scheme, a host, and a port when it is not the default, e.g.
+   * `https://app.example.com`. An origin may use one `*`, e.g. `https://*.example.com`, and `*`
+   * alone allows every origin.
+   */
+  @Validate<unknown>([
+    {
+      destruct: (value: S3StorageCorsRuleSchema['allowOrigins']): string[][] => [value],
+      options: { minLength: 1 },
+    },
+    {
+      destruct: (value: S3StorageCorsRuleSchema['allowOrigins']): string[] => value,
+      options: { minLength: 1 },
+    },
+  ])
+  allowOrigins = Schema<string[]>();
+
+  /**
+   * The response headers the calling page may read beyond the ones every browser shows, e.g.
+   * `['ETag']`.
+   */
+  @Validate({
+    destruct: (value: S3StorageCorsRuleSchema['exposeHeaders']): string[] => value!,
+    options: { minLength: 1 },
+  })
+  exposeHeaders? = Schema<string[]>([]);
+
+  /**
+   * How long a browser may reuse the answer to a preflight request, in seconds. Omit it to let the
+   * browser decide.
+   */
+  @Validate({
+    destruct: (value: S3StorageCorsRuleSchema['maxAgeSeconds']): number[] => {
+      const subjects: number[] = [];
+      if (value !== null && value !== undefined) {
+        subjects.push(value);
+      }
+      return subjects;
+    },
+    options: { minLength: 0 },
+  })
+  maxAgeSeconds? = Schema<number | null>(null);
 }
 
 /**
@@ -126,7 +214,9 @@ export class PrincipalResourceSchema extends BaseResourceSchema {
  * [`aws_s3_object`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_object)
  * per uploaded file, and
  * [`aws_s3_bucket_policy`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_policy)
- * once a principal is admitted, and
+ * once a principal is admitted,
+ * [`aws_s3_bucket_cors_configuration`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_cors_configuration)
+ * once it has a CORS rule, and
  * [`aws_s3_bucket_lifecycle_configuration`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_lifecycle_configuration)
  * once it has a lifecycle rule.
  *
@@ -148,6 +238,7 @@ export class S3StorageSchema extends BaseResourceSchema {
    * * `properties.awsRegionId` - The AWS region id.
    * * `properties.blockPublicAccess` - Blocks every public ACL and public policy on the bucket.
    * * `properties.Bucket` - The name of the bucket.
+   * * `properties.corsRules` - The rules letting a page on another origin call the bucket. See {@link S3StorageCorsRuleSchema} for options.
    * * `properties.lifecycleRules` - The rules expiring the bucket's objects. See {@link S3StorageLifecycleRuleSchema} for options.
    * * `properties.permissions` - The permissions for the bucket. See {@link S3StoragePermissionSchema} for options.
    */
@@ -165,6 +256,10 @@ export class S3StorageSchema extends BaseResourceSchema {
       options: { minLength: 1 },
     },
     {
+      destruct: (value: S3StorageSchema['properties']): S3StorageCorsRuleSchema[] => value.corsRules,
+      options: { isSchema: { schema: S3StorageCorsRuleSchema } },
+    },
+    {
       destruct: (value: S3StorageSchema['properties']): S3StorageLifecycleRuleSchema[] => value.lifecycleRules,
       options: { isSchema: { schema: S3StorageLifecycleRuleSchema } },
     },
@@ -178,6 +273,7 @@ export class S3StorageSchema extends BaseResourceSchema {
     awsRegionId: string;
     blockPublicAccess: boolean;
     Bucket: string;
+    corsRules: S3StorageCorsRuleSchema[];
     lifecycleRules: S3StorageLifecycleRuleSchema[];
     permissions: S3StoragePermissionSchema[];
   }>();

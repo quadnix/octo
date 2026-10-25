@@ -312,6 +312,201 @@ describe('AwsS3StorageServiceModule UT', () => {
     `);
   });
 
+  it('should CUD cors rules', async () => {
+    await setup(testModuleContainer);
+    const createRules = (
+      await testModuleContainer
+        .runModules<AwsS3StorageServiceModule>(
+          {
+            inputs: {
+              bucketName: 'test-bucket',
+              corsRules: [
+                {
+                  allowHeaders: ['Range'],
+                  allowMethods: ['GET'],
+                  allowOrigins: ['https://app.example.com'],
+                  exposeHeaders: ['ETag'],
+                  maxAgeSeconds: 3600,
+                },
+                { allowMethods: ['PUT'], allowOrigins: ['*'] },
+              ],
+              region: stub('${{testModule.model.region}}'),
+            },
+            moduleId: 'service',
+            type: AwsS3StorageServiceModule,
+          },
+          { terraformTarget: 'skip' },
+        )
+        .next()
+    ).value!;
+    expect(createRules.hclRender).toMatchInlineSnapshot(`
+     "# service/main.tf
+     terraform {
+       required_version = ">= 1.6.0"
+       required_providers {
+         aws = {
+           source = "hashicorp/aws"
+           version = ">= 5.49"
+         }
+       }
+     }
+
+     provider "aws" {
+       alias = "_123-us-east-1"
+       region = "us-east-1"
+       allowed_account_ids = ["123"]
+     }
+
+     resource "aws_s3_bucket" "bucket-test-bucket-51fb32" {
+       provider = aws._123-us-east-1
+       bucket = "test-bucket"
+     }
+
+     resource "aws_s3_bucket_public_access_block" "bucket-test-bucket-51fb32-public-access" {
+       provider = aws._123-us-east-1
+       block_public_acls = true
+       block_public_policy = true
+       bucket = aws_s3_bucket.bucket-test-bucket-51fb32.id
+       ignore_public_acls = true
+       restrict_public_buckets = true
+
+       depends_on = [aws_s3_bucket.bucket-test-bucket-51fb32]
+     }
+
+     resource "aws_s3_bucket_cors_configuration" "bucket-test-bucket-51fb32_cors" {
+       provider = aws._123-us-east-1
+       bucket = aws_s3_bucket.bucket-test-bucket-51fb32.id
+       cors_rule {
+         allowed_headers = ["Range"]
+         allowed_methods = ["GET"]
+         allowed_origins = ["https://app.example.com"]
+         expose_headers = ["ETag"]
+         max_age_seconds = 3600
+       }
+       cors_rule {
+         allowed_methods = ["PUT"]
+         allowed_origins = ["*"]
+       }
+
+       depends_on = [aws_s3_bucket_public_access_block.bucket-test-bucket-51fb32-public-access]
+     }
+
+     # service/outputs.tf
+     output "bucket-test-bucket-51fb32-Arn" {
+       value = aws_s3_bucket.bucket-test-bucket-51fb32.arn
+     }
+
+     output "bucket-test-bucket-51fb32-awsRegionId" {
+       value = "us-east-1"
+     }
+
+     output "bucket-test-bucket-51fb32-Bucket" {
+       value = aws_s3_bucket.bucket-test-bucket-51fb32.id
+     }
+
+     output "bucket-test-bucket-51fb32-RegionalDomainName" {
+       value = aws_s3_bucket.bucket-test-bucket-51fb32.bucket_regional_domain_name
+     }
+
+     # service/terragrunt.hcl
+     remote_state {
+       backend = "local"
+       generate = {
+         path      = "backend.tf"
+         if_exists = "overwrite_terragrunt"
+       }
+       config = {
+         path = "\${get_terragrunt_dir()}/terraform.tfstate"
+       }
+     }
+
+     # service/variables.tf
+     <empty>"
+    `);
+    expect(testModuleContainer.digestDiffs(createRules.resourceDiffs)).toMatchInlineSnapshot(`
+     [
+       "+ @octo/s3-storage=bucket-test-bucket-51fb32",
+     ]
+    `);
+
+    await setup(testModuleContainer);
+    const updateRules = (
+      await testModuleContainer
+        .runModules<AwsS3StorageServiceModule>(
+          {
+            inputs: {
+              bucketName: 'test-bucket',
+              corsRules: [
+                { allowHeaders: ['Range'], allowMethods: ['GET', 'HEAD'], allowOrigins: ['https://app.example.com'] },
+              ],
+              region: stub('${{testModule.model.region}}'),
+            },
+            moduleId: 'service',
+            type: AwsS3StorageServiceModule,
+          },
+          { terraformTarget: 'skip' },
+        )
+        .next()
+    ).value!;
+    expect(updateRules.hclDiff).toMatchInlineSnapshot(`
+     "~ service/main.tf resource "aws_s3_bucket_cors_configuration" "bucket-test-bucket-51fb32_cors" {
+     @@ -5,11 +5,5 @@
+           allowed_headers = ["Range"]
+     -     allowed_methods = ["GET"]
+     +     allowed_methods = ["GET", "HEAD"]
+           allowed_origins = ["https://app.example.com"]
+     -     expose_headers = ["ETag"]
+     -     max_age_seconds = 3600
+         }
+     -   cors_rule {
+     -     allowed_methods = ["PUT"]
+     -     allowed_origins = ["*"]
+     -   }
+       "
+    `);
+    expect(testModuleContainer.digestDiffs(updateRules.resourceDiffs)).toMatchInlineSnapshot(`
+     [
+       "* @octo/s3-storage=bucket-test-bucket-51fb32",
+     ]
+    `);
+
+    await setup(testModuleContainer);
+    const deleteRules = (
+      await testModuleContainer
+        .runModules<AwsS3StorageServiceModule>(
+          {
+            inputs: {
+              bucketName: 'test-bucket',
+              region: stub('${{testModule.model.region}}'),
+            },
+            moduleId: 'service',
+            type: AwsS3StorageServiceModule,
+          },
+          { terraformTarget: 'skip' },
+        )
+        .next()
+    ).value!;
+    expect(deleteRules.hclDiff).toMatchInlineSnapshot(`
+     "- service/main.tf
+     resource "aws_s3_bucket_cors_configuration" "bucket-test-bucket-51fb32_cors" {
+       provider = aws._123-us-east-1
+       bucket = aws_s3_bucket.bucket-test-bucket-51fb32.id
+       cors_rule {
+         allowed_headers = ["Range"]
+         allowed_methods = ["GET", "HEAD"]
+         allowed_origins = ["https://app.example.com"]
+       }
+
+       depends_on = [aws_s3_bucket_public_access_block.bucket-test-bucket-51fb32-public-access]
+     }"
+    `);
+    expect(testModuleContainer.digestDiffs(deleteRules.resourceDiffs)).toMatchInlineSnapshot(`
+     [
+       "* @octo/s3-storage=bucket-test-bucket-51fb32",
+     ]
+    `);
+  });
+
   it('should CUD lifecycle rules', async () => {
     await setup(testModuleContainer);
     const createRules = (
@@ -992,6 +1187,46 @@ describe('AwsS3StorageServiceModule UT', () => {
           )
           .next(),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "accessPrefixes" in schema could not be validated!"`);
+    });
+
+    it('should validate corsRules allow a known method', async () => {
+      await setup(testModuleContainer);
+      await expect(
+        testModuleContainer
+          .runModules<AwsS3StorageServiceModule>(
+            {
+              inputs: {
+                bucketName: 'test-bucket',
+                corsRules: [{ allowMethods: ['OPTIONS' as 'GET'], allowOrigins: ['*'] }],
+                region: stub('${{testModule.model.region}}'),
+              },
+              moduleId: 'service',
+              type: AwsS3StorageServiceModule,
+            },
+            { terraformTarget: 'skip' },
+          )
+          .next(),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "corsRules" in schema could not be validated!"`);
+    });
+
+    it('should validate corsRules allow an origin', async () => {
+      await setup(testModuleContainer);
+      await expect(
+        testModuleContainer
+          .runModules<AwsS3StorageServiceModule>(
+            {
+              inputs: {
+                bucketName: 'test-bucket',
+                corsRules: [{ allowMethods: ['GET'], allowOrigins: [] }],
+                region: stub('${{testModule.model.region}}'),
+              },
+              moduleId: 'service',
+              type: AwsS3StorageServiceModule,
+            },
+            { terraformTarget: 'skip' },
+          )
+          .next(),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "corsRules" in schema could not be validated!"`);
     });
 
     it('should validate lifecycleRules expire after at least one day', async () => {

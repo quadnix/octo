@@ -1,10 +1,10 @@
 import { type Region, RegionSchema, Schema, Validate } from '@quadnix/octo';
-import { S3StorageLifecycleRuleSchema } from '../../../resources/s3-storage/index.schema.js';
+import { S3StorageCorsRuleSchema, S3StorageLifecycleRuleSchema } from '../../../resources/s3-storage/index.schema.js';
 
 /**
  * `AwsS3StorageServiceModuleSchema` is the input schema for the `AwsS3StorageServiceModule` module.
  * This schema defines the configuration for S3-based storage services including bucket naming,
- * region placement, access prefixes, lifecycle rules, and the local files to upload.
+ * region placement, access prefixes, CORS and lifecycle rules, and the local files to upload.
  *
  * @group Modules/Service/AwsS3StorageService
  *
@@ -36,6 +36,19 @@ export class AwsS3StorageServiceModuleSchema {
    */
   @Validate({ options: { minLength: 1 } })
   bucketName = Schema<string>();
+
+  /**
+   * Optional rules letting a page on another origin call the bucket from a browser, such as one
+   * uploading through a presigned URL, or reading a range of an object, which sends `Range`. Without
+   * rules, a browser refuses every cross-origin response from the bucket.
+   *
+   * Changing the rules updates the bucket in place.
+   */
+  @Validate({
+    destruct: (value: AwsS3StorageServiceModuleSchema['corsRules']): S3StorageCorsRuleSchema[] => value!,
+    options: { isSchema: { schema: S3StorageCorsRuleSchema } },
+  })
+  corsRules? = Schema<S3StorageCorsRuleSchema[]>([]);
 
   /**
    * Optional local directory path containing the files to upload.

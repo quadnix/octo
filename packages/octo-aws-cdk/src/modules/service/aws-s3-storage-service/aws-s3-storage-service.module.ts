@@ -25,6 +25,7 @@ import { AwsS3StorageService } from './models/service/index.js';
  * octo.loadModule(AwsS3StorageServiceModule, 'my-storage-module', {
  *   accessPrefixes: ['uploads', 'documents', 'images'],
  *   bucketName: 'my-app-storage',
+ *   corsRules: [{ allowHeaders: ['Range'], allowMethods: ['GET'], allowOrigins: ['https://app.example.com'] }],
  *   directoryPath: 'website',
  *   filter: (filePath) => !filePath.includes('.DS_Store'),
  *   lifecycleRules: [{ expirationInDays: 1, tags: { upload: 'pending' } }],
