@@ -79,24 +79,12 @@ holder or see whether any is held, and gain nothing.
 Decide whether Octo resumes by lock, and the backend widens the endpoint to answer the files, or
 the backend removes it.
 
-## 7. To decide: a model's fields are not published
-
-`@quadnix/octo/types` types each model in `models.json` as `{ [key: string]: unknown }`. The fields of
-the twelve built-in models are known to Octo, but nothing in the file says which built-in model an
-entry is: `className` names the module's class, such as `@octo/AwsS3StorageService`, and only the
-first key of the context (`service=…`) gives the model away. So the Quadnix web app picks a
-service's icon by reading `type` off a model it finds by its context, a field it knows from Octo's
-source and not from the types.
-
-Decide whether `models.json` records each model's built-in kind, so `@quadnix/octo/types` can
-publish each built-in model's fields under it.
-
-## 8. To do: switch state providers safely
+## 7. To do: switch state providers safely
 
 Rahul 2026-10-11: a user must be able to move between state providers — local, remote, and back —
 safely. There is no path for it today.
 
-## 9. To do: a bucket cannot be given a CORS rule
+## 8. To do: a bucket cannot be given a CORS rule
 
 `S3Storage` and `S3Website` take no CORS rule, and nor does any module over them; only CloudFront's
 response headers policy knows CORS. A page on another origin that reads a bucket directly — through
@@ -105,7 +93,7 @@ a presigned URL, say — is refused by the browser, and the rule has to be set o
 [`aws_s3_bucket_cors_configuration`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_cors_configuration)
 once the bucket has a rule, and updated in place when the rules change.
 
-## 10. To do: create-app and the templates have drifted apart
+## 9. To do: create-app and the templates have drifted apart
 
 `octo create-app` keeps its own `.ejs` copies of three templates (`aws-dynamodb-service`,
 `aws-ecs-server`, `aws-s3-website`) and hardcodes them as its `--template` choices. `octo-templates`
@@ -114,7 +102,7 @@ choices from `octo-templates`, or remove `--template`.
 
 Either way, open a **use cases** section in `apps/octo-docs`, one page per use case.
 
-## 11. To do: finish the repository docs rework
+## 10. To do: finish the repository docs rework
 
 Still to rework, as the rest of the repository docs were on 2026-10-14:
 
@@ -122,21 +110,21 @@ Still to rework, as the rest of the repository docs were on 2026-10-14:
 - The open plans, `docs/module-catalog-plan.md` and `docs/serverless-backend-plan.md`: verify each
   against `main` and delete what is done.
 
-## 12. To explore: every e2e written in `octo.yaml`
+## 11. To explore: every e2e written in `octo.yaml`
 
 `aws-cloudfront-website`, `aws-ecr-image` and `aws-lambda-api` drive `octo.yaml` through the CLI.
 `aws-dynamodb-service`, `aws-ecs-server`, `aws-s3-website` and the module e2es in `octo-aws-cdk`
 build modules in TypeScript through `TestModuleContainer`. Find out whether all can be written in
 `octo.yaml`, the surface users write, and what `TestModuleContainer` would still be for.
 
-## 13. To explore: write the journal from outside the process
+## 12. To explore: write the journal from outside the process
 
 A killed `octo` process (SIGKILL, closed terminal, cancelled CI job) loses its journal entries since
 the last state save, and the running Terraform process's output. Rahul 2026-10-10: record from a
 separate process, so a dying command cannot take its journal with it. That is a redesign of how
 events leave the process.
 
-## 14. Nice to have: lock part of the app
+## 13. Nice to have: lock part of the app
 
 Two runs on unrelated parts of the graph could hold separate locks. Today one run locks the whole
 app, and the backend could grant scoped locks but stores each commit as one snapshot of the whole
@@ -154,7 +142,7 @@ What it would take:
 - **The cloud is not the graph.** Two disjoint scopes can still collide on a security group, a
   policy, or a quota.
 
-## 15. Parked: CodeBuild and CodePipeline
+## 14. Parked: CodeBuild and CodePipeline
 
 Branch `ai/pipeline-and-lambda` (tip `1e31b2f2`, local only). The design is unsettled;
 `docs/pipeline-and-lambda-handoff.md` on that branch says what was built and what is wrong with it.

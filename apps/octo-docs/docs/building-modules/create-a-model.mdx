@@ -74,7 +74,7 @@ export class ShopQueueService extends Service {
 The decorator takes three things: your package name, the node name, and the schema. The node name is
 `'service'`, the same as the base model, and it has to be. That string is what everything else
 matches on, so an `AwsS3StorageService` and a `ShopQueueService` are both `service` to a module that
-wants one. Change it and you have invented a thirteenth model type that nothing knows how to handle.
+wants one. Any string but a base model's name does not compile.
 
 `synth()` and `unSynth()` are the two halves of serialization, and the rule is that
 `unSynth(synth(x))` has to give you back something equivalent to `x`. `super.synth()` writes what

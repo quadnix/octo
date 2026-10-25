@@ -1,8 +1,20 @@
 import type { IDependency } from './functions/dependency/dependency.js';
 import type { ANode } from './functions/node/node.abstract.js';
+import type { AccountSchema } from './models/account/account.schema.js';
+import type { AppSchema } from './models/app/app.schema.js';
+import type { DeploymentSchema } from './models/deployment/deployment.schema.js';
+import type { EnvironmentSchema } from './models/environment/environment.schema.js';
+import type { ExecutionSchema } from './models/execution/execution.schema.js';
+import type { FilesystemSchema } from './models/filesystem/filesystem.schema.js';
+import type { ImageSchema } from './models/image/image.schema.js';
 import type { IModelAction } from './models/model-action.interface.js';
 import type { AModel } from './models/model.abstract.js';
 import type { IModel, IModelReference } from './models/model.interface.js';
+import type { PipelineSchema } from './models/pipeline/pipeline.schema.js';
+import type { RegionSchema } from './models/region/region.schema.js';
+import type { ServerSchema } from './models/server/server.schema.js';
+import type { ServiceSchema } from './models/service/service.schema.js';
+import type { SubnetSchema } from './models/subnet/subnet.schema.js';
 import type { AModule } from './modules/module.abstract.js';
 import type { AAnchor } from './overlays/anchor.abstract.js';
 import type { BaseAnchorSchema } from './overlays/anchor.schema.js';
@@ -308,7 +320,32 @@ export type AnchorSerializedOutput = {
 };
 
 /**
+ * The schema of each base model, by the name it registers with `@Model`.
+ */
+type BaseModelSchemas = {
+  account: AccountSchema;
+  app: AppSchema;
+  deployment: DeploymentSchema;
+  environment: EnvironmentSchema;
+  execution: ExecutionSchema;
+  filesystem: FilesystemSchema;
+  image: ImageSchema;
+  pipeline: PipelineSchema;
+  region: RegionSchema;
+  server: ServerSchema;
+  service: ServiceSchema;
+  subnet: SubnetSchema;
+};
+
+/**
+ * @internal
+ */
+export type ModelName = keyof BaseModelSchemas;
+
+/**
  * The model graph as written to `models.json`.
+ * * `nodeName` names the base model an entry extends, and types its `model` as that base model's
+ * schema. A model's own fields beyond it are not typed.
  * * `modules` record inputs before references resolve.
  *
  * @group Types
@@ -316,7 +353,11 @@ export type AnchorSerializedOutput = {
 export type ModelSerializedOutput = {
   anchors: (AnchorSerializedOutput & { className: string; location: { context: string; type: `${NodeType}` } })[];
   dependencies: IDependency[];
-  models: { [context: string]: { className: string; model: { [key: string]: unknown }; moduleId: string } };
+  models: {
+    [context: string]: {
+      [N in ModelName]: { className: string; model: BaseModelSchemas[N]; moduleId: string; nodeName: N };
+    }[ModelName];
+  };
   modules: { [moduleId: string]: { className: string; inputs: { [key: string]: unknown } } };
   overlays: {
     className: string;

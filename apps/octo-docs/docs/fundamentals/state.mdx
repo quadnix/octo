@@ -22,10 +22,10 @@ Commit them. This is not a cache.
 ```
 
 **`models.json`** is the [model](/docs/fundamentals/models) graph: every model, anchor, overlay, and
-edge between them, each model and overlay with the module that produced it. The shop's receipts
-service is in there as a service in the region, with the bucket name somebody typed and the access
-prefix it was told to declare. Beside the graph, it lists every module that ran, with the inputs
-`octo.yaml` gave it.
+edge between them, each model and overlay with the module that produced it, and each model with the
+base model it extends. The shop's receipts service is in there as a service in the region, with the
+bucket name somebody typed and the access prefix it was told to declare. Beside the graph, it lists
+every module that ran, with the inputs `octo.yaml` gave it.
 
 **`resources-actual.json`** is what Octo believes exists. Here is the receipts bucket, after an
 apply and a commit:

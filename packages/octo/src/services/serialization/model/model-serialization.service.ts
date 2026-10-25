@@ -1,5 +1,6 @@
 import {
   type AnchorSchema,
+  type ModelName,
   type ModelSerializedOutput,
   NodeType,
   type UnknownAnchor,
@@ -107,9 +108,10 @@ export class ModelSerializationService {
 
           models[context] = {
             className: `${(model.constructor as typeof ANode).NODE_PACKAGE}/${model.constructor.name}`,
-            model: model.synth() as ModelSerializedOutput['models'][string]['model'],
+            model: model.synth(),
             moduleId,
-          };
+            nodeName: (model.constructor as typeof ANode).NODE_NAME as ModelName,
+          } as ModelSerializedOutput['models'][string];
         }
 
         for (const a of (model as UnknownModel).getAnchors()) {

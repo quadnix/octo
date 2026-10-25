@@ -1,4 +1,4 @@
-import { type Constructable, type ModelSchema, NodeType, type UnknownModel } from '../app.type.js';
+import { type Constructable, type ModelName, type ModelSchema, NodeType, type UnknownModel } from '../app.type.js';
 import { Container } from '../functions/container/container.js';
 import { AModel } from '../models/model.abstract.js';
 import { AOverlay } from '../overlays/overlay.abstract.js';
@@ -21,9 +21,7 @@ import { ValidationUtility } from '../utilities/validation/validation.utility.js
  * @param packageName - The name of the package under which the model is registered.
  * Selecting a unique package name helps avoid collisions between same model class names across different libraries.
  * You will reuse the same package name throughout your library for different Octo components you create.
- * @param modelName - a string that uniquely represents the base model you are extending.
- * Octo provides names for each of the base models, and you must use the same name.
- * E.g. for region base model, the model name is `region`.
+ * @param modelName - The name of the base model you are extending, e.g. `region` for {@link Region}.
  * @param schema - The schema of the model.
  *
  * @returns The decorated class.
@@ -33,7 +31,7 @@ import { ValidationUtility } from '../utilities/validation/validation.utility.js
  */
 export function Model<T extends UnknownModel>(
   packageName: string,
-  modelName: string,
+  modelName: ModelName,
   schema: Constructable<ModelSchema<T>>,
 ): (constructor: any) => void {
   const container = Container.getInstance();
@@ -41,9 +39,6 @@ export function Model<T extends UnknownModel>(
   return function (constructor: any) {
     if (!ValidationUtility.validateRegex(packageName, /^[@A-Za-z][\w-]+[A-Za-z]$/)) {
       throw new Error(`Invalid package name: ${packageName}`);
-    }
-    if (!ValidationUtility.validateRegex(modelName, /^[A-Za-z][\w-]+[A-Za-z]$/)) {
-      throw new Error(`Invalid model name: ${modelName}`);
     }
     if (!(constructor.prototype instanceof AModel) || constructor.prototype instanceof AOverlay) {
       throw new Error(`Class "${constructor.name}" must extend the AModel class!`);
