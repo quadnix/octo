@@ -1,9 +1,1 @@
 plugins/typedoc-api/lib
-
-# Ignored only for this app: its website source is `build/`, so the generated Terraform is one
-# `aws_s3_object` per built file and every run regenerates it.
-.octo-tf/
-
-.octo/local-state.lock
-.octo/journal.*
-.octo/archives/

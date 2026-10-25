@@ -35,13 +35,12 @@ one it recorded after the last run.
 | `packages/octo-event-listeners` | `octo`                            | the logger, the CLI report, the journal                              |
 | `packages/octo-build`           | `octo`, `octo-event-listeners`    | the `octo` CLI and the `octo.yaml` loader                            |
 | `packages/octo-templates`       | `octo`, `octo-aws-cdk`, listeners | tested stacks, and the e2e suites that apply them                    |
-| `apps/octo-docs`                | the published packages            | the Docusaurus site, and the API reference generated from JSDoc      |
+| `apps/octo-docs`                | the packages' source              | the Docusaurus site, and the API reference generated from JSDoc      |
 
 **`octo` knows no cloud and no presentation.** It emits events for what it did; a listener decides
 what they mean. Nothing in `octo` names AWS.
 
-Nx controls `packages/` only; `apps/octo-docs` manages its own dependencies and pins released
-versions.
+Nx controls `packages/` only; `apps/octo-docs` manages its own dependencies. Nothing here deploys it.
 
 ---
 
@@ -203,4 +202,3 @@ named in the subject, and the highest bump since a package's last tag wins.
   suite runs in CI.
 - **Manual Release**: build, version and tag, write the changelog, publish to npm. Dependents'
   ranges are rewritten.
-- **Manual Documentation Release** publishes `apps/octo-docs`.
