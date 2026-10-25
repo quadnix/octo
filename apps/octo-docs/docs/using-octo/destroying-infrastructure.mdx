@@ -91,7 +91,7 @@ This apply would DESTROY:
   [region-module] aws_vpc.vpc-eu-west-1 (delete)
   ...
 
-Refusing to apply. Run "octo validate" to see why each of these is being destroyed, then re-run with --auto-approve to proceed.
+Error: Refusing to apply. Run "octo validate" to see why each of these is being destroyed, then re-run with --auto-approve to proceed!
 ```
 
 Terragrunt is always given `-auto-approve`, so there is no prompt to answer during an apply. This

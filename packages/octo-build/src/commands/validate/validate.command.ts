@@ -1,6 +1,5 @@
 import { resolve } from 'path';
 import { Container, TerraformUtility } from '@quadnix/octo';
-import chalk from 'chalk';
 import type { ArgumentsCamelCase, Argv } from 'yargs';
 import { OctoUtility } from '../../utilities/octo/octo.utility.js';
 
@@ -69,8 +68,7 @@ export const validateCommand = {
       // on stderr. What is left is the exit code, which is the CLI's own job, and the failure line on
       // stderr.
       if (report.failures.length > 0) {
-        console.error(chalk.red('\nValidation could not complete!'));
-        return 1;
+        throw new Error('Validation could not complete!');
       }
     });
   },

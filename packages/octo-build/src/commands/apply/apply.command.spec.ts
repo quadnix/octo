@@ -27,12 +27,9 @@ jest.unstable_mockModule('../../utilities/octo/octo.utility.js', () => ({
     bootStateProvider: mockedBootStateProvider,
     prepareCallbackEnvironment: mockedPrepareCallbackEnvironment,
     reportError: mockedReportError,
-    runCommand: async (_command: string, body: () => Promise<number | void>): Promise<void> => {
+    runCommand: async (_command: string, body: () => Promise<void>): Promise<void> => {
       try {
-        const exitCode = await body();
-        if (exitCode) {
-          process.exit(exitCode);
-        }
+        await body();
       } catch (error) {
         mockedReportError(error);
         process.exit(1);
@@ -150,6 +147,12 @@ describe('applyCommand UT', () => {
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         expect.stringContaining('[region-module] aws_efs_file_system.efs-1'),
       );
+      expect(mockedReportError).toHaveBeenCalledWith(
+        new Error(
+          'Refusing to apply. Run "octo validate" to see why each of these is being destroyed, ' +
+            'then re-run with --auto-approve to proceed!',
+        ),
+      );
       expect(processExitSpy).toHaveBeenCalledWith(1);
     });
 
@@ -198,6 +201,12 @@ describe('applyCommand UT', () => {
 
       expect(terraformUtilityMock.apply).not.toHaveBeenCalled();
       expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Error: invalid CIDR block'));
+      expect(mockedReportError).toHaveBeenCalledWith(
+        new Error(
+          'Cannot check this apply for destroys because the folders above would not plan. ' +
+            'Fix them, or pass --auto-approve to apply anyway!',
+        ),
+      );
       expect(processExitSpy).toHaveBeenCalledWith(1);
     });
   });

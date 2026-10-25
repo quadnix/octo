@@ -170,11 +170,11 @@ export class OctoUtility {
   }
 
   /**
-   * Runs one lifecycle command: announces it, runs `body`, and exits with the code `body` returns, or
-   * with 1 after reporting what it threw. The command's end is announced, and awaited by listeners
-   * such as the journal, before the process exits.
+   * Runs one lifecycle command: announces it, runs `body`, and exits with 1 after reporting what it
+   * threw. The command's end is announced, and awaited by listeners such as the journal, before the
+   * process exits.
    */
-  static async runCommand(command: string, body: () => Promise<number | void>): Promise<void> {
+  static async runCommand(command: string, body: () => Promise<void>): Promise<void> {
     const eventService = (await Container.getInstance().get('EventService')) as {
       emit(event: Event<unknown>): void;
       emitAndWait(event: Event<unknown>): Promise<void>;
@@ -184,9 +184,8 @@ export class OctoUtility {
     eventService.emit(new CommandStartedEvent(undefined, { command }));
 
     // Run the command, announcing how it ended.
-    let exitCode: number | void;
     try {
-      exitCode = await body();
+      await body();
     } catch (error) {
       await eventService.emitAndWait(
         new CommandFailedEvent(undefined, {
@@ -199,18 +198,6 @@ export class OctoUtility {
       process.exit(1);
       return;
     }
-    if (exitCode) {
-      await eventService.emitAndWait(
-        new CommandFailedEvent(undefined, {
-          command,
-          durationInMs: Date.now() - startedAt,
-          error: new Error(`Exited with code ${exitCode}.`),
-        }),
-      );
-      process.exit(exitCode);
-      return;
-    }
-
     await eventService.emitAndWait(
       new CommandFinishedEvent(undefined, { command, durationInMs: Date.now() - startedAt }),
     );

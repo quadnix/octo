@@ -40,14 +40,6 @@ describe('OctoUtility UT', () => {
       expect(processExitSpy).toHaveBeenCalledWith(1);
     });
 
-    it('should announce the failure and exit with the code the command returns', async () => {
-      await OctoUtility.runCommand('validate', async () => 1);
-
-      expect(emitted.map((e) => e.constructor)).toEqual([CommandStartedEvent, CommandFailedEvent]);
-      expect(emitted[1].payload).toMatchObject({ command: 'validate', error: new Error('Exited with code 1.') });
-      expect(processExitSpy).toHaveBeenCalledWith(1);
-    });
-
     it('should announce the command and its end', async () => {
       await OctoUtility.runCommand('generate', async () => undefined);
 

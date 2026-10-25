@@ -41,12 +41,9 @@ jest.unstable_mockModule('../../utilities/octo/octo.utility.js', () => ({
     bootOcto: mockedBootOcto,
     prepareCallbackEnvironment: mockedPrepareCallbackEnvironment,
     reportError: mockedReportError,
-    runCommand: async (_command: string, body: () => Promise<number | void>): Promise<void> => {
+    runCommand: async (_command: string, body: () => Promise<void>): Promise<void> => {
       try {
-        const exitCode = await body();
-        if (exitCode) {
-          process.exit(exitCode);
-        }
+        await body();
       } catch (error) {
         mockedReportError(error);
         process.exit(1);
@@ -137,7 +134,7 @@ describe('validateCommand UT', () => {
 
     await validateCommand.handler(argv);
 
-    expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Validation could not complete!'));
+    expect(mockedReportError).toHaveBeenCalledWith(new Error('Validation could not complete!'));
     expect(processExitSpy).toHaveBeenCalledWith(1);
   });
 

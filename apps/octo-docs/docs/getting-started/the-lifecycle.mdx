@@ -109,7 +109,7 @@ This apply would DESTROY:
   [region-module] aws_internet_gateway.igw-eu-west-1 (delete)
   [receipts-module] aws_s3_bucket.bucket-shop-receipts (delete) - the data it holds is lost with it
 
-Refusing to apply. Run "octo validate" to see why each of these is being destroyed, then re-run with --auto-approve to proceed.
+Error: Refusing to apply. Run "octo validate" to see why each of these is being destroyed, then re-run with --auto-approve to proceed!
 ```
 
 `--auto-approve` skips that check, and it is required for every destroy, including one you meant. If

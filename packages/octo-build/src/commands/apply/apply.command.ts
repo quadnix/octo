@@ -17,14 +17,14 @@ type ApplyCommandArguments = {
  * Plans the directory and prints anything the apply would destroy, marking each destroy of a resource
  * the last commit recorded as losing data.
  *
- * Returns true when the apply must not proceed: something would be destroyed, or a folder would not
- * plan and so nothing can be said about what it would destroy.
+ * Returns why the apply must not proceed: something would be destroyed, or a folder would not plan and
+ * so nothing can be said about what it would destroy. Returns `undefined` when it may.
  */
-async function isBlockedByDestroys(
+async function findDestroyRefusal(
   terraformUtility: TerraformUtility,
   stateManagementService: StateManagementService,
   resolvedDir: string,
-): Promise<boolean> {
+): Promise<string | undefined> {
   const { errors, plans } = await terraformUtility.plan(resolvedDir, { json: true });
 
   if (errors.size > 0) {
@@ -32,19 +32,15 @@ async function isBlockedByDestroys(
       console.error(chalk.red(`ERROR [${moduleId}] Terraform failed to plan:\n${error}`));
     }
 
-    console.error(
-      chalk.red(
-        '\nCannot check this apply for destroys because the folders above would not plan. ' +
-          'Fix them, or pass --auto-approve to apply anyway.',
-      ),
+    return (
+      'Cannot check this apply for destroys because the folders above would not plan. ' +
+      'Fix them, or pass --auto-approve to apply anyway!'
     );
-
-    return true;
   }
 
   const destroys = terraformUtility.findPlannedDestroys(plans);
   if (destroys.length === 0) {
-    return false;
+    return undefined;
   }
 
   // Find the addresses whose destroy loses data.
@@ -66,14 +62,10 @@ async function isBlockedByDestroys(
     console.error(chalk.red(`  [${destroy.moduleId}] ${destroy.address} (${destroy.tfActions.join(', ')})${dataLoss}`));
   }
 
-  console.error(
-    chalk.red(
-      '\nRefusing to apply. Run "octo validate" to see why each of these is being destroyed, ' +
-        'then re-run with --auto-approve to proceed.',
-    ),
+  return (
+    'Refusing to apply. Run "octo validate" to see why each of these is being destroyed, ' +
+    'then re-run with --auto-approve to proceed!'
   );
-
-  return true;
 }
 
 /**
@@ -146,8 +138,11 @@ export const applyCommand = {
       // opt-in, plan first and refuse to destroy anything the user has not been shown. What is at
       // stake is the data inside a resource terraform recreates; octo's own state stays consistent
       // either way.
-      if (!autoApprove && (await isBlockedByDestroys(terraformUtility, stateManagementService, resolvedDir))) {
-        return 1;
+      const refusal = autoApprove
+        ? undefined
+        : await findDestroyRefusal(terraformUtility, stateManagementService, resolvedDir);
+      if (refusal !== undefined) {
+        throw new Error(refusal);
       } else {
         // Terragrunt's output goes out as events as it is written, which the listeners print and record.
         try {

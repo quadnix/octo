@@ -298,7 +298,7 @@ same lock ID. A line ending `- the data it holds is lost with it` destroys a tab
 objects, a filesystem's files, or a repository's images along with the resource. The lock is still held, so if you are not going ahead, release it with
 `octo unlock --lockId`.
 
-**`Cannot check this apply for destroys because the folders above would not plan.`**
+**`Cannot check this apply for destroys because the folders above would not plan. Fix them, or pass --auto-approve to apply anyway!`**
 
 Same guard, different reason: a folder failed to plan, so Octo cannot say whether it would destroy
 anything, and will not assume. Fix the plan failure.
