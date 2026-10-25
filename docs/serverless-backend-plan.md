@@ -118,9 +118,8 @@ the catalog's Wave E.5.
 - **Certificate.** A certificate cannot be shared between accounts, and CloudFront takes one only
   from its own account, in `us-east-1`. The backend account holds its own, for `octo.quadnix.com`
   and `*.octo.quadnix.com`, validated by a CNAME in the zone in `099…`.
-- **The name is taken today.** The docs site's distribution in `099…` (`E2OSGI26XBB8HX`, bucket
-  `octo-quadnix-com`) holds `octo.quadnix.com`, and CloudFront refuses a name already attached to
-  another distribution. Before the backend's distribution can claim it, the docs site moves into
+- **The name is taken today.** The docs site's distribution in `099…` (bucket `octo-quadnix-com`)
+  holds `octo.quadnix.com`, and CloudFront refuses a name already attached to another distribution. Before the backend's distribution can claim it, the docs site moves into
   the backend account and the alias leaves the old distribution, accepting a few minutes of
   downtime (step 7). The alias record for `octo.quadnix.com` in `099…` is then pointed at the new
   distribution; an alias may point at a distribution in another account.
@@ -283,13 +282,11 @@ scaffold a serverless app.
   E). Deploy through IAM Identity Center profiles `octo-prod`, `commons-prod` and `root`; no
   account has an IAM user. Central root access management is not on.
 - **Certificate.** In the backend account, `us-east-1`, issued for `octo.quadnix.com` and
-  `*.octo.quadnix.com`:
-  `arn:aws:acm:us-east-1:<octo-prod account>:certificate/96a222c9-4511-44a5-885c-9e45d76acc1d`. It is the
-  distribution's `certificateArn`.
+  `*.octo.quadnix.com`. It is the distribution's `certificateArn`.
 - **SES.** In commons, `us-east-1`: `quadnix.com` verified with DKIM signing, and `root@`,
-  `support.octo@` and Rahul's address verified. A production access request was denied (case
-  `179134609500186`); the account stays in the sandbox, as decided. The management account no
-  longer has an SES identity, and its DKIM records are deleted.
+  `support.octo@` and Rahul's address verified. A production access request was denied; the
+  account stays in the sandbox, as decided. The management account no longer has an SES identity,
+  and its DKIM records are deleted.
 - **Lambda.** Concurrency is 400 in both member accounts; 1000 is requested.
 - **Budget.** One $10 monthly budget in the management account, covering the whole organization.
 
@@ -313,7 +310,8 @@ scaffold a serverless app.
 1. **Deploy `quadnix-commons`** in its account. Verify that a signed request from the backend account
    gets through, and that an unsigned request or one from any other account gets 403.
 2. **Move the docs site into the backend account**, with a few minutes of downtime: remove
-   `octo.quadnix.com` from `E2OSGI26XBB8HX` in `099…`, so the backend's distribution can claim it.
+   `octo.quadnix.com` from the docs site's distribution in `099…`, so the backend's distribution
+   can claim it.
 3. **Deploy `octo-backend`,** with the docs site and `/api` on one distribution, then point the
    `octo.quadnix.com` alias records in `099…` at it. Its own octo project must never keep its state
    in the state service it deploys, or an outage would lock out the apply that fixes it. Verify that a direct call to a
