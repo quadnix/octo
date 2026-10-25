@@ -228,7 +228,7 @@ describe('YamlDefinitionUtility UT', () => {
       });
       expect(terraform.providers).toEqual([
         {
-          accountId: '111111111111',
+          accountId: '123456789012',
           // Absent from the definition, so the alias falls back to the account id.
           accountName: undefined,
           providerType: 'aws',
@@ -240,7 +240,7 @@ describe('YamlDefinitionUtility UT', () => {
           spec: { profile: 'default' }, // env-resolved from ${env.AWS_PROFILE}
         },
         {
-          accountId: '222222222222',
+          accountId: '999999999999',
           accountName: 'prod',
           providerType: 'aws',
           regionId: 'us-west-2',

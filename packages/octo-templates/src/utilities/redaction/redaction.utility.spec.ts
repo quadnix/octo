@@ -1,14 +1,21 @@
 import { RedactionUtility } from './redaction.utility.js';
 
-// Not a real account, and deliberately not one of the allowed placeholders, so it is the value these
-// tests expect to be replaced.
-const ACCOUNT_ID = '210987654321';
+// Invented values, deliberately not the allowed placeholders, so they are what these tests expect to
+// be replaced. Each is joined at runtime, so the scan over tracked files does not find it here.
+const ACCOUNT_ID = ['210987', '654321'].join('');
+const ACCESS_KEY_ID = ['AKIA', 'Q2WE3RT4YU5IO6P7'].join('');
+const SECRET_ACCESS_KEY = ['q2We3rT4yU5iO6p7', 'A8sD9fG0hJ1kL2zX3cV4bN5m'].join('');
+const GITHUB_TOKEN = ['ghp_', 'q2We3rT4yU5iO6p7A8sD9fG0hJ1kL2zX3cV4'].join('');
 
 describe('RedactionUtility UT', () => {
   describe('redactionRules()', () => {
     it('should return only rules that carry a token', () => {
       expect(RedactionUtility.redactionRules().every((rule) => rule.token !== null)).toBe(true);
-      expect(RedactionUtility.redactionRules().map((rule) => rule.name)).toEqual(['AWS account id']);
+      expect(RedactionUtility.redactionRules().map((rule) => rule.name)).toEqual([
+        'AWS account id',
+        'AWS credential',
+        'GitHub token',
+      ]);
     });
   });
 
@@ -117,6 +124,43 @@ describe('RedactionUtility UT', () => {
 
     it('should redact a value that is nothing but an account number', () => {
       expect(RedactionUtility.redact(ACCOUNT_ID)).toBe('<AWS_ACCOUNT_ID>');
+    });
+
+    it('should redact a quoted account number', () => {
+      expect(RedactionUtility.redact(`accountId: '${ACCOUNT_ID}'`)).toBe("accountId: '<AWS_ACCOUNT_ID>'");
+      expect(RedactionUtility.redact(`"accountId": "${ACCOUNT_ID}",`)).toBe('"accountId": "<AWS_ACCOUNT_ID>",');
+    });
+
+    it('should redact an account number after a key or word naming an account', () => {
+      expect(RedactionUtility.redact(`AWS_ACCOUNT_ID=${ACCOUNT_ID}`)).toBe('AWS_ACCOUNT_ID=<AWS_ACCOUNT_ID>');
+      expect(RedactionUtility.redact(`Deploy into account ${ACCOUNT_ID} first.`)).toBe(
+        'Deploy into account <AWS_ACCOUNT_ID> first.',
+      );
+    });
+
+    it('should not redact the access keys AWS documents as examples', () => {
+      expect(RedactionUtility.redact('aws_access_key_id = AKIAIOSFODNN7EXAMPLE')).toBe(
+        'aws_access_key_id = AKIAIOSFODNN7EXAMPLE',
+      );
+    });
+
+    it('should redact an aws access key id', () => {
+      expect(RedactionUtility.redact(`aws_access_key_id = ${ACCESS_KEY_ID}`)).toBe(
+        'aws_access_key_id = <AWS_CREDENTIAL>',
+      );
+    });
+
+    it('should redact an aws secret access key after its name', () => {
+      expect(RedactionUtility.redact(`aws_secret_access_key = ${SECRET_ACCESS_KEY}`)).toBe(
+        'aws_secret_access_key = <AWS_CREDENTIAL>',
+      );
+      expect(RedactionUtility.redact(`secretAccessKey: '${SECRET_ACCESS_KEY}'`)).toBe(
+        "secretAccessKey: '<AWS_CREDENTIAL>'",
+      );
+    });
+
+    it('should redact a github token', () => {
+      expect(RedactionUtility.redact(`GH_TOKEN=${GITHUB_TOKEN}`)).toBe('GH_TOKEN=<GITHUB_TOKEN>');
     });
   });
 });

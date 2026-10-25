@@ -3,7 +3,7 @@ import type { IRedactionRule } from '../redaction.utility.js';
 const ACCOUNT_ID = String.raw`\d{12}`;
 
 /**
- * An AWS account number, in the four shapes captured output carries one.
+ * An AWS account number, in the shapes captured output and hand-written files carry one.
  *
  * `123456789012` is the documentation placeholder, `123456789123` the scaffold's, `999999999999` the
  * second account the definition file docs need, and `000000000000` what terragrunt's own mock
@@ -20,6 +20,10 @@ export const AWS_ACCOUNT_ID_RULE: IRedactionRule = {
     new RegExp(String.raw`(_)${ACCOUNT_ID}(?=-)`, 'g'),
     // A value that is nothing but an account number, e.g. a security group's "owner_id".
     new RegExp(String.raw`(^)${ACCOUNT_ID}$`, 'g'),
+    // A quoted value, e.g. "accountId: '123456789012'" in an octo.yaml or a JSON field.
+    new RegExp(String.raw`(['"\x60])${ACCOUNT_ID}(?=['"\x60])`, 'g'),
+    // A value after a key or word naming an account, e.g. "AWS_ACCOUNT_ID=123456789012".
+    new RegExp(String.raw`(account(?:[ _-]?id)?\s*[:=]?\s*)${ACCOUNT_ID}(?!\d)`, 'gi'),
   ],
   placeholders: ['123456789012', '123456789123', '999999999999', '000000000000'],
   token: '<AWS_ACCOUNT_ID>',

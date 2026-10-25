@@ -19,6 +19,11 @@ lerna-debug.log*
 # OS
 .DS_Store
 
+# Secrets, and octo's local state and journals wherever octo runs
+.env
+**/.octo/*
+!**/.octo/.gitkeep
+
 # Tests
 /coverage
 /.nyc_output

@@ -13,12 +13,12 @@ terraform:
       minVersion: '5.0.0'
   providers:
     - providerType: 'aws'
-      accountId: '111111111111'
+      accountId: '123456789012'
       regionId: 'us-east-1'
       spec:
         profile: '${env.AWS_PROFILE}'
     - providerType: 'aws'
-      accountId: '222222222222'
+      accountId: '999999999999'
       accountName: 'prod'
       regionId: 'us-west-2'
       setRegionAttribute: false

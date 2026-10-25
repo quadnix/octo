@@ -512,7 +512,7 @@ describe('AwsLambdaExecutionModule UT', () => {
       await testModuleContainer
         .runModules<AwsLambdaExecutionModule>(
           {
-            inputs: executionInputs({ invokerAccountIds: ['210987654321'] }),
+            inputs: executionInputs({ invokerAccountIds: ['999999999999'] }),
             moduleId: 'execution',
             type: AwsLambdaExecutionModule,
           },
@@ -523,7 +523,7 @@ describe('AwsLambdaExecutionModule UT', () => {
 
     expect(hclRender).toContain('resource "aws_lambda_function_url" "lambda-function-backend-v1-qa-83d832_url"');
     expect(hclRender).toContain('authorization_type = "AWS_IAM"');
-    expect(hclRender).toContain('principal = "210987654321"');
+    expect(hclRender).toContain('principal = "999999999999"');
   });
 
   it('should buffer responses by default', async () => {

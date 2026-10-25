@@ -111,7 +111,7 @@ describe('LambdaFunction UT', () => {
         new LambdaFunctionSchema().properties = properties({
           environmentVariables: { NODE_ENV: 'qa' },
           imageCommand: ['node', 'main.js'],
-          invokerAccountIds: ['210987654321'],
+          invokerAccountIds: ['999999999999'],
         });
       }).not.toThrow();
     });
@@ -236,7 +236,7 @@ describe('LambdaFunction UT', () => {
       await createLambdaFunction({
         environmentVariables: { NODE_ENV: 'qa' },
         imageCommand: ['node', 'main.js'],
-        invokerAccountIds: ['210987654321'],
+        invokerAccountIds: ['999999999999'],
       }).toHCL(terraform);
 
       expect(emitted.slice(1)).toMatchInlineSnapshot(`
@@ -250,24 +250,24 @@ describe('LambdaFunction UT', () => {
            "type": "aws_lambda_function_url",
          },
          {
-           "name": "lambda-function-backend_url_invoker_210987654321",
+           "name": "lambda-function-backend_url_invoker_999999999999",
            "spec": {
              "action": "lambda:InvokeFunctionUrl",
              "function_name": "aws_lambda_function.lambda-function-backend.function_name",
              "function_url_auth_type": "AWS_IAM",
-             "principal": "210987654321",
-             "statement_id": "AllowFunctionUrlInvokeFrom-210987654321",
+             "principal": "999999999999",
+             "statement_id": "AllowFunctionUrlInvokeFrom-999999999999",
            },
            "type": "aws_lambda_permission",
          },
          {
-           "name": "lambda-function-backend_url_invoker_210987654321_invoke",
+           "name": "lambda-function-backend_url_invoker_999999999999_invoke",
            "spec": {
              "action": "lambda:InvokeFunction",
              "function_name": "aws_lambda_function.lambda-function-backend.function_name",
              "invoked_via_function_url": true,
-             "principal": "210987654321",
-             "statement_id": "AllowInvokeViaFunctionUrlFrom-210987654321",
+             "principal": "999999999999",
+             "statement_id": "AllowInvokeViaFunctionUrlFrom-999999999999",
            },
            "type": "aws_lambda_permission",
          },

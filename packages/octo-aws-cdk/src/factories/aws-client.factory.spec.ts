@@ -2,7 +2,7 @@ import { ECRClient } from '@aws-sdk/client-ecr';
 import { type Container, TestContainer } from '@quadnix/octo';
 import { ECRClientFactory } from './aws-client.factory.js';
 
-const CREDENTIALS = { accessKeyId: 'key-of-111', secretAccessKey: 'secret-of-111' };
+const CREDENTIALS = { accessKeyId: 'key-of-account', secretAccessKey: 'secret-of-account' };
 
 describe('AwsClientFactory UT', () => {
   let container: Container;
@@ -24,17 +24,17 @@ describe('AwsClientFactory UT', () => {
     });
 
     it('should throw error if the region is missing', async () => {
-      await expect(ECRClientFactory.create('111111111111', '')).rejects.toThrowErrorMatchingInlineSnapshot(
+      await expect(ECRClientFactory.create('123456789012', '')).rejects.toThrowErrorMatchingInlineSnapshot(
         `"Failed to create instance of ECRClientFactory due to insufficient arguments!"`,
       );
     });
 
     it('should build the client with the account own credentials, not the ambient ones', async () => {
       container.registerValue('AwsCredentialIdentityProvider', CREDENTIALS, {
-        metadata: { awsAccountId: '111111111111', package: '@octo' },
+        metadata: { awsAccountId: '123456789012', package: '@octo' },
       });
 
-      const client = await ECRClientFactory.create('111111111111', 'us-east-1');
+      const client = await ECRClientFactory.create('123456789012', 'us-east-1');
 
       // Resolved through the client, because that is the only proof they were actually applied -
       // the shape this replaces spread them into the config, where the SDK ignored them.
@@ -43,17 +43,17 @@ describe('AwsClientFactory UT', () => {
     });
 
     it('should keep one client per account and region', async () => {
-      for (const awsAccountId of ['111111111111', '222222222222']) {
+      for (const awsAccountId of ['123456789012', '999999999999']) {
         container.registerValue('AwsCredentialIdentityProvider', CREDENTIALS, {
           metadata: { awsAccountId, package: '@octo' },
         });
       }
 
       const [first, again, otherRegion, otherAccount] = await Promise.all([
-        ECRClientFactory.create('111111111111', 'us-east-1'),
-        ECRClientFactory.create('111111111111', 'us-east-1'),
-        ECRClientFactory.create('111111111111', 'us-west-2'),
-        ECRClientFactory.create('222222222222', 'us-east-1'),
+        ECRClientFactory.create('123456789012', 'us-east-1'),
+        ECRClientFactory.create('123456789012', 'us-east-1'),
+        ECRClientFactory.create('123456789012', 'us-west-2'),
+        ECRClientFactory.create('999999999999', 'us-east-1'),
       ]);
 
       expect(again).toBe(first);
@@ -62,21 +62,21 @@ describe('AwsClientFactory UT', () => {
     });
 
     it('should leave a service with no override to the SDK', async () => {
-      const metadata = { awsAccountId: '111111111111', package: '@octo' };
+      const metadata = { awsAccountId: '123456789012', package: '@octo' };
       container.registerValue('AwsCredentialIdentityProvider', CREDENTIALS, { metadata });
       container.registerValue('AwsServiceEndpoints', { s3: 'http://localhost:4566' }, { metadata });
 
-      const ecrClient = await ECRClientFactory.create('111111111111', 'us-east-1');
+      const ecrClient = await ECRClientFactory.create('123456789012', 'us-east-1');
 
       expect(ecrClient.config.endpoint).toBeUndefined();
     });
 
     it('should apply the endpoint override of its own service', async () => {
-      const metadata = { awsAccountId: '111111111111', package: '@octo' };
+      const metadata = { awsAccountId: '123456789012', package: '@octo' };
       container.registerValue('AwsCredentialIdentityProvider', CREDENTIALS, { metadata });
       container.registerValue('AwsServiceEndpoints', { ecr: 'http://localhost:4566' }, { metadata });
 
-      const ecrClient = await ECRClientFactory.create('111111111111', 'us-east-1');
+      const ecrClient = await ECRClientFactory.create('123456789012', 'us-east-1');
 
       expect((await ecrClient.config.endpoint!()).hostname).toBe('localhost');
     });
@@ -96,11 +96,11 @@ describe('ECRClient factory registration UT', () => {
     ECRClientFactory.reset();
     const container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
     container.registerValue('AwsCredentialIdentityProvider', CREDENTIALS, {
-      metadata: { awsAccountId: '111111111111', package: '@octo' },
+      metadata: { awsAccountId: '123456789012', package: '@octo' },
     });
 
     const client = await container.get<ECRClient, typeof ECRClientFactory>(ECRClient, {
-      args: ['111111111111', 'us-east-1'],
+      args: ['123456789012', 'us-east-1'],
       metadata: { package: '@octo' },
     });
 
