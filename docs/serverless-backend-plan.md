@@ -60,6 +60,11 @@ commons' three function URLs.
   The backend signs every request with its function's role (SigV4, service `lambda`, one axios
   interceptor), so commons' code sees a plain HTTP call. **Commons authenticates no caller of its
   own** (none of its services registers a guard), so this signature is its only protection.
+- **Both signatures take `Authorization` — found 2026-10-25.** The origin access control and the
+  backend's signer each overwrite it, so a session travels as `x-session-id` in `quadnix-commons`,
+  `octo-backend`, `octo-frontend-web` and `octo`, and nothing of ours writes or reads
+  `Authorization`. The backend's distribution must forward `x-session-id` to its origins and allow it
+  in CORS, tracked as item 13 in `octo-backend/docs/OPEN-ITEMS.md`.
 
 **A NestJS app runs on Lambda unchanged.** Each Dockerfile adds AWS's Lambda Web Adapter
 (`COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:<version> /lambda-adapter
