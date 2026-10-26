@@ -92,6 +92,12 @@ async function startBackend(backend: Backend): Promise<{ close: () => Promise<vo
     const route = `${request.method} ${request.url!.slice(appUrl.length) || '/'}`;
     backend.requests.push(route);
 
+    // Refuse a request that does not present the session, as the backend's session guard does.
+    if (request.headers['x-session-id'] !== 'a-session') {
+      refuse(401, 'No session found!');
+      return;
+    }
+
     const describe = (state: Backend['states'][0]): object => ({ commitId: state.commitId, phase: state.phase });
     const answerFiles = (state: Backend['states'][0]): void => {
       answer(200, {

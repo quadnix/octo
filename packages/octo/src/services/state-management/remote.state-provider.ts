@@ -203,7 +203,7 @@ export class RemoteStateProvider implements IStateProvider {
       const commitId = `${Date.now()}-${randomBytes(4).toString('hex')}`;
       const response = await HttpUtility.sendJson(`${this.appStateUrl()}/lock`, {
         body: { commitId, context: this.lockContext, scope: APP_LOCK_SCOPE },
-        headers: this.authorizationHeader(),
+        headers: this.sessionHeader(),
         method: 'POST',
       });
       if (!response.ok) {
@@ -280,7 +280,7 @@ export class RemoteStateProvider implements IStateProvider {
       }
 
       const response = await HttpUtility.send(`${this.appStateUrl()}/latest`, {
-        headers: this.authorizationHeader(),
+        headers: this.sessionHeader(),
       });
       if (response.status === 404) {
         await this.deleteLockFile();
@@ -376,13 +376,6 @@ export class RemoteStateProvider implements IStateProvider {
   }
 
   /**
-   * The session this run acts as. Every route but the health check is behind it.
-   */
-  private authorizationHeader(): { Authorization: string } {
-    return { Authorization: `Bearer ${this.sessionId}` };
-  }
-
-  /**
    * Deletes the lock file. Deleting one that is not there is not an error.
    */
   private async deleteLockFile(): Promise<void> {
@@ -436,7 +429,7 @@ export class RemoteStateProvider implements IStateProvider {
    * Every lock the backend holds on this app, oldest first.
    */
   private async readAppLocks(): Promise<RemoteAppLock[]> {
-    const response = await HttpUtility.send(`${this.appStateUrl()}/locks`, { headers: this.authorizationHeader() });
+    const response = await HttpUtility.send(`${this.appStateUrl()}/locks`, { headers: this.sessionHeader() });
     if (!response.ok) {
       throw new TransactionError(`Failed to read the app lock: ${await HttpUtility.readErrorMessage(response)}`);
     }
@@ -464,7 +457,7 @@ export class RemoteStateProvider implements IStateProvider {
    * One run holds the whole app at a time, so records are opened in the order they are sealed.
    */
   private async readNewestState(): Promise<RemoteState | undefined> {
-    const response = await HttpUtility.send(`${this.appStateUrl()}?limit=1`, { headers: this.authorizationHeader() });
+    const response = await HttpUtility.send(`${this.appStateUrl()}?limit=1`, { headers: this.sessionHeader() });
     if (!response.ok) {
       throw new TransactionError(`Failed to read the app state: ${await HttpUtility.readErrorMessage(response)}`);
     }
@@ -477,7 +470,7 @@ export class RemoteStateProvider implements IStateProvider {
    */
   private async releaseAppLock(lockId: string): Promise<boolean> {
     const response = await HttpUtility.send(`${this.appStateUrl()}/lock/${lockId}/unlock`, {
-      headers: this.authorizationHeader(),
+      headers: this.sessionHeader(),
       method: 'POST',
     });
     if (response.ok) {
@@ -564,11 +557,11 @@ export class RemoteStateProvider implements IStateProvider {
       // Read what the run wrote so far. A run that wrote nothing started from the newest sealed state,
       // which is read as a refresh reads it, without its journal.
       let response = await HttpUtility.send(`${this.appStateUrl()}/commit/${lock.commitId}/files`, {
-        headers: this.authorizationHeader(),
+        headers: this.sessionHeader(),
       });
       const isRunWritten = response.status !== 404;
       if (!isRunWritten) {
-        response = await HttpUtility.send(`${this.appStateUrl()}/latest`, { headers: this.authorizationHeader() });
+        response = await HttpUtility.send(`${this.appStateUrl()}/latest`, { headers: this.sessionHeader() });
       }
       if (!response.ok && response.status !== 404) {
         throw new TransactionError(`Failed to read the app state: ${await HttpUtility.readErrorMessage(response)}`);
@@ -588,6 +581,13 @@ export class RemoteStateProvider implements IStateProvider {
 
       return { commitId: lock.commitId, lockId, resumedFrom: isRunWritten ? 'run' : 'sealed' };
     });
+  }
+
+  /**
+   * The session this run acts as. Every route but the health check is behind it.
+   */
+  private sessionHeader(): { 'x-session-id': string } {
+    return { 'x-session-id': this.sessionId };
   }
 
   /**
@@ -724,7 +724,7 @@ export class RemoteStateProvider implements IStateProvider {
         body: {
           stateFiles: stateFiles.map(({ filename, sha256, sizeInBytes }) => ({ filename, sha256, sizeInBytes })),
         },
-        headers: this.authorizationHeader(),
+        headers: this.sessionHeader(),
         method: 'POST',
       });
       if (created.status === 404) {
@@ -752,7 +752,7 @@ export class RemoteStateProvider implements IStateProvider {
 
       // Claim the upload, which the backend refuses and throws away where a file is missing.
       const claimed = await HttpUtility.send(`${lockUrl}/upload/${uploadId}/claim`, {
-        headers: this.authorizationHeader(),
+        headers: this.sessionHeader(),
         method: 'POST',
       });
       if (!claimed.ok) {
