@@ -833,7 +833,7 @@ describe('CloudFrontDistribution UT', () => {
         originRequestPolicies: [
           {
             cookies: { kind: 'all' },
-            headers: { kind: 'allowList', values: ['Authorization'] },
+            headers: { kind: 'allowList', values: ['x-session-id'] },
             name: 'api-forwarding',
             queryStrings: { kind: 'all' },
           },

@@ -147,7 +147,7 @@ export type ICloudFrontPolicyReference<M extends string = string> =
 /**
  * Which headers, cookies, or query strings of the viewer's request a policy selects.
  * * `none` - Nothing.
- * * `allowList` - Only the names in `values`, e.g. `['Authorization']`. Names only, never values.
+ * * `allowList` - Only the names in `values`, e.g. `['x-session-id']`. Names only, never values.
  * * `all` - Everything the viewer sent. Not accepted for a cache policy's `headers`.
  * * `allViewerAndWhitelistCloudFront` - Every header the viewer sent, plus CloudFront's own. Only
  * accepted for an origin request policy's `headers`.
@@ -329,7 +329,7 @@ export class CloudFrontCorsSchema {
   allowCredentials = Schema<boolean>();
 
   /**
-   * The request headers the calling page may send, e.g. `['Content-Type', 'Authorization']`.
+   * The request headers the calling page may send, e.g. `['Content-Type', 'x-session-id']`.
    * A name may use `*` for any run of characters, e.g. `x-app-*`. `*` alone allows every header
    * except `Authorization`, which must be named. Header names are not case-sensitive.
    */
