@@ -3,8 +3,8 @@
     "octo": "./dist/index.js"
   },
   "dependencies": {
-    "@quadnix/octo": "~0.2.0",
-    "@quadnix/octo-event-listeners": "~0.2.0",
+    "@quadnix/octo": "~0.2.1",
+    "@quadnix/octo-event-listeners": "~0.2.1",
     "ajv": "~8.17.1",
     "chalk": "~5.5.0",
     "js-yaml": "~4.1.0",
@@ -81,5 +81,5 @@
   },
   "type": "module",
   "types": "./dist/index.d.ts",
-  "version": "0.2.0"
+  "version": "0.2.1"
 }
