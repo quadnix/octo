@@ -392,6 +392,7 @@ export class YamlDefinitionUtility {
   /**
    * Substitutes one `${env.KEY}` reference with what the definition's `env` block declares for that
    * key, read in the kind the block gives it. Anything holding no reference is returned as it came.
+   * Only `OCTO_ENV_KEY` in the environment overrides the declared value; a bare `KEY` never does.
    */
   private resolveEnvironmentReference<T>(value: unknown): T {
     if (typeof value !== 'string') {
@@ -410,7 +411,7 @@ export class YamlDefinitionUtility {
       throw new Error(`Key "${pattern[1]}" not found under "env"!`);
     }
 
-    let resolvedValue = process.env[pattern[1]] || environmentKey.value;
+    let resolvedValue = process.env[`OCTO_ENV_${pattern[1]}`] || environmentKey.value;
 
     const { kind } = environmentKey;
     switch (kind) {

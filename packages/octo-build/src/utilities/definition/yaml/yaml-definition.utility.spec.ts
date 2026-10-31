@@ -10,7 +10,12 @@ const fixture = (name: string): string => join(__dirname, '..', '..', '..', '..'
 
 describe('YamlDefinitionUtility UT', () => {
   describe('resolveEnvironmentValue()', () => {
-    const environmentKeys = ['OCTO_TEST_BOOLEAN_TRUE', 'OCTO_TEST_BOOLEAN_FALSE', 'OCTO_TEST_NUMBER'];
+    const environmentKeys = [
+      'OCTO_ENV_OCTO_TEST_BOOLEAN_TRUE',
+      'OCTO_ENV_OCTO_TEST_BOOLEAN_FALSE',
+      'OCTO_ENV_OCTO_TEST_STRING',
+      'OCTO_TEST_STRING',
+    ];
 
     afterEach(() => {
       for (const key of environmentKeys) {
@@ -28,8 +33,8 @@ describe('YamlDefinitionUtility UT', () => {
     it('should resolve a shell-supplied "false" to false, not to true', () => {
       const definition = new YamlDefinitionUtility(fixture('env-kinds-definition.yml'));
 
-      process.env.OCTO_TEST_BOOLEAN_TRUE = 'false';
-      process.env.OCTO_TEST_BOOLEAN_FALSE = 'TRUE';
+      process.env.OCTO_ENV_OCTO_TEST_BOOLEAN_TRUE = 'false';
+      process.env.OCTO_ENV_OCTO_TEST_BOOLEAN_FALSE = 'TRUE';
 
       expect(definition.resolveEnvironmentValue('${env.OCTO_TEST_BOOLEAN_TRUE}')).toBe(false);
       expect(definition.resolveEnvironmentValue('${env.OCTO_TEST_BOOLEAN_FALSE}')).toBe(true);
@@ -38,11 +43,27 @@ describe('YamlDefinitionUtility UT', () => {
     it('should reject a value that is not a boolean', () => {
       const definition = new YamlDefinitionUtility(fixture('env-kinds-definition.yml'));
 
-      process.env.OCTO_TEST_BOOLEAN_TRUE = 'yes';
+      process.env.OCTO_ENV_OCTO_TEST_BOOLEAN_TRUE = 'yes';
 
       expect(() => definition.resolveEnvironmentValue('${env.OCTO_TEST_BOOLEAN_TRUE}')).toThrow(
         'Value "yes" for key "OCTO_TEST_BOOLEAN_TRUE" is not a boolean!',
       );
+    });
+
+    it('should not let a variable named like the key override it', () => {
+      const definition = new YamlDefinitionUtility(fixture('env-kinds-definition.yml'));
+
+      process.env.OCTO_TEST_STRING = 'from the shell';
+
+      expect(definition.resolveEnvironmentValue('${env.OCTO_TEST_STRING}')).toBe('hello');
+    });
+
+    it('should let the key prefixed with OCTO_ENV_ override it', () => {
+      const definition = new YamlDefinitionUtility(fixture('env-kinds-definition.yml'));
+
+      process.env.OCTO_ENV_OCTO_TEST_STRING = 'from the shell';
+
+      expect(definition.resolveEnvironmentValue('${env.OCTO_TEST_STRING}')).toBe('from the shell');
     });
 
     it('should resolve numbers and strings', () => {

@@ -126,7 +126,8 @@ export class OctoCliUtility {
 
   /**
    * Runs one `octo` command, returning its stdout. Its stderr is forwarded as it arrives, because an
-   * apply runs for minutes and its progress is the only sign it is alive.
+   * apply runs for minutes and its progress is the only sign it is alive. `environment` holds values
+   * for the definition's `env` keys, each passed as `OCTO_ENV_<key>`.
    *
    * @throws If the command exits non-zero. The error carries everything the command printed.
    */
@@ -141,7 +142,7 @@ export class OctoCliUtility {
         cwd: projectDirectory,
         env: {
           ...process.env,
-          ...environment,
+          ...Object.fromEntries(Object.entries(environment).map(([key, value]) => [`OCTO_ENV_${key}`, value])),
           OCTO_DEFINITION_FILE_PATH: definitionFilePath,
           PATH: [BIN_DIRECTORY, process.env.PATH ?? ''].join(delimiter),
         },

@@ -95,7 +95,7 @@ as the run goes. The
 
 ```yaml title="octo.yaml"
 env:
-  - key: OCTO_SESSION
+  - key: STATE_SESSION_ID
     kind: string
     value: ""
 
@@ -105,7 +105,7 @@ settings:
     stateManagementServiceUrl: https://state.example.com/state   # the address you were given
     organizationId: shop-organization                            # your organization's ID
     appId: shop                                                  # the app's ID in the backend
-    sessionId: "${env.OCTO_SESSION}"
+    sessionId: "${env.STATE_SESSION_ID}"
     statePath: .octo
 ```
 

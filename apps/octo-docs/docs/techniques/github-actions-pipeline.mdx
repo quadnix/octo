@@ -49,10 +49,10 @@ somebody to finish. Nothing is committed back to the repository, so add `.octo/`
 
 ```yaml title="octo.yaml"
 env:
-  - key: OCTO_SESSION
+  - key: STATE_SESSION_ID
     kind: string
     value: ""                          # a personal access token, supplied by the shell
-  - key: OCTO_LOCK_CONTEXT
+  - key: STATE_LOCK_CONTEXT
     kind: string
     value: "octo, run by hand"         # the pipeline supplies its run's URL
 
@@ -62,14 +62,15 @@ settings:
     stateManagementServiceUrl: https://state.example.com/state   # your backend's address
     organizationId: shop-organization
     appId: shop
-    sessionId: "${env.OCTO_SESSION}"
-    lockContext: "${env.OCTO_LOCK_CONTEXT}"
+    sessionId: "${env.STATE_SESSION_ID}"
+    lockContext: "${env.STATE_LOCK_CONTEXT}"
     statePath: .octo
 ```
 
 Create a personal access token for the account the pipeline acts as, and store it as a repository
-secret named `OCTO_SESSION`. Both workflows hand it to every step. The apply workflow also sets
-`OCTO_LOCK_CONTEXT` to the URL of its own run, so a lock it holds names the run that took it.
+secret named `OCTO_SESSION`. Both workflows hand it to every step as `OCTO_ENV_STATE_SESSION_ID`.
+The apply workflow also sets `OCTO_ENV_STATE_LOCK_CONTEXT` to the URL of its own run, so a lock it
+holds names the run that took it.
 
 ## 1. The rules
 
@@ -102,8 +103,8 @@ jobs:
       contents: read
       id-token: write        # for OIDC role assumption
     env:
-      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-      OCTO_SESSION: ${{ secrets.OCTO_SESSION }}
+      OCTO_ENV_AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+      OCTO_ENV_STATE_SESSION_ID: ${{ secrets.OCTO_SESSION }}
     steps:
       - uses: actions/checkout@v4
 
@@ -181,10 +182,10 @@ jobs:
       id-token: write
       pull-requests: write
     env:
-      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+      OCTO_ENV_AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
       GH_TOKEN: ${{ github.token }}
-      OCTO_LOCK_CONTEXT: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-      OCTO_SESSION: ${{ secrets.OCTO_SESSION }}
+      OCTO_ENV_STATE_LOCK_CONTEXT: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      OCTO_ENV_STATE_SESSION_ID: ${{ secrets.OCTO_SESSION }}
       PR_NUMBER: ${{ github.event.issue.number }}
       REPOSITORY: ${{ github.repository }}
     steps:
@@ -293,9 +294,9 @@ jobs:
         if: ${{ !cancelled() }}
         run: |
           if [ "${{ steps.merge.outcome }}" = "success" ]; then
-            BODY="Applied and merged. $OCTO_LOCK_CONTEXT"
+            BODY="Applied and merged. $OCTO_ENV_STATE_LOCK_CONTEXT"
           else
-            BODY="Not merged. The run says why: $OCTO_LOCK_CONTEXT"
+            BODY="Not merged. The run says why: $OCTO_ENV_STATE_LOCK_CONTEXT"
           fi
           gh pr comment "$PR_NUMBER" --repo "$REPOSITORY" --body "$BODY"
 
@@ -393,7 +394,7 @@ concurrency:
       - name: Apply production
         env:
           OCTO_DEFINITION_FILE_PATH: octo.prod.yaml
-          AWS_ACCOUNT_ID: ${{ secrets.AWS_PROD_ACCOUNT_ID }}
+          OCTO_ENV_AWS_ACCOUNT_ID: ${{ secrets.AWS_PROD_ACCOUNT_ID }}
         run: |
           node_modules/.bin/octo generate -o .octo-tf-prod
           LOCK_ID=$(node_modules/.bin/octo lock)

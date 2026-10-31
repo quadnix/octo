@@ -99,8 +99,8 @@ terraform:
         profile: default
 ```
 
-`${env.AWS_ACCOUNT_ID}` reads the `env` block above. The value there is a default: an environment
-variable of the same name in your shell wins over it, which is how one file works on a laptop and in
+`${env.AWS_ACCOUNT_ID}` reads the `env` block above. The value there is a default:
+`OCTO_ENV_AWS_ACCOUNT_ID` in your shell wins over it, which is how one file works on a laptop and in
 CI.
 
 The `modules` block is the part that decides what gets built:

@@ -211,7 +211,7 @@ to, the token to act as, and a directory to work in:
     stateManagementServiceUrl: https://state.example.com/state
     organizationId: shop-organization
     appId: shop
-    sessionId: "${env.OCTO_SESSION}"
+    sessionId: "${env.STATE_SESSION_ID}"
     statePath: .octo
 ```
 
@@ -248,12 +248,15 @@ A reference has to be the whole value. It is not substituted inside a longer str
 built from an account, a region, and a tag is one key holding the finished URI rather than three
 keys spliced together.
 
-An environment variable of the same name wins over the declared value, which is what makes the same
-file work in CI:
+An environment variable named `OCTO_ENV_` and the key wins over the declared value, which is what
+makes the same file work in CI:
 
 ```bash
-AWS_ACCOUNT_ID=999999999999 npm run octo:generate
+OCTO_ENV_AWS_ACCOUNT_ID=999999999999 npm run octo:generate
 ```
+
+A variable named like the key itself is ignored, so an `AWS_ACCOUNT_ID` your shell exports for other
+work cannot move a deploy to another account.
 
 `kind` is how the string a shell gives you becomes the right type. It matters most for `boolean`: a
 naive conversion makes `"false"` true, so Octo parses the string and rejects anything that is not
