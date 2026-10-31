@@ -523,7 +523,7 @@ describe('AwsLambdaExecutionModule UT', () => {
 
     expect(hclRender).toContain('resource "aws_lambda_function_url" "lambda-function-backend-v1-qa-83d832_url"');
     expect(hclRender).toContain('authorization_type = "AWS_IAM"');
-    expect(hclRender).toContain('principal = "999999999999"');
+    expect(hclRender).toContain('principal = "arn:aws:iam::999999999999:root"');
   });
 
   it('should buffer responses by default', async () => {

@@ -213,7 +213,8 @@ credentials, and `invokerAccountIds` names the accounts allowed to call it:
       subnet: "${{serverless-subnet-module.model.subnet}}"
 ```
 
-The URL returns each response whole, up to 6 MB. Set `invokeMode: RESPONSE_STREAM` to stream it as
+The URL takes a request body of at most 6 MB, about 4.5 MB of binary once base64-encoded, and
+returns each response whole, up to 6 MB. Set `invokeMode: RESPONSE_STREAM` to stream the response as
 the server writes it, which lifts the limit to 200 MB; Octo then tells the adapter to stream as well,
 through `AWS_LWA_INVOKE_MODE`.
 
@@ -231,6 +232,9 @@ A Lambda execution needs the `hashicorp/aws` provider 6.28.0 or later, so set `m
 `terraform.requiredProviders` to at least that. An older provider fails the plan with
 `An argument named "invoked_via_function_url" is not expected here`, because the permissions on a
 function's URL use it.
+
+A new role can take minutes to become assumable, so a first apply may fail with "role cannot be
+assumed". Finish the failed run the way Octo prints, and run again before looking further.
 
 ## Services
 
