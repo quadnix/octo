@@ -354,7 +354,13 @@ export class IamUser extends ATerraformResource<IamUserSchema, IamUser> {
       }
       if (s3Policy.allowWrite) {
         policyStatements.push({
-          Action: ['s3:PutObject', 's3:DeleteObjectVersion', 's3:DeleteObject'],
+          Action: [
+            's3:PutObject',
+            's3:PutObjectTagging',
+            's3:DeleteObjectVersion',
+            's3:DeleteObject',
+            's3:DeleteObjectTagging',
+          ],
           Effect: 'Allow',
           Resource: bucketWriteResources,
           Sid: PolicyUtility.getSafeSid(`Allow write from bucket ${s3Policy.bucketName}`),

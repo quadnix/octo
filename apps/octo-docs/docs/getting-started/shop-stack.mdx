@@ -393,7 +393,7 @@ resource "aws_iam_policy" "iam-role-ServerRole-checkout_aws-ecs-server-s3-access
           }
         }
       }, {
-        Action = ["s3:PutObject", "s3:DeleteObjectVersion", "s3:DeleteObject"]
+        Action = ["s3:PutObject", "s3:PutObjectTagging", "s3:DeleteObjectVersion", "s3:DeleteObject", "s3:DeleteObjectTagging"]
         Effect = "Allow"
         Resource = ["arn:aws:s3:::shop-receipts/uploads/*"]
         Sid = "Allowwritefrombucketshopreceipts"
