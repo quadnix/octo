@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { createReadStream, createWriteStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { Readable } from 'node:stream';
@@ -65,6 +66,16 @@ export class HttpUtility {
     url: string,
     { body, headers = {}, method = 'GET' }: { body?: BodyInit; headers?: Record<string, string>; method?: string } = {},
   ): Promise<Response> {
+    // Send the SHA-256 of a write's body, which CloudFront needs to sign a call it forwards to a function.
+    if (method !== 'GET' && (body === undefined || typeof body === 'string')) {
+      headers = {
+        ...headers,
+        'x-amz-content-sha256': createHash('sha256')
+          .update(body ?? '')
+          .digest('hex'),
+      };
+    }
+
     try {
       // `duplex` is what lets the body be a stream; Node's fetch refuses one without it.
       return await fetch(url, { body, duplex: 'half', headers, method } as RequestInit);
