@@ -82,7 +82,7 @@ interface RemoteStateLockFile {
  *     localStateDirectoryPath: './.octo',
  *     organizationId: 'my-organization',
  *     sessionId: process.env.OCTO_SESSION!,
- *     stateManagementServiceUrl: 'http://localhost:3619/state',
+ *     stateManagementServiceUrl: 'https://octo.quadnix.com/api/v1/state',
  *   }),
  * );
  * ```

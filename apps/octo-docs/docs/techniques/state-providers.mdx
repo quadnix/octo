@@ -102,9 +102,9 @@ env:
 settings:
   stateProvider:
     type: RemoteStateProvider
-    stateManagementServiceUrl: https://state.example.com/state   # the address you were given
-    organizationId: shop-organization                            # your organization's ID
-    appId: shop                                                  # the app's ID in the backend
+    stateManagementServiceUrl: https://state.example.com/api/v1/state   # the address you were given
+    organizationId: shop-organization                                   # your organization's ID
+    appId: shop                                                         # the app's ID in the backend
     sessionId: "${env.STATE_SESSION_ID}"
     statePath: .octo
 ```

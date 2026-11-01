@@ -17,7 +17,7 @@ modules:
 settings:
   stateProvider:
     type: 'RemoteStateProvider'
-    stateManagementServiceUrl: 'http://localhost:3619/state'
+    stateManagementServiceUrl: 'http://localhost:3619/api/v1/state'
     organizationId: 'an-organization'
     appId: 'an-app'
     sessionId: 'a-session'
