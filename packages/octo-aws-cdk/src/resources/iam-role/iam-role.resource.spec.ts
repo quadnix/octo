@@ -1,6 +1,7 @@
 import { MatchingResource } from '@quadnix/octo';
 import { DynamoDB } from '../dynamodb/dynamodb.resource.js';
 import type { DynamoDBSchema } from '../dynamodb/index.schema.js';
+import type { LambdaFunctionSchema } from '../lambda-function/index.schema.js';
 import type { S3StorageSchema } from '../s3-storage/index.schema.js';
 import { S3Storage } from '../s3-storage/s3-storage.resource.js';
 import { IamRole } from './iam-role.resource.js';
@@ -46,6 +47,12 @@ function createBucket(awsAccountId = '123456789012'): MatchingResource<S3Storage
     permissions: [],
   });
   return new MatchingResource(bucket);
+}
+
+function createLambdaFunction(awsAccountId: string, functionName: string): MatchingResource<LambdaFunctionSchema> {
+  return {
+    getSchemaInstance: () => ({ properties: { awsAccountId, awsRegionId: 'us-east-1', functionName } }),
+  } as unknown as MatchingResource<LambdaFunctionSchema>;
 }
 
 /**
@@ -247,6 +254,41 @@ describe('IamRole UT', () => {
            "Effect": "Allow",
            "Resource": [
              "arn:aws:ses:us-east-1:123456789012:identity/example.com",
+           ],
+         },
+       ]
+      `);
+    });
+  });
+
+  describe('addLambdaFunctionInvokePolicy()', () => {
+    it('should allow invoking each function, in any account, in one policy', async () => {
+      const { emitted, terraform } = createRecordingScope();
+      const iamRole = createIamRole();
+      iamRole.addLambdaFunctionInvokePolicy('test-role-lambda-functions', [
+        createLambdaFunction('123456789012', 'auth'),
+        createLambdaFunction('999999999999', 'billing'),
+      ]);
+      await iamRole.toHCL(terraform);
+
+      expect(emitted.map((e) => `${e.type} ${e.name}`)).toMatchInlineSnapshot(`
+       [
+         "aws_iam_role iam-role-test-role",
+         "aws_iam_policy iam-role-test-role_test-role-lambda-functions",
+         "aws_iam_role_policy_attachment iam-role-test-role_test-role-lambda-functions_attach",
+       ]
+      `);
+      expect(emitted.find((e) => e.type === 'aws_iam_policy')!.spec.policy.Statement).toMatchInlineSnapshot(`
+       [
+         {
+           "Action": [
+             "lambda:InvokeFunction",
+             "lambda:InvokeFunctionUrl",
+           ],
+           "Effect": "Allow",
+           "Resource": [
+             "arn:aws:lambda:us-east-1:123456789012:function:auth",
+             "arn:aws:lambda:us-east-1:999999999999:function:billing",
            ],
          },
        ]

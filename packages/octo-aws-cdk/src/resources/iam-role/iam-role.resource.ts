@@ -10,10 +10,12 @@ import {
 } from '@quadnix/octo';
 import { PolicyUtility } from '../../utilities/policy/policy.utility.js';
 import type { DynamoDBSchema } from '../dynamodb/index.schema.js';
+import type { LambdaFunctionSchema } from '../lambda-function/index.schema.js';
 import type { S3StorageSchema } from '../s3-storage/index.schema.js';
 import {
   type IIamRoleAssumeRolePolicy,
   type IIamRoleDynamoDBTablePolicy,
+  type IIamRoleLambdaFunctionInvokePolicy,
   type IIamRolePolicyTypes,
   type IIamRoleS3BucketPolicy,
   IamRoleSchema,
@@ -133,6 +135,29 @@ export class IamRole extends ATerraformResource<IamRoleSchema, IamRole> {
     const index = this.properties.policies.findIndex((p) => p.policyId === policyId);
     if (index === -1) {
       this.properties.policies.push({ policy, policyId, policyType: 'iam-statements-policy' });
+    } else {
+      this.properties.policies[index].policy = policy;
+    }
+  }
+
+  /**
+   * Allows this role to invoke each function, directly or through its URL, in one policy. A function
+   * may be in another account, which must still admit the role.
+   *
+   * The functions are not parents: IAM accepts a policy naming a function that does not exist yet.
+   * They are passed in so their names are read off the functions themselves.
+   *
+   * @internal
+   */
+  addLambdaFunctionInvokePolicy(policyId: string, functions: MatchingResource<LambdaFunctionSchema>[]): void {
+    const policy: IIamRoleLambdaFunctionInvokePolicy[] = functions.map((f) => {
+      const { awsAccountId, awsRegionId, functionName } = f.getSchemaInstance().properties;
+      return { awsAccountId, awsRegionId, functionName };
+    });
+
+    const index = this.properties.policies.findIndex((p) => p.policyId === policyId);
+    if (index === -1) {
+      this.properties.policies.push({ policy, policyId, policyType: 'lambda-function-invoke-policy' });
     } else {
       this.properties.policies[index].policy = policy;
     }
@@ -402,6 +427,40 @@ export class IamRole extends ATerraformResource<IamRoleSchema, IamRole> {
           name: policy.policyId,
           policy: terraform.jsonencode({
             Statement: statements.map((s) => ({ Action: s.actions, Effect: 'Allow', Resource: s.resources })),
+            Version: '2012-10-17',
+          }),
+        },
+      );
+
+      iamRoleOctoResource.addTerraformResource(
+        'aws_iam_role_policy_attachment',
+        `${this.resourceId}_${policy.policyId}_attach`,
+        {
+          policy_arn: terraform.raw(`${iamPolicyTFResource.address}.arn`),
+          role: terraform.raw(`${iamRoleTFResource.address}.name`),
+        },
+      );
+    }
+
+    const lambdaPolicies = this.properties.policies.filter((p) => p.policyType === 'lambda-function-invoke-policy');
+    for (const policy of lambdaPolicies) {
+      const functions = policy.policy as IIamRoleLambdaFunctionInvokePolicy[];
+
+      const iamPolicyTFResource = iamRoleOctoResource.addTerraformResource(
+        'aws_iam_policy',
+        `${this.resourceId}_${policy.policyId}`,
+        {
+          name: policy.policyId,
+          policy: terraform.jsonencode({
+            Statement: [
+              {
+                Action: ['lambda:InvokeFunction', 'lambda:InvokeFunctionUrl'],
+                Effect: 'Allow',
+                Resource: functions.map((f) =>
+                  ['arn:aws:lambda', f.awsRegionId, f.awsAccountId, 'function', f.functionName].join(':'),
+                ),
+              },
+            ],
             Version: '2012-10-17',
           }),
         },

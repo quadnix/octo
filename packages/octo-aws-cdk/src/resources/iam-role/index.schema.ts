@@ -39,10 +39,37 @@ export type IIamRolePolicyTypes = {
   'iam-statements-policy': { actions: string[]; resources: string[] }[];
 
   /**
+   * You can provide Lambda functions to invoke, directly or through their URLs, written into one policy.
+   */
+  'lambda-function-invoke-policy': IIamRoleLambdaFunctionInvokePolicy[];
+
+  /**
    * You can provide options to create a policy for accessing a S3 bucket.
    */
   's3-storage-access-policy': IIamRoleS3BucketPolicy;
 };
+
+/**
+ * Defines one Lambda function an IAM role may invoke. The function may be in any account.
+ *
+ * @group Resources/IamRole
+ */
+export interface IIamRoleLambdaFunctionInvokePolicy {
+  /**
+   * The AWS account the function is in.
+   */
+  awsAccountId: string;
+
+  /**
+   * The AWS region the function is in.
+   */
+  awsRegionId: string;
+
+  /**
+   * The name of the function.
+   */
+  functionName: string;
+}
 
 /**
  * Defines the DynamoDB table access policy for an IAM role.
