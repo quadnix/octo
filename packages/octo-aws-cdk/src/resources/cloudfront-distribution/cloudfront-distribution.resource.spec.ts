@@ -110,7 +110,6 @@ function createLambdaFunction({ timeoutInSeconds = 30 }: { timeoutInSeconds?: nu
       functionName: 'backend',
       imageCommand: [],
       invokeMode: 'BUFFERED',
-      invokerAccountIds: [],
       memoryInMegabytes: 512,
       reservedConcurrency: null,
       timeoutInSeconds,

@@ -160,14 +160,9 @@ export class LambdaFunction extends ATerraformResource<LambdaFunctionSchema, Lam
       `trimsuffix(trimprefix(${functionUrlTFResource.address}.function_url, "https://"), "/")`,
     );
 
-    // An account is admitted by its root ARN, the form AWS stores and reads back.
     // A CloudFront distribution is admitted by account rather than by its ARN, because the distribution
     // already references this function's URL, and referencing its ARN back would close a cycle.
     const allowedCallers: { label: string; principal: string; sourceAccount?: string }[] = [
-      ...this.properties.invokerAccountIds.map((accountId) => ({
-        label: accountId,
-        principal: `arn:aws:iam::${accountId}:root`,
-      })),
       ...(this.properties.allowCloudFrontOriginAccess
         ? [
             {

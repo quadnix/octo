@@ -19,7 +19,6 @@ function properties(overrides: Partial<Properties> = {}): Properties {
     functionName: 'backend',
     imageCommand: [],
     invokeMode: 'BUFFERED',
-    invokerAccountIds: [],
     memoryInMegabytes: 512,
     reservedConcurrency: null,
     timeoutInSeconds: 30,
@@ -99,7 +98,6 @@ describe('LambdaFunction UT', () => {
       ['an unknown architecture', { architecture: 'arm32' as any }],
       ['a function name Lambda does not accept', { functionName: 'back.end' }],
       ['a function name longer than 64 characters', { functionName: 'x'.repeat(65) }],
-      ['an invoker that is not an account id', { invokerAccountIds: ['123'] }],
       ['less than 128 MB of memory', { memoryInMegabytes: 64 }],
       ['more than 10240 MB of memory', { memoryInMegabytes: 10241 }],
       ['a timeout over 15 minutes', { timeoutInSeconds: 901 }],
@@ -111,7 +109,6 @@ describe('LambdaFunction UT', () => {
         new LambdaFunctionSchema().properties = properties({
           environmentVariables: { NODE_ENV: 'qa' },
           imageCommand: ['node', 'main.js'],
-          invokerAccountIds: ['999999999999'],
         });
       }).not.toThrow();
     });
@@ -231,12 +228,11 @@ describe('LambdaFunction UT', () => {
       `);
     });
 
-    it('should render a signed URL, and a pair of permissions per invoking account', async () => {
+    it('should render a signed URL, admitting no caller', async () => {
       const { emitted, outputs, terraform } = createRecordingScope();
       await createLambdaFunction({
         environmentVariables: { NODE_ENV: 'qa' },
         imageCommand: ['node', 'main.js'],
-        invokerAccountIds: ['999999999999'],
       }).toHCL(terraform);
 
       expect(emitted.slice(1)).toMatchInlineSnapshot(`
@@ -248,28 +244,6 @@ describe('LambdaFunction UT', () => {
              "function_name": "aws_lambda_function.lambda-function-backend.function_name",
            },
            "type": "aws_lambda_function_url",
-         },
-         {
-           "name": "lambda-function-backend_url_invoker_999999999999",
-           "spec": {
-             "action": "lambda:InvokeFunctionUrl",
-             "function_name": "aws_lambda_function.lambda-function-backend.function_name",
-             "function_url_auth_type": "AWS_IAM",
-             "principal": "arn:aws:iam::999999999999:root",
-             "statement_id": "AllowFunctionUrlInvokeFrom-999999999999",
-           },
-           "type": "aws_lambda_permission",
-         },
-         {
-           "name": "lambda-function-backend_url_invoker_999999999999_invoke",
-           "spec": {
-             "action": "lambda:InvokeFunction",
-             "function_name": "aws_lambda_function.lambda-function-backend.function_name",
-             "invoked_via_function_url": true,
-             "principal": "arn:aws:iam::999999999999:root",
-             "statement_id": "AllowInvokeViaFunctionUrlFrom-999999999999",
-           },
-           "type": "aws_lambda_permission",
          },
        ]
       `);

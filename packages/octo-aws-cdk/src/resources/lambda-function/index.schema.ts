@@ -39,7 +39,6 @@ export class LambdaFunctionSchema extends BaseResourceSchema {
    * own command.
    * * `properties.invokeMode` - How the function's URL returns a response: `BUFFERED`, whole and up to 6 MB,
    * or `RESPONSE_STREAM`, streamed as the function writes it, up to 200 MB.
-   * * `properties.invokerAccountIds` - The AWS accounts allowed to call the function's URL.
    * * `properties.memoryInMegabytes` - How much memory the function gets, from 128 to 10240. It also
    * decides how much CPU the function gets.
    * * `properties.reservedConcurrency` - How many instances of the function may run at once, reserved
@@ -54,7 +53,6 @@ export class LambdaFunctionSchema extends BaseResourceSchema {
         value.awsRegionId,
         value.functionName,
         ...value.imageCommand,
-        ...value.invokerAccountIds,
       ],
       options: { minLength: 1 },
     },
@@ -69,10 +67,6 @@ export class LambdaFunctionSchema extends BaseResourceSchema {
     {
       destruct: (value: LambdaFunctionSchema['properties']): string[] => [value.invokeMode],
       options: { regex: /^(BUFFERED|RESPONSE_STREAM)$/ },
-    },
-    {
-      destruct: (value: LambdaFunctionSchema['properties']): string[] => value.invokerAccountIds,
-      options: { regex: /^\d{12}$/ },
     },
     {
       destruct: (value: LambdaFunctionSchema['properties']): number[] => [value.memoryInMegabytes],
@@ -101,7 +95,6 @@ export class LambdaFunctionSchema extends BaseResourceSchema {
     functionName: string;
     imageCommand: string[];
     invokeMode: 'BUFFERED' | 'RESPONSE_STREAM';
-    invokerAccountIds: string[];
     memoryInMegabytes: number;
     reservedConcurrency: number | null;
     timeoutInSeconds: number;
