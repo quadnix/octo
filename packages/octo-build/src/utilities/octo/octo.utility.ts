@@ -19,8 +19,8 @@ import { YamlDefinitionUtility } from '../definition/yaml/yaml-definition.utilit
  */
 export class OctoUtility {
   /**
-   * Boots octo with every listener, hook, module and terraform provider the definition lists, and
-   * composes the app. Prints nothing, so stdout carries only the command's own output.
+   * Boots octo with every listener, hook, module and terraform provider the definition lists, on top
+   * of every state it extends, and composes the app. Prints nothing, so stdout carries only the command's own output.
    */
   static async bootOcto(): Promise<{
     app: App;
@@ -28,6 +28,7 @@ export class OctoUtility {
   }> {
     const definition = new YamlDefinitionUtility(OctoUtility.resolveDefinitionFilePath());
 
+    const extendedStateProviders = definition.resolveExtends();
     const hooks = await definition.resolveHooks();
     const imports = await definition.resolveImports();
     const listeners = await definition.resolveListeners();
@@ -64,7 +65,10 @@ export class OctoUtility {
       });
     }
 
-    // Load modules.
+    // Import the states this app extends, then load its own modules on top of them.
+    for (const extendedStateProvider of extendedStateProviders) {
+      await octo.importState(extendedStateProvider);
+    }
     for (const moduleDefinition of modules) {
       octo.loadModule(moduleDefinition.moduleClass, moduleDefinition.moduleId, moduleDefinition.moduleInputs);
     }

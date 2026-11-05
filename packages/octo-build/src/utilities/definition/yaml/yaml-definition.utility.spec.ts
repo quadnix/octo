@@ -122,6 +122,27 @@ describe('YamlDefinitionUtility UT', () => {
     });
   });
 
+  describe('resolveExtends()', () => {
+    it('should extend no state when the definition names none', () => {
+      const definition = new YamlDefinitionUtility(fixture('terraform-minimal-definition.yml'));
+
+      expect(definition.resolveExtends()).toEqual([]);
+    });
+
+    it('should resolve each extended state against the definition file', async () => {
+      const definitionDirectory = await mkdtemp(join(tmpdir(), 'octo-definition-'));
+      const definitionFilePath = join(definitionDirectory, 'octo.yml');
+      const definition = await readFile(fixture('terraform-minimal-definition.yml'), 'utf-8');
+      await writeFile(
+        definitionFilePath,
+        `${definition}\nextends:\n  - type: LocalStateProvider\n    statePath: ../commons/.octo\n`,
+      );
+
+      const [stateProvider] = new YamlDefinitionUtility(definitionFilePath).resolveExtends();
+      expect(stateProvider['localStateDirectoryPath']).toBe(join(dirname(definitionDirectory), 'commons', '.octo'));
+    });
+  });
+
   describe('resolveImports()', () => {
     const projectRoot = join(__dirname, '..', '..', '..', '..');
 

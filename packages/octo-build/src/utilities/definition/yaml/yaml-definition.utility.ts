@@ -16,8 +16,22 @@ import { load } from 'js-yaml';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+type IYamlStateProvider =
+  | { statePath: string; type: 'LocalStateProvider' }
+  | {
+      appId: string;
+      checkInIntervalInSeconds?: number;
+      lockContext?: string;
+      organizationId: string;
+      sessionId: string;
+      stateManagementServiceUrl: string;
+      statePath: string;
+      type: 'RemoteStateProvider';
+    };
+
 interface IYamlDefinition {
   env: { key: string; kind: 'boolean' | 'number' | 'string'; value: unknown }[];
+  extends?: IYamlStateProvider[];
   hooks: Array<{
     importPath: string;
     method: string;
@@ -42,19 +56,7 @@ interface IYamlDefinition {
           type: 'LoggingEventListener';
         }
     )[];
-    stateProvider:
-      | { statePath: string; type: 'LocalStateProvider' }
-      | {
-          appId: string;
-          checkInIntervalInSeconds?: number;
-          lockContext?: string;
-          organizationId: string;
-          sessionId: string;
-          stateManagementServiceUrl: string;
-          statePath: string;
-          type: 'RemoteStateProvider';
-        }
-      | { type: 'TestStateProvider' };
+    stateProvider: IYamlStateProvider | { type: 'TestStateProvider' };
   };
   tags: Array<{
     scope?: { moduleId?: string };
@@ -120,6 +122,13 @@ export class YamlDefinitionUtility {
    */
   resolveEnvironmentValue<T>(value: unknown): T {
     return this.resolveNestedEnvironmentValue(value, new Set());
+  }
+
+  /**
+   * Builds the `IStateProvider` of every app's state the definition extends, in the order listed.
+   */
+  resolveExtends(): (LocalStateProvider | RemoteStateProvider)[] {
+    return (this.definition.extends ?? []).map((stateProvider) => this.buildStateProvider(stateProvider));
   }
 
   /**
@@ -288,37 +297,14 @@ export class YamlDefinitionUtility {
   /**
    * Builds the `IStateProvider` the definition asks for.
    */
-  resolveStateProvider(): { type: LocalStateProvider } | { type: RemoteStateProvider } | { type: TestStateProvider } {
+  resolveStateProvider(): { type: LocalStateProvider | RemoteStateProvider | TestStateProvider } {
     const stateProvider = this.definition.settings.stateProvider;
-    // Anchored to the definition file for the same reason imports are: `run-action` runs with
-    // terragrunt's cache directory as its cwd, and a state path resolved from there would point at
-    // an empty directory - the action would read no prior state and write its result nowhere useful.
-    if (stateProvider.type === 'LocalStateProvider') {
-      return {
-        type: new LocalStateProvider(resolve(this.definitionDir, stateProvider.statePath)),
-      };
-    } else if (stateProvider.type === 'RemoteStateProvider') {
-      return {
-        type: new RemoteStateProvider({
-          appId: this.resolveEnvironmentValue<string>(stateProvider.appId),
-          localStateDirectoryPath: resolve(this.definitionDir, stateProvider.statePath),
-          lockContext: stateProvider.lockContext
-            ? this.resolveEnvironmentValue<string>(stateProvider.lockContext)
-            : undefined,
-          organizationId: this.resolveEnvironmentValue<string>(stateProvider.organizationId),
-          // Resolved from the shell: a session is a credential, and a credential written into the
-          // definition file is a credential committed beside the state it reaches.
-          sessionId: this.resolveEnvironmentValue<string>(stateProvider.sessionId),
-          stateManagementServiceUrl: this.resolveEnvironmentValue<string>(stateProvider.stateManagementServiceUrl),
-        }),
-      };
-    } else if (stateProvider.type === 'TestStateProvider') {
+    if (stateProvider.type === 'TestStateProvider') {
       return {
         type: new TestStateProvider(),
       };
-    } else {
-      throw new Error(`Invalid state provider!`);
     }
+    return { type: this.buildStateProvider(stateProvider) };
   }
 
   /**
@@ -387,6 +373,33 @@ export class YamlDefinitionUtility {
       requiredProviders: terraform.requiredProviders,
       requiredVersion: this.resolveEnvironmentValue<string>(terraform.requiredVersion),
     };
+  }
+
+  /**
+   * Builds one local or remote state provider. Its paths are anchored to the definition file for the
+   * same reason imports are: `run-action` runs with terragrunt's cache directory as its cwd, and a
+   * state path resolved from there would point at an empty directory - the action would read no
+   * prior state and write its result nowhere useful.
+   */
+  private buildStateProvider(stateProvider: IYamlStateProvider): LocalStateProvider | RemoteStateProvider {
+    if (stateProvider.type === 'LocalStateProvider') {
+      return new LocalStateProvider(resolve(this.definitionDir, stateProvider.statePath));
+    } else if (stateProvider.type === 'RemoteStateProvider') {
+      return new RemoteStateProvider({
+        appId: this.resolveEnvironmentValue<string>(stateProvider.appId),
+        localStateDirectoryPath: resolve(this.definitionDir, stateProvider.statePath),
+        lockContext: stateProvider.lockContext
+          ? this.resolveEnvironmentValue<string>(stateProvider.lockContext)
+          : undefined,
+        organizationId: this.resolveEnvironmentValue<string>(stateProvider.organizationId),
+        // Resolved from the shell: a session is a credential, and a credential written into the
+        // definition file is a credential committed beside the state it reaches.
+        sessionId: this.resolveEnvironmentValue<string>(stateProvider.sessionId),
+        stateManagementServiceUrl: this.resolveEnvironmentValue<string>(stateProvider.stateManagementServiceUrl),
+      });
+    } else {
+      throw new Error(`Invalid state provider!`);
+    }
   }
 
   /**
