@@ -1,6 +1,5 @@
 import {
   type ActionInputs,
-  type ActionOutputs,
   type Constructable,
   type IUnknownModelAction,
   type IUnknownResourceAction,
@@ -76,27 +75,6 @@ class TerraformNoopResourceAction extends ANodeAction implements IUnknownResourc
    * @internal
    */
   async handle(): Promise<void> {}
-}
-
-/**
- * The action of a model or overlay another app declared. That app changes it; this app only builds on it.
- *
- * @internal
- */
-class ImportedNodeAction implements IUnknownModelAction {
-  /**
-   * @internal
-   */
-  filter(): boolean {
-    return true;
-  }
-
-  /**
-   * @internal
-   */
-  async handle(): Promise<ActionOutputs> {
-    return {};
-  }
 }
 
 /**
@@ -178,11 +156,12 @@ export class TransactionService {
     const overlayDiffs = await this.overlayDataRepository.diff();
     diffs.push(...overlayDiffs);
 
-    // Generate diff on models. A node another app declared takes no action here.
-    const modelDiffs = diffs.map((d) => {
-      if (this.isImportedNode(d.node as UnknownModel | UnknownOverlay)) {
-        return new DiffMetadata(d, [new ImportedNodeAction()]);
-      } else if ((d.node.constructor as typeof ANode).NODE_TYPE === NodeType.OVERLAY) {
+    // A node another app declared is that app's to apply, never this app's.
+    const ownDiffs = diffs.filter((d) => !this.isImportedNode(d.node as UnknownModel | UnknownOverlay));
+
+    // Generate diff on models.
+    const modelDiffs = ownDiffs.map((d) => {
+      if ((d.node.constructor as typeof ANode).NODE_TYPE === NodeType.OVERLAY) {
         return new DiffMetadata(
           d,
           (
@@ -475,12 +454,7 @@ export class TransactionService {
         // Only process the first diff, given all duplicate diffs are the same.
         const diffToProcess = duplicateDiffs[0].diff;
 
-        // A node another app declared has no module here to resolve inputs from.
-        const actions = this.isImportedNode(diff.node as UnknownModel | UnknownOverlay)
-          ? []
-          : (diff.actions as IUnknownModelAction[]);
-
-        for (const a of actions) {
+        for (const a of diff.actions as IUnknownModelAction[]) {
           // Find moduleId.
           const moduleId =
             diff.node instanceof AOverlay
