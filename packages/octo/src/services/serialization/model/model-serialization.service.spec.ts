@@ -13,6 +13,7 @@ import { OverlayDataRepository } from '../../../overlays/overlay-data.repository
 import { commit, create } from '../../../utilities/test-helpers/test-models.js';
 import { TEST_MODULE_ID, createAppModule, runModule } from '../../../utilities/test-helpers/test-modules.js';
 import { createAnchor, createOverlay, createTestOverlays } from '../../../utilities/test-helpers/test-overlays.js';
+import { ImportService } from '../../import/import.service.js';
 import { TestStateProvider } from '../../state-management/test.state-provider.js';
 
 const TestAnchor = createAnchor().setClassName('TestAnchor');
@@ -393,6 +394,24 @@ describe('Model Serialization Service UT', () => {
 
       expect((await service.serialize(app)).modules).toEqual({
         'app-module': { className: '@octo/TestAppModule', inputs: { name: 'test-app' } },
+      });
+    });
+
+    it('should serialize every imported module beside the modules that ran', async () => {
+      const { 'app-module.model.app': app } = await runModule<UnknownModule>(container, {
+        inputs: { name: 'test-app' },
+        moduleId: 'app-module',
+        type: TestAppModule,
+      });
+      (await container.get(ImportService)).registerImport([], {
+        'parent-module': { className: '@octo/ParentModule', inputs: { name: 'parent' } },
+      });
+
+      const service = await container.get(ModelSerializationService);
+
+      expect((await service.serialize(app)).modules).toEqual({
+        'app-module': { className: '@octo/TestAppModule', inputs: { name: 'test-app' } },
+        'parent-module': { className: '@octo/ParentModule', inputs: { name: 'parent' } },
       });
     });
 

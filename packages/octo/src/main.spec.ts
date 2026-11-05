@@ -1,16 +1,21 @@
 import { readFile, rm } from 'node:fs/promises';
 import { join } from 'path';
+import { jest } from '@jest/globals';
 import type { UnknownResource } from './app.type.js';
 import { Resource } from './decorators/resource.decorator.js';
 import { Container } from './functions/container/container.js';
-import type { App } from './models/app/app.model.js';
+import { Schema } from './functions/schema/schema.js';
+import { App } from './models/app/app.model.js';
+import { AModule } from './modules/module.abstract.js';
 import { BaseResourceSchema } from './resources/resource.schema.js';
 import { ATerraformResource } from './resources/terraform-resource.abstract.js';
 import { InputService } from './services/input/input.service.js';
+import { StateManagementService } from './services/state-management/state-management.service.js';
+import { TestStateProvider } from './services/state-management/test.state-provider.js';
 import type { TerraformModuleScope } from './services/terraform/terraform.service.js';
 import { TransactionService } from './services/transaction/transaction.service.js';
 import { TestResourceAction } from './utilities/test-helpers/test-classes.js';
-import { ExternalIgwResource, TestModes, TfVpcResource } from './utilities/test-helpers/test-modes.js';
+import { ExternalIgwResource, TestModes, TfSgResource, TfVpcResource } from './utilities/test-helpers/test-modes.js';
 
 /**
  * A terraform resource holding names its provider keeps unique within a region, rendered as a named
@@ -39,6 +44,21 @@ Resource<NamedExternalResource>('@octo', 'test-named-external-resource', BaseRes
   uniqueProperties: [{ path: 'names[]', within: ['regionId'] }],
 })(NamedExternalResource);
 
+/**
+ * An app module a child app declares.
+ */
+class ImportedAppModuleSchema {
+  name = Schema<string>();
+}
+class ImportedAppModule extends AModule<ImportedAppModuleSchema, App> {
+  static override readonly MODULE_PACKAGE = '@octo';
+  static override readonly MODULE_SCHEMA = ImportedAppModuleSchema;
+
+  async onInit(inputs: ImportedAppModuleSchema): Promise<App> {
+    return new App(inputs.name);
+  }
+}
+
 describe('Main UT', () => {
   let testModes: TestModes;
 
@@ -47,6 +67,7 @@ describe('Main UT', () => {
   });
 
   afterEach(async () => {
+    jest.restoreAllMocks();
     await testModes.teardown();
   });
 
@@ -711,6 +732,130 @@ describe('Main UT', () => {
       await testModes.generate(app, { outputDir: testModes.outputDir });
 
       expect(await getMoves()).toEqual({});
+    });
+  });
+
+  describe('importState()', () => {
+    async function commitParentState({ loadClasses = true } = {}): Promise<TestStateProvider> {
+      await generateAndCommitFullGraph();
+      const stateProvider = new TestStateProvider();
+      await stateProvider.saveStates(
+        await Promise.all(
+          ['models.json', 'resources-actual.json'].map(async (stateFileName) => ({
+            data: await testModes.stateManagementService.getState(stateFileName),
+            stateFileName,
+          })),
+        ),
+      );
+
+      await testModes.teardown();
+      testModes = await TestModes.create();
+      if (!loadClasses) {
+        return stateProvider;
+      }
+      // The classes a child app loads through its own imports.
+      testModes['octo']['modelSerializationService'].registerClass('@octo/App', App);
+      for (const resourceClass of [ExternalIgwResource, TfSgResource, TfVpcResource]) {
+        testModes['octo']['resourceSerializationService'].registerClass(`@octo/${resourceClass.name}`, resourceClass);
+      }
+      return stateProvider;
+    }
+
+    it('should throw error when the state holds no models', async () => {
+      await expect(testModes['octo'].importState(new TestStateProvider())).rejects.toThrow(
+        'Cannot import a state that holds no models!',
+      );
+    });
+
+    it('should throw error when this app has not loaded a class the imported state names', async () => {
+      const parentStateProvider = await commitParentState({ loadClasses: false });
+
+      await expect(testModes['octo'].importState(parentStateProvider)).rejects.toThrow(
+        'Class "@octo/App" of module "app-module" is not registered! Import its module, or define a class of that name.',
+      );
+    });
+
+    it('should throw error when this app declares a module the imported state declares', async () => {
+      const parentStateProvider = await commitParentState();
+      await testModes['octo'].importState(parentStateProvider);
+
+      expect(() => testModes['octo'].loadModule(ImportedAppModule, 'app-module', { name: 'child' })).toThrow(
+        'Module id "app-module" is already in use!',
+      );
+    });
+
+    it('should throw error when this app changes an imported resource', async () => {
+      const parentStateProvider = await commitParentState();
+      await testModes['octo'].importState(parentStateProvider);
+      const igw = testModes.resourceDataRepository.getNewResourcesByProperties().find((r) => r.resourceId === 'igw-1')!;
+      igw.properties['igwName'] = 'changed-by-child';
+
+      await expect(
+        testModes.generate(testModes['octo'].getRootModel(), { outputDir: testModes.outputDir }),
+      ).rejects.toThrow(
+        'Resource "@octo/external-igw=igw-1" belongs to module "region-module" of an extended state; change it in that app!',
+      );
+    });
+
+    it('should replace what this app committed of the imported resources with the imported state', async () => {
+      const parentStateProvider = await commitParentState();
+      const { data: parentResources } = await new StateManagementService(parentStateProvider).getResourceState(
+        'resources-actual.json',
+        { freeze: false },
+      );
+      const igwContext = Object.keys(parentResources.resources).find((c) => c.endsWith('=igw-1'))!;
+
+      // This app committed the imported internet gateway with an older response, and one the other app has since deleted.
+      const committed = JSON.parse(JSON.stringify(parentResources));
+      committed.resources[igwContext].resource.response = { igwId: 'igw-0old' };
+      committed.resources[igwContext.replace('igw-1', 'igw-2')] = {
+        ...committed.resources[igwContext],
+        resource: { ...committed.resources[igwContext].resource, parents: [], resourceId: 'igw-2' },
+      };
+      for (const stateFileName of ['resources-actual.json', 'resources-old.json']) {
+        await testModes.stateManagementService.saveResourceState(stateFileName, committed, {});
+      }
+      await testModes['octo']['retrieveResourceState']();
+
+      await testModes['octo'].importState(parentStateProvider);
+
+      expect(await testModes.resourceDataRepository.diff()).toEqual([]);
+      expect(await testModes.resourceDataRepository.diffDirty()).toEqual([]);
+      expect(testModes.resourceDataRepository.getNewResourceByContext(igwContext)!.response).toEqual({
+        igwId: 'igw-0real',
+      });
+    });
+
+    it('should leave the records of imported external resources to the app that wrote them', async () => {
+      const parentStateProvider = await commitParentState();
+      await testModes['octo'].importState(parentStateProvider);
+      const igw = testModes.resourceDataRepository.getNewResourcesByProperties().find((r) => r.resourceId === 'igw-1')!;
+      await testModes.addResource('child-module', new TfSgResource('sg-child', {}, [igw]));
+      const app = testModes['octo'].getRootModel();
+      await testModes.generate(app, { outputDir: testModes.outputDir });
+      testModes.writeTfState('child-module', { 'sg-child-SgId': 'sg-0child' });
+      const deleteExternalResourceState = jest.spyOn(testModes.stateManagementService, 'deleteExternalResourceState');
+
+      await testModes.commit(app, { outputs: testModes.outputs });
+
+      expect(deleteExternalResourceState).not.toHaveBeenCalled();
+    });
+
+    it('should build on the imported graph, rendering only what this app declares', async () => {
+      const parentStateProvider = await commitParentState();
+      await testModes['octo'].importState(parentStateProvider);
+      const igw = testModes.resourceDataRepository.getNewResourcesByProperties().find((r) => r.resourceId === 'igw-1')!;
+      await testModes.addResource('child-module', new TfSgResource('sg-child', {}, [igw]));
+
+      const app = testModes['octo'].getRootModel();
+      await testModes.generate(app, { outputDir: testModes.outputDir });
+
+      expect(app.name).toBe('test-app');
+      expect(testModes['terraformService'].getModuleIds()).toEqual(['child-module']);
+      expect(await readFile(join(testModes.outputDir, 'child-module', 'main.tf'), 'utf-8')).toContain(
+        'igw_id = "igw-0real"',
+      );
+      expect(Object.values((await testModes.getModelState()).models).map((m) => m.moduleId)).toEqual(['app-module']);
     });
   });
 

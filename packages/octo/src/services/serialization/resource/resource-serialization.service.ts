@@ -1,7 +1,7 @@
 import type { ActionOutputs, ResourceSerializedOutput, UnknownResource } from '../../../app.type.js';
 import { EventSource } from '../../../decorators/event-source.decorator.js';
 import { Factory } from '../../../decorators/factory.decorator.js';
-import { ResourceError } from '../../../errors/index.js';
+import { NodeUnsynthError, ResourceError } from '../../../errors/index.js';
 import {
   ActualResourceSerializedEvent,
   NewResourceSerializedEvent,
@@ -60,6 +60,13 @@ export class ResourceSerializationService {
         args: [true, Object.values(actualResources), Object.values(oldResources), []],
       },
     );
+  }
+
+  /**
+   * Reads another app's resources, unfrozen, so this app's resources build on them.
+   */
+  async deserializeImported(serializedOutput: ResourceSerializedOutput): Promise<ActionOutputs> {
+    return this._deserialize(JSON.parse(JSON.stringify(serializedOutput)), false);
   }
 
   /**
@@ -130,8 +137,14 @@ export class ResourceSerializationService {
     };
 
     const deserializeResource = async (context: string): Promise<UnknownResource> => {
-      const { className, resource } = serializedOutput.resources[context];
+      const { className, moduleId, resource } = serializedOutput.resources[context];
       const deserializationClass = this.classMapping[className];
+      if (!deserializationClass) {
+        throw new NodeUnsynthError(
+          `Class "${className}" of module "${moduleId}" is not registered! Import its module, or define a class of that name.`,
+          className,
+        );
+      }
 
       const deserializedResource = await deserializationClass.unSynth(
         deserializationClass,

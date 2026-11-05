@@ -24,6 +24,7 @@ import { ModuleContainer } from '../../../modules/module.container.js';
 import type { AAnchor } from '../../../overlays/anchor.abstract.js';
 import { OverlayDataRepository, type OverlayDataRepositoryFactory } from '../../../overlays/overlay-data.repository.js';
 import { ObjectUtility } from '../../../utilities/object/object.utility.js';
+import { ImportService } from '../../import/import.service.js';
 import { InputService } from '../../input/input.service.js';
 
 /**
@@ -38,6 +39,7 @@ export class ModelSerializationService {
    * @internal
    */
   constructor(
+    private readonly importService: ImportService,
     private readonly inputService: InputService,
     private readonly moduleContainer: ModuleContainer,
   ) {}
@@ -59,6 +61,19 @@ export class ModelSerializationService {
     );
 
     return root;
+  }
+
+  /**
+   * Reads another app's model graph, unfrozen, so this app's modules build on it. Every class it
+   * names must be loaded.
+   *
+   * @returns Every model by context, and every overlay.
+   */
+  async deserializeImported(
+    serializedOutput: ModelSerializedOutput,
+  ): Promise<{ models: { [context: string]: UnknownModel }; overlays: UnknownOverlay[] }> {
+    const { models, overlays } = await this._deserialize(serializedOutput, false);
+    return { models, overlays };
   }
 
   /**
@@ -154,7 +169,13 @@ export class ModelSerializationService {
       }
     }
 
-    return { anchors, dependencies, models, modules: this.moduleContainer.getModuleInstances(), overlays };
+    return {
+      anchors,
+      dependencies,
+      models,
+      modules: { ...this.importService.getModules(), ...this.moduleContainer.getModuleInstances() },
+      overlays,
+    };
   }
 
   /**
@@ -163,7 +184,7 @@ export class ModelSerializationService {
   private async _deserialize(
     serializedOutput: ModelSerializedOutput,
     freeze: boolean,
-  ): Promise<{ overlays: UnknownOverlay[]; root: UnknownModel }> {
+  ): Promise<{ models: { [context: string]: UnknownModel }; overlays: UnknownOverlay[]; root: UnknownModel }> {
     const deReferencePromises: {
       [p: string]: [Promise<boolean>, (value: boolean) => void, (error: Error) => void, NodeJS.Timeout];
     } = {};
@@ -191,12 +212,30 @@ export class ModelSerializationService {
       return seen[context];
     };
 
+    // A dependency is restored once both its nodes exist, so a model built later, whose constructor
+    // reads its parents' place in the graph, finds them attached.
+    const restoreDependencies = (context: string): void => {
+      for (const d of serializedOutput.dependencies) {
+        if ((d.from !== context && d.to !== context) || !seen[d.from] || !seen[d.to]) {
+          continue;
+        }
+        const dependency = Dependency.unSynth(seen[d.from], seen[d.to], d);
+        if (!seen[d.from].getDependencies().some((d) => d.from === dependency.from && d.to === dependency.to)) {
+          seen[d.from]['dependencies'].push(dependency);
+        }
+      }
+    };
+
     const deserializeModel = async (context: string): Promise<UnknownModel> => {
-      const { className, model } = serializedOutput.models[context];
+      const { className, model, moduleId } = serializedOutput.models[context];
       const deserializationClass = this.classMapping[className];
+      if (!deserializationClass) {
+        throw this.unregisteredClassError(serializedOutput, className, moduleId);
+      }
 
       seen[context] = await deserializationClass.unSynth(model, deReferenceContext);
       seen[context]['context'] = context;
+      restoreDependencies(context);
 
       if (deReferencePromises[context] !== undefined) {
         deReferencePromises[context][1](true);
@@ -215,8 +254,11 @@ export class ModelSerializationService {
 
     // Deserialize all overlays.
     const overlays: UnknownOverlay[] = [];
-    for (const { className, overlay } of serializedOutput.overlays) {
+    for (const { className, moduleId, overlay } of serializedOutput.overlays) {
       const deserializationClass = this.classMapping[className];
+      if (!deserializationClass) {
+        throw this.unregisteredClassError(serializedOutput, className, moduleId);
+      }
       const newOverlay = await deserializationClass.unSynth(
         deserializationClass,
         { ...overlay, anchors: [] },
@@ -231,6 +273,12 @@ export class ModelSerializationService {
     for (const a of serializedOutput.anchors) {
       const { anchorId, className, location, parent } = a;
       const deserializationClass = this.classMapping[className];
+      if (!deserializationClass) {
+        const moduleId =
+          serializedOutput.models[location.context]?.moduleId ??
+          serializedOutput.overlays.find((o) => o.context === location.context)!.moduleId;
+        throw this.unregisteredClassError(serializedOutput, className, moduleId);
+      }
 
       const anchor = await deserializationClass.unSynth(deserializationClass, a, deReferenceContext);
       seen[location.context].addAnchor(anchor);
@@ -253,12 +301,9 @@ export class ModelSerializationService {
       }
     }
 
-    // Deserialize all dependencies.
-    for (const d of serializedOutput.dependencies) {
-      const dependency = Dependency.unSynth(seen[d.from], seen[d.to], d);
-      if (!seen[d.from].getDependencies().some((d) => d.from === dependency.from && d.to === dependency.to)) {
-        seen[d.from]['dependencies'].push(dependency);
-      }
+    // Deserialize the dependencies of overlays.
+    for (const overlay of overlays) {
+      restoreDependencies(overlay.getContext());
     }
 
     if (freeze) {
@@ -276,7 +321,23 @@ export class ModelSerializationService {
         ? seen[serializedOutput.dependencies[0].from]
         : seen[Object.keys(seen)[0]];
 
-    return { overlays, root };
+    const models = Object.fromEntries(Object.keys(serializedOutput.models).map((context) => [context, seen[context]]));
+    return { models, overlays, root };
+  }
+
+  /**
+   * The error for a class the state names that no import has loaded.
+   */
+  private unregisteredClassError(
+    serializedOutput: ModelSerializedOutput,
+    className: string,
+    moduleId: string,
+  ): NodeUnsynthError {
+    const moduleClassName = serializedOutput.modules[moduleId]?.className;
+    return new NodeUnsynthError(
+      `Class "${className}" of module "${moduleId}" is not registered! Import ${moduleClassName ? `"${moduleClassName}"` : 'its module'}, or define a class of that name.`,
+      className,
+    );
   }
 }
 
@@ -291,11 +352,12 @@ export class ModelSerializationServiceFactory {
    * @internal
    */
   static async create(): Promise<ModelSerializationService> {
+    const importService = await Container.getInstance().get(ImportService);
     const inputService = await Container.getInstance().get(InputService);
     const moduleContainer = await Container.getInstance().get(ModuleContainer);
 
     if (!this.instance) {
-      this.instance = new ModelSerializationService(inputService, moduleContainer);
+      this.instance = new ModelSerializationService(importService, inputService, moduleContainer);
     }
 
     return this.instance;

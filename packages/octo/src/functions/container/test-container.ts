@@ -6,6 +6,7 @@ import {
   type ResourceDataRepositoryFactory,
 } from '../../resources/resource-data.repository.js';
 import { EventService } from '../../services/event/event.service.js';
+import { ImportService, type ImportServiceFactory } from '../../services/import/import.service.js';
 import { InputService, type InputServiceFactory } from '../../services/input/input.service.js';
 import { ModelSerializationService } from '../../services/serialization/model/model-serialization.service.js';
 import { ResourceSerializationService } from '../../services/serialization/resource/resource-serialization.service.js';
@@ -130,6 +131,10 @@ export class TestContainer {
       { args: [true, [], [], []] },
     );
 
+    const importService = await container.get<ImportService, typeof ImportServiceFactory>(ImportService, {
+      args: [true],
+    });
+
     const inputService = await container.get<InputService, typeof InputServiceFactory>(InputService, { args: [true] });
 
     const moduleContainer = await container.get<ModuleContainer, typeof ModuleContainerFactory>(ModuleContainer, {
@@ -143,7 +148,7 @@ export class TestContainer {
     if (force) {
       const eventService = await container.get(EventService);
 
-      const modelSerializationService = new ModelSerializationService(inputService, moduleContainer);
+      const modelSerializationService = new ModelSerializationService(importService, inputService, moduleContainer);
       container.unRegisterFactory(ModelSerializationService);
       container.registerValue(ModelSerializationService, modelSerializationService);
 
@@ -153,6 +158,7 @@ export class TestContainer {
 
       const transactionService = new TransactionService(
         eventService,
+        importService,
         inputService,
         moduleContainer,
         overlayDataRepository,

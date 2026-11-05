@@ -6,6 +6,8 @@ import { aggregateResourceActions } from '../functions/diff/aggregate-resource-a
 import type { DiffMetadata } from '../functions/diff/diff-metadata.js';
 import { ResourceDataRepository } from '../resources/resource-data.repository.js';
 import { ATerraformResource } from '../resources/terraform-resource.abstract.js';
+import { ImportService } from '../services/import/import.service.js';
+import { InputService } from '../services/input/input.service.js';
 import { TerraformService } from '../services/terraform/terraform.service.js';
 import { TransactionService } from '../services/transaction/transaction.service.js';
 import type { ModelTransactionResult } from './apply-transaction.js';
@@ -58,11 +60,15 @@ export async function commit({
   warnings: { message: string; moduleId?: string }[];
 }> {
   const container = Container.getInstance();
-  const [resourceDataRepository, terraformService, transactionService] = await Promise.all([
-    container.get(ResourceDataRepository),
-    container.get(TerraformService),
-    container.get(TransactionService),
-  ]);
+  const [importService, inputService, resourceDataRepository, terraformService, transactionService] = await Promise.all(
+    [
+      container.get(ImportService),
+      container.get(InputService),
+      container.get(ResourceDataRepository),
+      container.get(TerraformService),
+      container.get(TransactionService),
+    ],
+  );
 
   const { modelTransaction } = transaction;
 
@@ -267,6 +273,7 @@ export async function commit({
 
   // Every external resource whose response is now part of the committed graph. One left out of a
   // partial commit is excluded: its published record is still the only copy of what it produced.
+  // One imported from another app published its record there, not here.
   const externalResourceIds = [
     ...new Set(
       [
@@ -274,6 +281,7 @@ export async function commit({
         ...transaction.resourceDiffs.flat().map((diff) => diff.node as UnknownResource),
       ]
         .filter((resource) => !(resource instanceof ATerraformResource))
+        .filter((resource) => !importService.isImportedModule(inputService.getModuleIdFromResource(resource)))
         .filter((resource) => !unresolvedResourceContexts.has(resource.getContext()))
         .map((resource) => resource.resourceId),
     ),

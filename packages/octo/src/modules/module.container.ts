@@ -218,7 +218,7 @@ export class ModuleContainer {
 
     m.instances.push({
       applied: false,
-      inputKeys: getSchemaKeys((module as unknown as typeof AModule).MODULE_SCHEMA),
+      inputKeys: getSchemaKeys((m.module as unknown as typeof AModule).MODULE_SCHEMA),
       inputs: copiedInputs,
       moduleId,
     });

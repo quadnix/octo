@@ -464,6 +464,7 @@ const ACCOUNT_GUARDED_PROVIDER_TYPES = new Set(['aws']);
  * @internal
  */
 export class TerraformService {
+  private readonly importedResponses: Map<string, BaseResourceSchema['response']> = new Map(); // Imported resource id -> response.
   private minTerraformVersion: string = '1.6.0';
   private readonly modules: Map<string, TerraformModule> = new Map();
   private readonly pendingExternalResourcesInputWiring: PendingExternalResourceInputWiring[] = [];
@@ -489,6 +490,14 @@ export class TerraformService {
     private readonly octoCommandPrefix: string = 'octo',
     private readonly indentLength: number = 2,
   ) {}
+
+  /**
+   * Registers a resource another app owns. It renders nothing; a reference to it renders the value
+   * of `response` at that key, and an explicit parent on it orders nothing.
+   */
+  addImportedResource(resourceId: string, response: BaseResourceSchema['response']): void {
+    this.importedResponses.set(resourceId, response);
+  }
 
   /**
    * Sets the minimum terraform version and the `required_providers` sources/versions that render
@@ -865,6 +874,7 @@ export class TerraformService {
    * transaction, so production code never resets.
    */
   resetTransactionState(): void {
+    this.importedResponses.clear();
     this.modules.clear();
     this.pendingExternalResourcesInputWiring.length = 0;
     this.resourceRegistry.clear();
@@ -1078,6 +1088,24 @@ export class TerraformService {
       module.variables.forEach((v) => v.collectRefs(refs));
 
       for (const ref of refs) {
+        const importedResponse = this.importedResponses.get(ref.resourceId);
+        if (importedResponse !== undefined) {
+          if (ref.entireResponse) {
+            moduleWiring.resolvedRefs.set(
+              `${ref.resourceId}.${ref.key}`,
+              toHclNode(importedResponse).render('', renderInlineContext),
+            );
+          } else if (!(ref.key in importedResponse)) {
+            throw new Error(`Imported resource "${ref.resourceId}" has no response "${ref.key}"!`);
+          } else {
+            moduleWiring.resolvedRefs.set(
+              `${ref.resourceId}.${ref.key}`,
+              toHclNode(importedResponse[ref.key]).render('', renderInlineContext),
+            );
+          }
+          continue;
+        }
+
         const producer = this.resourceRegistry.get(ref.resourceId);
         if (!producer) {
           throw new Error(`Resource "${ref.resourceId}" not found in Octo Terraform!`);
@@ -1148,6 +1176,9 @@ export class TerraformService {
       for (const resource of module.resources) {
         const addresses: string[] = [];
         for (const parentResourceId of resource.explicitParentResourceIds) {
+          if (this.importedResponses.has(parentResourceId)) {
+            continue;
+          }
           const parent = this.resourceRegistry.get(parentResourceId);
           if (!parent) {
             throw new Error(
@@ -1546,6 +1577,18 @@ export class TerraformService {
       // A native parent contributes one input per output key; an external parent its whole result as a single input.
       const inputs: { argKey: string; ref: RefHclNode; triggerKey: string }[] = [];
       for (const parent of parents) {
+        const importedResponse = this.importedResponses.get(parent.resourceId);
+        if (importedResponse !== undefined) {
+          for (const key of Object.keys(importedResponse)) {
+            inputs.push({
+              argKey: `${parent.resourceId}.${key}`,
+              ref: new RefHclNode(parent.resourceId, key),
+              triggerKey: StringUtility.sanitizeForEnvironmentVariable(`input_${parent.resourceId}_${key}`),
+            });
+          }
+          continue;
+        }
+
         const parentOctoResource = this.resourceRegistry.get(parent.resourceId);
         if (!parentOctoResource) {
           throw new Error(

@@ -16,6 +16,7 @@ import {
   TestContainer,
 } from '../src/index.js';
 import { ModuleContainer } from '../src/modules/module.container.js';
+import { ImportService } from '../src/services/import/import.service.js';
 import { InputService } from '../src/services/input/input.service.js';
 import { ModelSerializationService } from '../src/services/serialization/model/model-serialization.service.js';
 import { create } from '../src/utilities/test-helpers/test-models.js';
@@ -30,11 +31,12 @@ describe('App Serialization and Deserialization E2E Test', () => {
   beforeEach(async () => {
     container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
 
-    const [inputService, moduleContainer] = await Promise.all([
+    const [importService, inputService, moduleContainer] = await Promise.all([
+      container.get(ImportService),
       container.get(InputService),
       container.get(ModuleContainer),
     ]);
-    const modelSerializationService = new ModelSerializationService(inputService, moduleContainer);
+    const modelSerializationService = new ModelSerializationService(importService, inputService, moduleContainer);
     modelSerializationService.registerClass('@octo/Account', Account);
     modelSerializationService.registerClass('@octo/App', App);
     modelSerializationService.registerClass('@octo/Deployment', Deployment);

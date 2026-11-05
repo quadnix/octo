@@ -14,6 +14,60 @@ describe('TerraformService UT', () => {
 
   // ── Stage 1: Global setup ─────────────────────────────────────────────────
 
+  describe('addImportedResource()', () => {
+    it('should throw when a reference names a response the imported resource does not hold', () => {
+      service.addImportedResource('function-1', { FunctionName: 'commons-billing' });
+
+      const scope = service.scope('m1');
+      const permission = new TestTerraformResource('permission-1', {});
+      scope.addOctoTerraformResource(permission).addTerraformResource('aws_lambda_permission', 'permission-1', {
+        function_name: scope.getRef(new TestTerraformResource('function-1', {}), 'Arn'),
+      });
+
+      expect(() => service.renderAllModules()).toThrow('Imported resource "function-1" has no response "Arn"!');
+    });
+
+    it('should render a reference to an imported resource as the value its app committed', () => {
+      service.addImportedResource('function-1', { FunctionName: 'commons-billing' });
+
+      const scope = service.scope('m1');
+      const permission = new TestTerraformResource('permission-1', {});
+      scope.addOctoTerraformResource(permission).addTerraformResource('aws_lambda_permission', 'permission-1', {
+        function_name: scope.getRef(new TestTerraformResource('function-1', {}), 'FunctionName'),
+      });
+
+      const files = service.renderAllModules();
+      expect([...files.keys()]).toEqual(['m1']);
+      expect(files.get('m1')!.mainTf).toContain('function_name = "commons-billing"');
+      expect(files.get('m1')!.terragruntHcl).not.toContain('dependency');
+    });
+
+    it('should pass an imported parent of an external resource its committed values as inputs', () => {
+      service.addImportedResource('vpc-1', { VpcId: 'vpc-0real' });
+
+      const internetGateway = new TestExternalResource('igw-1', {}, [new TestTerraformResource('vpc-1', {})]);
+      service.scope('igw-module').addOctoTerraformExternalResource(internetGateway);
+
+      const files = service.renderAllModules();
+      expect(files.get('igw-module')!.mainTf).toContain('"vpc-0real"');
+      expect(files.get('igw-module')!.terragruntHcl).not.toContain('dependency');
+    });
+
+    it('should order nothing on an imported explicit parent', () => {
+      service.addImportedResource('function-1', { FunctionName: 'commons-billing' });
+
+      const scope = service.scope('m1');
+      const permission = new TestTerraformResource('permission-1', {});
+      scope
+        .addOctoTerraformResource(permission, { explicitParents: [new TestTerraformResource('function-1', {})] })
+        .addTerraformResource('aws_lambda_permission', 'permission-1', {});
+
+      const files = service.renderAllModules();
+      expect(files.get('m1')!.mainTf).not.toContain('depends_on');
+      expect(files.get('m1')!.terragruntHcl).not.toContain('dependency');
+    });
+  });
+
   describe('addTerraformConfig()', () => {
     it('should use the default required_version when addTerraformConfig is never called', () => {
       const scope = service.scope('m1');

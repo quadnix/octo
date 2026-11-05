@@ -1,5 +1,6 @@
 import {
   type ActionInputs,
+  type ActionOutputs,
   type Constructable,
   type IUnknownModelAction,
   type IUnknownResourceAction,
@@ -45,6 +46,7 @@ import { AResource } from '../../resources/resource.abstract.js';
 import { ATerraformResource } from '../../resources/terraform-resource.abstract.js';
 import { DiffUtility } from '../../utilities/diff/diff.utility.js';
 import { EventService } from '../event/event.service.js';
+import { ImportService } from '../import/import.service.js';
 import { InputService } from '../input/input.service.js';
 import { ResourceSerializationService } from '../serialization/resource/resource-serialization.service.js';
 import { TerraformService } from '../terraform/terraform.service.js';
@@ -77,6 +79,27 @@ class TerraformNoopResourceAction extends ANodeAction implements IUnknownResourc
 }
 
 /**
+ * The action of a model or overlay another app declared. That app changes it; this app only builds on it.
+ *
+ * @internal
+ */
+class ImportedNodeAction implements IUnknownModelAction {
+  /**
+   * @internal
+   */
+  filter(): boolean {
+    return true;
+  }
+
+  /**
+   * @internal
+   */
+  async handle(): Promise<ActionOutputs> {
+    return {};
+  }
+}
+
+/**
  * @internal
  */
 export class TransactionService {
@@ -89,6 +112,7 @@ export class TransactionService {
    */
   constructor(
     private readonly eventService: EventService,
+    private readonly importService: ImportService,
     private readonly inputService: InputService,
     private readonly moduleContainer: ModuleContainer,
     private readonly overlayDataRepository: OverlayDataRepository,
@@ -154,9 +178,11 @@ export class TransactionService {
     const overlayDiffs = await this.overlayDataRepository.diff();
     diffs.push(...overlayDiffs);
 
-    // Generate diff on models.
+    // Generate diff on models. A node another app declared takes no action here.
     const modelDiffs = diffs.map((d) => {
-      if ((d.node.constructor as typeof ANode).NODE_TYPE === NodeType.OVERLAY) {
+      if (this.isImportedNode(d.node as UnknownModel | UnknownOverlay)) {
+        return new DiffMetadata(d, [new ImportedNodeAction()]);
+      } else if ((d.node.constructor as typeof ANode).NODE_TYPE === NodeType.OVERLAY) {
         return new DiffMetadata(
           d,
           (
@@ -197,6 +223,19 @@ export class TransactionService {
     // Generate resource diffs.
     let newDiffs = await this.resourceDataRepository.diff();
     let dirtyDiffs = await this.resourceDataRepository.diffDirty();
+
+    // An imported resource is the other app's alone; its copy here only differs if this app changed it.
+    for (const d of newDiffs) {
+      const resource = d.node as UnknownResource;
+      const moduleId =
+        this.inputService.getModuleIdFromResource(resource) ??
+        this.resourceSerializationService.getActualResourceModuleId(resource);
+      if (this.importService.isImportedModule(moduleId)) {
+        throw new TransactionError(
+          `Resource "${resource.getContext()}" belongs to module "${moduleId}" of an extended state; change it in that app!`,
+        );
+      }
+    }
 
     // Scope diffs to a single resource, e.g. when terraform invokes octo for one resource action.
     if (filterResourceDiffsByResourceId !== undefined) {
@@ -436,7 +475,12 @@ export class TransactionService {
         // Only process the first diff, given all duplicate diffs are the same.
         const diffToProcess = duplicateDiffs[0].diff;
 
-        for (const a of diff.actions as IUnknownModelAction[]) {
+        // A node another app declared has no module here to resolve inputs from.
+        const actions = this.isImportedNode(diff.node as UnknownModel | UnknownOverlay)
+          ? []
+          : (diff.actions as IUnknownModelAction[]);
+
+        for (const a of actions) {
           // Find moduleId.
           const moduleId =
             diff.node instanceof AOverlay
@@ -749,6 +793,8 @@ export class TransactionService {
    * Order does not matter: terraform resources reference each other through deferred refs, and
    * external resources defer their parent-input wiring — both are resolved later, once every
    * resource is registered (see {@link TerraformService}'s wiring phase).
+   *
+   * An imported resource renders nothing. A reference to it reads the response its own app committed.
    */
   private async generateTerraform(): Promise<void> {
     const resources = this.resourceDataRepository.getNewResourcesByProperties().filter((r) => !r.isMarkedDeleted());
@@ -761,6 +807,11 @@ export class TransactionService {
       const moduleId = this.inputService.getModuleIdFromResource(resource);
       if (moduleId === undefined) {
         throw new TransactionError(`Resource "${resource.resourceId}" is not associated with any module!`);
+      }
+
+      if (this.importService.isImportedModule(moduleId)) {
+        this.terraformService.addImportedResource(resource.resourceId, resource.response);
+        continue;
       }
 
       const scope = this.terraformService.scope(moduleId);
@@ -904,6 +955,17 @@ export class TransactionService {
     }
 
     return uniqueNames;
+  }
+
+  /**
+   * Whether a model or overlay belongs to an imported module.
+   */
+  private isImportedNode(node: UnknownModel | UnknownOverlay): boolean {
+    return this.importService.isImportedModule(
+      node instanceof AOverlay
+        ? this.inputService.getModuleIdFromOverlay(node)
+        : this.inputService.getModuleIdFromModel(node as UnknownModel),
+    );
   }
 
   /**
@@ -1058,6 +1120,7 @@ export class TransactionServiceFactory {
     const container = Container.getInstance();
     const [
       eventService,
+      importService,
       inputService,
       moduleContainer,
       overlayDataRepository,
@@ -1066,6 +1129,7 @@ export class TransactionServiceFactory {
       terraformService,
     ] = await Promise.all([
       container.get(EventService),
+      container.get(ImportService),
       container.get(InputService),
       container.get(ModuleContainer),
       container.get(OverlayDataRepository),
@@ -1077,6 +1141,7 @@ export class TransactionServiceFactory {
     if (!this.instance) {
       this.instance = new TransactionService(
         eventService,
+        importService,
         inputService,
         moduleContainer,
         overlayDataRepository,
