@@ -103,6 +103,7 @@ async function setup(
             }))
           : [],
         iamStatements,
+        lambda: [],
         s3: withBucketGrant
           ? [{ accessPrefix: 'uploads', allowRead: true, allowWrite: false, bucketName: 'test-bucket' }]
           : [],
@@ -506,13 +507,13 @@ describe('AwsLambdaExecutionModule UT', () => {
     `);
   });
 
-  it('should answer on a signed URL, and admit each invoking account', async () => {
+  it('should answer on a signed URL', async () => {
     await setup(testModuleContainer);
     const { hclRender } = (
       await testModuleContainer
         .runModules<AwsLambdaExecutionModule>(
           {
-            inputs: executionInputs({ invokerAccountIds: ['999999999999'] }),
+            inputs: executionInputs(),
             moduleId: 'execution',
             type: AwsLambdaExecutionModule,
           },
@@ -523,7 +524,6 @@ describe('AwsLambdaExecutionModule UT', () => {
 
     expect(hclRender).toContain('resource "aws_lambda_function_url" "lambda-function-backend-v1-qa-83d832_url"');
     expect(hclRender).toContain('authorization_type = "AWS_IAM"');
-    expect(hclRender).toContain('principal = "arn:aws:iam::999999999999:root"');
   });
 
   it('should buffer responses by default', async () => {

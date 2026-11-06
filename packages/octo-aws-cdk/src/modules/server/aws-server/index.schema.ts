@@ -1,6 +1,16 @@
-import { type Account, AccountSchema, Schema, type Service, ServiceSchema, Validate } from '@quadnix/octo';
+import {
+  type Account,
+  AccountSchema,
+  type Execution,
+  ExecutionSchema,
+  Schema,
+  type Service,
+  ServiceSchema,
+  Validate,
+} from '@quadnix/octo';
 import { AwsAccountAnchorSchema } from '../../../anchors/aws-account/aws-account.anchor.schema.js';
 import { AwsDynamoDBAnchorSchema } from '../../../anchors/aws-dynamodb/aws-dynamodb.anchor.schema.js';
+import { AwsLambdaFunctionAnchorSchema } from '../../../anchors/aws-lambda/aws-lambda-function.anchor.schema.js';
 import { AwsS3StorageServiceAnchorSchema } from '../../../anchors/aws-s3-storage-service/aws-s3-storage-service.anchor.schema.js';
 import { AwsSecurityGroupAnchorRuleSchema } from '../../../anchors/aws-security-group/aws-security-group.anchor.schema.js';
 
@@ -84,8 +94,36 @@ export class AwsServerDynamoDBAccessSchema {
 }
 
 /**
- * Schema for one IAM statement granting a server actions on resources octo does not manage, such as a
- * function in another account or an SES identity made by hand. The statement allows what it names, as
+ * Schema for granting a server the invocation of one Lambda function, directly or through its URL.
+ * The function may be in another account, such as one an imported state holds.
+ *
+ * @group Modules/Server/AwsServer
+ *
+ * @hideconstructor
+ */
+export class AwsServerLambdaAccessSchema {
+  /**
+   * The execution running the function.
+   */
+  @Validate([
+    {
+      options: {
+        isModel: { anchors: [{ schema: AwsLambdaFunctionAnchorSchema }], NODE_NAME: 'execution' },
+      },
+    },
+    {
+      destruct: (value: AwsServerLambdaAccessSchema['execution']): [ExecutionSchema] => [value.synth()],
+      options: {
+        isSchema: { schema: ExecutionSchema },
+      },
+    },
+  ])
+  execution = Schema<Execution>();
+}
+
+/**
+ * Schema for one IAM statement granting a server actions on resources octo does not manage, such as an
+ * SES identity made by hand. The statement allows what it names, as
  * written; octo neither checks the actions nor reads the ARNs.
  *
  * @group Modules/Server/AwsServer
@@ -153,7 +191,7 @@ export class AwsServerModuleSchema {
 
   /**
    * Optional IAM statements for what the server's code may reach outside octo.
-   * Grant a table or bucket octo manages with `dynamodb` or `s3` instead.
+   * Grant a table, bucket or function octo manages with `dynamodb`, `s3` or `lambda` instead.
    * See {@link AwsServerIamStatementSchema} for options.
    */
   @Validate({
@@ -161,6 +199,16 @@ export class AwsServerModuleSchema {
     options: { isSchema: { schema: AwsServerIamStatementSchema } },
   })
   iamStatements? = Schema<AwsServerIamStatementSchema[]>([]);
+
+  /**
+   * Optional Lambda functions the server's code may invoke.
+   * See {@link AwsServerLambdaAccessSchema} for options.
+   */
+  @Validate({
+    destruct: (value: AwsServerModuleSchema['lambda']): AwsServerLambdaAccessSchema[] => value!,
+    options: { isSchema: { schema: AwsServerLambdaAccessSchema } },
+  })
+  lambda? = Schema<AwsServerLambdaAccessSchema[]>([]);
 
   /**
    * Optional S3 storage access prefixes the server's code may reach.

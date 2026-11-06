@@ -3,6 +3,7 @@ import type { AwsDynamoDBAnchorSchema } from '../../../../../anchors/aws-dynamod
 import type { AwsEcrImageAnchorSchema } from '../../../../../anchors/aws-ecr/aws-ecr-image.anchor.schema.js';
 import type { AwsEcsClusterAnchorSchema } from '../../../../../anchors/aws-ecs/aws-ecs-cluster.anchor.schema.js';
 import type { AwsEcsExecutionAnchor } from '../../../../../anchors/aws-ecs/aws-ecs-execution.anchor.js';
+import type { AwsLambdaFunctionAnchorSchema } from '../../../../../anchors/aws-lambda/aws-lambda-function.anchor.schema.js';
 import type { AwsS3StorageServiceAccessPrefixAnchorSchema } from '../../../../../anchors/aws-s3-storage-service/aws-s3-storage-service-access-prefix.anchor.schema.js';
 import type { AwsSecurityGroupAnchor } from '../../../../../anchors/aws-security-group/aws-security-group.anchor.js';
 import type { AwsSubnetLocalFilesystemMountAnchorSchema } from '../../../../../anchors/aws-subnet/aws-subnet-local-filesystem-mount.anchor.schema.js';
@@ -25,6 +26,7 @@ export class AwsEcsExecutionOverlay extends AOverlay<AwsEcsExecutionOverlaySchem
       | MatchingAnchor<AwsSubnetLocalFilesystemMountAnchorSchema>
       | MatchingAnchor<AwsS3StorageServiceAccessPrefixAnchorSchema>
       | MatchingAnchor<AwsDynamoDBAnchorSchema>
+      | MatchingAnchor<AwsLambdaFunctionAnchorSchema>
       | MatchingAnchor<AwsEcrImageAnchorSchema>
     )[],
   ];
@@ -44,6 +46,7 @@ export class AwsEcsExecutionOverlay extends AOverlay<AwsEcsExecutionOverlaySchem
         | MatchingAnchor<AwsSubnetLocalFilesystemMountAnchorSchema>
         | MatchingAnchor<AwsS3StorageServiceAccessPrefixAnchorSchema>
         | MatchingAnchor<AwsDynamoDBAnchorSchema>
+        | MatchingAnchor<AwsLambdaFunctionAnchorSchema>
         | MatchingAnchor<AwsEcrImageAnchorSchema>
       )[],
     ],

@@ -12,11 +12,14 @@ import {
   hasNodeName,
 } from '@quadnix/octo';
 import { AwsDynamoDBAnchorSchema } from '../../../../../../anchors/aws-dynamodb/aws-dynamodb.anchor.schema.js';
+import { AwsLambdaFunctionAnchorSchema } from '../../../../../../anchors/aws-lambda/aws-lambda-function.anchor.schema.js';
 import { AwsS3StorageServiceAccessPrefixAnchorSchema } from '../../../../../../anchors/aws-s3-storage-service/aws-s3-storage-service-access-prefix.anchor.schema.js';
 import { DynamoDBSchema } from '../../../../../../resources/dynamodb/index.schema.js';
 import { EcrImageTagSchema } from '../../../../../../resources/ecr-image-tag/index.schema.js';
 import { IamRole } from '../../../../../../resources/iam-role/index.js';
 import { LambdaFunction } from '../../../../../../resources/lambda-function/index.js';
+import { LambdaFunctionSchema } from '../../../../../../resources/lambda-function/index.schema.js';
+import { LambdaFunctionPermission } from '../../../../../../resources/lambda-function-permission/index.js';
 import type { S3Storage } from '../../../../../../resources/s3-storage/index.js';
 import { S3StorageSchema } from '../../../../../../resources/s3-storage/index.schema.js';
 import type { AwsLambdaExecutionModule } from '../../../aws-lambda-execution.module.js';
@@ -177,6 +180,50 @@ export class AddAwsLambdaExecutionOverlayAction implements IModelAction<AwsLambd
       iamRole.addIamStatementsPolicy(`${properties.iamRoleName}-iam-statements`, properties.grants.iamStatements);
     }
 
+    // Grant the role each function, in one policy, and admit the role to each function. A function is
+    // found through the function anchor this overlay joins.
+    const lambdaFunctions: MatchingResource<LambdaFunctionSchema>[] = [];
+    for (const grant of properties.grants.lambda) {
+      const [matchingLambdaFunctionAnchor] = await awsLambdaExecutionOverlay.getAnchorsMatchingSchema(
+        AwsLambdaFunctionAnchorSchema,
+        [
+          { key: 'awsAccountId', value: grant.awsAccountId },
+          { key: 'awsRegionId', value: grant.awsRegionId },
+          { key: 'functionName', value: grant.functionName },
+        ],
+        { searchBoundaryMembers: false },
+      );
+      const [matchingLambdaFunctionResource] = matchingLambdaFunctionAnchor
+        ? await matchingLambdaFunctionAnchor
+            .getActual()
+            .getParent()
+            .getResourcesMatchingSchema(LambdaFunctionSchema, [], [], { searchBoundaryMembers: false })
+        : [];
+      if (!matchingLambdaFunctionResource) {
+        throw new OverlayActionExceptionTransactionError(
+          `Function "${grant.functionName}" not found in "${grant.awsAccountId}" "${grant.awsRegionId}"!`,
+          diff,
+          this.constructor.name,
+        );
+      }
+      lambdaFunctions.push(matchingLambdaFunctionResource);
+
+      const lambdaFunctionPermission = new LambdaFunctionPermission(
+        `lambda-function-permission-${properties.executionId}-${grant.functionName}`,
+        {
+          awsAccountId: grant.awsAccountId,
+          awsRegionId: grant.awsRegionId,
+          functionName: grant.functionName,
+          roleName: properties.iamRoleName,
+        },
+        [new MatchingResource(iamRole), matchingLambdaFunctionResource],
+      );
+      actionOutputs[lambdaFunctionPermission.resourceId] = lambdaFunctionPermission;
+    }
+    if (lambdaFunctions.length > 0) {
+      iamRole.addLambdaFunctionInvokePolicy(`${properties.iamRoleName}-lambda-functions`, lambdaFunctions);
+    }
+
     // Create Lambda Function.
     const lambdaFunction = new LambdaFunction(
       `lambda-function-${lambdaExecutionAnchorProperties.functionName}`,
@@ -189,7 +236,6 @@ export class AddAwsLambdaExecutionOverlayAction implements IModelAction<AwsLambd
         functionName: lambdaExecutionAnchorProperties.functionName,
         imageCommand: properties.deploymentContainerProperties.imageCommand,
         invokeMode: properties.invokeMode,
-        invokerAccountIds: lambdaExecutionAnchorProperties.invokerAccountIds,
         memoryInMegabytes: properties.deploymentContainerProperties.memoryInMegabytes,
         reservedConcurrency: properties.reservedConcurrency,
         timeoutInSeconds: properties.deploymentContainerProperties.timeoutInSeconds,

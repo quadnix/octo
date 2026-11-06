@@ -17,6 +17,7 @@ import {
 } from '@quadnix/octo';
 import { AwsDynamoDBAnchorSchema } from '../../../../../../anchors/aws-dynamodb/aws-dynamodb.anchor.schema.js';
 import { AwsEfsAnchorSchema } from '../../../../../../anchors/aws-efs/aws-efs.anchor.schema.js';
+import { AwsLambdaFunctionAnchorSchema } from '../../../../../../anchors/aws-lambda/aws-lambda-function.anchor.schema.js';
 import { AwsS3StorageServiceAccessPrefixAnchorSchema } from '../../../../../../anchors/aws-s3-storage-service/aws-s3-storage-service-access-prefix.anchor.schema.js';
 import { AwsSubnetLocalFilesystemMountAnchorSchema } from '../../../../../../anchors/aws-subnet/aws-subnet-local-filesystem-mount.anchor.schema.js';
 import { DynamoDBSchema } from '../../../../../../resources/dynamodb/index.schema.js';
@@ -26,6 +27,8 @@ import { EcsService } from '../../../../../../resources/ecs-service/index.js';
 import { EcsTaskDefinition } from '../../../../../../resources/ecs-task-definition/index.js';
 import { EfsSchema } from '../../../../../../resources/efs/index.schema.js';
 import { IamRole } from '../../../../../../resources/iam-role/index.js';
+import { LambdaFunctionSchema } from '../../../../../../resources/lambda-function/index.schema.js';
+import { LambdaFunctionPermission } from '../../../../../../resources/lambda-function-permission/index.js';
 import type { S3Storage } from '../../../../../../resources/s3-storage/index.js';
 import { S3StorageSchema } from '../../../../../../resources/s3-storage/index.schema.js';
 import { SecurityGroupSchema } from '../../../../../../resources/security-group/index.schema.js';
@@ -178,6 +181,50 @@ export class AddAwsEcsExecutionOverlayAction implements IModelAction<AwsEcsExecu
     // Grant the role the server's IAM statements, as written.
     if (properties.grants.iamStatements.length > 0) {
       iamRole.addIamStatementsPolicy(`${properties.iamRoleName}-iam-statements`, properties.grants.iamStatements);
+    }
+
+    // Grant the role each function, in one policy, and admit the role to each function. A function is
+    // found through the function anchor this overlay joins.
+    const lambdaFunctions: MatchingResource<LambdaFunctionSchema>[] = [];
+    for (const grant of properties.grants.lambda) {
+      const [matchingLambdaFunctionAnchor] = await awsExecutionOverlay.getAnchorsMatchingSchema(
+        AwsLambdaFunctionAnchorSchema,
+        [
+          { key: 'awsAccountId', value: grant.awsAccountId },
+          { key: 'awsRegionId', value: grant.awsRegionId },
+          { key: 'functionName', value: grant.functionName },
+        ],
+        { searchBoundaryMembers: false },
+      );
+      const [matchingLambdaFunctionResource] = matchingLambdaFunctionAnchor
+        ? await matchingLambdaFunctionAnchor
+            .getActual()
+            .getParent()
+            .getResourcesMatchingSchema(LambdaFunctionSchema, [], [], { searchBoundaryMembers: false })
+        : [];
+      if (!matchingLambdaFunctionResource) {
+        throw new OverlayActionExceptionTransactionError(
+          `Function "${grant.functionName}" not found in "${grant.awsAccountId}" "${grant.awsRegionId}"!`,
+          diff,
+          this.constructor.name,
+        );
+      }
+      lambdaFunctions.push(matchingLambdaFunctionResource);
+
+      const lambdaFunctionPermission = new LambdaFunctionPermission(
+        `lambda-function-permission-${properties.executionId}-${grant.functionName}`,
+        {
+          awsAccountId: grant.awsAccountId,
+          awsRegionId: grant.awsRegionId,
+          functionName: grant.functionName,
+          roleName: properties.iamRoleName,
+        },
+        [new MatchingResource(iamRole), matchingLambdaFunctionResource],
+      );
+      actionOutputs[lambdaFunctionPermission.resourceId] = lambdaFunctionPermission;
+    }
+    if (lambdaFunctions.length > 0) {
+      iamRole.addLambdaFunctionInvokePolicy(`${properties.iamRoleName}-lambda-functions`, lambdaFunctions);
     }
 
     // Get matching EFS resources, each through the mount anchor this overlay joins and the filesystem

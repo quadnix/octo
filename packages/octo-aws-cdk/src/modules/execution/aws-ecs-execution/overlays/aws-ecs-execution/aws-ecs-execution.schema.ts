@@ -24,6 +24,7 @@ export class AwsEcsExecutionOverlaySchema extends BaseOverlaySchema {
         ...value.filesystemNames,
         ...value.grants.dynamodb.flatMap((g) => [g.awsRegionId, g.tableName]),
         ...value.grants.iamStatements.flatMap((g) => [...g.actions, ...g.resources]),
+        ...value.grants.lambda.flatMap((g) => [g.awsAccountId, g.awsRegionId, g.functionName]),
         ...value.grants.s3.map((g) => g.bucketName),
         value.iamRoleName,
         value.regionId,
@@ -43,6 +44,7 @@ export class AwsEcsExecutionOverlaySchema extends BaseOverlaySchema {
     grants: {
       dynamodb: { allowRead: boolean; allowWrite: boolean; awsRegionId: string; tableName: string }[];
       iamStatements: { actions: string[]; resources: string[] }[];
+      lambda: { awsAccountId: string; awsRegionId: string; functionName: string }[];
       s3: { accessPrefix: string; allowRead: boolean; allowWrite: boolean; bucketName: string }[];
     };
     iamRoleName: string;

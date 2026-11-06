@@ -9,12 +9,14 @@ import {
   StringUtility,
 } from '@quadnix/octo';
 import { AwsDynamoDBAnchorSchema } from '../../../anchors/aws-dynamodb/aws-dynamodb.anchor.schema.js';
+import { AwsLambdaFunctionAnchorSchema } from '../../../anchors/aws-lambda/aws-lambda-function.anchor.schema.js';
 import { AwsS3StorageServiceAccessPrefixAnchorSchema } from '../../../anchors/aws-s3-storage-service/aws-s3-storage-service-access-prefix.anchor.schema.js';
 import { AwsSecurityGroupAnchor } from '../../../anchors/aws-security-group/aws-security-group.anchor.js';
 import { AwsServerAnchor } from '../../../anchors/aws-server/aws-server.anchor.js';
 import { AwsServerAccessPermission, AwsServerModuleSchema } from './index.schema.js';
 import { AwsServer } from './models/server/index.js';
 import { AwsServerDynamoDBAccessOverlay } from './overlays/aws-server-dynamodb-access/index.js';
+import { AwsServerLambdaAccessOverlay } from './overlays/aws-server-lambda-access/index.js';
 import { AwsServerS3AccessOverlay } from './overlays/aws-server-s3-access/index.js';
 
 /**
@@ -67,15 +69,20 @@ import { AwsServerS3AccessOverlay } from './overlays/aws-server-s3-access/index.
 @Module<AwsServerModule>('@octo', AwsServerModuleSchema)
 export class AwsServerModule extends AModule<AwsServerModuleSchema, AwsServer> {
   /**
-   * Creates the server, and anchors what it may reach. Each bucket prefix and table it may reach is also
-   * joined to the server by a grant overlay, which creates nothing; an IAM statement names nothing in
+   * Creates the server, and anchors what it may reach. Each bucket prefix, table and function it may reach
+   * is also joined to the server by a grant overlay, which creates nothing; an IAM statement names nothing in
    * the graph, and is only anchored. A prefix or table granted more than once is granted once, with the
    * access of all its grants.
    */
   async onInit(
     inputs: AwsServerModuleSchema,
-  ): Promise<(AwsServer | AwsServerDynamoDBAccessOverlay | AwsServerS3AccessOverlay)[]> {
-    const models: (AwsServer | AwsServerDynamoDBAccessOverlay | AwsServerS3AccessOverlay)[] = [];
+  ): Promise<(AwsServer | AwsServerDynamoDBAccessOverlay | AwsServerLambdaAccessOverlay | AwsServerS3AccessOverlay)[]> {
+    const models: (
+      | AwsServer
+      | AwsServerDynamoDBAccessOverlay
+      | AwsServerLambdaAccessOverlay
+      | AwsServerS3AccessOverlay
+    )[] = [];
     const { app } = await this.registerMetadata(inputs);
 
     // Create a new server.
@@ -90,6 +97,7 @@ export class AwsServerModule extends AModule<AwsServerModuleSchema, AwsServer> {
         grants: {
           dynamodb: [],
           iamStatements: (inputs.iamStatements || []).map((s) => ({ actions: s.actions, resources: s.resources })),
+          lambda: [],
           s3: [],
         },
         serverKey: server.serverKey,
@@ -209,6 +217,37 @@ export class AwsServerModule extends AModule<AwsServerModuleSchema, AwsServer> {
         new AwsServerDynamoDBAccessOverlay(
           `aws-server-dynamodb-access-overlay-${overlayIdSuffix}`,
           { allowRead, allowWrite, awsRegionId, serverKey: server.serverKey, tableName },
+          [serverAnchor, anchor],
+        ),
+      );
+    }
+
+    // Add one grant overlay per Lambda function, granting a function more than once only once.
+    // A function is named by its account, region and name, since each may hold a function of one name.
+    const lambdaGrants = new Map<string, MatchingAnchor<AwsLambdaFunctionAnchorSchema>>();
+    for (const grant of inputs.lambda || []) {
+      const [matchingLambdaFunctionAnchor] = await grant.execution.getAnchorsMatchingSchema(
+        AwsLambdaFunctionAnchorSchema,
+        [],
+        { searchBoundaryMembers: false },
+      );
+      const { awsAccountId, awsRegionId, functionName } = matchingLambdaFunctionAnchor.getSchemaInstance().properties;
+      lambdaGrants.set(JSON.stringify([awsAccountId, awsRegionId, functionName]), matchingLambdaFunctionAnchor);
+    }
+    for (const anchor of lambdaGrants.values()) {
+      const { awsAccountId, awsRegionId, functionName } = anchor.getSchemaInstance().properties;
+
+      const overlayIdSuffix = StringUtility.deterministicHash([
+        server.serverKey,
+        awsAccountId,
+        awsRegionId,
+        functionName,
+      ]).substring(0, 12);
+      serverAnchor.properties.grants.lambda.push({ awsAccountId, awsRegionId, functionName });
+      models.push(
+        new AwsServerLambdaAccessOverlay(
+          `aws-server-lambda-access-overlay-${overlayIdSuffix}`,
+          { awsAccountId, awsRegionId, functionName, serverKey: server.serverKey },
           [serverAnchor, anchor],
         ),
       );

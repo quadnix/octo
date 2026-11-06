@@ -186,6 +186,7 @@ async function setup(
               ? [{ allowRead: true, allowWrite: false, awsRegionId: 'us-east-1', tableName: 'logs' }]
               : [],
             iamStatements: [],
+            lambda: [],
             s3: [],
           },
           serverKey: 'logger',
@@ -245,9 +246,10 @@ async function setup(
             iamStatements: [
               { actions: ['ses:SendEmail'], resources: ['arn:aws:ses:us-east-1:456:identity/example.com'] },
             ],
+            lambda: [],
             s3: [{ accessPrefix: 'uploads', allowRead: true, allowWrite: false, bucketName: 'test-bucket' }],
           }
-        : { dynamodb: [], iamStatements: [], s3: [] },
+        : { dynamodb: [], iamStatements: [], lambda: [], s3: [] },
       serverKey: 'backend',
     },
     server,

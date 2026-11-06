@@ -94,16 +94,6 @@ export class AwsLambdaExecutionModuleSchema {
   invokeMode? = Schema<'BUFFERED' | 'RESPONSE_STREAM'>('BUFFERED');
 
   /**
-   * The AWS accounts allowed to call the function's URL. A caller in the function's own account needs
-   * no entry here: AWS admits it on its own IAM permissions to invoke the function.
-   */
-  @Validate({
-    destruct: (value: AwsLambdaExecutionModuleSchema['invokerAccountIds']): string[] => value!,
-    options: { regex: /^\d{12}$/ },
-  })
-  invokerAccountIds? = Schema<string[]>([]);
-
-  /**
    * How many instances of the function may run at once. They are reserved out of the account's
    * concurrency, so other functions cannot take them, and `0` stops the function from running. Left
    * out, nothing is reserved and nothing is capped. AWS keeps 10 of an account's concurrency

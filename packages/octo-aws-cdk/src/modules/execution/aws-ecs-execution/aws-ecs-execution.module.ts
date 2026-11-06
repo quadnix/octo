@@ -14,6 +14,7 @@ import { AwsEcrImageAnchorSchema } from '../../../anchors/aws-ecr/aws-ecr-image.
 import { AwsEcsClusterAnchorSchema } from '../../../anchors/aws-ecs/aws-ecs-cluster.anchor.schema.js';
 import { AwsEcsExecutionAnchor } from '../../../anchors/aws-ecs/aws-ecs-execution.anchor.js';
 import { AwsEcsServiceAnchor } from '../../../anchors/aws-ecs/aws-ecs-service.anchor.js';
+import { AwsLambdaFunctionAnchorSchema } from '../../../anchors/aws-lambda/aws-lambda-function.anchor.schema.js';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import { AwsS3StorageServiceAccessPrefixAnchorSchema } from '../../../anchors/aws-s3-storage-service/aws-s3-storage-service-access-prefix.anchor.schema.js';
 import { AwsSecurityGroupAnchor } from '../../../anchors/aws-security-group/aws-security-group.anchor.js';
@@ -219,11 +220,12 @@ export class AwsEcsExecutionModule extends AModule<AwsEcsExecutionModuleSchema, 
       matchingSidecarSecurityGroupAnchors.push(matchingSidecarSecurityGroupAnchor);
     }
 
-    // Get main deployment server's grants, and the anchors of the buckets and tables they name.
+    // Get main deployment server's grants, and the anchors of the buckets, tables and functions they name.
     const { grants } = matchingMainServerAnchor.getSchemaInstance().properties;
     const grantAnchors: (
       | MatchingAnchor<AwsS3StorageServiceAccessPrefixAnchorSchema>
       | MatchingAnchor<AwsDynamoDBAnchorSchema>
+      | MatchingAnchor<AwsLambdaFunctionAnchorSchema>
     )[] = [];
     for (const grant of grants.s3) {
       const [matchingAccessPrefixAnchor] = await mainServer.getAnchorsMatchingSchema(
@@ -246,6 +248,17 @@ export class AwsEcsExecutionModule extends AModule<AwsEcsExecutionModuleSchema, 
 
       if (!grantAnchors.some((a) => a.getActual() === matchingDynamoDBAnchor.getActual())) {
         grantAnchors.push(matchingDynamoDBAnchor);
+      }
+    }
+    for (const grant of grants.lambda) {
+      const [matchingLambdaFunctionAnchor] = await mainServer.getAnchorsMatchingSchema(AwsLambdaFunctionAnchorSchema, [
+        { key: 'awsAccountId', value: grant.awsAccountId },
+        { key: 'awsRegionId', value: grant.awsRegionId },
+        { key: 'functionName', value: grant.functionName },
+      ]);
+
+      if (!grantAnchors.some((a) => a.getActual() === matchingLambdaFunctionAnchor.getActual())) {
+        grantAnchors.push(matchingLambdaFunctionAnchor);
       }
     }
 

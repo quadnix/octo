@@ -103,7 +103,7 @@ async function setupLambdaFunction(
   execution.addAnchor(
     testModuleContainer.createTestAnchor<AwsLambdaFunctionAnchorSchema>(
       'AwsLambdaFunctionAnchor',
-      { functionName: 'backend', timeoutInSeconds },
+      { awsAccountId: '123456789012', awsRegionId: 'us-east-1', functionName: 'backend', timeoutInSeconds },
       testOverlays[lambdaExecutionOverlayContext],
     ),
   );
@@ -147,7 +147,6 @@ async function setupLambdaFunction(
         functionName: 'backend',
         imageCommand: [],
         invokeMode: 'BUFFERED',
-        invokerAccountIds: [],
         memoryInMegabytes: 512,
         reservedConcurrency: null,
         timeoutInSeconds,

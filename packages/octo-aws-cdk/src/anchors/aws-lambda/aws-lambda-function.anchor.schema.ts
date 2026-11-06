@@ -20,12 +20,18 @@ export class AwsLambdaFunctionAnchorSchema extends BaseAnchorSchema {
 
   /**
    * Input properties.
+   * * `properties.awsAccountId` - The AWS account the function is in.
+   * * `properties.awsRegionId` - The AWS region the function is in.
    * * `properties.functionName` - The name of the Lambda function.
    * * `properties.timeoutInSeconds` - How long one invocation may run before Lambda stops it.
    */
   @Validate<unknown>([
     {
-      destruct: (value: AwsLambdaFunctionAnchorSchema['properties']): string[] => [value.functionName],
+      destruct: (value: AwsLambdaFunctionAnchorSchema['properties']): string[] => [
+        value.awsAccountId,
+        value.awsRegionId,
+        value.functionName,
+      ],
       options: { minLength: 1 },
     },
     {
@@ -34,6 +40,8 @@ export class AwsLambdaFunctionAnchorSchema extends BaseAnchorSchema {
     },
   ])
   override properties = Schema<{
+    awsAccountId: string;
+    awsRegionId: string;
     functionName: string;
     timeoutInSeconds: number;
   }>();

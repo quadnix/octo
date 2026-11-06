@@ -75,12 +75,12 @@ not anything is running behind it.
 
 | Module                           | Inputs                                                                                                                                     | Creates                                                |
 |----------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------|
-| `AwsServerModule`                | `account`, `serverKey`, `s3?`, `dynamodb?`, `iamStatements?`, `securityGroupRules?`                                                        |                                                        |
+| `AwsServerModule`                | `account`, `serverKey`, `s3?`, `dynamodb?`, `lambda?`, `iamStatements?`, `securityGroupRules?`                                             |                                                        |
 | `AwsDeploymentModule`            | `server`, `deploymentTag`, `image?` and `imageTag?` or `imageUri?`, `command?`, `ports?`, `cpu?`, `memory?`, `timeoutInSeconds?`           |                                                        |
 | `AwsEcsEnvironmentModule`        | `region`, `environmentName`, `environmentVariables?`                                                                                       | ECS cluster                                            |
 | `AwsServerlessEnvironmentModule` | `region`, `environmentName`, `environmentVariables?`                                                                                       |                                                        |
 | `AwsEcsExecutionModule`          | `deployments`, `environment`, `subnet`, `executionId`, `desiredCount`, `environmentVariables?`, `filesystems?`, `securityGroupRules?`      | IAM role, ECS service, task definition, security group |
-| `AwsLambdaExecutionModule`       | `deployment`, `environment`, `subnet`, `executionId`, `environmentVariables?`, `invokeMode?`, `invokerAccountIds?`, `reservedConcurrency?` | IAM role, Lambda function, function URL                |
+| `AwsLambdaExecutionModule`       | `deployment`, `environment`, `subnet`, `executionId`, `environmentVariables?`, `invokeMode?`, `reservedConcurrency?`                      | IAM role, Lambda function, function URL                |
 
 These are one story told in parts. A server is the logical microservice: what its code may reach,
 and its network rules. A deployment is one version of its code: the container image, and what the
@@ -107,8 +107,13 @@ and creates nothing on its own. The execution running the server turns it into a
 and for a bucket into a statement on the bucket. The role is created in the execution's account, so
 every bucket and table a server is granted must be in that account too.
 
-`iamStatements` grants what Octo does not manage, such as a function in another account or an SES
-identity made by hand. Each statement is a list of `actions` and a list of `resources`, by ARN, and is
+`lambda` lets the server's code invoke functions, each named by its execution from
+`AwsLambdaExecutionModule`, directly or through its URL. The function may be in another account,
+such as one an [`extends`](/docs/using-octo/the-definition-file#extends) state holds. The execution
+running the server writes one policy on its role for all of them, and admits the role to each function
+in the function's account, so the definition needs a Terraform provider for that account too.
+
+`iamStatements` grants what Octo does not manage, such as an SES identity made by hand. Each statement is a list of `actions` and a list of `resources`, by ARN, and is
 allowed as written: Octo checks neither, and the resources may be in any account. The execution writes
 all of a server's statements into one policy on its role:
 
@@ -201,7 +206,8 @@ The image must be published in the function's own region, and a web server in it
 requests through the [Lambda Web Adapter](https://github.com/awslabs/aws-lambda-web-adapter), which
 the image carries. The adapter forwards each request to the deployment's port, so the deployment
 declares at most one, over TCP, and without one the adapter uses 8080. Every function gets a URL that answers only requests signed with AWS
-credentials, and `invokerAccountIds` names the accounts allowed to call it:
+credentials; a server's `lambda` grant admits its execution's role to call it. The execution itself
+names only what it runs:
 
 ```yaml
   - moduleId: checkout-v1-staging-execution-module
@@ -467,7 +473,7 @@ where `<name>` is the anchor's own name rather than the directory it sits in:
 | `AwsServerlessEnvironmentAnchorSchema`        | environment       | `environmentName`, `environmentVariables`, `serverless`                      |
 | `AwsEcsExecutionAnchorSchema`                 | execution         | `desiredCount`, `environmentVariables`                                       |
 | `AwsEcsServiceAnchorSchema`                   | overlay           | `executionId`                                                                |
-| `AwsLambdaExecutionAnchorSchema`              | execution         | `functionName`, `environmentVariables`, `invokerAccountIds`                  |
+| `AwsLambdaExecutionAnchorSchema`              | execution         | `functionName`, `environmentVariables`                                       |
 | `AwsLambdaFunctionAnchorSchema`               | overlay           | `functionName`, `timeoutInSeconds`                                           |
 | `AwsEcrImageAnchorSchema`                     | image             | `imageId`                                                                    |
 | `AwsEcsAlbAnchorSchema`                       | service           | `albName`                                                                    |

@@ -20,7 +20,6 @@ export class AwsLambdaExecutionAnchorSchema extends BaseAnchorSchema {
    * Input properties.
    * * `properties.environmentVariables` - The environment variables passed to this {@link Execution}.
    * * `properties.functionName` - The name of the Lambda function.
-   * * `properties.invokerAccountIds` - The AWS accounts allowed to call the function's URL.
    */
   @Validate<unknown>([
     {
@@ -37,14 +36,9 @@ export class AwsLambdaExecutionAnchorSchema extends BaseAnchorSchema {
         Object.values(value.environmentVariables),
       options: { regex: /^.+$/ },
     },
-    {
-      destruct: (value: AwsLambdaExecutionAnchorSchema['properties']): string[] => value.invokerAccountIds,
-      options: { regex: /^\d{12}$/ },
-    },
   ])
   override properties = Schema<{
     environmentVariables: Record<string, string>;
     functionName: string;
-    invokerAccountIds: string[];
   }>();
 }

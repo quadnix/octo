@@ -3,6 +3,7 @@ import type { AwsDynamoDBAnchorSchema } from '../../../../../anchors/aws-dynamod
 import type { AwsEcrImageAnchorSchema } from '../../../../../anchors/aws-ecr/aws-ecr-image.anchor.schema.js';
 import type { AwsServerlessEnvironmentAnchorSchema } from '../../../../../anchors/aws-environment/aws-serverless-environment.anchor.schema.js';
 import type { AwsLambdaExecutionAnchor } from '../../../../../anchors/aws-lambda/aws-lambda-execution.anchor.js';
+import type { AwsLambdaFunctionAnchorSchema } from '../../../../../anchors/aws-lambda/aws-lambda-function.anchor.schema.js';
 import type { AwsS3StorageServiceAccessPrefixAnchorSchema } from '../../../../../anchors/aws-s3-storage-service/aws-s3-storage-service-access-prefix.anchor.schema.js';
 import type { AwsServerAnchorSchema } from '../../../../../anchors/aws-server/aws-server.anchor.schema.js';
 import { AwsLambdaExecutionOverlaySchema } from './aws-lambda-execution.schema.js';
@@ -20,7 +21,11 @@ export class AwsLambdaExecutionOverlay extends AOverlay<AwsLambdaExecutionOverla
     MatchingAnchor<AwsServerlessEnvironmentAnchorSchema>,
     MatchingAnchor<AwsServerAnchorSchema>,
     MatchingAnchor<AwsEcrImageAnchorSchema>,
-    ...(MatchingAnchor<AwsS3StorageServiceAccessPrefixAnchorSchema> | MatchingAnchor<AwsDynamoDBAnchorSchema>)[],
+    ...(
+      | MatchingAnchor<AwsS3StorageServiceAccessPrefixAnchorSchema>
+      | MatchingAnchor<AwsDynamoDBAnchorSchema>
+      | MatchingAnchor<AwsLambdaFunctionAnchorSchema>
+    )[],
   ];
   declare properties: AwsLambdaExecutionOverlaySchema['properties'];
 
@@ -35,7 +40,11 @@ export class AwsLambdaExecutionOverlay extends AOverlay<AwsLambdaExecutionOverla
       MatchingAnchor<AwsServerlessEnvironmentAnchorSchema>,
       MatchingAnchor<AwsServerAnchorSchema>,
       MatchingAnchor<AwsEcrImageAnchorSchema>,
-      ...(MatchingAnchor<AwsS3StorageServiceAccessPrefixAnchorSchema> | MatchingAnchor<AwsDynamoDBAnchorSchema>)[],
+      ...(
+        | MatchingAnchor<AwsS3StorageServiceAccessPrefixAnchorSchema>
+        | MatchingAnchor<AwsDynamoDBAnchorSchema>
+        | MatchingAnchor<AwsLambdaFunctionAnchorSchema>
+      )[],
     ],
   ) {
     super(overlayId, properties, anchors);

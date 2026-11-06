@@ -14,6 +14,7 @@ import { AwsEcrImageAnchorSchema } from '../../../anchors/aws-ecr/aws-ecr-image.
 import { AwsServerlessEnvironmentAnchorSchema } from '../../../anchors/aws-environment/aws-serverless-environment.anchor.schema.js';
 import { AwsLambdaExecutionAnchor } from '../../../anchors/aws-lambda/aws-lambda-execution.anchor.js';
 import { AwsLambdaFunctionAnchor } from '../../../anchors/aws-lambda/aws-lambda-function.anchor.js';
+import { AwsLambdaFunctionAnchorSchema } from '../../../anchors/aws-lambda/aws-lambda-function.anchor.schema.js';
 import { AwsServerlessRegionAnchorSchema } from '../../../anchors/aws-region/aws-serverless-region.anchor.schema.js';
 import { AwsS3StorageServiceAccessPrefixAnchorSchema } from '../../../anchors/aws-s3-storage-service/aws-s3-storage-service-access-prefix.anchor.schema.js';
 import { AwsServerAnchorSchema } from '../../../anchors/aws-server/aws-server.anchor.schema.js';
@@ -74,6 +75,7 @@ export class AwsLambdaExecutionModule extends AModule<AwsLambdaExecutionModuleSc
     }
 
     const region = environment.getParents()['region'][0].to as Region;
+    const { awsAccountId, awsRegionId } = await this.registerMetadata(inputs);
 
     // Create a new execution.
     const execution = new AwsLambdaExecution(inputs.executionId, deployment, environment, subnet);
@@ -87,7 +89,6 @@ export class AwsLambdaExecutionModule extends AModule<AwsLambdaExecutionModuleSc
       {
         environmentVariables: Object.fromEntries(execution.environmentVariables.entries()),
         functionName: execution.executionId,
-        invokerAccountIds: [...inputs.invokerAccountIds!],
       },
       execution,
     );
@@ -105,6 +106,7 @@ export class AwsLambdaExecutionModule extends AModule<AwsLambdaExecutionModuleSc
     const grantAnchors: (
       | MatchingAnchor<AwsS3StorageServiceAccessPrefixAnchorSchema>
       | MatchingAnchor<AwsDynamoDBAnchorSchema>
+      | MatchingAnchor<AwsLambdaFunctionAnchorSchema>
     )[] = [];
     for (const grant of grants.s3) {
       const [matchingAccessPrefixAnchor] = await server.getAnchorsMatchingSchema(
@@ -127,6 +129,17 @@ export class AwsLambdaExecutionModule extends AModule<AwsLambdaExecutionModuleSc
 
       if (!grantAnchors.some((a) => a.getActual() === matchingDynamoDBAnchor.getActual())) {
         grantAnchors.push(matchingDynamoDBAnchor);
+      }
+    }
+    for (const grant of grants.lambda) {
+      const [matchingLambdaFunctionAnchor] = await server.getAnchorsMatchingSchema(AwsLambdaFunctionAnchorSchema, [
+        { key: 'awsAccountId', value: grant.awsAccountId },
+        { key: 'awsRegionId', value: grant.awsRegionId },
+        { key: 'functionName', value: grant.functionName },
+      ]);
+
+      if (!grantAnchors.some((a) => a.getActual() === matchingLambdaFunctionAnchor.getActual())) {
+        grantAnchors.push(matchingLambdaFunctionAnchor);
       }
     }
 
@@ -200,7 +213,7 @@ export class AwsLambdaExecutionModule extends AModule<AwsLambdaExecutionModuleSc
     execution.addAnchor(
       new AwsLambdaFunctionAnchor(
         'AwsLambdaFunctionAnchor',
-        { functionName: execution.executionId, timeoutInSeconds },
+        { awsAccountId, awsRegionId, functionName: execution.executionId, timeoutInSeconds },
         executionOverlay,
       ),
     );

@@ -24,6 +24,8 @@ export class AwsServerAnchorSchema extends BaseAnchorSchema {
    * whether it may read and write them.
    * * `properties.grants.iamStatements` - The IAM statements the code is allowed, each by actions and
    * resource ARNs, as the user wrote them.
+   * * `properties.grants.lambda` - The Lambda functions the code may invoke, each by account, region and
+   * name.
    * * `properties.grants.s3` - The S3 bucket prefixes the code may reach, each by bucket and prefix, and
    * whether it may read and write them.
    * * `properties.serverKey` - The server key.
@@ -32,6 +34,7 @@ export class AwsServerAnchorSchema extends BaseAnchorSchema {
     destruct: (value: AwsServerAnchorSchema['properties']): string[] => [
       ...value.grants.dynamodb.flatMap((g) => [g.awsRegionId, g.tableName]),
       ...value.grants.iamStatements.flatMap((g) => [...g.actions, ...g.resources]),
+      ...value.grants.lambda.flatMap((g) => [g.awsAccountId, g.awsRegionId, g.functionName]),
       ...value.grants.s3.map((g) => g.bucketName),
       value.serverKey,
     ],
@@ -41,6 +44,7 @@ export class AwsServerAnchorSchema extends BaseAnchorSchema {
     grants: {
       dynamodb: { allowRead: boolean; allowWrite: boolean; awsRegionId: string; tableName: string }[];
       iamStatements: { actions: string[]; resources: string[] }[];
+      lambda: { awsAccountId: string; awsRegionId: string; functionName: string }[];
       s3: { accessPrefix: string; allowRead: boolean; allowWrite: boolean; bucketName: string }[];
     };
     serverKey: string;
