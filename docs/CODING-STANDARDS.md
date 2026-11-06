@@ -67,6 +67,8 @@ and a service's factory.
 - **Do not ask the user for what octo knows.** Derive an input that repeats a known fact, drop an
   input where one value is always safe, and check a limit one module imposes on another where they
   meet.
+- **A module input takes the model of anything octo manages, never its identifier.** A literal ARN,
+  name or account id is only for what octo does not build, such as an SES identity or a certificate.
 
 ---
 
@@ -90,6 +92,8 @@ own. Prefer an overlay to a new base model.
   `within` set to the provider's domain for it, taken from the provider's documentation.
 - **Declare `destroyLosesData` on a resource holding data octo cannot put back** — rows, objects,
   images. Not on content octo rewrites every apply, nor on a loss that breaks loudly.
+- **A resource another app may attach to never manages that attachment as an exclusive list on
+  itself.** The attachment is a resource of its own.
 
 ### Parents
 
