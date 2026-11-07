@@ -1,8 +1,8 @@
 import { randomBytes } from 'node:crypto';
 import { existsSync, readFileSync, rmSync } from 'node:fs';
-import { type FileHandle, copyFile, mkdtemp, open, rm } from 'node:fs/promises';
+import { type FileHandle, copyFile, open, rm } from 'node:fs/promises';
 import { createRequire } from 'node:module';
-import { hostname, tmpdir } from 'node:os';
+import { hostname } from 'node:os';
 import { dirname, join } from 'node:path';
 import {
   AppUnlockingEvent,
@@ -152,10 +152,6 @@ const COMMAND_ID_VARIABLE_NAME = 'OCTO_JOURNAL_COMMAND_ID';
  * The terraform log file a command is writing.
  */
 interface OpenTerraformLog {
-  /**
-   * The temporary directory holding the file, removed with it.
-   */
-  directory: string;
   file: FileHandle;
   filePath: string;
   /**
@@ -167,13 +163,9 @@ interface OpenTerraformLog {
    */
   position: number;
   /**
-   * Removes the directory if the process exits before the file is closed.
+   * Removes the file if the process exits before it is closed.
    */
   removeOnExit: () => void;
-  /**
-   * How many snapshots of the file were taken for a save, which names the next.
-   */
-  snapshotCount: number;
 }
 
 /**
@@ -193,10 +185,11 @@ interface OpenTerraformLog {
  * fails is reported on stderr. The one write that fails loudly is the one before the release, which
  * keeps the lock held.
  *
- * The terraform log is written to a temporary file as each chunk arrives, and holds nothing in memory.
- * That file is valid JSON after every chunk. Each state save takes a copy of it on disk and hands the
- * state provider that copy's path, so an apply's output reaches the state provider at every terraform
- * state check-in without ever being read into memory. It is deleted when the command ends.
+ * The terraform log is written as each chunk arrives into a temporary file the state provider names,
+ * and holds nothing in memory. That file is valid JSON after every chunk. Each state save takes a copy
+ * of it and hands the state provider that copy's path to move into the state, so an apply's output
+ * reaches the state provider at every terraform state check-in without ever being read into memory.
+ * The temporary file is deleted when the command ends.
  *
  * A command that another one started, such as a `run-action` terraform starts mid-apply, names that
  * command as `parentCommandId`.
@@ -261,10 +254,6 @@ export class JournalEventListener {
    * The last change to the terraform log queued, so the next one waits for it.
    */
   private terraformLogQueue: Promise<void> = Promise.resolve();
-  /**
-   * The snapshots of the terraform log a save carries and has not finished with.
-   */
-  private readonly terraformLogSnapshotPaths = new Set<string>();
   /**
    * The MD5 of every copy this command already wrote.
    */
@@ -355,6 +344,9 @@ export class JournalEventListener {
       .then(async () => {
         this.terraformLog ??= await this.openTerraformLog(header);
         const log = this.terraformLog;
+        if (!log) {
+          return;
+        }
 
         const data = Buffer.from(`${log.isEmpty ? '' : ',\n'}${JSON.stringify(record)}${TERRAFORM_LOG_END}`);
         await log.file.write(data, 0, data.length, log.position);
@@ -422,7 +414,7 @@ export class JournalEventListener {
 
         process.off('exit', log.removeOnExit);
         await log.file.close();
-        await rm(log.directory, { force: true, recursive: true });
+        await rm(log.filePath, { force: true });
       })
       .catch((error) => this.warn(error));
     await this.terraformLogQueue;
@@ -499,13 +491,18 @@ export class JournalEventListener {
   }
 
   /**
-   * Opens a new terraform log in a temporary directory, holding the header and no records, and
-   * removes it if the process exits before it is closed.
+   * Opens a new terraform log in a temporary file of the state, holding the header and no records,
+   * and removes it if the process exits before it is closed. Undefined when there is no state to save
+   * it into.
    */
-  private async openTerraformLog(header: JournalHeader): Promise<OpenTerraformLog> {
-    const directory = await mkdtemp(join(tmpdir(), 'octo-journal-'));
-    const filePath = join(directory, 'terraform.json');
-    const removeOnExit = (): void => rmSync(directory, { force: true, recursive: true });
+  private async openTerraformLog(header: JournalHeader): Promise<OpenTerraformLog | undefined> {
+    const stateManagementService = await this.getStateManagementService();
+    if (!stateManagementService) {
+      return undefined;
+    }
+
+    const filePath = await stateManagementService.getTemporaryFilePath(this.fileName('terraform'));
+    const removeOnExit = (): void => rmSync(filePath, { force: true });
     process.once('exit', removeOnExit);
 
     const file = await open(filePath, 'w');
@@ -513,7 +510,7 @@ export class JournalEventListener {
     const data = Buffer.concat([start, Buffer.from(TERRAFORM_LOG_END)]);
     await file.write(data, 0, data.length, 0);
 
-    return { directory, file, filePath, isEmpty: true, position: start.length, removeOnExit, snapshotCount: 0 };
+    return { file, filePath, isEmpty: true, position: start.length, removeOnExit };
   }
 
   /**
@@ -562,13 +559,6 @@ export class JournalEventListener {
     if (event instanceof StateFilesSavedEvent) {
       void this.holdCopies(event.payload.stateFiles).catch((error) => this.warn(error));
 
-      // Delete the terraform log snapshots the save carried, which it no longer needs.
-      for (const { filePath } of event.payload.stateFiles) {
-        if (filePath && this.terraformLogSnapshotPaths.delete(filePath)) {
-          void rm(filePath, { force: true }).catch((error) => this.warn(error));
-        }
-      }
-
       // Keep the files a command wrote, leaving out the journal's own.
       const stateFiles = event.payload.stateFiles.filter(
         ({ stateFileName }) =>
@@ -598,20 +588,20 @@ export class JournalEventListener {
   }
 
   /**
-   * Copies the terraform log as it stands, once every record queued is written, beside it, and returns
-   * the copy's path, or `undefined` when nothing was recorded. A save uploads the copy while the log
-   * keeps growing; the copy is deleted once the save is done, or with the log.
+   * Copies the terraform log as it stands, once every record queued is written, to a temporary file,
+   * and returns the copy's path, or `undefined` when nothing was recorded. A save moves the copy into
+   * the state while the log keeps growing; a copy a failed save left is deleted when the run is sealed.
    */
   private async snapshotTerraformLog(): Promise<string | undefined> {
     const snapshot = this.terraformLogQueue.then(async () => {
       const log = this.terraformLog;
-      if (!log) {
+      const stateManagementService = await this.getStateManagementService();
+      if (!log || !stateManagementService) {
         return undefined;
       }
 
-      const snapshotPath = join(log.directory, `snapshot-${++log.snapshotCount}.json`);
+      const snapshotPath = await stateManagementService.getTemporaryFilePath(this.fileName('terraform.json'));
       await copyFile(log.filePath, snapshotPath);
-      this.terraformLogSnapshotPaths.add(snapshotPath);
       return snapshotPath;
     });
     this.terraformLogQueue = snapshot.then(

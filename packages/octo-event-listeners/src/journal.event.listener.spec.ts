@@ -1,5 +1,4 @@
-import { existsSync, readdirSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { existsSync } from 'node:fs';
 import { jest } from '@jest/globals';
 import {
   AppLockError,
@@ -261,8 +260,9 @@ describe('JournalEventListener UT', () => {
       expect(existsSync(filePath)).toBe(false);
     });
 
-    it('should hand a save a copy of the terraform log by its path, and delete the copy once saved', async () => {
+    it('should write the terraform log where the state says, handing a save a copy to move', async () => {
       await stateManagementService.lockApp();
+      const getTemporaryFilePath = jest.spyOn(stateProvider, 'getTemporaryFilePath');
       const saveStates = jest.spyOn(stateProvider, 'saveStates');
       eventService.emit(new CommandStartedEvent(undefined, { command: 'apply' }));
       eventService.emit(new TerraformProcessOutputEvent('apply', { processId: 1, stream: 'stdout', text: 'a' }));
@@ -271,16 +271,12 @@ describe('JournalEventListener UT', () => {
 
       const logStateFile = saveStates.mock.calls[0][0].find((f) => f.stateFileName.endsWith('.terraform.json'))!;
       expect(logStateFile).toEqual({
-        filePath: expect.stringMatching(/snapshot-1\.json$/),
+        filePath: await getTemporaryFilePath.mock.results[1].value,
         stateFileName: expect.any(String),
       });
       const { filePath } = logStateFile as { filePath: string };
-      // The copy is deleted when the saved event reaches the listener, which is not awaited.
-      for (let attempt = 0; attempt < 50 && existsSync(filePath); attempt++) {
-        await new Promise((resolve) => setTimeout(resolve, 10));
-      }
       expect(existsSync(filePath)).toBe(false);
-      expect(readdirSync(dirname(filePath))).toEqual(['terraform.json']);
+      expect(existsSync((await getTemporaryFilePath.mock.results[0].value) as string)).toBe(true);
     });
 
     it('should name the command of the process that started it', async () => {
