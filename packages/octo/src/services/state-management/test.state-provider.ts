@@ -25,12 +25,10 @@ export class TestStateProvider implements IStateProvider {
   }
 
   /**
-   * Reads a state file. Nothing is sealed here, so the state itself stands in for the sealed state.
-   *
-   * @throws {@link TransactionError} With the message `No state found!` when the file does not exist.
+   * Reads state files. Nothing is sealed here, so the state itself stands in for the sealed state.
    */
-  async getSealedState(stateFileName: string): Promise<Buffer> {
-    return this.getState(stateFileName);
+  async getSealedStates(stateFileNames: string[]): Promise<(Buffer | undefined)[]> {
+    return stateFileNames.map((stateFileName) => this.localState[stateFileName]);
   }
 
   /**

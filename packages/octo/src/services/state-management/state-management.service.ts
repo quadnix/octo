@@ -158,32 +158,15 @@ export class StateManagementService {
   }
 
   /**
-   * Reads the model graph, or with `sealed`, the model graph of the newest sealed state. Returns an
-   * empty graph when no state exists yet.
+   * Reads the model graph. Returns an empty graph when no state exists yet.
    */
-  async getModelState(
-    stateFileName: string,
-    { freeze = true, sealed = false }: { freeze?: boolean; sealed?: boolean } = {},
-  ): Promise<ModelStateFile> {
-    const defaultValue: ModelStateFile = {
-      data: {
-        anchors: [],
-        dependencies: [],
-        models: {},
-        modules: {},
-        overlays: [],
-      },
-      userData: {},
-    };
-
+  async getModelState(stateFileName: string, { freeze = true }: { freeze?: boolean } = {}): Promise<ModelStateFile> {
     try {
-      const modelState = await (sealed
-        ? this.stateProvider.getSealedState(stateFileName)
-        : this.getState(stateFileName));
+      const modelState = await this.getState(stateFileName);
       return JSON.parse(modelState.toString(), (_k, v) => (v && freeze ? Object.freeze(v) : v));
     } catch (error) {
       if (error.message === 'No state found!') {
-        return defaultValue;
+        return this.emptyModelState();
       } else {
         throw error;
       }
@@ -218,33 +201,38 @@ export class StateManagementService {
   }
 
   /**
-   * Reads a resource graph, or with `sealed`, the resource graph of the newest sealed state. Returns
-   * an empty graph when no state exists yet.
+   * Reads a resource graph. Returns an empty graph when no state exists yet.
    */
   async getResourceState(
     stateFileName: string,
-    { freeze = true, sealed = false }: { freeze?: boolean; sealed?: boolean } = {},
+    { freeze = true }: { freeze?: boolean } = {},
   ): Promise<ResourceStateFile> {
-    const defaultValue: ResourceStateFile = {
-      data: {
-        dependencies: [],
-        resources: {},
-      },
-      userData: {},
-    };
-
     try {
-      const resourceState = await (sealed
-        ? this.stateProvider.getSealedState(stateFileName)
-        : this.getState(stateFileName));
+      const resourceState = await this.getState(stateFileName);
       return JSON.parse(resourceState.toString(), (_k, v) => (v && freeze ? Object.freeze(v) : v));
     } catch (error) {
       if (error.message === 'No state found!') {
-        return defaultValue;
+        return this.emptyResourceState();
       } else {
         throw error;
       }
     }
+  }
+
+  /**
+   * The model graph and the resource graph of the newest sealed state, both from the one seal. A graph
+   * the sealed state does not hold, or all of them when nothing is sealed yet, is empty.
+   */
+  async getSealedState(): Promise<{ modelState: ModelStateFile; resourceState: ResourceStateFile }> {
+    const [modelState, resourceState] = await this.stateProvider.getSealedStates([
+      this.modelStateFileName,
+      this.actualResourceStateFileName,
+    ]);
+
+    return {
+      modelState: modelState ? JSON.parse(modelState.toString()) : this.emptyModelState(),
+      resourceState: resourceState ? JSON.parse(resourceState.toString()) : this.emptyResourceState(),
+    };
   }
 
   /**
@@ -459,6 +447,20 @@ export class StateManagementService {
     await this.stateProvider.unlockApp(lockId);
 
     await eventService.emitAndWait(new AppUnlockedEvent(undefined, { lockId }));
+  }
+
+  /**
+   * @internal
+   */
+  private emptyModelState(): ModelStateFile {
+    return { data: { anchors: [], dependencies: [], models: {}, modules: {}, overlays: [] }, userData: {} };
+  }
+
+  /**
+   * @internal
+   */
+  private emptyResourceState(): ResourceStateFile {
+    return { data: { dependencies: [], resources: {} }, userData: {} };
   }
 
   /**

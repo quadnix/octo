@@ -103,19 +103,16 @@ export class LocalStateProvider implements IStateProvider {
   }
 
   /**
-   * Reads a state file from the newest archive, found by the time at the start of its commit id. Only
+   * Reads state files from the newest archive, found by the time at the start of its commit id. Only
    * one lock is held at a time, so the last lock taken is the last run sealed.
-   *
-   * @throws {@link TransactionError} With the message `No state found!` when there is no archive, or
-   * the newest holds no such file.
    */
-  async getSealedState(stateFileName: string): Promise<Buffer> {
+  async getSealedStates(stateFileNames: string[]): Promise<(Buffer | undefined)[]> {
     const [newestArchive] = await this.listArchives();
     if (!newestArchive) {
-      throw new TransactionError('No state found!');
+      return stateFileNames.map(() => undefined);
     }
 
-    return this.getState(join(ARCHIVE_DIRECTORY_NAME, newestArchive.name, stateFileName));
+    return this.readStates(stateFileNames.map((n) => join(ARCHIVE_DIRECTORY_NAME, newestArchive.name, n)));
   }
 
   /**
@@ -217,6 +214,24 @@ export class LocalStateProvider implements IStateProvider {
     }
 
     return { commitId: lock.commitId, lockId: newLockId };
+  }
+
+  /**
+   * Reads state files, `undefined` for one that does not exist.
+   *
+   * @internal
+   */
+  async readStates(stateFileNames: string[]): Promise<(Buffer | undefined)[]> {
+    return Promise.all(
+      stateFileNames.map((stateFileName) =>
+        this.getState(stateFileName).catch((error) => {
+          if (error.message === 'No state found!') {
+            return undefined;
+          }
+          throw error;
+        }),
+      ),
+    );
   }
 
   /**

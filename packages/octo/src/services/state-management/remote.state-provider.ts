@@ -137,14 +137,14 @@ export class RemoteStateProvider implements IStateProvider {
   }
 
   /**
-   * Reads a state file from the newest sealed state, bringing the directory up to it first with
-   * {@link RemoteStateProvider.refreshState}.
-   *
-   * @throws {@link TransactionError} With the message `No state found!` when the file does not exist.
+   * Reads state files from the newest sealed state, bringing the directory up to it first, and holding
+   * the upload lock throughout so that nothing replaces the directory between the reads.
    */
-  async getSealedState(stateFileName: string): Promise<Buffer> {
-    await this.refreshState();
-    return this.getState(stateFileName);
+  async getSealedStates(stateFileNames: string[]): Promise<(Buffer | undefined)[]> {
+    return this.withUploadLock(async () => {
+      await this.refreshDirectory();
+      return this.localStateProvider.readStates(stateFileNames);
+    });
   }
 
   /**
@@ -277,39 +277,7 @@ export class RemoteStateProvider implements IStateProvider {
    * files on disk are the only copy there is. Journal files are neither replaced nor taken.
    */
   async refreshState(): Promise<{ commitId?: string; previousCommitId?: string; replaced: boolean }> {
-    return this.withUploadLock(async () => {
-      const lockFile = await this.readLockFile();
-
-      // Keep the directory of a run whose lock is still held.
-      if (lockFile.run) {
-        const locks = await this.readAppLocks();
-        if (locks.some((lock) => lock.lockId === lockFile.run!.lockId)) {
-          return { replaced: false };
-        }
-      }
-
-      // Skip the download when the directory already holds the newest sealed state.
-      const newestState = await this.readNewestState();
-      if (newestState?.phase === 'commit' && newestState.commitId === lockFile.refreshedCommitId) {
-        await this.writeLockFile({ refreshedCommitId: lockFile.refreshedCommitId });
-        return { commitId: lockFile.refreshedCommitId, replaced: false };
-      }
-
-      const response = await HttpUtility.send(`${this.appStateUrl()}/latest`, {
-        headers: this.sessionHeader(),
-      });
-      if (response.status === 404) {
-        await this.deleteLockFile();
-        return { replaced: false };
-      }
-      if (!response.ok) {
-        throw new TransactionError(`Failed to read the app state: ${await HttpUtility.readErrorMessage(response)}`);
-      }
-
-      const { state } = await this.replaceStateFiles(response, { takeJournal: false });
-      await this.writeLockFile({ refreshedCommitId: state.commitId });
-      return { commitId: state.commitId, previousCommitId: lockFile.refreshedCommitId, replaced: true };
-    });
+    return this.withUploadLock(() => this.refreshDirectory());
   }
 
   /**
@@ -486,6 +454,43 @@ export class RemoteStateProvider implements IStateProvider {
     }
 
     return ((await response.json()) as { states: RemoteState[] }).states[0];
+  }
+
+  /**
+   * The body of {@link RemoteStateProvider.refreshState}, run under the upload lock.
+   */
+  private async refreshDirectory(): Promise<Awaited<ReturnType<RemoteStateProvider['refreshState']>>> {
+    const lockFile = await this.readLockFile();
+
+    // Keep the directory of a run whose lock is still held.
+    if (lockFile.run) {
+      const locks = await this.readAppLocks();
+      if (locks.some((lock) => lock.lockId === lockFile.run!.lockId)) {
+        return { replaced: false };
+      }
+    }
+
+    // Skip the download when the directory already holds the newest sealed state.
+    const newestState = await this.readNewestState();
+    if (newestState?.phase === 'commit' && newestState.commitId === lockFile.refreshedCommitId) {
+      await this.writeLockFile({ refreshedCommitId: lockFile.refreshedCommitId });
+      return { commitId: lockFile.refreshedCommitId, replaced: false };
+    }
+
+    const response = await HttpUtility.send(`${this.appStateUrl()}/latest`, {
+      headers: this.sessionHeader(),
+    });
+    if (response.status === 404) {
+      await this.deleteLockFile();
+      return { replaced: false };
+    }
+    if (!response.ok) {
+      throw new TransactionError(`Failed to read the app state: ${await HttpUtility.readErrorMessage(response)}`);
+    }
+
+    const { state } = await this.replaceStateFiles(response, { takeJournal: false });
+    await this.writeLockFile({ refreshedCommitId: state.commitId });
+    return { commitId: state.commitId, previousCommitId: lockFile.refreshedCommitId, replaced: true };
   }
 
   /**

@@ -35,13 +35,13 @@ export interface IStateProvider {
   getAppLock(): Promise<string | undefined>;
 
   /**
-   * Reads a state file from the newest sealed state, which a released lock left behind. Another app
-   * reads this one's state here, never while one of its runs is half done.
+   * Reads state files from the newest sealed state, which a released lock left behind, all from the
+   * one seal. Another app reads this one's state here, never while one of its runs is half done.
    *
-   * @throws {@link TransactionError} With the message `No state found!` when nothing is sealed yet, or
-   * the newest sealed state holds no such file.
+   * Returns one entry per name in the order given, `undefined` for a file the sealed state does not
+   * hold. All are `undefined` when nothing is sealed yet.
    */
-  getSealedState(stateFileName: string): Promise<Buffer>;
+  getSealedStates(stateFileNames: string[]): Promise<(Buffer | undefined)[]>;
 
   /**
    * Reads a state file.

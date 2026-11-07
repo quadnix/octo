@@ -879,6 +879,16 @@ describe('Main UT', () => {
       );
     });
 
+    it('should read the models and the resources from one sealed state', async () => {
+      const parentStateProvider = await commitParentState();
+      const getSealedStates = jest.spyOn(parentStateProvider, 'getSealedStates');
+
+      await testModes['octo'].importState(parentStateProvider);
+
+      expect(getSealedStates).toHaveBeenCalledTimes(1);
+      expect(getSealedStates).toHaveBeenCalledWith(['models.json', 'resources-actual.json']);
+    });
+
     it('should build on the imported graph, rendering only what this app declares', async () => {
       const parentStateProvider = await commitParentState();
       await testModes['octo'].importState(parentStateProvider);

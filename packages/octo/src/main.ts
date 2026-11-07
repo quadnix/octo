@@ -286,10 +286,10 @@ export class Octo {
     ]);
 
     const importedState = new StateManagementService(stateProvider);
-    const [{ data: modelData }, { data: resourceData }] = await Promise.all([
-      importedState.getModelState(importedState.modelStateFileName, { freeze: false, sealed: true }),
-      importedState.getResourceState(importedState.actualResourceStateFileName, { freeze: false, sealed: true }),
-    ]);
+    const {
+      modelState: { data: modelData },
+      resourceState: { data: resourceData },
+    } = await importedState.getSealedState();
     if (Object.keys(modelData.models).length === 0) {
       throw new ModuleError('Cannot import a state that has sealed no models!', 'importState');
     }

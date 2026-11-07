@@ -211,7 +211,7 @@ describe('LocalStateProvider UT', () => {
 
       await localStateProvider.unlockApp(lockId);
 
-      await expect(localStateProvider.getSealedState('models.json')).resolves.toEqual(Buffer.from('{"m":1}'));
+      await expect(localStateProvider.getSealedStates(['models.json'])).resolves.toEqual([Buffer.from('{"m":1}')]);
       const [archiveName] = await readdir(join(stateDirectoryPath, 'archives'));
       expect(await readdir(join(stateDirectoryPath, 'archives', archiveName))).toEqual(['models.json']);
     });
@@ -324,7 +324,7 @@ describe('LocalStateProvider UT', () => {
     });
   });
 
-  describe('getSealedState()', () => {
+  describe('getSealedStates()', () => {
     let localStateProvider: LocalStateProvider;
     let stateDirectoryPath: string;
 
@@ -337,19 +337,40 @@ describe('LocalStateProvider UT', () => {
       await rm(stateDirectoryPath, { force: true, recursive: true });
     });
 
-    it('should throw error when nothing is sealed yet', async () => {
+    it('should read nothing when nothing is sealed yet', async () => {
       await localStateProvider.saveStates([{ data: Buffer.from('{"m":1}'), stateFileName: 'models.json' }]);
 
-      await expect(localStateProvider.getSealedState('models.json')).rejects.toThrow('No state found!');
+      await expect(localStateProvider.getSealedStates(['models.json', 'r.json'])).resolves.toEqual([
+        undefined,
+        undefined,
+      ]);
     });
 
-    it('should throw error when the newest archive holds no such file', async () => {
+    it('should read every file from the newest archive, and nothing for a file it does not hold', async () => {
+      await localStateProvider.saveStates([
+        { data: Buffer.from('{"m":1}'), stateFileName: 'models.json' },
+        { data: Buffer.from('{"r":1}'), stateFileName: 'r.json' },
+      ]);
+      await localStateProvider.archiveState('1000000000000-a');
+      await localStateProvider.saveStates([
+        { data: Buffer.from('{"m":2}'), stateFileName: 'models.json' },
+        { data: undefined, stateFileName: 'r.json' },
+      ]);
+      await localStateProvider.archiveState('2000000000000-b');
+
+      await expect(localStateProvider.getSealedStates(['models.json', 'r.json'])).resolves.toEqual([
+        Buffer.from('{"m":2}'),
+        undefined,
+      ]);
+    });
+
+    it('should read nothing older when the newest archive holds no such file', async () => {
       await localStateProvider.saveStates([{ data: Buffer.from('{"m":1}'), stateFileName: 'models.json' }]);
       await localStateProvider.archiveState('1000000000000-a');
       await localStateProvider.saveStates([{ data: undefined, stateFileName: 'models.json' }]);
       await localStateProvider.archiveState('2000000000000-b');
 
-      await expect(localStateProvider.getSealedState('models.json')).rejects.toThrow('No state found!');
+      await expect(localStateProvider.getSealedStates(['models.json'])).resolves.toEqual([undefined]);
     });
 
     it('should read the archive with the newest time, whatever order the names sort in', async () => {
@@ -358,7 +379,7 @@ describe('LocalStateProvider UT', () => {
       await localStateProvider.saveStates([{ data: Buffer.from('{"m":1}'), stateFileName: 'models.json' }]);
       await localStateProvider.archiveState('1000000000000-z');
 
-      await expect(localStateProvider.getSealedState('models.json')).resolves.toEqual(Buffer.from('{"m":2}'));
+      await expect(localStateProvider.getSealedStates(['models.json'])).resolves.toEqual([Buffer.from('{"m":2}')]);
     });
 
     it('should read the newest archive, not what a run wrote since', async () => {
@@ -366,7 +387,7 @@ describe('LocalStateProvider UT', () => {
       await localStateProvider.archiveState('1000000000000-a');
       await localStateProvider.saveStates([{ data: Buffer.from('{"m":2}'), stateFileName: 'models.json' }]);
 
-      await expect(localStateProvider.getSealedState('models.json')).resolves.toEqual(Buffer.from('{"m":1}'));
+      await expect(localStateProvider.getSealedStates(['models.json'])).resolves.toEqual([Buffer.from('{"m":1}')]);
     });
 
     it('should ignore a folder not named by a time, such as one still being sealed', async () => {
@@ -375,7 +396,7 @@ describe('LocalStateProvider UT', () => {
       await mkdir(join(stateDirectoryPath, 'archives', '.sealing-2000000000000-b'));
       await mkdir(join(stateDirectoryPath, 'archives', '99999999-9999-4999-8999-999999999999'));
 
-      await expect(localStateProvider.getSealedState('models.json')).resolves.toEqual(Buffer.from('{"m":1}'));
+      await expect(localStateProvider.getSealedStates(['models.json'])).resolves.toEqual([Buffer.from('{"m":1}')]);
     });
   });
 

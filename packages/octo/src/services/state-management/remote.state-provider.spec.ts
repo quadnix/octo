@@ -321,16 +321,27 @@ describe('RemoteStateProvider UT', () => {
     });
   });
 
-  describe('getSealedState()', () => {
-    it('should throw when nothing is sealed and the directory holds no such file', async () => {
-      await expect(remoteStateProvider.getSealedState('a.json')).rejects.toThrow('No state found!');
+  describe('getSealedStates()', () => {
+    it('should read nothing when nothing is sealed and the directory holds no such file', async () => {
+      await expect(remoteStateProvider.getSealedStates(['a.json'])).resolves.toEqual([undefined]);
     });
 
     it('should read the newest sealed state, not what the directory held', async () => {
       seal('commit-1', { 'a.json': '{"a":1}' });
       await writeFile(join(localStateDirectoryPath, 'a.json'), '{"a":"stale"}');
 
-      await expect(remoteStateProvider.getSealedState('a.json')).resolves.toEqual(Buffer.from('{"a":1}'));
+      await expect(remoteStateProvider.getSealedStates(['a.json'])).resolves.toEqual([Buffer.from('{"a":1}')]);
+    });
+
+    it('should read every file from one refresh', async () => {
+      seal('commit-1', { 'a.json': '{"a":1}', 'b.json': '{"b":1}' });
+      const fetchMock = jest.spyOn(globalThis, 'fetch');
+
+      const states = await remoteStateProvider.getSealedStates(['a.json', 'b.json']);
+
+      expect(states).toEqual([Buffer.from('{"a":1}'), Buffer.from('{"b":1}')]);
+      const newestStateReads = fetchMock.mock.calls.filter(([url]) => String(url).includes('?limit=1'));
+      expect(newestStateReads).toHaveLength(1);
     });
   });
 
