@@ -5,11 +5,14 @@ import { AppLockError, TransactionError } from '../../errors/index.js';
 import { FileUtility } from '../../utilities/file/file.utility.js';
 import { HttpUtility } from '../../utilities/http/http.utility.js';
 import { LocalStateProvider } from './local.state-provider.js';
-import { type IStateProvider, JOURNAL_STATE_FILE_NAME_PREFIX } from './state-provider.interface.js';
+import {
+  type IStateProvider,
+  JOURNAL_STATE_FILE_NAME_PREFIX,
+  STATE_FILE_EXTENSIONS,
+} from './state-provider.interface.js';
 
 const APP_LOCK_SCOPE = ['app'];
 const LOCK_FILE_NAME = 'remote-state.lock';
-const STATE_FILE_EXTENSIONS = ['.json', '.tfstate'];
 const STATE_FILE_NAME_MAX_LENGTH = 255;
 const STATE_FILE_NAME_PATTERN = /^[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*$/;
 const UPLOAD_LOCK_FILE_NAME = 'remote-state-upload.lock';
@@ -282,8 +285,7 @@ export class RemoteStateProvider implements IStateProvider {
 
   /**
    * Writes state files, deleting each one given no `data`, and then writes the run's record once for
-   * all of them when a run is open. A name holding `/` is the machine's own: it is written beneath
-   * the state directory and never reaches the record.
+   * all of them when a run is open.
    *
    * @throws {@link TransactionError} When the backend would refuse a file's name, before anything is
    * written. When the backend refuses the write, which is where the limits it holds the app to apply.
@@ -292,7 +294,7 @@ export class RemoteStateProvider implements IStateProvider {
     // Refuse the whole change before any of it lands on disk.
     for (const stateFile of stateFiles) {
       const { stateFileName } = stateFile;
-      if (stateFileName.includes('/') || ('data' in stateFile && stateFile.data === undefined)) {
+      if ('data' in stateFile && stateFile.data === undefined) {
         continue;
       }
 
@@ -307,15 +309,15 @@ export class RemoteStateProvider implements IStateProvider {
 
     // Write the directory, then the run's record once.
     await this.localStateProvider.saveStates(stateFiles);
-    if (stateFiles.some(({ stateFileName }) => !stateFileName.includes('/'))) {
+    if (stateFiles.length > 0) {
       await this.pushRun();
     }
   }
 
   /**
    * Writes the directory into the run's record, seals it, and releases the app lock, then archives the
-   * directory with {@link LocalStateProvider.archiveState}. Unlocking an app that is not locked is not
-   * an error.
+   * directory with {@link LocalStateProvider.archiveState} when it holds that run. Unlocking an app that
+   * is not locked is not an error.
    *
    * A write that failed earlier left the directory ahead of the record, so the record is written once
    * more before it is sealed: a sealed record is what every machine plans against next. The archive is
@@ -344,7 +346,7 @@ export class RemoteStateProvider implements IStateProvider {
       if (run) {
         await this.deleteLockFile();
       }
-      return released ? heldLock?.commitId : undefined;
+      return released && run ? heldLock?.commitId : undefined;
     });
     if (!sealedCommitId) {
       return;

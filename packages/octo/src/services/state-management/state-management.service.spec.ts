@@ -324,7 +324,7 @@ describe('StateManagementService UT', () => {
       ]);
     });
 
-    it('should write a file given by its path, and emit its path without its bytes or digest', async () => {
+    it('should write a file given by its path, and emit it without its bytes or digest', async () => {
       const directoryPath = await mkdtemp(join(tmpdir(), 'octo-state-'));
       const filePath = join(directoryPath, 'log.json');
       await writeFile(filePath, 'saved');
@@ -333,7 +333,7 @@ describe('StateManagementService UT', () => {
 
       expect(await service.getState('a.json')).toEqual(Buffer.from('saved'));
       expect((emitted[1] as StateFilesSavedEvent).payload.stateFiles).toEqual([
-        { data: undefined, filePath, md5: undefined, stateFileName: 'a.json' },
+        { data: undefined, md5: undefined, stateFileName: 'a.json' },
       ]);
       await rm(directoryPath, { force: true, recursive: true });
     });

@@ -130,20 +130,11 @@ describe('LocalStateProvider UT', () => {
       const startedAt = Date.now() - (4 * 60 * 60 * 1000 + 12 * 60 * 1000);
       await writeFile(
         join(stateDirectoryPath, 'local-state.lock'),
-        JSON.stringify({ lockId: 'a-held-lock-id', startedAt }),
+        JSON.stringify({ commitId: newCommitId(), lockId: 'a-held-lock-id', startedAt }),
       );
 
       await expect(localStateProvider.lockApp({ commitId: newCommitId() })).rejects.toThrow(
         'App already locked with lock ID "a-held-lock-id", held for 4h 12m!',
-      );
-    });
-
-    // A lock file written before the record carried a time still names its holder.
-    it('should report a lock holding nothing but an ID', async () => {
-      await writeFile(join(stateDirectoryPath, 'local-state.lock'), 'a-lock-id-from-an-older-run');
-
-      await expect(localStateProvider.lockApp({ commitId: newCommitId() })).rejects.toThrow(
-        'App already locked with lock ID "a-lock-id-from-an-older-run"!',
       );
     });
 
@@ -507,16 +498,6 @@ describe('LocalStateProvider UT', () => {
       );
     });
 
-    it('should write a nested name into a directory beneath the state directory', async () => {
-      const stateDirectoryPath = await mkdtemp(join(tmpdir(), 'octo-local-state-'));
-      const localStateProvider = new LocalStateProvider(stateDirectoryPath);
-
-      await localStateProvider.saveStates([{ data: Buffer.from('saved'), stateFileName: 'archives/c/r.json' }]);
-
-      await expect(localStateProvider.getState('archives/c/r.json')).resolves.toEqual(Buffer.from('saved'));
-      await rm(stateDirectoryPath, { force: true, recursive: true });
-    });
-
     it('should move a file given by its path', async () => {
       const stateDirectoryPath = await mkdtemp(join(tmpdir(), 'octo-local-state-'));
       const localStateProvider = new LocalStateProvider(stateDirectoryPath);
@@ -530,6 +511,20 @@ describe('LocalStateProvider UT', () => {
       );
       expect(await readdir(stateDirectoryPath)).toEqual(['journal.1.apply.terraform.json']);
       await rm(stateDirectoryPath, { force: true, recursive: true });
+    });
+
+    it('should write a state file whose name is as long as the file system allows', async () => {
+      const stateDirectoryPath = await mkdtemp(join(tmpdir(), 'octo-local-state-'));
+      const localStateProvider = new LocalStateProvider(stateDirectoryPath);
+      const stateFileName = `${'a'.repeat(250)}.json`;
+
+      try {
+        await localStateProvider.saveStates([{ data: Buffer.from('saved'), stateFileName }]);
+
+        expect(await readdir(stateDirectoryPath)).toEqual([stateFileName]);
+      } finally {
+        await rm(stateDirectoryPath, { force: true, recursive: true });
+      }
     });
 
     it('should leave no temporary file behind', async () => {

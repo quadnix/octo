@@ -15,6 +15,13 @@ export const JOURNAL_STATE_FILE_NAME_PREFIX = 'journal.';
 export const JOURNAL_COMMANDS_BEFORE_LOCK = ['generate', 'lock', 'validate'];
 
 /**
+ * The extensions a state file may carry. A provider seals and accepts files by these.
+ *
+ * @internal
+ */
+export const STATE_FILE_EXTENSIONS = ['.json', '.tfstate'];
+
+/**
  * Where Octo's state files live.
  *
  * Octo has no database - it records what it built in state files, and reads them back on the next run
@@ -106,7 +113,6 @@ export interface IStateProvider {
    * moved from `filePath`, a path {@link IStateProvider.getTemporaryFilePath} gave,
    * without being read into memory; one given `data: undefined` is deleted.
    * Deleting one that is not there is not an error.
-   * A name holding `/` is the machine's own: a provider sharing state keeps it on the machine.
    *
    * A provider that pays per write makes one write of the whole change rather than one per file.
    */

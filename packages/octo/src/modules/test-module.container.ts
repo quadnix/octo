@@ -564,7 +564,7 @@ export class TestModuleContainer {
         transaction,
       ));
     } finally {
-      await this.stateProvider.unlockApp(lockId);
+      await stateManagementService.unlockApp(lockId);
     }
 
     // Re-collect responses after the commit: it is commit that maps terraform outputs onto the

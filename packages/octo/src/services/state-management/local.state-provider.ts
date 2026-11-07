@@ -3,22 +3,26 @@ import { copyFile, readFile, readdir, rename, rm, writeFile } from 'fs/promises'
 import { basename, dirname, extname, join, resolve } from 'path';
 import { AppLockError, TransactionError } from '../../errors/index.js';
 import { FileUtility } from '../../utilities/file/file.utility.js';
-import { type IStateProvider, JOURNAL_STATE_FILE_NAME_PREFIX } from './state-provider.interface.js';
+import {
+  type IStateProvider,
+  JOURNAL_STATE_FILE_NAME_PREFIX,
+  STATE_FILE_EXTENSIONS,
+} from './state-provider.interface.js';
 
 const ARCHIVE_DIRECTORY_NAME = 'archives';
 const ARCHIVE_NAME_PATTERN = /^(\d{13,})-/;
 const SEALING_PREFIX = '.sealing-';
-const STATE_FILE_EXTENSIONS = ['.json', '.tfstate'];
 const TEMPORARY_FILE_EXTENSION = '.tmp';
+const TEMPORARY_FILE_NAME_MAX_LENGTH = 100;
 
 /**
  * What the lock file holds: the id that proves ownership, the commit the run seals as, and when it
  * was taken.
  */
 interface AppLockRecord {
-  commitId?: string;
+  commitId: string;
   lockId: string;
-  startedAt?: number;
+  startedAt: number;
 }
 
 /**
@@ -181,7 +185,7 @@ export class LocalStateProvider implements IStateProvider {
    * @throws {@link AppLockError} When a lock is held, naming the id that holds it and how long it has
    * been held. When `lockId` is given and is not the lock held.
    */
-  async lockApp(lock: Parameters<IStateProvider['lockApp']>[0]): Promise<{ commitId?: string; lockId: string }> {
+  async lockApp(lock: Parameters<IStateProvider['lockApp']>[0]): Promise<{ commitId: string; lockId: string }> {
     await FileUtility.ensureDirectory(this.localStateDirectoryPath);
 
     // Resume the run holding the lock, which on one machine holds nothing more to read.
@@ -201,7 +205,7 @@ export class LocalStateProvider implements IStateProvider {
     } catch (error) {
       if (error.code === 'EEXIST') {
         const holder = await this.readLock();
-        const heldFor = holder?.startedAt === undefined ? undefined : this.describeAge(holder.startedAt);
+        const heldFor = holder && this.describeAge(holder.startedAt);
         throw new AppLockError(
           `App already locked with lock ID "${holder?.lockId}"${heldFor ? `, held for ${heldFor}` : ''}!`,
           {
@@ -243,8 +247,7 @@ export class LocalStateProvider implements IStateProvider {
 
   /**
    * Writes state files, overwriting whatever was there, moving each one given a `filePath`, and
-   * deleting each one given no `data`. A name holding `/` is written into a directory beneath the state
-   * directory.
+   * deleting each one given no `data`.
    *
    * Each file is written under a temporary name and renamed into place, so a process killed mid-write
    * leaves the file whole, and a reader holding it through a hard link keeps what it holds.
@@ -283,8 +286,7 @@ export class LocalStateProvider implements IStateProvider {
       throw new TransactionError('Invalid lock ID!');
     }
 
-    // A lock taken before the record carried a commit seals under its id, as an archive no reader finds.
-    await this.archiveState(held.commitId ?? lockId);
+    await this.archiveState(held.commitId);
     await rm(this.lockFilePath, { force: true });
   }
 
@@ -335,8 +337,7 @@ export class LocalStateProvider implements IStateProvider {
   }
 
   /**
-   * The lock file's record, or undefined when no lock is held. A file holding an id and nothing else
-   * is a lock taken before the record carried a time, and reads as that id with no age.
+   * The lock file's record, or undefined when no lock is held.
    */
   private async readLock(): Promise<AppLockRecord | undefined> {
     let contents: string;
@@ -352,22 +353,14 @@ export class LocalStateProvider implements IStateProvider {
     if (!contents) {
       return undefined;
     }
-    if (!contents.startsWith('{')) {
-      return { lockId: contents };
-    }
-
-    try {
-      const record = JSON.parse(contents) as Partial<AppLockRecord>;
-      return typeof record.lockId === 'string' ? (record as AppLockRecord) : { lockId: contents };
-    } catch (error) {
-      return { lockId: contents };
-    }
+    return JSON.parse(contents) as AppLockRecord;
   }
 
   /**
    * A new temporary path in the directory of `filePath`, which no state listing finds.
    */
   private temporaryFilePathFor(filePath: string): string {
-    return join(dirname(filePath), `.${basename(filePath)}.${randomUUID()}${TEMPORARY_FILE_EXTENSION}`);
+    const name = basename(filePath).slice(0, TEMPORARY_FILE_NAME_MAX_LENGTH);
+    return join(dirname(filePath), `.${name}.${randomUUID()}${TEMPORARY_FILE_EXTENSION}`);
   }
 }

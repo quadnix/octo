@@ -409,15 +409,14 @@ export class StateManagementService {
 
     eventService.emit(
       new StateFilesSavedEvent(undefined, {
-        stateFiles: stateFiles.map((stateFile) =>
-          'filePath' in stateFile
-            ? { data: undefined, filePath: stateFile.filePath, md5: undefined, stateFileName: stateFile.stateFileName }
-            : {
-                data: stateFile.data,
-                md5: stateFile.data === undefined ? undefined : createHash('md5').update(stateFile.data).digest('hex'),
-                stateFileName: stateFile.stateFileName,
-              },
-        ),
+        stateFiles: stateFiles.map((stateFile) => {
+          const data = 'data' in stateFile ? stateFile.data : undefined;
+          return {
+            data,
+            md5: data === undefined ? undefined : createHash('md5').update(data).digest('hex'),
+            stateFileName: stateFile.stateFileName,
+          };
+        }),
       }),
     );
   }

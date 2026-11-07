@@ -723,18 +723,10 @@ describe('RemoteStateProvider UT', () => {
       expect(backend.requests).toHaveLength(requestCount);
     });
 
-    it('should keep a nested name on the machine, even while a run is open', async () => {
-      await remoteStateProvider.lockApp({ commitId: newCommitId() });
-      const requestCount = backend.requests.length;
-
-      await remoteStateProvider.saveStates([{ data: Buffer.from('{"a":1}'), stateFileName: 'archives/c/r.json' }]);
-
-      expect(await readFile(join(localStateDirectoryPath, 'archives', 'c', 'r.json'), 'utf-8')).toBe('{"a":1}');
-      expect((await remoteStateProvider.getState('archives/c/r.json')).toString()).toBe('{"a":1}');
-      expect(backend.requests).toHaveLength(requestCount);
-
-      await remoteStateProvider.saveStates([{ data: Buffer.from('{"b":1}'), stateFileName: 'b.json' }]);
-      expect(backend.states[0].files).toEqual({ 'b.json': '{"b":1}' });
+    it('should refuse a name holding a slash', async () => {
+      await expect(
+        remoteStateProvider.saveStates([{ data: Buffer.from('{"a":1}'), stateFileName: 'archives/c/r.json' }]),
+      ).rejects.toThrow('State file name "archives/c/r.json" is not accepted by the remote state!');
     });
 
     it('should keep every write of concurrent writers', async () => {
@@ -872,6 +864,7 @@ describe('RemoteStateProvider UT', () => {
       await build(otherLocalStateDirectoryPath).unlockApp(lockId);
 
       expect(backend.states[0]).toMatchObject({ files: { 'a.json': '{"a":1}' }, phase: 'commit' });
+      expect(await stateFileNames(otherLocalStateDirectoryPath)).toEqual(['b.json']);
     });
   });
 });
