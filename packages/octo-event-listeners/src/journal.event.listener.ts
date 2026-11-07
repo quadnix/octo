@@ -173,12 +173,13 @@ interface OpenTerraformLog {
  *
  * A command is one process, named after the CLI command it runs, or the mode where no command runs
  * it. Its events go to `journal.<commandId>.<command>.json`, and what terraform and terragrunt wrote to
- * `journal.<commandId>.<command>.terraform.json`, each chunk as it arrives.
+ * a temporary file, each chunk as it arrives, a copy of which each save moves to
+ * `journal.<commandId>.<command>.terraform.json`.
  * A copy of every model and resource state file written is kept as `journal.<commandId>.<command>.<md5>.json`,
  * so each version a command wrote survives the next command overwriting it.
  * Ids start with the time they were made, so files sort in the order their commands started.
  *
- * The listener only creates files: {@link StateManagementService} archives them when the lock is
+ * The listener only creates files: the state provider archives them when the lock is
  * released. A command that runs under a lock, run when none is held, writes nothing, because its
  * files would belong to no lock. They are written with every other state file written, at the end of a command,
  * and before the lock is released, after which nothing more is recorded. It never fails a command: a write that
@@ -561,8 +562,7 @@ export class JournalEventListener {
 
       // Keep the files a command wrote, leaving out the journal's own.
       const stateFiles = event.payload.stateFiles.filter(
-        ({ stateFileName }) =>
-          !stateFileName.startsWith(JOURNAL_STATE_FILE_NAME_PREFIX) && !stateFileName.includes('/'),
+        ({ stateFileName }) => !stateFileName.startsWith(JOURNAL_STATE_FILE_NAME_PREFIX),
       );
       if (stateFiles.length === 0) {
         return;
