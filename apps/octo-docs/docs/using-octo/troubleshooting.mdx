@@ -267,9 +267,9 @@ checkout, so this directory holds none of what that run wrote. Resume it here wi
 The state directory holds a [journal](/docs/using-octo/what-octo-saves-and-when#the-journal) file of
 a command that only runs under a lock, and no lock is held, so the file belongs to no run. Either
 somebody finished your lock from another machine, with `octo lock --lockId`, and the files are this
-machine's copies of what that lock already uploaded; or the last run released its lock but could
-not move its journal into `archives/`, which `commit` or `unlock` reported on stderr as `Failed to
-archive the journal of lock "..."`. The lock was not taken.
+machine's copies of what that lock already uploaded; or, with remote state, the last run released
+its lock but could not move its journal into `archives/`, which `commit` or `unlock` reported on
+stderr as `Failed to archive the state of commit "..."`. The lock was not taken.
 
 The files are a record and nothing reads them back. Move them anywhere you want to keep them, or
 delete them, then lock again.

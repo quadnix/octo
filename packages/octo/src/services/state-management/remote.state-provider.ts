@@ -1,7 +1,6 @@
-import { randomBytes } from 'node:crypto';
-import { copyFile, link, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { link, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { hostname } from 'node:os';
-import { basename, dirname, extname, join, resolve } from 'node:path';
+import { extname, join, resolve } from 'node:path';
 import { AppLockError, TransactionError } from '../../errors/index.js';
 import { FileUtility } from '../../utilities/file/file.utility.js';
 import { HttpUtility } from '../../utilities/http/http.utility.js';
@@ -58,8 +57,8 @@ interface RemoteStateLockFile {
 /**
  * Keeps state in Octo's managed backend, so a team shares one store and no machine holds the only copy.
  *
- * A run reads and writes a state directory on disk, exactly as {@link LocalStateProvider} does, and
- * the backend is kept in step with it:
+ * A run reads and writes a state directory on disk through {@link LocalStateProvider}, which archives
+ * each run there when its lock is released, and the backend is kept in step with it:
  *
  * - {@link RemoteStateProvider.refreshState} brings the directory up to the newest sealed state, and
  *   is what `octo generate` plans against.
@@ -138,12 +137,30 @@ export class RemoteStateProvider implements IStateProvider {
   }
 
   /**
+   * Reads a state file from the newest sealed state, bringing the directory up to it first with
+   * {@link RemoteStateProvider.refreshState}.
+   *
+   * @throws {@link TransactionError} With the message `No state found!` when the file does not exist.
+   */
+  async getSealedState(stateFileName: string): Promise<Buffer> {
+    await this.refreshState();
+    return this.getState(stateFileName);
+  }
+
+  /**
    * Reads a state file.
    *
    * @throws {@link TransactionError} With the message `No state found!` when the file does not exist.
    */
   async getState(stateFileName: string): Promise<Buffer> {
     return this.localStateProvider.getState(stateFileName);
+  }
+
+  /**
+   * A new path beside the state files. See {@link LocalStateProvider.getTemporaryFilePath}.
+   */
+  async getTemporaryFilePath(name: string): Promise<string> {
+    return this.localStateProvider.getTemporaryFilePath(name);
   }
 
   /**
@@ -191,18 +208,17 @@ export class RemoteStateProvider implements IStateProvider {
    * sealed state moved since {@link RemoteStateProvider.refreshState} last ran. When `lockId` is
    * given and is not held.
    */
-  async lockApp(lockId?: string): ReturnType<IStateProvider['lockApp']> {
-    if (lockId) {
-      return this.resumeAppLock(lockId);
+  async lockApp(lock: Parameters<IStateProvider['lockApp']>[0]): ReturnType<IStateProvider['lockApp']> {
+    if ('lockId' in lock) {
+      return this.resumeAppLock(lock.lockId);
     }
 
     return this.withUploadLock(async () => {
       const lockFile = await this.readLockFile();
 
-      // Take the lock, naming a commit no run has used, since a sealed commit cannot be locked again.
-      const commitId = `${Date.now()}-${randomBytes(4).toString('hex')}`;
+      // Take the lock.
       const response = await HttpUtility.sendJson(`${this.appStateUrl()}/lock`, {
-        body: { commitId, context: this.lockContext, scope: APP_LOCK_SCOPE },
+        body: { commitId: lock.commitId, context: this.lockContext, scope: APP_LOCK_SCOPE },
         headers: this.sessionHeader(),
         method: 'POST',
       });
@@ -227,7 +243,7 @@ export class RemoteStateProvider implements IStateProvider {
         }
         throw new TransactionError(`Failed to lock the app: ${message}`);
       }
-      const lock = (await response.json()) as RemoteAppLock;
+      const taken = (await response.json()) as RemoteAppLock;
 
       // Refuse a run on a state that moved since the directory was refreshed, and open its record.
       // Nothing is sealed by releasing a lock whose record was never written.
@@ -241,15 +257,15 @@ export class RemoteStateProvider implements IStateProvider {
           });
         }
 
-        const run = { commitId: lock.commitId, lockId: lock.lockId, stateFiles: {} };
+        const run = { commitId: taken.commitId, lockId: taken.lockId, stateFiles: {} };
         run.stateFiles = await this.writeRunState(run);
         await this.writeLockFile({ refreshedCommitId: lockFile.refreshedCommitId, run });
       } catch (error) {
-        await this.releaseAppLock(lock.lockId).catch(() => undefined);
+        await this.releaseAppLock(taken.lockId).catch(() => undefined);
         throw error;
       }
 
-      return { commitId: lock.commitId, lockId: lock.lockId };
+      return { commitId: taken.commitId, lockId: taken.lockId };
     });
   }
 
@@ -322,37 +338,32 @@ export class RemoteStateProvider implements IStateProvider {
     }
 
     // Write the directory, then the run's record once.
-    for (const stateFile of stateFiles) {
-      if ('filePath' in stateFile) {
-        await this.writeStateFile(stateFile.stateFileName, { filePath: stateFile.filePath });
-      } else if (stateFile.data === undefined) {
-        await rm(join(this.localStateDirectoryPath, stateFile.stateFileName), { force: true });
-      } else {
-        await this.writeStateFile(stateFile.stateFileName, { data: stateFile.data });
-      }
-    }
+    await this.localStateProvider.saveStates(stateFiles);
     if (stateFiles.some(({ stateFileName }) => !stateFileName.includes('/'))) {
       await this.pushRun();
     }
   }
 
   /**
-   * Writes the directory into the run's record, seals it, and releases the app lock. Unlocking an app
-   * that is not locked is not an error.
+   * Writes the directory into the run's record, seals it, and releases the app lock, then archives the
+   * directory with {@link LocalStateProvider.archiveState}. Unlocking an app that is not locked is not
+   * an error.
    *
    * A write that failed earlier left the directory ahead of the record, so the record is written once
-   * more before it is sealed: a sealed record is what every machine plans against next.
+   * more before it is sealed: a sealed record is what every machine plans against next. The archive is
+   * this machine's history, so a failure to write it is reported on stderr rather than thrown.
    *
    * @throws {@link TransactionError} With the message `Invalid lock ID!` when a different lock is held.
    * When the directory cannot be written into the record, keeping the lock held.
    */
   async unlockApp(lockId: string): Promise<void> {
-    await this.withUploadLock(async () => {
+    const sealedCommitId = await this.withUploadLock(async () => {
       const lockFile = await this.readLockFile();
       const run = lockFile.run?.lockId === lockId ? lockFile.run : undefined;
+      const heldLock = (await this.readAppLocks()).find((lock) => lock.lockId === lockId);
 
       // Bring the record up to the directory, when this directory's run still holds the lock.
-      if (run && (await this.readAppLocks()).some((lock) => lock.lockId === lockId)) {
+      if (run && heldLock) {
         await this.writeRunState(run);
       }
 
@@ -365,7 +376,19 @@ export class RemoteStateProvider implements IStateProvider {
       if (run) {
         await this.deleteLockFile();
       }
+      return released ? heldLock?.commitId : undefined;
     });
+    if (!sealedCommitId) {
+      return;
+    }
+
+    try {
+      await this.localStateProvider.archiveState(sealedCommitId);
+    } catch (error) {
+      process.stderr.write(
+        `Failed to archive the state of commit "${sealedCommitId}": ${error?.message ?? String(error)}\n`,
+      );
+    }
   }
 
   /**
@@ -379,7 +402,7 @@ export class RemoteStateProvider implements IStateProvider {
    * Deletes the lock file. Deleting one that is not there is not an error.
    */
   private async deleteLockFile(): Promise<void> {
-    await rm(join(this.localStateDirectoryPath, LOCK_FILE_NAME), { force: true });
+    await this.localStateProvider.saveStates([{ data: undefined, stateFileName: LOCK_FILE_NAME }]);
   }
 
   /**
@@ -488,7 +511,8 @@ export class RemoteStateProvider implements IStateProvider {
    * from its URL and checking it against its SHA-256, and returns the body. The directory's journal
    * files are kept; with `takeJournal`, the body's are written beside them.
    *
-   * Each file is streamed to a temporary file beside it, so a state is not bounded by memory.
+   * Each file is streamed into a temporary file, so a state is not bounded by memory, and the directory
+   * is changed only once every file downloaded whole.
    */
   private async replaceStateFiles(
     response: Response,
@@ -498,12 +522,11 @@ export class RemoteStateProvider implements IStateProvider {
     const isJournal = (stateFileName: string): boolean => stateFileName.startsWith(JOURNAL_STATE_FILE_NAME_PREFIX);
 
     // Download every file before the directory changes, so a failed download leaves it as it was.
-    await FileUtility.ensureDirectory(this.localStateDirectoryPath);
-    const downloads: { stateFileName: string; temporaryFilePath: string }[] = [];
+    const downloads: { filePath: string; stateFileName: string }[] = [];
     try {
       for (const stateFile of stateFiles.stateFiles.filter((f) => takeJournal || !isJournal(f.filename))) {
-        const temporaryFilePath = join(this.localStateDirectoryPath, `.${stateFile.filename}.${process.pid}.download`);
-        downloads.push({ stateFileName: stateFile.filename, temporaryFilePath });
+        const temporaryFilePath = await this.localStateProvider.getTemporaryFilePath(stateFile.filename);
+        downloads.push({ filePath: temporaryFilePath, stateFileName: stateFile.filename });
 
         if (!(await HttpUtility.downloadToFile(stateFile.downloadUrl, temporaryFilePath))) {
           throw new TransactionError(
@@ -516,19 +539,17 @@ export class RemoteStateProvider implements IStateProvider {
           );
         }
       }
-    } catch (error) {
-      for (const { temporaryFilePath } of downloads) {
-        await rm(temporaryFilePath, { force: true });
-      }
-      throw error;
-    }
 
-    // Take the state the backend holds over whatever the directory held, file for file.
-    for (const stateFileName of (await this.stateFileNames()).filter((n) => !isJournal(n))) {
-      await rm(join(this.localStateDirectoryPath, stateFileName), { force: true });
-    }
-    for (const { stateFileName, temporaryFilePath } of downloads) {
-      await rename(temporaryFilePath, join(this.localStateDirectoryPath, stateFileName));
+      // Take the state the backend holds over whatever the directory held, file for file.
+      const downloadedNames = new Set(downloads.map(({ stateFileName }) => stateFileName));
+      await this.localStateProvider.saveStates([
+        ...(await this.stateFileNames())
+          .filter((stateFileName) => !isJournal(stateFileName) && !downloadedNames.has(stateFileName))
+          .map((stateFileName) => ({ data: undefined, stateFileName })),
+        ...downloads,
+      ]);
+    } finally {
+      await Promise.all(downloads.map(({ filePath }) => rm(filePath, { force: true })));
     }
 
     return stateFiles;
@@ -663,7 +684,9 @@ export class RemoteStateProvider implements IStateProvider {
    * Writes the lock file.
    */
   private async writeLockFile(lockFile: RemoteStateLockFile): Promise<void> {
-    await this.writeStateFile(LOCK_FILE_NAME, { data: Buffer.from(JSON.stringify(lockFile, null, 2)) });
+    await this.localStateProvider.saveStates([
+      { data: Buffer.from(JSON.stringify(lockFile, null, 2)), stateFileName: LOCK_FILE_NAME },
+    ]);
   }
 
   /**
@@ -763,23 +786,5 @@ export class RemoteStateProvider implements IStateProvider {
     } finally {
       await rm(snapshotDirectoryPath, { force: true, recursive: true });
     }
-  }
-
-  /**
-   * Writes one file into the state directory whole, from `data` or copied from `filePath`, so a process
-   * reading it never reads half of it. Replacing the file rather than writing into it is also what lets
-   * an upload freeze it with a hard link.
-   */
-  private async writeStateFile(stateFileName: string, source: { data: Buffer } | { filePath: string }): Promise<void> {
-    const stateFilePath = join(this.localStateDirectoryPath, stateFileName);
-    await FileUtility.ensureDirectory(dirname(stateFilePath));
-
-    const temporaryFilePath = join(dirname(stateFilePath), `.${basename(stateFilePath)}.${process.pid}.tmp`);
-    if ('filePath' in source) {
-      await copyFile(source.filePath, temporaryFilePath);
-    } else {
-      await writeFile(temporaryFilePath, source.data);
-    }
-    await rename(temporaryFilePath, stateFilePath);
   }
 }

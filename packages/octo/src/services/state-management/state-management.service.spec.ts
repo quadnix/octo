@@ -242,16 +242,37 @@ describe('StateManagementService UT', () => {
         { data: Buffer.from('{}'), stateFileName: 'journal.1791712800000-00000002.apply.json' },
       ]);
 
-      await expect(service.lockApp(lockId)).resolves.toEqual({ lockId });
+      await expect(service.lockApp(lockId)).resolves.toMatchObject({ lockId });
+    });
+
+    it('should give the provider one commit id for a new lock, starting with the time', async () => {
+      const lockApp = jest.spyOn(stateProvider, 'lockApp');
+
+      await service.lockApp();
+
+      expect(lockApp).toHaveBeenCalledWith({ commitId: expect.stringMatching(/^\d{13}-[0-9a-f]{8}$/) });
+    });
+
+    it('should make no new commit id when resuming a lock', async () => {
+      const { lockId } = await service.lockApp();
+      const lockApp = jest.spyOn(stateProvider, 'lockApp');
+
+      await service.lockApp(lockId);
+
+      expect(lockApp).toHaveBeenCalledWith({ lockId });
     });
 
     it('should emit the lock taken, and the lock resumed', async () => {
-      const { lockId } = await service.lockApp();
+      const commitId = '1794015567376-00677a51';
+      const lockId = 'lock-id';
+      jest.spyOn(stateProvider, 'lockApp').mockResolvedValue({ commitId, lockId });
+
+      await service.lockApp();
       await service.lockApp(lockId);
 
       expect(emitted.filter((e) => e instanceof AppLockTakenEvent).map((e) => e.payload)).toEqual([
-        { commitId: undefined, lockId, resumed: false },
-        { commitId: undefined, lockId, resumed: true },
+        { commitId, lockId, resumed: false, resumedFrom: undefined },
+        { commitId, lockId, resumed: true, resumedFrom: undefined },
       ]);
     });
 
@@ -360,40 +381,26 @@ describe('StateManagementService UT', () => {
       await expect(stateProvider.listStates('journal.')).resolves.toEqual(journalFileNames);
     });
 
-    it('should release, then archive every journal file under the lock id', async () => {
+    it('should keep the lock and emit no release when the provider cannot seal the run', async () => {
       const { lockId } = await service.lockApp();
       await saveJournal();
       emitted = [];
-      const unlockApp = jest.spyOn(stateProvider, 'unlockApp');
-      const saveStates = jest.spyOn(stateProvider, 'saveStates');
+      jest.spyOn(stateProvider, 'unlockApp').mockRejectedValue(new Error('disk full'));
 
-      await service.unlockApp(lockId);
-
-      expect(unlockApp.mock.invocationCallOrder[0]).toBeLessThan(saveStates.mock.invocationCallOrder[0]);
-      expect(emitted.map((e) => e.constructor)).toEqual([
-        AppUnlockingEvent,
-        StateFilesSavingEvent,
-        StateFilesSavedEvent,
-        AppUnlockedEvent,
-      ]);
-      await expect(stateProvider.listStates('journal.')).resolves.toEqual([]);
-      await expect(stateProvider.listStates('archives/')).resolves.toEqual(
-        journalFileNames.map((stateFileName) => `archives/${lockId}/${stateFileName}`),
-      );
-      await expect(stateProvider.getAppLock()).resolves.toBeUndefined();
+      await expect(service.unlockApp(lockId)).rejects.toThrow('disk full');
+      expect(emitted.map((e) => e.constructor)).toEqual([AppUnlockingEvent]);
+      await expect(stateProvider.getAppLock()).resolves.toBe(lockId);
     });
 
-    it('should release, reporting on stderr, when the journal cannot be archived', async () => {
+    it('should release the lock through the provider', async () => {
       const { lockId } = await service.lockApp();
       await saveJournal();
-      jest.spyOn(stateProvider, 'saveStates').mockRejectedValue(new Error('disk full'));
-      const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+      emitted = [];
 
       await service.unlockApp(lockId);
 
-      expect(stderr).toHaveBeenCalledWith(`Failed to archive the journal of lock "${lockId}": disk full\n`);
+      expect(emitted.map((e) => e.constructor)).toEqual([AppUnlockingEvent, AppUnlockedEvent]);
       await expect(stateProvider.getAppLock()).resolves.toBeUndefined();
-      await expect(stateProvider.listStates('journal.')).resolves.toEqual(journalFileNames);
     });
   });
 });

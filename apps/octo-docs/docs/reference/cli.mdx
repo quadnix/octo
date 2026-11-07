@@ -195,7 +195,8 @@ Finishes a run as it stands and releases its lock.
 A successful `commit` releases its own lock, so this is for a run that will not reach one: a run
 that never applied, or one somebody finished by hand. With a remote state provider, unlocking makes
 what the run wrote the newest state, which the next `generate` plans against. Like `commit`, it
-moves the journal into `archives/<lockId>/` before releasing.
+seals the run into `archives/<commitId>/`: a copy of the state, and the journal moved
+beside it.
 
 ## Scaffolding
 

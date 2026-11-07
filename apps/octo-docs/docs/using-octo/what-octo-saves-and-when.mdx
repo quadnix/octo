@@ -62,14 +62,13 @@ written, it releases the lock in three steps:
 
 1. The journal writes the commit's own file. If that fails, the commit fails and the lock stays
    held, so running the commit again retries it.
-2. The lock is released. With remote state, this seals the change's record in the backend, journal
-   included.
-3. Every journal file in `.octo/` moves into `.octo/archives/<lockId>/`, on this machine only. If
-   that fails, the commit prints `Failed to archive the journal of lock "..."` and carries on.
+2. The change is sealed. With local state, every state file in `.octo/` is copied, and every journal
+   file moved, into `.octo/archives/<commitId>/`. If that fails, the commit fails and the
+   lock stays held. With remote state, the backend seals the change's record, journal included.
+3. The lock is released. With remote state, the same archive is then written on this machine; if
+   that fails, the commit prints `Failed to archive the state of commit "..."` and carries on.
 
-Nothing about your infrastructure or its state changes after the release; moving the journal is a
-cleanup. `octo unlock`, which gives a change up rather than finishing
-it, takes the same three steps.
+`octo unlock`, which gives a change up rather than finishing it, takes the same three steps.
 
 ## The journal
 
@@ -110,32 +109,36 @@ apply that is killed keeps its journal, and what Terraform printed, up to its la
 
 The Terraform file is a list of records in the order they arrived: a process starting, each piece of
 output it printed, and its exit code. Nothing is left out, the JSON Octo reads from a plan or from
-Terraform's outputs included. While a command runs, the file is written to the system's temporary
-directory as each piece arrives, and that copy is deleted when the command ends.
+Terraform's outputs included. While a command runs, the file is written into a temporary file in
+`.octo/` as each piece arrives, and that file is deleted when the command ends.
 
 A `run-action` that Terraform starts in the middle of an apply writes files of its own, and names
 the apply that started it as `parentCommandId`.
 
 The files of one lock stay together. `generate` and `validate` files wait in `.octo/` until the
-next `lock`, and when that lock is released, everything moves into a folder named after it:
+next `lock`, and when that lock is released, they move into a folder named after the change's commit
+ID, which starts with the time the lock was taken, beside a copy of the state the change left:
 
 ```text
-.octo/archives/5bbc6995-66eb-4252-9ccd-169d469522b0/
+.octo/archives/1791692253600-5bbc6995/
 ├── journal.1791692243700-a690d91d.generate.json
 ├── journal.1791692244187-30dd727f.validate.json
 ├── journal.1791692253700-032b3e64.lock.json
 ├── journal.1791692257972-3e0cd513.apply.json
 ├── journal.1791692267354-d74b1acd.commit.json
+├── models.json
+├── resources-actual.json
+├── resources-old.json
 └── ...
 ```
 
 A change that needed three tries at `apply` before its commit has all three `apply` files in that
 folder.
 
-Each file is JSON, so [jq](https://jqlang.org) reads it. The steps a commit took:
+Each file is JSON, so [jq](https://jqlang.org) reads it. The steps the last sealed commit took:
 
 ```bash
-jq -r '.entries[].type' .octo/archives/$LOCK_ID/journal.*.commit.json | uniq -c
+jq -r '.entries[].type' "$(ls -d .octo/archives/*/ | tail -1)"journal.*.commit.json | uniq -c
 ```
 
 ```text
@@ -175,8 +178,13 @@ To read these files from code, their shapes are TypeScript types:
 
 The journal is gitignored in a new project, both the files in `.octo/` and `archives/`. The inputs
 each module ran with are recorded as given, so a secret passed as a module input is in the journal
-in plain text. Nothing in Octo reads the journal back: deleting it, or the archive, changes nothing
-about your infrastructure or what Octo knows of it.
+in plain text. Nothing in Octo reads the journal back: deleting it changes nothing about your
+infrastructure or what Octo knows of it.
+
+The newest archive is the sealed state: an app that [extends](/docs/using-octo/the-definition-file#extends)
+this one reads it, and never the files a change still under way is writing. Archives are never
+deleted for you. Delete the old ones when you no longer need them; with none left, an app extending
+this one has nothing to read until the next change is sealed.
 
 With [remote state](/docs/techniques/state-providers#remote-state), the journal files in `.octo/`
 are uploaded with the rest of the state while the lock is held, so the record a lock seals holds

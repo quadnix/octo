@@ -554,7 +554,8 @@ export class TestModuleContainer {
     await terraformUtility.apply(dir);
 
     // Commit. The lock is taken and released here, the way the CLI does it around octo.commit().
-    const { lockId } = await this.stateProvider.lockApp();
+    const stateManagementService = await this.container.get(StateManagementService);
+    const { lockId } = await stateManagementService.lockApp();
     let warnings: Awaited<ReturnType<Octo['commit']>>['warnings'];
     try {
       ({ warnings } = await this.octo.commit(

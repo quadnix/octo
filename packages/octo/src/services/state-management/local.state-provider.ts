@@ -1,14 +1,22 @@
 import { randomUUID } from 'crypto';
-import { copyFile, readFile, readdir, rm, writeFile } from 'fs/promises';
-import { dirname, join, resolve } from 'path';
+import { copyFile, readFile, readdir, rename, rm, writeFile } from 'fs/promises';
+import { basename, dirname, extname, join, resolve } from 'path';
 import { AppLockError, TransactionError } from '../../errors/index.js';
 import { FileUtility } from '../../utilities/file/file.utility.js';
-import type { IStateProvider } from './state-provider.interface.js';
+import { type IStateProvider, JOURNAL_STATE_FILE_NAME_PREFIX } from './state-provider.interface.js';
+
+const ARCHIVE_DIRECTORY_NAME = 'archives';
+const ARCHIVE_NAME_PATTERN = /^(\d{13,})-/;
+const SEALING_PREFIX = '.sealing-';
+const STATE_FILE_EXTENSIONS = ['.json', '.tfstate'];
+const TEMPORARY_FILE_EXTENSION = '.tmp';
 
 /**
- * What the lock file holds: the id that proves ownership, and when it was taken.
+ * What the lock file holds: the id that proves ownership, the commit the run seals as, and when it
+ * was taken.
  */
 interface AppLockRecord {
+  commitId?: string;
   lockId: string;
   startedAt?: number;
 }
@@ -18,6 +26,9 @@ interface AppLockRecord {
  *
  * Good for experimenting on your own machine. It is not shared, so a team running Octo against the
  * same infrastructure needs a provider that persists somewhere they all reach.
+ *
+ * Releasing the lock seals the run into `archives/<commitId>/`, the newest of which is the
+ * sealed state. Deleting old archives is up to you.
  *
  * @example
  * ```ts
@@ -42,10 +53,69 @@ export class LocalStateProvider implements IStateProvider {
   }
 
   /**
+   * Seals the state into `archives/<commitId>/`: every state file is copied there, and every journal
+   * file moved. The archive is built as `archives/.sealing-<commitId>/` and renamed when whole, so a
+   * reader never finds half of one. Sealing a commit again adds to its archive. Temporary files a
+   * killed process left are deleted.
+   *
+   * @internal
+   */
+  async archiveState(commitId: string): Promise<void> {
+    const fileNames = (await readdir(this.localStateDirectoryPath, { withFileTypes: true }))
+      .filter((entry) => entry.isFile())
+      .map((entry) => entry.name);
+    const stateFileNames = fileNames.filter((n) => !n.startsWith('.') && STATE_FILE_EXTENSIONS.includes(extname(n)));
+    const archivePath = join(this.localStateDirectoryPath, ARCHIVE_DIRECTORY_NAME, commitId);
+    const sealingPath = join(this.localStateDirectoryPath, ARCHIVE_DIRECTORY_NAME, `${SEALING_PREFIX}${commitId}`);
+
+    // Build the archive under its temporary name, starting from any archive of this commit.
+    await FileUtility.ensureDirectory(dirname(archivePath));
+    try {
+      await rename(archivePath, sealingPath);
+    } catch (error) {
+      if (error.code !== 'ENOENT') {
+        throw error;
+      }
+    }
+    await FileUtility.ensureDirectory(sealingPath);
+    for (const stateFileName of stateFileNames) {
+      await copyFile(join(this.localStateDirectoryPath, stateFileName), join(sealingPath, stateFileName));
+    }
+
+    // Seal it.
+    await rename(sealingPath, archivePath);
+
+    // Remove what the archive now holds, and what no process is still writing.
+    const removedFileNames = [
+      ...stateFileNames.filter((n) => n.startsWith(JOURNAL_STATE_FILE_NAME_PREFIX)),
+      ...fileNames.filter((n) => n.startsWith('.') && n.endsWith(TEMPORARY_FILE_EXTENSION)),
+    ];
+    for (const removedFileName of removedFileNames) {
+      await rm(join(this.localStateDirectoryPath, removedFileName), { force: true });
+    }
+  }
+
+  /**
    * The id of the lock currently held, or `undefined` when the app is unlocked.
    */
   async getAppLock(): Promise<string | undefined> {
     return (await this.readLock())?.lockId;
+  }
+
+  /**
+   * Reads a state file from the newest archive, found by the time at the start of its commit id. Only
+   * one lock is held at a time, so the last lock taken is the last run sealed.
+   *
+   * @throws {@link TransactionError} With the message `No state found!` when there is no archive, or
+   * the newest holds no such file.
+   */
+  async getSealedState(stateFileName: string): Promise<Buffer> {
+    const [newestArchive] = await this.listArchives();
+    if (!newestArchive) {
+      throw new TransactionError('No state found!');
+    }
+
+    return this.getState(join(ARCHIVE_DIRECTORY_NAME, newestArchive.name, stateFileName));
   }
 
   /**
@@ -62,6 +132,14 @@ export class LocalStateProvider implements IStateProvider {
       }
       throw error;
     }
+  }
+
+  /**
+   * A new path beside the state files, named `.<name>.<random>.tmp`.
+   */
+  async getTemporaryFilePath(name: string): Promise<string> {
+    await FileUtility.ensureDirectory(this.localStateDirectoryPath);
+    return this.temporaryFilePathFor(join(this.localStateDirectoryPath, name));
   }
 
   /**
@@ -100,26 +178,27 @@ export class LocalStateProvider implements IStateProvider {
   }
 
   /**
-   * Takes the app lock, writing its id and the time it was taken into `local-state.lock` beside the
-   * state files. With `lockId`, resumes the run already holding it. The lock never expires.
+   * Takes the app lock, writing its id, its commit and the time it was taken into `local-state.lock`
+   * beside the state files. With `lockId`, resumes the run already holding it. The lock never expires.
    *
    * @throws {@link AppLockError} When a lock is held, naming the id that holds it and how long it has
    * been held. When `lockId` is given and is not the lock held.
    */
-  async lockApp(lockId?: string): Promise<{ lockId: string }> {
+  async lockApp(lock: Parameters<IStateProvider['lockApp']>[0]): Promise<{ commitId?: string; lockId: string }> {
     await FileUtility.ensureDirectory(this.localStateDirectoryPath);
 
     // Resume the run holding the lock, which on one machine holds nothing more to read.
-    if (lockId) {
-      if ((await this.getAppLock()) !== lockId) {
-        throw new AppLockError(`App is not locked with lock ID "${lockId}"!`, { reason: 'not-held' });
+    if ('lockId' in lock) {
+      const held = await this.readLock();
+      if (held?.lockId !== lock.lockId) {
+        throw new AppLockError(`App is not locked with lock ID "${lock.lockId}"!`, { reason: 'not-held' });
       }
-      return { lockId };
+      return { commitId: held.commitId, lockId: held.lockId };
     }
 
     // Take the lock with an exclusive create, so of two runs racing for it exactly one wins.
     const newLockId = randomUUID();
-    const record: AppLockRecord = { lockId: newLockId, startedAt: Date.now() };
+    const record: AppLockRecord = { commitId: lock.commitId, lockId: newLockId, startedAt: Date.now() };
     try {
       await writeFile(this.lockFilePath, JSON.stringify(record), { flag: 'wx' });
     } catch (error) {
@@ -137,7 +216,7 @@ export class LocalStateProvider implements IStateProvider {
       throw error;
     }
 
-    return { lockId: newLockId };
+    return { commitId: lock.commitId, lockId: newLockId };
   }
 
   /**
@@ -148,40 +227,49 @@ export class LocalStateProvider implements IStateProvider {
   }
 
   /**
-   * Writes state files, overwriting whatever was there, copying each one given a `filePath`, and
+   * Writes state files, overwriting whatever was there, moving each one given a `filePath`, and
    * deleting each one given no `data`. A name holding `/` is written into a directory beneath the state
    * directory.
+   *
+   * Each file is written under a temporary name and renamed into place, so a process killed mid-write
+   * leaves the file whole, and a reader holding it through a hard link keeps what it holds.
    */
   async saveStates(stateFiles: Parameters<IStateProvider['saveStates']>[0]): Promise<void> {
     for (const stateFile of stateFiles) {
       const stateFilePath = join(this.localStateDirectoryPath, stateFile.stateFileName);
+
       if ('filePath' in stateFile) {
         await FileUtility.ensureDirectory(dirname(stateFilePath));
-        await copyFile(stateFile.filePath, stateFilePath);
+        await rename(stateFile.filePath, stateFilePath);
       } else if (stateFile.data === undefined) {
         await rm(stateFilePath, { force: true });
       } else {
         await FileUtility.ensureDirectory(dirname(stateFilePath));
-        await writeFile(stateFilePath, stateFile.data);
+        const temporaryFilePath = this.temporaryFilePathFor(stateFilePath);
+        await writeFile(temporaryFilePath, stateFile.data);
+        await rename(temporaryFilePath, stateFilePath);
       }
     }
   }
 
   /**
-   * Releases the app lock by deleting the lock file.
+   * Seals the run with {@link LocalStateProvider.archiveState}, then releases the app lock by deleting
+   * the lock file. A run that cannot be archived keeps the lock held.
    *
    * @throws {@link TransactionError} With the message `Invalid lock ID!` when a different lock is held.
    */
   async unlockApp(lockId: string): Promise<void> {
-    const existingLockId = await this.getAppLock();
+    const held = await this.readLock();
 
-    if (!existingLockId) {
+    if (!held) {
       return;
     }
-    if (existingLockId !== lockId) {
+    if (held.lockId !== lockId) {
       throw new TransactionError('Invalid lock ID!');
     }
 
+    // A lock taken before the record carried a commit seals under its id, as an archive no reader finds.
+    await this.archiveState(held.commitId ?? lockId);
     await rm(this.lockFilePath, { force: true });
   }
 
@@ -212,6 +300,26 @@ export class LocalStateProvider implements IStateProvider {
   }
 
   /**
+   * Every archive, newest first, by the time at the start of its commit id.
+   */
+  private async listArchives(): Promise<{ name: string; takenAt: number }[]> {
+    let names: string[];
+    try {
+      names = await readdir(join(this.localStateDirectoryPath, ARCHIVE_DIRECTORY_NAME));
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        return [];
+      }
+      throw error;
+    }
+
+    return names
+      .map((name) => ({ name, takenAt: Number(ARCHIVE_NAME_PATTERN.exec(name)?.[1]) }))
+      .filter(({ takenAt }) => Number.isSafeInteger(takenAt))
+      .sort((a, b) => b.takenAt - a.takenAt);
+  }
+
+  /**
    * The lock file's record, or undefined when no lock is held. A file holding an id and nothing else
    * is a lock taken before the record carried a time, and reads as that id with no age.
    */
@@ -239,5 +347,12 @@ export class LocalStateProvider implements IStateProvider {
     } catch (error) {
       return { lockId: contents };
     }
+  }
+
+  /**
+   * A new temporary path in the directory of `filePath`, which no state listing finds.
+   */
+  private temporaryFilePathFor(filePath: string): string {
+    return join(dirname(filePath), `.${basename(filePath)}.${randomUUID()}${TEMPORARY_FILE_EXTENSION}`);
   }
 }

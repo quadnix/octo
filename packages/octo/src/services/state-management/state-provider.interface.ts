@@ -35,12 +35,27 @@ export interface IStateProvider {
   getAppLock(): Promise<string | undefined>;
 
   /**
+   * Reads a state file from the newest sealed state, which a released lock left behind. Another app
+   * reads this one's state here, never while one of its runs is half done.
+   *
+   * @throws {@link TransactionError} With the message `No state found!` when nothing is sealed yet, or
+   * the newest sealed state holds no such file.
+   */
+  getSealedState(stateFileName: string): Promise<Buffer>;
+
+  /**
    * Reads a state file.
    *
    * @throws {@link TransactionError} With the message `No state found!` when the file does not exist.
    * Octo treats that as a first run rather than an error.
    */
   getState(stateFileName: string): Promise<Buffer>;
+
+  /**
+   * A new path where a writer prepares a file before saving it by its path, named after `name`. It is
+   * no state file, and the writer removes it if it never saves it.
+   */
+  getTemporaryFilePath(name: string): Promise<string>;
 
   /**
    * Whether `lockId` is the lock currently held.
@@ -63,9 +78,9 @@ export interface IStateProvider {
   /**
    * Takes the app lock and returns its id, which `apply` and `commit` must then present.
    *
-   * The lock is taken atomically, so of two callers racing for it exactly one wins. With `lockId`,
-   * resumes the run already holding that lock instead, which is how a run that died is finished.
-   * `commitId` names the record the run writes into, where the provider keeps one.
+   * The lock is taken atomically, so of two callers racing for it exactly one wins. `commitId` names
+   * what the run writes into and seals as, and starts with the time it was made. With `lockId`, resumes
+   * the run already holding that lock instead, which is how a run that died is finished.
    *
    * A provider sharing state names where a resume took the state directory from in `resumedFrom`:
    * `directory`, the directory the lock was taken in, left as it was; `run`, what the run uploaded so
@@ -75,7 +90,7 @@ export interface IStateProvider {
    * given and is not the lock held.
    */
   lockApp(
-    lockId?: string,
+    lock: { commitId: string } | { lockId: string },
   ): Promise<{ commitId?: string; lockId: string; resumedFrom?: 'directory' | 'run' | 'sealed' }>;
 
   /**
@@ -88,9 +103,10 @@ export interface IStateProvider {
 
   /**
    * Writes state files as one change, overwriting whatever was there. A file comes from `data`, or is
-   * copied from the file at `filePath` without being read into memory; one given `data: undefined` is
-   * deleted. Deleting one that is not there is not an error. A name holding `/` is the machine's own:
-   * a provider sharing state keeps it on the machine.
+   * moved from `filePath`, a path {@link IStateProvider.getTemporaryFilePath} gave,
+   * without being read into memory; one given `data: undefined` is deleted.
+   * Deleting one that is not there is not an error.
+   * A name holding `/` is the machine's own: a provider sharing state keeps it on the machine.
    *
    * A provider that pays per write makes one write of the whole change rather than one per file.
    */
@@ -99,7 +115,7 @@ export interface IStateProvider {
   ): Promise<void>;
 
   /**
-   * Releases the app lock. Unlocking an app that is not locked is not an error.
+   * Seals the state, then releases the app lock. Unlocking an app that is not locked is not an error.
    *
    * @throws {@link TransactionError} With the message `Invalid lock ID!` when a different lock is
    * held, so one run can never release another's.

@@ -1,7 +1,9 @@
 import { randomUUID } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
+import { readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { AppLockError, TransactionError } from '../../errors/index.js';
-import type { IStateProvider } from './state-provider.interface.js';
+import { type IStateProvider, JOURNAL_STATE_FILE_NAME_PREFIX } from './state-provider.interface.js';
 
 /**
  * Keeps state in memory, and discards it when the process ends. For tests.
@@ -23,6 +25,15 @@ export class TestStateProvider implements IStateProvider {
   }
 
   /**
+   * Reads a state file. Nothing is sealed here, so the state itself stands in for the sealed state.
+   *
+   * @throws {@link TransactionError} With the message `No state found!` when the file does not exist.
+   */
+  async getSealedState(stateFileName: string): Promise<Buffer> {
+    return this.getState(stateFileName);
+  }
+
+  /**
    * Reads a state file.
    *
    * @throws {@link TransactionError} With the message `No state found!` when the file does not exist.
@@ -32,6 +43,13 @@ export class TestStateProvider implements IStateProvider {
       throw new TransactionError('No state found!');
     }
     return this.localState[stateFileName];
+  }
+
+  /**
+   * A new path in the system's temporary directory, since the state holds no files.
+   */
+  async getTemporaryFilePath(name: string): Promise<string> {
+    return join(tmpdir(), `octo-test-state-${name}-${randomUUID()}.tmp`);
   }
 
   /**
@@ -63,12 +81,12 @@ export class TestStateProvider implements IStateProvider {
    * @throws {@link TransactionError} When a lock is held, naming the id that holds it. When `lockId`
    * is given and is not the lock held.
    */
-  async lockApp(lockId?: string): ReturnType<IStateProvider['lockApp']> {
-    if (lockId) {
-      if (this.lockId !== lockId) {
-        throw new AppLockError(`App is not locked with lock ID "${lockId}"!`, { reason: 'not-held' });
+  async lockApp(lock: Parameters<IStateProvider['lockApp']>[0]): ReturnType<IStateProvider['lockApp']> {
+    if ('lockId' in lock) {
+      if (this.lockId !== lock.lockId) {
+        throw new AppLockError(`App is not locked with lock ID "${lock.lockId}"!`, { reason: 'not-held' });
       }
-      return { lockId };
+      return { lockId: lock.lockId };
     }
     if (this.lockId) {
       throw new AppLockError(`App already locked with lock ID "${this.lockId}"!`, {
@@ -89,12 +107,14 @@ export class TestStateProvider implements IStateProvider {
   }
 
   /**
-   * Writes state files, overwriting whatever was there and deleting each one given no `data`.
+   * Writes state files, overwriting whatever was there, moving each one given a `filePath` into memory,
+   * and deleting each one given no `data`.
    */
   async saveStates(stateFiles: Parameters<IStateProvider['saveStates']>[0]): Promise<void> {
     for (const stateFile of stateFiles) {
       if ('filePath' in stateFile) {
         this.localState[stateFile.stateFileName] = await readFile(stateFile.filePath);
+        await rm(stateFile.filePath, { force: true });
       } else if (stateFile.data === undefined) {
         delete this.localState[stateFile.stateFileName];
       } else {
@@ -104,7 +124,7 @@ export class TestStateProvider implements IStateProvider {
   }
 
   /**
-   * Releases the app lock.
+   * Clears the journal, which a run that follows would refuse to lock over, and releases the app lock.
    *
    * @throws {@link TransactionError} With the message `Invalid lock ID!` when a different lock is held.
    */
@@ -115,6 +135,11 @@ export class TestStateProvider implements IStateProvider {
     if (this.lockId !== lockId) {
       throw new TransactionError('Invalid lock ID!');
     }
+
+    for (const stateFileName of await this.listStates(JOURNAL_STATE_FILE_NAME_PREFIX)) {
+      delete this.localState[stateFileName];
+    }
+
     this.lockId = undefined;
   }
 }

@@ -60,7 +60,8 @@ journal.<commandId>.<command>.<md5>.json       a copy of a state file the comman
 ```
 
 `commandId` is the Unix time in milliseconds plus 8 random hex, so ids sort by start. When the lock is released,
-every journal file moves to `.octo/archives/<lockId>/`.
+the state provider seals the run into `.octo/archives/<commitId>/`: every state file is copied
+there, and every journal file moved.
 
 ### Its shapes
 

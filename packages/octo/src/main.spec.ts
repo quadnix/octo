@@ -1,4 +1,5 @@
-import { readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { join } from 'path';
 import { jest } from '@jest/globals';
 import type { UnknownResource } from './app.type.js';
@@ -10,7 +11,9 @@ import { AModule } from './modules/module.abstract.js';
 import { BaseResourceSchema } from './resources/resource.schema.js';
 import { ATerraformResource } from './resources/terraform-resource.abstract.js';
 import { InputService } from './services/input/input.service.js';
+import { LocalStateProvider } from './services/state-management/local.state-provider.js';
 import { StateManagementService } from './services/state-management/state-management.service.js';
+import type { IStateProvider } from './services/state-management/state-provider.interface.js';
 import { TestStateProvider } from './services/state-management/test.state-provider.js';
 import type { TerraformModuleScope } from './services/terraform/terraform.service.js';
 import { TransactionService } from './services/transaction/transaction.service.js';
@@ -736,9 +739,21 @@ describe('Main UT', () => {
   });
 
   describe('importState()', () => {
-    async function commitParentState({ loadClasses = true } = {}): Promise<TestStateProvider> {
+    let parentStateDirectoryPath: string;
+
+    beforeEach(async () => {
+      parentStateDirectoryPath = await mkdtemp(join(tmpdir(), 'octo-parent-state-'));
+    });
+
+    afterEach(async () => {
+      await rm(parentStateDirectoryPath, { force: true, recursive: true });
+    });
+
+    async function commitParentState({
+      loadClasses = true,
+      stateProvider = new TestStateProvider(),
+    }: { loadClasses?: boolean; stateProvider?: IStateProvider } = {}): Promise<IStateProvider> {
       await generateAndCommitFullGraph();
-      const stateProvider = new TestStateProvider();
       await stateProvider.saveStates(
         await Promise.all(
           ['models.json', 'resources-actual.json'].map(async (stateFileName) => ({
@@ -761,9 +776,15 @@ describe('Main UT', () => {
       return stateProvider;
     }
 
-    it('should throw error when the state holds no models', async () => {
-      await expect(testModes['octo'].importState(new TestStateProvider())).rejects.toThrow(
-        'Cannot import a state that holds no models!',
+    it('should throw error when the state has sealed nothing yet', async () => {
+      await generateAndCommitFullGraph();
+      const stateProvider = new LocalStateProvider(parentStateDirectoryPath);
+      await stateProvider.saveStates([
+        { data: await testModes.stateManagementService.getState('models.json'), stateFileName: 'models.json' },
+      ]);
+
+      await expect(testModes['octo'].importState(stateProvider)).rejects.toThrow(
+        'Cannot import a state that has sealed no models!',
       );
     });
 
@@ -839,6 +860,23 @@ describe('Main UT', () => {
       await testModes.commit(app, { outputs: testModes.outputs });
 
       expect(deleteExternalResourceState).not.toHaveBeenCalled();
+    });
+
+    it('should read the imported state as it was sealed, not as a run under way left it', async () => {
+      const parentStateProvider = await commitParentState({
+        stateProvider: new LocalStateProvider(parentStateDirectoryPath),
+      });
+      const { lockId } = await parentStateProvider.lockApp({ commitId: `${Date.now()}-parent` });
+      await parentStateProvider.unlockApp(lockId);
+      await parentStateProvider.saveStates([
+        { data: Buffer.from(JSON.stringify({ data: { models: {} }, userData: {} })), stateFileName: 'models.json' },
+      ]);
+
+      await testModes['octo'].importState(parentStateProvider);
+
+      expect(testModes.resourceDataRepository.getNewResourcesByProperties().map((r) => r.resourceId)).toContain(
+        'igw-1',
+      );
     });
 
     it('should build on the imported graph, rendering only what this app declares', async () => {

@@ -63,6 +63,13 @@ everything, or half of it. A run that died is finished through its own lock rath
 has been held is the first thing to look at: a lock a few seconds old belongs to a run still going,
 and one older than any run you have ever had belongs to a runner that died.
 
+Releasing the lock seals the change. `LocalStateProvider` copies the state, and moves the journal,
+into `archives/<commitId>/` before it deletes the lock file, and keeps the lock held when it
+cannot. The newest archive is the sealed state, which an app that
+[extends](/docs/using-octo/the-definition-file#extends) this one reads. Archives are never deleted
+for you. `RemoteStateProvider` seals the change's record in its backend, then writes the same
+archive on the machine.
+
 ## It holds Terraform's state too
 
 Terraform keeps its own record of what exists, and by default a local backend leaves it in the
@@ -150,7 +157,7 @@ before any file is uploaded. That includes the
 record a lock seals holds every command that led to it. `generate` never replaces journal
 files when it refreshes the directory, resuming a lock on another machine keeps that machine's
 journal files and uploads them with the rest, and the `archives/` they move to once the lock is
-released is never uploaded.
+released, beside a copy of the state, is never uploaded.
 
 The directory is scratch space, and the backend is the copy that counts, so add `.octo/` to your
 `.gitignore`. Two files of the provider's own live there beside the state, `remote-state.lock` and
@@ -163,8 +170,9 @@ directory alone, and the lock uploads what it holds as the run's starting point.
 ## What a provider does not do
 
 **It does not give you a way back.** Octo writes each file whole, every time, and has no command
-that restores an earlier version. The journal keeps a copy of each version a command wrote, but
-nothing in Octo reads one back, so going back has to come from wherever the files live: a
+that restores an earlier version. The journal keeps a copy of each version a command wrote, and
+each archive a copy of the state a change sealed, but Octo reads back only the newest archive, for an
+app extending this one, so going back has to come from wherever the files live: a
 repository's history for state you commit, or versioning on the storage the directory sits on. The
 backend behind `RemoteStateProvider` keeps the record of every finished run, but nothing in Octo
 reads an old one back. Restoring old state does not undo infrastructure either. It makes Terraform

@@ -1,6 +1,7 @@
 import { jest } from '@jest/globals';
 import { Octo } from '../../main.js';
 import { App } from '../../models/app/app.model.js';
+import { StateManagementService } from '../../services/state-management/state-management.service.js';
 import { TestStateProvider } from '../../services/state-management/test.state-provider.js';
 import { TransactionService } from '../../services/transaction/transaction.service.js';
 import { attributeToModule } from '../../utilities/test-helpers/test-models.js';
@@ -38,7 +39,8 @@ describe('CommitHook UT', () => {
     });
     const app = new App('test-app');
     await attributeToModule([app]);
-    const { lockId } = await stateProvider.lockApp();
+    const stateManagementService = await Container.getInstance().get(StateManagementService);
+    const { lockId } = await stateManagementService.lockApp();
     await octo.commit(app, { lockId, outputs: new Map() });
 
     expect(postCommitHookMock).toHaveBeenCalledTimes(1);

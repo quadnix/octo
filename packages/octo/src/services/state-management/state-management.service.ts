@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import type {
   ModelSerializedOutput,
   ResourceSerializedOutput,
@@ -158,9 +158,13 @@ export class StateManagementService {
   }
 
   /**
-   * Reads the model graph. Returns an empty graph when no state exists yet.
+   * Reads the model graph, or with `sealed`, the model graph of the newest sealed state. Returns an
+   * empty graph when no state exists yet.
    */
-  async getModelState(stateFileName: string, { freeze = true }: { freeze?: boolean } = {}): Promise<ModelStateFile> {
+  async getModelState(
+    stateFileName: string,
+    { freeze = true, sealed = false }: { freeze?: boolean; sealed?: boolean } = {},
+  ): Promise<ModelStateFile> {
     const defaultValue: ModelStateFile = {
       data: {
         anchors: [],
@@ -173,7 +177,9 @@ export class StateManagementService {
     };
 
     try {
-      const modelState = await this.getState(stateFileName);
+      const modelState = await (sealed
+        ? this.stateProvider.getSealedState(stateFileName)
+        : this.getState(stateFileName));
       return JSON.parse(modelState.toString(), (_k, v) => (v && freeze ? Object.freeze(v) : v));
     } catch (error) {
       if (error.message === 'No state found!') {
@@ -212,11 +218,12 @@ export class StateManagementService {
   }
 
   /**
-   * Reads a resource graph. Returns an empty graph when no state exists yet.
+   * Reads a resource graph, or with `sealed`, the resource graph of the newest sealed state. Returns
+   * an empty graph when no state exists yet.
    */
   async getResourceState(
     stateFileName: string,
-    { freeze = true }: { freeze?: boolean } = {},
+    { freeze = true, sealed = false }: { freeze?: boolean; sealed?: boolean } = {},
   ): Promise<ResourceStateFile> {
     const defaultValue: ResourceStateFile = {
       data: {
@@ -227,7 +234,9 @@ export class StateManagementService {
     };
 
     try {
-      const resourceState = await this.getState(stateFileName);
+      const resourceState = await (sealed
+        ? this.stateProvider.getSealedState(stateFileName)
+        : this.getState(stateFileName));
       return JSON.parse(resourceState.toString(), (_k, v) => (v && freeze ? Object.freeze(v) : v));
     } catch (error) {
       if (error.message === 'No state found!') {
@@ -254,6 +263,13 @@ export class StateManagementService {
         throw error;
       }
     }
+  }
+
+  /**
+   * A new path where a writer prepares a file. See {@link IStateProvider.getTemporaryFilePath}.
+   */
+  async getTemporaryFilePath(name: string): Promise<string> {
+    return this.stateProvider.getTemporaryFilePath(name);
   }
 
   /**
@@ -321,7 +337,9 @@ export class StateManagementService {
         }
       }
 
-      lock = await this.stateProvider.lockApp(lockId);
+      lock = await this.stateProvider.lockApp(
+        lockId ? { lockId } : { commitId: `${Date.now()}-${randomBytes(4).toString('hex')}` },
+      );
     } catch (error) {
       if (error instanceof AppLockError) {
         await eventService.emitAndWait(
@@ -392,7 +410,7 @@ export class StateManagementService {
   }
 
   /**
-   * Writes state files as-is and as one change, copying each one given a `filePath` and deleting each
+   * Writes state files as-is and as one change, moving each one given a `filePath` and deleting each
    * one given no `data`. Listeners of {@link StateFilesSavingEvent} may add files to the change first.
    */
   async saveStates(stateFiles: Parameters<IStateProvider['saveStates']>[0]): Promise<void> {
@@ -417,13 +435,10 @@ export class StateManagementService {
   }
 
   /**
-   * Releases the app lock, then archives the run's journal. Unlocking an app that is not locked is
-   * not an error.
+   * Seals the run and releases the app lock. Unlocking an app that is not locked is not an error.
    *
    * In order: listeners of {@link AppUnlockingEvent} write the last of the run, and a failure there
-   * keeps the lock held; the lock is released, which seals the run; every journal file moves to
-   * `archives/<lockId>/`, a cleanup on this machine whose failure is reported on stderr rather than
-   * thrown.
+   * keeps the lock held; the provider seals the run and releases the lock, see {@link IStateProvider.unlockApp}.
    *
    * @throws {@link TransactionError} With the message `Invalid lock ID!` when a different lock is held.
    */
@@ -442,25 +457,6 @@ export class StateManagementService {
     }
 
     await this.stateProvider.unlockApp(lockId);
-
-    // Archive the run's journal, names unchanged.
-    try {
-      const stateFiles: Parameters<StateManagementService['saveStates']>[0] = [];
-      for (const stateFileName of await this.stateProvider.listStates(JOURNAL_STATE_FILE_NAME_PREFIX)) {
-        stateFiles.push(
-          {
-            data: await this.stateProvider.getState(stateFileName),
-            stateFileName: `archives/${lockId}/${stateFileName}`,
-          },
-          { data: undefined, stateFileName },
-        );
-      }
-      if (stateFiles.length > 0) {
-        await this.saveStates(stateFiles);
-      }
-    } catch (error) {
-      process.stderr.write(`Failed to archive the journal of lock "${lockId}": ${error?.message ?? String(error)}\n`);
-    }
 
     await eventService.emitAndWait(new AppUnlockedEvent(undefined, { lockId }));
   }

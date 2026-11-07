@@ -4,6 +4,7 @@ import { type Server, createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { jest } from '@jest/globals';
+import { LocalStateProvider } from './local.state-provider.js';
 import { RemoteStateProvider } from './remote.state-provider.js';
 
 /**
@@ -263,6 +264,9 @@ async function startBackend(backend: Backend): Promise<{ close: () => Promise<vo
   };
 }
 
+let commitCount = 0;
+const newCommitId = (): string => `${Date.now()}-${++commitCount}`;
+
 describe('RemoteStateProvider UT', () => {
   let backend: Backend;
   let close: () => Promise<void>;
@@ -311,21 +315,34 @@ describe('RemoteStateProvider UT', () => {
     });
 
     it('should return the lock held', async () => {
-      const { lockId } = await remoteStateProvider.lockApp();
+      const { lockId } = await remoteStateProvider.lockApp({ commitId: newCommitId() });
 
       expect(await remoteStateProvider.getAppLock()).toBe(lockId);
     });
   });
 
+  describe('getSealedState()', () => {
+    it('should throw when nothing is sealed and the directory holds no such file', async () => {
+      await expect(remoteStateProvider.getSealedState('a.json')).rejects.toThrow('No state found!');
+    });
+
+    it('should read the newest sealed state, not what the directory held', async () => {
+      seal('commit-1', { 'a.json': '{"a":1}' });
+      await writeFile(join(localStateDirectoryPath, 'a.json'), '{"a":"stale"}');
+
+      await expect(remoteStateProvider.getSealedState('a.json')).resolves.toEqual(Buffer.from('{"a":1}'));
+    });
+  });
+
   describe('isAppLocked()', () => {
     it('should throw when a different lock is held', async () => {
-      await remoteStateProvider.lockApp();
+      await remoteStateProvider.lockApp({ commitId: newCommitId() });
 
       await expect(remoteStateProvider.isAppLocked('b'.repeat(64))).rejects.toThrow('Invalid lock ID!');
     });
 
     it('should throw when the lock was not taken in this state directory', async () => {
-      const { lockId } = await remoteStateProvider.lockApp();
+      const { lockId } = await remoteStateProvider.lockApp({ commitId: newCommitId() });
 
       await expect(build(otherLocalStateDirectoryPath).isAppLocked(lockId)).rejects.toThrow(
         `Lock "${lockId}" was not taken in this state directory`,
@@ -337,7 +354,7 @@ describe('RemoteStateProvider UT', () => {
     });
 
     it('should return true for the lock held', async () => {
-      const { lockId } = await remoteStateProvider.lockApp();
+      const { lockId } = await remoteStateProvider.lockApp({ commitId: newCommitId() });
 
       expect(await remoteStateProvider.isAppLocked(lockId)).toBe(true);
     });
@@ -345,12 +362,12 @@ describe('RemoteStateProvider UT', () => {
 
   describe('lockApp()', () => {
     it('should throw naming the holder when the app is locked', async () => {
-      const { lockId } = await remoteStateProvider.lockApp();
+      const { lockId } = await remoteStateProvider.lockApp({ commitId: newCommitId() });
 
-      await expect(build(otherLocalStateDirectoryPath).lockApp()).rejects.toThrow(
+      await expect(build(otherLocalStateDirectoryPath).lockApp({ commitId: newCommitId() })).rejects.toThrow(
         `App already locked with lock ID "${lockId}", taken by "a-context", held for 0s!`,
       );
-      await expect(build(otherLocalStateDirectoryPath).lockApp()).rejects.toMatchObject({
+      await expect(build(otherLocalStateDirectoryPath).lockApp({ commitId: newCommitId() })).rejects.toMatchObject({
         holder: {
           commitId: backend.locks[0].commitId,
           context: 'a-context',
@@ -366,8 +383,10 @@ describe('RemoteStateProvider UT', () => {
       await remoteStateProvider.refreshState();
       seal('commit-2', { 'a.json': '{"a":2}' });
 
-      await expect(remoteStateProvider.lockApp()).rejects.toThrow('App state moved since it was last refreshed!');
-      await expect(remoteStateProvider.lockApp()).rejects.toMatchObject({
+      await expect(remoteStateProvider.lockApp({ commitId: newCommitId() })).rejects.toThrow(
+        'App state moved since it was last refreshed!',
+      );
+      await expect(remoteStateProvider.lockApp({ commitId: newCommitId() })).rejects.toMatchObject({
         newestCommitId: 'commit-2',
         reason: 'state-moved',
         refreshedCommitId: 'commit-1',
@@ -378,20 +397,21 @@ describe('RemoteStateProvider UT', () => {
     it('should throw when the state was never refreshed', async () => {
       seal('commit-1', { 'a.json': '{"a":1}' });
 
-      await expect(remoteStateProvider.lockApp()).rejects.toThrow('App state moved since it was last refreshed!');
+      await expect(remoteStateProvider.lockApp({ commitId: newCommitId() })).rejects.toThrow(
+        'App state moved since it was last refreshed!',
+      );
     });
 
     it('should name a new commit on every lock', async () => {
-      const { lockId: firstLockId } = await remoteStateProvider.lockApp();
+      const { lockId: firstLockId } = await remoteStateProvider.lockApp({ commitId: newCommitId() });
       await remoteStateProvider.unlockApp(firstLockId);
-      await remoteStateProvider.lockApp();
+      await remoteStateProvider.lockApp({ commitId: newCommitId() });
 
-      expect(backend.locks[0].commitId).toMatch(/^\d{13}-[0-9a-f]{8}$/);
       expect(backend.requests.filter((r) => r === 'POST /lock')).toHaveLength(2);
     });
 
     it('should take the lock on a first run, writing nothing when the directory is empty', async () => {
-      const { commitId, lockId } = await remoteStateProvider.lockApp();
+      const { commitId, lockId } = await remoteStateProvider.lockApp({ commitId: newCommitId() });
 
       expect(commitId).toBe(backend.locks[0].commitId);
       expect(backend.locks).toMatchObject([{ context: 'a-context', lockId, scope: ['app'] }]);
@@ -403,7 +423,7 @@ describe('RemoteStateProvider UT', () => {
       await remoteStateProvider.refreshState();
       await remoteStateProvider.saveStates([{ data: Buffer.from('{"generated":true}'), stateFileName: 'models.json' }]);
 
-      await remoteStateProvider.lockApp();
+      await remoteStateProvider.lockApp({ commitId: newCommitId() });
 
       expect(backend.states[1]).toMatchObject({
         files: { 'a.json': '{"a":1}', 'models.json': '{"generated":true}' },
@@ -413,18 +433,20 @@ describe('RemoteStateProvider UT', () => {
 
     describe('with a lock ID', () => {
       it('should throw when the lock is not held', async () => {
-        await expect(remoteStateProvider.lockApp('b'.repeat(64))).rejects.toThrow(
+        await expect(remoteStateProvider.lockApp({ lockId: 'b'.repeat(64) })).rejects.toThrow(
           `App is not locked with lock ID "${'b'.repeat(64)}"!`,
         );
-        await expect(remoteStateProvider.lockApp('b'.repeat(64))).rejects.toMatchObject({ reason: 'not-held' });
+        await expect(remoteStateProvider.lockApp({ lockId: 'b'.repeat(64) })).rejects.toMatchObject({
+          reason: 'not-held',
+        });
       });
 
       it('should take the journal the run wrote, and keep and upload the journal of this machine', async () => {
-        const { commitId, lockId } = await remoteStateProvider.lockApp();
+        const { commitId, lockId } = await remoteStateProvider.lockApp({ commitId: newCommitId() });
         await remoteStateProvider.saveStates([{ data: Buffer.from('{"j":1}'), stateFileName: 'journal.c.apply.json' }]);
         await writeFile(join(otherLocalStateDirectoryPath, 'journal.d.validate.json'), '{"j":2}');
 
-        const resumed = await build(otherLocalStateDirectoryPath).lockApp(lockId);
+        const resumed = await build(otherLocalStateDirectoryPath).lockApp({ lockId });
 
         expect(resumed).toEqual({ commitId, lockId, resumedFrom: 'run' });
         expect(await stateFileNames(otherLocalStateDirectoryPath)).toEqual([
@@ -438,29 +460,29 @@ describe('RemoteStateProvider UT', () => {
       });
 
       it('should continue in the state directory the lock was taken in', async () => {
-        const { lockId } = await remoteStateProvider.lockApp();
+        const { lockId } = await remoteStateProvider.lockApp({ commitId: newCommitId() });
 
-        await expect(remoteStateProvider.lockApp(lockId)).resolves.toMatchObject({ resumedFrom: 'directory' });
+        await expect(remoteStateProvider.lockApp({ lockId })).resolves.toMatchObject({ resumedFrom: 'directory' });
       });
 
       it('should read what the run wrote into another state directory', async () => {
-        const { lockId } = await remoteStateProvider.lockApp();
+        const { lockId } = await remoteStateProvider.lockApp({ commitId: newCommitId() });
         await remoteStateProvider.saveStates([{ data: Buffer.from('{"a":1}'), stateFileName: 'a.json' }]);
         await writeFile(join(otherLocalStateDirectoryPath, 'stale.json'), '{}');
 
         const otherRemoteStateProvider = build(otherLocalStateDirectoryPath);
-        await otherRemoteStateProvider.lockApp(lockId);
+        await otherRemoteStateProvider.lockApp({ lockId });
 
         expect(await stateFileNames(otherLocalStateDirectoryPath)).toEqual(['a.json']);
         expect(await otherRemoteStateProvider.isAppLocked(lockId)).toBe(true);
       });
 
       it('should write through the same lock after resuming', async () => {
-        const { lockId } = await remoteStateProvider.lockApp();
+        const { lockId } = await remoteStateProvider.lockApp({ commitId: newCommitId() });
         await remoteStateProvider.saveStates([{ data: Buffer.from('{"a":1}'), stateFileName: 'a.json' }]);
 
         const otherRemoteStateProvider = build(otherLocalStateDirectoryPath);
-        await otherRemoteStateProvider.lockApp(lockId);
+        await otherRemoteStateProvider.lockApp({ lockId });
         await otherRemoteStateProvider.saveStates([{ data: Buffer.from('{"b":1}'), stateFileName: 'b.json' }]);
         await otherRemoteStateProvider.unlockApp(lockId);
 
@@ -473,10 +495,10 @@ describe('RemoteStateProvider UT', () => {
       it('should start from the newest sealed state when the run wrote nothing', async () => {
         seal('commit-1', { 'a.json': '{"a":1}', 'journal.c.commit.json': '{"j":1}' });
         await remoteStateProvider.refreshState();
-        const { lockId } = await remoteStateProvider.lockApp();
+        const { lockId } = await remoteStateProvider.lockApp({ commitId: newCommitId() });
         backend.states = backend.states.filter((s) => s.phase === 'commit');
 
-        await expect(build(otherLocalStateDirectoryPath).lockApp(lockId)).resolves.toMatchObject({
+        await expect(build(otherLocalStateDirectoryPath).lockApp({ lockId })).resolves.toMatchObject({
           resumedFrom: 'sealed',
         });
 
@@ -554,7 +576,7 @@ describe('RemoteStateProvider UT', () => {
     it('should keep the directory of a run still holding its lock', async () => {
       seal('commit-1', { 'a.json': '{"a":1}' });
       await remoteStateProvider.refreshState();
-      await remoteStateProvider.lockApp();
+      await remoteStateProvider.lockApp({ commitId: newCommitId() });
       await remoteStateProvider.saveStates([{ data: Buffer.from('{}'), stateFileName: 'b.json' }]);
 
       await remoteStateProvider.refreshState();
@@ -563,10 +585,10 @@ describe('RemoteStateProvider UT', () => {
     });
 
     it('should read the newest sealed state once a run was finished elsewhere', async () => {
-      const { lockId } = await remoteStateProvider.lockApp();
+      const { lockId } = await remoteStateProvider.lockApp({ commitId: newCommitId() });
       await remoteStateProvider.saveStates([{ data: Buffer.from('{"a":1}'), stateFileName: 'a.json' }]);
       const otherRemoteStateProvider = build(otherLocalStateDirectoryPath);
-      await otherRemoteStateProvider.lockApp(lockId);
+      await otherRemoteStateProvider.lockApp({ lockId });
       await otherRemoteStateProvider.saveStates([{ data: Buffer.from('{"b":1}'), stateFileName: 'b.json' }]);
       await otherRemoteStateProvider.unlockApp(lockId);
 
@@ -598,7 +620,7 @@ describe('RemoteStateProvider UT', () => {
     });
 
     it('should throw the refusal of a write the backend holds the app back from', async () => {
-      await remoteStateProvider.lockApp();
+      await remoteStateProvider.lockApp({ commitId: newCommitId() });
       backend.limitRefusal = 'An upload may name at most 1 files!';
 
       await expect(
@@ -611,7 +633,7 @@ describe('RemoteStateProvider UT', () => {
 
     it('should throw without claiming the upload when a file does not upload', async () => {
       await remoteStateProvider.saveStates([{ data: Buffer.from('{"a":1}'), stateFileName: 'a.json' }]);
-      await remoteStateProvider.lockApp();
+      await remoteStateProvider.lockApp({ commitId: newCommitId() });
       backend.refusesObjects = true;
 
       await expect(
@@ -622,16 +644,15 @@ describe('RemoteStateProvider UT', () => {
       expect(await readdir(localStateDirectoryPath)).toEqual(['a.json', 'b.json', 'remote-state.lock']);
     });
 
-    it('should copy a file given by its path into the open run, leaving the source as it is', async () => {
-      const filePath = join(localStateDirectoryPath, '..', `source-${process.pid}.json`);
+    it('should move a file given by its path into the open run', async () => {
+      const filePath = await remoteStateProvider.getTemporaryFilePath('terraform.json');
       await writeFile(filePath, '{"log":1}');
-      await remoteStateProvider.lockApp();
+      await remoteStateProvider.lockApp({ commitId: newCommitId() });
 
       await remoteStateProvider.saveStates([{ filePath, stateFileName: 'journal.1.apply.terraform.json' }]);
 
       expect(backend.states[0].files).toEqual({ 'journal.1.apply.terraform.json': '{"log":1}' });
-      expect(await readFile(filePath, 'utf-8')).toBe('{"log":1}');
-      await rm(filePath, { force: true });
+      expect(await readdir(localStateDirectoryPath)).toEqual(['journal.1.apply.terraform.json', 'remote-state.lock']);
     });
 
     it('should write only to the directory when no run is open', async () => {
@@ -643,7 +664,7 @@ describe('RemoteStateProvider UT', () => {
 
     it('should write into the open run, uploading only what changed', async () => {
       await remoteStateProvider.saveStates([{ data: Buffer.from('{"a":1}'), stateFileName: 'a.json' }]);
-      await remoteStateProvider.lockApp();
+      await remoteStateProvider.lockApp({ commitId: newCommitId() });
 
       await remoteStateProvider.saveStates([{ data: Buffer.from('{"b":1}'), stateFileName: 'b.json' }]);
       await remoteStateProvider.saveStates([{ data: Buffer.from('{"b":1}'), stateFileName: 'b.json' }]);
@@ -656,7 +677,7 @@ describe('RemoteStateProvider UT', () => {
 
     it('should write and delete in one upload into the open run', async () => {
       await remoteStateProvider.saveStates([{ data: Buffer.from('{"a":1}'), stateFileName: 'a.json' }]);
-      await remoteStateProvider.lockApp();
+      await remoteStateProvider.lockApp({ commitId: newCommitId() });
 
       await remoteStateProvider.saveStates([
         { data: undefined, stateFileName: 'a.json' },
@@ -671,7 +692,7 @@ describe('RemoteStateProvider UT', () => {
     it('should remove the file from the open run', async () => {
       await remoteStateProvider.saveStates([{ data: Buffer.from('{"a":1}'), stateFileName: 'a.json' }]);
       await remoteStateProvider.saveStates([{ data: Buffer.from('{"b":1}'), stateFileName: 'b.json' }]);
-      await remoteStateProvider.lockApp();
+      await remoteStateProvider.lockApp({ commitId: newCommitId() });
 
       await remoteStateProvider.saveStates([{ data: undefined, stateFileName: 'b.json' }]);
 
@@ -680,7 +701,7 @@ describe('RemoteStateProvider UT', () => {
 
     it('should not reach the backend when nothing changed', async () => {
       await remoteStateProvider.saveStates([{ data: Buffer.from('{"a":1}'), stateFileName: 'a.tfstate' }]);
-      await remoteStateProvider.lockApp();
+      await remoteStateProvider.lockApp({ commitId: newCommitId() });
       const requestCount = backend.requests.length;
 
       await remoteStateProvider.saveStates([
@@ -692,7 +713,7 @@ describe('RemoteStateProvider UT', () => {
     });
 
     it('should keep a nested name on the machine, even while a run is open', async () => {
-      await remoteStateProvider.lockApp();
+      await remoteStateProvider.lockApp({ commitId: newCommitId() });
       const requestCount = backend.requests.length;
 
       await remoteStateProvider.saveStates([{ data: Buffer.from('{"a":1}'), stateFileName: 'archives/c/r.json' }]);
@@ -706,7 +727,7 @@ describe('RemoteStateProvider UT', () => {
     });
 
     it('should keep every write of concurrent writers', async () => {
-      await remoteStateProvider.lockApp();
+      await remoteStateProvider.lockApp({ commitId: newCommitId() });
       const otherProcess = build(localStateDirectoryPath);
 
       await Promise.all(
@@ -723,7 +744,7 @@ describe('RemoteStateProvider UT', () => {
 
   describe('unlockApp()', () => {
     it('should throw when a different lock is held', async () => {
-      await remoteStateProvider.lockApp();
+      await remoteStateProvider.lockApp({ commitId: newCommitId() });
 
       await expect(remoteStateProvider.unlockApp('b'.repeat(64))).rejects.toThrow('Invalid lock ID!');
     });
@@ -733,7 +754,7 @@ describe('RemoteStateProvider UT', () => {
     });
 
     it('should seal the run and release its lock', async () => {
-      const { lockId } = await remoteStateProvider.lockApp();
+      const { lockId } = await remoteStateProvider.lockApp({ commitId: newCommitId() });
       await remoteStateProvider.saveStates([{ data: Buffer.from('{"a":1}'), stateFileName: 'a.json' }]);
 
       await remoteStateProvider.unlockApp(lockId);
@@ -742,30 +763,43 @@ describe('RemoteStateProvider UT', () => {
       expect(backend.states[0]).toMatchObject({ files: { 'a.json': '{"a":1}' }, phase: 'commit' });
     });
 
-    it('should seal the record as last written, and write a later change to the directory alone', async () => {
-      const { lockId } = await remoteStateProvider.lockApp();
+    it('should seal the record, then archive the directory on this machine alone', async () => {
+      const { lockId } = await remoteStateProvider.lockApp({ commitId: newCommitId() });
       await remoteStateProvider.saveStates([
         { data: Buffer.from('{"a":1}'), stateFileName: 'a.json' },
         { data: Buffer.from('{"j":1}'), stateFileName: 'journal.c.commit.json' },
       ]);
 
       await remoteStateProvider.unlockApp(lockId);
-      const requestCount = backend.requests.length;
-      await remoteStateProvider.saveStates([
-        { data: Buffer.from('{"j":1}'), stateFileName: `archives/${lockId}/journal.c.commit.json` },
-        { data: undefined, stateFileName: 'journal.c.commit.json' },
-      ]);
 
-      expect(backend.requests.length).toBe(requestCount);
       expect(backend.states[0]).toMatchObject({
         files: { 'a.json': '{"a":1}', 'journal.c.commit.json': '{"j":1}' },
         phase: 'commit',
       });
       expect(await stateFileNames(localStateDirectoryPath)).toEqual(['a.json', 'archives']);
+      const [archiveName] = await readdir(join(localStateDirectoryPath, 'archives'));
+      expect(archiveName).toBe(backend.states[0].commitId);
+      expect((await readdir(join(localStateDirectoryPath, 'archives', archiveName))).sort()).toEqual([
+        'a.json',
+        'journal.c.commit.json',
+      ]);
+    });
+
+    it('should release, reporting on stderr, when the directory cannot be archived', async () => {
+      const { commitId, lockId } = await remoteStateProvider.lockApp({ commitId: newCommitId() });
+      await remoteStateProvider.saveStates([{ data: Buffer.from('{"a":1}'), stateFileName: 'a.json' }]);
+      jest.spyOn(LocalStateProvider.prototype, 'archiveState').mockRejectedValue(new Error('disk full'));
+      const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+      await remoteStateProvider.unlockApp(lockId);
+
+      expect(stderr).toHaveBeenCalledWith(`Failed to archive the state of commit "${commitId}": disk full\n`);
+      expect(backend.locks).toEqual([]);
+      expect(backend.states[0]).toMatchObject({ phase: 'commit' });
     });
 
     it('should write the directory into the record before sealing it, when a write failed', async () => {
-      const { lockId } = await remoteStateProvider.lockApp();
+      const { lockId } = await remoteStateProvider.lockApp({ commitId: newCommitId() });
       backend.refusesObjects = true;
       await expect(
         remoteStateProvider.saveStates([{ data: Buffer.from('{"a":1}'), stateFileName: 'a.json' }]),
@@ -780,7 +814,7 @@ describe('RemoteStateProvider UT', () => {
 
     it('should throw and keep the lock held when the directory cannot be written into the record', async () => {
       await remoteStateProvider.saveStates([{ data: Buffer.from('{"b":1}'), stateFileName: 'b.json' }]);
-      const { lockId } = await remoteStateProvider.lockApp();
+      const { lockId } = await remoteStateProvider.lockApp({ commitId: newCommitId() });
       backend.refusesObjects = true;
       await expect(
         remoteStateProvider.saveStates([{ data: Buffer.from('{"a":1}'), stateFileName: 'a.json' }]),
@@ -796,27 +830,31 @@ describe('RemoteStateProvider UT', () => {
     it('should leave neither lock file behind, and upload neither', async () => {
       await remoteStateProvider.saveStates([{ data: Buffer.from('{"a":1}'), stateFileName: 'a.json' }]);
       await remoteStateProvider.refreshState();
-      const { lockId } = await remoteStateProvider.lockApp();
+      const { lockId } = await remoteStateProvider.lockApp({ commitId: newCommitId() });
       expect((await readdir(localStateDirectoryPath)).sort()).toEqual(['a.json', 'remote-state.lock']);
 
       await remoteStateProvider.unlockApp(lockId);
 
-      expect(await readdir(localStateDirectoryPath)).toEqual(['a.json']);
+      expect((await readdir(localStateDirectoryPath)).sort()).toEqual(['a.json', 'archives']);
+      const [archiveName] = await readdir(join(localStateDirectoryPath, 'archives'));
+      expect(await readdir(join(localStateDirectoryPath, 'archives', archiveName))).toEqual(['a.json']);
       expect(Object.keys(backend.states[0].files)).toEqual(['a.json']);
     });
 
     it('should require a refresh before the next run locks', async () => {
-      const { lockId } = await remoteStateProvider.lockApp();
+      const { lockId } = await remoteStateProvider.lockApp({ commitId: newCommitId() });
       await remoteStateProvider.saveStates([{ data: Buffer.from('{"a":1}'), stateFileName: 'a.json' }]);
       await remoteStateProvider.unlockApp(lockId);
 
-      await expect(remoteStateProvider.lockApp()).rejects.toThrow('App state moved since it was last refreshed!');
+      await expect(remoteStateProvider.lockApp({ commitId: newCommitId() })).rejects.toThrow(
+        'App state moved since it was last refreshed!',
+      );
       await remoteStateProvider.refreshState();
-      await expect(remoteStateProvider.lockApp()).resolves.toBeDefined();
+      await expect(remoteStateProvider.lockApp({ commitId: newCommitId() })).resolves.toBeDefined();
     });
 
     it('should seal the record as it stands from a directory the run was not taken in', async () => {
-      const { lockId } = await remoteStateProvider.lockApp();
+      const { lockId } = await remoteStateProvider.lockApp({ commitId: newCommitId() });
       await remoteStateProvider.saveStates([{ data: Buffer.from('{"a":1}'), stateFileName: 'a.json' }]);
       await writeFile(join(otherLocalStateDirectoryPath, 'b.json'), '{}');
 

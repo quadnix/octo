@@ -81,7 +81,7 @@ Octo's memory of what your infrastructure is.
 | `resource-state-<resourceId>.json` | What an external resource's action produced, from the moment it ran until the commit that records it.                           |
 | `local-state.lock`                 | The app lock, present only while a run holds it. `apply` and `commit` require it; a commit that succeeds releases it.           |
 | `journal.<commandId>.<command>.*`  | The [journal](/docs/using-octo/what-octo-saves-and-when#the-journal) of the change under way, a few files per command.          |
-| `archives/<lockId>/`               | The journal of each lock already released, moved out of the way. Kept on the machine, and gitignored.                           |
+| `archives/<commitId>/`             | Each released lock: a copy of its state and its journal. The newest is the sealed state, gitignored.                            |
 
 Where it lives comes from `settings.stateProvider.statePath`, resolved against the definition file
 rather than the working directory. Losing it costs you both records at once: Octo believes it is
@@ -181,7 +181,8 @@ move and when an environment model is.
 | `.octo/models.json`, `.octo/resources-*.json`  | Yes    | Octo's state. Without it the next run starts from nothing.         |
 | `.octo/*.tfstate`                              | Yes    | Terraform's state. Without it the next apply rebuilds what exists. |
 | `.octo/local-state.lock`                       | No     | The app lock. It exists only while a run holds it.                 |
-| `.octo/journal.*`, `.octo/archives/`           | No     | The journal. A file per command would land in every change.        |
+| `.octo/journal.*`, `.octo/archives/`           | No     | The journal and every sealed state. They land in every change.     |
+| `.octo/.*.tmp`                                 | No     | Files a command is still writing.                                  |
 | `.octo-tf/**/*.tf`, `terragrunt.hcl`           | Yes    | The Terraform your change produced, reviewable next to the change. |
 | `.octo-tf/**/*.tfstate*`, `.terragrunt-cache/` | No     | Terraform's own working files, written during an apply.            |
 | `src/`, `package.json`, `tsconfig*.json`       | Yes    | Ordinary source.                                                   |

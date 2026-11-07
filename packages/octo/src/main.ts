@@ -273,8 +273,9 @@ export class Octo {
    * class its state names must be loaded. Call it after {@link Octo.initialize} and before loading this
    * app's own modules.
    *
-   * @param stateProvider Where the other app's state is read from. Nothing is written to it.
-   * @throws {@link ModuleError} When the state holds no models.
+   * @param stateProvider Where the other app's state is read from: its newest sealed state, never a run
+   * still under way. This app writes none of its own state there.
+   * @throws {@link ModuleError} When the newest sealed state holds no models, or nothing is sealed yet.
    * @throws {@link NodeUnsynthError} When a class the state names is not loaded.
    */
   async importState(stateProvider: IStateProvider): Promise<void> {
@@ -286,11 +287,11 @@ export class Octo {
 
     const importedState = new StateManagementService(stateProvider);
     const [{ data: modelData }, { data: resourceData }] = await Promise.all([
-      importedState.getModelState(importedState.modelStateFileName, { freeze: false }),
-      importedState.getResourceState(importedState.actualResourceStateFileName, { freeze: false }),
+      importedState.getModelState(importedState.modelStateFileName, { freeze: false, sealed: true }),
+      importedState.getResourceState(importedState.actualResourceStateFileName, { freeze: false, sealed: true }),
     ]);
     if (Object.keys(modelData.models).length === 0) {
-      throw new ModuleError('Cannot import a state that holds no models!', 'importState');
+      throw new ModuleError('Cannot import a state that has sealed no models!', 'importState');
     }
 
     // Declare the models and overlays under the modules that recorded them.
