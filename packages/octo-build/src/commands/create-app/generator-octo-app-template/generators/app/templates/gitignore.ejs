@@ -20,7 +20,8 @@ build/
 *.tfstate*
 !.octo/*.tfstate
 .octo/local-state.lock
-# The journal: files per command, archived per lock, which would land in every pull request.
+.octo/.*.tmp
+# The journal: files per command, archived per lock with a copy of the state, which would land in every pull request.
 .octo/journal.*
 .octo/archives/
 
