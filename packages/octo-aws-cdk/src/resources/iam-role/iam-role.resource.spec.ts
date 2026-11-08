@@ -282,6 +282,7 @@ describe('IamRole UT', () => {
        [
          {
            "Action": [
+             "lambda:GetFunctionUrlConfig",
              "lambda:InvokeFunction",
              "lambda:InvokeFunctionUrl",
            ],

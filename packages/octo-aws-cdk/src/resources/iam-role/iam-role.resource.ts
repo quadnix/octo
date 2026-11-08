@@ -141,8 +141,8 @@ export class IamRole extends ATerraformResource<IamRoleSchema, IamRole> {
   }
 
   /**
-   * Allows this role to invoke each function, directly or through its URL, in one policy. A function
-   * may be in another account, which must still admit the role.
+   * Allows this role to invoke each function, directly or through its URL, and to read that URL, in one
+   * policy. A function may be in another account, which must still admit the role.
    *
    * The functions are not parents: IAM accepts a policy naming a function that does not exist yet.
    * They are passed in so their names are read off the functions themselves.
@@ -454,7 +454,7 @@ export class IamRole extends ATerraformResource<IamRoleSchema, IamRole> {
           policy: terraform.jsonencode({
             Statement: [
               {
-                Action: ['lambda:InvokeFunction', 'lambda:InvokeFunctionUrl'],
+                Action: ['lambda:GetFunctionUrlConfig', 'lambda:InvokeFunction', 'lambda:InvokeFunctionUrl'],
                 Effect: 'Allow',
                 Resource: functions.map((f) =>
                   ['arn:aws:lambda', f.awsRegionId, f.awsAccountId, 'function', f.functionName].join(':'),

@@ -94,8 +94,9 @@ export class AwsServerDynamoDBAccessSchema {
 }
 
 /**
- * Schema for granting a server the invocation of one Lambda function, directly or through its URL.
- * The function may be in another account, such as one an imported state holds.
+ * Schema for granting a server the invocation of one Lambda function, directly or through its URL,
+ * and the reading of that URL. The function may be in another account, such as one an imported state
+ * holds.
  *
  * @group Modules/Server/AwsServer
  *
