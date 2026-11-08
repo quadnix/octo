@@ -477,6 +477,18 @@ describe('CloudFrontDistribution UT', () => {
     });
   });
 
+  describe('constructor()', () => {
+    it('should keep the origins of a distribution read back from state', async () => {
+      const lambdaFunction = createLambdaFunction();
+      const distribution = createLambdaDistribution();
+      distribution.addLambdaOrigin('api', new MatchingResource(lambdaFunction));
+
+      const readBack = await CloudFrontDistribution.cloneResource(distribution, async () => lambdaFunction);
+
+      expect(readBack.parents.map((p) => p.getActual())).toEqual([lambdaFunction]);
+    });
+  });
+
   describe('addLambdaOrigin()', () => {
     it('should make the function a parent of the distribution', () => {
       const distribution = createLambdaDistribution();

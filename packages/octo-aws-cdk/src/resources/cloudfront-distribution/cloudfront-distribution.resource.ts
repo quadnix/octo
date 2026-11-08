@@ -106,13 +106,17 @@ export class CloudFrontDistribution extends ATerraformResource<CloudFrontDistrib
   declare response: CloudFrontDistributionSchema['response'];
 
   /**
-   * A distribution is built with no parents. The functions and ALBs it serves are attached later,
-   * with `addLambdaOrigin()` and `addAlbOrigin()`, by the actions that find them.
+   * An action builds a distribution with no parents and attaches the functions and ALBs it serves
+   * with `addLambdaOrigin()` and `addAlbOrigin()`. A distribution read back from state takes them here.
    *
    * @internal
    */
-  constructor(resourceId: string, properties: CloudFrontDistributionSchema['properties']) {
-    super(resourceId, properties, []);
+  constructor(
+    resourceId: string,
+    properties: CloudFrontDistributionSchema['properties'],
+    parents: (MatchingResource<AlbSchema> | MatchingResource<LambdaFunctionSchema>)[] = [],
+  ) {
+    super(resourceId, properties, parents);
 
     this.validateReferences();
   }
