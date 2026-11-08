@@ -1122,13 +1122,6 @@ describe('Main UT', () => {
       ).rejects.toThrow('Store name "com.mons" may hold only letters, digits, "_" and "-"!');
     });
 
-    it('should throw error when a module is loaded already', async () => {
-      testModes['octo']['moduleContainer'].register(ImportedAppModule, { packageName: '@octo' });
-      testModes['octo'].loadModule(ImportedAppModule, 'child-app-module', { name: 'child' });
-
-      await expect(testModes['octo'].readStores([])).rejects.toThrow('Cannot read stores after loading a module!');
-    });
-
     it('should throw error when a store was generated on another version of a package this app uses', async () => {
       testModes['octo'].registerPackageVersions({ '@quadnix/octo': '1.0.0', '@quadnix/store-only': '1.0.0' });
       await generateAndCommitFullGraph();

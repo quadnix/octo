@@ -91,10 +91,6 @@ export class ImportReaderService {
    * Declares every store, each under its name and frozen.
    */
   async readStores(stores: { name: string; stateProvider: IStateProvider }[]): Promise<void> {
-    if (this.moduleContainer.hasLoadedModules()) {
-      throw new ModuleError('Cannot read stores after loading a module!', 'readStores');
-    }
-
     const states: { modelData: ModelSerializedOutput; name: string; resourceData: ResourceSerializedOutput }[] = [];
     for (const { name, stateProvider } of stores) {
       if (!/^[\w-]+$/.test(name)) {
