@@ -643,7 +643,7 @@ export class Octo {
       {
         ...(Object.keys(packageVersions).length > 0 ? { packageVersions } : {}),
         terraformFolders: this.terraformService.getFolderRecords(),
-        version: 1,
+        version: this.stateManagementService.stateVersion,
       },
     );
   }
@@ -671,7 +671,7 @@ export class Octo {
             terraformAddresses: m.terraformAddresses,
           }),
         ),
-        version: 1,
+        version: this.stateManagementService.stateVersion,
       },
     );
 
@@ -680,7 +680,7 @@ export class Octo {
       this.stateManagementService.oldResourceStateFileName,
       oldSerializedOutput,
       {
-        version: 1,
+        version: this.stateManagementService.stateVersion,
       },
     );
   }

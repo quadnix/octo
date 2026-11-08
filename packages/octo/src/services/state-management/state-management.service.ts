@@ -138,6 +138,11 @@ export class StateManagementService {
    */
   readonly oldResourceStateFileName: string = 'resources-old.json';
 
+  /**
+   * The version of the state files this octo writes, and the only one it reads.
+   */
+  readonly stateVersion: number = 1;
+
   private readonly stateProvider: IStateProvider;
 
   /**
@@ -145,6 +150,18 @@ export class StateManagementService {
    */
   constructor(stateProvider: IStateProvider) {
     this.stateProvider = stateProvider;
+  }
+
+  /**
+   * Refuses a state file another version of octo wrote. A file written before versions were recorded
+   * holds none, and is read.
+   *
+   * @internal
+   */
+  assertStateVersion(subject: string, version: number | undefined): void {
+    if (version !== undefined && version !== this.stateVersion) {
+      throw new TransactionError(`${subject} is state version ${version}, this octo reads ${this.stateVersion}!`);
+    }
   }
 
   /**
@@ -189,8 +206,11 @@ export class StateManagementService {
    */
   async getModelState(stateFileName: string, { freeze = true }: { freeze?: boolean } = {}): Promise<ModelStateFile> {
     try {
-      const modelState = await this.getState(stateFileName);
-      return JSON.parse(modelState.toString(), (_k, v) => (v && freeze ? Object.freeze(v) : v));
+      const modelState: ModelStateFile = JSON.parse((await this.getState(stateFileName)).toString(), (_k, v) =>
+        v && freeze ? Object.freeze(v) : v,
+      );
+      this.assertStateVersion(`State "${stateFileName}"`, modelState.userData.version);
+      return modelState;
     } catch (error) {
       if (error.message === 'No state found!') {
         return this.emptyModelState();
@@ -235,8 +255,11 @@ export class StateManagementService {
     { freeze = true }: { freeze?: boolean } = {},
   ): Promise<ResourceStateFile> {
     try {
-      const resourceState = await this.getState(stateFileName);
-      return JSON.parse(resourceState.toString(), (_k, v) => (v && freeze ? Object.freeze(v) : v));
+      const resourceState: ResourceStateFile = JSON.parse((await this.getState(stateFileName)).toString(), (_k, v) =>
+        v && freeze ? Object.freeze(v) : v,
+      );
+      this.assertStateVersion(`State "${stateFileName}"`, resourceState.userData.version);
+      return resourceState;
     } catch (error) {
       if (error.message === 'No state found!') {
         return this.emptyResourceState();

@@ -39,6 +39,20 @@ describe('StateManagementService UT', () => {
     jest.restoreAllMocks();
   });
 
+  describe('getModelState()', () => {
+    it('should throw error when the state was written in another state version', async () => {
+      await service.saveModelState(
+        service.modelStateFileName,
+        { anchors: [], dependencies: [], models: {}, modules: {}, overlays: [] },
+        { version: 2 },
+      );
+
+      await expect(service.getModelState(service.modelStateFileName)).rejects.toThrow(
+        'State "models.json" is state version 2, this octo reads 1!',
+      );
+    });
+  });
+
   describe('getResourceResponse()', () => {
     // The committed graph as `commit` writes it, holding one resource with a response.
     async function commitResourceState(resourceId: string, response: Record<string, string>): Promise<void> {
@@ -125,6 +139,31 @@ describe('StateManagementService UT', () => {
       await service.deleteExternalResourceState('igw-1');
 
       await expect(service.getResourceResponse('igw-1')).resolves.toEqual({ igwId: 'igw-0committed' });
+    });
+  });
+
+  describe('getResourceState()', () => {
+    it('should throw error when the state was written in another state version', async () => {
+      await service.saveResourceState(
+        service.actualResourceStateFileName,
+        { dependencies: [], resources: {} },
+        {
+          version: 2,
+        },
+      );
+
+      await expect(service.getResourceState(service.actualResourceStateFileName)).rejects.toThrow(
+        'State "resources-actual.json" is state version 2, this octo reads 1!',
+      );
+    });
+
+    it('should read a state that records no version', async () => {
+      await service.saveResourceState(service.actualResourceStateFileName, { dependencies: [], resources: {} }, {});
+
+      await expect(service.getResourceState(service.actualResourceStateFileName)).resolves.toEqual({
+        data: { dependencies: [], resources: {} },
+        userData: {},
+      });
     });
   });
 

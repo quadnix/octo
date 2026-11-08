@@ -386,10 +386,14 @@ export class ImportReaderService {
     const importedState =
       this.generatedImports?.[importKey] ?? (await new StateManagementService(stateProvider).getSealedState());
 
-    // A class reads another app's state as its own version saved it, so both must run one version.
+    // A state is read only in this octo's state version.
     const importName = importKey.startsWith('stores:')
       ? `Store "${importKey.slice('stores:'.length)}"`
       : 'Extended state';
+    this.stateManagementService.assertStateVersion(importName, importedState.modelState.userData.version);
+    this.stateManagementService.assertStateVersion(importName, importedState.resourceState.userData.version);
+
+    // A class reads another app's state as its own version saved it, so both must run one version.
     for (const [packageName, version] of Object.entries(importedState.modelState.userData.packageVersions ?? {})) {
       const ownVersion = this.packageVersions[packageName];
       if (ownVersion !== undefined && ownVersion !== version) {

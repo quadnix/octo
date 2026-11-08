@@ -1136,6 +1136,21 @@ describe('Main UT', () => {
       );
     });
 
+    it('should throw error when a store was written in another state version', async () => {
+      await generateAndCommitFullGraph();
+      const storeStateProvider = await copyState(new TestStateProvider());
+      const modelState = JSON.parse((await storeStateProvider.getState('models.json')).toString());
+      modelState.userData.version = 2;
+      await storeStateProvider.saveStates([
+        { data: Buffer.from(JSON.stringify(modelState)), stateFileName: 'models.json' },
+      ]);
+      await bootChild(new TestStateProvider());
+
+      await expect(
+        testModes['octo'].readStores([{ name: 'commons', stateProvider: storeStateProvider }]),
+      ).rejects.toThrow('Store "commons" is state version 2, this octo reads 1!');
+    });
+
     it('should throw error when a store is read twice', async () => {
       const storeStateProvider = await commitStoreState();
 
