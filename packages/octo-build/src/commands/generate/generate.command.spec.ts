@@ -88,10 +88,10 @@ describe('generateCommand UT', () => {
     expect(processExitSpy).not.toHaveBeenCalled();
   });
 
-  it('should boot octo on stdout, unlike run-action', async () => {
+  it("should boot octo on the other apps' newest sealed states, unlike the rest of the run", async () => {
     await generateCommand.handler(argv);
 
-    expect(mockedBootOcto).toHaveBeenCalledWith();
+    expect(mockedBootOcto).toHaveBeenCalledWith({ readImportsAsGenerated: false });
   });
 
   // The listener reports what was written, from `TerraformFoldersWrittenEvent` — it carries the

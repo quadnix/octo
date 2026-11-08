@@ -32,7 +32,7 @@ export const generateCommand = {
       await OctoUtility.bootStateProvider();
       await (await Container.getInstance().get(StateManagementService)).refreshState();
 
-      const { app, octo } = await OctoUtility.bootOcto();
+      const { app, octo } = await OctoUtility.bootOcto({ readImportsAsGenerated: false });
 
       const resolvedOutputDir = resolve(process.cwd(), outputDir);
       await octo.generate(app, { outputDir: resolvedOutputDir });

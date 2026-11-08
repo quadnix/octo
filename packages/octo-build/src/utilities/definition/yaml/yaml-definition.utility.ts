@@ -58,6 +58,7 @@ interface IYamlDefinition {
     )[];
     stateProvider: IYamlStateProvider | { type: 'TestStateProvider' };
   };
+  stores?: { name: string; stateProvider: IYamlStateProvider }[];
   tags: Array<{
     scope?: { moduleId?: string };
     tags: Record<string, unknown>;
@@ -282,6 +283,48 @@ export class YamlDefinitionUtility {
   }
 
   /**
+   * The version of octo, and of every package the definition imports a module from, by package name:
+   * what this app's state is generated on. A path of the app's own is no package, and is left out.
+   */
+  resolvePackageVersions(): { [packageName: string]: string } {
+    const versions: { [packageName: string]: string } = {};
+    const specifiers = ['@quadnix/octo', ...(this.definition.imports ?? []).map((i) => i.importPath)].filter(
+      (specifier) => !specifier.startsWith('.') && !specifier.startsWith('/'),
+    );
+
+    for (const specifier of specifiers) {
+      const packageName = specifier
+        .split('/')
+        .slice(0, specifier.startsWith('@') ? 2 : 1)
+        .join('/');
+      if (packageName in versions) {
+        continue;
+      }
+
+      // The nearest package.json above the file the specifier resolves to that names the package.
+      let directory: string;
+      try {
+        directory = dirname(fileURLToPath(this.resolveImportPath(specifier)));
+      } catch {
+        continue;
+      }
+      while (directory !== dirname(directory)) {
+        const packageJsonPath = join(directory, 'package.json');
+        if (existsSync(packageJsonPath)) {
+          const { name, version } = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+          if (name === packageName) {
+            versions[packageName] = version;
+            break;
+          }
+        }
+        directory = dirname(directory);
+      }
+    }
+
+    return versions;
+  }
+
+  /**
    * How often terraform state is checked into the state provider while a terraform command runs, or
    * `undefined` for the default. Only `RemoteStateProvider` sets it.
    */
@@ -305,6 +348,16 @@ export class YamlDefinitionUtility {
       };
     }
     return { type: this.buildStateProvider(stateProvider) };
+  }
+
+  /**
+   * Builds each store the definition reads, by name, in the order listed.
+   */
+  resolveStores(): { name: string; stateProvider: LocalStateProvider | RemoteStateProvider }[] {
+    return (this.definition.stores ?? []).map(({ name, stateProvider }) => ({
+      name,
+      stateProvider: this.buildStateProvider(stateProvider),
+    }));
   }
 
   /**

@@ -240,6 +240,38 @@ describe('YamlDefinitionUtility UT', () => {
     });
   });
 
+  describe('resolvePackageVersions()', () => {
+    it('should resolve the version of octo and of every package a module is imported from', async () => {
+      const octoPackage = JSON.parse(await readFile(join(__dirname, '../../../../../octo/package.json'), 'utf-8'));
+
+      const versions = new YamlDefinitionUtility(fixture('terraform-minimal-definition.yml')).resolvePackageVersions();
+
+      expect(versions).toEqual({ '@quadnix/octo': octoPackage.version });
+    });
+  });
+
+  describe('resolveStores()', () => {
+    it('should read no store when the definition names none', () => {
+      const definition = new YamlDefinitionUtility(fixture('terraform-minimal-definition.yml'));
+
+      expect(definition.resolveStores()).toEqual([]);
+    });
+
+    it('should resolve each store against the definition file, by name', async () => {
+      const definitionDirectory = await mkdtemp(join(tmpdir(), 'octo-definition-'));
+      const definitionFilePath = join(definitionDirectory, 'octo.yml');
+      const definition = await readFile(fixture('terraform-minimal-definition.yml'), 'utf-8');
+      await writeFile(
+        definitionFilePath,
+        `${definition}\nstores:\n  - name: commons\n    stateProvider:\n      type: LocalStateProvider\n      statePath: ../commons/.octo\n`,
+      );
+
+      const [{ name, stateProvider }] = new YamlDefinitionUtility(definitionFilePath).resolveStores();
+      expect(name).toBe('commons');
+      expect(stateProvider['localStateDirectoryPath']).toBe(join(dirname(definitionDirectory), 'commons', '.octo'));
+    });
+  });
+
   describe('resolveTags()', () => {
     it('should return nothing when the definition declares no "tags" block', () => {
       const definition = new YamlDefinitionUtility(fixture('terraform-minimal-definition.yml'));

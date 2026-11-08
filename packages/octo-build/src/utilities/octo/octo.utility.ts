@@ -20,9 +20,12 @@ import { YamlDefinitionUtility } from '../definition/yaml/yaml-definition.utilit
 export class OctoUtility {
   /**
    * Boots octo with every listener, hook, module and terraform provider the definition lists, on top
-   * of every state it extends, and composes the app. Prints nothing, so stdout carries only the command's own output.
+   * of every state it extends, next to every store it reads, and composes the app. Prints nothing, so stdout carries only the command's own output.
+   *
+   * @param readImportsAsGenerated Whether the other apps are read as this run's `generate` read them,
+   * as every command of a run but `generate` does.
    */
-  static async bootOcto(): Promise<{
+  static async bootOcto({ readImportsAsGenerated = true }: { readImportsAsGenerated?: boolean } = {}): Promise<{
     app: App;
     octo: Octo;
   }> {
@@ -34,6 +37,7 @@ export class OctoUtility {
     const listeners = await definition.resolveListeners();
     const modules = definition.resolveModules(imports);
     const stateProvider = definition.resolveStateProvider();
+    const stores = definition.resolveStores();
     const tags = definition.resolveTags();
     const terraformOptions = definition.resolveTerraformOptions();
 
@@ -65,9 +69,16 @@ export class OctoUtility {
       });
     }
 
-    // Import the states this app extends, then load its own modules on top of them.
+    // Import the states this app extends and read its stores, then load its own modules on top of them.
+    octo.registerPackageVersions(definition.resolvePackageVersions());
+    if (readImportsAsGenerated) {
+      await octo.readImportsAsGenerated();
+    }
     for (const extendedStateProvider of extendedStateProviders) {
-      await octo.importState(extendedStateProvider);
+      await octo.extendState(extendedStateProvider);
+    }
+    if (stores.length > 0) {
+      await octo.readStores(stores);
     }
     for (const moduleDefinition of modules) {
       octo.loadModule(moduleDefinition.moduleClass, moduleDefinition.moduleId, moduleDefinition.moduleInputs);
