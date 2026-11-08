@@ -632,6 +632,39 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
   }
 
   /**
+   * Moves this resource off `parent` onto `replacement`, another object of the same resource, keeping
+   * the parent's place among the parents and the behaviors between the two.
+   *
+   * @internal
+   */
+  replaceParent(parent: UnknownResource, replacement: UnknownResource): void {
+    const index = this.parents.findIndex((p) => (p instanceof MatchingResource ? p.getActual() : p) === parent);
+    const existing = this.parents[index];
+    const childToParentBehaviors = this.getDependency(parent, DependencyRelationship.CHILD)!.synth().behaviors;
+    const parentToChildBehaviors = parent.getDependency(this, DependencyRelationship.PARENT)!.synth().behaviors;
+
+    // Unlink the old parent.
+    this.removeRelationship(parent);
+    this.parents.splice(index, 1);
+
+    // Link the replacement where the old parent stood.
+    const replacementMatching =
+      existing instanceof MatchingResource ? new MatchingResource(replacement, existing.schemaTranslator) : replacement;
+    const { childToParentDependency, parentToChildDependency } = replacementMatching.addChild(
+      'resourceId',
+      this,
+      'resourceId',
+    );
+    this.parents.splice(index, 0, this.parents.pop()!);
+    for (const b of childToParentBehaviors) {
+      childToParentDependency.addBehavior(b.onField, b.onAction as DiffAction, b.toField, b.forAction as DiffAction);
+    }
+    for (const b of parentToChildBehaviors) {
+      parentToChildDependency.addBehavior(b.onField, b.onAction as DiffAction, b.toField, b.forAction as DiffAction);
+    }
+  }
+
+  /**
    * @internal
    */
   override setContext(): string {

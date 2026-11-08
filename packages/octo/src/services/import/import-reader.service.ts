@@ -1,4 +1,10 @@
-import type { ModelSerializedOutput, ResourceSerializedOutput, UnknownModel, UnknownOverlay } from '../../app.type.js';
+import {
+  MatchingResource,
+  type ModelSerializedOutput,
+  type ResourceSerializedOutput,
+  type UnknownModel,
+  type UnknownOverlay,
+} from '../../app.type.js';
 import { Factory } from '../../decorators/factory.decorator.js';
 import { ModuleError } from '../../errors/index.js';
 import { Container } from '../../functions/container/container.js';
@@ -346,6 +352,16 @@ export class ImportReaderService {
     await this.replaceImportedResourceState();
 
     const resources = await this.resourceSerializationService.deserializeImported(resourceData, declaredResources);
+
+    // A resource declared before stood on its state's copy of a resource only now read; move it onto this one.
+    for (const declaredResource of Object.values(declaredResources)) {
+      for (const parent of declaredResource.parents.map((p) => (p instanceof MatchingResource ? p.getActual() : p))) {
+        const replacement = resources[parent.getContext()];
+        if (replacement && replacement !== parent) {
+          declaredResource.replaceParent(parent, replacement);
+        }
+      }
+    }
     for (const [context, { createdBy, models: modelContexts, moduleId }] of Object.entries(resourceData.resources)) {
       const resource = resources[context];
       this.resourceDataRepository.addNewResource(resource);

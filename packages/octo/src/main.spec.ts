@@ -1398,9 +1398,8 @@ describe('Main UT', () => {
       expect(Object.keys(sgChild.getParents())).toEqual(['external-igw']);
 
       await testModes['octo'].readStores([{ name: 'commons', stateProvider: storeStateProvider }]);
-      expect(Object.values(sgChild.getParents()).map(([p]) => p.to.getContext())).toEqual([
-        getStoreResource('igw-1').getContext(),
-      ]);
+      expect(Object.values(sgChild.getParents()).map(([p]) => p.to)).toEqual([getStoreResource('igw-1')]);
+      expect(sgChild.parents[0]).toBe(getStoreResource('igw-1'));
     });
 
     it("should build a store's link into a state this app does not read on the store's copy", async () => {
