@@ -1,4 +1,4 @@
-import type { UnknownModel, UnknownModule, UnknownOverlay, UnknownResource } from '../../app.type.js';
+import type { UnknownModel, UnknownModule, UnknownNode, UnknownOverlay, UnknownResource } from '../../app.type.js';
 import { Factory } from '../../decorators/factory.decorator.js';
 import { InputRegistrationError, InputResolutionError } from '../../errors/index.js';
 import { Container } from '../../functions/container/container.js';
@@ -6,6 +6,7 @@ import type { ANode } from '../../functions/node/node.abstract.js';
 import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
 import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
 import { ObjectUtility } from '../../utilities/object/object.utility.js';
+import { ImportService } from '../import/import.service.js';
 
 /**
  * @internal
@@ -35,6 +36,7 @@ export class InputService {
    * @internal
    */
   constructor(
+    private readonly importService: ImportService,
     private readonly overlayDataRepository: OverlayDataRepository,
     private readonly resourceDataRepository: ResourceDataRepository,
   ) {}
@@ -78,6 +80,15 @@ export class InputService {
    */
   getMetadataKeys(moduleId: string): string[] {
     return Object.keys(this.metadata).filter((key) => key.startsWith(`${moduleId}.metadata`));
+  }
+
+  /**
+   * Every model registered, each once.
+   *
+   * @internal
+   */
+  getModels(): UnknownModel[] {
+    return [...new Set(Object.values(this.models))];
   }
 
   /**
@@ -138,12 +149,15 @@ export class InputService {
   }
 
   /**
-   * Returns the root model of the graph - the one and only `App` registered by any module.
+   * Returns the root model of the graph - the one and only `App` registered by any module. A store's
+   * app is never the root.
    */
   getRootModel(): UnknownModel {
-    const matches = Object.entries(this.models).filter(
+    const apps = Object.entries(this.models).filter(
       ([, model]) => (model.constructor as typeof ANode).NODE_NAME === 'app',
     );
+    const storeApps = apps.filter(([key]) => this.importService.isStoreModule(key.split('.')[0]));
+    const matches = apps.filter((app) => !storeApps.includes(app));
 
     const distinct: [string, UnknownModel][] = [];
     for (const match of matches) {
@@ -161,7 +175,6 @@ export class InputService {
         'model.app',
       );
     }
-
     return distinct[0][1];
   }
 
@@ -199,6 +212,17 @@ export class InputService {
     if (Object.prototype.hasOwnProperty.call(this.models, modelKey)) {
       throw new InputRegistrationError('Model has already been registered!', modelKey);
     }
+
+    // Two nodes of one context would be one node to every lookup, such as an app named after a store's.
+    const context = model.getContext();
+    const [existingKey] = Object.entries(this.models).find(([, m]) => m !== model && m.getContext() === context) ?? [];
+    if (existingKey !== undefined) {
+      throw new InputRegistrationError(
+        `Model "${context}" of module "${moduleId}" is already declared by module "${existingKey.split('.')[0]}"!`,
+        modelKey,
+      );
+    }
+
     this.models[modelKey] = model;
   }
 
@@ -350,6 +374,7 @@ export class InputService {
         if (!model) {
           return undefined;
         }
+        this.refuseUnloadedNode(model, key);
         return this.resolveObjectPath(model, keyParts.slice(3).join('.'));
       }
       case 'overlay': {
@@ -358,6 +383,7 @@ export class InputService {
         if (!overlay) {
           return undefined;
         }
+        this.refuseUnloadedNode(overlay, key);
         return this.resolveObjectPath(overlay, keyParts.slice(3).join('.'));
       }
       case 'resource': {
@@ -425,6 +451,16 @@ export class InputService {
    */
   private refuseMissingReference(reference: string, inputKey: string): never {
     throw new InputResolutionError(`Input "${inputKey}" refers to "${reference}", which does not exist!`, inputKey);
+  }
+
+  /**
+   * Refuses a stand-in for a class this app does not import, since a module cannot use one.
+   */
+  private refuseUnloadedNode(node: UnknownNode, key: string): void {
+    const className = (node.constructor as { UNLOADED_CLASS_NAME?: string }).UNLOADED_CLASS_NAME;
+    if (className !== undefined) {
+      throw new InputResolutionError(`"${key}" is a "${className}", which this app does not import!`, key);
+    }
   }
 
   /**
@@ -503,11 +539,12 @@ export class InputServiceFactory {
    * @internal
    */
   static async create(forceNew: boolean = false): Promise<InputService> {
+    const importService = await Container.getInstance().get(ImportService);
     const overlayDataRepository = await Container.getInstance().get(OverlayDataRepository);
     const resourceDataRepository = await Container.getInstance().get(ResourceDataRepository);
 
     if (!this.instance) {
-      this.instance = new InputService(overlayDataRepository, resourceDataRepository);
+      this.instance = new InputService(importService, overlayDataRepository, resourceDataRepository);
     }
 
     if (forceNew) {

@@ -152,7 +152,11 @@ export class TestContainer {
       container.unRegisterFactory(ModelSerializationService);
       container.registerValue(ModelSerializationService, modelSerializationService);
 
-      const resourceSerializationService = new ResourceSerializationService(resourceDataRepository, inputService);
+      const resourceSerializationService = new ResourceSerializationService(
+        resourceDataRepository,
+        importService,
+        inputService,
+      );
       container.unRegisterFactory(ResourceSerializationService);
       container.registerValue(ResourceSerializationService, resourceSerializationService);
 

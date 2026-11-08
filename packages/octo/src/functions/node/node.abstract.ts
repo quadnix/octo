@@ -75,6 +75,13 @@ export abstract class ANode<S, T> implements INode<S, T> {
     child: UnknownNode,
     toField: string,
   ): { childToParentDependency: Dependency; parentToChildDependency: Dependency } {
+    // A node of a store is frozen.
+    for (const node of [this, child]) {
+      if (Object.isFrozen(node)) {
+        throw new NodeError(`Cannot add to read-only node "${node.getContext()}"!`, node);
+      }
+    }
+
     const cIndex = child.dependencies
       .filter((d) => d.isChildRelationship())
       .findIndex((d) => {
@@ -178,6 +185,10 @@ export abstract class ANode<S, T> implements INode<S, T> {
    * @internal
    */
   addRelationship(to: UnknownNode): { thisToThatDependency: Dependency } {
+    if (Object.isFrozen(this)) {
+      throw new NodeError(`Cannot add to read-only node "${this.getContext()}"!`, this);
+    }
+
     const index = this.dependencies.findIndex((d) => {
       try {
         d.to.getContext();
@@ -241,6 +252,8 @@ export abstract class ANode<S, T> implements INode<S, T> {
    * @internal
    */
   getBoundaryMembers(): UnknownNode[] {
+    // A store's nodes are frozen, and a graph of their own, so this node's boundary never crosses into one.
+    const isSameGraph = (node: UnknownNode): boolean => Object.isFrozen(node) === Object.isFrozen(this);
     const extenders: { descend: boolean; node: UnknownNode }[] = [{ descend: true, node: this }];
     const members: UnknownNode[] = [];
     const parentOf: { [key: string]: string[] } = {};
@@ -248,7 +261,7 @@ export abstract class ANode<S, T> implements INode<S, T> {
     const walked: { [key: string]: boolean | undefined } = {};
 
     const pushToExtenders = (nodes: UnknownNode[], descend: boolean): void => {
-      nodes.forEach((node) => {
+      nodes.filter(isSameGraph).forEach((node) => {
         const context = node.getContext();
         if ((descend && walked[context] === false) || !members.some((m) => m.getContext() === context)) {
           extenders.push({ descend, node });
@@ -266,7 +279,7 @@ export abstract class ANode<S, T> implements INode<S, T> {
 
       const ancestors = node.getAncestors();
 
-      for (const ancestor of ancestors) {
+      for (const ancestor of ancestors.filter(isSameGraph)) {
         // Skip processing an already processed ancestor.
         if (members.some((m) => m.getContext() === ancestor.getContext())) {
           continue;

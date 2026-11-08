@@ -2,12 +2,9 @@ import { strict as assert } from 'assert';
 import type {
   Constructable,
   ModuleSchemaInputs,
-  ResourceSerializedOutput,
   TerraformFolderOutput,
   TerraformResourceOutput,
-  UnknownModel,
   UnknownModule,
-  UnknownOverlay,
   UnknownResource,
 } from './app.type.js';
 import { EnableHook } from './decorators/enable-hook.decorator.js';
@@ -31,9 +28,8 @@ import { generate as runGenerate } from './modes/generate.mode.js';
 import { runAction as runRunAction } from './modes/run-action.mode.js';
 import { type TerraformPlan, validate as runValidate } from './modes/validate.mode.js';
 import { ModuleContainer } from './modules/module.container.js';
-import { OverlayDataRepository } from './overlays/overlay-data.repository.js';
-import { ResourceDataRepository } from './resources/resource-data.repository.js';
 import { EventService } from './services/event/event.service.js';
+import { ImportReaderService, type ImportReaderServiceFactory } from './services/import/import-reader.service.js';
 import { ImportService } from './services/import/import.service.js';
 import { InputService } from './services/input/input.service.js';
 import { SchemaTranslationService } from './services/schema-translation/schema-translation.service.js';
@@ -81,6 +77,7 @@ import { TerraformService } from './services/terraform/terraform.service.js';
  */
 export class Octo {
   private eventService: EventService;
+  private importReaderService: ImportReaderService;
   private importService: ImportService;
   private inputService: InputService;
   private modelSerializationService: ModelSerializationService;
@@ -165,6 +162,25 @@ export class Octo {
   }
 
   /**
+   * To build this app on top of another app's state, without ever changing it.
+   *
+   * Every model, overlay and resource the other app recorded is declared here under the module that
+   * recorded it, as a test declares what already exists, so this app's modules reference them as if
+   * they were declared alongside them. Nothing of the other app runs: its nodes take no action, its
+   * resources render no terraform, and a reference to one reads the response that app committed. Every
+   * class its state names must be loaded. Call it after {@link Octo.initialize} and before loading this
+   * app's own modules.
+   *
+   * @param stateProvider Where the other app's state is read from: its newest sealed state, never a run
+   * still under way. This app writes none of its own state there.
+   * @throws {@link ModuleError} When the newest sealed state holds no models, or nothing is sealed yet.
+   * @throws {@link NodeUnsynthError} When a class the state names is not loaded.
+   */
+  async extendState(stateProvider: IStateProvider): Promise<void> {
+    await this.importReaderService.extendState(stateProvider);
+  }
+
+  /**
    * The first step of the lifecycle - writes the terragrunt module folders for the infrastructure you
    * described, one folder per module, and saves the model state.
    *
@@ -233,6 +249,7 @@ export class Octo {
       );
 
       await this.saveModelState(app);
+      await this.importReaderService.saveImportState();
       return resourceDiffs;
     });
   }
@@ -261,74 +278,6 @@ export class Octo {
    */
   getRootModel(): App {
     return this.inputService.getRootModel() as App;
-  }
-
-  /**
-   * To build this app on top of another app's state, without ever changing it.
-   *
-   * Every model, overlay and resource the other app recorded is declared here under the module that
-   * recorded it, as a test declares what already exists, so this app's modules reference them as if
-   * they were declared alongside them. Nothing of the other app runs: its nodes take no action, its
-   * resources render no terraform, and a reference to one reads the response that app committed. Every
-   * class its state names must be loaded. Call it after {@link Octo.initialize} and before loading this
-   * app's own modules.
-   *
-   * @param stateProvider Where the other app's state is read from: its newest sealed state, never a run
-   * still under way. This app writes none of its own state there.
-   * @throws {@link ModuleError} When the newest sealed state holds no models, or nothing is sealed yet.
-   * @throws {@link NodeUnsynthError} When a class the state names is not loaded.
-   */
-  async importState(stateProvider: IStateProvider): Promise<void> {
-    const container = Container.getInstance();
-    const [overlayDataRepository, resourceDataRepository] = await Promise.all([
-      container.get(OverlayDataRepository),
-      container.get(ResourceDataRepository),
-    ]);
-
-    const importedState = new StateManagementService(stateProvider);
-    const {
-      modelState: { data: modelData },
-      resourceState: { data: resourceData },
-    } = await importedState.getSealedState();
-    if (Object.keys(modelData.models).length === 0) {
-      throw new ModuleError('Cannot import a state that has sealed no models!', 'importState');
-    }
-
-    // Declare the models and overlays under the modules that recorded them.
-    const { models, overlays } = await this.modelSerializationService.deserializeImported(modelData);
-    for (const [context, { moduleId }] of Object.entries(modelData.models)) {
-      this.inputService.registerModel(moduleId, models[context]);
-    }
-    for (const { context, moduleId } of modelData.overlays) {
-      const overlay = overlays.find((o) => o.getContext() === context)!;
-      overlayDataRepository.add(overlay);
-      this.inputService.registerOverlay(moduleId, overlay);
-    }
-
-    // Declare the resources as the other app committed them.
-    this.importService.registerImport(
-      [
-        ...Object.values(modelData.models).map((m) => m.moduleId),
-        ...modelData.overlays.map((o) => o.moduleId),
-        ...Object.values(resourceData.resources).map((r) => r.moduleId),
-      ],
-      modelData.modules,
-    );
-    await this.replaceImportedResourceState(resourceData);
-    const resources = await this.resourceSerializationService.deserializeImported(resourceData);
-    for (const [context, { createdBy, models: modelContexts, moduleId }] of Object.entries(resourceData.resources)) {
-      const resource = resources[context];
-      resourceDataRepository.addNewResource(resource);
-
-      const getNode = (c: string): UnknownModel | UnknownOverlay | undefined =>
-        models[c] ?? overlays.find((o) => o.getContext() === c);
-      this.inputService.registerResource(moduleId, resource, createdBy === undefined ? undefined : getNode(createdBy));
-      for (const node of modelContexts.map(getNode)) {
-        if (node) {
-          this.inputService.registerResourceModel(resource, node);
-        }
-      }
-    }
   }
 
   /**
@@ -376,6 +325,11 @@ export class Octo {
       }),
       container.get(TerraformService),
     ]);
+    // Built once the state provider is, since it reads this app's state through it.
+    this.importReaderService = await container.get<ImportReaderService, typeof ImportReaderServiceFactory>(
+      ImportReaderService,
+      { args: [true] },
+    );
 
     for (const exclude of excludeInContainer) {
       container.unRegisterFactory(exclude.type);
@@ -388,7 +342,7 @@ export class Octo {
     await container.waitToResolveAllFactories();
 
     // Reset the runtime environment with the latest state.
-    await this.retrieveResourceState();
+    await this.importReaderService.retrieveResourceState();
   }
 
   /**
@@ -400,13 +354,16 @@ export class Octo {
    * @param module The module class, or its registered name.
    * @param moduleId A unique ID for this instance of the module.
    * @param inputs The inputs, matching the module's schema.
-   * @throws {@link ModuleError} When an imported state already uses the module ID.
+   * @throws {@link ModuleError} When the module ID holds `:`, or an imported state already uses it.
    */
   loadModule<M extends UnknownModule>(
     module: Constructable<M> | string,
     moduleId: string,
     inputs: ModuleSchemaInputs<M>,
   ): void {
+    if (moduleId.includes(':')) {
+      throw new ModuleError(`Module id "${moduleId}" may not hold ":", which names a store!`, moduleId);
+    }
     if (this.importService.isImportedModule(moduleId)) {
       throw new ModuleError(`Module id "${moduleId}" is already in use!`, moduleId);
     }
@@ -424,6 +381,37 @@ export class Octo {
   }
 
   /**
+   * To read every state this app extends and every store as this run's `generate` read them, so the
+   * commands of one run see one version of each other app. Call it before {@link Octo.extendState}
+   * and {@link Octo.readStores} in every command of a run but `generate`. An import that `generate`
+   * did not read is read from its newest sealed state.
+   */
+  async readImportsAsGenerated(): Promise<void> {
+    await this.importReaderService.readImportsAsGenerated();
+  }
+
+  /**
+   * To read other apps' states as stores, each a graph of its own that this app builds next to, never on.
+   *
+   * A store's models, overlays and resources are declared under its name, so a module input takes one
+   * as `${{<name>:<moduleId>.model.<node>}}` and walks from it as from any other. A store is read-only:
+   * nothing of it runs, renders terraform or is saved here, and adding a child or a link to one of its
+   * nodes fails. This app keeps an app of its own, and saves its own links to a store's resources but
+   * never its links to a store's models. A link a store holds into a state not read here is dropped.
+   * Every class a store names must be loaded. Call it once, with every store, after
+   * {@link Octo.initialize} and before loading this app's own modules.
+   *
+   * @param stores Each store's name, and where its newest sealed state is read from. This app writes
+   * none of its own state there.
+   * @throws {@link ModuleError} When a name repeats or holds more than letters, digits, `_` and `-`,
+   * when a store has sealed no models, or when two stores hold the same node.
+   * @throws {@link NodeUnsynthError} When a class a store names is not loaded.
+   */
+  async readStores(stores: { name: string; stateProvider: IStateProvider }[]): Promise<void> {
+    await this.importReaderService.readStores(stores);
+  }
+
+  /**
    * To register callbacks that run at fixed points of the lifecycle. Use them to inject behavior -
    * an audit trail, an approval gate - without modifying the framework.
    *
@@ -436,6 +424,17 @@ export class Octo {
    */
   registerHooks(...args: Parameters<ModuleContainer['registerHooks']>): ReturnType<ModuleContainer['registerHooks']> {
     this.moduleContainer.registerHooks(...args);
+  }
+
+  /**
+   * To record the version of each package this app's classes come from, octo's included, in its
+   * state. A state this app extends, or a store it reads, generated on another version of a package
+   * both use, is refused: its classes may read the other's state wrongly.
+   */
+  registerPackageVersions(
+    ...args: Parameters<ImportReaderService['registerPackageVersions']>
+  ): ReturnType<ImportReaderService['registerPackageVersions']> {
+    this.importReaderService.registerPackageVersions(...args);
   }
 
   /**
@@ -590,47 +589,7 @@ export class Octo {
     await this.saveResourceState();
 
     // Reset the runtime environment with the latest state.
-    await this.retrieveResourceState();
-  }
-
-  /**
-   * Replaces this app's committed copies of the imported resources with the imported state's own, in
-   * both the actual and the old resource state, so an imported resource never differs from its copy.
-   *
-   * @internal
-   */
-  private async replaceImportedResourceState(importedData: ResourceSerializedOutput): Promise<void> {
-    const replace = ({ dependencies, resources }: ResourceSerializedOutput): ResourceSerializedOutput => {
-      const ownResources = Object.fromEntries(
-        Object.entries(resources).filter(([, { moduleId }]) => !this.importService.isImportedModule(moduleId)),
-      );
-      return { dependencies, resources: { ...ownResources, ...importedData.resources } };
-    };
-
-    const [{ data: actualData }, { data: oldData }] = await Promise.all([
-      this.stateManagementService.getResourceState(this.stateManagementService.actualResourceStateFileName),
-      this.stateManagementService.getResourceState(this.stateManagementService.oldResourceStateFileName),
-    ]);
-    await this.resourceSerializationService.deserialize(replace(actualData), replace(oldData));
-  }
-
-  /**
-   * This function deserializes the resource state in memory.
-   * It deserializes the actual resource state into actual resources,
-   * and the last resource state into old resources.
-   *
-   * @internal
-   */
-  private async retrieveResourceState(): Promise<void> {
-    const { data: actualSerializedOutput } = await this.stateManagementService.getResourceState(
-      this.stateManagementService.actualResourceStateFileName,
-    );
-    const { data: oldSerializedOutput } = await this.stateManagementService.getResourceState(
-      this.stateManagementService.oldResourceStateFileName,
-    );
-
-    // Initialize previous resource state.
-    await this.resourceSerializationService.deserialize(actualSerializedOutput, oldSerializedOutput);
+    await this.importReaderService.retrieveResourceState();
   }
 
   /**
@@ -677,10 +636,12 @@ export class Octo {
    */
   private async saveModelState(app: App): Promise<void> {
     const modelSerializedOutput = await this.modelSerializationService.serialize(app);
+    const packageVersions = this.importReaderService.getPackageVersions();
     await this.stateManagementService.saveModelState(
       this.stateManagementService.modelStateFileName,
       modelSerializedOutput,
       {
+        ...(Object.keys(packageVersions).length > 0 ? { packageVersions } : {}),
         terraformFolders: this.terraformService.getFolderRecords(),
         version: 1,
       },

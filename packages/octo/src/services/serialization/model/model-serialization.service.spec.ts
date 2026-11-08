@@ -403,7 +403,7 @@ describe('Model Serialization Service UT', () => {
         moduleId: 'app-module',
         type: TestAppModule,
       });
-      (await container.get(ImportService)).registerImport([], {
+      (await container.get(ImportService)).registerExtendedState([], {
         'parent-module': { className: '@octo/ParentModule', inputs: { name: 'parent' } },
       });
 

@@ -210,8 +210,9 @@ export class TransactionService {
         this.inputService.getModuleIdFromResource(resource) ??
         this.resourceSerializationService.getActualResourceModuleId(resource);
       if (this.importService.isImportedModule(moduleId)) {
+        const source = this.importService.isStoreModule(moduleId) ? 'a store' : 'an extended state';
         throw new TransactionError(
-          `Resource "${resource.getContext()}" belongs to module "${moduleId}" of an extended state; change it in that app!`,
+          `Resource "${resource.getContext()}" belongs to module "${moduleId}" of ${source}; change it in that app!`,
         );
       }
     }

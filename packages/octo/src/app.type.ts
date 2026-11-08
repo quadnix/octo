@@ -387,10 +387,14 @@ export type ResourceSerializedSchema = {
  * The resource graph as written to `resources-actual.json` and `resources-old.json`.
  * * `createdBy` is the context of the model or overlay whose action created the resource.
  * * `models` record the context of every model and overlay whose action produced the resource.
+ * * `copiedResources` holds a copy of every resource of another app that this app's resources stand
+ * on, such as a store's, and of their parents in turn, as this app last saw them. They rebuild this app's resources, and are never
+ * this app's own.
  *
  * @group Types
  */
 export type ResourceSerializedOutput = {
+  copiedResources?: ResourceSerializedOutput['resources'];
   dependencies: IDependency[];
   resources: {
     [context: string]: {

@@ -4,6 +4,7 @@ export type { DiffAction } from './functions/diff/diff.js';
 export type { ServiceType } from './models/service/service.schema.js';
 export type {
   ExternalResourceStateFile,
+  ImportStateFile,
   ModelStateFile,
   ResourceStateFile,
 } from './services/state-management/state-management.service.js';

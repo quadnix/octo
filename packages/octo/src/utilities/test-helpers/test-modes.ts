@@ -22,6 +22,7 @@ import { ResourceDataRepository } from '../../resources/resource-data.repository
 import { AResource } from '../../resources/resource.abstract.js';
 import type { BaseResourceSchema } from '../../resources/resource.schema.js';
 import { ATerraformResource } from '../../resources/terraform-resource.abstract.js';
+import { ResourceSerializationService } from '../../services/serialization/resource/resource-serialization.service.js';
 import { StateManagementService } from '../../services/state-management/state-management.service.js';
 import { TestStateProvider } from '../../services/state-management/test.state-provider.js';
 import { type TerraformModuleScope, TerraformService } from '../../services/terraform/terraform.service.js';
@@ -280,7 +281,7 @@ export class TestModes {
   /**
    * @internal
    */
-  static async create(): Promise<TestModes> {
+  static async create({ stateProvider }: { stateProvider?: TestStateProvider } = {}): Promise<TestModes> {
     const container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500, force: true });
 
     const [resourceDataRepository, terraformService, transactionService] = await Promise.all([
@@ -289,8 +290,16 @@ export class TestModes {
       container.get(TransactionService),
     ]);
 
+    // A state carried over from an earlier process names these classes as soon as octo boots on it.
+    if (stateProvider) {
+      const resourceSerializationService = await container.get(ResourceSerializationService);
+      for (const resourceClass of [ExternalIgwResource, TfSgResource, TfVpcResource]) {
+        resourceSerializationService.registerClass(`@octo/${resourceClass.name}`, resourceClass);
+      }
+    }
+
     const testModuleContainer = new TestModuleContainer(container);
-    await testModuleContainer.initialize(new TestStateProvider());
+    await testModuleContainer.initialize(stateProvider ?? new TestStateProvider());
 
     const stateManagementService = await container.get(StateManagementService);
 

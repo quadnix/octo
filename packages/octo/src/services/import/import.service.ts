@@ -2,49 +2,95 @@ import type { ModelSerializedOutput } from '../../app.type.js';
 import { Factory } from '../../decorators/factory.decorator.js';
 
 /**
- * The modules this app took from the states it extends. Their models, overlays and resources are
- * declared as the other app committed them: nothing of theirs runs, renders terraform, or changes here.
+ * What one state this app read brings: every module its models, overlays and resources name, and the
+ * record of each module it ran.
+ */
+interface IImportedState {
+  moduleIds: Set<string>;
+  modules: ModelSerializedOutput['modules'];
+}
+
+/**
+ * The modules this app took from the states it extends and the stores it reads. Their models, overlays
+ * and resources are declared as the other app committed them: nothing of theirs runs, renders
+ * terraform, or changes here.
  *
  * @internal
  */
 export class ImportService {
-  private readonly moduleIds: Set<string> = new Set();
+  private readonly extendedStates: IImportedState[] = [];
 
-  private readonly modules: ModelSerializedOutput['modules'] = {};
+  private readonly stores: Map<string, IImportedState> = new Map();
 
   /**
-   * Every imported module, by module id, as the state it came from records it.
+   * Every module of every extended state, by module id, as that state records it.
    */
-  getModules(): ModelSerializedOutput['modules'] {
-    return { ...this.modules };
+  getExtendedModules(): ModelSerializedOutput['modules'] {
+    return Object.assign({}, ...this.extendedStates.map((s) => s.modules));
   }
 
   /**
-   * Whether a module was imported rather than declared by this app.
+   * Every module of every store, by module id, as that store records it.
+   */
+  getStoreModules(): ModelSerializedOutput['modules'] {
+    return Object.assign({}, ...[...this.stores.values()].map((s) => s.modules));
+  }
+
+  /**
+   * The name of the store a module came from.
+   */
+  getStoreName(moduleId: string | undefined): string | undefined {
+    return [...this.stores].find(([, s]) => moduleId !== undefined && s.moduleIds.has(moduleId))?.[0];
+  }
+
+  /**
+   * Whether a store of this name is read.
+   */
+  hasStore(name: string): boolean {
+    return this.stores.has(name);
+  }
+
+  /**
+   * Whether a module came from a state this app extends.
+   */
+  isExtendedModule(moduleId: string | undefined): boolean {
+    return moduleId !== undefined && this.extendedStates.some((s) => s.moduleIds.has(moduleId));
+  }
+
+  /**
+   * Whether a module came from a state this app extends or a store it reads, rather than from this app.
    */
   isImportedModule(moduleId: string | undefined): boolean {
-    return moduleId !== undefined && this.moduleIds.has(moduleId);
+    return this.isExtendedModule(moduleId) || this.isStoreModule(moduleId);
   }
 
   /**
-   * Records the modules of one imported state: every module a node of it names, and the record of
-   * each module it ran.
+   * Whether a module came from a store.
    */
-  registerImport(moduleIds: string[], modules: ModelSerializedOutput['modules']): void {
-    for (const moduleId of [...moduleIds, ...Object.keys(modules)]) {
-      this.moduleIds.add(moduleId);
-    }
-    Object.assign(this.modules, modules);
+  isStoreModule(moduleId: string | undefined): boolean {
+    return this.getStoreName(moduleId) !== undefined;
+  }
+
+  /**
+   * Records one state this app extends.
+   */
+  registerExtendedState(moduleIds: string[], modules: ModelSerializedOutput['modules']): void {
+    this.extendedStates.push({ moduleIds: new Set([...moduleIds, ...Object.keys(modules)]), modules });
+  }
+
+  /**
+   * Records one store, its module ids already named under the store.
+   */
+  registerStore(name: string, moduleIds: string[], modules: ModelSerializedOutput['modules']): void {
+    this.stores.set(name, { moduleIds: new Set([...moduleIds, ...Object.keys(modules)]), modules });
   }
 
   /**
    * Forgets every import.
    */
   reset(): void {
-    this.moduleIds.clear();
-    for (const moduleId of Object.keys(this.modules)) {
-      delete this.modules[moduleId];
-    }
+    this.extendedStates.splice(0);
+    this.stores.clear();
   }
 }
 

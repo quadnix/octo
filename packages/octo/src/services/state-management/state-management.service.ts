@@ -29,6 +29,7 @@ import {
  * @group Services/State Management
  */
 export type ModelStateUserData = {
+  packageVersions?: { [packageName: string]: string };
   terraformFolders?: TerraformFolderOutput[];
   version?: number;
 };
@@ -64,6 +65,17 @@ export type ModelStateFile = {
 export type ResourceStateFile = {
   data: ResourceSerializedOutput;
   userData: ResourceStateUserData;
+};
+
+/**
+ * `imports.json`: the sealed state of each app this one extends (`extends:<index>`) and each store it
+ * reads (`stores:<name>`), as the last `generate` read them, so every later command of the run reads
+ * the same.
+ *
+ * @group Services/State Management
+ */
+export type ImportStateFile = {
+  [importKey: string]: { modelState: ModelStateFile; resourceState: ResourceStateFile };
 };
 
 /**
@@ -112,6 +124,11 @@ export class StateManagementService {
   readonly externalResourceStateFileNamePrefix: string = 'resource-state-';
 
   /**
+   * The other apps' sealed states the last `generate` read.
+   */
+  readonly importStateFileName: string = 'imports.json';
+
+  /**
    * The model graph as it stands after the last commit.
    */
   readonly modelStateFileName: string = 'models.json';
@@ -155,6 +172,16 @@ export class StateManagementService {
   async getExternalResourceState(resourceId: string): Promise<ExternalResourceStateFile | undefined> {
     const recordedState = await this.getState(this.externalResourceStateFileName(resourceId), Buffer.from(''));
     return recordedState.length > 0 ? JSON.parse(recordedState.toString()) : undefined;
+  }
+
+  /**
+   * The other apps' sealed states the last `generate` read, or `undefined` before any has.
+   *
+   * @internal
+   */
+  async getImportState(): Promise<ImportStateFile | undefined> {
+    const importState = await this.getState(this.importStateFileName, Buffer.from(''));
+    return importState.length > 0 ? JSON.parse(importState.toString()) : undefined;
   }
 
   /**
@@ -372,6 +399,17 @@ export class StateManagementService {
   async saveExternalResourceState(resourceId: string, state: ExternalResourceStateFile): Promise<void> {
     await this.saveStates([
       { data: Buffer.from(JSON.stringify(state)), stateFileName: this.externalResourceStateFileName(resourceId) },
+    ]);
+  }
+
+  /**
+   * Records the other apps' sealed states this `generate` read.
+   *
+   * @internal
+   */
+  async saveImportState(importState: ImportStateFile): Promise<void> {
+    await this.saveStates([
+      { data: Buffer.from(JSON.stringify(importState)), stateFileName: this.importStateFileName },
     ]);
   }
 

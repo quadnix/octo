@@ -2,10 +2,12 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'path';
 import { jest } from '@jest/globals';
-import type { UnknownResource } from './app.type.js';
+import { type UnknownResource, stub } from './app.type.js';
 import { Resource } from './decorators/resource.decorator.js';
 import { Container } from './functions/container/container.js';
 import { Schema } from './functions/schema/schema.js';
+import { Account } from './models/account/account.model.js';
+import { AccountType } from './models/account/account.schema.js';
 import { App } from './models/app/app.model.js';
 import { AModule } from './modules/module.abstract.js';
 import { BaseResourceSchema } from './resources/resource.schema.js';
@@ -17,7 +19,7 @@ import type { IStateProvider } from './services/state-management/state-provider.
 import { TestStateProvider } from './services/state-management/test.state-provider.js';
 import type { TerraformModuleScope } from './services/terraform/terraform.service.js';
 import { TransactionService } from './services/transaction/transaction.service.js';
-import { TestResourceAction } from './utilities/test-helpers/test-classes.js';
+import { TestAnchor, TestResourceAction } from './utilities/test-helpers/test-classes.js';
 import { ExternalIgwResource, TestModes, TfSgResource, TfVpcResource } from './utilities/test-helpers/test-modes.js';
 
 /**
@@ -62,6 +64,24 @@ class ImportedAppModule extends AModule<ImportedAppModuleSchema, App> {
   }
 }
 
+/**
+ * An account module a store declares, taking its app by reference.
+ */
+class ImportedAccountModuleSchema {
+  accountId = Schema<string>();
+  app = Schema<App>();
+}
+class ImportedAccountModule extends AModule<ImportedAccountModuleSchema, Account> {
+  static override readonly MODULE_PACKAGE = '@octo';
+  static override readonly MODULE_SCHEMA = ImportedAccountModuleSchema;
+
+  async onInit(inputs: ImportedAccountModuleSchema): Promise<Account> {
+    const account = new Account(AccountType.AWS, inputs.accountId);
+    inputs.app.addAccount(account);
+    return account;
+  }
+}
+
 describe('Main UT', () => {
   let testModes: TestModes;
 
@@ -81,6 +101,53 @@ describe('Main UT', () => {
     testModes.writeTfState('sg-module', { 'sg-1-SgId': 'sg-0real' });
     await testModes.commit(graph.app, { outputs: testModes.outputs });
     return graph;
+  }
+
+  /**
+   * Boots the next command of an app on its state, with the classes of every state it reads loaded.
+   */
+  async function bootChild(childStateProvider: TestStateProvider): Promise<void> {
+    await testModes.teardown();
+    testModes = await TestModes.create({ stateProvider: childStateProvider });
+    testModes['octo']['modelSerializationService'].registerClass('@octo/App', App);
+    testModes['octo']['modelSerializationService'].registerClass('@octo/TestAnchor', TestAnchor);
+  }
+
+  /**
+   * Copies the sealed files of the current app's state into another provider.
+   */
+  async function copyState(stateProvider: TestStateProvider): Promise<TestStateProvider> {
+    await stateProvider.saveStates(
+      await Promise.all(
+        ['models.json', 'resources-actual.json'].map(async (stateFileName) => ({
+          data: await testModes.stateManagementService.getState(stateFileName),
+          stateFileName,
+        })),
+      ),
+    );
+    return stateProvider;
+  }
+
+  /**
+   * Commits the standard graph as app P, then app S extending P with one resource on P's internet
+   * gateway, and boots a fresh app. Returns both sealed states.
+   */
+  async function commitDiamondStates(): Promise<{ p: TestStateProvider; s: TestStateProvider }> {
+    await generateAndCommitFullGraph();
+    const p = await copyState(new TestStateProvider());
+
+    await bootChild(new TestStateProvider());
+    await testModes['octo'].extendState(p);
+    const igw = testModes.resourceDataRepository.getNewResourceByContext('@octo/external-igw=igw-1')!;
+    await testModes.addResource('s-module', new TfSgResource('sg-s', {}, [igw]));
+    const app = testModes['octo'].getRootModel();
+    await testModes.generate(app, { outputDir: testModes.outputDir });
+    testModes.writeTfState('s-module', { 'sg-s-SgId': 'sg-0s' });
+    await testModes.commit(app, { outputs: testModes.outputs });
+    const s = await copyState(new TestStateProvider());
+
+    await bootChild(new TestStateProvider());
+    return { p, s };
   }
 
   describe('commit()', () => {
@@ -738,7 +805,7 @@ describe('Main UT', () => {
     });
   });
 
-  describe('importState()', () => {
+  describe('extendState()', () => {
     let parentStateDirectoryPath: string;
 
     beforeEach(async () => {
@@ -782,23 +849,35 @@ describe('Main UT', () => {
       await stateProvider.saveStates([
         { data: await testModes.stateManagementService.getState('models.json'), stateFileName: 'models.json' },
       ]);
+      await testModes.teardown();
+      testModes = await TestModes.create();
 
-      await expect(testModes['octo'].importState(stateProvider)).rejects.toThrow(
-        'Cannot import a state that has sealed no models!',
+      await expect(testModes['octo'].extendState(stateProvider)).rejects.toThrow(
+        'Cannot extend a state that has sealed no models!',
       );
     });
 
-    it('should throw error when this app has not loaded a class the imported state names', async () => {
+    it('should throw error when a module takes a node of a class this app does not import', async () => {
       const parentStateProvider = await commitParentState({ loadClasses: false });
+      await testModes['octo'].extendState(parentStateProvider);
 
-      await expect(testModes['octo'].importState(parentStateProvider)).rejects.toThrow(
-        'Class "@octo/App" of module "app-module" is not registered! Import its module, or define a class of that name.',
+      expect(() => testModes['octo']['inputService'].resolve('app-module.model.app')).toThrow(
+        '"app-module.model.app" is a "@octo/App", which this app does not import!',
+      );
+    });
+
+    it('should throw error when a module is loaded already', async () => {
+      testModes['octo']['moduleContainer'].register(ImportedAppModule, { packageName: '@octo' });
+      testModes['octo'].loadModule(ImportedAppModule, 'child-app-module', { name: 'child' });
+
+      await expect(testModes['octo'].extendState(new TestStateProvider())).rejects.toThrow(
+        'Cannot extend a state after loading a module!',
       );
     });
 
     it('should throw error when this app declares a module the imported state declares', async () => {
       const parentStateProvider = await commitParentState();
-      await testModes['octo'].importState(parentStateProvider);
+      await testModes['octo'].extendState(parentStateProvider);
 
       expect(() => testModes['octo'].loadModule(ImportedAppModule, 'app-module', { name: 'child' })).toThrow(
         'Module id "app-module" is already in use!',
@@ -807,7 +886,7 @@ describe('Main UT', () => {
 
     it('should throw error when this app changes an imported resource', async () => {
       const parentStateProvider = await commitParentState();
-      await testModes['octo'].importState(parentStateProvider);
+      await testModes['octo'].extendState(parentStateProvider);
       const igw = testModes.resourceDataRepository.getNewResourcesByProperties().find((r) => r.resourceId === 'igw-1')!;
       igw.properties['igwName'] = 'changed-by-child';
 
@@ -836,9 +915,9 @@ describe('Main UT', () => {
       for (const stateFileName of ['resources-actual.json', 'resources-old.json']) {
         await testModes.stateManagementService.saveResourceState(stateFileName, committed, {});
       }
-      await testModes['octo']['retrieveResourceState']();
+      await testModes['octo']['importReaderService'].retrieveResourceState();
 
-      await testModes['octo'].importState(parentStateProvider);
+      await testModes['octo'].extendState(parentStateProvider);
 
       expect(await testModes.resourceDataRepository.diff()).toEqual([]);
       expect(await testModes.resourceDataRepository.diffDirty()).toEqual([]);
@@ -849,7 +928,7 @@ describe('Main UT', () => {
 
     it('should leave the records of imported external resources to the app that wrote them', async () => {
       const parentStateProvider = await commitParentState();
-      await testModes['octo'].importState(parentStateProvider);
+      await testModes['octo'].extendState(parentStateProvider);
       const igw = testModes.resourceDataRepository.getNewResourcesByProperties().find((r) => r.resourceId === 'igw-1')!;
       await testModes.addResource('child-module', new TfSgResource('sg-child', {}, [igw]));
       const app = testModes['octo'].getRootModel();
@@ -872,7 +951,7 @@ describe('Main UT', () => {
         { data: Buffer.from(JSON.stringify({ data: { models: {} }, userData: {} })), stateFileName: 'models.json' },
       ]);
 
-      await testModes['octo'].importState(parentStateProvider);
+      await testModes['octo'].extendState(parentStateProvider);
 
       expect(testModes.resourceDataRepository.getNewResourcesByProperties().map((r) => r.resourceId)).toContain(
         'igw-1',
@@ -883,15 +962,56 @@ describe('Main UT', () => {
       const parentStateProvider = await commitParentState();
       const getSealedStates = jest.spyOn(parentStateProvider, 'getSealedStates');
 
-      await testModes['octo'].importState(parentStateProvider);
+      await testModes['octo'].extendState(parentStateProvider);
 
       expect(getSealedStates).toHaveBeenCalledTimes(1);
       expect(getSealedStates).toHaveBeenCalledWith(['models.json', 'resources-actual.json']);
     });
 
+    it('should declare once what two extended states share', async () => {
+      const { p, s } = await commitDiamondStates();
+
+      await testModes['octo'].extendState(p);
+      await testModes['octo'].extendState(s);
+
+      const sg = testModes.resourceDataRepository.getNewResourceByContext('@octo/tf-sg=sg-s')!;
+      const igw = testModes.resourceDataRepository.getNewResourceByContext('@octo/external-igw=igw-1')!;
+      expect(sg.parents).toEqual([igw]);
+      expect(testModes['octo'].getRootModel().name).toBe('test-app');
+    });
+
+    it('should plan to delete a resource of this app standing on one the extended state deleted', async () => {
+      const childStateProvider = new TestStateProvider();
+      const parentStateProvider = await commitParentState();
+      await bootChild(childStateProvider);
+      await testModes['octo'].extendState(parentStateProvider);
+      const igw = testModes.resourceDataRepository.getNewResourceByContext('@octo/external-igw=igw-1')!;
+      await testModes.addResource('child-module', new TfSgResource('sg-child', {}, [igw]));
+      const app = testModes['octo'].getRootModel();
+      await testModes.generate(app, { outputDir: testModes.outputDir });
+      testModes.writeTfState('child-module', { 'sg-child-SgId': 'sg-0child' });
+      await testModes.commit(app, { outputs: testModes.outputs });
+      const parentState = JSON.parse((await parentStateProvider.getState('resources-actual.json')).toString());
+      delete parentState.data.resources['@octo/external-igw=igw-1'];
+      parentState.data.resources['@octo/tf-sg=sg-1'].resource.parents = [];
+      await parentStateProvider.saveStates([
+        { data: Buffer.from(JSON.stringify(parentState)), stateFileName: 'resources-actual.json' },
+      ]);
+      await bootChild(childStateProvider);
+
+      await testModes['octo'].extendState(parentStateProvider);
+      const diffs = await testModes.resourceDataRepository.diff();
+
+      expect(diffs.map((d) => [d.action, d.field, d.node.getContext()])).toContainEqual([
+        'delete',
+        'resourceId',
+        '@octo/tf-sg=sg-child',
+      ]);
+    });
+
     it('should build on the imported graph, rendering only what this app declares', async () => {
       const parentStateProvider = await commitParentState();
-      await testModes['octo'].importState(parentStateProvider);
+      await testModes['octo'].extendState(parentStateProvider);
       const igw = testModes.resourceDataRepository.getNewResourcesByProperties().find((r) => r.resourceId === 'igw-1')!;
       await testModes.addResource('child-module', new TfSgResource('sg-child', {}, [igw]));
 
@@ -904,6 +1024,569 @@ describe('Main UT', () => {
         'igw_id = "igw-0real"',
       );
       expect(Object.values((await testModes.getModelState()).models).map((m) => m.moduleId)).toEqual(['app-module']);
+    });
+  });
+
+  describe('loadModule()', () => {
+    it('should throw error when the module id holds ":"', () => {
+      expect(() => testModes['octo'].loadModule(ImportedAppModule, 'commons:app-module', { name: 'child' })).toThrow(
+        'Module id "commons:app-module" may not hold ":", which names a store!',
+      );
+    });
+  });
+
+  describe('readImportsAsGenerated()', () => {
+    it("should read each store as this run's generate read it", async () => {
+      const childStateProvider = new TestStateProvider();
+      await generateAndCommitFullGraph();
+      const storeStateProvider = await copyState(new TestStateProvider());
+      await bootChild(childStateProvider);
+      await testModes['octo'].readStores([{ name: 'commons', stateProvider: storeStateProvider }]);
+      const {
+        app: [app],
+      } = await testModes['testModuleContainer'].createTestModels('child-app-module', { app: ['child-app'] });
+      await testModes.generate(app as App, { outputDir: testModes.outputDir });
+      const storeState = JSON.parse((await storeStateProvider.getState('resources-actual.json')).toString());
+      storeState.data.resources['@octo/external-igw=igw-1'].resource.response.igwId = 'igw-0changed';
+      await storeStateProvider.saveStates([
+        { data: Buffer.from(JSON.stringify(storeState)), stateFileName: 'resources-actual.json' },
+      ]);
+      await bootChild(childStateProvider);
+
+      await testModes['octo'].readImportsAsGenerated();
+      await testModes['octo'].readStores([{ name: 'commons', stateProvider: storeStateProvider }]);
+
+      const igw = testModes.resourceDataRepository.getNewResourceByContext('@octo/external-igw=igw-1')!;
+      expect(igw.response).toEqual({ igwId: 'igw-0real' });
+    });
+
+    it('should read a store generate did not read as sealed', async () => {
+      const childStateProvider = new TestStateProvider();
+      await generateAndCommitFullGraph();
+      const storeStateProvider = await copyState(new TestStateProvider());
+      await bootChild(childStateProvider);
+
+      await testModes['octo'].readImportsAsGenerated();
+      await testModes['octo'].readStores([{ name: 'commons', stateProvider: storeStateProvider }]);
+
+      expect(testModes.resourceDataRepository.getNewResourceByContext('@octo/external-igw=igw-1')).toBeDefined();
+    });
+  });
+
+  describe('readStores()', () => {
+    /**
+     * Commits the standard graph, its app holding an anchor, as a store's sealed state, then boots a
+     * fresh app on a state of its own that has loaded the store's classes.
+     */
+    async function commitStoreState(childStateProvider = new TestStateProvider()): Promise<TestStateProvider> {
+      const graph = await testModes.createResourceGraph();
+      graph.app.addAnchor(new TestAnchor('store-anchor', {}, graph.app));
+      await testModes.generate(graph.app, { outputDir: testModes.outputDir });
+      testModes.writeTfState('region-module', { 'igw-1': { igwId: 'igw-0real' }, 'vpc-1-VpcId': 'vpc-0real' });
+      testModes.writeTfState('sg-module', { 'sg-1-SgId': 'sg-0real' });
+      await testModes.commit(graph.app, { outputs: testModes.outputs });
+      const storeStateProvider = await copyState(new TestStateProvider());
+
+      await bootChild(childStateProvider);
+      return storeStateProvider;
+    }
+
+    async function declareChildApp(): Promise<App> {
+      await testModes['testModuleContainer'].createTestModels('child-app-module', { app: ['child-app'] });
+      return testModes['octo'].getRootModel();
+    }
+
+    function getStoreResource(resourceId: string): UnknownResource {
+      return testModes.resourceDataRepository.getNewResourcesByProperties().find((r) => r.resourceId === resourceId)!;
+    }
+
+    /**
+     * Commits this app with one resource standing on the store's internet gateway, and boots its next command.
+     */
+    async function commitChildOnStore(
+      childStateProvider: TestStateProvider,
+      storeStateProvider: TestStateProvider,
+    ): Promise<void> {
+      await testModes['octo'].readStores([{ name: 'commons', stateProvider: storeStateProvider }]);
+      const app = await declareChildApp();
+      await testModes.addResource('child-module', new TfSgResource('sg-child', {}, [getStoreResource('igw-1')]));
+      await testModes.generate(app, { outputDir: testModes.outputDir });
+      testModes.writeTfState('child-module', { 'sg-child-SgId': 'sg-0child' });
+      await testModes.commit(app, { outputs: testModes.outputs });
+      await bootChild(childStateProvider);
+    }
+
+    it('should throw error when a store name holds more than letters, digits, "_" and "-"', async () => {
+      await expect(
+        testModes['octo'].readStores([{ name: 'com.mons', stateProvider: new TestStateProvider() }]),
+      ).rejects.toThrow('Store name "com.mons" may hold only letters, digits, "_" and "-"!');
+    });
+
+    it('should throw error when a module is loaded already', async () => {
+      testModes['octo']['moduleContainer'].register(ImportedAppModule, { packageName: '@octo' });
+      testModes['octo'].loadModule(ImportedAppModule, 'child-app-module', { name: 'child' });
+
+      await expect(testModes['octo'].readStores([])).rejects.toThrow('Cannot read stores after loading a module!');
+    });
+
+    it('should throw error when a store was generated on another version of a package this app uses', async () => {
+      testModes['octo'].registerPackageVersions({ '@quadnix/octo': '1.0.0', '@quadnix/store-only': '1.0.0' });
+      await generateAndCommitFullGraph();
+      const storeStateProvider = await copyState(new TestStateProvider());
+      await bootChild(new TestStateProvider());
+      testModes['octo'].registerPackageVersions({ '@quadnix/octo': '1.0.1' });
+
+      await expect(
+        testModes['octo'].readStores([{ name: 'commons', stateProvider: storeStateProvider }]),
+      ).rejects.toThrow(
+        'Store "commons" was generated on "@quadnix/octo" 1.0.0, this app runs 1.0.1; generate it again on 1.0.1!',
+      );
+    });
+
+    it('should throw error when a store is read twice', async () => {
+      const storeStateProvider = await commitStoreState();
+
+      await expect(
+        testModes['octo'].readStores([
+          { name: 'commons', stateProvider: storeStateProvider },
+          { name: 'commons', stateProvider: storeStateProvider },
+        ]),
+      ).rejects.toThrow('Store "commons" is read twice!');
+    });
+
+    it('should throw error when a store has sealed no models', async () => {
+      await expect(
+        testModes['octo'].readStores([{ name: 'commons', stateProvider: new TestStateProvider() }]),
+      ).rejects.toThrow('Store "commons" has sealed no models!');
+    });
+
+    it('should throw error when a store holds nothing that is not already read', async () => {
+      const storeStateProvider = await commitStoreState();
+
+      await expect(
+        testModes['octo'].readStores([
+          { name: 'commons', stateProvider: storeStateProvider },
+          { name: 'copy', stateProvider: storeStateProvider },
+        ]),
+      ).rejects.toThrow('Store "copy" holds nothing that is not already read!');
+    });
+
+    it('should throw error when this app is named after a store', async () => {
+      const storeStateProvider = await commitStoreState();
+      await testModes['octo'].readStores([{ name: 'commons', stateProvider: storeStateProvider }]);
+      testModes['octo']['moduleContainer'].register(ImportedAppModule, { packageName: '@octo' });
+      testModes['octo'].loadModule(ImportedAppModule, 'child-app-module', { name: 'test-app' });
+
+      await expect(testModes['octo'].compose()).rejects.toThrow(
+        'Model "app=test-app" of module "child-app-module" is already declared by module "commons:app-module"!',
+      );
+    });
+
+    it('should throw error when this app adds a child to a node of a store', async () => {
+      const storeStateProvider = await commitStoreState();
+      await testModes['octo'].readStores([{ name: 'commons', stateProvider: storeStateProvider }]);
+      const storeApp = testModes['octo']['inputService'].resolve('commons:app-module.model.app') as App;
+
+      expect(() => storeApp.addAccount(new Account(AccountType.AWS, '123456789012'))).toThrow(
+        'Cannot add to read-only node "app=test-app"!',
+      );
+    });
+
+    it("should throw error when this app changes a store's resource", async () => {
+      const storeStateProvider = await commitStoreState();
+      await testModes['octo'].readStores([{ name: 'commons', stateProvider: storeStateProvider }]);
+      const app = await declareChildApp();
+      getStoreResource('igw-1').properties['igwName'] = 'changed-by-child';
+
+      await expect(testModes.generate(app, { outputDir: testModes.outputDir })).rejects.toThrow(
+        'Resource "@octo/external-igw=igw-1" belongs to module "commons:region-module" of a store; change it in that app!',
+      );
+    });
+
+    it("should throw error when a module takes a store's node of a class this app does not import", async () => {
+      await generateAndCommitFullGraph();
+      const storeStateProvider = await copyState(new TestStateProvider());
+      await testModes.teardown();
+      testModes = await TestModes.create();
+
+      await testModes['octo'].readStores([{ name: 'commons', stateProvider: storeStateProvider }]);
+
+      expect(() => testModes['octo']['inputService'].resolve('commons:app-module.model.app')).toThrow(
+        '"commons:app-module.model.app" is a "@octo/App", which this app does not import!',
+      );
+    });
+
+    it("should declare a store's nodes under its name, and keep this app's own app as the root", async () => {
+      const storeStateProvider = await commitStoreState();
+
+      await testModes['octo'].readStores([{ name: 'commons', stateProvider: storeStateProvider }]);
+      const app = await declareChildApp();
+
+      const storeApp = testModes['octo']['inputService'].resolve('commons:app-module.model.app') as App;
+      expect(storeApp.name).toBe('test-app');
+      expect(Object.isFrozen(storeApp)).toBe(true);
+      expect(app.name).toBe('child-app');
+    });
+
+    it("should save none of a store's nodes, but this app's overlays' anchors and links on them", async () => {
+      const storeStateProvider = await commitStoreState();
+      await testModes['octo'].readStores([{ name: 'commons', stateProvider: storeStateProvider }]);
+      const app = await declareChildApp();
+      const childAnchor = new TestAnchor('child-anchor', {}, app);
+      app.addAnchor(childAnchor);
+      const storeApp = testModes['octo']['inputService'].resolve('commons:app-module.model.app') as App;
+      const storeDependencyCount = storeApp.getDependencies().length;
+
+      await testModes['testModuleContainer'].createTestOverlays('child-overlay-module', [
+        { anchors: [childAnchor, storeApp.getAnchor('store-anchor')!], context: '@octo/test-overlay=overlay-1' },
+      ]);
+      await testModes.generate(app, { outputDir: testModes.outputDir });
+
+      const modelState = await testModes.getModelState();
+      expect(Object.keys(modelState.models)).toEqual(['app=child-app']);
+      expect(modelState.anchors.map((a) => a.anchorId)).toEqual(['child-anchor']);
+      expect(modelState.overlays.map((o) => o.overlay.anchors.map((a) => a.parent.context))).toEqual([
+        ['app=child-app', 'app=test-app'],
+      ]);
+      expect(
+        modelState.dependencies.filter((d) => d.to === 'app=test-app').map((d) => [d.from, d.relationship]),
+      ).toEqual([['@octo/test-overlay=overlay-1', undefined]]);
+      expect(modelState.dependencies.some((d) => d.from === 'app=test-app')).toBe(false);
+      expect(Object.keys(modelState.modules)).not.toContain('commons:app-module');
+      expect(storeApp.getDependencies()).toHaveLength(storeDependencyCount);
+    });
+
+    it("should build on a store's resources, saving this app's links to them and a copy of each, never as its own", async () => {
+      const childStateProvider = new TestStateProvider();
+      const storeStateProvider = await commitStoreState(childStateProvider);
+      await testModes['octo'].readStores([{ name: 'commons', stateProvider: storeStateProvider }]);
+      const app = await declareChildApp();
+      const igw = getStoreResource('igw-1');
+      await testModes.addResource('child-module', new TfSgResource('sg-child', {}, [igw]));
+
+      await testModes.generate(app, { outputDir: testModes.outputDir });
+      testModes.writeTfState('child-module', { 'sg-child-SgId': 'sg-0child' });
+      await testModes.commit(app, { outputs: testModes.outputs });
+
+      expect(testModes['terraformService'].getModuleIds()).toEqual(['child-module']);
+      expect(await readFile(join(testModes.outputDir, 'child-module', 'main.tf'), 'utf-8')).toContain(
+        'igw_id = "igw-0real"',
+      );
+      for (const stateFileName of ['resources-actual.json', 'resources-old.json']) {
+        const { copiedResources, resources } = await testModes.getResourceState(stateFileName);
+        expect(Object.keys(resources)).toEqual(['@octo/tf-sg=sg-child']);
+        expect(resources['@octo/tf-sg=sg-child'].resource.parents.map((p) => p.context)).toEqual([igw.getContext()]);
+        expect(Object.keys(copiedResources!)).toEqual(['@octo/external-igw=igw-1', '@octo/tf-vpc=vpc-1']);
+        expect(copiedResources!['@octo/external-igw=igw-1'].moduleId).toBe('commons:region-module');
+      }
+    });
+
+    it("should rebuild this app's resources on its copies of a store's, before the store is read", async () => {
+      const childStateProvider = new TestStateProvider();
+      const storeStateProvider = await commitStoreState(childStateProvider);
+      await commitChildOnStore(childStateProvider, storeStateProvider);
+
+      const actual = testModes.resourceDataRepository.getActualResourceByContext('@octo/tf-sg=sg-child')!;
+      expect(Object.keys(actual.getParents())).toEqual(['external-igw']);
+      expect(testModes.resourceDataRepository.getActualResourceByContext('@octo/external-igw=igw-1')).toBeUndefined();
+      await testModes['octo'].readStores([{ name: 'commons', stateProvider: storeStateProvider }]);
+      await testModes.addResource('child-module', new TfSgResource('sg-child', {}, [getStoreResource('igw-1')]));
+
+      expect(await testModes.resourceDataRepository.diff()).toEqual([]);
+    });
+
+    it('should plan to delete a resource of this app standing on a store this app no longer reads', async () => {
+      const childStateProvider = new TestStateProvider();
+      const storeStateProvider = await commitStoreState(childStateProvider);
+      await commitChildOnStore(childStateProvider, storeStateProvider);
+
+      const diffs = await testModes.resourceDataRepository.diff();
+
+      expect(diffs.map((d) => [d.action, d.field, d.node.getContext()])).toEqual([
+        ['delete', 'resourceId', '@octo/tf-sg=sg-child'],
+      ]);
+    });
+
+    it("should diff a resource of this app on a store parent's changed response", async () => {
+      const childStateProvider = new TestStateProvider();
+      const storeStateProvider = await commitStoreState(childStateProvider);
+      await commitChildOnStore(childStateProvider, storeStateProvider);
+      const storeState = JSON.parse((await storeStateProvider.getState('resources-actual.json')).toString());
+      storeState.data.resources['@octo/external-igw=igw-1'].resource.response.igwId = 'igw-0changed';
+      await storeStateProvider.saveStates([
+        { data: Buffer.from(JSON.stringify(storeState)), stateFileName: 'resources-actual.json' },
+      ]);
+
+      await testModes['octo'].readStores([{ name: 'commons', stateProvider: storeStateProvider }]);
+      await testModes.addResource('child-module', new TfSgResource('sg-child', {}, [getStoreResource('igw-1')]));
+      const diffs = await testModes.resourceDataRepository.diff();
+
+      expect(diffs.map((d) => [d.action, d.field, d.node.getContext()])).toEqual([
+        ['update', 'parent', '@octo/tf-sg=sg-child'],
+      ]);
+    });
+
+    it("should build a store's link into a state this app does not read on the store's copy", async () => {
+      const childStateProvider = new TestStateProvider();
+      const storeStateProvider = await commitStoreState(childStateProvider);
+      await commitChildOnStore(childStateProvider, storeStateProvider);
+      await bootChild(new TestStateProvider());
+
+      await testModes['octo'].readStores([{ name: 'backend', stateProvider: childStateProvider }]);
+
+      expect(Object.keys(getStoreResource('sg-child').getParents())).toEqual(['external-igw']);
+    });
+
+    it('should keep a link between two stores read here', async () => {
+      const childStateProvider = new TestStateProvider();
+      const storeStateProvider = await commitStoreState(childStateProvider);
+      await commitChildOnStore(childStateProvider, storeStateProvider);
+      await bootChild(new TestStateProvider());
+
+      await testModes['octo'].readStores([
+        { name: 'commons', stateProvider: storeStateProvider },
+        { name: 'backend', stateProvider: childStateProvider },
+      ]);
+
+      expect(Object.keys(getStoreResource('sg-child').getParents())).toEqual(['external-igw']);
+    });
+
+    it('should declare once what this app extends and a store holds, freezing only the store', async () => {
+      const { p, s } = await commitDiamondStates();
+
+      await testModes['octo'].extendState(p);
+      await testModes['octo'].readStores([{ name: 's', stateProvider: s }]);
+
+      const inputService = testModes['octo']['inputService'];
+      const app = inputService.resolve('app-module.model.app') as App;
+      expect(inputService.resolve('s:app-module.model.app')).toBe(app);
+      expect(Object.isFrozen(app)).toBe(false);
+      const sg = testModes.resourceDataRepository.getNewResourceByContext('@octo/tf-sg=sg-s')!;
+      expect(sg.parents).toEqual([
+        testModes.resourceDataRepository.getNewResourceByContext('@octo/external-igw=igw-1'),
+      ]);
+    });
+
+    it('should read back a resource of this app standing on an extended state and a store at once', async () => {
+      const childStateProvider = new TestStateProvider();
+      const { p, s } = await commitDiamondStates();
+      const declare = async (): Promise<App> => {
+        await testModes['octo'].extendState(p);
+        await testModes['octo'].readStores([{ name: 's', stateProvider: s }]);
+        const igw = testModes.resourceDataRepository.getNewResourceByContext('@octo/external-igw=igw-1')!;
+        const sg = testModes.resourceDataRepository.getNewResourceByContext('@octo/tf-sg=sg-s')!;
+        await testModes.addResource('child-module', new TfSgResource('sg-child', {}, [igw, sg]));
+        return testModes['octo'].getRootModel();
+      };
+      await bootChild(childStateProvider);
+      const app = await declare();
+      await testModes.generate(app, { outputDir: testModes.outputDir });
+      testModes.writeTfState('child-module', { 'sg-child-SgId': 'sg-0child' });
+      await testModes.commit(app, { outputs: testModes.outputs });
+      await bootChild(childStateProvider);
+
+      await declare();
+
+      expect(await testModes.resourceDataRepository.diff()).toEqual([]);
+    });
+
+    it('should declare once what two stores hold, the store listed first winning', async () => {
+      const { p, s } = await commitDiamondStates();
+
+      await testModes['octo'].readStores([
+        { name: 'p', stateProvider: p },
+        { name: 's', stateProvider: s },
+      ]);
+
+      const inputService = testModes['octo']['inputService'];
+      const app = inputService.resolve('p:app-module.model.app') as App;
+      expect(inputService.resolve('s:app-module.model.app')).toBe(app);
+      expect(Object.isFrozen(app)).toBe(true);
+      expect(inputService.getModuleIdFromModel(app)).toBe('p:app-module');
+    });
+
+    it("should read a store's overlays under its name, so this app may build the same overlay id", async () => {
+      const graph = await testModes.createResourceGraph();
+      const storeAnchor = new TestAnchor('store-anchor', {}, graph.app);
+      graph.app.addAnchor(storeAnchor);
+      await testModes['testModuleContainer'].createTestOverlays('overlay-module', [
+        { anchors: [storeAnchor], context: '@octo/test-overlay=overlay-1' },
+      ]);
+      await testModes.generate(graph.app, { outputDir: testModes.outputDir });
+      testModes.writeTfState('region-module', { 'igw-1': { igwId: 'igw-0real' }, 'vpc-1-VpcId': 'vpc-0real' });
+      testModes.writeTfState('sg-module', { 'sg-1-SgId': 'sg-0real' });
+      await testModes.commit(graph.app, { outputs: testModes.outputs });
+      const storeStateProvider = await copyState(new TestStateProvider());
+      await bootChild(new TestStateProvider());
+      await testModes['octo'].readStores([{ name: 'commons', stateProvider: storeStateProvider }]);
+      const {
+        app: [app],
+      } = await testModes['testModuleContainer'].createTestModels('child-app-module', { app: ['child-app'] });
+      const childAnchor = new TestAnchor('child-anchor', {}, app);
+      app.addAnchor(childAnchor);
+
+      await testModes['testModuleContainer'].createTestOverlays('child-overlay-module', [
+        { anchors: [childAnchor], context: '@octo/test-overlay=overlay-1' },
+      ]);
+
+      const overlayDataRepository = testModes['octo']['inputService']['overlayDataRepository'];
+      expect(
+        overlayDataRepository
+          .getByProperties()
+          .map((o) => o.getContext())
+          .sort(),
+      ).toEqual(['@octo/test-overlay=overlay-1', 'commons:@octo/test-overlay=overlay-1']);
+    });
+
+    it('should keep apart two stores whose apps build the same overlay id', async () => {
+      const commitApp = async (name: string): Promise<TestStateProvider> => {
+        const {
+          app: [app],
+        } = await testModes['testModuleContainer'].createTestModels('app-module', { app: [name] });
+        const anchor = new TestAnchor('anchor', {}, app);
+        app.addAnchor(anchor);
+        await testModes['testModuleContainer'].createTestOverlays('overlay-module', [
+          { anchors: [anchor], context: '@octo/test-overlay=overlay-1' },
+        ]);
+        await testModes.generate(app as App, { outputDir: testModes.outputDir });
+        await testModes.commit(app as App, { outputs: testModes.outputs });
+        const stateProvider = await copyState(new TestStateProvider());
+        await bootChild(new TestStateProvider());
+        return stateProvider;
+      };
+      const commons = await commitApp('commons-app');
+      const backend = await commitApp('backend-app');
+
+      await testModes['octo'].readStores([
+        { name: 'commons', stateProvider: commons },
+        { name: 'backend', stateProvider: backend },
+      ]);
+
+      const overlays = testModes['octo']['inputService']['overlayDataRepository'].getByProperties();
+      expect(overlays.map((o) => [o.getContext(), o.getAnchors()[0].getParent().getContext()]).sort()).toEqual([
+        ['backend:@octo/test-overlay=overlay-1', 'app=backend-app'],
+        ['commons:@octo/test-overlay=overlay-1', 'app=commons-app'],
+      ]);
+    });
+
+    it("should keep this app's boundary off a store's nodes", async () => {
+      await generateAndCommitFullGraph();
+      const storeStateProvider = await copyState(new TestStateProvider());
+      await bootChild(new TestStateProvider());
+      await testModes['octo'].readStores([{ name: 'commons', stateProvider: storeStateProvider }]);
+      const storeApp = testModes['octo']['inputService'].resolve('commons:app-module.model.app') as App;
+      const storeAnchor = new TestAnchor('store-anchor', {}, storeApp);
+      const {
+        app: [app],
+      } = await testModes['testModuleContainer'].createTestModels('child-app-module', { app: ['child-app'] });
+      const childAnchor = new TestAnchor('child-anchor', {}, app);
+      app.addAnchor(childAnchor);
+
+      await testModes['testModuleContainer'].createTestOverlays('child-overlay-module', [
+        { anchors: [childAnchor, storeAnchor], context: '@octo/test-overlay=overlay-1' },
+      ]);
+
+      expect(
+        app
+          .getBoundaryMembers()
+          .map((m) => m.getContext())
+          .sort(),
+      ).toEqual(['@octo/test-overlay=overlay-1', 'app=child-app']);
+    });
+
+    it("should declare what a store's modules were given, their references under the store", async () => {
+      testModes['octo']['moduleContainer'].register(ImportedAppModule, { packageName: '@octo' });
+      testModes['octo']['moduleContainer'].register(ImportedAccountModule, { packageName: '@octo' });
+      testModes['octo'].loadModule(ImportedAppModule, 'app-module', { name: 'test-app' });
+      testModes['octo'].loadModule(ImportedAccountModule, 'account-module', {
+        accountId: '123456789012',
+        app: stub('${{app-module.model.app}}'),
+      });
+      await testModes['octo'].compose();
+      const modelData = await testModes['octo']['modelSerializationService'].serialize(
+        testModes['octo'].getRootModel(),
+      );
+      const storeStateProvider = new TestStateProvider();
+      await storeStateProvider.saveStates([
+        { data: Buffer.from(JSON.stringify({ data: modelData, userData: {} })), stateFileName: 'models.json' },
+      ]);
+      await bootChild(new TestStateProvider());
+      testModes['octo']['modelSerializationService'].registerClass('@octo/Account', Account);
+
+      await testModes['octo'].readStores([{ name: 'commons', stateProvider: storeStateProvider }]);
+
+      const inputService = testModes['octo']['inputService'];
+      expect(inputService.resolve('commons:account-module.input.app')).toBe(
+        inputService.resolve('commons:app-module.model.app'),
+      );
+    });
+
+    it("should restore this app's overlay anchors on a store, for an app reading both", async () => {
+      const graph = await testModes.createResourceGraph();
+      graph.app.addAnchor(new TestAnchor('store-anchor', {}, graph.app));
+      await testModes.generate(graph.app, { outputDir: testModes.outputDir });
+      testModes.writeTfState('region-module', { 'igw-1': { igwId: 'igw-0real' }, 'vpc-1-VpcId': 'vpc-0real' });
+      testModes.writeTfState('sg-module', { 'sg-1-SgId': 'sg-0real' });
+      await testModes.commit(graph.app, { outputs: testModes.outputs });
+      const storeStateProvider = await copyState(new TestStateProvider());
+      await bootChild(new TestStateProvider());
+      await testModes['octo'].readStores([{ name: 'commons', stateProvider: storeStateProvider }]);
+      const storeApp = testModes['octo']['inputService'].resolve('commons:app-module.model.app') as App;
+      const {
+        app: [app],
+      } = await testModes['testModuleContainer'].createTestModels('child-app-module', { app: ['child-app'] });
+      const childAnchor = new TestAnchor('child-anchor', {}, app);
+      app.addAnchor(childAnchor);
+      const storeAnchor = storeApp.getAnchor('store-anchor')!;
+      await testModes['testModuleContainer'].createTestOverlays('child-overlay-module', [
+        { anchors: [childAnchor, storeAnchor], context: '@octo/test-overlay=overlay-1' },
+      ]);
+      await testModes.generate(app, { outputDir: testModes.outputDir });
+      await testModes.commit(app, { outputs: testModes.outputs });
+      const childStateProvider = await copyState(new TestStateProvider());
+      await bootChild(new TestStateProvider());
+
+      await testModes['octo'].readStores([
+        { name: 'commons', stateProvider: storeStateProvider },
+        { name: 'backend', stateProvider: childStateProvider },
+      ]);
+
+      const overlay = testModes['octo']['inputService']['overlayDataRepository'].getByContext(
+        'backend:@octo/test-overlay=overlay-1',
+      )!;
+      expect(overlay.getAnchors().map((a) => a.getParent().getContext())).toEqual(['app=child-app', 'app=test-app']);
+    });
+    it("should leave out this app's overlay anchors on a store, for an app reading only this one", async () => {
+      const graph = await testModes.createResourceGraph();
+      graph.app.addAnchor(new TestAnchor('store-anchor', {}, graph.app));
+      await testModes.generate(graph.app, { outputDir: testModes.outputDir });
+      testModes.writeTfState('region-module', { 'igw-1': { igwId: 'igw-0real' }, 'vpc-1-VpcId': 'vpc-0real' });
+      testModes.writeTfState('sg-module', { 'sg-1-SgId': 'sg-0real' });
+      await testModes.commit(graph.app, { outputs: testModes.outputs });
+      const storeStateProvider = await copyState(new TestStateProvider());
+      await bootChild(new TestStateProvider());
+      await testModes['octo'].readStores([{ name: 'commons', stateProvider: storeStateProvider }]);
+      const storeApp = testModes['octo']['inputService'].resolve('commons:app-module.model.app') as App;
+      const {
+        app: [app],
+      } = await testModes['testModuleContainer'].createTestModels('child-app-module', { app: ['child-app'] });
+      const childAnchor = new TestAnchor('child-anchor', {}, app);
+      app.addAnchor(childAnchor);
+      const storeAnchor = storeApp.getAnchor('store-anchor')!;
+      await testModes['testModuleContainer'].createTestOverlays('child-overlay-module', [
+        { anchors: [childAnchor, storeAnchor], context: '@octo/test-overlay=overlay-1' },
+      ]);
+      await testModes.generate(app, { outputDir: testModes.outputDir });
+      await testModes.commit(app, { outputs: testModes.outputs });
+      const childStateProvider = await copyState(new TestStateProvider());
+      await bootChild(new TestStateProvider());
+
+      await testModes['octo'].readStores([{ name: 'backend', stateProvider: childStateProvider }]);
+
+      const overlay = testModes['octo']['inputService']['overlayDataRepository'].getByContext(
+        'backend:@octo/test-overlay=overlay-1',
+      )!;
+      expect(overlay.getAnchors().map((a) => a.getParent().getContext())).toEqual(['app=child-app']);
     });
   });
 
@@ -951,6 +1634,29 @@ describe('Main UT', () => {
       expect(result.action).toBe('add');
       expect(result.resourceId).toBe('igw-1');
       expect(result.response).toEqual({ igwId: 'igw-0real' });
+    });
+
+    it("should run the action of this app's resource standing on a store's", async () => {
+      await generateAndCommitFullGraph();
+      const storeStateProvider = await copyState(new TestStateProvider());
+      await bootChild(new TestStateProvider());
+      await testModes['octo'].readStores([{ name: 'commons', stateProvider: storeStateProvider }]);
+      const {
+        app: [app],
+      } = await testModes['testModuleContainer'].createTestModels('child-app-module', { app: ['child-app'] });
+      const vpc = testModes.resourceDataRepository.getNewResourceByContext('@octo/tf-vpc=vpc-1')!;
+      await testModes.addResource(
+        'child-module',
+        new ExternalIgwResource('igw-child', { Type: 'internet-gateway' }, [vpc]),
+      );
+
+      const result = await testModes.runAction(app as App, {
+        inputs: { 'vpc-1.VpcId': 'vpc-0real' },
+        resourceId: 'igw-child',
+      });
+
+      expect(result.action).toBe('add');
+      expect(result.resourceId).toBe('igw-child');
     });
   });
 });

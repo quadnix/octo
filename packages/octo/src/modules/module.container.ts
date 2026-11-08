@@ -182,6 +182,15 @@ export class ModuleContainer {
   }
 
   /**
+   * Whether any module was loaded.
+   *
+   * @internal
+   */
+  hasLoadedModules(): boolean {
+    return this.modules.some((m) => m.instances.length > 0);
+  }
+
+  /**
    * @internal
    */
   load<M extends UnknownModule>(

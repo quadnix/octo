@@ -98,10 +98,14 @@ export abstract class AOverlay<S extends BaseOverlaySchema, T extends UnknownOve
     }
 
     const { thisToThatDependency } = this.addRelationship(anchorParent);
-    const { thisToThatDependency: thatToThisDependency } = anchorParent.addRelationship(this);
     thisToThatDependency.addBehavior('overlayId', DiffAction.ADD, anchorParentField, DiffAction.ADD);
     thisToThatDependency.addBehavior('overlayId', DiffAction.ADD, anchorParentField, DiffAction.UPDATE);
-    thatToThisDependency.addBehavior(anchorParentField, DiffAction.DELETE, 'overlayId', DiffAction.DELETE);
+
+    // A read-only parent, such as a store's, is never deleted by this app, so it needs no link back.
+    if (!Object.isFrozen(anchorParent)) {
+      const { thisToThatDependency: thatToThisDependency } = anchorParent.addRelationship(this);
+      thatToThisDependency.addBehavior(anchorParentField, DiffAction.DELETE, 'overlayId', DiffAction.DELETE);
+    }
   }
 
   /**

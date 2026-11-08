@@ -6,6 +6,7 @@ import { ResourceDataRepository } from '../../resources/resource-data.repository
 import { AResource } from '../../resources/resource.abstract.js';
 import { create } from '../../utilities/test-helpers/test-models.js';
 import { createResource, createTestResources } from '../../utilities/test-helpers/test-resources.js';
+import { ImportService } from '../import/import.service.js';
 import { InputService } from './input.service.js';
 
 describe('InputService UT', () => {
@@ -27,7 +28,7 @@ describe('InputService UT', () => {
         container.get(OverlayDataRepository),
         container.get(ResourceDataRepository),
       ]);
-      inputService = new InputService(overlayDataRepository, resourceDataRepository);
+      inputService = new InputService(new ImportService(), overlayDataRepository, resourceDataRepository);
     });
 
     it('should throw when no app model is registered', () => {
@@ -60,16 +61,52 @@ describe('InputService UT', () => {
     it('should throw when two distinct app models are registered', () => {
       const {
         app: [app1],
-      } = create({ app: ['test-app'] });
+      } = create({ app: ['test-app-1'] });
       const {
         app: [app2],
-      } = create({ app: ['test-app'] });
+      } = create({ app: ['test-app-2'] });
       inputService.registerModel('module1', app1);
       inputService.registerModel('module2', app2);
 
       expect(() => {
         inputService.getRootModel();
       }).toThrow('Multiple app models are registered: module1.model.app, module2.model.app!');
+    });
+  });
+
+  describe('registerModel()', () => {
+    let inputService: InputService;
+
+    beforeEach(async () => {
+      const [overlayDataRepository, resourceDataRepository] = await Promise.all([
+        container.get(OverlayDataRepository),
+        container.get(ResourceDataRepository),
+      ]);
+      inputService = new InputService(new ImportService(), overlayDataRepository, resourceDataRepository);
+    });
+
+    it('should throw when another model of the same context is registered', () => {
+      const {
+        app: [app1],
+      } = create({ app: ['test-app'] });
+      const {
+        app: [app2],
+      } = create({ app: ['test-app'] });
+      inputService.registerModel('module1', app1);
+
+      expect(() => inputService.registerModel('module2', app2)).toThrow(
+        'Model "app=test-app" of module "module2" is already declared by module "module1"!',
+      );
+    });
+
+    it('should register one model under two modules', () => {
+      const {
+        app: [app],
+      } = create({ app: ['test-app'] });
+      inputService.registerModel('module1', app);
+      inputService.registerModel('module2', app);
+
+      expect(inputService.resolve('module2.model.app')).toBe(app);
     });
   });
 
@@ -81,7 +118,7 @@ describe('InputService UT', () => {
         container.get(OverlayDataRepository),
         container.get(ResourceDataRepository),
       ]);
-      inputService = new InputService(overlayDataRepository, resourceDataRepository);
+      inputService = new InputService(new ImportService(), overlayDataRepository, resourceDataRepository);
     });
 
     it('should throw when a module creates two resources with one local resource id in two scopes', () => {
@@ -126,7 +163,7 @@ describe('InputService UT', () => {
           container.get(OverlayDataRepository),
           container.get(ResourceDataRepository),
         ]);
-        const inputService = new InputService(overlayDataRepository, resourceDataRepository);
+        const inputService = new InputService(new ImportService(), overlayDataRepository, resourceDataRepository);
 
         inputService.registerInput('testModule', 'key1', 'value1');
 
@@ -138,7 +175,7 @@ describe('InputService UT', () => {
           container.get(OverlayDataRepository),
           container.get(ResourceDataRepository),
         ]);
-        const inputService = new InputService(overlayDataRepository, resourceDataRepository);
+        const inputService = new InputService(new ImportService(), overlayDataRepository, resourceDataRepository);
 
         inputService.registerInput('testModule', 'key1', 'value1');
         inputService.registerInput('testModule', 'key2', '${{testModule.input.key1}}');
@@ -151,7 +188,7 @@ describe('InputService UT', () => {
           container.get(OverlayDataRepository),
           container.get(ResourceDataRepository),
         ]);
-        const inputService = new InputService(overlayDataRepository, resourceDataRepository);
+        const inputService = new InputService(new ImportService(), overlayDataRepository, resourceDataRepository);
 
         inputService.registerInput('testModule', 'key1', 'value1');
         inputService.registerInput('testModule', 'key2', {
@@ -174,7 +211,7 @@ describe('InputService UT', () => {
           container.get(OverlayDataRepository),
           container.get(ResourceDataRepository),
         ]);
-        const inputService = new InputService(overlayDataRepository, resourceDataRepository);
+        const inputService = new InputService(new ImportService(), overlayDataRepository, resourceDataRepository);
 
         inputService.registerInput('testModule', 'key1', 'value1');
         inputService.registerInput('testModule', 'key2', {
@@ -197,7 +234,7 @@ describe('InputService UT', () => {
           container.get(OverlayDataRepository),
           container.get(ResourceDataRepository),
         ]);
-        const inputService = new InputService(overlayDataRepository, resourceDataRepository);
+        const inputService = new InputService(new ImportService(), overlayDataRepository, resourceDataRepository);
 
         inputService.registerInput('testModule', 'key1', '${{testModule.input.key1}}');
 
@@ -211,7 +248,7 @@ describe('InputService UT', () => {
           container.get(OverlayDataRepository),
           container.get(ResourceDataRepository),
         ]);
-        const inputService = new InputService(overlayDataRepository, resourceDataRepository);
+        const inputService = new InputService(new ImportService(), overlayDataRepository, resourceDataRepository);
 
         inputService.registerInput('subnetModule', 'region', '${{regionModule.model.region}}');
 
@@ -225,7 +262,7 @@ describe('InputService UT', () => {
           container.get(OverlayDataRepository),
           container.get(ResourceDataRepository),
         ]);
-        const inputService = new InputService(overlayDataRepository, resourceDataRepository);
+        const inputService = new InputService(new ImportService(), overlayDataRepository, resourceDataRepository);
 
         inputService.registerInput('subnetModule', 'localFilesystems', ['${{filesystemModule.model.filesystem}}']);
 
@@ -243,7 +280,7 @@ describe('InputService UT', () => {
           container.get(OverlayDataRepository),
           container.get(ResourceDataRepository),
         ]);
-        inputService = new InputService(overlayDataRepository, resourceDataRepository);
+        inputService = new InputService(new ImportService(), overlayDataRepository, resourceDataRepository);
       });
 
       it('should resolve a non-template tag', async () => {
