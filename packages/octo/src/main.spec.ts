@@ -1154,6 +1154,21 @@ describe('Main UT', () => {
       ).rejects.toThrow('Store "commons" is read twice!');
     });
 
+    it("should throw error when this app's state links to a store's resource it holds no copy of", async () => {
+      const childStateProvider = new TestStateProvider();
+      const storeStateProvider = await commitStoreState(childStateProvider);
+      await commitChildOnStore(childStateProvider, storeStateProvider);
+      for (const stateFileName of ['resources-actual.json', 'resources-old.json']) {
+        const childState = JSON.parse((await childStateProvider.getState(stateFileName)).toString());
+        delete childState.data.copiedResources;
+        await childStateProvider.saveStates([{ data: Buffer.from(JSON.stringify(childState)), stateFileName }]);
+      }
+
+      await expect(testModes['octo']['importReaderService'].retrieveResourceState()).rejects.toThrow(
+        'Resource "@octo/tf-sg=sg-child" links to "@octo/external-igw=igw-1", which no state read holds!',
+      );
+    });
+
     it('should throw error when a store has sealed no models', async () => {
       await expect(
         testModes['octo'].readStores([{ name: 'commons', stateProvider: new TestStateProvider() }]),
@@ -1323,6 +1338,44 @@ describe('Main UT', () => {
 
       expect(diffs.map((d) => [d.action, d.field, d.node.getContext()])).toEqual([
         ['update', 'parent', '@octo/tf-sg=sg-child'],
+      ]);
+    });
+
+    it("should diff a resource of this app on a store parent's new name", async () => {
+      const childStateProvider = new TestStateProvider();
+      const storeStateProvider = await commitStoreState(childStateProvider);
+      await commitChildOnStore(childStateProvider, storeStateProvider);
+      const storeState = (await storeStateProvider.getState('resources-actual.json'))
+        .toString()
+        .replaceAll('igw-1', 'igw-2');
+      await storeStateProvider.saveStates([{ data: Buffer.from(storeState), stateFileName: 'resources-actual.json' }]);
+
+      await testModes['octo'].readStores([{ name: 'commons', stateProvider: storeStateProvider }]);
+      await testModes.addResource('child-module', new TfSgResource('sg-child', {}, [getStoreResource('igw-2')]));
+      const diffs = await testModes.resourceDataRepository.diff();
+
+      expect(diffs.map((d) => [d.action, d.field, d.node.getContext()])).toEqual([
+        ['delete', 'parent', '@octo/tf-sg=sg-child'],
+        ['add', 'parent', '@octo/tf-sg=sg-child'],
+      ]);
+    });
+
+    it('should plan to delete a resource of this app standing on what a store deleted, once this app drops it', async () => {
+      const childStateProvider = new TestStateProvider();
+      const storeStateProvider = await commitStoreState(childStateProvider);
+      await commitChildOnStore(childStateProvider, storeStateProvider);
+      const storeState = JSON.parse((await storeStateProvider.getState('resources-actual.json')).toString());
+      delete storeState.data.resources['@octo/external-igw=igw-1'];
+      storeState.data.resources['@octo/tf-sg=sg-1'].resource.parents = [];
+      await storeStateProvider.saveStates([
+        { data: Buffer.from(JSON.stringify(storeState)), stateFileName: 'resources-actual.json' },
+      ]);
+
+      await testModes['octo'].readStores([{ name: 'commons', stateProvider: storeStateProvider }]);
+      const diffs = await testModes.resourceDataRepository.diff();
+
+      expect(diffs.map((d) => [d.action, d.field, d.node.getContext()])).toEqual([
+        ['delete', 'resourceId', '@octo/tf-sg=sg-child'],
       ]);
     });
 
