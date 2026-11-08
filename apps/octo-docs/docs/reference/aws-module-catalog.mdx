@@ -109,7 +109,8 @@ every bucket and table a server is granted must be in that account too.
 
 `lambda` lets the server's code invoke functions, each named by its execution from
 `AwsLambdaExecutionModule`, directly or through its URL. The function may be in another account,
-such as one an [`extends`](/docs/using-octo/the-definition-file#extends) state holds. The execution
+such as one an [`extends`](/docs/using-octo/the-definition-file#extends) state or a
+[store](/docs/using-octo/the-definition-file#stores) holds. The execution
 running the server writes one policy on its role for all of them, and admits the role to each function
 in the function's account, so the definition needs a Terraform provider for that account too.
 

@@ -54,7 +54,7 @@ modules:
 ```
 
 `version`, `imports`, `modules`, `settings`, and `terraform` are required. `env`, `extends`,
-`hooks`, and `tags` are optional. The file is validated against a JSON schema before anything else happens, so a
+`hooks`, `stores`, and `tags` are optional. The file is validated against a JSON schema before anything else happens, so a
 typo in a key name is caught with a message about that key.
 
 The name `octo.yaml` is a convention. Octo reads whatever `OCTO_DEFINITION_FILE_PATH` points at, and
@@ -328,18 +328,83 @@ An entry takes the same `LocalStateProvider` or `RemoteStateProvider` fields as
 `settings.stateProvider`, and Octo only reads from it. It reads the other app's newest sealed state,
 the one its last released lock left: with local state, the newest folder in its `.octo/archives/`;
 with remote state, the newest record the backend sealed. A change the other app has under way is
-never seen, and an app that has sealed nothing yet cannot be extended. With remote state, `statePath`
+never seen, and an app that has sealed nothing yet cannot be extended. `generate` reads it, and the
+rest of that run reads what `generate` read, so a commit the other app makes meanwhile reaches this
+app at its next `generate`. With remote state, `statePath`
 is where Octo keeps its copy of that state, so give the entry a folder of its own. What the other app owns is never yours to
 change: none of its code runs here, Octo writes no Terraform for it, a reference to what it built
 reads what that app committed, and a module whose `moduleId` that app already uses is refused.
 A resource belongs to the app that made it: this app can add its own resources that point at one,
 and a command that changes one fails.
 
-Every class the other app's state names must be loaded through this file's `imports`. Importing a
-module loads every class it defines, and an import does not have to appear under `modules`. A class
-nothing loaded fails the command, naming the class and the module that recorded it.
+A module of this app can only take a node whose class this file's `imports` loads. Importing a
+module loads every class it defines, and an import does not have to appear under `modules`. A node
+of a class nothing loaded is still read, and a module input taking one fails, naming the class.
+The other app must be generated on the same version of every package both import, Octo's included;
+one generated on another version fails, naming the package and both versions.
 
-This app's state holds the other app's part too, so an app extending this one sees both.
+Two entries may share what they build on, as a web app extending both a backend and the platform
+that backend extends does: what both hold is declared once. This app's state holds the other app's
+part too, so an app extending this one sees both.
+
+## stores
+
+Other apps' states this app reads, each under a name. A store stays a graph of its own: this app
+declares its own app and builds next to the store, never on it. A module input takes what the store
+built by its name, a colon and the reference the store's own file would write, and the module walks
+from it as from anything else:
+
+```yaml
+stores:
+  - name: platform
+    stateProvider:
+      type: LocalStateProvider
+      statePath: ../platform/.octo
+
+modules:
+  - moduleId: checkout-app-module
+    moduleClass: SimpleAppModule
+    moduleInputs:
+      name: checkout
+
+  - moduleId: checkout-account-module
+    moduleClass: AwsIniAccountModule
+    moduleInputs:
+      accountId: "123456789012"
+      app: "${{checkout-app-module.model.app}}"
+
+  - moduleId: checkout-server-module
+    moduleClass: AwsServerModule
+    moduleInputs:
+      account: "${{checkout-account-module.model.account}}"
+      serverKey: checkout
+      lambda:
+        - execution: "${{platform:platform-payments-execution-module.model.execution}}"
+```
+
+A name holds letters, digits, `_` and `-`. The colon names a store, so no `moduleId` of this app may
+hold one. `stateProvider` takes the same fields as an
+[`extends`](#extends) entry, and the store is read the same way: its newest sealed state, never a
+change under way, and once per run. Classes and package versions work as for an `extends` entry.
+
+A store is read-only. None of its code runs here, Octo writes no Terraform for it, and a reference
+to what it built reads what that app committed. Standing a model on one of the store's, such as an
+account on its app, fails with `Cannot add to read-only node "app=platform"!`; to build on another
+app's graph, use [`extends`](#extends). Changing a store's resource fails too, and so does naming
+this app after a store's app. What two stores hold, or a store and an `extends` entry, is declared
+once, the first read winning, `extends` before `stores`; a store holding nothing that is not
+already read fails.
+
+This app's state holds only this app's models and resources. Beside its resources it keeps a copy
+of each store resource they stand on, as this app last saw it, so its own resources read back
+without the store. The store is read again on every run for what this app builds now. An app
+reading this one as a store sees only this app, and this app's overlays keep their anchors on a
+store there only when that app reads the store too.
+
+A store changing, renaming or deleting a resource this app stands on shows in this app's next plan
+as a change to the resource standing on it. To stop reading a store, remove the modules that use it
+and the store; generate plans the deletion of what those modules built, even when the store has
+already deleted what it stood on.
 
 ## References between modules
 

@@ -15,7 +15,7 @@ behind. The change is a new receipts bucket for checkout.
 
 | Command    | Needs the lock | Saves to `.octo/`                                                         |
 |------------|----------------|---------------------------------------------------------------------------|
-| `generate` | No             | `models.json`, your intent as the definition file now describes it        |
+| `generate` | No             | `models.json`, your intent as the definition file now describes it, and `imports.json`, the other apps it read |
 | `validate` | No             | Terraform's state, after each plan                                        |
 | `lock`     | Takes it       | `local-state.lock`, or a lock in the backend with remote state            |
 | `apply`    | Yes            | Terraform's state, every ten seconds and at the end, and a record for each external resource it creates |
@@ -182,9 +182,10 @@ in plain text. Nothing in Octo reads the journal back: deleting it changes nothi
 infrastructure or what Octo knows of it.
 
 The newest archive is the sealed state: an app that [extends](/docs/using-octo/the-definition-file#extends)
-this one reads it, and never the files a change still under way is writing. Archives are never
-deleted for you. Delete the old ones when you no longer need them; with none left, an app extending
-this one has nothing to read until the next change is sealed.
+this one, or reads it as a [store](/docs/using-octo/the-definition-file#stores), reads it, and never
+the files a change still under way is writing. Archives are never deleted for you. Delete the old
+ones when you no longer need them; with none left, an app extending or reading this one has nothing
+to read until the next change is sealed.
 
 With [remote state](/docs/techniques/state-providers#remote-state), the journal files in `.octo/`
 are uploaded with the rest of the state while the lock is held, so the record a lock seals holds

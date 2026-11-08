@@ -66,7 +66,8 @@ and one older than any run you have ever had belongs to a runner that died.
 Releasing the lock seals the change. `LocalStateProvider` copies the state, and moves the journal,
 into `archives/<commitId>/` before it deletes the lock file, and keeps the lock held when it
 cannot. The newest archive is the sealed state, which an app that
-[extends](/docs/using-octo/the-definition-file#extends) this one reads. Archives are never deleted
+[extends](/docs/using-octo/the-definition-file#extends) this one, or reads it as a
+[store](/docs/using-octo/the-definition-file#stores), reads. Archives are never deleted
 for you. `RemoteStateProvider` seals the change's record in its backend, then writes the same
 archive on the machine.
 
@@ -172,7 +173,7 @@ directory alone, and the lock uploads what it holds as the run's starting point.
 **It does not give you a way back.** Octo writes each file whole, every time, and has no command
 that restores an earlier version. The journal keeps a copy of each version a command wrote, and
 each archive a copy of the state a change sealed, but Octo reads back only the newest archive, for an
-app extending this one, so going back has to come from wherever the files live: a
+app extending or reading this one, so going back has to come from wherever the files live: a
 repository's history for state you commit, or versioning on the storage the directory sits on. The
 backend behind `RemoteStateProvider` keeps the record of every finished run, but nothing in Octo
 reads an old one back. Restoring old state does not undo infrastructure either. It makes Terraform
