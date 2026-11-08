@@ -172,7 +172,11 @@ export class ImportReaderService {
     ]);
     await this.resourceSerializationService.deserialize(load(actualData), load(oldData), {
       ...this.storeResourceData,
-      copiedResources: { ...this.storeResourceData.copiedResources, ...this.extendedResourceData.resources },
+      copiedResources: {
+        ...this.extendedResourceData.copiedResources,
+        ...this.storeResourceData.copiedResources,
+        ...this.extendedResourceData.resources,
+      },
     });
   }
 

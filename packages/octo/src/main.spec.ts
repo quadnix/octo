@@ -1326,6 +1326,22 @@ describe('Main UT', () => {
       ]);
     });
 
+    it("should rebuild an extended state's resources on its copies of a store's, reading the store or not", async () => {
+      const childStateProvider = new TestStateProvider();
+      const storeStateProvider = await commitStoreState(childStateProvider);
+      await commitChildOnStore(childStateProvider, storeStateProvider);
+      await bootChild(new TestStateProvider());
+
+      await testModes['octo'].extendState(childStateProvider);
+      const sgChild = testModes.resourceDataRepository.getNewResourceByContext('@octo/tf-sg=sg-child')!;
+      expect(Object.keys(sgChild.getParents())).toEqual(['external-igw']);
+
+      await testModes['octo'].readStores([{ name: 'commons', stateProvider: storeStateProvider }]);
+      expect(Object.values(sgChild.getParents()).map(([p]) => p.to.getContext())).toEqual([
+        getStoreResource('igw-1').getContext(),
+      ]);
+    });
+
     it("should build a store's link into a state this app does not read on the store's copy", async () => {
       const childStateProvider = new TestStateProvider();
       const storeStateProvider = await commitStoreState(childStateProvider);
