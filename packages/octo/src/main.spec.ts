@@ -199,6 +199,58 @@ describe('Main UT', () => {
       expect(warnings.map((w) => w.message).join('\n')).toContain('left uncommitted');
     });
 
+    it('should keep a resource at its last committed state when a partial commit cannot confirm it', async () => {
+      const stateProvider = new TestStateProvider();
+      await bootChild(stateProvider);
+      await generateAndCommitFullGraph();
+      await bootChild(stateProvider);
+      const graph = await testModes.createResourceGraph();
+      await testModes.generate(graph.app, { outputDir: testModes.outputDir });
+      // The vpc's output is gone, but the internet gateway standing on it applied.
+      testModes.writeTfState('region-module', { 'igw-1': { igwId: 'igw-0real' } });
+      testModes.writeTfState('sg-module', { 'sg-1-SgId': 'sg-0real' });
+
+      await testModes.commit(graph.app, { outputs: testModes.outputs, partial: true });
+
+      await expect(testModes.stateManagementService.getResourceResponse('vpc-1')).resolves.toEqual({
+        VpcId: 'vpc-0real',
+      });
+      await expect(testModes.generate(graph.app, { outputDir: testModes.outputDir })).resolves.toBeDefined();
+    });
+
+    it('should keep every resource of a folder that never applied at its last committed state', async () => {
+      const stateProvider = new TestStateProvider();
+      await bootChild(stateProvider);
+      await generateAndCommitFullGraph();
+      await bootChild(stateProvider);
+      const graph = await testModes.createResourceGraph();
+      await testModes.generate(graph.app, { outputDir: testModes.outputDir });
+      testModes.writeTfState('region-module', { 'igw-1': { igwId: 'igw-0real' }, 'vpc-1-VpcId': 'vpc-0real' });
+
+      await testModes.commit(graph.app, { outputs: testModes.outputs, partial: true });
+
+      await expect(testModes.stateManagementService.getResourceResponse('sg-1')).resolves.toEqual({
+        SgId: 'sg-0real',
+      });
+    });
+
+    it('should hold back a resource standing on one a partial commit left out', async () => {
+      const graph = await testModes.createResourceGraph();
+      await testModes.generate(graph.app, { outputDir: testModes.outputDir });
+      testModes.writeTfState('region-module', { 'igw-1': { igwId: 'igw-0real' } });
+      testModes.writeTfState('sg-module', { 'sg-1-SgId': 'sg-0real' });
+
+      const { warnings } = await testModes.commit(graph.app, { outputs: testModes.outputs, partial: true });
+
+      const { data } = await testModes.stateManagementService.getResourceState('resources-actual.json');
+      expect(Object.keys(data.resources)).toEqual([]);
+      expect(warnings.map((w) => w.message)).toContain(
+        'Partial commit: 2 resource(s) left uncommitted because a resource they stand on is: ' +
+          '@octo/external-igw=igw-1, @octo/tf-sg=sg-1. Each keeps its last committed state, if it had one, and ' +
+          'the next run plans it again.',
+      );
+    });
+
     // An external resource's action records what it published, because octo state is the only place
     // a later plan can read it from. The committed graph takes that over once the commit lands.
     it('should keep the published record of an external resource a partial commit left out', async () => {

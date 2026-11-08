@@ -251,20 +251,22 @@ export class ResourceDataRepository {
    * nothing is dirty. Used by terraform commit, where terraform has already applied the desired
    * state.
    *
-   * `excludeResourceContexts` names resources a partial commit could not confirm. They are left out
-   * of the actual graph, so the next run plans to create them again - which terraform reconciles
-   * against its own state as a no-op if they do exist. Recording less than reality is recoverable;
-   * recording more is not.
+   * `unconfirmedResourceContexts` names resources a partial commit could not confirm. Each keeps its
+   * last committed state, or is left out of the actual graph when it had none, so the next run plans
+   * it again - which terraform reconciles against its own state. A confirmed resource standing on one
+   * left out is held back the same way, and the actual graph keeps every parent its resources name.
    *
    * `retainResourceContexts` names resources whose deletion did not run. Each is carried over from
    * the graph being replaced, along with the parents it needs to deserialize with, and joins both
    * graphs: the actual graph records it as still present, and the new graph is what the next run
    * diffs against, which is what plans its deletion again.
+   *
+   * @returns The contexts of the confirmed resources held back with an unconfirmed parent.
    */
   syncActualToNew(
-    excludeResourceContexts: Set<string> = new Set(),
+    unconfirmedResourceContexts: Set<string> = new Set(),
     retainResourceContexts: Set<string> = new Set(),
-  ): void {
+  ): string[] {
     for (const resource of this.collectWithParents(retainResourceContexts)) {
       const rIndex = this.newResources.findIndex((r) => r.getContext() === resource.getContext());
       if (rIndex === -1) {
@@ -274,8 +276,53 @@ export class ResourceDataRepository {
       }
     }
 
-    this.actualResources = this.newResources.filter((r) => !excludeResourceContexts.has(r.getContext()));
+    // Take each confirmed resource as it is now, and each unconfirmed one as it was last committed.
+    const committed = new Map(this.actualResources.map((r) => [r.getContext(), r]));
+    const actual = new Map<string, UnknownResource>();
+    for (const resource of this.newResources) {
+      const context = resource.getContext();
+      if (!unconfirmedResourceContexts.has(context)) {
+        actual.set(context, resource);
+      } else if (committed.has(context)) {
+        actual.set(context, committed.get(context)!);
+      }
+    }
+
+    // Keep every parent named: a committed one as it was, else hold its child back the same way.
+    const heldBackResourceContexts: string[] = [];
+    let isClosed = false;
+    while (!isClosed) {
+      isClosed = true;
+      for (const [context, resource] of actual) {
+        const missingParentContext = resource.parents
+          .map((p) => (p instanceof MatchingResource ? p.getActual() : p).getContext())
+          .find((parentContext) => !actual.has(parentContext));
+        if (missingParentContext === undefined) {
+          continue;
+        }
+
+        isClosed = false;
+        if (committed.has(missingParentContext)) {
+          for (const parent of this.collectWithParents(new Set([missingParentContext]))) {
+            if (!actual.has(parent.getContext())) {
+              actual.set(parent.getContext(), parent);
+            }
+          }
+        } else {
+          heldBackResourceContexts.push(context);
+          if (committed.has(context)) {
+            actual.set(context, committed.get(context)!);
+          } else {
+            actual.delete(context);
+          }
+        }
+        break;
+      }
+    }
+
+    this.actualResources = [...actual.values()];
     this.dirtyResources = [];
+    return [...new Set(heldBackResourceContexts)].filter((c) => !unconfirmedResourceContexts.has(c));
   }
 
   /**

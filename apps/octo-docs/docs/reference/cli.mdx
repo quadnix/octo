@@ -137,9 +137,10 @@ never leaves a lock behind.
 
 `--partial` is for after an apply that failed. Instead of rejecting the whole commit over the
 outputs a half-finished apply could not produce, it records every resource whose outputs did all
-resolve and leaves the rest out of Octo's state. Those come back as warnings naming what was
-skipped. The next run plans to create them again, which Terraform reconciles against its own state:
-recording less than reality is recoverable, recording more is not.
+resolve. Every other resource, and every resource standing on one, keeps what the last commit
+recorded of it, or stays out of Octo's state if it was never committed. Those come back as warnings
+naming what was skipped. The next run plans them again, which Terraform reconciles against its own
+state: recording less than reality is recoverable, recording more is not.
 
 ## The app lock
 

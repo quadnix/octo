@@ -24,12 +24,13 @@ export type TerraformOutputs = Record<string, { value: unknown }>;
  *
  * Rejects — all-or-nothing, throwing before any mutation: a declared output that is missing
  * (partial apply) or carries a null value (broken apply). `partial` turns those rejections into
- * warnings and keeps every resource whose outputs did not all resolve out of the committed graph,
- * which is what lets a failed apply still record the half that worked. Outputs are demanded only for the
- * modules the sweep filled — never for an emptied (deleted) folder, whose destroy simply drops its
- * resources from the committed state. Warns: outputs supplied for a folder that is neither in
- * intent nor in the committed folder record (`previousFolders`) are ignored — octo never fails on,
- * or touches, a folder it does not recognize; re-declaring the module in intent re-adopts it.
+ * warnings and keeps every resource whose outputs did not all resolve, or whose folder never applied,
+ * at its last committed state, which is what lets a failed apply still record the half that worked.
+ * Outputs are demanded only for the modules the sweep filled — never for an emptied (deleted) folder,
+ * whose destroy simply drops its resources from the committed state. Warns: outputs supplied for a
+ * folder that is neither in intent nor in the committed folder record (`previousFolders`) are ignored
+ * — octo never fails on, or touches, a folder it does not recognize; re-declaring the module in intent
+ * re-adopts it.
  *
  * Returns the model transaction so {@link Octo} can run the persistence + commit hooks it owns,
  * plus a description of what was committed for the caller to emit and surface.
@@ -190,9 +191,16 @@ export async function commit({
     warnings.push({
       message:
         `Partial commit: ${unresolvedResourceContexts.size} resource(s) left uncommitted because their terraform ` +
-        `outputs are missing or null: ${[...unresolvedResourceContexts].sort().join(', ')}. The next run plans to ` +
-        'create them again, which terraform reconciles against its own state.',
+        `outputs are missing or null: ${[...unresolvedResourceContexts].sort().join(', ')}. Each keeps its last ` +
+        'committed state, if it had one, and the next run plans it again.',
     });
+  }
+
+  // A folder that never applied confirms none of its resources, those without outputs included.
+  for (const mapping of mappings) {
+    if (moduleIdsWithoutOutputs.includes(mapping.moduleId)) {
+      unresolvedResourceContexts.add(mapping.resourceContext);
+    }
   }
 
   // Capture the previous value before overwriting.
@@ -242,7 +250,21 @@ export async function commit({
 
   // Terraform has applied the desired state: actual ← new, less anything a partial commit could not
   // confirm, plus anything whose deletion was deferred.
-  resourceDataRepository.syncActualToNew(unresolvedResourceContexts, deferredResourceContexts);
+  const heldBackResourceContexts = resourceDataRepository.syncActualToNew(
+    unresolvedResourceContexts,
+    deferredResourceContexts,
+  );
+  if (heldBackResourceContexts.length > 0) {
+    warnings.push({
+      message:
+        `Partial commit: ${heldBackResourceContexts.length} resource(s) left uncommitted because a resource they ` +
+        `stand on is: ${heldBackResourceContexts.sort().join(', ')}. Each keeps its last committed state, if it ` +
+        'had one, and the next run plans it again.',
+    });
+    for (const context of heldBackResourceContexts) {
+      unresolvedResourceContexts.add(context);
+    }
+  }
 
   // Describe what was committed. Addresses come from this run's sweep, falling back to the last
   // commit's mapping for deleted resources, which the sweep no longer renders.

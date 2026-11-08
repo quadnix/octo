@@ -67,7 +67,7 @@ Octo's record.
 
    ```text
    NOTES
-     Partial commit: 1 resource(s) left uncommitted because their terraform outputs are missing or null: @octo/s3-storage=bucket-test. The next run plans to create them again, which terraform reconciles against its own state.
+     Partial commit: 1 resource(s) left uncommitted because their terraform outputs are missing or null: @octo/s3-storage=bucket-test. Each keeps its last committed state, if it had one, and the next run plans it again.
    ```
 
 2. Fix what the error names. Here that is a `RECEIPTS_BUCKET_NAME` of your own in `octo.yaml`.
