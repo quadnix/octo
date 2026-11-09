@@ -33,20 +33,9 @@ const TERRAFORM_STATE_FILE_NAME = 'terraform.tfstate';
 const MUTATING_COMMANDS = new Set(['apply', 'destroy']);
 
 /**
- * Every list of actions a terraform plan in format 1.x can give a resource, joined by commas.
+ * The terraform plan actions that leave a resource in place. Any other action may destroy it.
  */
-const KNOWN_PLAN_ACTIONS = new Set([
-  '',
-  'create',
-  'create,delete',
-  'create,forget',
-  'delete',
-  'delete,create',
-  'forget',
-  'no-op',
-  'read',
-  'update',
-]);
+const NON_DESTROYING_PLAN_ACTIONS = new Set(['create', 'forget', 'no-op', 'read', 'update']);
 
 /**
  * How much of a process's stderr is kept for the error a failure throws. Everything it wrote goes out
@@ -199,8 +188,8 @@ export class TerraformUtility {
   }
 
   /**
-   * Every address a set of plans will destroy, across all folders. A recreate (`create` + `delete`)
-   * counts, since the old object is still destroyed.
+   * Every address a set of plans may destroy, across all folders. A recreate (`create` + `delete`)
+   * counts, since the old object is still destroyed, and so does an action octo does not know.
    *
    * Lets a caller refuse to apply until the destroys have been shown, which {@link apply} cannot do on
    * its own because it runs with `-auto-approve`.
@@ -211,7 +200,8 @@ export class TerraformUtility {
     for (const [moduleId, plan] of plans.entries()) {
       for (const resourceChange of plan.resource_changes ?? []) {
         const tfActions = resourceChange.change?.actions ?? [];
-        if (resourceChange.mode !== 'data' && tfActions.includes('delete')) {
+        const isDestroy = tfActions.some((action) => !NON_DESTROYING_PLAN_ACTIONS.has(action));
+        if (resourceChange.mode !== 'data' && isDestroy) {
           destroys.push({ address: resourceChange.address, moduleId, tfActions });
         }
       }
@@ -663,15 +653,9 @@ export class TerraformUtility {
       const { stdout } = await this.run(moduleDir, ['show', '-json', planFile]);
       const plan = JSON.parse(stdout) as TerraformPlan;
 
-      // Refuse a plan in a format, or with an action, octo was not written against.
+      // Refuse a plan in a format octo was not written against.
       if (!/^1\./.test(String(plan.format_version))) {
         return { error: `Terraform plan format version "${plan.format_version}" is not one octo reads (1.x)!` };
-      }
-      for (const resourceChange of plan.resource_changes ?? []) {
-        const actions = (resourceChange.change?.actions ?? []).join(',');
-        if (!KNOWN_PLAN_ACTIONS.has(actions)) {
-          return { error: `Terraform plans unknown action "${actions}" on "${resourceChange.address}"!` };
-        }
       }
 
       return { plan };

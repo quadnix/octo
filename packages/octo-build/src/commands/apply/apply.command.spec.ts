@@ -186,6 +186,27 @@ describe('applyCommand UT', () => {
       );
     });
 
+    it('refuses an action octo does not know, saying it may destroy', async () => {
+      terraformUtilityMock.plan.mockResolvedValue({
+        errors: new Map(),
+        plans: new Map([
+          [
+            'region-module',
+            { resource_changes: [{ address: 'aws_s3_bucket.this', change: { actions: ['archive'] } }] },
+          ],
+        ]),
+      });
+
+      await applyCommand.handler(argv);
+
+      expect(terraformUtilityMock.apply).not.toHaveBeenCalled();
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining(
+          '[region-module] aws_s3_bucket.this (archive) - an action octo does not know, which may destroy it',
+        ),
+      );
+    });
+
     it('applies a plan whose only destroy is the null_resource of an external resource', async () => {
       terraformUtilityMock.plan.mockResolvedValue({
         errors: new Map(),

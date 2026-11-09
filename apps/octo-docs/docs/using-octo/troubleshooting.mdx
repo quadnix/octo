@@ -212,8 +212,7 @@ that exists to keep the account id out of committed Terraform and the guard is t
 provider spec already sets `allowed_account_ids`, which wins. And when it sets
 `skip_requesting_account_id`, which stops the provider learning the account there would be to check.
 
-**`Terraform plan format version "2.0" is not one octo reads (1.x)!`**,
-**`Terraform plans unknown action "..." on "..."!`**
+**`Terraform plan format version "2.0" is not one octo reads (1.x)!`**
 
 Your Terraform or OpenTofu writes its plan in a shape Octo was not written against, so Octo reports
 that folder as failed rather than guess what the plan means. Run a Terraform release Octo supports,
@@ -304,7 +303,10 @@ finishes, and the next one is refused. Nothing on the Octo side raises the limit
 Working as intended. `octo apply` plans first and refuses when anything would be destroyed. Read the
 list, run `octo validate` for the reason behind each one, then re-run with `--auto-approve` and the
 same lock ID. A line ending `- the data it holds is lost with it` destroys a table's rows, a bucket's
-objects, a filesystem's files, or a repository's images along with the resource. The lock is still held, so if you are not going ahead, release it with
+objects, a filesystem's files, or a repository's images along with the resource. A line ending
+`- an action octo does not know, which may destroy it` comes from a newer Terraform that plans an
+action Octo was not written against; Octo asks rather than assume it is harmless, and `octo validate`
+shows what it changes. The lock is still held, so if you are not going ahead, release it with
 `octo unlock --lockId`.
 
 **`Cannot check this apply for destroys because the folders above would not plan. Fix them, or pass --auto-approve to apply anyway!`**

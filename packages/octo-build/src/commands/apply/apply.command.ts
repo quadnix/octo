@@ -69,7 +69,14 @@ async function findDestroyRefusal(
     const dataLoss = dataLossAddresses.has(`${destroy.moduleId} ${destroy.address}`)
       ? ' - the data it holds is lost with it'
       : '';
-    console.error(chalk.red(`  [${destroy.moduleId}] ${destroy.address} (${destroy.tfActions.join(', ')})${dataLoss}`));
+    const unknownAction = destroy.tfActions.includes('delete')
+      ? ''
+      : ' - an action octo does not know, which may destroy it';
+    console.error(
+      chalk.red(
+        `  [${destroy.moduleId}] ${destroy.address} (${destroy.tfActions.join(', ')})${dataLoss}${unknownAction}`,
+      ),
+    );
   }
 
   return (

@@ -376,23 +376,6 @@ describe('TerraformUtility UT', () => {
       expect(errors.get('module-a')).toBe('Terraform plan format version "2.0" is not one octo reads (1.x)!');
     });
 
-    it('should report a folder whose plan holds an action octo does not know', async () => {
-      await createModuleFolder('module-a');
-      const plan = {
-        format_version: '1.2',
-        resource_changes: [{ address: 'aws_s3_bucket.this', change: { actions: ['archive'] } }],
-      };
-      terraform.spawnAsyncMock.mockImplementation(async (_file, args) => ({
-        stderr: '',
-        stdout: args[0] === 'show' ? JSON.stringify(plan) : '',
-      }));
-
-      const { errors, plans } = await terraform.plan(terragruntDir, { json: true });
-
-      expect(plans.size).toBe(0);
-      expect(errors.get('module-a')).toBe('Terraform plans unknown action "archive" on "aws_s3_bucket.this"!');
-    });
-
     it('enumerates only folders containing terragrunt.hcl and returns a Map keyed by folder name', async () => {
       await createModuleFolder('module-a');
       await createModuleFolder('module-b');
@@ -753,6 +736,24 @@ describe('TerraformUtility UT', () => {
         { address: 'aws_efs_file_system.efs-1', moduleId: 'region-module', tfActions: ['create', 'delete'] },
         { address: 'aws_security_group.sg-1', moduleId: 'sg-module', tfActions: ['delete'] },
       ]);
+    });
+
+    it('should count an action octo does not know as a destroy', () => {
+      const destroys = terraform.findPlannedDestroys(
+        new Map([
+          [
+            'region-module',
+            {
+              resource_changes: [
+                { address: 'aws_s3_bucket.this', change: { actions: ['archive'] } },
+                { address: 'aws_s3_bucket.kept', change: { actions: ['forget'] } },
+              ],
+            },
+          ],
+        ]),
+      );
+
+      expect(destroys).toEqual([{ address: 'aws_s3_bucket.this', moduleId: 'region-module', tfActions: ['archive'] }]);
     });
 
     it('finds nothing in a plan that only creates and updates', () => {
