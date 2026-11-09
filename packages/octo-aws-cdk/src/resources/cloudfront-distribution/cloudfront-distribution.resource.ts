@@ -97,6 +97,7 @@ const RENDER_DEFAULTS = {
  */
 @Resource<CloudFrontDistribution>('@octo', 'cloudfront-distribution', CloudFrontDistributionSchema, {
   uniqueProperties: [
+    { path: 'aliases[]', within: [] },
     { path: 'cachePolicies[].name', within: ['awsAccountId'] },
     { path: 'originRequestPolicies[].name', within: ['awsAccountId'] },
     { path: 'responseHeadersPolicies[].name', within: ['awsAccountId'] },

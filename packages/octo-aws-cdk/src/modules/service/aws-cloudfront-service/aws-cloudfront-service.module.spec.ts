@@ -741,6 +741,42 @@ describe('AwsCloudFrontServiceModule UT', () => {
       expect(await run()).toEqual([]);
     });
 
+    it('should move a renamed distribution onto the one holding its alias', async () => {
+      const aliased = {
+        aliases: ['www.example.com'],
+        certificateArn: 'arn:aws:acm:us-east-1:123:certificate/abc',
+      };
+      await setup(testModuleContainer);
+      await testModuleContainer
+        .runModules<AwsCloudFrontServiceModule>(
+          {
+            inputs: inputs({ ...aliased, distributionName: 'old-name' }),
+            moduleId: 'distribution',
+            type: AwsCloudFrontServiceModule,
+          },
+          { terraformTarget: 'skip' },
+        )
+        .next();
+
+      await setup(testModuleContainer);
+      const { hclRender } = (
+        await testModuleContainer
+          .runModules<AwsCloudFrontServiceModule>(
+            {
+              inputs: inputs({ ...aliased, distributionName: 'new-name' }),
+              moduleId: 'distribution',
+              type: AwsCloudFrontServiceModule,
+            },
+            { terraformTarget: 'skip' },
+          )
+          .next()
+      ).value!;
+
+      expect(hclRender).toMatch(
+        /moved \{\s+from = aws_cloudfront_distribution\.cloudfront-old-name-\w+_distribution\s+to = aws_cloudfront_distribution\.cloudfront-new-name-\w+_distribution\s+\}/,
+      );
+    });
+
     it('should close the bucket to a removed distribution', async () => {
       await setup(testModuleContainer);
       await testModuleContainer
