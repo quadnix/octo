@@ -94,6 +94,7 @@ jsonc
 jsonencode
 jsx
 keepalive
+keychain
 lang
 len
 loadbalancer

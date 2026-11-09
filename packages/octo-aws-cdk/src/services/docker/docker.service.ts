@@ -8,6 +8,11 @@ import { Factory } from '@quadnix/octo';
 const STDERR_TAIL_LENGTH = 64 * 1024;
 
 /**
+ * How many times a login is tried while another process's login holds the credential store.
+ */
+const LOGIN_ATTEMPTS = 5;
+
+/**
  * Receives each line docker prints, with the docker command and the stream it came from. A resource
  * action passes its own `log()`.
  */
@@ -75,10 +80,21 @@ export class DockerService {
    * Authenticates the docker CLI against a registry.
    *
    * The password is written to the child's stdin rather than passed as an argument, so it never
-   * appears in the process list, in terraform's echo of the `local-exec` command, or in `log`.
+   * appears in the process list, in terraform's echo of the `local-exec` command, or in `log`. A
+   * login refused because a parallel one wrote the same macOS keychain item first is tried again.
    */
   async login(registryUri: string, username: string, password: string, log: DockerLog): Promise<void> {
-    await this.run(log, ['login', '--username', username, '--password-stdin', registryUri], password);
+    for (let attempt = 1; ; attempt++) {
+      try {
+        await this.run(log, ['login', '--username', username, '--password-stdin', registryUri], password);
+        return;
+      } catch (error) {
+        if (attempt === LOGIN_ATTEMPTS || !/already exists in the keychain/.test(error.message)) {
+          throw error;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 200 + Math.random() * 800));
+      }
+    }
   }
 
   /**

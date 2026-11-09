@@ -75,6 +75,55 @@ describe('DockerService UT', () => {
   });
 
   describe('login()', () => {
+    it('should throw error if a login keeps colliding with another in the keychain', async () => {
+      const directory = await mkdtemp(join(tmpdir(), 'octo-docker-'));
+      const binaryPath = join(directory, 'docker');
+      const attemptsPath = join(directory, 'attempts');
+      await writeFile(
+        binaryPath,
+        `#!/bin/sh\ncat > /dev/null\necho x >> ${attemptsPath}\n` +
+          'echo "The specified item already exists in the keychain. (-25299)" >&2\nexit 1\n',
+      );
+      await chmod(binaryPath, 0o755);
+
+      await expect(
+        new DockerService(binaryPath).login('https://registry', 'AWS', 'password', () => undefined),
+      ).rejects.toThrow(/already exists in the keychain/);
+      expect((await readFile(attemptsPath, 'utf8')).trim().split('\n')).toHaveLength(5);
+    }, 10_000);
+
+    it('should throw error at once when a login fails for another reason', async () => {
+      const directory = await mkdtemp(join(tmpdir(), 'octo-docker-'));
+      const binaryPath = join(directory, 'docker');
+      const attemptsPath = join(directory, 'attempts');
+      await writeFile(
+        binaryPath,
+        `#!/bin/sh\ncat > /dev/null\necho x >> ${attemptsPath}\necho "unauthorized" >&2\nexit 1\n`,
+      );
+      await chmod(binaryPath, 0o755);
+
+      await expect(
+        new DockerService(binaryPath).login('https://registry', 'AWS', 'password', () => undefined),
+      ).rejects.toThrow(/unauthorized/);
+      expect((await readFile(attemptsPath, 'utf8')).trim().split('\n')).toHaveLength(1);
+    });
+
+    it('should log in once another login has written the keychain item', async () => {
+      const directory = await mkdtemp(join(tmpdir(), 'octo-docker-'));
+      const binaryPath = join(directory, 'docker');
+      const attemptsPath = join(directory, 'attempts');
+      await writeFile(
+        binaryPath,
+        `#!/bin/sh\ncat > /dev/null\nif [ -f ${attemptsPath} ]; then exit 0; fi\ntouch ${attemptsPath}\n` +
+          'echo "The specified item already exists in the keychain. (-25299)" >&2\nexit 1\n',
+      );
+      await chmod(binaryPath, 0o755);
+
+      await expect(
+        new DockerService(binaryPath).login('https://registry', 'AWS', 'password', () => undefined),
+      ).resolves.toBeUndefined();
+    });
+
     it('should keep the password off the command line', async () => {
       const { binaryPath, readArguments } = await createRecordingBinary();
 
