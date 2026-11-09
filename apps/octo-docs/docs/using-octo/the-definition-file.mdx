@@ -162,9 +162,9 @@ there: `profile`, `assume_role`, `endpoints`. If your module produces resources 
 matching provider entry, generate fails rather than guessing.
 
 Moving resources to another account or region is one edit: point the modules at the new pair and
-replace the entry. Each folder keeps the provider block it last committed until the next commit, so
-the apply in between can destroy what the old provider created, and the old entry can leave
-`providers` in the same change.
+replace the entry. Each folder keeps the provider block it last committed for as long as its
+Terraform state holds anything the old provider created, so the apply can destroy it, even after a
+failed apply and a partial commit, and the old entry can leave `providers` in the same change.
 
 Every provider block gets `region = <regionId>` written onto it, except for the HashiCorp utility
 providers such as `null`, `external`, `random`, and `local`, which take no arguments at all and fail

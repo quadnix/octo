@@ -138,20 +138,39 @@ export class Octo {
         transaction: resolvedTransaction,
       });
 
-      // Keep recording an emptied folder whose terraform state still holds resources, so the next
-      // generate writes it again and an apply destroys what it holds.
+      // Record each folder with every provider the last commit recorded that its terraform state still
+      // binds a resource to, and an emptied folder while its state holds anything, so the next generate
+      // writes both again and an apply can destroy what they hold.
       const terraformStateService = await Container.getInstance().get(TerraformStateService);
-      const retainedFolders: TerraformFolderOutput[] = [];
-      for (const folder of userData.terraformFolders ?? []) {
-        if (
-          completed.emptiedModuleIds.includes(folder.moduleId) &&
-          (await terraformStateService.holdsState(folder.moduleId))
-        ) {
-          retainedFolders.push(folder);
+      const previousFolders = userData.terraformFolders ?? [];
+      const terraformFolders: TerraformFolderOutput[] = [];
+      for (const folder of [
+        ...this.terraformService.getFolderRecords(),
+        ...previousFolders.filter((folder) => completed.emptiedModuleIds.includes(folder.moduleId)),
+      ]) {
+        const stateProviders = await terraformStateService.getStateProviders(folder.moduleId);
+        if (stateProviders.length === 0 && completed.emptiedModuleIds.includes(folder.moduleId)) {
+          continue;
         }
+
+        const retainedProviders = (previousFolders.find((p) => p.moduleId === folder.moduleId)?.providers ?? []).filter(
+          (recorded) =>
+            !folder.providers.some(
+              (provider) =>
+                provider.providerType === recorded.providerType &&
+                provider.accountId === recorded.accountId &&
+                provider.regionId === recorded.regionId,
+            ) &&
+            stateProviders.some((stateProvider) =>
+              stateProvider.endsWith(
+                `${recorded.requiredProvider.source}"].${/alias\s*=\s*"([^"]+)"/.exec(recorded.blockHcl)?.[1]}`,
+              ),
+            ),
+        );
+        terraformFolders.push({ ...folder, providers: [...folder.providers, ...retainedProviders] });
       }
 
-      await this.commitTransaction(app, modelTransaction, [], retainedFolders);
+      await this.commitTransaction(app, modelTransaction, [], terraformFolders);
 
       // The committed graph now carries everything an external resource's actions made of it, so the
       // records they wrote mid-apply are cleared. Done after the state is persisted, so a failure
@@ -595,7 +614,7 @@ export class Octo {
     app: App,
     modelTransaction: DiffMetadata[][],
     resourceTransaction: DiffMetadata[][] = [],
-    retainedFolders: TerraformFolderOutput[] = [],
+    terraformFolders: TerraformFolderOutput[] = this.terraformService.getFolderRecords(),
   ): Promise<void> {
     // `modelTransaction` and `resourceTransaction` is used by hooks of type CommitHook.
     assert(!!modelTransaction);
@@ -603,7 +622,7 @@ export class Octo {
 
     // Save the state of the new app and its resources.
     await this.saveModelState(app);
-    await this.saveResourceState(retainedFolders);
+    await this.saveResourceState(terraformFolders);
 
     // Reset the runtime environment with the latest state.
     await this.importReaderService.retrieveResourceState();
@@ -672,13 +691,13 @@ export class Octo {
    *
    * @internal
    */
-  private async saveResourceState(retainedFolders: TerraformFolderOutput[]): Promise<void> {
+  private async saveResourceState(terraformFolders: TerraformFolderOutput[]): Promise<void> {
     const actualSerializedOutput = await this.resourceSerializationService.serializeActualResources();
     await this.stateManagementService.saveResourceState(
       this.stateManagementService.actualResourceStateFileName,
       actualSerializedOutput,
       {
-        terraformFolders: [...this.terraformService.getFolderRecords(), ...retainedFolders],
+        terraformFolders,
         terraformResources: this.terraformService.getOctoTerraformResourceMappings().map(
           (m): TerraformResourceOutput => ({
             ...(m.destroyLosesData ? { destroyLosesData: true } : {}),

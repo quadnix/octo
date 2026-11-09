@@ -366,7 +366,7 @@ describe('Main UT', () => {
       testModes.resourceDataRepository.addNewResource(new TfVpcResource('vpc-1', { CidrBlock: '10.0.0.0/16' }));
       await testModes.generate(app, { outputDir: testModes.outputDir });
       await testModes.stateManagementService.saveStates([
-        { data: Buffer.from('{"resources":[{}]}'), stateFileName: 'sg-module.tfstate' },
+        { data: Buffer.from('{"resources":[{"provider":"provider[\\"aws\\"]"}]}'), stateFileName: 'sg-module.tfstate' },
       ]);
 
       testModes.outputs.clear();
@@ -599,6 +599,72 @@ describe('Main UT', () => {
       const mainTf = await expectEmptiedFolder('region-module');
       expect(mainTf).toContain('alias = "_111111111-us-east-1"');
       expect(mainTf).toContain('alias = "_222222222-us-east-1"');
+    });
+
+    it('should keep committing a provider the terraform state still binds a resource to', async () => {
+      testModes.registerTerraformConfig({ providers: { aws: { minVersion: '5.0.0', source: 'hashicorp/aws' } } });
+      testModes.registerTerraformProvider('aws', '111111111', 'us-east-1');
+      testModes.registerTerraformProvider('aws', '222222222', 'us-east-1');
+      const { app } = await testModes.createProviderBoundResourceGraph({
+        accountId: '111111111',
+        regionId: 'us-east-1',
+      });
+      await testModes.generate(app, { outputDir: testModes.outputDir });
+      testModes.writeTfState('region-module', { 'vpc-1-VpcId': 'vpc-0real' });
+      await testModes.commit(app, { outputs: testModes.outputs });
+
+      // The vpc moves to another account, and the apply fails before destroying the old one.
+      testModes.resourceDataRepository.addNewResource(
+        new TfVpcResource('vpc-1', { accountId: '222222222', CidrBlock: '10.0.0.0/16', regionId: 'us-east-1' }),
+      );
+      await testModes.generate(app, { outputDir: testModes.outputDir });
+      const providerOf = (alias: string): { provider: string } => ({
+        provider: `provider["registry.terraform.io/hashicorp/aws"].${alias}`,
+      });
+      await testModes.stateManagementService.saveStates([
+        {
+          data: Buffer.from(
+            JSON.stringify({ resources: [providerOf('_111111111-us-east-1'), providerOf('_222222222-us-east-1')] }),
+          ),
+          stateFileName: 'region-module.tfstate',
+        },
+      ]);
+      await testModes.commit(app, { outputs: testModes.outputs });
+
+      const { terraformFolders } = await testModes.getCommittedTerraformState();
+      expect(terraformFolders[0].providers.map((provider) => provider.accountId)).toEqual(['222222222', '111111111']);
+    });
+
+    it('should stop committing a provider the terraform state binds nothing to', async () => {
+      testModes.registerTerraformConfig({ providers: { aws: { minVersion: '5.0.0', source: 'hashicorp/aws' } } });
+      testModes.registerTerraformProvider('aws', '111111111', 'us-east-1');
+      testModes.registerTerraformProvider('aws', '222222222', 'us-east-1');
+      const { app } = await testModes.createProviderBoundResourceGraph({
+        accountId: '111111111',
+        regionId: 'us-east-1',
+      });
+      await testModes.generate(app, { outputDir: testModes.outputDir });
+      testModes.writeTfState('region-module', { 'vpc-1-VpcId': 'vpc-0real' });
+      await testModes.commit(app, { outputs: testModes.outputs });
+
+      testModes.resourceDataRepository.addNewResource(
+        new TfVpcResource('vpc-1', { accountId: '222222222', CidrBlock: '10.0.0.0/16', regionId: 'us-east-1' }),
+      );
+      await testModes.generate(app, { outputDir: testModes.outputDir });
+      await testModes.stateManagementService.saveStates([
+        {
+          data: Buffer.from(
+            JSON.stringify({
+              resources: [{ provider: 'provider["registry.terraform.io/hashicorp/aws"]._222222222-us-east-1' }],
+            }),
+          ),
+          stateFileName: 'region-module.tfstate',
+        },
+      ]);
+      await testModes.commit(app, { outputs: testModes.outputs });
+
+      const { terraformFolders } = await testModes.getCommittedTerraformState();
+      expect(terraformFolders[0].providers.map((provider) => provider.accountId)).toEqual(['222222222']);
     });
 
     it('should regenerate identical files when intent is unchanged', async () => {

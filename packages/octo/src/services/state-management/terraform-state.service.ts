@@ -108,19 +108,23 @@ export class TerraformStateService {
   }
 
   /**
-   * Whether the state provider holds terraform state for a module, which it does only while that
-   * state records a resource.
+   * The provider each resource in a module's terraform state is bound to, as terraform writes it
+   * (`provider["registry.terraform.io/hashicorp/aws"].<alias>`). Empty when the state provider holds
+   * none for the module, which it does only while that state records a resource.
    */
-  async holdsState(moduleId: string): Promise<boolean> {
+  async getStateProviders(moduleId: string): Promise<string[]> {
+    let data: Buffer;
     try {
-      await this.stateManagementService.getState(this.stateFileName(moduleId));
-      return true;
+      data = await this.stateManagementService.getState(this.stateFileName(moduleId));
     } catch (error) {
       if (error.message === 'No state found!') {
-        return false;
+        return [];
       }
       throw error;
     }
+
+    const resources = (this.parseState(data)?.resources ?? []) as { provider?: string }[];
+    return [...new Set(resources.map((resource) => resource.provider).filter((provider) => provider !== undefined))];
   }
 
   /**
