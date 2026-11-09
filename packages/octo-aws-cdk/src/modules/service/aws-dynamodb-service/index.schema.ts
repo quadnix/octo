@@ -78,7 +78,6 @@ export class AwsDynamoDBServiceModuleSchema {
 
   /**
    * Global Secondary Indexes to create on the table.
-   * Requires `StreamSpecification` to be set.
    */
   @Validate({
     destruct: (value: AwsDynamoDBServiceModuleSchema['GlobalSecondaryIndexes']): DynamoDBSecondaryIndexSchema[] =>

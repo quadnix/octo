@@ -59,14 +59,6 @@ export class DynamoDB extends ATerraformResource<DynamoDBSchema, DynamoDB> {
       );
     }
 
-    // GSIs require StreamSpecification to be present for replication.
-    if (properties.GlobalSecondaryIndexes.length > 0 && !properties.StreamSpecification) {
-      throw new ResourceError(
-        `DynamoDB table "${properties.TableName}" must have StreamSpecification defined when GSIs are present!`,
-        this,
-      );
-    }
-
     // GSIs KeySchema must have valid HASH and RANGE keys defined.
     // Since max array length can be 2, having checked for a HASH key automatically verifies the other key.
     if (!properties.GlobalSecondaryIndexes.every((i) => i.KeySchema.filter((s) => s.KeyType === 'HASH').length === 1)) {

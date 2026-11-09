@@ -30,7 +30,7 @@ exports[`AwsDynamoDBServiceModule UT input changes should handle GlobalSecondary
   }"
 `;
 
-exports[`AwsDynamoDBServiceModule UT input changes should handle GlobalSecondaryIndexes change should create table with GSI 1`] = `
+exports[`AwsDynamoDBServiceModule UT input changes should handle GlobalSecondaryIndexes change should create table with GSI and no stream 1`] = `
 "# service/main.tf
 terraform {
   required_version = ">= 1.6.0"
@@ -65,8 +65,6 @@ resource "aws_dynamodb_table" "dynamodb-test-table-51fb32" {
   table_class = "STANDARD"
   read_capacity = 5
   write_capacity = 5
-  stream_enabled = true
-  stream_view_type = "NEW_AND_OLD_IMAGES"
   global_secondary_index {
     hash_key = "email"
     name = "GSI-email"

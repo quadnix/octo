@@ -407,7 +407,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
     });
 
     describe('should handle GlobalSecondaryIndexes change', () => {
-      it('should create table with GSI', async () => {
+      it('should create table with GSI and no stream', async () => {
         await setup(testModuleContainer);
         const { hclRender, resourceDiffs } = (
           await testModuleContainer
@@ -431,7 +431,6 @@ describe('AwsDynamoDBServiceModule UT', () => {
                   ],
                   KeySchema: [{ AttributeName: 'AccountId', KeyType: 'HASH' }],
                   region: stub('${{testModule.model.region}}'),
-                  StreamSpecification: { StreamViewType: 'NEW_AND_OLD_IMAGES' },
                   TableName: 'test-table',
                 },
                 moduleId: 'service',
