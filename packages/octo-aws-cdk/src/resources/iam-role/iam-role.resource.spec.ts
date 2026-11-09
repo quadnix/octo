@@ -138,7 +138,7 @@ describe('IamRole UT', () => {
       ]);
     });
 
-    it('should delete each policy, and never the role, when no policy is left', async () => {
+    it('should never delete the role itself, even with no policy left', async () => {
       const previous = createIamRole();
       const current = createIamRole();
       current.deletePolicy('LambdaAssumeRolePolicy');

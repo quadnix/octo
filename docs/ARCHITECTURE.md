@@ -130,8 +130,8 @@ and handing it to every step.
   expression; across folders it becomes a variable, a Terragrunt `dependency`, and mock outputs so a
   first plan works before anything is applied. A dependency cycle between folders is refused at
   generate.
-- **A removed module's folder is emptied, never deleted**: provider blocks only, so the next apply
-  destroys what it held.
+- **A removed module's folder is emptied**: provider blocks only, so the next apply destroys what it
+  held. The commit after it deletes the folder once its terraform state holds nothing.
 - **A renamed resource or folder moves its state.** When a `uniqueProperties` name survives an id
   change, generate writes `moved` blocks, and a folder change moves state between folders before
   Terraform runs.
