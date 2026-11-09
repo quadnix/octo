@@ -227,10 +227,6 @@ export class IamRole extends ATerraformResource<IamRoleSchema, IamRole> {
       ];
     }
 
-    if (this.properties.policies.length === 0) {
-      return [new Diff(previous, DiffAction.DELETE, 'resourceId', previous.getContext())];
-    }
-
     const diffs: Diff[] = [];
 
     for (const policy of previous.properties.policies) {

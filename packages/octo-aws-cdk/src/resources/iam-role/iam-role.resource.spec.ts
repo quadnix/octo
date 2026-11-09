@@ -138,6 +138,17 @@ describe('IamRole UT', () => {
       ]);
     });
 
+    it('should delete each policy, and never the role, when no policy is left', async () => {
+      const previous = createIamRole();
+      const current = createIamRole();
+      current.deletePolicy('LambdaAssumeRolePolicy');
+
+      const diffs = await current.diffProperties(previous);
+      expect(diffs.map((d) => [d.action, d.field, (d.value as any).action, (d.value as any).policyId])).toEqual([
+        ['update', 'assume-role-policy', 'delete', 'LambdaAssumeRolePolicy'],
+      ]);
+    });
+
     it('should replace when the role name moves', async () => {
       const previous = createIamRole();
       const current = new IamRole('iam-role-test-role', { ...createIamRole().properties, rolename: 'other-role' });
