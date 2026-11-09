@@ -29,7 +29,7 @@ import { AwsDynamoDBGlobalService } from './models/service/index.js';
  *
  * @see {@link AwsDynamoDBGlobalServiceModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
- * @see [Service](/api/octo/class/Service) to learn more about the `Service` model.
+ * @see [Service](/sdk/octo/class/Service) to learn more about the `Service` model.
  */
 @Module<AwsDynamoDBGlobalServiceModule>('@octo', AwsDynamoDBGlobalServiceModuleSchema)
 export class AwsDynamoDBGlobalServiceModule extends AModule<

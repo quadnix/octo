@@ -11,6 +11,7 @@ export const ApiDataContext = createContext<{
     gitRefName: 'master',
     minimal: false,
     pluginId: 'default',
+    routeBasePath: 'api',
     scopes: [],
   },
   reflections: {},

@@ -177,9 +177,9 @@ jq -r '.entries[]? | select(.type == "CommandFailedEvent") | .payload.nextStep /
 ```
 
 To read these files from code, their shapes are TypeScript types:
-[`@quadnix/octo-event-listeners/types`](/api/octo-event-listeners-types) has `JournalFile` and
+[`@quadnix/octo-event-listeners/types`](/sdk/octo-event-listeners-types) has `JournalFile` and
 `TerraformLogFile`, with each event's payload as the journal holds it, and
-[`@quadnix/octo/types`](/api/octo-types) has `ModelStateFile` and `ResourceStateFile`.
+[`@quadnix/octo/types`](/sdk/octo-types) has `ModelStateFile` and `ResourceStateFile`.
 
 The journal is gitignored in a new project, both the files in `.octo/` and `archives/`. The inputs
 each module ran with are recorded as given, so a secret passed as a module input is in the journal

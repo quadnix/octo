@@ -95,6 +95,7 @@ export interface ApiOptions {
   gitRefName: string;
   minimal: boolean;
   pluginId: string;
+  routeBasePath: string;
   scopes: string[];
 }
 

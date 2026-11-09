@@ -36,7 +36,7 @@ import { AwsS3StaticWebsiteService } from './models/service/index.js';
  *
  * @see {@link AwsS3StaticWebsiteServiceModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
- * @see [Service](/api/octo/class/Service) to learn more about the `Service` model.
+ * @see [Service](/sdk/octo/class/Service) to learn more about the `Service` model.
  */
 @Module<AwsS3StaticWebsiteServiceModule>('@octo', AwsS3StaticWebsiteServiceModuleSchema)
 export class AwsS3StaticWebsiteServiceModule extends AModule<

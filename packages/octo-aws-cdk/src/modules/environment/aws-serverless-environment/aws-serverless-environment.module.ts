@@ -25,7 +25,7 @@ import { AwsServerlessEnvironment } from './models/environment/index.js';
  *
  * @see {@link AwsServerlessEnvironmentModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
- * @see [Environment](/api/octo/class/Environment) to learn more about the `Environment` model.
+ * @see [Environment](/sdk/octo/class/Environment) to learn more about the `Environment` model.
  */
 @Module<AwsServerlessEnvironmentModule>('@octo', AwsServerlessEnvironmentModuleSchema)
 export class AwsServerlessEnvironmentModule extends AModule<

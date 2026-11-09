@@ -54,6 +54,8 @@ const config: Config = {
         ],
         projectDocuments: ['docs/contributions/**/*.md'],
         projectRoot: join(__dirname, '..', '..'),
+        // eslint-disable-next-line spellcheck/spell-checker
+        routeBasePath: 'sdk',
         typedocOptions: { useTsLinkResolution: true, watch: true },
       },
     ],
@@ -143,9 +145,10 @@ const config: Config = {
           type: 'docSidebar',
         },
         {
-          label: 'API',
+          label: 'SDK',
           position: 'left',
-          to: '/api',
+          // eslint-disable-next-line spellcheck/spell-checker
+          to: '/sdk',
         },
         {
           label: 'Blog',

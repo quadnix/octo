@@ -29,7 +29,7 @@ import { AwsEfsFilesystem } from './models/filesystem/index.js';
  *
  * @see {@link AwsEfsFilesystemModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
- * @see [Filesystem](/api/octo/class/Filesystem) to learn more about the `Filesystem` model.
+ * @see [Filesystem](/sdk/octo/class/Filesystem) to learn more about the `Filesystem` model.
  */
 @Module<AwsEfsFilesystemModule>('@octo', AwsEfsFilesystemModuleSchema)
 export class AwsEfsFilesystemModule extends AModule<AwsEfsFilesystemModuleSchema, Filesystem> {

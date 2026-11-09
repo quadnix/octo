@@ -33,7 +33,7 @@ import { AwsMultiAzRegion } from './models/region/index.js';
  *
  * @see {@link AwsMultiAzRegionModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
- * @see [Region](/api/octo/class/Region) to learn more about the `Region` model.
+ * @see [Region](/sdk/octo/class/Region) to learn more about the `Region` model.
  */
 @Module<AwsMultiAzRegionModule>('@octo', AwsMultiAzRegionModuleSchema)
 export class AwsMultiAzRegionModule extends AModule<AwsMultiAzRegionModuleSchema, AwsMultiAzRegion> {

@@ -49,7 +49,7 @@ import { AwsSimpleSubnetLocalFilesystemMountOverlay } from './overlays/aws-simpl
  *
  * @see {@link AwsSimpleSubnetModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
- * @see [Subnet](/api/octo/class/Subnet) to learn more about the `Subnet` model.
+ * @see [Subnet](/sdk/octo/class/Subnet) to learn more about the `Subnet` model.
  */
 @Module<AwsSimpleSubnetModule>('@octo', AwsSimpleSubnetModuleSchema)
 export class AwsSimpleSubnetModule extends AModule<AwsSimpleSubnetModuleSchema, AwsSimpleSubnet> {

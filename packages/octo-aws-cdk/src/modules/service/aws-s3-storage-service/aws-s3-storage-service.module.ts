@@ -39,7 +39,7 @@ import { AwsS3StorageService } from './models/service/index.js';
  *
  * @see {@link AwsS3StorageServiceModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
- * @see [Service](/api/octo/class/Service) to learn more about the `Service` model.
+ * @see [Service](/sdk/octo/class/Service) to learn more about the `Service` model.
  */
 @Module<AwsS3StorageServiceModule>('@octo', AwsS3StorageServiceModuleSchema)
 export class AwsS3StorageServiceModule extends AModule<AwsS3StorageServiceModuleSchema, AwsS3StorageService> {

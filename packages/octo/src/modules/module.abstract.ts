@@ -49,7 +49,7 @@ export abstract class AModule<S, T extends UnknownModel> implements IModule<S, T
    * Builds this module's infrastructure. It is where you construct models, attach anchors,
    * and create overlays.
    *
-   * Validate inputs here and throw a [ModuleError](/api/octo/class/ModuleError) on anything you
+   * Validate inputs here and throw a [ModuleError](/sdk/octo/class/ModuleError) on anything you
    * cannot satisfy - failing in `onInit` costs nothing, while failing later costs a half-built stack.
    *
    * @param inputs The inputs this module was loaded with, already validated against its schema.

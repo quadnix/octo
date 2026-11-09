@@ -27,7 +27,7 @@ import { AwsServerlessRegion } from './models/region/index.js';
  *
  * @see {@link AwsServerlessRegionModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
- * @see [Region](/api/octo/class/Region) to learn more about the `Region` model.
+ * @see [Region](/sdk/octo/class/Region) to learn more about the `Region` model.
  */
 @Module<AwsServerlessRegionModule>('@octo', AwsServerlessRegionModuleSchema)
 export class AwsServerlessRegionModule extends AModule<AwsServerlessRegionModuleSchema, AwsServerlessRegion> {

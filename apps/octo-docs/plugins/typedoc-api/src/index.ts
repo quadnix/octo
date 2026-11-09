@@ -84,6 +84,7 @@ export default function typedocApiPlugin(
     projectRoot,
     readmes,
     removeScopes,
+    routeBasePath,
   } = options;
   const isDefaultPluginId = pluginId === DEFAULT_PLUGIN_ID;
   const versionsMetadata = readVersionsMetadata(context, options as PluginOptions & DocusaurusPluginTypeDocApiOptions);
@@ -235,6 +236,7 @@ export default function typedocApiPlugin(
               gitRefName,
               minimal,
               pluginId,
+              routeBasePath,
               scopes: removeScopes,
             } satisfies ApiOptions),
           );

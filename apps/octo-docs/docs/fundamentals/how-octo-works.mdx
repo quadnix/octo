@@ -73,7 +73,7 @@ Octo now holds two resource graphs: the one your intent implies, derived moments
 recorded at the last commit. Comparing them is the diff, and it is what every report shows and what
 `octo validate` correlates Terraform's plan against.
 
-A change is one of [five things](/api/octo/enum/DiffAction), and the one worth knowing by name is
+A change is one of [five things](/sdk/octo/enum/DiffAction), and the one worth knowing by name is
 `replace`: a change that cannot be made in place, so the infrastructure is destroyed and created
 again. Whoever wrote the resource declares that, with a reason, which is how a report can say why a
 VPC is being recreated instead of leaving you to work it out from a plan.

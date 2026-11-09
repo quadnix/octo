@@ -33,7 +33,7 @@ import { AwsEcrImage } from './models/image/index.js';
  *
  * @see {@link AwsEcrImageModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
- * @see [Image](/api/octo/class/Image) to learn more about the `Image` model.
+ * @see [Image](/sdk/octo/class/Image) to learn more about the `Image` model.
  */
 @Module<AwsEcrImageModule>('@octo', AwsEcrImageModuleSchema)
 export class AwsEcrImageModule extends AModule<AwsEcrImageModuleSchema, AwsEcrImage> {

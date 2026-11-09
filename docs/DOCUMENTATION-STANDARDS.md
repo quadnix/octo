@@ -48,11 +48,11 @@ teaches neither.
   it is the only kind that may be exhaustive.
 - **Argument** is `introduction.mdx` and `why-octo.mdx`. It has one worked change and no API at all.
 
-The generated API at `/api` is the fifth surface, and it is the one the docs kept forgetting: 260
+The generated API at `/sdk` is the fifth surface, and it is the one the docs kept forgetting: 260
 pages built from JSDoc, linked from the prose pages **zero** times before this rule existed. A
 method's contract, an enum's members, what a call throws, and which override goes with which
 belong there, beside the code, where they cannot go stale. Link to it as
-`/api/octo/class/AResource` or `/api/octo-aws-cdk/class/AwsEcrImageTagModule`. When a detail has to
+`/sdk/octo/class/AResource` or `/sdk/octo-aws-cdk/class/AwsEcrImageTagModule`. When a detail has to
 leave a page, moving it into the JSDoc and linking is the move; deleting it is not.
 
 Every exception, limit, and "except when" has to earn its place by this test: **does the reader's

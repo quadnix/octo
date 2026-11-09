@@ -20,22 +20,23 @@ export interface ApiIndexProps extends Pick<DocItemProps, 'route'> {
 
 function addVersionToUrl(
   url: string,
+  routeBasePath: string,
   latestVersion: PropVersionMetadata,
   preferredVersion: GlobalVersion | null | undefined,
 ): string {
   if (
-    !url.match(/api\/([\d.]+)/) &&
-    !url.includes('api/next') &&
+    !new RegExp(`${routeBasePath}/([\\d.]+)`).test(url) &&
+    !url.includes(`${routeBasePath}/next`) &&
     preferredVersion &&
     preferredVersion.name !== latestVersion.version
   ) {
     const version = preferredVersion.name === 'current' ? 'next' : preferredVersion.name;
 
-    if (url.endsWith('/api')) {
+    if (url.endsWith(`/${routeBasePath}`)) {
       return `${url}/${version}`;
     }
 
-    return url.replace('/api/', `/api/${version}/`);
+    return url.replace(`/${routeBasePath}/`, `/${routeBasePath}/${version}/`);
   }
 
   return url;
@@ -49,12 +50,19 @@ export default function ApiIndex({ history, options, packages }: ApiIndexProps):
     // Redirect to package when only 1
     if (packages.length === 1) {
       history.replace(
-        addVersionToUrl(packages[0].entryPoints[0].reflection.permalink, latestVersion, preferredVersion),
+        addVersionToUrl(
+          packages[0].entryPoints[0].reflection.permalink,
+          options.routeBasePath,
+          latestVersion,
+          preferredVersion,
+        ),
       );
 
       // Redirect to preferred version
     } else if (preferredVersion) {
-      history.replace(addVersionToUrl(history.location.pathname, latestVersion, preferredVersion));
+      history.replace(
+        addVersionToUrl(history.location.pathname, options.routeBasePath, latestVersion, preferredVersion),
+      );
     }
   }, [packages, history, latestVersion, preferredVersion]);
 

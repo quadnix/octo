@@ -31,7 +31,7 @@ import { AwsDynamoDBService } from './models/service/index.js';
  *
  * @see {@link AwsDynamoDBServiceModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
- * @see [Service](/api/octo/class/Service) to learn more about the `Service` model.
+ * @see [Service](/sdk/octo/class/Service) to learn more about the `Service` model.
  */
 @Module<AwsDynamoDBServiceModule>('@octo', AwsDynamoDBServiceModuleSchema)
 export class AwsDynamoDBServiceModule extends AModule<AwsDynamoDBServiceModuleSchema, AwsDynamoDBService> {

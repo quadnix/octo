@@ -24,7 +24,7 @@ import { AwsMotoAccount } from './models/account/index.js';
  *
  * @see {@link AwsMotoAccountModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
- * @see [Account](/api/octo/class/Account) to learn more about the `Account` model.
+ * @see [Account](/sdk/octo/class/Account) to learn more about the `Account` model.
  */
 @Module<AwsMotoAccountModule>('@octo', AwsMotoAccountModuleSchema)
 export class AwsMotoAccountModule extends AModule<AwsMotoAccountModuleSchema, AwsMotoAccount> {

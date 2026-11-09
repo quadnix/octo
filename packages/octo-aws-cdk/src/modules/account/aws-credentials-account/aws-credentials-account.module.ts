@@ -31,7 +31,7 @@ import { AwsCredentialsAccount } from './models/account/index.js';
  *
  * @see {@link AwsCredentialsAccountModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
- * @see [Account](/api/octo/class/Account) to learn more about the `Account` model.
+ * @see [Account](/sdk/octo/class/Account) to learn more about the `Account` model.
  */
 @Module<AwsCredentialsAccountModule>('@octo', AwsCredentialsAccountModuleSchema)
 export class AwsCredentialsAccountModule extends AModule<AwsCredentialsAccountModuleSchema, AwsCredentialsAccount> {

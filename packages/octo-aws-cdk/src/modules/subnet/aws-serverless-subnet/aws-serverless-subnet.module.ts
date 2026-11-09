@@ -23,7 +23,7 @@ import { AwsServerlessSubnet } from './models/subnet/index.js';
  *
  * @see {@link AwsServerlessSubnetModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
- * @see [Subnet](/api/octo/class/Subnet) to learn more about the `Subnet` model.
+ * @see [Subnet](/sdk/octo/class/Subnet) to learn more about the `Subnet` model.
  */
 @Module<AwsServerlessSubnetModule>('@octo', AwsServerlessSubnetModuleSchema)
 export class AwsServerlessSubnetModule extends AModule<AwsServerlessSubnetModuleSchema, AwsServerlessSubnet> {

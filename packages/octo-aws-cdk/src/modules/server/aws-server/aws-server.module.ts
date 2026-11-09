@@ -64,7 +64,7 @@ import { AwsServerS3AccessOverlay } from './overlays/aws-server-s3-access/index.
  *
  * @see {@link AwsServerModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
- * @see [Server](/api/octo/class/Server) to learn more about the `Server` model.
+ * @see [Server](/sdk/octo/class/Server) to learn more about the `Server` model.
  */
 @Module<AwsServerModule>('@octo', AwsServerModuleSchema)
 export class AwsServerModule extends AModule<AwsServerModuleSchema, AwsServer> {

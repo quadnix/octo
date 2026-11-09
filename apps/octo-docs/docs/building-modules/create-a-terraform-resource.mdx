@@ -337,7 +337,7 @@ parentToChildDependency.addBehavior('resourceId', DiffAction.DELETE, 'update-per
 Each behavior reads as: when this action happens to that field of one node, this other action on
 that field of the other node must have happened first. Octo orders the whole run by them, and
 renders the result as `depends_on` inside a folder and as a Terragrunt `dependency` across folders.
-The full signature is on [`Dependency`](/api/octo/class/Dependency).
+The full signature is on [`Dependency`](/sdk/octo/class/Dependency).
 
 ### Which behaviors to declare
 

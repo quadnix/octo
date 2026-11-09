@@ -38,7 +38,7 @@ import { AwsDeploymentImageOverlay } from './overlays/aws-deployment-image/index
  *
  * @see {@link AwsDeploymentModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
- * @see [Deployment](/api/octo/class/Deployment) to learn more about the `Deployment` model.
+ * @see [Deployment](/sdk/octo/class/Deployment) to learn more about the `Deployment` model.
  */
 @Module<AwsDeploymentModule>('@octo', AwsDeploymentModuleSchema)
 export class AwsDeploymentModule extends AModule<AwsDeploymentModuleSchema, AwsDeployment> {

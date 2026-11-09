@@ -33,7 +33,7 @@ import { AwsSingleAzRegion } from './models/region/index.js';
  *
  * @see {@link AwsSingleAzRegionModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
- * @see [Region](/api/octo/class/Region) to learn more about the `Region` model.
+ * @see [Region](/sdk/octo/class/Region) to learn more about the `Region` model.
  */
 @Module<AwsSingleAzRegionModule>('@octo', AwsSingleAzRegionModuleSchema)
 export class AwsSingleAzRegionModule extends AModule<AwsSingleAzRegionModuleSchema, AwsSingleAzRegion> {

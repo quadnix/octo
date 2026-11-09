@@ -51,7 +51,7 @@ export class AwsSecurityGroupAnchorRuleSchema {
  *
  * @hideconstructor
  *
- * @see [AModel](/api/octo/class/AModel)'s `getAnchorsMatchingSchema()` to consume this anchor from
+ * @see [AModel](/sdk/octo/class/AModel)'s `getAnchorsMatchingSchema()` to consume this anchor from
  * your own module.
  */
 export class AwsSecurityGroupAnchorSchema extends BaseAnchorSchema {

@@ -63,7 +63,7 @@ import { AwsCloudFrontS3OriginOverlay } from './overlays/aws-cloudfront-s3-origi
  *
  * @see {@link AwsCloudFrontServiceModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
- * @see [Service](/api/octo/class/Service) to learn more about the `Service` model.
+ * @see [Service](/sdk/octo/class/Service) to learn more about the `Service` model.
  */
 @Module<AwsCloudFrontServiceModule>('@octo', AwsCloudFrontServiceModuleSchema)
 export class AwsCloudFrontServiceModule extends AModule<AwsCloudFrontServiceModuleSchema, AwsCloudFrontService> {

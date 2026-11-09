@@ -32,7 +32,7 @@ import { AwsEcsEnvironment } from './models/environment/index.js';
  *
  * @see {@link AwsEcsEnvironmentModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
- * @see [Environment](/api/octo/class/Environment) to learn more about the `Environment` model.
+ * @see [Environment](/sdk/octo/class/Environment) to learn more about the `Environment` model.
  */
 @Module<AwsEcsEnvironmentModule>('@octo', AwsEcsEnvironmentModuleSchema)
 export class AwsEcsEnvironmentModule extends AModule<AwsEcsEnvironmentModuleSchema, Environment> {

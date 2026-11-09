@@ -176,7 +176,7 @@ assertion. `LambdaFunction` is the worked example.
   `@internal` on what users never call, `@example` on what a user constructs. Write what an item is
   for, not how octo achieves it.
 - **`{@link X}` resolves only within a package.** Across packages, link the site:
-  `[ModuleError](/api/octo/class/ModuleError)`.
+  `[ModuleError](/sdk/octo/class/ModuleError)`.
 
 ---
 

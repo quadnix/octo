@@ -17,7 +17,7 @@ import { SimpleAppModuleSchema } from './index.schema.js';
  *
  * @see {@link SimpleAppModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
- * @see [App](/api/octo/class/App) to learn more about the `App` model.
+ * @see [App](/sdk/octo/class/App) to learn more about the `App` model.
  */
 @Module<SimpleAppModule>('@octo', SimpleAppModuleSchema)
 export class SimpleAppModule extends AModule<SimpleAppModuleSchema, App> {

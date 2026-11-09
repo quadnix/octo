@@ -59,7 +59,7 @@ import { AwsLambdaExecutionOverlay } from './overlays/aws-lambda-execution/index
  *
  * @see {@link AwsLambdaExecutionModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
- * @see [Execution](/api/octo/class/Execution) to learn more about the `Execution` model.
+ * @see [Execution](/sdk/octo/class/Execution) to learn more about the `Execution` model.
  */
 @Module<AwsLambdaExecutionModule>('@octo', AwsLambdaExecutionModuleSchema)
 export class AwsLambdaExecutionModule extends AModule<AwsLambdaExecutionModuleSchema, Execution> {

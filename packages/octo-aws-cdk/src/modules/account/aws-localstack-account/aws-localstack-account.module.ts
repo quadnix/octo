@@ -25,7 +25,7 @@ import { AwsLocalstackAccount } from './models/account/index.js';
  *
  * @see {@link AwsLocalstackAccountModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
- * @see [Account](/api/octo/class/Account) to learn more about the `Account` model.
+ * @see [Account](/sdk/octo/class/Account) to learn more about the `Account` model.
  */
 @Module<AwsLocalstackAccountModule>('@octo', AwsLocalstackAccountModuleSchema)
 export class AwsLocalstackAccountModule extends AModule<AwsLocalstackAccountModuleSchema, AwsLocalstackAccount> {
