@@ -12,13 +12,13 @@ because the step narrows the cause further than the message does.
 
 ## Before the definition file loads
 
-**`Environment variable "OCTO_DEFINITION_FILE_PATH" is not set!`**
+**`Octo definition file not found at "…"!`**
 
-You called the binary directly. The generated npm scripts set it; running `node_modules/.bin/octo
-generate` yourself does not.
+Octo reads `octo.yaml` from the directory you run it in. Run it from your project's root, or name
+the file:
 
 ```bash
-OCTO_DEFINITION_FILE_PATH=octo.yaml node_modules/.bin/octo generate -o .octo-tf
+OCTO_DEFINITION_FILE_PATH=octo.prod.yaml node_modules/.bin/octo generate -o .octo-tf
 ```
 
 **`Definition file failed validation against schema!`**

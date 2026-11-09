@@ -11,11 +11,11 @@ octo --help
 octo --version
 ```
 
-Every command reads `OCTO_DEFINITION_FILE_PATH`, and there is no flag for it. The generated npm
-scripts set it; if you call the binary directly, so must you.
+Every command reads `octo.yaml` from the working directory. To read another file, set
+`OCTO_DEFINITION_FILE_PATH`; there is no flag for it.
 
 ```bash
-OCTO_DEFINITION_FILE_PATH=octo.yaml node_modules/.bin/octo generate -o .octo-tf
+OCTO_DEFINITION_FILE_PATH=octo.prod.yaml node_modules/.bin/octo generate -o .octo-tf
 ```
 
 ## The lifecycle
@@ -333,5 +333,5 @@ jobs and their dependencies, and runs them with a concurrency limit.
 
 |                                         |                                                                                                                                                                                            |
 |-----------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `OCTO_DEFINITION_FILE_PATH`             | The definition file. Required by every command. Relative paths resolve against the working directory, and everything the definition names resolves against the definition's own directory. |
+| `OCTO_DEFINITION_FILE_PATH`             | The definition file, `octo.yaml` when unset. Relative paths resolve against the working directory, and everything the definition names resolves against the definition's own directory.    |
 | `OCTO_ENV_<key>`, for an `env` key      | Overrides that key's declared value. See [The Definition File](/docs/using-octo/the-definition-file#env).                                                                                  |

@@ -64,9 +64,8 @@ tags:           # optional tags applied to every resource a run produces
 
 [The Definition File](/docs/using-octo/the-definition-file) covers each section.
 
-The filename is a convention. The CLI reads whatever `OCTO_DEFINITION_FILE_PATH` points at, and the
-generated scripts point it at `octo.yaml`. Keeping several, such as `octo.staging.yaml` and
-`octo.prod.yaml`, is the normal way to separate deployments that must not share state.
+The CLI reads `octo.yaml` unless `OCTO_DEFINITION_FILE_PATH` names another file. Keeping several,
+such as `octo.staging.yaml` and `octo.prod.yaml`, is the normal way to separate deployments that must not share state.
 
 ## .octo/
 

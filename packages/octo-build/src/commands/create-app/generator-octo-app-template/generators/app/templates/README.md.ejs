@@ -56,10 +56,10 @@ the apply with `--auto-approve` and the same lock ID to go ahead:
 including the teardown flow below. If you decide not to go ahead, release the lock with
 `npm run octo:unlock -- --lockId $LOCK_ID`.
 
-Each script sets `OCTO_DEFINITION_FILE_PATH=octo.yaml` and points at `.octo-tf` for you. Edit the
-scripts in `package.json` if your definition file or output directory is named differently. Running
-the commands by hand works too — `node_modules/.bin/octo generate -o .octo-tf` with that variable
-set — but the scripts are what keep the steps agreeing with each other.
+Each script points at `.octo-tf` for you, and octo reads `octo.yaml` from the working directory.
+Edit the scripts in `package.json` if your output directory is named differently. Running the
+commands by hand works too — `node_modules/.bin/octo generate -o .octo-tf` — but the scripts are what
+keep the steps agreeing with each other.
 
 > `octo run-action` is invoked automatically by Terraform mid-apply for resources whose lifecycle runs
 > outside Terraform; you do not call it directly. `octo apply` hands it the definition file and the

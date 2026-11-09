@@ -67,9 +67,9 @@ export default class extends Generator {
     }
     this.log('   Set the "env" values in octo.yaml.');
     this.log('   npm run build');
-    // Scripts rather than bare commands: each one sets OCTO_DEFINITION_FILE_PATH and names the
-    // output directory, so the four steps cannot drift apart, and `npm run` puts node_modules/.bin
-    // on PATH - which is what the `octo run-action` callback terraform makes mid-apply needs.
+    // Scripts rather than bare commands: each one names the output directory, so the four steps
+    // cannot drift apart, and `npm run` puts node_modules/.bin on PATH - which is what the
+    // `octo run-action` callback terraform makes mid-apply needs.
     this.log('   npm run octo:generate');
     this.log('   npm run octo:validate   # optional');
     this.log('   LOCK_ID=$(npm run --silent octo:lock)');

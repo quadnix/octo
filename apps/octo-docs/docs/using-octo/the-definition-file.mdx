@@ -57,10 +57,9 @@ modules:
 `hooks`, `stores`, and `tags` are optional. The file is validated against a JSON schema before anything else happens, so a
 typo in a key name is caught with a message about that key.
 
-The name `octo.yaml` is a convention. Octo reads whatever `OCTO_DEFINITION_FILE_PATH` points at, and
-the scaffolded npm scripts set it. Everything the file names by relative path, imports and the state
-directory included, resolves against the file's own directory rather than your shell's working
-directory.
+Octo reads `octo.yaml` from the working directory, or the file `OCTO_DEFINITION_FILE_PATH` names.
+Everything the file names by relative path, imports and the state directory included, resolves
+against the file's own directory rather than your shell's working directory.
 
 :::tip[Editor autocompletion]
 Put this at the top and your editor will complete keys and flag mistakes as you type:

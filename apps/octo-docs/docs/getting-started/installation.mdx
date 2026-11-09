@@ -85,14 +85,13 @@ npm run octo:apply -- --lockId $LOCK_ID    # create the infrastructure
 npm run octo:commit -- --lockId $LOCK_ID   # record what was created, and release the lock
 ```
 
-Each script sets `OCTO_DEFINITION_FILE_PATH=octo.yaml` and points at `.octo-tf`, so the four steps
-cannot drift apart. Prefer the scripts to the binary: `npm run` puts `node_modules/.bin` on `PATH`,
-and Terraform needs to find `octo` there when it calls back mid-run.
+Each script points at `.octo-tf`, so the four steps cannot drift apart. Prefer the scripts to the
+binary: `npm run` puts `node_modules/.bin` on `PATH`, and Terraform needs to find `octo` there when it calls back mid-run.
 
-Running the binary directly works too, as long as you supply both yourself:
+Running the binary directly works too, as long as you name the output directory yourself:
 
 ```bash
-OCTO_DEFINITION_FILE_PATH=octo.yaml node_modules/.bin/octo generate -o .octo-tf
+node_modules/.bin/octo generate -o .octo-tf
 ```
 
 ## Using OpenTofu

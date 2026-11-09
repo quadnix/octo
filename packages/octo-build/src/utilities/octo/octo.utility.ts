@@ -13,9 +13,11 @@ import {
 import chalk from 'chalk';
 import { YamlDefinitionUtility } from '../definition/yaml/yaml-definition.utility.js';
 
+const DEFAULT_DEFINITION_FILE_PATH = 'octo.yaml';
+
 /**
  * Boots octo the way every lifecycle command does, from the definition file `OCTO_DEFINITION_FILE_PATH`
- * names, and reports what went wrong when a command fails.
+ * names, else `octo.yaml`, and reports what went wrong when a command fails.
  */
 export class OctoUtility {
   /**
@@ -137,16 +139,16 @@ export class OctoUtility {
    *   directly is still supported and has to work the same. The project's bin directory is prepended
    *   here, and the directory this CLI is running from after it, so a globally installed or linked
    *   octo still wins over nothing at all.
-   * - **`OCTO_DEFINITION_FILE_PATH` is usually relative** (`octo.yaml` - the package scripts set
-   *   exactly that), and terraform runs `local-exec` with a terragrunt cache directory as its cwd,
-   *   where that resolves to nothing. It is made absolute here, against the cwd the user actually
-   *   invoked from.
+   * - **The definition file is usually relative** (`octo.yaml`, the default), and terraform runs
+   *   `local-exec` with a terragrunt cache directory as its cwd, where that resolves to nothing.
+   *   `OCTO_DEFINITION_FILE_PATH` is set here to its absolute path, against the cwd the user
+   *   actually invoked from.
    */
   static prepareCallbackEnvironment(): void {
-    const definitionFilePath = process.env.OCTO_DEFINITION_FILE_PATH;
-    if (definitionFilePath) {
-      process.env.OCTO_DEFINITION_FILE_PATH = resolve(process.cwd(), definitionFilePath);
-    }
+    process.env.OCTO_DEFINITION_FILE_PATH = resolve(
+      process.cwd(),
+      process.env.OCTO_DEFINITION_FILE_PATH || DEFAULT_DEFINITION_FILE_PATH,
+    );
 
     const binDirectories = [resolve(process.cwd(), 'node_modules', '.bin'), dirname(process.argv[1] ?? '')].filter(
       (directory) => directory && existsSync(directory),
@@ -228,21 +230,20 @@ export class OctoUtility {
   }
 
   /**
-   * The absolute path of the definition file, from `OCTO_DEFINITION_FILE_PATH`.
+   * The absolute path of the definition file, from `OCTO_DEFINITION_FILE_PATH`, else `octo.yaml` in
+   * the working directory.
    *
-   * @throws If the variable is unset, or names a file that does not exist.
+   * @throws If the file does not exist.
    */
   private static resolveDefinitionFilePath(): string {
-    const fromEnv = process.env.OCTO_DEFINITION_FILE_PATH;
-    if (!fromEnv) {
-      throw new Error(
-        `Environment variable "OCTO_DEFINITION_FILE_PATH" is not set! Set it to the path of your Octo definition YAML file.`,
-      );
-    }
-
-    const definitionFilePath = resolve(process.cwd(), fromEnv);
+    const definitionFilePath = resolve(
+      process.cwd(),
+      process.env.OCTO_DEFINITION_FILE_PATH || DEFAULT_DEFINITION_FILE_PATH,
+    );
     if (!existsSync(definitionFilePath)) {
-      throw new Error(`Octo definition file not found at "${definitionFilePath}"!`);
+      throw new Error(
+        `Octo definition file not found at "${definitionFilePath}"! Set OCTO_DEFINITION_FILE_PATH to its path.`,
+      );
     }
 
     return definitionFilePath;
