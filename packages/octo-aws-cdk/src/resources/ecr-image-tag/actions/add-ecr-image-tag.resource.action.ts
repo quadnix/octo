@@ -81,7 +81,7 @@ export class AddEcrImageTagResourceAction extends ANodeAction implements IResour
       }),
     ]);
 
-    // Authenticate the docker CLI against the registry.
+    // Get the registry's credentials, which each docker command is handed on its own.
     const { authorizationData } = await ecrClient.send(new GetAuthorizationTokenCommand({}));
     const authorizationToken = authorizationData?.[0]?.authorizationToken;
     const proxyEndpoint = authorizationData?.[0]?.proxyEndpoint;
@@ -89,9 +89,9 @@ export class AddEcrImageTagResourceAction extends ANodeAction implements IResour
       throw new Error('ECR returned no authorization token!');
     }
     const [username, password] = Buffer.from(authorizationToken, 'base64').toString('utf8').split(':');
+    const credentials = { password, registryUri: proxyEndpoint, username };
     const log = (line: string, metadata: { command: string; stream: 'stderr' | 'stdout' }): void =>
       this.log(diff, line, metadata);
-    await dockerService.login(proxyEndpoint, username, password, log);
 
     // Build the image and push it. The build context is resolved against the octo project root
     // rather than the working directory: terraform runs this from a terragrunt cache directory.
@@ -107,9 +107,10 @@ export class AddEcrImageTagResourceAction extends ANodeAction implements IResour
         buildArguments: properties.buildArguments,
         buildSecrets: properties.buildSecrets,
       },
+      credentials,
       log,
     );
-    await dockerService.push(imageUri, log);
+    await dockerService.push(imageUri, credentials, log);
 
     // Read back the digest AWS assigned, which is the image's real identity.
     const { imageDetails } = await ecrClient.send(

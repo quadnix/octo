@@ -446,7 +446,9 @@ This is one of the library's two [external
 resources](/docs/building-modules/create-an-external-resource), the other being the CloudFront
 invalidation. Terraform has no resource that puts
 an image into a registry, so Octo runs the local `docker` CLI and the ECR API itself, which means
-the machine running the apply needs Docker, and builds the image for its own processor. An execution
+the machine running the apply needs Docker, and builds the image for its own processor. Octo never
+runs `docker login`: each Docker command gets the registry's credentials on its own, so tags pushed
+in parallel never collide, and your Docker credential store is never written. An execution
 whose deployment names the image and tag is ordered behind the push, so the same run can publish a
 version and start something that runs it.
 

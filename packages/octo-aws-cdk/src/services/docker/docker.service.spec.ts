@@ -1,4 +1,4 @@
-import { chmod, mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readFile, readdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DockerService } from './docker.service.js';
@@ -21,7 +21,64 @@ async function createRecordingBinary(): Promise<{ binaryPath: string; readArgume
   };
 }
 
+const CREDENTIALS = { password: 'password', registryUri: 'https://registry:4510', username: 'AWS' };
+
+/**
+ * A stand-in for the docker binary that records what a command sees of its credentials: the config
+ * directory, its config, what the credential helper on the PATH returns, and its arguments.
+ */
+async function createCredentialsRecordingBinary(): Promise<{
+  binaryPath: string;
+  readRecord: () => Promise<{ arguments: string[]; config: any; configDirectory: string; helperOutput: any }>;
+}> {
+  const directory = await mkdtemp(join(tmpdir(), 'octo-docker-'));
+  const binaryPath = join(directory, 'docker');
+  const recordPath = join(directory, 'record');
+
+  await writeFile(
+    binaryPath,
+    '#!/bin/sh\n' +
+      `echo "$DOCKER_CONFIG" > ${recordPath}\n` +
+      `cat "$DOCKER_CONFIG/config.json" >> ${recordPath}; echo >> ${recordPath}\n` +
+      `echo https://registry:4510 | docker-credential-octo get >> ${recordPath}; echo >> ${recordPath}\n` +
+      `echo "$@" >> ${recordPath}\n` +
+      'sleep 0.2\n',
+  );
+  await chmod(binaryPath, 0o755);
+
+  return {
+    binaryPath,
+    readRecord: async (): Promise<{ arguments: string[]; config: any; configDirectory: string; helperOutput: any }> => {
+      const [configDirectory, config, helperOutput, commandArguments] = (await readFile(recordPath, 'utf8')).split(
+        '\n',
+      );
+      return {
+        arguments: commandArguments.split(' '),
+        config: JSON.parse(config),
+        configDirectory,
+        helperOutput: JSON.parse(helperOutput),
+      };
+    },
+  };
+}
+
 describe('DockerService UT', () => {
+  const originalDockerConfig = process.env.DOCKER_CONFIG;
+  let userDockerDirectory: string;
+
+  beforeEach(async () => {
+    userDockerDirectory = join(await mkdtemp(join(tmpdir(), 'octo-docker-user-')), '.docker');
+    process.env.DOCKER_CONFIG = userDockerDirectory;
+  });
+
+  afterEach(() => {
+    if (originalDockerConfig === undefined) {
+      delete process.env.DOCKER_CONFIG;
+    } else {
+      process.env.DOCKER_CONFIG = originalDockerConfig;
+    }
+  });
+
   describe('build()', () => {
     it('should build a single manifest, so a push writes its tag once', async () => {
       const { binaryPath, readArguments } = await createRecordingBinary();
@@ -32,6 +89,7 @@ describe('DockerService UT', () => {
         '/context/Dockerfile',
         '/context',
         { buildArguments: {}, buildSecrets: {} },
+        CREDENTIALS,
         () => undefined,
       );
 
@@ -60,6 +118,7 @@ describe('DockerService UT', () => {
         '/context/Dockerfile',
         '/context',
         { buildArguments: { NODE_ENV: 'production' }, buildSecrets: { NPM_TOKEN: 'CI_NPM_TOKEN' } },
+        CREDENTIALS,
         () => undefined,
       );
 
@@ -74,67 +133,6 @@ describe('DockerService UT', () => {
     });
   });
 
-  describe('login()', () => {
-    it('should throw error if a login keeps colliding with another in the keychain', async () => {
-      const directory = await mkdtemp(join(tmpdir(), 'octo-docker-'));
-      const binaryPath = join(directory, 'docker');
-      const attemptsPath = join(directory, 'attempts');
-      await writeFile(
-        binaryPath,
-        `#!/bin/sh\ncat > /dev/null\necho x >> ${attemptsPath}\n` +
-          'echo "The specified item already exists in the keychain. (-25299)" >&2\nexit 1\n',
-      );
-      await chmod(binaryPath, 0o755);
-
-      await expect(
-        new DockerService(binaryPath).login('https://registry', 'AWS', 'password', () => undefined),
-      ).rejects.toThrow(/already exists in the keychain/);
-      expect((await readFile(attemptsPath, 'utf8')).trim().split('\n')).toHaveLength(5);
-    }, 10_000);
-
-    it('should throw error at once when a login fails for another reason', async () => {
-      const directory = await mkdtemp(join(tmpdir(), 'octo-docker-'));
-      const binaryPath = join(directory, 'docker');
-      const attemptsPath = join(directory, 'attempts');
-      await writeFile(
-        binaryPath,
-        `#!/bin/sh\ncat > /dev/null\necho x >> ${attemptsPath}\necho "unauthorized" >&2\nexit 1\n`,
-      );
-      await chmod(binaryPath, 0o755);
-
-      await expect(
-        new DockerService(binaryPath).login('https://registry', 'AWS', 'password', () => undefined),
-      ).rejects.toThrow(/unauthorized/);
-      expect((await readFile(attemptsPath, 'utf8')).trim().split('\n')).toHaveLength(1);
-    });
-
-    it('should log in once another login has written the keychain item', async () => {
-      const directory = await mkdtemp(join(tmpdir(), 'octo-docker-'));
-      const binaryPath = join(directory, 'docker');
-      const attemptsPath = join(directory, 'attempts');
-      await writeFile(
-        binaryPath,
-        `#!/bin/sh\ncat > /dev/null\nif [ -f ${attemptsPath} ]; then exit 0; fi\ntouch ${attemptsPath}\n` +
-          'echo "The specified item already exists in the keychain. (-25299)" >&2\nexit 1\n',
-      );
-      await chmod(binaryPath, 0o755);
-
-      await expect(
-        new DockerService(binaryPath).login('https://registry', 'AWS', 'password', () => undefined),
-      ).resolves.toBeUndefined();
-    });
-
-    it('should keep the password off the command line', async () => {
-      const { binaryPath, readArguments } = await createRecordingBinary();
-
-      await new DockerService(binaryPath).login('https://registry', 'AWS', 'password', () => undefined);
-
-      const commandArguments = await readArguments();
-      expect(commandArguments).toEqual(['login', '--username', 'AWS', '--password-stdin', 'https://registry']);
-      expect(commandArguments).not.toContain('password');
-    });
-  });
-
   describe('push()', () => {
     it('should throw error if docker exits non-zero, carrying what it printed', async () => {
       const directory = await mkdtemp(join(tmpdir(), 'octo-docker-'));
@@ -142,9 +140,9 @@ describe('DockerService UT', () => {
       await writeFile(binaryPath, '#!/bin/sh\necho "tag is immutable" >&2\nexit 1\n');
       await chmod(binaryPath, 0o755);
 
-      await expect(new DockerService(binaryPath).push('registry/repository:0.0.1', () => undefined)).rejects.toThrow(
-        /docker push" exited with 1!\ntag is immutable/,
-      );
+      await expect(
+        new DockerService(binaryPath).push('registry/repository:0.0.1', CREDENTIALS, () => undefined),
+      ).rejects.toThrow(/docker push" exited with 1!\ntag is immutable/);
     });
 
     it('should log each line docker prints, with its command and stream, as it prints it', async () => {
@@ -154,7 +152,7 @@ describe('DockerService UT', () => {
       await chmod(binaryPath, 0o755);
       const lines: [string, { command: string; stream: string }][] = [];
 
-      await new DockerService(binaryPath).push('registry/repository:0.0.1', (line, metadata) =>
+      await new DockerService(binaryPath).push('registry/repository:0.0.1', CREDENTIALS, (line, metadata) =>
         lines.push([line, metadata]),
       );
 
@@ -168,10 +166,63 @@ describe('DockerService UT', () => {
       ]);
     });
 
+    it('should hand docker the credentials through a helper, never on the command line', async () => {
+      const { binaryPath, readRecord } = await createCredentialsRecordingBinary();
+
+      await new DockerService(binaryPath).push('registry:4510/repository:0.0.1', CREDENTIALS, () => undefined);
+
+      const record = await readRecord();
+      expect(record.config).toEqual({ credHelpers: { 'registry:4510': 'octo' } });
+      expect(record.helperOutput).toEqual({ Secret: 'password', ServerURL: 'https://registry:4510', Username: 'AWS' });
+      expect(record.arguments).toEqual(['push', 'registry:4510/repository:0.0.1']);
+    });
+
+    it('should keep the user docker config and link the rest of their docker directory', async () => {
+      await mkdir(join(userDockerDirectory, 'contexts', 'meta'), { recursive: true });
+      await writeFile(join(userDockerDirectory, 'contexts', 'meta', 'context'), 'desktop-linux');
+      const userConfig = {
+        credHelpers: { 'other-registry': 'ecr-login' },
+        credsStore: 'osxkeychain',
+        currentContext: 'desktop-linux',
+      };
+      await writeFile(join(userDockerDirectory, 'config.json'), JSON.stringify(userConfig));
+      const { binaryPath, readRecord } = await createCredentialsRecordingBinary();
+
+      await new DockerService(binaryPath).push('registry:4510/repository:0.0.1', CREDENTIALS, () => undefined);
+
+      const record = await readRecord();
+      expect(record.config).toEqual({
+        credHelpers: { 'other-registry': 'ecr-login', 'registry:4510': 'octo' },
+        credsStore: 'osxkeychain',
+        currentContext: 'desktop-linux',
+      });
+      // The user's directory is unchanged, and the private one is gone.
+      expect(JSON.parse(await readFile(join(userDockerDirectory, 'config.json'), 'utf8'))).toEqual(userConfig);
+      expect(await readFile(join(userDockerDirectory, 'contexts', 'meta', 'context'), 'utf8')).toBe('desktop-linux');
+      await expect(readdir(record.configDirectory)).rejects.toThrow(/ENOENT/);
+    });
+
+    it('should give each of two parallel pushes to one registry its own credentials', async () => {
+      const first = await createCredentialsRecordingBinary();
+      const second = await createCredentialsRecordingBinary();
+
+      await Promise.all([
+        new DockerService(first.binaryPath).push('registry:4510/one:0.0.1', CREDENTIALS, () => undefined),
+        new DockerService(second.binaryPath).push(
+          'registry:4510/two:0.0.1',
+          { ...CREDENTIALS, password: 'other-password' },
+          () => undefined,
+        ),
+      ]);
+
+      expect((await first.readRecord()).helperOutput.Secret).toBe('password');
+      expect((await second.readRecord()).helperOutput.Secret).toBe('other-password');
+    });
+
     it('should push the given image reference', async () => {
       const { binaryPath, readArguments } = await createRecordingBinary();
 
-      await new DockerService(binaryPath).push('registry/repository:0.0.1', () => undefined);
+      await new DockerService(binaryPath).push('registry/repository:0.0.1', CREDENTIALS, () => undefined);
 
       expect(await readArguments()).toEqual(['push', 'registry/repository:0.0.1']);
     });

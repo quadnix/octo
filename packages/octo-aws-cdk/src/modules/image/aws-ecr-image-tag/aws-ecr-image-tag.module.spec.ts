@@ -12,10 +12,10 @@ const AUTHORIZATION_TOKEN = Buffer.from('AWS:password').toString('base64');
  * The docker CLI and the ECR API this module's resource action reaches for. Publishing runs those
  * actions for real even in a `skip` run - it is only terraform that such a run leaves out.
  */
-let dockerService: { build: jest.Mock; login: jest.Mock; push: jest.Mock };
+let dockerService: { build: jest.Mock; push: jest.Mock };
 
 function createPublishingMocks(): { mocks: Parameters<typeof TestContainer.create>[0]['mocks'] } {
-  dockerService = { build: jest.fn(), login: jest.fn(), push: jest.fn() };
+  dockerService = { build: jest.fn(), push: jest.fn() };
 
   return {
     mocks: [
@@ -188,6 +188,7 @@ describe('AwsEcrImageTagModule UT', () => {
       expect.stringMatching(/images\/nginx\/Dockerfile$/),
       expect.stringMatching(/images\/nginx$/),
       { buildArguments: {}, buildSecrets: {} },
+      { password: 'password', registryUri: 'https://registry', username: 'AWS' },
       expect.any(Function),
     );
   });
@@ -260,6 +261,7 @@ describe('AwsEcrImageTagModule UT', () => {
         expect.any(String),
         expect.any(String),
         { buildArguments: { NODE_ENV: 'production' }, buildSecrets: { NPM_TOKEN: 'OCTO_TEST_NPM_TOKEN' } },
+        expect.anything(),
         expect.any(Function),
       );
     });

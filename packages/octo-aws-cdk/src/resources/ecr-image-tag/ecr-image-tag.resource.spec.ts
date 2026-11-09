@@ -14,6 +14,11 @@ import { DeleteEcrImageTagResourceAction } from './actions/delete-ecr-image-tag.
 import { EcrImageTag } from './ecr-image-tag.resource.js';
 
 const AUTHORIZATION_TOKEN = Buffer.from('AWS:password').toString('base64');
+const CREDENTIALS = {
+  password: 'password',
+  registryUri: 'https://123456789012.dkr.ecr.us-east-1.amazonaws.com',
+  username: 'AWS',
+};
 const IMAGE_DIGEST = 'sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
 const REPOSITORY_URI = '123456789012.dkr.ecr.us-east-1.amazonaws.com/family/image';
 
@@ -53,11 +58,11 @@ function createEcrImageTag(imageTag: string = '0.0.1'): EcrImageTag {
 
 describe('EcrImageTag UT', () => {
   let container: Container;
-  let dockerService: { build: jest.Mock; login: jest.Mock; push: jest.Mock };
+  let dockerService: { build: jest.Mock; push: jest.Mock };
   let ecrClientSend: jest.Mock;
 
   beforeEach(async () => {
-    dockerService = { build: jest.fn(), login: jest.fn(), push: jest.fn() };
+    dockerService = { build: jest.fn(), push: jest.fn() };
     ecrClientSend = jest.fn(async (command: unknown) => {
       if (command instanceof GetAuthorizationTokenCommand) {
         return {
@@ -192,21 +197,16 @@ describe('EcrImageTag UT', () => {
         new Diff(ecrImageTag, DiffAction.ADD, 'resourceId', ecrImageTag.getContext()),
       );
 
-      expect(dockerService.login).toHaveBeenCalledWith(
-        'https://123456789012.dkr.ecr.us-east-1.amazonaws.com',
-        'AWS',
-        'password',
-        expect.any(Function),
-      );
       expect(dockerService.build).toHaveBeenCalledWith(
         `${REPOSITORY_URI}:0.0.1`,
         'linux/arm64',
         expect.stringMatching(/images\/nginx\/Dockerfile$/),
         expect.stringMatching(/images\/nginx$/),
         { buildArguments: {}, buildSecrets: {} },
+        CREDENTIALS,
         expect.any(Function),
       );
-      expect(dockerService.push).toHaveBeenCalledWith(`${REPOSITORY_URI}:0.0.1`, expect.any(Function));
+      expect(dockerService.push).toHaveBeenCalledWith(`${REPOSITORY_URI}:0.0.1`, CREDENTIALS, expect.any(Function));
 
       expect(response).toEqual({
         imageDigest: IMAGE_DIGEST,
@@ -242,6 +242,7 @@ describe('EcrImageTag UT', () => {
           '/octo-project/images/nginx/Dockerfile',
           '/octo-project/images/nginx',
           { buildArguments: {}, buildSecrets: {} },
+          expect.anything(),
           expect.any(Function),
         );
       } finally {
