@@ -64,6 +64,12 @@ again. Relative paths resolve against the definition file, not your shell.
 
 ## While modules compose
 
+**`Module "receipts-module" has no input "bucketname"!`**
+
+A key under `moduleInputs` is not one the module takes: a typo, or an input a newer version of the
+module dropped. Octo refuses it rather than read the input as unset. The module's page under
+[`/sdk`](/sdk) lists what it takes.
+
 **`Input "receipts-module.input.region" refers to "${{region-module.model.region}}", which does not exist!`**
 
 A `${{...}}` reference pointing at something that does not exist yet. Two causes, in order of

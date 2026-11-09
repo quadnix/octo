@@ -1,4 +1,5 @@
 import { jest } from '@jest/globals';
+import { Schema } from '../functions/schema/schema.js';
 import { App } from '../models/app/app.model.js';
 import type { OverlayDataRepository } from '../overlays/overlay-data.repository.js';
 import type { EventService } from '../services/event/event.service.js';
@@ -6,7 +7,9 @@ import type { InputService } from '../services/input/input.service.js';
 import { AModule } from './module.abstract.js';
 import { ModuleContainer } from './module.container.js';
 
-class TestModuleSchema {}
+class TestModuleSchema {
+  name = Schema<string>();
+}
 
 class TestAppModule extends AModule<TestModuleSchema, App> {
   static override readonly MODULE_PACKAGE = '@octo';
@@ -51,6 +54,12 @@ describe('ModuleContainer UT', () => {
       expect(() =>
         moduleContainer.load(OtherTestAppModule, 'app-module', { name: 'app' } as never),
       ).toThrowErrorMatchingInlineSnapshot(`"Module id "app-module" is already in use!"`);
+    });
+
+    it('should throw when an input is not one the module declares', () => {
+      expect(() =>
+        moduleContainer.load(TestAppModule, 'app-module', { invokerAccountIds: [], name: 'app' } as never),
+      ).toThrowErrorMatchingInlineSnapshot(`"Module "app-module" has no input "invokerAccountIds"!"`);
     });
 
     it('should throw when a module id contains a dot', () => {

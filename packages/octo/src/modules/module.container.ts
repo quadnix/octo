@@ -210,6 +210,13 @@ export class ModuleContainer {
       throw new ModuleError(`Module id "${moduleId}" cannot contain "."!`, moduleName);
     }
 
+    // An input the module does not declare would otherwise read as unset.
+    const inputKeys = getSchemaKeys((m.module as unknown as typeof AModule).MODULE_SCHEMA);
+    const unknownInputKey = Object.keys(inputs).find((key) => !inputKeys.includes(key));
+    if (unknownInputKey) {
+      throw new ModuleError(`Module "${moduleId}" has no input "${unknownInputKey}"!`, moduleName);
+    }
+
     // Loading a module again under its id, with the same inputs, changes nothing. Any other module
     // under that id would be lost.
     const copiedInputs = JSON.parse(JSON.stringify(inputs));
@@ -227,7 +234,7 @@ export class ModuleContainer {
 
     m.instances.push({
       applied: false,
-      inputKeys: getSchemaKeys((m.module as unknown as typeof AModule).MODULE_SCHEMA),
+      inputKeys,
       inputs: copiedInputs,
       moduleId,
     });
