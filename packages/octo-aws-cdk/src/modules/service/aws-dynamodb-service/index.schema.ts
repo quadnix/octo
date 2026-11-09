@@ -68,7 +68,8 @@ export class AwsDynamoDBServiceModuleSchema {
 
   /**
    * Whether AWS refuses to delete the table. An apply that would delete or replace a protected table
-   * fails until this is turned off and applied first.
+   * fails until this is turned off and applied first. AWS changes it only alone, so a run that turns it
+   * on or off changes nothing else about the table.
    */
   @Validate({
     destruct: (value: AwsDynamoDBServiceModuleSchema['DeletionProtectionEnabled']): string[] => [String(value)],

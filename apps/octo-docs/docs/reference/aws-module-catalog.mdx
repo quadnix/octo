@@ -361,6 +361,8 @@ waits for both the distribution and the bucket.
 Two things about the DynamoDB module are worth knowing before you use it, and its generated
 definition file says both: a global secondary index can be added to or removed from a live table,
 and a local secondary index cannot, so changing one recreates the table.
+`DeletionProtectionEnabled` changes only on its own: AWS refuses it in the same update as any other
+change to the table, so turn it on in a run that changes nothing else there.
 
 `AwsDynamoDBGlobalServiceModule` takes the table's own service and a replica per further region,
 each one a region node and optional tags. A replica cannot name the region the table sits in.
