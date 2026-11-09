@@ -98,7 +98,8 @@ export class Octo {
    * partial apply never leaves a half-written record behind. Pass `partial` after an apply that
    * failed and the missing outputs become warnings instead, with every resource they belong to left
    * out of the committed graph. Outputs for a folder Octo does not track are ignored, and returned
-   * as warnings for you to surface.
+   * as warnings for you to surface. The modules whose folders this commit stopped recording are
+   * returned as `emptiedModuleIds`, for `TerraformUtility.deleteDestroyedFolders`.
    *
    * **Requires the lock**, and does not release it. Taking and releasing the lock belongs to whoever
    * drives the lifecycle - the CLI's `octo commit` releases it once this returns, and keeps it when this
@@ -115,7 +116,7 @@ export class Octo {
     app: App,
     options: { lockId: string; outputs: Map<string, TerraformOutputs>; partial?: boolean },
     transaction?: ModelTransactionResult,
-  ): Promise<Pick<Awaited<ReturnType<typeof runCommit>>, 'warnings'>> {
+  ): Promise<Pick<Awaited<ReturnType<typeof runCommit>>, 'emptiedModuleIds' | 'warnings'>> {
     // Checked before the mode starts, so a commit without the lock reads no state and writes none.
     if (!(await this.stateManagementService.isAppLocked(options.lockId))) {
       throw new TransactionError('App is not locked!');
@@ -147,7 +148,7 @@ export class Octo {
       // Emitted after the state is persisted, so a listener never sees an uncommitted commit.
       this.eventService.emit(new CommitModeCompletedEvent(undefined, completed));
 
-      return { warnings: completed.warnings };
+      return { emptiedModuleIds: completed.emptiedModuleIds, warnings: completed.warnings };
     });
   }
 
@@ -187,7 +188,7 @@ export class Octo {
    * A new module gets a new folder, and a changed module is rewritten in the folder it already has.
    * A module you *removed* is not deleted: its folder is **emptied**, keeping only the provider
    * blocks, so the next terraform apply destroys the live infrastructure rather than orphaning it.
-   * Octo never deletes a folder.
+   * Generate never deletes a folder.
    *
    * @param app The root model, from {@link Octo.getRootModel}.
    * @param options `outputDir` is where the module folders are written.

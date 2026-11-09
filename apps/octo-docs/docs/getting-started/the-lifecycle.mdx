@@ -61,7 +61,8 @@ Three things about how it writes, all of which matter the first time you delete 
 - A module you removed from your intent has its folder emptied, keeping the Terraform block and the
   providers but no resources. An empty configuration is what makes the next apply destroy the
   infrastructure that folder holds.
-- Octo never deletes a folder. Deleting it would orphan whatever is in its state file.
+- Generate never deletes a folder. Deleting it would orphan whatever is in its state file. The
+  commit after the destroy deletes it, once its state holds nothing.
 
 If a module's inputs fail validation, generate throws before writing anything. A graph that does not
 hold together never becomes a folder.

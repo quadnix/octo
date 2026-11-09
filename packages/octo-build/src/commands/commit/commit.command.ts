@@ -80,9 +80,14 @@ export const commitCommand = {
         }
       }
 
-      const { warnings } = await octo.commit(app, { lockId, outputs, partial });
+      const { emptiedModuleIds, warnings } = await octo.commit(app, { lockId, outputs, partial });
       for (const warning of warnings) {
         console.error(chalk.yellow(`WARN ${warning.moduleId ? `[${warning.moduleId}] ` : ''}${warning.message}`));
+      }
+
+      // Delete each emptied folder whose destroy applied, which the committed record no longer names.
+      for (const moduleId of await terraformUtility.deleteDestroyedFolders(resolvedDir, emptiedModuleIds)) {
+        console.error(`Deleted folder "${moduleId}", whose module left intent and whose destroy is committed.`);
       }
 
       // Release the lock once the run is recorded. A failed commit keeps it for the re-run.

@@ -4,6 +4,7 @@ import { Container, StateManagementService, TerraformUtility, TestContainer } fr
 import type { ArgumentsCamelCase } from 'yargs';
 
 type CommitResult = {
+  emptiedModuleIds: string[];
   warnings: { message: string; moduleId?: string }[];
 };
 
@@ -44,6 +45,7 @@ describe('commitCommand UT', () => {
 
   let octoCommitMock: jest.Mock<(...args: unknown[]) => Promise<CommitResult>>;
   let terraformUtilityMock: {
+    deleteDestroyedFolders: jest.Mock<(dir: string, moduleIds: string[]) => Promise<string[]>>;
     listModuleFolders: jest.Mock<() => Promise<string[]>>;
     output: jest.Mock<() => Promise<Map<string, unknown>>>;
   };
@@ -53,10 +55,15 @@ describe('commitCommand UT', () => {
   let consoleLogSpy: jest.SpiedFunction<typeof console.log>;
 
   beforeEach(async () => {
-    octoCommitMock = jest.fn<(...args: unknown[]) => Promise<CommitResult>>().mockResolvedValue({ warnings: [] });
+    octoCommitMock = jest
+      .fn<(...args: unknown[]) => Promise<CommitResult>>()
+      .mockResolvedValue({ emptiedModuleIds: [], warnings: [] });
     mockedBootOcto.mockResolvedValue({ app: {}, octo: { commit: octoCommitMock } });
 
     terraformUtilityMock = {
+      deleteDestroyedFolders: jest
+        .fn<(dir: string, moduleIds: string[]) => Promise<string[]>>()
+        .mockImplementation(async (_dir, moduleIds) => moduleIds),
       listModuleFolders: jest.fn<() => Promise<string[]>>().mockResolvedValue([]),
       output: jest.fn<() => Promise<Map<string, unknown>>>().mockResolvedValue(new Map()),
     };
@@ -135,12 +142,25 @@ describe('commitCommand UT', () => {
   });
 
   it('prints warnings from the commit result', async () => {
-    octoCommitMock.mockResolvedValue({ warnings: [{ message: 'heads up', moduleId: 'module-a' }] });
+    octoCommitMock.mockResolvedValue({
+      emptiedModuleIds: [],
+      warnings: [{ message: 'heads up', moduleId: 'module-a' }],
+    });
 
     await commitCommand.handler(argv);
 
     expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('WARN [module-a] heads up'));
     expect(processExitSpy).not.toHaveBeenCalled();
+  });
+
+  it('deletes the folders of the modules the commit emptied whose destroy applied', async () => {
+    octoCommitMock.mockResolvedValue({ emptiedModuleIds: ['module-gone'], warnings: [] });
+
+    await commitCommand.handler(argv);
+
+    expect(terraformUtilityMock.deleteDestroyedFolders).toHaveBeenCalledWith(resolvedDir, ['module-gone']);
+    expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Deleted folder "module-gone"'));
+    expect(stateManagementServiceMock.unlockApp).toHaveBeenCalledWith(lockId);
   });
 
   it('reports and exits on a thrown error', async () => {

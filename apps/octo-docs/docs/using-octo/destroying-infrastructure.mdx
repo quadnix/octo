@@ -44,7 +44,8 @@ Terraform still has its state, and an empty configuration against a populated st
 makes the next apply destroy those resources.
 
 Deleting the folder would do the opposite. Terraform would never look at that state again, and the
-role would sit in AWS with nothing tracking it. Octo never deletes a folder for this reason.
+role would sit in AWS with nothing tracking it. Generate never deletes a folder for this reason; the
+commit after the destroy does, once the folder's state holds nothing.
 
 ## Reading what will go
 
@@ -128,8 +129,14 @@ MODULES THAT NO LONGER RENDER ANYTHING
 Committing after a destroy is not optional. Until it runs, Octo's record still says the bucket and
 the role exist, and anything Terraform did not delete itself has not been dealt with yet.
 
-The last section names the folders that are now empty. Once the destroy is committed they are inert,
-and you can delete them by hand whenever you like.
+The last section names the folders that are now empty. The commit deletes each one whose Terraform
+state holds nothing, and prints a line for it:
+
+```text
+Deleted folder "checkout-server-module", whose module left intent and whose destroy is committed.
+```
+
+A folder whose destroy did not finish, after a failed apply, keeps its state and stays.
 
 ## Deleting is not renaming
 
@@ -153,7 +160,7 @@ refuses without `--auto-approve`, but nothing will stop you if you insist.
 A `moduleId` is different. Rename `receipts-module` and the bucket keeps its resource ID, because the
 ID comes from the models, not from the module; only its folder changes. Octo moves the bucket's
 Terraform state from `receipts-module/` into the new folder before Terraform plans, so the apply
-destroys nothing and needs no `--auto-approve`, and the old folder is left empty.
+destroys nothing and needs no `--auto-approve`, and the commit deletes the old, empty folder.
 
 ## Taking everything down
 
@@ -169,6 +176,6 @@ npm run octo:apply -- --lockId $LOCK_ID --auto-approve
 npm run octo:commit -- --lockId $LOCK_ID
 ```
 
-Afterwards, `.octo/` still exists and describes an app with nothing in it, and `.octo-tf/` is full
-of empty folders. That is the correct resting state, and re-adding a module from here works
-normally.
+Afterwards, `.octo/` still exists and describes an app with nothing in it, and the commit has
+deleted every folder in `.octo-tf/`. That is the correct resting state, and re-adding a module from
+here works normally.

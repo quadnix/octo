@@ -155,6 +155,41 @@ export class TerraformUtility {
   }
 
   /**
+   * Deletes the folder of each module in `moduleIds` whose terraform state holds no resources, as a
+   * folder emptied from intent holds once its destroy applied. A folder still holding resources is kept.
+   *
+   * @param terragruntDir The directory octo generated the module folders into.
+   * @param moduleIds The modules whose folders may go, such as those a commit emptied.
+   * @returns The modules whose folders were deleted.
+   */
+  async deleteDestroyedFolders(terragruntDir: string, moduleIds: string[]): Promise<string[]> {
+    const realTerragruntDir = await this.resolveRealPath(terragruntDir);
+    return this.withTerraformState(realTerragruntDir, async (folderModuleIds) => {
+      const deletedModuleIds: string[] = [];
+
+      for (const moduleId of moduleIds.filter((m) => folderModuleIds.includes(m))) {
+        const moduleDir = join(realTerragruntDir, moduleId);
+        const stateFilePath = join(moduleDir, TERRAFORM_STATE_FILE_NAME);
+        if (existsSync(stateFilePath)) {
+          try {
+            const state = JSON.parse(await readFile(stateFilePath, 'utf-8')) as { resources?: unknown[] };
+            if (!Array.isArray(state.resources) || state.resources.length > 0) {
+              continue;
+            }
+          } catch {
+            continue;
+          }
+        }
+
+        await rm(moduleDir, { force: true, recursive: true });
+        deletedModuleIds.push(moduleId);
+      }
+
+      return deletedModuleIds;
+    });
+  }
+
+  /**
    * Runs `terragrunt run --all -- destroy` over every generated module folder.
    *
    * **This tears down real infrastructure**, and runs with `-auto-approve`.

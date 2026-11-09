@@ -693,6 +693,41 @@ describe('TerraformUtility UT', () => {
     });
   });
 
+  describe('deleteDestroyedFolders()', () => {
+    it('should keep a folder whose terraform state still holds resources', async () => {
+      await createModuleFolder('module-a');
+      await stateProvider.saveStates([{ data: Buffer.from('{"resources":[{}]}'), stateFileName: 'module-a.tfstate' }]);
+
+      const deletedModuleIds = await terraform.deleteDestroyedFolders(terragruntDir, ['module-a']);
+
+      expect(deletedModuleIds).toEqual([]);
+      expect(await terraform.listModuleFolders(terragruntDir)).toEqual(['module-a']);
+    });
+
+    it('should keep a folder it was not named', async () => {
+      await createModuleFolder('module-a');
+
+      const deletedModuleIds = await terraform.deleteDestroyedFolders(terragruntDir, []);
+
+      expect(deletedModuleIds).toEqual([]);
+      expect(await terraform.listModuleFolders(terragruntDir)).toEqual(['module-a']);
+    });
+
+    it('should delete a named folder whose terraform state holds no resources, or that has none', async () => {
+      await createModuleFolder('module-destroyed');
+      await createModuleFolder('module-never-applied');
+      await writeFile(join(terragruntDir, 'module-destroyed', 'terraform.tfstate'), '{"resources":[]}');
+
+      const deletedModuleIds = await terraform.deleteDestroyedFolders(terragruntDir, [
+        'module-destroyed',
+        'module-never-applied',
+      ]);
+
+      expect(deletedModuleIds).toEqual(['module-destroyed', 'module-never-applied']);
+      expect(await terraform.listModuleFolders(terragruntDir)).toEqual([]);
+    });
+  });
+
   describe('findPlannedDestroys()', () => {
     it('collects every destroy, counting a recreate, and ignores data sources and no-ops', () => {
       const destroys = terraform.findPlannedDestroys(

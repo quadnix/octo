@@ -133,7 +133,7 @@ Nothing in these folders should be edited by hand, because the next `generate` o
 Octo owns. It overwrites only those, so Terraform's lock file, its state, and the provider cache all
 survive a regenerate, and those are the parts that stay out of git. A module you deleted from your
 intent leaves an emptied folder behind, and that emptied folder is what makes the next apply destroy
-its resources.
+its resources. The commit after that apply deletes the folder.
 
 :::note[The `terraform.tfstate` in here is a working copy]
 Terraform state is kept under `.octo/`, and Octo copies it into the folder before each Terraform

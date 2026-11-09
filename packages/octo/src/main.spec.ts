@@ -348,10 +348,11 @@ describe('Main UT', () => {
 
       testModes.outputs.clear();
       testModes.writeTfState('region-module', { 'vpc-1-VpcId': 'vpc-0real' });
-      const { warnings } = await testModes.commit(app, { outputs: testModes.outputs });
+      const { emptiedModuleIds, warnings } = await testModes.commit(app, { outputs: testModes.outputs });
 
       // Nothing was demanded or warned for the emptied sg-module; it dropped out of the committed
       // folder record and resource mappings.
+      expect(emptiedModuleIds).toEqual(['sg-module']);
       expect(warnings).toEqual([]);
       const { terraformFolders, terraformResources } = await testModes.getCommittedTerraformState();
       expect(terraformFolders).toEqual([{ hasExternalResources: false, moduleId: 'region-module', providers: [] }]);

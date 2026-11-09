@@ -424,7 +424,7 @@ MODULES THAT NO LONGER RENDER ANYTHING
 ```
 
 The destroy happened because that folder is still there with its Terraform emptied out: Terragrunt
-applied a configuration declaring no resources, so everything the folder held was removed. The empty
-folder is safe to delete by hand now. [Destroying
+applied a configuration declaring no resources, so everything the folder held was removed. The commit
+then deleted the folder, since its state holds nothing. [Destroying
 Infrastructure](/docs/using-octo/destroying-infrastructure) explains why Octo empties a folder
 rather than deleting it.
