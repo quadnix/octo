@@ -4,6 +4,7 @@ import { join } from 'path';
 import { jest } from '@jest/globals';
 import { type UnknownResource, stub } from './app.type.js';
 import { Resource } from './decorators/resource.decorator.js';
+import { CommitModeCompletedEvent } from './events/index.js';
 import { Container } from './functions/container/container.js';
 import { Schema } from './functions/schema/schema.js';
 import { Account } from './models/account/account.model.js';
@@ -12,6 +13,7 @@ import { App } from './models/app/app.model.js';
 import { AModule } from './modules/module.abstract.js';
 import { BaseResourceSchema } from './resources/resource.schema.js';
 import { ATerraformResource } from './resources/terraform-resource.abstract.js';
+import { EventService } from './services/event/event.service.js';
 import { InputService } from './services/input/input.service.js';
 import { LocalStateProvider } from './services/state-management/local.state-provider.js';
 import { StateManagementService } from './services/state-management/state-management.service.js';
@@ -784,6 +786,26 @@ describe('Main UT', () => {
       expect(mainTf).toContain(
         'moved {\n  from = test_named_policy.named-1_policy\n  to = test_named_policy.named-2_policy\n}',
       );
+    });
+
+    it('should report a resource taking over a deleted one as one update at commit', async () => {
+      const app = await commitResources([
+        ['module-1', new NamedTfResource('named-1', { names: ['accounts'], regionId: 'us-east-1' })],
+      ]);
+
+      await testModes.addResource(
+        'module-1',
+        new NamedTfResource('named-2', { names: ['accounts'], regionId: 'us-east-1' }),
+      );
+      await testModes.generate(app, { outputDir: testModes.outputDir });
+      const emit = jest.spyOn(EventService.prototype, 'emit');
+      await testModes.commit(app, { outputs: testModes.outputs });
+
+      const completed = emit.mock.calls.map(([event]) => event).find((e) => e instanceof CommitModeCompletedEvent);
+      expect(
+        (completed as CommitModeCompletedEvent).payload.resources.map((r) => `${r.action} ${r.resourceId}`),
+      ).toEqual(['update named-2']);
+      emit.mockRestore();
     });
 
     it('should not move a deleted resource whose name is free in the domain of the added one', async () => {

@@ -640,6 +640,15 @@ export class TerraformService {
   }
 
   /**
+   * Every resource taking over the terraform state of a committed one this run, in any folder.
+   */
+  getMoves(): { fromResourceId: string; toResourceId: string }[] {
+    return [...this.modules.values()].flatMap(({ moves }) =>
+      moves.map(({ fromResourceId, toResourceId }) => ({ fromResourceId, toResourceId })),
+    );
+  }
+
+  /**
    * How each octo resource maps into terraform, which validate and commit read to match a plan
    * entry or an output back to the resource that produced it.
    */

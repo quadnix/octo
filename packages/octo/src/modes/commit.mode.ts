@@ -4,6 +4,7 @@ import type { CommitModeCompletedEvent } from '../events/index.js';
 import { Container } from '../functions/container/container.js';
 import { aggregateResourceActions } from '../functions/diff/aggregate-resource-actions.js';
 import type { DiffMetadata } from '../functions/diff/diff-metadata.js';
+import { DiffAction } from '../functions/diff/diff.js';
 import { ResourceDataRepository } from '../resources/resource-data.repository.js';
 import { ATerraformResource } from '../resources/terraform-resource.abstract.js';
 import { ImportService } from '../services/import/import.service.js';
@@ -271,15 +272,26 @@ export async function commit({
   const mappingByContext = new Map(mappings.map((mapping) => [mapping.resourceContext, mapping]));
   const previousByContext = new Map(previousMappings.map((mapping) => [mapping.resourceContext, mapping]));
 
+  // A resource taking over a committed one's terraform state is one piece of infrastructure, changed
+  // in place: its ADD reads as an update, and the old one's DELETE is not reported.
+  const moves = terraformService.getMoves();
+  const movedFromResourceIds = new Set(moves.map(({ fromResourceId }) => fromResourceId));
+  const movedToResourceIds = new Set(moves.map(({ toResourceId }) => toResourceId));
+
   const resources = [...aggregateResourceActions(transaction.resourceDiffs.flat()).entries()]
     .filter(
-      ([resourceContext]) =>
-        !unresolvedResourceContexts.has(resourceContext) && !deferredResourceContexts.has(resourceContext),
+      ([resourceContext, action]) =>
+        !unresolvedResourceContexts.has(resourceContext) &&
+        !deferredResourceContexts.has(resourceContext) &&
+        !(action.action === DiffAction.DELETE && movedFromResourceIds.has(action.resourceId)),
     )
     .map(([resourceContext, action]) => {
       const mapping = mappingByContext.get(resourceContext) ?? previousByContext.get(resourceContext);
       return {
-        action: action.action,
+        action:
+          action.action === DiffAction.ADD && movedToResourceIds.has(action.resourceId)
+            ? DiffAction.UPDATE
+            : action.action,
         moduleId: mapping?.moduleId,
         reason: action.reason,
         resourceContext,
