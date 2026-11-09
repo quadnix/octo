@@ -21,7 +21,9 @@ import { EcsServiceSchema } from './index.schema.js';
 /**
  * @internal
  */
-@Resource<EcsService>('@octo', 'ecs-service', EcsServiceSchema)
+@Resource<EcsService>('@octo', 'ecs-service', EcsServiceSchema, {
+  uniqueProperties: [{ path: 'serviceName', within: ['awsAccountId', 'awsRegionId', 'clusterName'] }],
+})
 export class EcsService extends ATerraformResource<EcsServiceSchema, EcsService> {
   declare parents: [
     MatchingResource<EcsClusterSchema>,

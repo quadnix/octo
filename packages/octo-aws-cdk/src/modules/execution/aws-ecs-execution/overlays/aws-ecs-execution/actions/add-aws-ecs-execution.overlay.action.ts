@@ -367,6 +367,7 @@ export class AddAwsEcsExecutionOverlayAction implements IModelAction<AwsEcsExecu
         assignPublicIp: properties.subnetType === SubnetType.PUBLIC ? 'ENABLED' : 'DISABLED',
         awsAccountId,
         awsRegionId,
+        clusterName: matchingEcsClusterResource.getSchemaInstanceInResourceAction().properties.clusterName,
         desiredCount: ecsExecutionAnchor.properties.desiredCount,
         loadBalancers: [],
         serviceName: properties.executionId.replace(/\./g, '_'),

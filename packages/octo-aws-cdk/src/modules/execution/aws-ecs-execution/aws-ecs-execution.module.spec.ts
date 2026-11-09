@@ -60,6 +60,7 @@ async function setup(
     bucketAccount = '123',
     clusterName = 'region-qa',
     deployment: deploymentProperties = {},
+    deploymentTag = 'v1',
     publishedFor = 'x86_64',
     publishedImageTag,
     publishedIn = 'us-east-1',
@@ -72,6 +73,7 @@ async function setup(
     bucketAccount?: string;
     clusterName?: string;
     deployment?: Partial<AwsDeploymentAnchorSchema['properties']>;
+    deploymentTag?: string;
     publishedFor?: 'arm64' | 'x86_64';
     publishedImageTag?: string;
     publishedIn?: string;
@@ -99,7 +101,7 @@ async function setup(
   } = await testModuleContainer.createTestModels('testModule', {
     account: ['aws,123'],
     app: ['test-app'],
-    deployment: ['v1'],
+    deployment: [deploymentTag],
     environment: ['qa'],
     filesystem: ['test-filesystem'],
     region: ['region'],
@@ -1725,6 +1727,46 @@ describe('AwsEcsExecutionModule UT', () => {
        "^ @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet-94a6a9",
      ]
     `);
+  });
+
+  it('should move the service, keeping its name, when a node above it is renamed', async () => {
+    const inputs: ModuleSchemaInputs<AwsEcsExecutionModule> = {
+      deployments: {
+        main: {
+          containerProperties: { image: { essential: true, name: 'backend-v1' } },
+          deployment: stub('${{testModule.model.deployment}}'),
+        },
+        sidecars: [],
+      },
+      desiredCount: 1,
+      environment: stub('${{testModule.model.environment}}'),
+      executionId: 'backend-v1-region-qa-private-subnet',
+      subnet: stub('${{testModule.model.subnet}}'),
+    };
+
+    await setup(testModuleContainer);
+    await testModuleContainer
+      .runModules<AwsEcsExecutionModule>(
+        { inputs, moduleId: 'execution', type: AwsEcsExecutionModule },
+        { terraformTarget: 'skip' },
+      )
+      .next();
+
+    // Renaming the deployment changes the service's id but not its name in its cluster, which ECS
+    // refuses to hold twice, so terraform must move the service rather than create it beside the old.
+    await setup(testModuleContainer, { deploymentTag: 'v2' });
+    const { hclRender } = (
+      await testModuleContainer
+        .runModules<AwsEcsExecutionModule>(
+          { inputs, moduleId: 'execution', type: AwsEcsExecutionModule },
+          { terraformTarget: 'skip' },
+        )
+        .next()
+    ).value!;
+
+    expect(hclRender).toMatch(
+      /moved \{\n\s+from = aws_ecs_service\.ecs-service-backend-v1-region-qa-private-subnet-\w+\n/,
+    );
   });
 
   // The binding shows in two places, and both are needed. In the resource graph it holds a published

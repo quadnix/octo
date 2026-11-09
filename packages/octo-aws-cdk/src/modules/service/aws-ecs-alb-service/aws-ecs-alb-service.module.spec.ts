@@ -242,6 +242,7 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
       assignPublicIp: 'ENABLED',
       awsAccountId: '123',
       awsRegionId: 'us-east-1',
+      clusterName: 'region-qa',
       desiredCount: 1,
       loadBalancers: [],
       serviceName: 'backend',

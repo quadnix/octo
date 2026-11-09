@@ -55,6 +55,7 @@ export class EcsServiceSchema extends BaseResourceSchema {
    * * `properties.assignPublicIp`: The public IP address type. Valid values are `ENABLED` or `DISABLED`.
    * * `properties.awsAccountId`: The AWS account ID.
    * * `properties.awsRegionId`: The AWS region ID.
+   * * `properties.clusterName`: The name of the cluster the service runs in.
    * * `properties.desiredCount`: The desired number of tasks.
    * * `properties.loadBalancers`: The load balancers to use. See {@link EcsServiceLoadBalancerSchema} for options.
    * * `properties.serviceName`: The name of the service.
@@ -65,6 +66,7 @@ export class EcsServiceSchema extends BaseResourceSchema {
         value.assignPublicIp,
         value.awsAccountId,
         value.awsRegionId,
+        value.clusterName,
         String(value.desiredCount),
         value.serviceName,
       ],
@@ -79,6 +81,7 @@ export class EcsServiceSchema extends BaseResourceSchema {
     assignPublicIp: 'ENABLED' | 'DISABLED';
     awsAccountId: string;
     awsRegionId: string;
+    clusterName: string;
     desiredCount: number;
     loadBalancers: EcsServiceLoadBalancerSchema[];
     serviceName: string;
