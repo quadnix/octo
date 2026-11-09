@@ -24,9 +24,15 @@ export class CommandStartedEvent extends CommandEvent {}
 export class CommandFinishedEvent extends CommandEvent<{ command: string; durationInMs: number }> {}
 
 /**
- * This event is emitted when a command fails. A listener that returns a promise is awaited, so it
- * can finish writing before the process exits.
+ * This event is emitted when a command fails, with `nextStep` when the command knows what the user
+ * runs next. A listener that returns a promise is awaited, so it can finish writing before the
+ * process exits.
  *
  * @group Events/Command
  */
-export class CommandFailedEvent extends CommandEvent<{ command: string; durationInMs: number; error: Error }> {}
+export class CommandFailedEvent extends CommandEvent<{
+  command: string;
+  durationInMs: number;
+  error: Error;
+  nextStep?: string;
+}> {}

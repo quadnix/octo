@@ -35,9 +35,27 @@ describe('OctoUtility UT', () => {
       });
 
       expect(emitted.map((e) => e.constructor)).toEqual([CommandStartedEvent, CommandFailedEvent]);
-      expect(emitted[1].payload).toMatchObject({ command: 'lock', error });
+      expect(emitted[1].payload).toEqual({ command: 'lock', durationInMs: expect.any(Number), error });
       expect(console.error).toHaveBeenCalled();
       expect(processExitSpy).toHaveBeenCalledWith(1);
+    });
+
+    it('should announce, record and print the next step it names for the error', async () => {
+      const error = new Error('App already locked!');
+      await OctoUtility.runCommand(
+        'lock',
+        async () => {
+          throw error;
+        },
+        (thrown) => (thrown === error ? 'Run "octo lock --lockId lock-1".' : undefined),
+      );
+
+      expect(emitted[1].payload).toMatchObject({
+        command: 'lock',
+        error,
+        nextStep: 'Run "octo lock --lockId lock-1".',
+      });
+      expect(console.error).toHaveBeenLastCalledWith(expect.stringContaining('Run "octo lock --lockId lock-1".'));
     });
 
     it('should announce the command and its end', async () => {

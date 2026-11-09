@@ -138,6 +138,24 @@ describe('JournalEventListener UT', () => {
       });
     });
 
+    it('should record the next step a command failed with', async () => {
+      eventService.emit(new CommandStartedEvent(undefined, { command: 'generate' }));
+      await eventService.emitAndWait(
+        new CommandFailedEvent(undefined, {
+          command: 'generate',
+          durationInMs: 1,
+          error: new Error('bad'),
+          nextStep: 'Run "octo generate".',
+        }),
+      );
+
+      const [commandFileName] = await stateProvider.listStates('journal.');
+      const commandFile: JournalFile = await readJson(commandFileName);
+      expect(commandFile.entries.find((e) => e.type === 'CommandFailedEvent')?.payload).toMatchObject({
+        nextStep: 'Run "octo generate".',
+      });
+    });
+
     it('should record any other error by its name and message', async () => {
       eventService.emit(new CommandStartedEvent(undefined, { command: 'generate' }));
       await eventService.emitAndWait(

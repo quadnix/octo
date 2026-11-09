@@ -27,11 +27,16 @@ jest.unstable_mockModule('../../utilities/octo/octo.utility.js', () => ({
     bootStateProvider: mockedBootStateProvider,
     prepareCallbackEnvironment: mockedPrepareCallbackEnvironment,
     reportError: mockedReportError,
-    runCommand: async (_command: string, body: () => Promise<void>): Promise<void> => {
+    runCommand: async (
+      _command: string,
+      body: () => Promise<void>,
+      nextStep: (error: unknown) => string | undefined = () => undefined,
+    ): Promise<void> => {
       try {
         await body();
       } catch (error) {
         mockedReportError(error);
+        console.error(nextStep(error) ?? '');
         process.exit(1);
       }
     },

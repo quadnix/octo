@@ -169,7 +169,12 @@ jq -r '.entries[]? | select(.type == "CommandFailedEvent") | .payload.error.mess
 
 Beside its `message`, an error of Octo's own carries its `className` and what it is about: an
 `AppLockError` names the `reason` and the `holder` of the lock, an error from an action names the
-action and the diff it ran for. Any other error carries only its `name`.
+action and the diff it ran for. Any other error carries only its `name`. When the command knows
+what to run next, as a failed `octo apply` does, the entry also holds it as `nextStep`:
+
+```bash
+jq -r '.entries[]? | select(.type == "CommandFailedEvent") | .payload.nextStep // empty' .octo/journal.*.json
+```
 
 To read these files from code, their shapes are TypeScript types:
 [`@quadnix/octo-event-listeners/types`](/api/octo-event-listeners-types) has `JournalFile` and

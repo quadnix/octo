@@ -186,10 +186,14 @@ export class OctoUtility {
 
   /**
    * Runs one lifecycle command: announces it, runs `body`, and exits with 1 after reporting what it
-   * threw. The command's end is announced, and awaited by listeners such as the journal, before the
-   * process exits.
+   * threw and the step `nextStep` names for it. The command's end is announced, and awaited by
+   * listeners such as the journal, before the process exits.
    */
-  static async runCommand(command: string, body: () => Promise<void>): Promise<void> {
+  static async runCommand(
+    command: string,
+    body: () => Promise<void>,
+    nextStep: (error: unknown) => string | undefined = () => undefined,
+  ): Promise<void> {
     const eventService = (await Container.getInstance().get('EventService')) as {
       emit(event: Event<unknown>): void;
       emitAndWait(event: Event<unknown>): Promise<void>;
@@ -202,14 +206,19 @@ export class OctoUtility {
     try {
       await body();
     } catch (error) {
+      const step = nextStep(error);
       await eventService.emitAndWait(
         new CommandFailedEvent(undefined, {
           command,
           durationInMs: Date.now() - startedAt,
           error: error instanceof Error ? error : new Error(String(error)),
+          ...(step ? { nextStep: step } : {}),
         }),
       );
       OctoUtility.reportError(error);
+      if (step) {
+        console.error(chalk.red(`\n${step}`));
+      }
       process.exit(1);
       return;
     }

@@ -120,48 +120,48 @@ export const applyCommand = {
 
     OctoUtility.prepareCallbackEnvironment();
 
-    await OctoUtility.runCommand('apply', async () => {
-      const { stateCheckInIntervalInMs } = await OctoUtility.bootStateProvider();
+    // Set once terragrunt starts applying, after which some of what was asked for may be built.
+    let isApplying = false;
 
-      // The lock is verified before anything is planned, so a run without it fails having done
-      // nothing. It is released by `octo commit`, not here - the apply is the middle of a run.
-      const stateManagementService = await Container.getInstance().get(StateManagementService);
-      if (!(await stateManagementService.isAppLocked(lockId))) {
-        throw new Error('App is not locked! Run "octo lock" first.');
-      }
+    await OctoUtility.runCommand(
+      'apply',
+      async () => {
+        const { stateCheckInIntervalInMs } = await OctoUtility.bootStateProvider();
 
-      const terraformUtility = await Container.getInstance().get<TerraformUtility, any>(TerraformUtility, {
-        args: [{ stateCheckInIntervalInMs, terraformBinary, terragruntBinary, timeoutInMs }, true],
-      });
-
-      // The underlying apply runs `-auto-approve` and validate is optional, so without an explicit
-      // opt-in, plan first and refuse to destroy anything the user has not been shown. What is at
-      // stake is the data inside a resource terraform recreates; octo's own state stays consistent
-      // either way.
-      const refusal = autoApprove
-        ? undefined
-        : await findDestroyRefusal(terraformUtility, stateManagementService, resolvedDir);
-      if (refusal !== undefined) {
-        throw new Error(refusal);
-      } else {
-        // Terragrunt's output goes out as events as it is written, which the listeners print and record.
-        try {
-          await terraformUtility.apply(resolvedDir);
-        } catch (error) {
-          // An apply that got this far may have built some of what was asked for, and only a commit
-          // records that. The rule belongs here rather than in every pipeline that calls this: the
-          // apply is what knows it failed, and it is the one step after which the choice is not
-          // obvious.
-          console.error(
-            chalk.red(
-              `\nThis apply may have built part of what you asked for. Run "octo commit --partial ` +
-                `--terragruntDir ${terragruntDir} --lockId ${lockId}" to record that and release the lock, then fix ` +
-                'what failed and run again.',
-            ),
-          );
-          throw error;
+        // The lock is verified before anything is planned, so a run without it fails having done
+        // nothing. It is released by `octo commit`, not here - the apply is the middle of a run.
+        const stateManagementService = await Container.getInstance().get(StateManagementService);
+        if (!(await stateManagementService.isAppLocked(lockId))) {
+          throw new Error('App is not locked! Run "octo lock" first.');
         }
-      }
-    });
+
+        const terraformUtility = await Container.getInstance().get<TerraformUtility, any>(TerraformUtility, {
+          args: [{ stateCheckInIntervalInMs, terraformBinary, terragruntBinary, timeoutInMs }, true],
+        });
+
+        // The underlying apply runs `-auto-approve` and validate is optional, so without an explicit
+        // opt-in, plan first and refuse to destroy anything the user has not been shown. What is at
+        // stake is the data inside a resource terraform recreates; octo's own state stays consistent
+        // either way.
+        const refusal = autoApprove
+          ? undefined
+          : await findDestroyRefusal(terraformUtility, stateManagementService, resolvedDir);
+        if (refusal !== undefined) {
+          throw new Error(refusal);
+        }
+
+        // Terragrunt's output goes out as events as it is written, which the listeners print and record.
+        isApplying = true;
+        await terraformUtility.apply(resolvedDir);
+      },
+      // An apply that got this far may have built some of what was asked for, and only a commit
+      // records that.
+      () =>
+        isApplying
+          ? 'This apply may have built part of what you asked for. Run "octo commit --partial ' +
+            `--terragruntDir ${terragruntDir} --lockId ${lockId}" to record that and release the lock, then fix ` +
+            'what failed and run again.'
+          : undefined,
+    );
   },
 };
