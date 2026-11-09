@@ -245,15 +245,15 @@ assumed". Finish the failed run the way Octo prints, and run again before lookin
 
 ## Services
 
-| Module                                   | Inputs                                                                                                                                                                                                            | Creates                                                                                                                                                                                                       |
-|------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `AwsS3StorageServiceModule`              | `region`, `bucketName`, `accessPrefixes?`, `blockPublicAccess?`, `corsRules?`, `directoryPath?`, `filter?`, `lifecycleRules?`, `transform?`, `subDirectoryOrFilePath?`                                            | S3 bucket, public access block, bucket policy, CORS configuration with `corsRules`, lifecycle configuration with `lifecycleRules`, and with `directoryPath` one object per file                               |
-| `AwsS3StaticWebsiteServiceModule`        | `region`, `bucketName`, `directoryPath`, `filter?`, `transform?`, `subDirectoryOrFilePath?`                                                                                                                       | S3 bucket, public access block, bucket policy, website configuration, one object per file                                                                                                                     |
-| `AwsDynamoDBServiceModule`               | `region`, `TableName`, `KeySchema`, `AttributeDefinitions`, `billingMode`, `GlobalSecondaryIndexes?`, `LocalSecondaryIndexes?`, `StreamSpecification?`, `timeToLiveAttribute?`, `DeletionProtectionEnabled?`      | DynamoDB table                                                                                                                                                                                                |
-| `AwsDynamoDBGlobalServiceModule`         | `dynamoDBService`, `replicas`                                                                                                                                                                                     | DynamoDB global table replicas                                                                                                                                                                                |
-| `AwsEcsAlbServiceModule`                 | `region`, `albName`, `listeners`, `subnets`, `targets?`                                                                                                                                                           | application load balancer, listener, target group, security group                                                                                                                                             |
-| `AwsCloudFrontServiceModule`             | `account`, `distributionName`, `origins`, `routes`, `aliases?`, `certificateArn?`, `defaultRootObject?`, `errorResponses?`, `priceClass?`, `cachePolicies?`, `originRequestPolicies?`, `responseHeadersPolicies?` | CloudFront distribution, an origin access control per bucket or function it serves, a statement in each of those buckets' policies, a permission on each of those functions, and the custom policies declared |
-| `AwsCloudFrontInvalidationServiceModule` | `cloudFront`, `source`                                                                                                                                                                                            | an invalidation of the distribution every time the bucket's files change                                                                                                                                      |
+| Module                                   | Inputs                                                                                                                                                                                                                          | Creates                                                                                                                                                                                                                                                    |
+|------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `AwsS3StorageServiceModule`              | `region`, `bucketName`, `accessPrefixes?`, `blockPublicAccess?`, `corsRules?`, `directoryPath?`, `filter?`, `lifecycleRules?`, `transform?`, `subDirectoryOrFilePath?`                                                          | S3 bucket, public access block, bucket policy, CORS configuration with `corsRules`, lifecycle configuration with `lifecycleRules`, and with `directoryPath` one object per file                                                                            |
+| `AwsS3StaticWebsiteServiceModule`        | `region`, `bucketName`, `directoryPath`, `filter?`, `transform?`, `subDirectoryOrFilePath?`                                                                                                                                     | S3 bucket, public access block, bucket policy, website configuration, one object per file                                                                                                                                                                  |
+| `AwsDynamoDBServiceModule`               | `region`, `TableName`, `KeySchema`, `AttributeDefinitions`, `billingMode`, `GlobalSecondaryIndexes?`, `LocalSecondaryIndexes?`, `StreamSpecification?`, `timeToLiveAttribute?`, `DeletionProtectionEnabled?`                    | DynamoDB table                                                                                                                                                                                                                                             |
+| `AwsDynamoDBGlobalServiceModule`         | `dynamoDBService`, `replicas`                                                                                                                                                                                                   | DynamoDB global table replicas                                                                                                                                                                                                                             |
+| `AwsEcsAlbServiceModule`                 | `region`, `albName`, `listeners`, `subnets`, `targets?`                                                                                                                                                                         | application load balancer, listener, target group, security group                                                                                                                                                                                          |
+| `AwsCloudFrontServiceModule`             | `account`, `distributionName`, `origins`, `routes`, `aliases?`, `certificateArn?`, `defaultRootObject?`, `errorResponses?`, `functions?`, `priceClass?`, `cachePolicies?`, `originRequestPolicies?`, `responseHeadersPolicies?` | CloudFront distribution, an origin access control per bucket or function it serves, a statement in each of those buckets' policies, a permission on each of those functions, a CloudFront Function per `functions` entry, and the custom policies declared |
+| `AwsCloudFrontInvalidationServiceModule` | `cloudFront`, `source`                                                                                                                                                                                                          | an invalidation of the distribution every time the bucket's files change                                                                                                                                                                                   |
 
 `AwsS3StaticWebsiteServiceModule` makes a public bucket that answers on its S3 website endpoint,
 over plain HTTP. A site served over HTTPS from a closed bucket is two modules instead:
@@ -326,6 +326,31 @@ the site.
 `errorResponses` decides what a missing path returns, and it applies to the whole distribution. A
 closed bucket reports a missing file as `403`, so a content site maps both `403` and `404` to a real
 `404` carrying its error page, as above.
+
+`functions` creates CloudFront Functions, JavaScript that runs at the edge on a request or a
+response, and a route runs one by its name. A single-page app served under a path rewrites every
+request that names no file to its `index.html`, on its own route only, so an API's real `404`s stay
+`404`s:
+
+```yaml
+      functions:
+        - name: my-app-deep-links
+          code: |
+            function handler(event) {
+              var request = event.request;
+              if (!request.uri.split('/').pop().includes('.')) {
+                request.uri = '/app/index.html';
+              }
+              return request;
+            }
+      routes:
+        - originId: app
+          pathPattern: /app/*
+          functionAssociations:
+            - { eventType: viewer-request, functionName: my-app-deep-links, kind: cloudfront-function }
+```
+
+A function's name is unique in its account. It runs only on `viewer-request` or `viewer-response`.
 
 `AwsCloudFrontInvalidationServiceModule` takes a distribution and one bucket it serves, and drops
 what the edge locations hold for that bucket every time its files change. Without it CloudFront

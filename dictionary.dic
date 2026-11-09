@@ -74,6 +74,7 @@ gsi
 gzip
 hashicorp
 hcl
+heredoc
 hideconstructor
 homedir
 hostnames

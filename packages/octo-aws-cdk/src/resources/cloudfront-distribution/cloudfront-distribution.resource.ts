@@ -8,9 +8,11 @@ import {
   ResourceError,
   StringUtility,
   type TerraformModuleScope,
+  hasNodeName,
 } from '@quadnix/octo';
 import { PolicyUtility } from '../../utilities/policy/policy.utility.js';
 import type { AlbSchema } from '../alb/index.schema.js';
+import type { CloudFrontFunctionSchema } from '../cloudfront-function/index.schema.js';
 import type { LambdaFunctionSchema } from '../lambda-function/index.schema.js';
 import {
   type CloudFrontBehaviorSchema,
@@ -101,20 +103,25 @@ const RENDER_DEFAULTS = {
   ],
 })
 export class CloudFrontDistribution extends ATerraformResource<CloudFrontDistributionSchema, CloudFrontDistribution> {
-  declare parents: (MatchingResource<AlbSchema> | MatchingResource<LambdaFunctionSchema>)[];
+  declare parents: (
+    | MatchingResource<AlbSchema>
+    | MatchingResource<CloudFrontFunctionSchema>
+    | MatchingResource<LambdaFunctionSchema>
+  )[];
   declare properties: CloudFrontDistributionSchema['properties'];
   declare response: CloudFrontDistributionSchema['response'];
 
   /**
    * An action builds a distribution with no parents and attaches the functions and ALBs it serves
-   * with `addLambdaOrigin()` and `addAlbOrigin()`. A distribution read back from state takes them here.
+   * with `addLambdaOrigin()` and `addAlbOrigin()`, and the CloudFront Functions it runs with
+   * `addCloudFrontFunction()`. A distribution read back from state takes them here.
    *
    * @internal
    */
   constructor(
     resourceId: string,
     properties: CloudFrontDistributionSchema['properties'],
-    parents: (MatchingResource<AlbSchema> | MatchingResource<LambdaFunctionSchema>)[] = [],
+    parents: CloudFrontDistribution['parents'] = [],
   ) {
     super(resourceId, properties, parents);
 
@@ -142,6 +149,20 @@ export class CloudFrontDistribution extends ATerraformResource<CloudFrontDistrib
    */
   addAlbOrigin(originId: string, alb: MatchingResource<AlbSchema>): void {
     this.attachOriginParent(originId, 'alb', alb);
+  }
+
+  /**
+   * Attaches a CloudFront Function a behavior names by `functionName`, making it a parent of this
+   * distribution. The behavior reads its ARN, which AWS assigns when the function is created.
+   *
+   * @internal
+   */
+  addCloudFrontFunction(cloudFrontFunction: MatchingResource<CloudFrontFunctionSchema>): void {
+    const parentResourceId = cloudFrontFunction.getActual().resourceId;
+    if (this.parents.some((p) => p.getActual().resourceId === parentResourceId)) {
+      return;
+    }
+    cloudFrontFunction.addChild('resourceId', this, 'resourceId');
   }
 
   /**
@@ -226,7 +247,7 @@ export class CloudFrontDistribution extends ATerraformResource<CloudFrontDistrib
               })),
             }
           : {}),
-        default_cache_behavior: this.renderBehavior(this.getDefaultBehavior(), policyIdByReference),
+        default_cache_behavior: this.renderBehavior(terraform, this.getDefaultBehavior(), policyIdByReference),
         ...(this.properties.defaultRootObject ? { default_root_object: this.properties.defaultRootObject } : {}),
         enabled: this.properties.enabled,
         http_version: this.properties.httpVersion,
@@ -234,7 +255,7 @@ export class CloudFrontDistribution extends ATerraformResource<CloudFrontDistrib
         ...(this.getOrderedBehaviors().length > 0
           ? {
               ordered_cache_behavior: this.getOrderedBehaviors().map((behavior) => ({
-                ...this.renderBehavior(behavior, policyIdByReference),
+                ...this.renderBehavior(terraform, behavior, policyIdByReference),
                 path_pattern: behavior.pathPattern,
               })),
             }
@@ -333,6 +354,24 @@ export class CloudFrontDistribution extends ATerraformResource<CloudFrontDistrib
   }
 
   /**
+   * The CloudFront Function a behavior names.
+   *
+   * @internal
+   */
+  private getCloudFrontFunctionParent(functionName: string): MatchingResource<CloudFrontFunctionSchema> {
+    const parent = this.parents.find(
+      (p) =>
+        hasNodeName(p.getActual(), 'cloudfront-function') &&
+        (p as MatchingResource<CloudFrontFunctionSchema>).getSchemaInstanceInResourceAction().properties.name ===
+          functionName,
+    );
+    if (!parent) {
+      throw new ResourceError(`No CloudFront Function "${functionName}" is attached!`, this);
+    }
+    return parent as MatchingResource<CloudFrontFunctionSchema>;
+  }
+
+  /**
    * The behavior claiming everything no other behavior did.
    *
    * @internal
@@ -368,6 +407,7 @@ export class CloudFrontDistribution extends ATerraformResource<CloudFrontDistrib
    * @internal
    */
   private renderBehavior(
+    terraform: TerraformModuleScope,
     behavior: CloudFrontBehaviorSchema,
     policyIdByReference: Map<string, unknown>,
   ): Record<string, unknown> {
@@ -384,7 +424,9 @@ export class CloudFrontDistribution extends ATerraformResource<CloudFrontDistrib
         ? {
             function_association: cloudFrontFunctions.map((f) => ({
               event_type: f.eventType,
-              function_arn: f.arn,
+              function_arn: f.functionName
+                ? terraform.getRef(this.getCloudFrontFunctionParent(f.functionName), 'Arn')
+                : f.arn,
             })),
           }
         : {}),
@@ -684,6 +726,12 @@ export class CloudFrontDistribution extends ATerraformResource<CloudFrontDistrib
       }
 
       for (const functionAssociation of behavior.functionAssociations ?? []) {
+        if (!functionAssociation.arn === !functionAssociation.functionName) {
+          throw new Error('A CloudFront function association needs exactly one of "arn" and "functionName"!');
+        }
+        if (functionAssociation.kind === 'lambda-edge' && functionAssociation.functionName) {
+          throw new Error('A Lambda@Edge function is named by its "arn"!');
+        }
         if (
           functionAssociation.kind === 'cloudfront-function' &&
           !functionAssociation.eventType.startsWith('viewer-')

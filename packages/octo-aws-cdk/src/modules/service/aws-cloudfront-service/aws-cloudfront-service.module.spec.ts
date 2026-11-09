@@ -636,6 +636,38 @@ describe('AwsCloudFrontServiceModule UT', () => {
     }
   });
 
+  it('should create a CloudFront Function, and run it on the route naming it', async () => {
+    await setup(testModuleContainer);
+    const { hclRender, resourceDiffs } = (
+      await testModuleContainer
+        .runModules<AwsCloudFrontServiceModule>(
+          {
+            inputs: inputs({
+              functions: [{ code: 'function handler(event) { return event.request; }', name: 'deep-links' }],
+              routes: [
+                {
+                  functionAssociations: [
+                    { eventType: 'viewer-request', functionName: 'deep-links', kind: 'cloudfront-function' },
+                  ],
+                  originId: 'site',
+                },
+              ],
+            }),
+            moduleId: 'distribution',
+            type: AwsCloudFrontServiceModule,
+          },
+          { terraformTarget: 'skip' },
+        )
+        .next()
+    ).value!;
+
+    expect(hclRender).toContain('resource "aws_cloudfront_function" "cloudfront-function-deep-links-b1f33b"');
+    expect(hclRender).toContain('function_arn = aws_cloudfront_function.cloudfront-function-deep-links-b1f33b.arn');
+    expect(testModuleContainer.digestDiffs(resourceDiffs)).toContain(
+      '+ @octo/cloudfront-function=cloudfront-function-deep-links-b1f33b',
+    );
+  });
+
   it('should serve an ALB over HTTP through its DNS name', async () => {
     await setupAlb(testModuleContainer, await setup(testModuleContainer));
     const { hclRender } = (
@@ -805,6 +837,30 @@ describe('AwsCloudFrontServiceModule UT', () => {
         'a route naming an undeclared response headers policy',
         { routes: [{ originId: 'site', responseHeadersPolicy: { kind: 'custom', name: 'missing' } }] as any },
         'Route names unknown response headers policy "missing"!',
+      ],
+      [
+        'the same function twice',
+        {
+          functions: [
+            { code: 'function handler(event) { return event.request; }', name: 'rewrite' },
+            { code: 'function handler(event) { return event.request; }', name: 'rewrite' },
+          ] as any,
+        },
+        'Function "rewrite" is declared more than once!',
+      ],
+      [
+        'a route naming an undeclared function',
+        {
+          routes: [
+            {
+              functionAssociations: [
+                { eventType: 'viewer-request', functionName: 'missing', kind: 'cloudfront-function' },
+              ],
+              originId: 'site',
+            },
+          ] as any,
+        },
+        'Route names unknown function "missing"!',
       ],
       [
         'an unknown CORS method',

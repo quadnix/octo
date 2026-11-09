@@ -6,6 +6,7 @@ import {
   type EnhancedModuleSchema,
   Factory,
   type IModelAction,
+  MatchingResource,
   hasNodeName,
 } from '@quadnix/octo';
 import { AwsEcsAlbAnchorSchema } from '../../../../../../anchors/aws-ecs/aws-ecs-alb.anchor.schema.js';
@@ -15,6 +16,7 @@ import type {
   CloudFrontBehaviorSchema,
   CloudFrontOriginSchema,
 } from '../../../../../../resources/cloudfront-distribution/index.schema.js';
+import { CloudFrontFunction } from '../../../../../../resources/cloudfront-function/index.js';
 import type { AwsCloudFrontServiceModule } from '../../../aws-cloudfront-service.module.js';
 import { AwsCloudFrontService } from '../aws-cloudfront-service.model.js';
 
@@ -97,7 +99,12 @@ export class AddAwsCloudFrontServiceModelAction implements IModelAction<AwsCloud
           route.cachePolicy ||
           ({ kind: 'managed', name: isAppOrigin ? 'Managed-CachingDisabled' : 'Managed-CachingOptimized' } as const),
         compress: route.compress ?? true,
-        functionAssociations: [...(route.functionAssociations || [])],
+        functionAssociations: (route.functionAssociations || []).map(({ arn, eventType, functionName, kind }) => ({
+          eventType,
+          kind,
+          ...(arn ? { arn } : {}),
+          ...(functionName ? { functionName } : {}),
+        })),
         originRequestPolicy:
           route.originRequestPolicy ||
           (isAppOrigin ? { kind: 'managed', name: 'Managed-AllViewerExceptHostHeader' } : null),
@@ -138,6 +145,17 @@ export class AddAwsCloudFrontServiceModelAction implements IModelAction<AwsCloud
     });
 
     actionOutputs[cloudFrontDistribution.resourceId] = cloudFrontDistribution;
+
+    // Create each CloudFront Function, for the routes naming it.
+    for (const { code, name } of inputs.functions || []) {
+      const cloudFrontFunction = new CloudFrontFunction(`cloudfront-function-${name}`, {
+        awsAccountId,
+        code,
+        name,
+      });
+      cloudFrontDistribution.addCloudFrontFunction(new MatchingResource(cloudFrontFunction));
+      actionOutputs[cloudFrontFunction.resourceId] = cloudFrontFunction;
+    }
 
     return actionOutputs;
   }

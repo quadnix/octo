@@ -82,8 +82,8 @@ export const CLOUDFRONT_VIEWER_PROTOCOL_POLICIES = ['allow-all', 'https-only', '
 export type ICloudFrontViewerProtocolPolicy = (typeof CLOUDFRONT_VIEWER_PROTOCOL_POLICIES)[number];
 
 /**
- * An edge function CloudFront runs for a behavior. The function itself is not created here - pass
- * the ARN of one that already exists.
+ * An edge function CloudFront runs for a behavior. Name a CloudFront Function this distribution
+ * creates with `functionName`, or pass the `arn` of one that already exists.
  *
  * @group Resources/CloudFrontDistribution
  *
@@ -91,10 +91,14 @@ export type ICloudFrontViewerProtocolPolicy = (typeof CLOUDFRONT_VIEWER_PROTOCOL
  */
 export class CloudFrontFunctionAssociationSchema {
   /**
-   * The ARN of the CloudFront Function or the Lambda@Edge function version.
+   * The ARN of an existing CloudFront Function or Lambda@Edge function version. Set it, or
+   * `functionName`.
    */
-  @Validate({ options: { minLength: 1 } })
-  arn = Schema<string>();
+  @Validate({
+    destruct: (value: CloudFrontFunctionAssociationSchema['arn']): string[] => (value ? [value] : []),
+    options: { minLength: 1 },
+  })
+  arn? = Schema<string | null>(null);
 
   /**
    * Which lifecycle event the function runs on. See {@link ICloudFrontFunctionEventType}.
@@ -105,6 +109,15 @@ export class CloudFrontFunctionAssociationSchema {
     },
   })
   eventType = Schema<ICloudFrontFunctionEventType>();
+
+  /**
+   * The name of a CloudFront Function the distribution creates. Set it, or `arn`.
+   */
+  @Validate({
+    destruct: (value: CloudFrontFunctionAssociationSchema['functionName']): string[] => (value ? [value] : []),
+    options: { minLength: 1 },
+  })
+  functionName? = Schema<string | null>(null);
 
   /**
    * Which engine runs it. See {@link ICloudFrontFunctionKind}.

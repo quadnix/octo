@@ -34,6 +34,28 @@ import {
 } from '../../../resources/cloudfront-distribution/index.schema.js';
 
 /**
+ * One CloudFront Function the distribution creates, for its routes to run by `functionName`.
+ *
+ * @group Modules/Service/AwsCloudFrontService
+ *
+ * @hideconstructor
+ */
+export class AwsCloudFrontServiceModuleFunctionSchema {
+  /**
+   * The function's JavaScript, on the `cloudfront-js-2.0` runtime, at most 10 KB. It defines
+   * `function handler(event)`.
+   */
+  @Validate({ options: { maxLength: 10240, minLength: 1 } })
+  code = Schema<string>();
+
+  /**
+   * The function's name, unique in the account: letters, digits, `-` and `_`, at most 64 characters.
+   */
+  @Validate({ options: { maxLength: 64, minLength: 1, regex: /^[a-zA-Z0-9-_]+$/ } })
+  name = Schema<string>();
+}
+
+/**
  * One origin the distribution serves from: a source model, and how CloudFront reaches it.
  *
  * @group Modules/Service/AwsCloudFrontService
@@ -167,7 +189,8 @@ export class AwsCloudFrontServiceModuleRouteSchema {
   compress? = Schema<boolean>(true);
 
   /**
-   * Edge functions to run for this route, by ARN. Octo does not create the functions.
+   * Edge functions to run for this route: a CloudFront Function from `functions` by `functionName`,
+   * or an existing one by `arn`.
    */
   @Validate({
     destruct: (
@@ -321,6 +344,16 @@ export class AwsCloudFrontServiceModuleSchema {
     options: { isSchema: { schema: CloudFrontCustomErrorResponseSchema } },
   })
   errorResponses? = Schema<CloudFrontCustomErrorResponseSchema[]>([]);
+
+  /**
+   * CloudFront Functions to create, which routes run by `functionName`.
+   */
+  @Validate({
+    destruct: (value: AwsCloudFrontServiceModuleSchema['functions']): AwsCloudFrontServiceModuleFunctionSchema[] =>
+      value!,
+    options: { isSchema: { schema: AwsCloudFrontServiceModuleFunctionSchema } },
+  })
+  functions? = Schema<AwsCloudFrontServiceModuleFunctionSchema[]>([]);
 
   /**
    * Custom origin request policies, which routes name as `{ kind: 'custom', name }`.
