@@ -73,6 +73,14 @@ describe('YamlDefinitionUtility UT', () => {
       expect(definition.resolveEnvironmentValue('${env.OCTO_TEST_STRING}')).toBe('hello');
     });
 
+    it('should render a reference inside a longer string', () => {
+      const definition = new YamlDefinitionUtility(fixture('env-kinds-definition.yml'));
+
+      expect(
+        definition.resolveEnvironmentValue('arn:${env.OCTO_TEST_STRING}:${env.OCTO_TEST_NUMBER}:${{app.model.app}}'),
+      ).toBe('arn:hello:42:${{app.model.app}}');
+    });
+
     it('should resolve a reference nested in an array of objects', () => {
       const definition = new YamlDefinitionUtility(fixture('env-kinds-definition.yml'));
 

@@ -114,7 +114,8 @@ export class YamlDefinitionUtility {
   }
 
   /**
-   * Substitutes `${env.KEY}` references in a value with what the definition's `env` block declares.
+   * Substitutes `${env.KEY}` references in a value with what the definition's `env` block declares,
+   * wherever in a string they sit.
    *
    * Arrays and objects are walked, because a module input is as nested as its schema: a reference
    * can sit inside a list of images, or a key of an object, as readily as at the top level.
@@ -456,28 +457,18 @@ export class YamlDefinitionUtility {
   }
 
   /**
-   * Substitutes one `${env.KEY}` reference with what the definition's `env` block declares for that
-   * key, read in the kind the block gives it. Anything holding no reference is returned as it came.
+   * The value the definition's `env` block declares for a key, read in the kind the block gives it.
    * Only `OCTO_ENV_KEY` in the environment overrides the declared value; a bare `KEY` never does.
    */
-  private resolveEnvironmentReference<T>(value: unknown): T {
-    if (typeof value !== 'string') {
-      return value as T;
-    }
-
-    const pattern = value.match(/^\$\{env\.(.+)}$/);
-    if (!pattern || pattern.length < 2) {
-      return value as T;
-    }
-
+  private readEnvironmentKey(key: string): boolean | number | string {
     // `env` is optional in the schema, so a definition can reference `${env.X}` without declaring
     // one. Treat that as an empty block and let the "not found" error below report it.
-    const environmentKey = (this.definition.env ?? []).find((e) => e.key === pattern[1]);
+    const environmentKey = (this.definition.env ?? []).find((e) => e.key === key);
     if (!environmentKey) {
-      throw new Error(`Key "${pattern[1]}" not found under "env"!`);
+      throw new Error(`Key "${key}" not found under "env"!`);
     }
 
-    let resolvedValue = process.env[`OCTO_ENV_${pattern[1]}`] || environmentKey.value;
+    const resolvedValue = process.env[`OCTO_ENV_${key}`] || environmentKey.value;
 
     const { kind } = environmentKey;
     switch (kind) {
@@ -485,24 +476,42 @@ export class YamlDefinitionUtility {
         // A shell always supplies a string, and `Boolean("false")` is `true`. Parse the string form
         // rather than coercing it, and reject anything that is not plainly a boolean.
         if (typeof resolvedValue === 'boolean') {
-          return resolvedValue as T;
+          return resolvedValue;
         }
         const normalizedValue = String(resolvedValue).trim().toLowerCase();
         if (normalizedValue === 'true') {
-          return true as T;
+          return true;
         } else if (normalizedValue === 'false') {
-          return false as T;
+          return false;
         } else {
-          throw new Error(`Value "${resolvedValue}" for key "${pattern[1]}" is not a boolean!`);
+          throw new Error(`Value "${resolvedValue}" for key "${key}" is not a boolean!`);
         }
       }
       case 'number': {
-        return Number(resolvedValue) as T;
+        return Number(resolvedValue);
       }
       default: {
-        return String(resolvedValue) as T;
+        return String(resolvedValue);
       }
     }
+  }
+
+  /**
+   * Substitutes `${env.KEY}` references in a string with what the definition's `env` block declares.
+   * A string that is wholly one reference takes the key's kind; a reference inside a longer string is
+   * rendered into it. Anything holding no reference is returned as it came.
+   */
+  private resolveEnvironmentReference<T>(value: unknown): T {
+    if (typeof value !== 'string') {
+      return value as T;
+    }
+
+    const wholeReference = value.match(/^\$\{env\.([^}]+)}$/);
+    if (wholeReference) {
+      return this.readEnvironmentKey(wholeReference[1]) as T;
+    }
+
+    return value.replace(/\$\{env\.([^}]+)}/g, (_, key: string) => String(this.readEnvironmentKey(key))) as T;
   }
 
   /**
