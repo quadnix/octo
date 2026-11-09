@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promi
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { jest } from '@jest/globals';
-import { TerraformCommandError } from '../../errors/index.js';
+import { TerraformCommandError, TerraformFormatError } from '../../errors/index.js';
 import {
   type Event,
   TerraformProcessExitedEvent,
@@ -319,7 +319,7 @@ describe('TerraformUtility UT', () => {
       await createModuleFolder('module-a');
       terraform.spawnAsyncMock.mockImplementation(async (_file, args) => ({
         stderr: '',
-        stdout: args[0] === 'show' ? JSON.stringify({ resource_changes: [] }) : '',
+        stdout: args[0] === 'show' ? JSON.stringify({ format_version: '1.2', resource_changes: [] }) : '',
       }));
 
       await terraform.plan(terragruntDir, { json: true });
@@ -363,6 +363,36 @@ describe('TerraformUtility UT', () => {
   });
 
   describe('plan(dir, { json: true })', () => {
+    it('should report a folder whose plan is in a format version octo does not read', async () => {
+      await createModuleFolder('module-a');
+      terraform.spawnAsyncMock.mockImplementation(async (_file, args) => ({
+        stderr: '',
+        stdout: args[0] === 'show' ? JSON.stringify({ format_version: '2.0', resource_changes: [] }) : '',
+      }));
+
+      const { errors, plans } = await terraform.plan(terragruntDir, { json: true });
+
+      expect(plans.size).toBe(0);
+      expect(errors.get('module-a')).toBe('Terraform plan format version "2.0" is not one octo reads (1.x)!');
+    });
+
+    it('should report a folder whose plan holds an action octo does not know', async () => {
+      await createModuleFolder('module-a');
+      const plan = {
+        format_version: '1.2',
+        resource_changes: [{ address: 'aws_s3_bucket.this', change: { actions: ['archive'] } }],
+      };
+      terraform.spawnAsyncMock.mockImplementation(async (_file, args) => ({
+        stderr: '',
+        stdout: args[0] === 'show' ? JSON.stringify(plan) : '',
+      }));
+
+      const { errors, plans } = await terraform.plan(terragruntDir, { json: true });
+
+      expect(plans.size).toBe(0);
+      expect(errors.get('module-a')).toBe('Terraform plans unknown action "archive" on "aws_s3_bucket.this"!');
+    });
+
     it('enumerates only folders containing terragrunt.hcl and returns a Map keyed by folder name', async () => {
       await createModuleFolder('module-a');
       await createModuleFolder('module-b');
@@ -370,7 +400,7 @@ describe('TerraformUtility UT', () => {
 
       terraform.spawnAsyncMock.mockImplementation(async (_file, args) => {
         if (args[0] === 'show') {
-          return { stderr: '', stdout: JSON.stringify({ resource_changes: [] }) };
+          return { stderr: '', stdout: JSON.stringify({ format_version: '1.2', resource_changes: [] }) };
         }
         return { stderr: '', stdout: '' };
       });
@@ -378,7 +408,7 @@ describe('TerraformUtility UT', () => {
       const { errors, plans } = await terraform.plan(terragruntDir, { json: true });
 
       expect([...plans.keys()].sort()).toEqual(['module-a', 'module-b']);
-      expect(plans.get('module-a')).toEqual({ resource_changes: [] });
+      expect(plans.get('module-a')).toEqual({ format_version: '1.2', resource_changes: [] });
       expect(errors.size).toBe(0);
     });
 
@@ -386,7 +416,7 @@ describe('TerraformUtility UT', () => {
       await createModuleFolder('module-a');
       terraform.spawnAsyncMock.mockImplementation(async (_file, args) => {
         if (args[0] === 'show') {
-          return { stderr: '', stdout: JSON.stringify({ resource_changes: [] }) };
+          return { stderr: '', stdout: JSON.stringify({ format_version: '1.2', resource_changes: [] }) };
         }
         return { stderr: '', stdout: '' };
       });
@@ -415,7 +445,7 @@ describe('TerraformUtility UT', () => {
           if ((options.cwd as string)?.endsWith('module-bad')) {
             return { stderr: '', stdout: 'not json' };
           }
-          return { stderr: '', stdout: JSON.stringify({ resource_changes: [] }) };
+          return { stderr: '', stdout: JSON.stringify({ format_version: '1.2', resource_changes: [] }) };
         }
         return { stderr: '', stdout: '' };
       });
@@ -474,6 +504,13 @@ describe('TerraformUtility UT', () => {
   });
 
   describe('output(dir, { json: true })', () => {
+    it('should throw error when an output does not hold its value', async () => {
+      await createModuleFolder('module-a');
+      terraform.spawnAsyncMock.mockResolvedValue({ stderr: '', stdout: JSON.stringify({ bucket: 'my-bucket' }) });
+
+      await expect(terraform.output(terragruntDir, { json: true })).rejects.toBeInstanceOf(TerraformFormatError);
+    });
+
     it('reads per-folder "output -json" into a Map keyed by folder name', async () => {
       await createModuleFolder('module-a');
       terraform.spawnAsyncMock.mockResolvedValue({

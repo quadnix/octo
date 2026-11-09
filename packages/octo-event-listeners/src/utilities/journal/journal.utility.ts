@@ -57,6 +57,7 @@ import {
   TerraformCommandFinishedEvent,
   TerraformCommandStartedEvent,
   TerraformFoldersWrittenEvent,
+  TerraformFormatError,
   TerraformProcessExitedEvent,
   TerraformProcessStartedEvent,
   TransactionError,
@@ -164,6 +165,7 @@ export class JournalUtility {
     ResourceError,
     SchemaError,
     TerraformCommandError,
+    TerraformFormatError,
     TransactionError,
     ValidationTransactionError,
   };

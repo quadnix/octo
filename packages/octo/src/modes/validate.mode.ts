@@ -131,9 +131,11 @@ export interface ValidateReport {
 
 /**
  * One module's parsed terraform plan, i.e. the JSON produced by `terraform show -json <plan-file>`
- * (run via terragrunt by the caller, so it is backend-agnostic). Only `resource_changes` is read.
+ * (run via terragrunt by the caller, so it is backend-agnostic). Only `format_version` and
+ * `resource_changes` are read.
  */
 export interface TerraformPlan {
+  format_version?: string;
   resource_changes?: {
     address: string;
     change?: {

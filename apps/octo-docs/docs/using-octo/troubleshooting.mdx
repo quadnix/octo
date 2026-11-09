@@ -212,6 +212,14 @@ that exists to keep the account id out of committed Terraform and the guard is t
 provider spec already sets `allowed_account_ids`, which wins. And when it sets
 `skip_requesting_account_id`, which stops the provider learning the account there would be to check.
 
+**`Terraform plan format version "2.0" is not one octo reads (1.x)!`**,
+**`Terraform plans unknown action "..." on "..."!`**
+
+Your Terraform or OpenTofu writes its plan in a shape Octo was not written against, so Octo reports
+that folder as failed rather than guess what the plan means. Run a Terraform release Octo supports,
+or an Octo release that reads yours. `octo apply` refuses for the same reason, since it cannot tell
+what the plan would destroy.
+
 **Everything reads `(known after apply)` on the first plan**
 
 Expected. A folder planned before its dependency exists is planned against Terragrunt's
@@ -354,6 +362,11 @@ records every resource whose outputs all resolved and leaves the rest out, repor
 skipped. The next run plans to create those again, which Terraform reconciles against its own state
 as a no-op if they exist. If the lines above the error say `Could not read terraform outputs`, the
 apply was fine and the commit could not reach a folder, usually for want of credentials.
+
+**`Terraform outputs are not in a format octo reads!`**
+
+`terraform output -json` returned something other than one object per output holding its `value`.
+As with a plan in an unknown format, run a Terraform release Octo supports.
 
 **`Cannot commit: null terraform outputs (broken apply?)`**
 

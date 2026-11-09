@@ -4,7 +4,7 @@ import { mkdtemp, readFile, readdir, realpath, rm, writeFile } from 'node:fs/pro
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { Factory } from '../../decorators/factory.decorator.js';
-import { TerraformCommandError } from '../../errors/index.js';
+import { TerraformCommandError, TerraformFormatError } from '../../errors/index.js';
 import {
   TerraformCommandFinishedEvent,
   TerraformCommandStartedEvent,
@@ -31,6 +31,22 @@ const TERRAFORM_STATE_FILE_NAME = 'terraform.tfstate';
  * bound. Everything else only reads, where a timeout costs nothing and catches a hang.
  */
 const MUTATING_COMMANDS = new Set(['apply', 'destroy']);
+
+/**
+ * Every list of actions a terraform plan in format 1.x can give a resource, joined by commas.
+ */
+const KNOWN_PLAN_ACTIONS = new Set([
+  '',
+  'create',
+  'create,delete',
+  'create,forget',
+  'delete',
+  'delete,create',
+  'forget',
+  'no-op',
+  'read',
+  'update',
+]);
 
 /**
  * How much of a process's stderr is kept for the error a failure throws. Everything it wrote goes out
@@ -571,14 +587,23 @@ export class TerraformUtility {
    *
    * A folder whose output fails is reported as `undefined`, not thrown — one bad module folder must not
    * abort every other folder's result.
+   *
+   * @throws {@link TerraformFormatError} When an output is not an object holding its `value`.
    */
   private async readOutputs(moduleDir: string, composedArgs: string[]): Promise<TerraformOutputs | undefined> {
+    let outputs: unknown;
     try {
       const { stdout } = await this.run(moduleDir, ['output', '-json', ...composedArgs]);
-      return JSON.parse(stdout) as TerraformOutputs;
+      outputs = JSON.parse(stdout);
     } catch {
       return undefined;
     }
+
+    const isOutput = (output: unknown): boolean => typeof output === 'object' && output !== null && 'value' in output;
+    if (typeof outputs !== 'object' || outputs === null || !Object.values(outputs).every(isOutput)) {
+      throw new TerraformFormatError('Terraform outputs are not in a format octo reads!', moduleDir);
+    }
+    return outputs as TerraformOutputs;
   }
 
   /**
@@ -601,7 +626,20 @@ export class TerraformUtility {
     try {
       await this.run(moduleDir, ['plan', `-out=${planFile}`, '-input=false', ...composedArgs]);
       const { stdout } = await this.run(moduleDir, ['show', '-json', planFile]);
-      return { plan: JSON.parse(stdout) as TerraformPlan };
+      const plan = JSON.parse(stdout) as TerraformPlan;
+
+      // Refuse a plan in a format, or with an action, octo was not written against.
+      if (!/^1\./.test(String(plan.format_version))) {
+        return { error: `Terraform plan format version "${plan.format_version}" is not one octo reads (1.x)!` };
+      }
+      for (const resourceChange of plan.resource_changes ?? []) {
+        const actions = (resourceChange.change?.actions ?? []).join(',');
+        if (!KNOWN_PLAN_ACTIONS.has(actions)) {
+          return { error: `Terraform plans unknown action "${actions}" on "${resourceChange.address}"!` };
+        }
+      }
+
+      return { plan };
     } catch (error) {
       return { error: this.describePlanFailure(error) };
     } finally {

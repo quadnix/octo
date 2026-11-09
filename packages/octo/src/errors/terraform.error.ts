@@ -28,3 +28,25 @@ export class TerraformCommandError extends Error {
     Object.setPrototypeOf(this, TerraformCommandError.prototype);
   }
 }
+
+/**
+ * Thrown when terraform returns JSON in a shape octo does not read, naming the module folder it came
+ * from.
+ *
+ * @group Errors/Terraform
+ */
+export class TerraformFormatError extends Error {
+  readonly moduleDir: string;
+
+  /**
+   * @param message The error message.
+   * @param moduleDir The module folder whose command returned the JSON.
+   */
+  constructor(message: string, moduleDir: string) {
+    super(message);
+
+    this.moduleDir = moduleDir;
+
+    Object.setPrototypeOf(this, TerraformFormatError.prototype);
+  }
+}
