@@ -232,7 +232,7 @@ export class AwsCloudFrontServiceModule extends AModule<AwsCloudFrontServiceModu
       });
       if (!matchingSourceAnchor) {
         throw new ModuleError(
-          `Origin "${origin.originId}" is neither an S3 storage bucket nor an ALB!`,
+          `Origin "${origin.originId}" is not an S3 storage bucket, an ALB or a Lambda function!`,
           this.constructor.name,
         );
       }
