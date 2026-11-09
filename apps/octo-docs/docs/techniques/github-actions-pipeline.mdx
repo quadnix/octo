@@ -263,7 +263,7 @@ jobs:
             npm run octo:apply -- --lockId "$LOCK_ID"
           fi
 
-      # `--partial` records the resources that did apply and leaves the ones with missing outputs
+      # `--partial` records the folders that did apply and leaves the ones still holding changes
       # alone, so a half-finished apply still leaves a usable record behind.
       - name: Commit
         id: commit

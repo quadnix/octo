@@ -48,6 +48,7 @@ describe('commitCommand UT', () => {
     deleteDestroyedFolders: jest.Mock<(dir: string, moduleIds: string[]) => Promise<string[]>>;
     listModuleFolders: jest.Mock<() => Promise<string[]>>;
     output: jest.Mock<() => Promise<Map<string, unknown>>>;
+    plan: jest.Mock<() => Promise<{ errors: Map<string, string>; plans: Map<string, unknown> }>>;
   };
   let stateManagementServiceMock: { unlockApp: jest.Mock<(lockId: string) => Promise<void>> };
   let processExitSpy: jest.SpiedFunction<typeof process.exit>;
@@ -66,6 +67,9 @@ describe('commitCommand UT', () => {
         .mockImplementation(async (_dir, moduleIds) => moduleIds),
       listModuleFolders: jest.fn<() => Promise<string[]>>().mockResolvedValue([]),
       output: jest.fn<() => Promise<Map<string, unknown>>>().mockResolvedValue(new Map()),
+      plan: jest
+        .fn<() => Promise<{ errors: Map<string, string>; plans: Map<string, unknown> }>>()
+        .mockResolvedValue({ errors: new Map(), plans: new Map() }),
     };
     stateManagementServiceMock = { unlockApp: jest.fn<(lockId: string) => Promise<void>>().mockResolvedValue() };
     await TestContainer.create({
@@ -126,6 +130,40 @@ describe('commitCommand UT', () => {
     // lands out of order, so the handler writes nothing to it.
     expect(consoleLogSpy).not.toHaveBeenCalled();
     expect(processExitSpy).not.toHaveBeenCalled();
+  });
+
+  it('commits no folder whose plan still holds changes on a partial commit', async () => {
+    terraformUtilityMock.listModuleFolders.mockResolvedValue(['applied', 'failed', 'unplanned']);
+    terraformUtilityMock.output.mockResolvedValue(
+      new Map([
+        ['applied', { a: { value: 'a' } }],
+        ['failed', { b: { value: 'b' } }],
+        ['unplanned', { c: { value: 'c' } }],
+      ]),
+    );
+    terraformUtilityMock.plan.mockResolvedValue({
+      errors: new Map([['unplanned', 'Error: no plan']]),
+      plans: new Map([
+        ['applied', { resource_changes: [{ address: 'aws_s3_bucket.a', change: { actions: ['no-op'] } }] }],
+        ['failed', { resource_changes: [{ address: 'aws_dynamodb_table.b', change: { actions: ['update'] } }] }],
+      ]),
+    });
+
+    await commitCommand.handler({ ...argv, partial: true });
+
+    expect(octoCommitMock).toHaveBeenCalledWith(
+      {},
+      { lockId, outputs: new Map([['applied', { a: { value: 'a' } }]]), partial: true },
+    );
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      expect.stringContaining('WARN [failed] Its plan still holds changes, so none of it is committed'),
+    );
+  });
+
+  it('plans nothing on a full commit', async () => {
+    await commitCommand.handler(argv);
+
+    expect(terraformUtilityMock.plan).not.toHaveBeenCalled();
   });
 
   it('warns for a module folder missing from the returned outputs, but still commits', async () => {

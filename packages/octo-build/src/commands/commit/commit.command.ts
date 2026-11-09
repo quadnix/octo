@@ -36,7 +36,8 @@ export const commitCommand = {
       .option('partial', {
         default: false,
         demandOption: false,
-        description: 'Record what did apply, leaving resources with missing outputs uncommitted. For a failed apply.',
+        description:
+          'Record what did apply, leaving uncommitted every folder whose plan still holds changes. For a failed apply.',
         type: 'boolean',
       })
       .option('terraformBinary', {
@@ -77,6 +78,25 @@ export const commitCommand = {
       for (const moduleId of moduleIds) {
         if (!outputs.has(moduleId)) {
           console.error(chalk.yellow(`WARN [${moduleId}] Could not read terraform outputs`));
+        }
+      }
+
+      // A partial commit confirms only the folders whose plan is now empty. A folder whose apply failed
+      // still reads the outputs of its last apply, which would record what never reached the cloud.
+      if (partial) {
+        const { errors, plans } = await terraformUtility.plan(resolvedDir, { json: true });
+        for (const moduleId of [...outputs.keys()]) {
+          const isApplied =
+            !errors.has(moduleId) &&
+            (plans.get(moduleId)?.resource_changes ?? []).every(
+              (resourceChange) =>
+                resourceChange.mode === 'data' ||
+                (resourceChange.change?.actions ?? []).every((action) => action === 'no-op' || action === 'read'),
+            );
+          if (!isApplied) {
+            outputs.delete(moduleId);
+            console.error(chalk.yellow(`WARN [${moduleId}] Its plan still holds changes, so none of it is committed`));
+          }
         }
       }
 
