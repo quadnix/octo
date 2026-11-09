@@ -57,6 +57,7 @@ export class AwsS3StaticWebsiteService extends Service {
     subDirectoryOrFilePath?: string,
     filter?: (filePath: string) => boolean,
     transform?: (filePath: string) => string,
+    keyPrefix?: string,
   ): Promise<void> {
     await S3FileSourceUtility.addSource(
       this.sourcePaths,
@@ -65,6 +66,7 @@ export class AwsS3StaticWebsiteService extends Service {
       subDirectoryOrFilePath,
       filter,
       transform,
+      keyPrefix,
     );
   }
 

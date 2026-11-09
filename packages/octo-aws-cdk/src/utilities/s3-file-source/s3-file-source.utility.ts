@@ -44,6 +44,7 @@ export class S3FileSourceUtility {
     subDirectoryOrFilePath?: string,
     filter?: (filePath: string) => boolean,
     transform?: (filePath: string) => string,
+    keyPrefix?: string,
   ): Promise<void> {
     // Against the project root rather than the working directory. A module composes the graph in
     // every mode, including the `octo run-action` callback terraform makes mid-apply, and terraform
@@ -55,6 +56,10 @@ export class S3FileSourceUtility {
 
     // Remove leading slashes.
     subDirectoryOrFilePath = subDirectoryOrFilePath.replace(/^\/+/g, '');
+    const remotePathOf = (path: string): string => {
+      const remotePath = transform ? transform(path) : path;
+      return keyPrefix ? join(keyPrefix.replace(/^\/+/g, ''), remotePath) : remotePath;
+    };
 
     // Ensure subDirectoryOrFilePath exists, and is readable.
     const relativeSubDirectoryOrFilePath = join(directoryPath, subDirectoryOrFilePath);
@@ -72,7 +77,7 @@ export class S3FileSourceUtility {
         sourcePaths.push({
           directoryPath,
           isDirectory: false,
-          remotePath: transform ? transform(subDirectoryOrFilePath) : subDirectoryOrFilePath,
+          remotePath: remotePathOf(subDirectoryOrFilePath),
           subDirectoryOrFilePath,
         });
       }
@@ -80,7 +85,7 @@ export class S3FileSourceUtility {
       sourcePaths.push({
         directoryPath,
         isDirectory: true,
-        remotePath: transform ? transform(subDirectoryOrFilePath) : subDirectoryOrFilePath,
+        remotePath: remotePathOf(subDirectoryOrFilePath),
         subDirectoryOrFilePath,
       });
 

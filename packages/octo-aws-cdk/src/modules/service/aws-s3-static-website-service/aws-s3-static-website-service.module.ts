@@ -56,6 +56,7 @@ export class AwsS3StaticWebsiteServiceModule extends AModule<
       inputs.subDirectoryOrFilePath || undefined,
       inputs.filter || undefined,
       inputs.transform || undefined,
+      inputs.keyPrefix || undefined,
     );
 
     return s3StaticWebsiteService;
