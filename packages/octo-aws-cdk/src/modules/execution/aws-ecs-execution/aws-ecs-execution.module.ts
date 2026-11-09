@@ -148,13 +148,8 @@ export class AwsEcsExecutionModule extends AModule<AwsEcsExecutionModuleSchema, 
       }
     }
 
-    // A security group with no egress rule permits no outbound traffic, and a task has to reach
-    // ECR to pull the image it runs. Without this the task stops with
-    // "ResourceInitializationError: ... cannot pull registry auth from Amazon ECR" and the
-    // execution never starts, so the default is the one AWS gives a security group of its own.
-    //
-    // Only when the caller declared no egress rule at all. Anyone who declared one has said what
-    // this execution may reach, and widening that silently would be worse than the default itself.
+    // Allow all egress, as AWS's own default group does, unless the caller declared an egress rule.
+    // A task reaches ECR to pull its image.
     if (!securityGroupAnchor.properties.rules.some((r) => r.Egress)) {
       securityGroupAnchor.properties.rules.push({
         CidrBlock: '0.0.0.0/0',
