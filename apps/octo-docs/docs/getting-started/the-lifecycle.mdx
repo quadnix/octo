@@ -112,7 +112,9 @@ This apply would DESTROY:
 Error: Refusing to apply. Run "octo validate" to see why each of these is being destroyed, then re-run with --auto-approve to proceed!
 ```
 
-`--auto-approve` skips that check, and it is required for every destroy, including one you meant. If
+`--auto-approve` skips that check, and it is required for every destroy, including one you meant.
+Only removing an [external resource](/docs/building-modules/create-an-external-resource#deletes-run-at-commit),
+such as an old image tag, goes through without it, since Octo deletes that at commit. If
 a folder cannot be planned at all, apply also refuses, because it cannot say whether that folder
 would destroy something and will not guess. Either way the lock stays held: re-run the apply with
 the same lock ID, or release it with `octo unlock --lockId $LOCK_ID` if you are not going ahead.

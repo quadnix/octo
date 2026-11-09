@@ -665,6 +665,7 @@ export class Octo {
         terraformResources: this.terraformService.getOctoTerraformResourceMappings().map(
           (m): TerraformResourceOutput => ({
             ...(m.destroyLosesData ? { destroyLosesData: true } : {}),
+            ...(m.entireResponseOutput !== undefined ? { external: true } : {}),
             moduleId: m.moduleId,
             resourceContext: m.resourceContext,
             resourceId: m.resourceId,

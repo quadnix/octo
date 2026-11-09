@@ -447,6 +447,11 @@ export type TerraformResourceOutput = {
    * Set when destroying the resource loses data, as its class declares.
    */
   destroyLosesData?: true;
+  /**
+   * Set when the resource is an external resource, which terraform holds only as the `null_resource`
+   * standing in for it.
+   */
+  external?: true;
   moduleId: string;
   resourceContext: string;
   resourceId: string;

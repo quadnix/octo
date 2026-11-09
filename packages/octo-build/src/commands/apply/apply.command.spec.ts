@@ -186,6 +186,63 @@ describe('applyCommand UT', () => {
       );
     });
 
+    it('applies a plan whose only destroy is the null_resource of an external resource', async () => {
+      terraformUtilityMock.plan.mockResolvedValue({
+        errors: new Map(),
+        plans: new Map([
+          ['image-module', { resource_changes: [{ address: 'null_resource.tag-1', change: { actions: ['delete'] } }] }],
+        ]),
+      });
+      stateManagementServiceMock.getResourceState.mockResolvedValue({
+        userData: {
+          terraformResources: [
+            {
+              external: true,
+              moduleId: 'image-module',
+              resourceContext: '@octo/ecr-image-tag=tag-1',
+              resourceId: 'tag-1',
+              terraformAddresses: ['null_resource.tag-1'],
+            },
+          ],
+        },
+      });
+
+      await applyCommand.handler(argv);
+
+      expect(terraformUtilityMock.apply).toHaveBeenCalledWith(resolvedDir);
+      expect(processExitSpy).not.toHaveBeenCalled();
+    });
+
+    it('refuses to destroy the null_resource of an external resource whose destroy loses data', async () => {
+      terraformUtilityMock.plan.mockResolvedValue({
+        errors: new Map(),
+        plans: new Map([
+          ['image-module', { resource_changes: [{ address: 'null_resource.tag-1', change: { actions: ['delete'] } }] }],
+        ]),
+      });
+      stateManagementServiceMock.getResourceState.mockResolvedValue({
+        userData: {
+          terraformResources: [
+            {
+              destroyLosesData: true,
+              external: true,
+              moduleId: 'image-module',
+              resourceContext: '@octo/ecr-image-tag=tag-1',
+              resourceId: 'tag-1',
+              terraformAddresses: ['null_resource.tag-1'],
+            },
+          ],
+        },
+      });
+
+      await applyCommand.handler(argv);
+
+      expect(terraformUtilityMock.apply).not.toHaveBeenCalled();
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[image-module] null_resource.tag-1 (delete) - the data it holds is lost with it'),
+      );
+    });
+
     it('applies a destructive plan when the user opts in', async () => {
       terraformUtilityMock.plan.mockResolvedValue(planWithDestroy());
 

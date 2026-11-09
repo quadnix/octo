@@ -15,7 +15,8 @@ type ApplyCommandArguments = {
 
 /**
  * Plans the directory and prints anything the apply would destroy, marking each destroy of a resource
- * the last commit recorded as losing data.
+ * the last commit recorded as losing data. The `null_resource` of an external resource is let through
+ * unless that resource loses data, since octo, not its destroy, decides what happens to the resource.
  *
  * Returns why the apply must not proceed: something would be destroyed, or a folder would not plan and
  * so nothing can be said about what it would destroy. Returns `undefined` when it may.
@@ -43,19 +44,28 @@ async function findDestroyRefusal(
     return undefined;
   }
 
-  // Find the addresses whose destroy loses data.
+  // Find the addresses whose destroy loses data, and those of external resources that lose none.
   const { userData } = await stateManagementService.getResourceState(
     stateManagementService.actualResourceStateFileName,
   );
-  const dataLossAddresses = new Set(
-    (userData.terraformResources ?? [])
-      .filter((mapping) => mapping.destroyLosesData)
-      .flatMap((mapping) => mapping.terraformAddresses.map((address) => `${mapping.moduleId} ${address}`)),
+  const addressesOf = (mappings: NonNullable<typeof userData.terraformResources>): Set<string> =>
+    new Set(
+      mappings.flatMap((mapping) => mapping.terraformAddresses.map((address) => `${mapping.moduleId} ${address}`)),
+    );
+  const mappings = userData.terraformResources ?? [];
+  const dataLossAddresses = addressesOf(mappings.filter((mapping) => mapping.destroyLosesData));
+  const externalAddresses = addressesOf(mappings.filter((mapping) => mapping.external && !mapping.destroyLosesData));
+
+  const refusedDestroys = destroys.filter(
+    (destroy) => !externalAddresses.has(`${destroy.moduleId} ${destroy.address}`),
   );
+  if (refusedDestroys.length === 0) {
+    return undefined;
+  }
 
   console.error(chalk.red('This apply would DESTROY:'));
 
-  for (const destroy of destroys.sort((a, b) => a.address.localeCompare(b.address))) {
+  for (const destroy of refusedDestroys.sort((a, b) => a.address.localeCompare(b.address))) {
     const dataLoss = dataLossAddresses.has(`${destroy.moduleId} ${destroy.address}`)
       ? ' - the data it holds is lost with it'
       : '';

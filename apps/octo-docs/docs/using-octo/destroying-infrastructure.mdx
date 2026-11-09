@@ -102,8 +102,10 @@ destroyed. A destroy that takes data with it, like the bucket's objects, says so
 npm run octo:apply -- --lockId $LOCK_ID --auto-approve
 ```
 
-That flag is required for every destroy, including one you fully intended. It is not a `--force`; it
-is an acknowledgement that you have read the list above. The refusal leaves the lock held, so if
+That flag is required for every destroy, including one you fully intended, except removing an
+[external resource](/docs/building-modules/create-an-external-resource#deletes-run-at-commit) that
+loses no data, which Octo deletes at commit. It is not a `--force`; it is an acknowledgement that
+you have read the list above. The refusal leaves the lock held, so if
 the list tells you not to go ahead, release it with `npm run octo:unlock -- --lockId $LOCK_ID`.
 
 ## Committing the removal

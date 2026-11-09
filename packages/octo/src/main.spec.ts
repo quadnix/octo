@@ -374,6 +374,7 @@ describe('Main UT', () => {
           terraformAddresses: ['aws_vpc.vpc-1'],
         },
         {
+          external: true,
           moduleId: 'region-module',
           resourceContext: expect.stringContaining('igw-1'),
           resourceId: 'igw-1',
