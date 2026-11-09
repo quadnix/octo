@@ -1021,6 +1021,53 @@ describe('AwsDynamoDBServiceModule UT', () => {
        ]
       `);
     });
+
+    it('should handle DeletionProtectionEnabled change in place', async () => {
+      await setup(testModuleContainer);
+      await testModuleContainer
+        .runModules<AwsDynamoDBServiceModule>(
+          {
+            inputs: {
+              AttributeDefinitions: [{ AttributeName: 'AccountId', AttributeType: 'S' }],
+              billingMode: { settings: {}, type: 'PAY_PER_REQUEST' },
+              KeySchema: [{ AttributeName: 'AccountId', KeyType: 'HASH' }],
+              region: stub('${{testModule.model.region}}'),
+              TableName: 'test-table',
+            },
+            moduleId: 'service',
+            type: AwsDynamoDBServiceModule,
+          },
+          { terraformTarget: 'skip' },
+        )
+        .next();
+
+      await setup(testModuleContainer);
+      const protect = (
+        await testModuleContainer
+          .runModules<AwsDynamoDBServiceModule>(
+            {
+              inputs: {
+                AttributeDefinitions: [{ AttributeName: 'AccountId', AttributeType: 'S' }],
+                billingMode: { settings: {}, type: 'PAY_PER_REQUEST' },
+                DeletionProtectionEnabled: true,
+                KeySchema: [{ AttributeName: 'AccountId', KeyType: 'HASH' }],
+                region: stub('${{testModule.model.region}}'),
+                TableName: 'test-table',
+              },
+              moduleId: 'service',
+              type: AwsDynamoDBServiceModule,
+            },
+            { terraformTarget: 'skip' },
+          )
+          .next()
+      ).value!;
+      expect(protect.hclDiff).toMatchSnapshot();
+      expect(testModuleContainer.digestDiffs(protect.resourceDiffs)).toMatchInlineSnapshot(`
+       [
+         "* @octo/dynamodb=dynamodb-test-table-51fb32",
+       ]
+      `);
+    });
   });
 
   it('should create one table per region for tables sharing a name', async () => {

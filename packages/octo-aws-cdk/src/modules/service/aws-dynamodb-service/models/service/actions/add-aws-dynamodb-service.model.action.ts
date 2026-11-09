@@ -46,7 +46,7 @@ export class AddAwsDynamoDBServiceModelAction implements IModelAction<AwsDynamoD
       awsAccountId,
       awsRegionId,
       billingMode: inputs.billingMode,
-      DeletionProtectionEnabled: false,
+      DeletionProtectionEnabled: inputs.DeletionProtectionEnabled ?? false,
       GlobalSecondaryIndexes: inputs.GlobalSecondaryIndexes ?? [],
       KeySchema: inputs.KeySchema,
       LocalSecondaryIndexes: inputs.LocalSecondaryIndexes ?? [],

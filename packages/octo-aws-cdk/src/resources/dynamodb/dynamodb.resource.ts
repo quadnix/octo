@@ -240,6 +240,7 @@ export class DynamoDB extends ATerraformResource<DynamoDBSchema, DynamoDB> {
     const changeableInPlace = [
       'AttributeDefinitions',
       'billingMode',
+      'DeletionProtectionEnabled',
       'GlobalSecondaryIndexes',
       'StreamSpecification',
       'timeToLiveAttribute',

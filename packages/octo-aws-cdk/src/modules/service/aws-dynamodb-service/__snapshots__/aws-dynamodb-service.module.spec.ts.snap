@@ -1,5 +1,14 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
+exports[`AwsDynamoDBServiceModule UT input changes should handle DeletionProtectionEnabled change in place 1`] = `
+"~ service/main.tf resource "aws_dynamodb_table" "dynamodb-test-table-51fb32" {
+@@ -7,3 +7,3 @@
+    billing_mode = "PAY_PER_REQUEST"
+-   deletion_protection_enabled = false
++   deletion_protection_enabled = true
+    hash_key = "AccountId""
+`;
+
 exports[`AwsDynamoDBServiceModule UT input changes should handle GlobalSecondaryIndexes change should add a GSI to an existing table 1`] = `
 "~ service/main.tf resource "aws_dynamodb_table" "dynamodb-test-table-51fb32" {
 @@ -6,2 +6,6 @@

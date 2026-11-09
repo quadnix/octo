@@ -183,9 +183,9 @@ export class DynamoDBSchema extends BaseResourceSchema {
       options: { regex: /^(PAY_PER_REQUEST|PROVISIONED)$/ },
     },
     {
-      // DeletionProtectionEnabled must match enum.
+      // DeletionProtectionEnabled must be a boolean.
       destruct: (value: DynamoDBSchema['properties']): string[] => [String(value.DeletionProtectionEnabled)],
-      options: { regex: /^(false)$/ },
+      options: { regex: /^(true|false)$/ },
     },
     {
       // GlobalSecondaryIndexes must match schema.
@@ -242,7 +242,7 @@ export class DynamoDBSchema extends BaseResourceSchema {
         type: K;
       };
     }[keyof IDynamoDBBillingTypes];
-    DeletionProtectionEnabled: false;
+    DeletionProtectionEnabled: boolean;
     GlobalSecondaryIndexes: DynamoDBSecondaryIndexSchema[];
     KeySchema: DynamoDBKeySchema[];
     LocalSecondaryIndexes: DynamoDBSecondaryIndexSchema[];

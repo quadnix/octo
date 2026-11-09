@@ -67,6 +67,16 @@ export class AwsDynamoDBServiceModuleSchema {
   >();
 
   /**
+   * Whether AWS refuses to delete the table. An apply that would delete or replace a protected table
+   * fails until this is turned off and applied first.
+   */
+  @Validate({
+    destruct: (value: AwsDynamoDBServiceModuleSchema['DeletionProtectionEnabled']): string[] => [String(value)],
+    options: { regex: /^(true|false)$/ },
+  })
+  DeletionProtectionEnabled? = Schema<boolean>(false);
+
+  /**
    * Global Secondary Indexes to create on the table.
    * Requires `StreamSpecification` to be set.
    */
