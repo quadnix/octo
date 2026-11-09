@@ -615,6 +615,31 @@ describe('TerraformService UT', () => {
       expect(files.get('vpc-module')!.outputsTf).toContain('output "vpc-1-VpcId"');
     });
 
+    it('should keep a sensitive output marked in the variable that carries it to another module', () => {
+      const databaseScope = service.scope('database-module');
+      const database = new TestTerraformResource('database-1', {});
+      const databaseTf = databaseScope.addOctoTerraformResource(database);
+      databaseTf.addTerraformResource('aws_db_instance', 'database-1', {});
+      databaseTf.output(
+        {
+          Endpoint: databaseScope.raw('aws_db_instance.database-1.endpoint'),
+          Password: databaseScope.raw('aws_db_instance.database-1.password'),
+        },
+        { sensitiveKeys: ['Password'] },
+      );
+
+      const serverScope = service.scope('server-module');
+      const server = new TestTerraformResource('server-1', {});
+      serverScope.addOctoTerraformResource(server).addTerraformResource('aws_instance', 'server-1', {
+        endpoint: serverScope.getRef(database, 'Endpoint'),
+        password: serverScope.getRef(database, 'Password'),
+      });
+
+      const { variablesTf } = service.renderAllModules().get('server-module')!;
+      expect(variablesTf).toContain('variable "database_1_Endpoint" {}');
+      expect(variablesTf).toContain('variable "database_1_Password" {\n  sensitive = true\n}');
+    });
+
     it('should throw on refs to output keys not declared via output()', () => {
       const scope = service.scope('m1');
 

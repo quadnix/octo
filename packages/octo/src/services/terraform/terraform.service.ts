@@ -270,6 +270,8 @@ interface TerraformModuleWiring {
    * producer's **entire response object** (consumed as `var.<name>.<key>`); it lists the keys
    * actually accessed so `terragrunt.hcl` can mock the output as an object rather than a flat
    * string. Normal (per-key scalar) producers leave it undefined.
+   *
+   * `sensitive` carries the producer output's mark, so the value stays marked in this folder.
    */
   autoVariables: Map<
     string,
@@ -279,6 +281,7 @@ interface TerraformModuleWiring {
       producerModuleId: string;
       producerResourceId: string;
       responseKey?: string;
+      sensitive: boolean;
     }
   >;
 
@@ -775,16 +778,20 @@ export class TerraformService {
       // producer's variable carries its entire response object (consumed as `var.<name>.<key>`), so it
       // must be typed `map(string)` — terraform's external-data contract — otherwise an un-typed variable
       // coerces the object to a JSON string and `var.<name>.<key>` fails at plan/apply. Per-key scalar
-      // variables stay un-typed.
+      // variables stay un-typed. A variable carrying a sensitive output is marked sensitive.
       const variablesTf = [
         ...(module.needsProjectRoot
           ? [`variable "${PROJECT_ROOT_VARIABLE_NAME}" {\n${this.step}type = string\n}`]
           : []),
         ...[...moduleWiring.autoVariables.entries()]
           .sort(([a], [b]) => a.localeCompare(b))
-          .map(([name, v]) =>
-            v.objectKeys ? `variable "${name}" {\n${this.step}type = map(string)\n}` : `variable "${name}" {}`,
-          ),
+          .map(([name, v]) => {
+            const body = [
+              ...(v.objectKeys ? [`${this.step}type = map(string)`] : []),
+              ...(v.sensitive ? [`${this.step}sensitive = true`] : []),
+            ];
+            return body.length > 0 ? `variable "${name}" {\n${body.join('\n')}\n}` : `variable "${name}" {}`;
+          }),
         ...module.variables.map((v) => v.render(context)),
       ]
         .filter(Boolean)
@@ -1135,6 +1142,7 @@ export class TerraformService {
               outputName: entireResponseOutput.name,
               producerModuleId: producer.moduleId,
               producerResourceId: producer.resourceId,
+              sensitive: entireResponseOutput.sensitive,
             });
             addModuleDependency(moduleWiring, producer.moduleId, `ref "${ref.resourceId}.${ref.key}"`);
             moduleWiring.resolvedRefs.set(
@@ -1166,6 +1174,7 @@ export class TerraformService {
             producerModuleId: producer.moduleId,
             producerResourceId: producer.resourceId,
             responseKey: ref.key,
+            sensitive: output.sensitive,
           });
           addModuleDependency(moduleWiring, producer.moduleId, `ref "${ref.resourceId}.${ref.key}"`);
           moduleWiring.resolvedRefs.set(`${ref.resourceId}.${ref.key}`, `var.${variableName}`);
