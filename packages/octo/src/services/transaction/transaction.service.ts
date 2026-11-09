@@ -211,6 +211,14 @@ export class TransactionService {
         this.resourceSerializationService.getActualResourceModuleId(resource);
       if (this.importService.isImportedModule(moduleId)) {
         const source = this.importService.isStoreModule(moduleId) ? 'a store' : 'an extended state';
+        // A parent another state changed since this resource's app last committed: that app runs first.
+        if (d.action === DiffAction.UPDATE && d.field === 'parent') {
+          throw new TransactionError(
+            `Resource "${resource.getContext()}" of module "${moduleId}" of ${source} stands on ` +
+              `"${(d.value as UnknownResource).getContext()}", which changed since that app last committed; ` +
+              'run that app first!',
+          );
+        }
         throw new TransactionError(
           `Resource "${resource.getContext()}" belongs to module "${moduleId}" of ${source}; change it in that app!`,
         );

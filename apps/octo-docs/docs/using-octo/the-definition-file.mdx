@@ -347,6 +347,11 @@ Two entries may share what they build on, as a web app extending both a backend 
 that backend extends does: what both hold is declared once. This app's state holds the other app's
 part too, so an app extending this one sees both.
 
+When this app also reads, as a [store](#stores), an app the extended one stands on, the extended
+app's resources stand on what the store holds now. If the store changed one of those since the
+extended app last committed, `generate` fails, naming both resources: run the extended app first,
+and this one after it.
+
 ## stores
 
 Other apps' states this app reads, each under a name. A store stays a graph of its own: this app

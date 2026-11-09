@@ -1454,6 +1454,27 @@ describe('Main UT', () => {
       expect(sgChild.parents[0]).toBe(getStoreResource('igw-1'));
     });
 
+    it("should throw error when a store changed an extended state's parent since that state committed", async () => {
+      const childStateProvider = new TestStateProvider();
+      const storeStateProvider = await commitStoreState(childStateProvider);
+      await commitChildOnStore(childStateProvider, storeStateProvider);
+      const storeState = JSON.parse((await storeStateProvider.getState('resources-actual.json')).toString());
+      storeState.data.resources['@octo/external-igw=igw-1'].resource.response.igwId = 'igw-0changed';
+      await storeStateProvider.saveStates([
+        { data: Buffer.from(JSON.stringify(storeState)), stateFileName: 'resources-actual.json' },
+      ]);
+      await bootChild(new TestStateProvider());
+      await testModes['octo'].extendState(childStateProvider);
+      await testModes['octo'].readStores([{ name: 'commons', stateProvider: storeStateProvider }]);
+
+      await expect(
+        testModes.generate(testModes['octo'].getRootModel(), { outputDir: testModes.outputDir }),
+      ).rejects.toThrow(
+        'Resource "@octo/tf-sg=sg-child" of module "child-module" of an extended state stands on ' +
+          '"@octo/external-igw=igw-1", which changed since that app last committed; run that app first!',
+      );
+    });
+
     it("should build a store's link into a state this app does not read on the store's copy", async () => {
       const childStateProvider = new TestStateProvider();
       const storeStateProvider = await commitStoreState(childStateProvider);
