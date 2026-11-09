@@ -83,11 +83,15 @@ describe('TerraformUtility UT', () => {
 
   async function createModuleFolder(name: string): Promise<void> {
     const moduleDir = join(terragruntDir, name);
-    await mkdir(moduleDir);
+    await mkdir(moduleDir, { recursive: true });
     await writeFile(join(moduleDir, 'terragrunt.hcl'), '');
   }
 
   describe('apply() output', () => {
+    beforeEach(async () => {
+      await createModuleFolder('module-a');
+    });
+
     it('should keep the stdout of a process asked for JSON only', async () => {
       await terraform.apply(terragruntDir);
 
@@ -139,6 +143,10 @@ describe('TerraformUtility UT', () => {
   });
 
   describe('setArgsOnce()', () => {
+    beforeEach(async () => {
+      await createModuleFolder('module-a');
+    });
+
     it('applies setArgsOnce() to only the immediately next command', async () => {
       terraform.setArgsOnce(['-lock=false']);
 
@@ -180,6 +188,10 @@ describe('TerraformUtility UT', () => {
   });
 
   describe('validate()/apply()/destroy()', () => {
+    beforeEach(async () => {
+      await createModuleFolder('module-a');
+    });
+
     it('composes "run --all -- validate" in the real path of the directory', async () => {
       await terraform.validate(terragruntDir);
 
@@ -194,6 +206,17 @@ describe('TerraformUtility UT', () => {
         'validate',
       ]);
     });
+
+    it.each(['apply', 'destroy', 'validate'] as const)(
+      'should run nothing for %s when the directory holds no module folders',
+      async (command) => {
+        await rm(terragruntDir, { force: true, recursive: true });
+
+        await expect(terraform[command](terragruntDir)).resolves.toMatchObject({ exitCode: 0 });
+
+        expect(terraform.spawnAsyncMock).not.toHaveBeenCalled();
+      },
+    );
 
     it('composes "run --all -- apply -input=false -auto-approve"', async () => {
       await terraform.apply(terragruntDir);
@@ -227,6 +250,10 @@ describe('TerraformUtility UT', () => {
   });
 
   describe('plan()/output() - non-json', () => {
+    beforeEach(async () => {
+      await createModuleFolder('module-a');
+    });
+
     it('plan() runs a single "run --all -- plan" shell-out with no folder enumeration', async () => {
       const result = await terraform.plan(terragruntDir);
 
@@ -246,7 +273,8 @@ describe('TerraformUtility UT', () => {
   describe('process output', () => {
     let events: (TerraformProcessExitedEvent | TerraformProcessOutputEvent | TerraformProcessStartedEvent)[];
 
-    beforeEach(() => {
+    beforeEach(async () => {
+      await createModuleFolder('module-a');
       events = [];
       jest.spyOn(EventService.getInstance(), 'emit').mockImplementation((event: Event<unknown>) => {
         if (
@@ -477,6 +505,10 @@ describe('TerraformUtility UT', () => {
   });
 
   describe('configuration', () => {
+    beforeEach(async () => {
+      await createModuleFolder('module-a');
+    });
+
     it('uses the configured terragruntBinary as the executable', async () => {
       terraform = new TestableTerraformUtility({ terragruntBinary: '/opt/bin/terragrunt' });
       await terraform.validate(terragruntDir);
@@ -534,6 +566,10 @@ describe('TerraformUtility UT', () => {
   });
 
   describe('errors', () => {
+    beforeEach(async () => {
+      await createModuleFolder('module-a');
+    });
+
     it('throws a TerraformCommandError with stdout/stderr/exitCode/args on a nonzero exit', async () => {
       terraform.spawnAsyncMock.mockRejectedValue(
         Object.assign(new Error('exit 1'), { code: 1, stderr: 'invalid config', stdout: 'partial' }),

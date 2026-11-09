@@ -425,6 +425,7 @@ export class TerraformUtility {
    */
   private async invokeRunAll(
     terragruntDir: string,
+    moduleIds: string[],
     command: string,
     commandArgs: string[],
   ): Promise<TerraformRawResult> {
@@ -446,6 +447,11 @@ export class TerraformUtility {
 
     let exitCode = 0;
     try {
+      // Terragrunt refuses a directory holding no module folders, which a generate without resources leaves.
+      if (moduleIds.length === 0) {
+        return { args, exitCode };
+      }
+
       await this.runProcess(this.options.terragruntBinary, args, {
         command,
         dir: terragruntDir,
@@ -648,7 +654,7 @@ export class TerraformUtility {
     const realTerragruntDir = await this.resolveRealPath(terragruntDir);
     return this.withTerraformState(
       realTerragruntDir,
-      () => this.invokeRunAll(realTerragruntDir, command, commandArgs),
+      (moduleIds) => this.invokeRunAll(realTerragruntDir, moduleIds, command, commandArgs),
       { keepMoves: MUTATING_COMMANDS.has(command) },
     );
   }
