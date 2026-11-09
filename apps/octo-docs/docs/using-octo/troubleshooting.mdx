@@ -227,8 +227,9 @@ separates a run still working from one that died: seconds mean wait, hours on a 
 minutes mean nobody is coming. With `RemoteStateProvider` the message also says who took it, as
 `taken by "octo on ci-runner", held for 4h 12m`.
 
-A run that died is finished through its lock, never released:
-[Recovering a Failed Run](/docs/using-octo/recovering-a-failed-run#the-run-died) has the steps.
+A run that died is finished through its lock, never released. The error ends with the command
+that resumes it, and [Recovering a Failed Run](/docs/using-octo/recovering-a-failed-run#the-run-died)
+has every step.
 
 **`App is not locked with lock ID "..."!`**
 

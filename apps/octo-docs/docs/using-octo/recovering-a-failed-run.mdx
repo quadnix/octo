@@ -35,6 +35,8 @@ npm run --silent octo:lock
 
 ```text
 Error: App already locked with lock ID "d42f403d-7807-41c0-a6c7-b9ca2835ee06", held for 31s!
+
+If the run holding it is still working, wait for it. If it died, finish it with its lock: run "octo lock --lockId d42f403d-7807-41c0-a6c7-b9ca2835ee06", then generate, apply and commit with that lock ID.
 ```
 
 ```bash
