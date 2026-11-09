@@ -108,6 +108,22 @@ export class TerraformStateService {
   }
 
   /**
+   * Whether the state provider holds terraform state for a module, which it does only while that
+   * state records a resource.
+   */
+  async holdsState(moduleId: string): Promise<boolean> {
+    try {
+      await this.stateManagementService.getState(this.stateFileName(moduleId));
+      return true;
+    } catch (error) {
+      if (error.message === 'No state found!') {
+        return false;
+      }
+      throw error;
+    }
+  }
+
+  /**
    * Starts checking state in every `intervalInMs`, bounding what a killed runner loses to one interval.
    */
   startPeriodicCheckIn(terragruntDir: string, moduleIds: string[], intervalInMs: number): void {

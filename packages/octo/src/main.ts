@@ -40,6 +40,7 @@ import {
   StateManagementServiceFactory,
 } from './services/state-management/state-management.service.js';
 import type { IStateProvider } from './services/state-management/state-provider.interface.js';
+import { TerraformStateService } from './services/state-management/terraform-state.service.js';
 import { TerraformService } from './services/terraform/terraform.service.js';
 
 /**
@@ -98,8 +99,9 @@ export class Octo {
    * partial apply never leaves a half-written record behind. Pass `partial` after an apply that
    * failed and the missing outputs become warnings instead, with every resource they belong to left
    * out of the committed graph. Outputs for a folder Octo does not track are ignored, and returned
-   * as warnings for you to surface. The modules whose folders this commit stopped recording are
-   * returned as `emptiedModuleIds`, for `TerraformUtility.deleteDestroyedFolders`.
+   * as warnings for you to surface. The modules whose folders were emptied are returned as
+   * `emptiedModuleIds`, for `TerraformUtility.deleteDestroyedFolders`; one whose terraform state still
+   * holds resources stays recorded, so the next generate writes it again.
    *
    * **Requires the lock**, and does not release it. Taking and releasing the lock belongs to whoever
    * drives the lifecycle - the CLI's `octo commit` releases it once this returns, and keeps it when this
@@ -136,7 +138,20 @@ export class Octo {
         transaction: resolvedTransaction,
       });
 
-      await this.commitTransaction(app, modelTransaction, []);
+      // Keep recording an emptied folder whose terraform state still holds resources, so the next
+      // generate writes it again and an apply destroys what it holds.
+      const terraformStateService = await Container.getInstance().get(TerraformStateService);
+      const retainedFolders: TerraformFolderOutput[] = [];
+      for (const folder of userData.terraformFolders ?? []) {
+        if (
+          completed.emptiedModuleIds.includes(folder.moduleId) &&
+          (await terraformStateService.holdsState(folder.moduleId))
+        ) {
+          retainedFolders.push(folder);
+        }
+      }
+
+      await this.commitTransaction(app, modelTransaction, [], retainedFolders);
 
       // The committed graph now carries everything an external resource's actions made of it, so the
       // records they wrote mid-apply are cleared. Done after the state is persisted, so a failure
@@ -580,6 +595,7 @@ export class Octo {
     app: App,
     modelTransaction: DiffMetadata[][],
     resourceTransaction: DiffMetadata[][] = [],
+    retainedFolders: TerraformFolderOutput[] = [],
   ): Promise<void> {
     // `modelTransaction` and `resourceTransaction` is used by hooks of type CommitHook.
     assert(!!modelTransaction);
@@ -587,7 +603,7 @@ export class Octo {
 
     // Save the state of the new app and its resources.
     await this.saveModelState(app);
-    await this.saveResourceState();
+    await this.saveResourceState(retainedFolders);
 
     // Reset the runtime environment with the latest state.
     await this.importReaderService.retrieveResourceState();
@@ -656,13 +672,13 @@ export class Octo {
    *
    * @internal
    */
-  private async saveResourceState(): Promise<void> {
+  private async saveResourceState(retainedFolders: TerraformFolderOutput[]): Promise<void> {
     const actualSerializedOutput = await this.resourceSerializationService.serializeActualResources();
     await this.stateManagementService.saveResourceState(
       this.stateManagementService.actualResourceStateFileName,
       actualSerializedOutput,
       {
-        terraformFolders: this.terraformService.getFolderRecords(),
+        terraformFolders: [...this.terraformService.getFolderRecords(), ...retainedFolders],
         terraformResources: this.terraformService.getOctoTerraformResourceMappings().map(
           (m): TerraformResourceOutput => ({
             ...(m.destroyLosesData ? { destroyLosesData: true } : {}),

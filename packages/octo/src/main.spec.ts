@@ -359,6 +359,25 @@ describe('Main UT', () => {
       expect(terraformResources.map((r) => r.resourceId)).toEqual(['vpc-1']);
     });
 
+    it('should keep recording an emptied folder whose terraform state still holds resources', async () => {
+      const { app } = await generateAndCommitFullGraph();
+
+      // Delete igw/sg from intent and regenerate (sg-module is emptied), but the destroy never applies.
+      testModes.resourceDataRepository.addNewResource(new TfVpcResource('vpc-1', { CidrBlock: '10.0.0.0/16' }));
+      await testModes.generate(app, { outputDir: testModes.outputDir });
+      await testModes.stateManagementService.saveStates([
+        { data: Buffer.from('{"resources":[{}]}'), stateFileName: 'sg-module.tfstate' },
+      ]);
+
+      testModes.outputs.clear();
+      testModes.writeTfState('region-module', { 'vpc-1-VpcId': 'vpc-0real' });
+      const { emptiedModuleIds } = await testModes.commit(app, { outputs: testModes.outputs });
+
+      expect(emptiedModuleIds).toEqual(['sg-module']);
+      const { terraformFolders } = await testModes.getCommittedTerraformState();
+      expect(terraformFolders.map((folder) => folder.moduleId)).toEqual(['region-module', 'sg-module']);
+    });
+
     it('should persist the terraform memory with the committed resource state', async () => {
       await generateAndCommitFullGraph();
 
