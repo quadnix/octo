@@ -680,6 +680,35 @@ describe('AwsCloudFrontServiceModule UT', () => {
   });
 
   describe('input changes', () => {
+    it('should diff nothing when a Lambda origin runs again unchanged', async () => {
+      const run = async (): Promise<string[]> => {
+        await setupLambdaFunction(testModuleContainer, await setup(testModuleContainer));
+        const { resourceDiffs } = (
+          await testModuleContainer
+            .runModules<AwsCloudFrontServiceModule>(
+              {
+                inputs: inputs({
+                  origins: [
+                    { originId: 'site', source: stub('${{testModule.model.service}}') },
+                    { originId: 'api', source: stub('${{lambdaModule.model.execution}}') },
+                  ],
+                  routes: [{ originId: 'api', pathPattern: '/api/*' }, { originId: 'site' }],
+                }),
+                moduleId: 'distribution',
+                type: AwsCloudFrontServiceModule,
+              },
+              { filterByModuleIds: ['lambdaModule', 'distribution'], terraformTarget: 'skip' },
+            )
+            .next()
+        ).value!;
+        return testModuleContainer.digestDiffs(resourceDiffs);
+      };
+
+      await run();
+
+      expect(await run()).toEqual([]);
+    });
+
     it('should close the bucket to a removed distribution', async () => {
       await setup(testModuleContainer);
       await testModuleContainer
