@@ -89,11 +89,9 @@ underneath it, and it is a bucket policy being created. That policy exists becau
 for access, which is on the card above.
 
 :::note[What the card verb means]
-A card headed `added` means that piece of intent is present in your definition file, not that it is
-new. Anything still in your definition reads as added, and `removed` is reserved for a module you
-took out.
-
-What happens to your infrastructure is on the lines underneath. Read the symbols, not the verb.
+A card's verb says what happens to the Octo resources under it: `added` when every one is created,
+`removed` when every one is destroyed, `replaced` when every one is replaced, and `changed`
+otherwise.
 :::
 
 ## When something is replaced
@@ -101,11 +99,11 @@ What happens to your infrastructure is on the lines underneath. Read the symbols
 Change the shop's `vpcCidrBlock` from `10.0.0.0/16` to `10.1.0.0/16` and the report changes shape:
 
 ```text
-You added region=eu-west-1. That destroys or replaces 1 thing — check those before anything else.
+You changed region=eu-west-1. That destroys or replaces 1 thing — check those before anything else.
 - 0 destroy   ± 1 replace   + 0 create   ~ 1 update
 
 WHAT WILL CHANGE
-  + added region=eu-west-1  [region=eu-west-1,account=123456789012,app=shop | region-module | ±1 ~1]
+  ~ changed region=eu-west-1  [region=eu-west-1,account=123456789012,app=shop | region-module | ±1 ~1]
       ± vpc-eu-west-1
           why: cidr_block is force-new on aws_vpc; a change recreates the VPC
           ± aws_vpc.vpc-eu-west-1

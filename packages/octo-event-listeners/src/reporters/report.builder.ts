@@ -238,6 +238,12 @@ function buildStories(
     return totals;
   };
 
+  // A model diff is an add on every run, so a card takes its verb from the resources under it.
+  const kindOf = (rows: ReportResource[]): ChangeKind => {
+    const kinds = new Set(rows.map((row) => row.kind));
+    return kinds.size === 1 ? [...kinds][0] : 'update';
+  };
+
   // Octo wants these changed; terraform's plan touches none of their addresses.
   const plannedNothing = (rows: ReportResource[]): boolean =>
     rows.length > 0 && rows.every((row) => row.terraform.length === 0);
@@ -260,7 +266,7 @@ function buildStories(
       claimed.add(row.resourceContext);
     }
 
-    const kind = classifyOctoAction(intentChange.action);
+    const kind = kindOf(rows);
     stories.push({
       id: intentChange.id,
       isDerived: false,
@@ -290,8 +296,7 @@ function buildStories(
 
   for (const [moduleId, rows] of orphansByModule.entries()) {
     // Name the card after the shared action, e.g. "removed s3-website-service-module".
-    const kinds = new Set(rows.map((row) => row.kind));
-    const kind: ChangeKind = kinds.size === 1 ? [...kinds][0] : 'update';
+    const kind = kindOf(rows);
 
     stories.push({
       id: `intent-module-${moduleId}`,
@@ -300,7 +305,7 @@ function buildStories(
       moduleId,
       resources: rows,
       terraformPlannedNothing: plannedNothing(rows),
-      title: kinds.size === 1 ? `${CHANGE_VERBS[kind]} ${moduleId}` : `changed ${moduleId}`,
+      title: `${CHANGE_VERBS[kind]} ${moduleId}`,
       totals: totalsOf(rows),
     });
   }

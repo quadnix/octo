@@ -304,6 +304,41 @@ describe('buildReport()', () => {
     });
   });
 
+  describe('when intent changes a resource that already exists', () => {
+    it('titles the story after what its resources do, not the model diff', () => {
+      const report = buildReport(
+        observation({
+          modelTransaction: [
+            [
+              modelDiff({
+                action: DiffAction.ADD,
+                field: 'serviceId',
+                nodeContext: 'service=my-table,app=test-app',
+                outputs: ['@octo/dynamodb=table-my-table'],
+              }),
+            ],
+          ],
+          validate: emptyValidateReport({
+            intentChanges: [
+              {
+                moduleId: 'table-module',
+                octoAction: DiffAction.UPDATE,
+                resourceContext: '@octo/dynamodb=table-my-table',
+                resourceId: 'table-my-table',
+                terraformChanges: [
+                  { address: 'aws_dynamodb_table.my_table', changedFields: [], tfActions: ['update'] },
+                ],
+              },
+            ],
+          }),
+        }),
+      );
+
+      expect(report.stories[0].title).toBe('changed service=my-table');
+      expect(report.headline).toBe('You changed service=my-table. That updates 1 thing in place.');
+    });
+  });
+
   describe('when octo wants a change terraform plans nothing for', () => {
     const subject = (): ReturnType<typeof buildReport> =>
       buildReport(

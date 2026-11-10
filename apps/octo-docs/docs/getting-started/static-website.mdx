@@ -342,11 +342,11 @@ Edit `website/index.html`, add a line, and run generate and validate again:
 ```
 
 ```text
-You added service=octo-hello-website-s3-static-website. That updates 1 thing in place.
+You changed service=octo-hello-website-s3-static-website. That updates 1 thing in place.
 - 0 destroy   ± 0 replace   + 0 create   ~ 1 update
 
 WHAT WILL CHANGE
-  + added service=octo-hello-website-s3-static-website  [service=octo-hello-website-s3-static-website,region=aws-s3-website,account=123456789012,app=aws-s3-website | s3-website-service-module | ~1]
+  ~ changed service=octo-hello-website-s3-static-website  [service=octo-hello-website-s3-static-website,region=aws-s3-website,account=123456789012,app=aws-s3-website | s3-website-service-module | ~1]
       ~ bucket-octo-hello-website
           ~ aws_s3_object.bucket-octo-hello-website_file_indexhtml
               etag: 43d707bebe2010beda60ccf02d98b646 → 0115cb00cb5d5142657ee12ce20c0bad
@@ -356,10 +356,8 @@ One resource, one field, and the two checksums that differ. The bucket, the poli
 block, and the other file are left alone, because Octo compared the file it uploaded last time with
 the file on disk now.
 
-The heading still says `added` while nothing was added. A card heading reports whether a piece of
-intent is present in your definition file, and the website service still is. What changed is on the
-resource lines, marked `~`. [Reading a Validate
-Report](/docs/using-octo/reading-a-validate-report) covers the markers in full.
+The heading says `changed` because the resource under it is updated, not created. [Reading a
+Validate Report](/docs/using-octo/reading-a-validate-report) covers the markers in full.
 
 ```bash
 LOCK_ID=$(npm run --silent octo:lock)
