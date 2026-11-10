@@ -64,7 +64,9 @@ function toFlatStringResponse(resourceId: string, response: Record<string, unkno
  * Repeating a call for the same inputs and the same desired properties does nothing, because that
  * record says the work is already done - terraform replaces a `null_resource` by destroying and
  * recreating it, so it calls back twice for one change, and octo state learns nothing of the first
- * call until `commit`. Nothing else in octo state is touched.
+ * call until `commit`. A resource taking over a deleted one's unique names with the same properties
+ * does nothing either, and records the deleted one's response as its own. Nothing else in octo
+ * state is touched.
  *
  * @internal
  */
@@ -118,6 +120,27 @@ export async function runAction(
       StringUtility.deterministicHash(targetResource.properties)
   ) {
     return { action: 'noop', resourceId, response: recordedState.response };
+  }
+
+  // A successor with its predecessor's properties is the same thing under another id: it takes the
+  // predecessor's response, and its action does not run.
+  if (targetResource && allDiffs.some((d) => d.action === DiffAction.ADD && d.field === 'resourceId')) {
+    const predecessor = [...transactionService.getExternalResourceSuccessors()].find(
+      ([, successor]) => successor === targetResource,
+    )?.[0];
+    if (
+      predecessor &&
+      StringUtility.deterministicHash(predecessor.getExternalTriggerProperties()) ===
+        StringUtility.deterministicHash(targetResource.getExternalTriggerProperties())
+    ) {
+      const response = toFlatStringResponse(resourceId, predecessor.response);
+      await stateManagementService.saveExternalResourceState(resourceId, {
+        inputs,
+        properties: JSON.parse(JSON.stringify(targetResource.properties)),
+        response,
+      });
+      return { action: 'noop', resourceId, response };
+    }
   }
 
   // Inject explicit inputs into the parent resources the actions will read. An input is keyed

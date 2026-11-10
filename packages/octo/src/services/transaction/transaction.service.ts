@@ -113,12 +113,16 @@ export class TransactionService {
    * and the deletion is retried on the next run rather than being forgotten.
    *
    * Terraform-managed resources are excluded: terraform destroys those itself, and a resource action
-   * on one is rejected everywhere else in octo.
+   * on one is rejected everywhere else in octo. So is a resource with a successor
+   * ({@link getExternalResourceSuccessors}): what its action would delete is the successor's.
    *
    * @returns The diffs whose actions ran, in the order they ran.
    */
   async applyExternalResourceDeletes(resourceDiffs: DiffMetadata[][]): Promise<DiffMetadata[][]> {
-    const deleteDiffs = this.getExternalResourceDeletes(resourceDiffs);
+    const succeededContexts = new Set([...this.getExternalResourceSuccessors().keys()].map((r) => r.getContext()));
+    const deleteDiffs = this.getExternalResourceDeletes(resourceDiffs).filter(
+      (d) => !succeededContexts.has((d.node as UnknownResource).getContext()),
+    );
     if (deleteDiffs.length === 0) {
       return [];
     }
@@ -364,6 +368,48 @@ export class TransactionService {
           !(d.node instanceof ATerraformResource) &&
           !d.applied,
       );
+  }
+
+  /**
+   * Pairs each committed external resource this run deletes with its successor: the resource of its
+   * class in this run's graph holding one of its unique names, such as the same image tag under a
+   * renamed app.
+   *
+   * @internal
+   */
+  getExternalResourceSuccessors(): Map<UnknownResource, UnknownResource> {
+    const newResources = this.resourceDataRepository.getNewResourcesByProperties().filter((r) => !r.isMarkedDeleted());
+    const newContexts = new Set(newResources.map((r) => r.getContext()));
+
+    // Index the names of every external resource in this run's graph.
+    const holdersByName = new Map<string, UnknownResource>();
+    for (const resource of newResources) {
+      if (resource instanceof ATerraformResource) {
+        continue;
+      }
+      for (const { key } of this.getUniqueNames(resource)) {
+        holdersByName.set(key, resource);
+      }
+    }
+    if (holdersByName.size === 0) {
+      return new Map();
+    }
+
+    // Pair each deleted external resource with the holder of one of its names.
+    const successors = new Map<UnknownResource, UnknownResource>();
+    for (const resource of this.resourceDataRepository.getActualResourcesByProperties()) {
+      if (resource instanceof ATerraformResource || newContexts.has(resource.getContext())) {
+        continue;
+      }
+      const successor = this.getUniqueNames(resource)
+        .map(({ key }) => holdersByName.get(key))
+        .find((r) => r !== undefined);
+      if (successor) {
+        successors.set(resource, successor);
+      }
+    }
+
+    return successors;
   }
 
   /**
@@ -957,6 +1003,7 @@ export class TransactionService {
    * folder, and an added resource taking a name of a deleted resource of its class. Without it terraform
    * creates the new one while the old one is destroyed, and the provider refuses a name still held.
    * A renamed external resource is left out: octo runs its actions itself, and a move would skip them.
+   * Its successor stands in for it instead ({@link getExternalResourceSuccessors}).
    */
   private moveResources(resources: UnknownResource[]): void {
     const actualResources = this.resourceDataRepository.getActualResourcesByProperties();

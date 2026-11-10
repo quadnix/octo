@@ -63,7 +63,8 @@ class IgwResourceAction extends ANodeAction implements IResourceAction<ExternalI
 }
 
 /**
- * An external resource: lifecycle runs outside terraform via a resource action.
+ * An external resource: lifecycle runs outside terraform via a resource action. A `Name`, when given,
+ * is unique across the app.
  *
  * @internal
  */
@@ -72,6 +73,7 @@ export class ExternalIgwResource extends AResource<BaseResourceSchema, ExternalI
   static override readonly NODE_PACKAGE: string = '@octo';
   static override readonly NODE_SCHEMA = {};
   static override readonly NODE_TYPE: NodeType = NodeType.RESOURCE;
+  static override readonly UNIQUE_PROPERTIES = [{ path: 'Name', within: [] }];
 
   /**
    * @internal

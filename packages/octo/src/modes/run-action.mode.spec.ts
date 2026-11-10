@@ -1,4 +1,5 @@
 import type { UnknownResource } from '../app.type.js';
+import type { App } from '../models/app/app.model.js';
 import { ExternalIgwResource, TestModes, TfSgResource, TfVpcResource } from '../utilities/test-helpers/test-modes.js';
 import { commitResources } from '../utilities/test-helpers/test-resources.js';
 import { runAction } from './run-action.mode.js';
@@ -220,6 +221,45 @@ describe('runAction()', () => {
       await runAction(app, { inputs: { 'vpc-1.VpcId': 'vpc-0real' }, resourceId: 'igw-1' });
 
       await expect(testModes.stateManagementService.getResourceResponse('igw-1')).resolves.toBeUndefined();
+    });
+  });
+
+  // A rename above an external resource changes its id and nothing else: the committed igw-1 named
+  // "main" is succeeded by igw-2 holding the same name.
+  describe('a successor of a deleted resource', () => {
+    async function renameIgw({ igwType = 'internet-gateway' }: { igwType?: string } = {}): Promise<App> {
+      const { app, igw } = await testModes.createResourceGraph();
+      igw.properties['Name'] = 'main';
+      igw.response['igwId'] = 'igw-0committed';
+      await commitResources();
+
+      const vpc2 = new TfVpcResource('vpc-1', { CidrBlock: '10.0.0.0/16' });
+      testModes.resourceDataRepository.addNewResource(vpc2);
+      const igw2 = new ExternalIgwResource('igw-2', { Name: 'main', Type: igwType }, [vpc2]);
+      await testModes.addResource('region-module', igw2);
+      testModes.resourceDataRepository.addNewResource(new TfSgResource('sg-1', {}, [igw2]));
+      return app;
+    }
+
+    it("should run no action and take the deleted resource's response when the properties are the same", async () => {
+      const app = await renameIgw();
+
+      const result = await runAction(app, { inputs: { 'vpc-1.VpcId': 'vpc-0real' }, resourceId: 'igw-2' });
+
+      expect(result).toEqual({ action: 'noop', resourceId: 'igw-2', response: { igwId: 'igw-0committed' } });
+      expect(testModes.igwActionHandledDiffs).toHaveLength(0);
+      await expect(testModes.stateManagementService.getResourceResponse('igw-2')).resolves.toEqual({
+        igwId: 'igw-0committed',
+      });
+    });
+
+    it('should run the add action when a property changed', async () => {
+      const app = await renameIgw({ igwType: 'internet-gateway-v2' });
+
+      const result = await runAction(app, { inputs: { 'vpc-1.VpcId': 'vpc-0real' }, resourceId: 'igw-2' });
+
+      expect(result).toEqual({ action: 'add', resourceId: 'igw-2', response: { igwId: 'igw-0real' } });
+      expect(testModes.igwActionHandledDiffs.map((d) => d.action)).toEqual(['add']);
     });
   });
 

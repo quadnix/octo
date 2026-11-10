@@ -1,5 +1,6 @@
 import type { UnknownResource } from '../app.type.js';
-import { TestModes, TfVpcResource } from '../utilities/test-helpers/test-modes.js';
+import type { App } from '../models/app/app.model.js';
+import { ExternalIgwResource, TestModes, TfSgResource, TfVpcResource } from '../utilities/test-helpers/test-modes.js';
 import { commitResources } from '../utilities/test-helpers/test-resources.js';
 import { applyModelTransaction } from './apply-transaction.js';
 import { commit } from './commit.mode.js';
@@ -240,6 +241,74 @@ describe('commit()', () => {
       await commit({ outputs: testModes.outputs, partial: true, transaction });
 
       expect(testModes.igwActionHandledDiffs.filter((d) => d.action === 'delete')).toHaveLength(1);
+    });
+
+    // A rename above an external resource changes its id and nothing else: the committed igw-1 named
+    // "main" is succeeded by igw-2 holding the same name, and deleting igw-1 would delete igw-2's.
+    describe('succeeded by a resource holding its name', () => {
+      async function renameIgw({ igwType = 'internet-gateway' }: { igwType?: string } = {}): Promise<App> {
+        const { app, igw } = await testModes.createResourceGraph();
+        igw.properties['Name'] = 'main';
+        await commitResources();
+
+        const vpc2 = new TfVpcResource('vpc-1', { CidrBlock: '10.0.0.0/16' });
+        testModes.resourceDataRepository.addNewResource(vpc2);
+        const igw2 = new ExternalIgwResource('igw-2', { Name: 'main', Type: igwType }, [vpc2]);
+        await testModes.addResource('region-module', igw2);
+        testModes.resourceDataRepository.addNewResource(new TfSgResource('sg-1', {}, [igw2]));
+        return app;
+      }
+
+      it('should not run the delete, and report one update', async () => {
+        const app = await renameIgw();
+
+        testModes.writeTfState('region-module', { 'igw-2': { igwId: 'igw-0real' }, 'vpc-1-VpcId': 'vpc-0real' });
+        testModes.writeTfState('sg-module', { 'sg-1-SgId': 'sg-0real' });
+
+        const transaction = await applyModelTransaction(app);
+        const { resources } = await commit({ outputs: testModes.outputs, transaction });
+
+        expect(testModes.igwActionHandledDiffs.filter((d) => d.action === 'delete')).toHaveLength(0);
+        expect(resources.filter((r) => r.resourceId.startsWith('igw-')).map((r) => `${r.action} ${r.resourceId}`))
+          .toMatchInlineSnapshot(`
+         [
+           "update igw-2",
+         ]
+        `);
+        expect(
+          testModes.resourceDataRepository
+            .getActualResourcesByProperties()
+            .map((r) => r.resourceId)
+            .sort(),
+        ).toEqual(['igw-2', 'sg-1', 'vpc-1']);
+      });
+
+      it('should not run the delete when a property changed', async () => {
+        const app = await renameIgw({ igwType: 'internet-gateway-v2' });
+
+        testModes.writeTfState('region-module', { 'igw-2': { igwId: 'igw-0real' }, 'vpc-1-VpcId': 'vpc-0real' });
+        testModes.writeTfState('sg-module', { 'sg-1-SgId': 'sg-0real' });
+
+        const transaction = await applyModelTransaction(app);
+        await commit({ outputs: testModes.outputs, transaction });
+
+        expect(testModes.igwActionHandledDiffs.filter((d) => d.action === 'delete')).toHaveLength(0);
+      });
+
+      it('should defer the deletion when a module did not apply, and keep the resource in state', async () => {
+        const app = await renameIgw();
+        await testModes.addResource('sg-module', new TfVpcResource('vpc-2', { CidrBlock: '10.1.0.0/16' }));
+
+        testModes.writeTfState('region-module', { 'igw-2': { igwId: 'igw-0real' }, 'vpc-1-VpcId': 'vpc-0real' });
+
+        const transaction = await applyModelTransaction(app);
+        await commit({ outputs: testModes.outputs, partial: true, transaction });
+
+        expect(testModes.igwActionHandledDiffs.filter((d) => d.action === 'delete')).toHaveLength(0);
+        expect(
+          testModes.resourceDataRepository.getActualResourcesByProperties().find((r) => r.resourceId === 'igw-1'),
+        ).toBeDefined();
+      });
     });
   });
 });

@@ -96,6 +96,9 @@ ALB is renamed but its target groups keep theirs, the provider would refuse a se
 that name while the first still exists. Octo writes a Terraform `moved` block instead, from the old
 resource's blocks to the new one's, so Terraform treats the two as one: it updates the
 infrastructure in place, or destroys it before it creates the replacement, never beside it.
+A resource Octo publishes itself, such as an image tag, is treated as one with its predecessor in
+the same way: when nothing else about it changed, Octo publishes nothing, and it never deletes what
+the new resource still holds.
 
 Renaming a module is not a rename of its resources at all. Their IDs come from the models, so they
 stay, and only the folder their Terraform lives in changes. Octo moves their Terraform state into

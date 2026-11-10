@@ -232,6 +232,7 @@ export async function commit({
   //
   // Placed before the sync deliberately. A delete that throws aborts the commit with octo state
   // untouched, so the resource is still recorded as present and the deletion is retried next run.
+  const successors = transactionService.getExternalResourceSuccessors();
   const deferredResourceContexts = new Set<string>();
   if (moduleIdsWithoutOutputs.length > 0 || unresolvedResourceContexts.size > 0) {
     for (const diff of transactionService.getExternalResourceDeletes(transaction.resourceDiffs)) {
@@ -272,11 +273,18 @@ export async function commit({
   const mappingByContext = new Map(mappings.map((mapping) => [mapping.resourceContext, mapping]));
   const previousByContext = new Map(previousMappings.map((mapping) => [mapping.resourceContext, mapping]));
 
-  // A resource taking over a committed one's terraform state is one piece of infrastructure, changed
-  // in place: its ADD reads as an update, and the old one's DELETE is not reported.
+  // A resource taking over a committed one's terraform state, or an external resource succeeding one, is
+  // one piece of infrastructure, changed in place: its ADD reads as an update, and the old one's DELETE
+  // is not reported.
   const moves = terraformService.getMoves();
-  const movedFromResourceIds = new Set(moves.map(({ fromResourceId }) => fromResourceId));
-  const movedToResourceIds = new Set(moves.map(({ toResourceId }) => toResourceId));
+  const movedFromResourceIds = new Set([
+    ...moves.map(({ fromResourceId }) => fromResourceId),
+    ...[...successors.keys()].map((r) => r.resourceId),
+  ]);
+  const movedToResourceIds = new Set([
+    ...moves.map(({ toResourceId }) => toResourceId),
+    ...[...successors.values()].map((r) => r.resourceId),
+  ]);
 
   const resources = [...aggregateResourceActions(transaction.resourceDiffs.flat()).entries()]
     .filter(
