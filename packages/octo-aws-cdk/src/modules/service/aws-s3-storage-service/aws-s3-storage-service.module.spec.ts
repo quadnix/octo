@@ -984,6 +984,32 @@ describe('AwsS3StorageServiceModule UT', () => {
       expect(isResourceStateEqual).toBe(true);
     });
 
+    it('should upload only the files its filter keeps, each under the key its transform returns', async () => {
+      await setup(testModuleContainer, { regionKind: 'serverless' });
+      const { hclRender } = (
+        await testModuleContainer
+          .runModules<AwsS3StorageServiceModule>(
+            {
+              inputs: {
+                bucketName: 'test-bucket',
+                directoryPath: websiteSourcePath,
+                filter: (filePath: string): boolean => filePath !== 'page-1.html',
+                region: stub('${{testModule.model.region}}'),
+                transform: (filePath: string): string => `app/${filePath}`,
+              },
+              moduleId: 'service',
+              type: AwsS3StorageServiceModule,
+            },
+            { filterByModuleIds: ['service'], terraformTarget: 'skip' },
+          )
+          .next()
+      ).value!;
+
+      expect(hclRender).toContain('key = "app/index.html"');
+      expect(hclRender).not.toContain('key = "index.html"');
+      expect(hclRender).not.toContain('page-1.html');
+    });
+
     it('should handle region change', async () => {
       await setup(testModuleContainer, { regionKind: 'serverless' });
       await testModuleContainer

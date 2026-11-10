@@ -42,7 +42,7 @@ export class AwsS3StaticWebsiteServiceModuleSchema {
       return subjects;
     },
     options: {
-      custom: (value: ((filePath: string) => boolean)[]): boolean => value.every((v) => typeof v === 'function'),
+      custom: (value: (filePath: string) => boolean): boolean => typeof value === 'function',
     },
   })
   filter? = Schema<((filePath: string) => boolean) | null>(null);
@@ -97,7 +97,7 @@ export class AwsS3StaticWebsiteServiceModuleSchema {
       return subjects;
     },
     options: {
-      custom: (value: ((filePath: string) => string)[]): boolean => value.every((v) => typeof v === 'function'),
+      custom: (value: (filePath: string) => string): boolean => typeof value === 'function',
     },
   })
   transform? = Schema<((filePath: string) => string) | null>(null);
