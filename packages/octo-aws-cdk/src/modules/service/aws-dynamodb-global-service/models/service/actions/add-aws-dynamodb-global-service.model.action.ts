@@ -50,8 +50,12 @@ export class AddAwsDynamoDBGlobalServiceModelAction implements IModelAction<AwsD
       [],
       { searchBoundaryMembers: false },
     );
-    const { awsAccountId: tableAwsAccountId, awsRegionId: tableAwsRegionId } =
-      matchingDynamoDBResource.getSchemaInstance().properties;
+    const {
+      awsAccountId: tableAwsAccountId,
+      awsRegionId: tableAwsRegionId,
+      DeletionProtectionEnabled,
+      PointInTimeRecoveryEnabled,
+    } = matchingDynamoDBResource.getSchemaInstance().properties;
 
     const globalReplicas: DynamoDBGlobalReplicaSchema[] = [];
     for (const replica of replicas) {
@@ -87,6 +91,9 @@ export class AddAwsDynamoDBGlobalServiceModelAction implements IModelAction<AwsD
     const dynamoDbGlobal = new DynamoDBGlobal(
       `dynamodb-global-${tableName}`,
       {
+        // Each replica is protected and backed up as its table is.
+        DeletionProtectionEnabled,
+        PointInTimeRecoveryEnabled,
         replicas: globalReplicas,
       },
       [matchingDynamoDBResource],

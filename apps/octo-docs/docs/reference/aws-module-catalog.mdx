@@ -375,6 +375,7 @@ Octo refuses a run that changes anything else about the table with it, except
 
 `AwsDynamoDBGlobalServiceModule` takes the table's own service and a replica per further region,
 each one a region node and optional tags. A replica cannot name the region the table sits in.
+Every replica takes the table's `DeletionProtectionEnabled` and `PointInTimeRecoveryEnabled`.
 Regions that share an AWS region share one copy of the table, so they must give it the same tags,
 and a region in the table's own AWS region is served by the table itself:
 

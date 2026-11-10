@@ -182,7 +182,9 @@ export class DynamoDBGlobal extends ATerraformResource<DynamoDBGlobalSchema, Dyn
         'aws_dynamodb_table_replica',
         `${this.resourceId}_${replica.awsRegionId}`,
         {
+          deletion_protection_enabled: this.properties.DeletionProtectionEnabled,
           global_table_arn: terraform.getRef(dynamoDBParent, 'TableArn'),
+          point_in_time_recovery: this.properties.PointInTimeRecoveryEnabled,
           provider: terraform.getProviderAliasRef(replica.awsAccountId, replica.awsRegionId),
         },
       );

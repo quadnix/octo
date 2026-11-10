@@ -1,6 +1,7 @@
 import {
   type Dependency,
   type DiffMetadata,
+  type Region,
   Service,
   ServiceType,
   TestContainer,
@@ -12,7 +13,10 @@ import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-regi
 import type { DynamoDBSchema } from '../../../resources/dynamodb/index.schema.js';
 import { AwsDynamoDBGlobalServiceModule } from './index.js';
 
-async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
+async function setup(
+  testModuleContainer: TestModuleContainer,
+  table: Partial<Pick<DynamoDBSchema['properties'], 'DeletionProtectionEnabled' | 'PointInTimeRecoveryEnabled'>> = {},
+): Promise<void> {
   const {
     account: [account],
   } = await testModuleContainer.createTestModels('testModule', {
@@ -151,6 +155,7 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
           PointInTimeRecoveryEnabled: false,
           TableClass: 'STANDARD',
           TableName: 'test-table',
+          ...table,
         },
         resourceContext: '@octo/dynamodb=dynamodb-test-table',
         response: { TableArn: 'TableArn' },
@@ -216,7 +221,9 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
      }
 
      resource "aws_dynamodb_table_replica" "dynamodb-global-test-table-2dc6ed_us-west-2" {
+       deletion_protection_enabled = false
        global_table_arn = var.dynamodb_test_table_TableArn
+       point_in_time_recovery = false
        provider = aws._123-us-west-2
        tags = {
          key1 = "value1"
@@ -631,6 +638,37 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
       expect(updateReplicaTags.hclDiff).toMatchSnapshot();
       expect(testModuleContainer.digestDiffs(updateReplicaTags.resourceDiffs)).toMatchInlineSnapshot(`
        [
+         "* @octo/dynamodb-global=dynamodb-global-test-table-2dc6ed",
+       ]
+      `);
+    });
+
+    it("should follow the table's DeletionProtectionEnabled and PointInTimeRecoveryEnabled", async () => {
+      const inputs = {
+        dynamoDBService: stub<Service>('${{testModule.model.service}}'),
+        replicas: [{ region: stub<Region>('${{testRegion2Module.model.region}}'), tags: {} }],
+      };
+      await setup(testModuleContainer);
+      await testModuleContainer
+        .runModules<AwsDynamoDBGlobalServiceModule>(
+          { inputs, moduleId: 'global-dynamodb-module', type: AwsDynamoDBGlobalServiceModule },
+          { terraformTarget: 'skip' },
+        )
+        .next();
+
+      await setup(testModuleContainer, { DeletionProtectionEnabled: true, PointInTimeRecoveryEnabled: true });
+      const followTable = (
+        await testModuleContainer
+          .runModules<AwsDynamoDBGlobalServiceModule>(
+            { inputs, moduleId: 'global-dynamodb-module', type: AwsDynamoDBGlobalServiceModule },
+            { filterByModuleIds: ['global-dynamodb-module'], terraformTarget: 'skip' },
+          )
+          .next()
+      ).value!;
+      expect(followTable.hclDiff).toMatchSnapshot();
+      expect(testModuleContainer.digestDiffs(followTable.resourceDiffs)).toMatchInlineSnapshot(`
+       [
+         "* @octo/dynamodb-global=dynamodb-global-test-table-2dc6ed",
          "* @octo/dynamodb-global=dynamodb-global-test-table-2dc6ed",
        ]
       `);

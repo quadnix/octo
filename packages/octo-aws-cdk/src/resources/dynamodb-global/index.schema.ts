@@ -42,9 +42,19 @@ export class DynamoDBGlobalReplicaSchema {
 export class DynamoDBGlobalSchema extends BaseResourceSchema {
   /**
    * Input properties.
+   * * `properties.DeletionProtectionEnabled` - Flag to enable delete protection on every replica.
+   * * `properties.PointInTimeRecoveryEnabled` - Flag to enable point-in-time recovery on every replica.
    * * `properties.replicas` - List of replicas for the DynamoDB table.
    */
   @Validate<unknown>([
+    {
+      // DeletionProtectionEnabled and PointInTimeRecoveryEnabled must each be true or false.
+      destruct: (value: DynamoDBGlobalSchema['properties']): string[] => [
+        String(value.DeletionProtectionEnabled),
+        String(value.PointInTimeRecoveryEnabled),
+      ],
+      options: { regex: /^(true|false)$/ },
+    },
     {
       // At least 1 replica is required.
       destruct: (value: DynamoDBGlobalSchema['properties']): DynamoDBGlobalReplicaSchema[][] => [value.replicas],
@@ -57,6 +67,8 @@ export class DynamoDBGlobalSchema extends BaseResourceSchema {
     },
   ])
   override properties = Schema<{
+    DeletionProtectionEnabled: boolean;
+    PointInTimeRecoveryEnabled: boolean;
     replicas: DynamoDBGlobalReplicaSchema[];
   }>();
 
