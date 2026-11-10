@@ -1584,6 +1584,39 @@ describe('Main UT', () => {
       );
     });
 
+    it("should take an extended state's copy of a store's resource over this app's older copy", async () => {
+      const childStateProvider = new TestStateProvider();
+      const storeStateProvider = await commitStoreState(childStateProvider);
+      await commitChildOnStore(childStateProvider, storeStateProvider);
+      const grandchildStateProvider = new TestStateProvider();
+      await bootChild(grandchildStateProvider);
+      await testModes['octo'].extendState(childStateProvider);
+      await testModes.generate(testModes['octo'].getRootModel(), { outputDir: testModes.outputDir });
+      await testModes.commit(testModes['octo'].getRootModel(), { outputs: testModes.outputs });
+
+      // The store changes, and the extended state commits on it.
+      const storeState = JSON.parse((await storeStateProvider.getState('resources-actual.json')).toString());
+      storeState.data.resources['@octo/external-igw=igw-1'].resource.response.igwId = 'igw-0changed';
+      await storeStateProvider.saveStates([
+        { data: Buffer.from(JSON.stringify(storeState)), stateFileName: 'resources-actual.json' },
+      ]);
+      await bootChild(childStateProvider);
+      await testModes['octo'].readStores([{ name: 'commons', stateProvider: storeStateProvider }]);
+      const app = await declareChildApp();
+      await testModes.addResource('child-module', new TfSgResource('sg-child', {}, [getStoreResource('igw-1')]));
+      await testModes.generate(app, { outputDir: testModes.outputDir });
+      testModes.writeTfState('child-module', { 'sg-child-SgId': 'sg-0child' });
+      await testModes.commit(app, { outputs: testModes.outputs });
+
+      await bootChild(grandchildStateProvider);
+      await testModes['octo'].extendState(childStateProvider);
+
+      await expect(
+        testModes.generate(testModes['octo'].getRootModel(), { outputDir: testModes.outputDir }),
+      ).resolves.not.toThrow();
+      expect(await testModes.resourceDataRepository.diff()).toEqual([]);
+    });
+
     it("should build a store's link into a state this app does not read on the store's copy", async () => {
       const childStateProvider = new TestStateProvider();
       const storeStateProvider = await commitStoreState(childStateProvider);

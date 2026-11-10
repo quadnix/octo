@@ -157,8 +157,8 @@ export class ImportReaderService {
       return {
         copiedResources: {
           ...Object.fromEntries(Object.entries(resources).filter((entry) => !isOwn(entry))),
-          ...this.extendedResourceData.copiedResources,
           ...copiedResources,
+          ...this.extendedResourceData.copiedResources,
         },
         dependencies,
         resources: {
