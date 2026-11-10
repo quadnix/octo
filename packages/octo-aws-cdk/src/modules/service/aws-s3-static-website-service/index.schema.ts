@@ -48,16 +48,6 @@ export class AwsS3StaticWebsiteServiceModuleSchema {
   filter? = Schema<((filePath: string) => boolean) | null>(null);
 
   /**
-   * Optional prefix every uploaded file's key starts with: `app` puts `index.html` at
-   * `app/index.html`. Applied after `transform`.
-   */
-  @Validate({
-    destruct: (value: AwsS3StaticWebsiteServiceModuleSchema['keyPrefix']): string[] => (value ? [value] : []),
-    options: { minLength: 1 },
-  })
-  keyPrefix? = Schema<string | null>(null);
-
-  /**
    * The region the website bucket is created in, as produced by the `AwsServerlessRegionModule` module.
    */
   @Validate([

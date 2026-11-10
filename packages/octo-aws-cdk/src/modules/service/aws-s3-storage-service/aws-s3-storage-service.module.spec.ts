@@ -1071,30 +1071,6 @@ describe('AwsS3StorageServiceModule UT', () => {
   });
 
   describe('input changes', () => {
-    it('should upload every file under keyPrefix', async () => {
-      await setup(testModuleContainer, { regionKind: 'serverless' });
-      const { hclRender } = (
-        await testModuleContainer
-          .runModules<AwsS3StorageServiceModule>(
-            {
-              inputs: {
-                bucketName: 'test-bucket',
-                directoryPath: websiteSourcePath,
-                keyPrefix: 'app',
-                region: stub('${{testModule.model.region}}'),
-              },
-              moduleId: 'service',
-              type: AwsS3StorageServiceModule,
-            },
-            { terraformTarget: 'skip' },
-          )
-          .next()
-      ).value!;
-
-      expect(hclRender).toContain('key = "app/index.html"');
-      expect(hclRender).not.toMatch(/key = "(?!app\/)/);
-    });
-
     it('should handle bucketName change', async () => {
       await setup(testModuleContainer);
       await testModuleContainer

@@ -86,16 +86,6 @@ export class AwsS3StorageServiceModuleSchema {
   filter? = Schema<((filePath: string) => boolean) | null>(null);
 
   /**
-   * Optional prefix every uploaded file's key starts with: `app` puts `index.html` at
-   * `app/index.html`. Applied after `transform`.
-   */
-  @Validate({
-    destruct: (value: AwsS3StorageServiceModuleSchema['keyPrefix']): string[] => (value ? [value] : []),
-    options: { minLength: 1 },
-  })
-  keyPrefix? = Schema<string | null>(null);
-
-  /**
    * Optional rules expiring the bucket's objects some days after each was written. A rule matches
    * the objects under its `prefix` that carry every one of its `tags`, or the whole bucket with
    * neither. Without rules, the bucket keeps every object until it is deleted.

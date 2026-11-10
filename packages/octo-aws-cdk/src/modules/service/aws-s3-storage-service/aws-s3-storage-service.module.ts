@@ -60,7 +60,6 @@ export class AwsS3StorageServiceModule extends AModule<AwsS3StorageServiceModule
         inputs.subDirectoryOrFilePath || undefined,
         inputs.filter || undefined,
         inputs.transform || undefined,
-        inputs.keyPrefix || undefined,
       );
     }
 
