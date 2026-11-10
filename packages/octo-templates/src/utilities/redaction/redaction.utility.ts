@@ -94,10 +94,10 @@ export class RedactionUtility {
       (redacted, rule) =>
         rule.patterns.reduce(
           (substituted, pattern) =>
-            substituted.replace(pattern, (match: string, prefix: string) =>
+            substituted.replace(pattern, (match: string, ...captures: unknown[]) =>
               rule.placeholders.some((placeholder) => match.includes(placeholder))
                 ? match
-                : `${prefix ?? ''}${rule.token}`,
+                : `${typeof captures[0] === 'string' ? captures[0] : ''}${rule.token}`,
             ),
           redacted,
         ),

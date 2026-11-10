@@ -54,7 +54,6 @@ const config: Config = {
         ],
         projectDocuments: ['docs/contributions/**/*.md'],
         projectRoot: join(__dirname, '..', '..'),
-        // eslint-disable-next-line spellcheck/spell-checker
         routeBasePath: 'sdk',
         typedocOptions: { useTsLinkResolution: true, watch: true },
       },
@@ -147,7 +146,6 @@ const config: Config = {
         {
           label: 'SDK',
           position: 'left',
-          // eslint-disable-next-line spellcheck/spell-checker
           to: '/sdk',
         },
         {
