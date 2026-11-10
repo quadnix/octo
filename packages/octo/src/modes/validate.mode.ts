@@ -8,6 +8,7 @@ import { DiffAction } from '../functions/diff/diff.js';
 import { ResourceDataRepository } from '../resources/resource-data.repository.js';
 import type { AResource } from '../resources/resource.abstract.js';
 import { TerraformService } from '../services/terraform/terraform.service.js';
+import { TransactionService } from '../services/transaction/transaction.service.js';
 import type { ModelTransactionResult } from './apply-transaction.js';
 
 /**
@@ -59,11 +60,12 @@ export interface ValidateTerraformChange {
 export interface ValidateReport {
   /**
    * Terraform changes with no octo diff of their own that octo can explain: the resource references
-   * something whose identity moved, or the resource no longer renders that address.
+   * something whose identity moved, the resource no longer renders that address, or a resource
+   * succeeding it holds what it held.
    */
   attributedChanges: {
     address: string;
-    causeKind: 'address-no-longer-rendered' | 'identity-changed';
+    causeKind: 'address-no-longer-rendered' | 'identity-changed' | 'succeeded';
     causeResourceId: string;
     moduleId: string;
     tfActions: string[];
@@ -419,9 +421,10 @@ export async function validate({
   transaction: ModelTransactionResult;
 }): Promise<ValidateReport> {
   const container = Container.getInstance();
-  const [resourceDataRepository, terraformService] = await Promise.all([
+  const [resourceDataRepository, terraformService, transactionService] = await Promise.all([
     container.get(ResourceDataRepository),
     container.get(TerraformService),
+    container.get(TransactionService),
   ]);
 
   const allDiffs = transaction.resourceDiffs.flat();
@@ -689,6 +692,20 @@ export async function validate({
     report.drift.push({ address: change.address, moduleId, tfActions: change.tfActions });
   };
 
+  // A resource taking over a committed one's terraform state, or an external resource succeeding one, is
+  // one piece of infrastructure, changed in place: its ADD reads as an update, and the old one's DELETE
+  // is not reported, as commit reports it.
+  const successorIdByResourceId = new Map<string, string>([
+    ...terraformService
+      .getMoves()
+      .map(({ fromResourceId, toResourceId }): [string, string] => [fromResourceId, toResourceId]),
+    ...[...transactionService.getExternalResourceSuccessors()].map(([from, to]): [string, string] => [
+      from.resourceId,
+      to.resourceId,
+    ]),
+  ]);
+  const succeedingResourceIds = new Set(successorIdByResourceId.values());
+
   // Forward: correlate every address this sweep rendered with the plan.
   for (const mapping of mappings) {
     const octoAction = octoActions.get(mapping.resourceContext);
@@ -744,7 +761,10 @@ export async function validate({
     if (octoAction) {
       report.intentChanges.push({
         moduleId: mapping.moduleId,
-        octoAction: octoAction.action,
+        octoAction:
+          octoAction.action === DiffAction.ADD && succeedingResourceIds.has(mapping.resourceId)
+            ? DiffAction.UPDATE
+            : octoAction.action,
         reason: octoAction.reason,
         resourceContext: mapping.resourceContext,
         resourceId: mapping.resourceId,
@@ -764,6 +784,28 @@ export async function validate({
 
   for (const [context, octoAction] of octoActions.entries()) {
     if (octoAction.action !== DiffAction.DELETE) {
+      continue;
+    }
+
+    // What terraform still plans on a succeeded resource's addresses, such as an external resource's
+    // null_resource, belongs to its successor.
+    const successorId = successorIdByResourceId.get(octoAction.resourceId);
+    const succeeded = successorId === undefined ? undefined : persistedMappings.get(context);
+    if (successorId !== undefined && succeeded) {
+      const planChanges = planChangesByModule.get(succeeded.moduleId);
+      for (const address of succeeded.terraformAddresses) {
+        claim(succeeded.moduleId, address);
+        const { tfActions } = planChanges?.get(address) ?? NO_PLAN_CHANGE;
+        if (!isNoop(tfActions)) {
+          report.attributedChanges.push({
+            address,
+            causeKind: 'succeeded',
+            causeResourceId: successorId,
+            moduleId: succeeded.moduleId,
+            tfActions,
+          });
+        }
+      }
       continue;
     }
 

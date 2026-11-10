@@ -98,7 +98,7 @@ resource's blocks to the new one's, so Terraform treats the two as one: it updat
 infrastructure in place, or destroys it before it creates the replacement, never beside it.
 A resource Octo publishes itself, such as an image tag, is treated as one with its predecessor in
 the same way: when nothing else about it changed, Octo publishes nothing, and it never deletes what
-the new resource still holds.
+the new resource still holds. `validate` and `commit` report either kind as one update.
 
 Renaming a module is not a rename of its resources at all. Their IDs come from the models, so they
 stay, and only the folder their Terraform lives in changes. Octo moves their Terraform state into

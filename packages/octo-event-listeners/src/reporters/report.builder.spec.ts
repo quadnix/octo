@@ -339,6 +339,52 @@ describe('buildReport()', () => {
     });
   });
 
+  describe('when an external resource is succeeded by one holding its name', () => {
+    it("attaches the old placeholder's destroy under the successor, saying it takes over", () => {
+      const report = buildReport(
+        observation({
+          modelTransaction: [
+            [
+              modelDiff({
+                action: DiffAction.ADD,
+                nodeContext: 'image=api,app=test-app',
+                outputs: ['@octo/ecr-image-tag=tag-new'],
+              }),
+            ],
+          ],
+          validate: emptyValidateReport({
+            attributedChanges: [
+              {
+                address: 'null_resource.tag-old',
+                causeKind: 'succeeded',
+                causeResourceId: 'tag-new',
+                moduleId: 'image-module',
+                tfActions: ['delete'],
+              },
+            ],
+            intentChanges: [
+              {
+                moduleId: 'image-module',
+                octoAction: DiffAction.UPDATE,
+                resourceContext: '@octo/ecr-image-tag=tag-new',
+                resourceId: 'tag-new',
+                terraformChanges: [{ address: 'null_resource.tag-new', changedFields: [], tfActions: ['create'] }],
+              },
+            ],
+          }),
+        }),
+      );
+
+      expect(report.drift).toHaveLength(0);
+      expect(report.stories[0].resources[0].terraform.find((row) => row.address === 'null_resource.tag-old')).toEqual({
+        address: 'null_resource.tag-old',
+        changedFields: [],
+        explanation: '"tag-new" takes over what this held, so only this address is destroyed',
+        kind: 'delete',
+      });
+    });
+  });
+
   describe('when octo wants a change terraform plans nothing for', () => {
     const subject = (): ReturnType<typeof buildReport> =>
       buildReport(

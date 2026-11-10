@@ -157,7 +157,9 @@ function attachTerraformChanges(
       const explanation =
         attributed.causeKind === 'identity-changed'
           ? `references "${attributed.causeResourceId}", whose identity changed, so this is ${consequence} with it`
-          : `"${attributed.causeResourceId}" no longer renders this address`;
+          : attributed.causeKind === 'succeeded'
+            ? `"${attributed.causeResourceId}" takes over what this held, so only this address is ${consequence}`
+            : `"${attributed.causeResourceId}" no longer renders this address`;
 
       if (causeContext) {
         attach(causeContext, { address: attributed.address, changedFields: [], explanation, kind });

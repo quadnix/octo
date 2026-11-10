@@ -551,6 +551,45 @@ describe('validate()', () => {
     });
   });
 
+  describe('an external resource succeeded by one holding its name', () => {
+    it('reports one update, and attributes the old placeholder destroy to the successor', async () => {
+      const { app, igw } = await testModes.createResourceGraph();
+      igw.properties['Name'] = 'main';
+      await commitResources();
+
+      const vpc2 = new TfVpcResource('vpc-1', { CidrBlock: '10.0.0.0/16' });
+      testModes.resourceDataRepository.addNewResource(vpc2);
+      const igw2 = new ExternalIgwResource('igw-2', { Name: 'main', Type: 'internet-gateway' }, [vpc2]);
+      await testModes.addResource('region-module', igw2);
+      testModes.resourceDataRepository.addNewResource(new TfSgResource('sg-1', {}, [igw2]));
+
+      testModes.writePlan('region-module', [
+        { actions: ['no-op'], address: 'aws_vpc.vpc-1' },
+        { actions: ['delete'], address: 'null_resource.igw-1' },
+        { actions: ['create'], address: 'null_resource.igw-2' },
+      ]);
+      testModes.writePlan('sg-module', [{ actions: ['no-op'], address: 'aws_security_group.sg-1' }]);
+
+      const report = await runValidate(app, { persistedMappings: persistedGraph(), plans: testModes.plans });
+
+      expect(report.drift).toEqual([]);
+      expect(
+        report.intentChanges
+          .filter((c) => c.resourceId.startsWith('igw-'))
+          .map((c) => `${c.octoAction} ${c.resourceId}`),
+      ).toEqual(['update igw-2']);
+      expect(report.attributedChanges).toEqual([
+        {
+          address: 'null_resource.igw-1',
+          causeKind: 'succeeded',
+          causeResourceId: 'igw-2',
+          moduleId: 'region-module',
+          tfActions: ['delete'],
+        },
+      ]);
+    });
+  });
+
   describe('which arguments moved', () => {
     it('names the members of a list block, so an added index differs from a removed one', async () => {
       const { app } = await testModes.createResourceGraph({ save: true });
@@ -801,6 +840,34 @@ describe('validate()', () => {
       const report = await validate({ persistedMappings: noPersisted(), plans: testModes.plans, transaction });
 
       expect(report.moves).toEqual([{ fromModuleId: 'old-sg-module', moduleId: 'sg-module', resourceId: 'sg-1' }]);
+    });
+
+    it('reports a resource taking over a committed one as one update', async () => {
+      const { app } = await testModes.createResourceGraph({ save: true });
+      await commitResources({ skipAddActualResource: true });
+      const vpc2 = new TfVpcResource('vpc-1', { CidrBlock: '10.0.0.0/16' });
+      const igw2 = new ExternalIgwResource('igw-1', { Type: 'internet-gateway' }, [vpc2]);
+      testModes.resourceDataRepository.addNewResource(vpc2);
+      testModes.resourceDataRepository.addNewResource(igw2);
+      await testModes.addResource('sg-module', new TfSgResource('sg-2', {}, [igw2]));
+
+      testModes.writePlan('region-module', [
+        { actions: ['no-op'], address: 'aws_vpc.vpc-1' },
+        { actions: ['no-op'], address: 'null_resource.igw-1' },
+      ]);
+      testModes.writePlan('sg-module', [{ actions: ['no-op'], address: 'aws_security_group.sg-2' }]);
+
+      const transaction = await applyModelTransaction(app);
+      const terraformService = await Container.getInstance().get(TerraformService);
+      terraformService.moveResource('sg-module', 'sg-1', 'sg-module', 'sg-2');
+      const report = await validate({ persistedMappings: persistedGraph(), plans: testModes.plans, transaction });
+
+      expect(report.drift).toEqual([]);
+      expect(
+        report.intentChanges
+          .filter((c) => c.resourceId.startsWith('sg-'))
+          .map((c) => `${c.octoAction} ${c.resourceId}`),
+      ).toEqual(['update sg-2']);
     });
   });
 
