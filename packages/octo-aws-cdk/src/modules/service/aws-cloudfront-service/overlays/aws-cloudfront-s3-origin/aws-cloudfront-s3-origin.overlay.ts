@@ -13,6 +13,7 @@ export class AwsCloudFrontS3OriginOverlay extends AOverlay<
   AwsCloudFrontS3OriginOverlaySchema,
   AwsCloudFrontS3OriginOverlay
 > {
+  declare anchors: [AwsCloudFrontAnchor, MatchingAnchor<AwsS3StorageServiceAnchorSchema>];
   declare properties: AwsCloudFrontS3OriginOverlaySchema['properties'];
 
   /**

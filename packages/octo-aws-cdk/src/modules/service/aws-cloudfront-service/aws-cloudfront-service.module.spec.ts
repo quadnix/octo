@@ -604,6 +604,32 @@ describe('AwsCloudFrontServiceModule UT', () => {
     expect(hclRender).toMatch(/allowed_methods = \["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"\]/);
   });
 
+  it('should admit the distribution to a bucket named after a Lambda origin', async () => {
+    await setupLambdaFunction(testModuleContainer, await setup(testModuleContainer));
+    const { hclRender } = (
+      await testModuleContainer
+        .runModules<AwsCloudFrontServiceModule>(
+          {
+            inputs: inputs({
+              origins: [
+                { originId: 'api', source: stub('${{lambdaModule.model.execution}}') },
+                { originId: 'site', source: stub('${{testModule.model.service}}') },
+              ],
+              routes: [{ originId: 'api', pathPattern: '/api/*' }, { originId: 'site' }],
+            }),
+            moduleId: 'distribution',
+            type: AwsCloudFrontServiceModule,
+          },
+          { filterByModuleIds: ['lambdaModule', 'distribution'], terraformTarget: 'skip' },
+        )
+        .next()
+    ).value!;
+
+    expect(hclRender).toContain('origin_access_control_origin_type = "s3"');
+    expect(hclRender).toContain('"cloudfront.amazonaws.com"');
+    expect(hclRender).toContain('origin_access_control_origin_type = "lambda"');
+  });
+
   it('should serve each of two Lambda functions of one name, in two regions, from its own origin', async () => {
     const models = await setup(testModuleContainer);
     const usFunctionId = await setupLambdaFunction(testModuleContainer, models, { scope: ['region=us-east-1'] });

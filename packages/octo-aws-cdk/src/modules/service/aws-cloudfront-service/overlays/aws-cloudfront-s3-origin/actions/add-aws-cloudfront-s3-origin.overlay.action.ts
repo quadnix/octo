@@ -10,7 +10,6 @@ import {
   OverlayActionExceptionTransactionError,
   hasNodeName,
 } from '@quadnix/octo';
-import { AwsS3StorageServiceAnchorSchema } from '../../../../../../anchors/aws-s3-storage-service/aws-s3-storage-service.anchor.schema.js';
 import type { CloudFrontDistribution } from '../../../../../../resources/cloudfront-distribution/index.js';
 import type { S3Storage } from '../../../../../../resources/s3-storage/index.js';
 import { S3StorageSchema } from '../../../../../../resources/s3-storage/index.schema.js';
@@ -43,29 +42,19 @@ export class AddAwsCloudFrontS3OriginOverlayAction implements IModelAction<AwsCl
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
     const { bucketName } = diff.node.properties;
-    const { distributionName, origins } = actionInputs.inputs;
+    const { distributionName } = actionInputs.inputs;
+    const [, matchingBucketAnchor] = diff.node.anchors;
 
     const cloudFrontDistribution = actionInputs.resources[`cloudfront-${distributionName}`] as CloudFrontDistribution;
     const matchingCloudFrontDistribution = new MatchingResource(cloudFrontDistribution);
 
-    // Find the bucket this overlay serves.
-    let matchingBucket: MatchingResource<S3StorageSchema> | undefined;
-    for (const { source } of origins) {
-      const [matchingAnchor] = await source.getAnchorsMatchingSchema(AwsS3StorageServiceAnchorSchema, [], {
+    // Find the bucket this overlay serves, through the bucket anchor it joins.
+    const [matchingBucket] = await matchingBucketAnchor
+      .getActual()
+      .getParent()
+      .getResourcesMatchingSchema(S3StorageSchema, [{ key: 'Bucket', value: bucketName }], [], {
         searchBoundaryMembers: false,
       });
-      if (matchingAnchor.getSchemaInstance().properties.bucketName !== bucketName) {
-        continue;
-      }
-
-      [matchingBucket] = await source.getResourcesMatchingSchema(
-        S3StorageSchema,
-        [{ key: 'Bucket', value: bucketName }],
-        [],
-        { searchBoundaryMembers: false },
-      );
-      break;
-    }
     if (!matchingBucket) {
       throw new OverlayActionExceptionTransactionError(
         `No S3 storage bucket found for "${bucketName}"!`,
