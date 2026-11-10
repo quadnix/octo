@@ -30,6 +30,7 @@ function createTable(awsAccountId = '123456789012'): MatchingResource<DynamoDBSc
     GlobalSecondaryIndexes: [],
     KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
     LocalSecondaryIndexes: [],
+    PointInTimeRecoveryEnabled: false,
     TableClass: 'STANDARD',
     TableName: 'accounts',
   });

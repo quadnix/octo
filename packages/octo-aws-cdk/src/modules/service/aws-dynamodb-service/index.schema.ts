@@ -114,6 +114,16 @@ export class AwsDynamoDBServiceModuleSchema {
   LocalSecondaryIndexes? = Schema<DynamoDBSecondaryIndexSchema[]>([]);
 
   /**
+   * Whether AWS keeps continuous backups of the table, from which it can be restored to any second of
+   * the last 35 days.
+   */
+  @Validate({
+    destruct: (value: AwsDynamoDBServiceModuleSchema['PointInTimeRecoveryEnabled']): string[] => [String(value)],
+    options: { regex: /^(true|false)$/ },
+  })
+  PointInTimeRecoveryEnabled? = Schema<boolean>(false);
+
+  /**
    * The region the table is created in, as produced by any of the AWS region modules.
    */
   @Validate([

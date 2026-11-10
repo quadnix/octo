@@ -502,6 +502,7 @@ async function setup(
           GlobalSecondaryIndexes: [],
           KeySchema: [{ AttributeName: 'AccountId', KeyType: 'HASH' }],
           LocalSecondaryIndexes: [],
+          PointInTimeRecoveryEnabled: false,
           TableClass: 'STANDARD',
           TableName: 'accounts',
         }),

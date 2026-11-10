@@ -50,6 +50,7 @@ export class AddAwsDynamoDBServiceModelAction implements IModelAction<AwsDynamoD
       GlobalSecondaryIndexes: inputs.GlobalSecondaryIndexes ?? [],
       KeySchema: inputs.KeySchema,
       LocalSecondaryIndexes: inputs.LocalSecondaryIndexes ?? [],
+      PointInTimeRecoveryEnabled: inputs.PointInTimeRecoveryEnabled ?? false,
       ...(inputs.StreamSpecification ? { StreamSpecification: inputs.StreamSpecification } : {}),
       TableClass: 'STANDARD',
       TableName: tableName,

@@ -148,6 +148,7 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<void> {
           GlobalSecondaryIndexes: [],
           KeySchema: [{ AttributeName: 'AccountId', KeyType: 'HASH' }],
           LocalSecondaryIndexes: [],
+          PointInTimeRecoveryEnabled: false,
           TableClass: 'STANDARD',
           TableName: 'test-table',
         },

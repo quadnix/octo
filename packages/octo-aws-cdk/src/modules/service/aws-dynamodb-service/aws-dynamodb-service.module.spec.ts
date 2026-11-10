@@ -107,6 +107,9 @@ describe('AwsDynamoDBServiceModule UT', () => {
        deletion_protection_enabled = false
        hash_key = "AccountId"
        name = "test-table"
+       point_in_time_recovery {
+         enabled = false
+       }
        table_class = "STANDARD"
        read_capacity = 5
        write_capacity = 5
@@ -1097,6 +1100,43 @@ describe('AwsDynamoDBServiceModule UT', () => {
           )
           .next(),
       ).rejects.toThrowErrorMatchingInlineSnapshot(`"Change DeletionProtectionEnabled in a run of its own!"`);
+    });
+
+    it('should handle PointInTimeRecoveryEnabled change in place, beside DeletionProtectionEnabled', async () => {
+      const table = {
+        AttributeDefinitions: [{ AttributeName: 'AccountId', AttributeType: 'S' as const }],
+        billingMode: { settings: {}, type: 'PAY_PER_REQUEST' as const },
+        KeySchema: [{ AttributeName: 'AccountId', KeyType: 'HASH' as const }],
+        region: stub<Region>('${{testModule.model.region}}'),
+        TableName: 'test-table',
+      };
+      await setup(testModuleContainer);
+      await testModuleContainer
+        .runModules<AwsDynamoDBServiceModule>(
+          { inputs: table, moduleId: 'service', type: AwsDynamoDBServiceModule },
+          { terraformTarget: 'skip' },
+        )
+        .next();
+
+      await setup(testModuleContainer);
+      const recover = (
+        await testModuleContainer
+          .runModules<AwsDynamoDBServiceModule>(
+            {
+              inputs: { ...table, DeletionProtectionEnabled: true, PointInTimeRecoveryEnabled: true },
+              moduleId: 'service',
+              type: AwsDynamoDBServiceModule,
+            },
+            { terraformTarget: 'skip' },
+          )
+          .next()
+      ).value!;
+      expect(recover.hclDiff).toMatchSnapshot();
+      expect(testModuleContainer.digestDiffs(recover.resourceDiffs)).toMatchInlineSnapshot(`
+       [
+         "* @octo/dynamodb=dynamodb-test-table-51fb32",
+       ]
+      `);
     });
   });
 

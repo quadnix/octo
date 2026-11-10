@@ -141,6 +141,7 @@ export class DynamoDBSchema extends BaseResourceSchema {
    * * `properties.KeySchema` - The primary key schema with one HASH and an optional RANGE key.
    * * `properties.LocalSecondaryIndexes` - Local secondary indexes.
    * * `properties.GlobalSecondaryIndexes` - Global secondary indexes.
+   * * `properties.PointInTimeRecoveryEnabled` - Flag to enable point-in-time recovery.
    * * `properties.StreamSpecification` - DynamoDB Streams configuration.
    * * `properties.TableClass` - Type of DynamoDB table.
    * * `properties.TableName` - The DynamoDB table name.
@@ -208,6 +209,11 @@ export class DynamoDBSchema extends BaseResourceSchema {
       options: { isSchema: { schema: DynamoDBSecondaryIndexSchema } },
     },
     {
+      // PointInTimeRecoveryEnabled must be a boolean.
+      destruct: (value: DynamoDBSchema['properties']): string[] => [String(value.PointInTimeRecoveryEnabled)],
+      options: { regex: /^(true|false)$/ },
+    },
+    {
       // StreamSpecification StreamViewType must match enum.
       destruct: (value: DynamoDBSchema['properties']): string[] => {
         return value.StreamSpecification ? [value.StreamSpecification.StreamViewType] : [];
@@ -246,6 +252,7 @@ export class DynamoDBSchema extends BaseResourceSchema {
     GlobalSecondaryIndexes: DynamoDBSecondaryIndexSchema[];
     KeySchema: DynamoDBKeySchema[];
     LocalSecondaryIndexes: DynamoDBSecondaryIndexSchema[];
+    PointInTimeRecoveryEnabled: boolean;
     StreamSpecification?: {
       StreamViewType: 'KEYS_ONLY' | 'NEW_AND_OLD_IMAGES' | 'NEW_IMAGE' | 'OLD_IMAGE';
     };

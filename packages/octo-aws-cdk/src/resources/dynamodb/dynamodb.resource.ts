@@ -234,6 +234,7 @@ export class DynamoDB extends ATerraformResource<DynamoDBSchema, DynamoDB> {
       'billingMode',
       'DeletionProtectionEnabled',
       'GlobalSecondaryIndexes',
+      'PointInTimeRecoveryEnabled',
       'StreamSpecification',
       'timeToLiveAttribute',
     ];
@@ -255,10 +256,14 @@ export class DynamoDB extends ATerraformResource<DynamoDBSchema, DynamoDB> {
       ];
     }
 
-    // AWS changes deletion protection only in a request of its own.
+    // AWS changes deletion protection only in an UpdateTable request of its own. Point-in-time recovery
+    // changes through a request of its own already.
     if (
       previous.properties.DeletionProtectionEnabled !== this.properties.DeletionProtectionEnabled &&
-      !DiffUtility.isObjectDeepEquals(previous.properties, this.properties, ['DeletionProtectionEnabled'])
+      !DiffUtility.isObjectDeepEquals(previous.properties, this.properties, [
+        'DeletionProtectionEnabled',
+        'PointInTimeRecoveryEnabled',
+      ])
     ) {
       throw new ResourceError('Change DeletionProtectionEnabled in a run of its own!', this);
     }
@@ -292,6 +297,7 @@ export class DynamoDB extends ATerraformResource<DynamoDBSchema, DynamoDB> {
       deletion_protection_enabled: this.properties.DeletionProtectionEnabled,
       hash_key: hashKeyAttr.AttributeName,
       name: this.properties.TableName,
+      point_in_time_recovery: { enabled: this.properties.PointInTimeRecoveryEnabled },
       table_class: this.properties.TableClass,
     };
 

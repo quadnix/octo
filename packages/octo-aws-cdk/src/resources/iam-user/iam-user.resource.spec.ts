@@ -28,6 +28,7 @@ function createTable(awsAccountId: string, awsRegionId = 'us-east-1'): MatchingR
     GlobalSecondaryIndexes: [],
     KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
     LocalSecondaryIndexes: [],
+    PointInTimeRecoveryEnabled: false,
     TableClass: 'STANDARD',
     TableName: 'accounts',
   });
