@@ -92,14 +92,14 @@ describe('commitCommand UT', () => {
     await TestContainer.reset();
   });
 
-  it('releases the app lock after a successful commit', async () => {
+  it('should release the app lock after a successful commit', async () => {
     await commitCommand.handler(argv);
 
     expect(stateManagementServiceMock.unlockApp).toHaveBeenCalledWith(lockId);
     expect(processExitSpy).not.toHaveBeenCalled();
   });
 
-  it('keeps the app lock when the commit throws', async () => {
+  it('should keep the app lock when the commit throws', async () => {
     octoCommitMock.mockRejectedValue(new Error('missing terraform outputs'));
 
     await commitCommand.handler(argv);
@@ -108,7 +108,7 @@ describe('commitCommand UT', () => {
     expect(processExitSpy).toHaveBeenCalledWith(1);
   });
 
-  it('keeps the app lock when octo fails to boot', async () => {
+  it('should keep the app lock when octo fails to boot', async () => {
     mockedBootOcto.mockRejectedValue(new Error('Definition file failed validation against schema!'));
 
     await commitCommand.handler(argv);
@@ -117,7 +117,7 @@ describe('commitCommand UT', () => {
     expect(processExitSpy).toHaveBeenCalledWith(1);
   });
 
-  it('reads outputs via TerraformUtility and passes them to octo.commit()', async () => {
+  it('should read outputs via TerraformUtility and pass them to octo.commit()', async () => {
     const outputs = new Map([['module-a', { bucket: { value: 'my-bucket' } }]]);
     terraformUtilityMock.listModuleFolders.mockResolvedValue(['module-a']);
     terraformUtilityMock.output.mockResolvedValue(outputs);
@@ -132,7 +132,7 @@ describe('commitCommand UT', () => {
     expect(processExitSpy).not.toHaveBeenCalled();
   });
 
-  it('commits no folder whose plan still holds changes on a partial commit', async () => {
+  it('should commit no folder whose plan still holds changes on a partial commit', async () => {
     terraformUtilityMock.listModuleFolders.mockResolvedValue(['applied', 'failed', 'unplanned']);
     terraformUtilityMock.output.mockResolvedValue(
       new Map([
@@ -160,13 +160,13 @@ describe('commitCommand UT', () => {
     );
   });
 
-  it('plans nothing on a full commit', async () => {
+  it('should plan nothing on a full commit', async () => {
     await commitCommand.handler(argv);
 
     expect(terraformUtilityMock.plan).not.toHaveBeenCalled();
   });
 
-  it('warns for a module folder missing from the returned outputs, but still commits', async () => {
+  it('should warn for a module folder missing from the returned outputs, but still commit', async () => {
     terraformUtilityMock.listModuleFolders.mockResolvedValue(['module-a', 'module-b']);
     terraformUtilityMock.output.mockResolvedValue(new Map([['module-a', { bucket: { value: 'my-bucket' } }]]));
 
@@ -179,7 +179,7 @@ describe('commitCommand UT', () => {
     expect(processExitSpy).not.toHaveBeenCalled();
   });
 
-  it('prints warnings from the commit result', async () => {
+  it('should print warnings from the commit result', async () => {
     octoCommitMock.mockResolvedValue({
       emptiedModuleIds: [],
       warnings: [{ message: 'heads up', moduleId: 'module-a' }],
@@ -191,7 +191,7 @@ describe('commitCommand UT', () => {
     expect(processExitSpy).not.toHaveBeenCalled();
   });
 
-  it('deletes the folders of the modules the commit emptied whose destroy applied', async () => {
+  it('should delete the folders of the modules the commit emptied whose destroy applied', async () => {
     octoCommitMock.mockResolvedValue({ emptiedModuleIds: ['module-gone'], warnings: [] });
 
     await commitCommand.handler(argv);
@@ -201,7 +201,7 @@ describe('commitCommand UT', () => {
     expect(stateManagementServiceMock.unlockApp).toHaveBeenCalledWith(lockId);
   });
 
-  it('reports and exits on a thrown error', async () => {
+  it('should report and exit on a thrown error', async () => {
     mockedBootOcto.mockRejectedValue(new Error('boom'));
 
     await commitCommand.handler(argv);
@@ -210,7 +210,7 @@ describe('commitCommand UT', () => {
     expect(processExitSpy).toHaveBeenCalledWith(1);
   });
 
-  it('forwards --terraformBinary/--terragruntBinary/--timeoutInMs overrides to the container, with forceNew: true', async () => {
+  it('should forward --terraformBinary/--terragruntBinary/--timeoutInMs overrides to the container, with forceNew: true', async () => {
     // TestContainer's mock (above) uses registerValue, which ignores any `args` passed to
     // container.get() — this test bypasses it with a direct spy to assert what the command
     // actually forwards.
@@ -232,7 +232,7 @@ describe('commitCommand UT', () => {
     });
   });
 
-  it('forwards undefined overrides when no CLI flags are given, still with forceNew: true', async () => {
+  it('should forward undefined overrides when no CLI flags are given, still with forceNew: true', async () => {
     const getSpy = jest.spyOn(Container.getInstance(), 'get').mockResolvedValue(terraformUtilityMock);
 
     await commitCommand.handler(argv);
