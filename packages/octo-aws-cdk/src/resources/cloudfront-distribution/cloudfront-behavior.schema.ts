@@ -51,17 +51,16 @@ const CLOUDFRONT_FUNCTION_EVENT_TYPES = [
 ] as const;
 /**
  * Which event in the request lifecycle an edge function runs on.
- * CloudFront Functions may only run on a viewer event; Lambda@Edge may run on any of the four.
+ * A CloudFront Function may only run on a viewer event; the origin events are for Lambda@Edge.
  *
  * @group Resources/CloudFrontDistribution
  */
 export type ICloudFrontFunctionEventType = (typeof CLOUDFRONT_FUNCTION_EVENT_TYPES)[number];
 
-const CLOUDFRONT_FUNCTION_KINDS = ['cloudfront-function', 'lambda-edge'] as const;
+const CLOUDFRONT_FUNCTION_KINDS = ['cloudfront-function'] as const;
 /**
  * Which engine runs an edge function.
  * * `cloudfront-function` - JavaScript at the edge. It may only bind to a viewer event.
- * * `lambda-edge` - Lambda@Edge. It may bind to any of the four events.
  *
  * @group Resources/CloudFrontDistribution
  */
@@ -82,24 +81,13 @@ export const CLOUDFRONT_VIEWER_PROTOCOL_POLICIES = ['allow-all', 'https-only', '
 export type ICloudFrontViewerProtocolPolicy = (typeof CLOUDFRONT_VIEWER_PROTOCOL_POLICIES)[number];
 
 /**
- * An edge function CloudFront runs for a behavior. Name a CloudFront Function this distribution
- * creates with `functionName`, or pass the `arn` of one that already exists.
+ * An edge function CloudFront runs for a behavior: a CloudFront Function this distribution creates.
  *
  * @group Resources/CloudFrontDistribution
  *
  * @hideconstructor
  */
 export class CloudFrontFunctionAssociationSchema {
-  /**
-   * The ARN of an existing CloudFront Function or Lambda@Edge function version. Set it, or
-   * `functionName`.
-   */
-  @Validate({
-    destruct: (value: CloudFrontFunctionAssociationSchema['arn']): string[] => (value ? [value] : []),
-    options: { minLength: 1 },
-  })
-  arn? = Schema<string | null>(null);
-
   /**
    * Which lifecycle event the function runs on. See {@link ICloudFrontFunctionEventType}.
    */
@@ -111,13 +99,10 @@ export class CloudFrontFunctionAssociationSchema {
   eventType = Schema<ICloudFrontFunctionEventType>();
 
   /**
-   * The name of a CloudFront Function the distribution creates. Set it, or `arn`.
+   * The name of a CloudFront Function the distribution creates.
    */
-  @Validate({
-    destruct: (value: CloudFrontFunctionAssociationSchema['functionName']): string[] => (value ? [value] : []),
-    options: { minLength: 1 },
-  })
-  functionName? = Schema<string | null>(null);
+  @Validate({ options: { minLength: 1 } })
+  functionName = Schema<string>();
 
   /**
    * Which engine runs it. See {@link ICloudFrontFunctionKind}.

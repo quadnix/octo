@@ -1,3 +1,5 @@
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import {
   AResource,
   type Account,
@@ -25,6 +27,9 @@ import { Subnet } from '../../../resources/subnet/index.js';
 import { Vpc } from '../../../resources/vpc/index.js';
 import type { AwsCloudFrontServiceModuleSchema } from './index.schema.js';
 import { AwsCloudFrontServiceModule } from './index.js';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const deepLinksFunctionPath = join(__dirname, '../../../../test/fixtures/cloudfront-function/deep-links.js');
 
 async function setup(testModuleContainer: TestModuleContainer): Promise<{ account: Account; app: App }> {
   const {
@@ -636,14 +641,14 @@ describe('AwsCloudFrontServiceModule UT', () => {
     }
   });
 
-  it('should create a CloudFront Function, and run it on the route naming it', async () => {
+  it('should create a CloudFront Function from its file, and run it on the route naming it', async () => {
     await setup(testModuleContainer);
     const { hclRender, resourceDiffs } = (
       await testModuleContainer
         .runModules<AwsCloudFrontServiceModule>(
           {
             inputs: inputs({
-              functions: [{ code: 'function handler(event) { return event.request; }', name: 'deep-links' }],
+              functions: [{ filePath: deepLinksFunctionPath, name: 'deep-links' }],
               routes: [
                 {
                   functionAssociations: [
@@ -662,6 +667,7 @@ describe('AwsCloudFrontServiceModule UT', () => {
     ).value!;
 
     expect(hclRender).toContain('resource "aws_cloudfront_function" "cloudfront-function-deep-links-b1f33b"');
+    expect(hclRender).toContain('  return event.request;');
     expect(hclRender).toContain('function_arn = aws_cloudfront_function.cloudfront-function-deep-links-b1f33b.arn');
     expect(testModuleContainer.digestDiffs(resourceDiffs)).toContain(
       '+ @octo/cloudfront-function=cloudfront-function-deep-links-b1f33b',
@@ -878,8 +884,8 @@ describe('AwsCloudFrontServiceModule UT', () => {
         'the same function twice',
         {
           functions: [
-            { code: 'function handler(event) { return event.request; }', name: 'rewrite' },
-            { code: 'function handler(event) { return event.request; }', name: 'rewrite' },
+            { filePath: deepLinksFunctionPath, name: 'rewrite' },
+            { filePath: deepLinksFunctionPath, name: 'rewrite' },
           ] as any,
         },
         'Function "rewrite" is declared more than once!',

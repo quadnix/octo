@@ -331,21 +331,24 @@ closed bucket reports a missing file as `403`, so a content site maps both `403`
 `404` carrying its error page, as above.
 
 `functions` creates CloudFront Functions, JavaScript that runs at the edge on a request or a
-response, and a route runs one by its name. A single-page app served under a path rewrites every
-request that names no file to its `index.html`, on its own route only, so an API's real `404`s stay
-`404`s:
+response, and a route runs one by its name. Each is a file, at a path from the project root. A
+single-page app served under a path rewrites every request that names no file to its `index.html`,
+on its own route only, so an API's real `404`s stay `404`s:
+
+```javascript title="functions/my-app-deep-links.js"
+function handler(event) {
+  var request = event.request;
+  if (!request.uri.split('/').pop().includes('.')) {
+    request.uri = '/app/index.html';
+  }
+  return request;
+}
+```
 
 ```yaml
       functions:
         - name: my-app-deep-links
-          code: |
-            function handler(event) {
-              var request = event.request;
-              if (!request.uri.split('/').pop().includes('.')) {
-                request.uri = '/app/index.html';
-              }
-              return request;
-            }
+          filePath: functions/my-app-deep-links.js
       routes:
         - originId: app
           pathPattern: /app/*
@@ -353,7 +356,8 @@ request that names no file to its `index.html`, on its own route only, so an API
             - { eventType: viewer-request, functionName: my-app-deep-links, kind: cloudfront-function }
 ```
 
-A function's name is unique in its account. It runs only on `viewer-request` or `viewer-response`.
+A function's name is unique in its account, and its file is at most 10 KB. It runs only on
+`viewer-request` or `viewer-response`. A route runs only the functions its distribution creates.
 
 `AwsCloudFrontInvalidationServiceModule` takes a distribution and one bucket it serves, and drops
 what the edge locations hold for that bucket every time its files change. Without it CloudFront

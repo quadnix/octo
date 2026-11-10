@@ -2,11 +2,11 @@ import { ATerraformResource, Diff, DiffAction, DiffUtility, Resource, type Terra
 import { CloudFrontFunctionSchema } from './index.schema.js';
 
 /**
- * The marker closing the heredoc the code is written in.
+ * The marker closing the multi-line string the code is written in.
  *
  * @internal
  */
-const HEREDOC_DELIMITER = 'OCTO_CLOUDFRONT_FUNCTION_CODE';
+const CODE_DELIMITER = 'OCTO_CLOUDFRONT_FUNCTION_CODE';
 
 /**
  * @internal
@@ -60,13 +60,13 @@ export class CloudFrontFunction extends ATerraformResource<CloudFrontFunctionSch
       provider: { accountId: this.properties.awsAccountId },
     });
 
-    // A heredoc keeps the code as written; terraform would otherwise read `${` and `%{` in it as its own.
+    // Write the code as a multi-line string, escaping the `${` and `%{` terraform would read as its own.
     const code = this.properties.code
       .replace(/\n$/, '')
       .replace(/\$\{/g, () => '$${')
       .replace(/%\{/g, () => '%%{');
     const functionTFResource = functionOctoResource.addTerraformResource('aws_cloudfront_function', this.resourceId, {
-      code: terraform.raw(`<<-${HEREDOC_DELIMITER}\n${code}\n${HEREDOC_DELIMITER}`),
+      code: terraform.raw(`<<-${CODE_DELIMITER}\n${code}\n${CODE_DELIMITER}`),
       name: this.properties.name,
       publish: true,
       runtime: 'cloudfront-js-2.0',

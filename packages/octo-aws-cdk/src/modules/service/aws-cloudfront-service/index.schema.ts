@@ -42,11 +42,11 @@ import {
  */
 export class AwsCloudFrontServiceModuleFunctionSchema {
   /**
-   * The function's JavaScript, on the `cloudfront-js-2.0` runtime, at most 10 KB. It defines
-   * `function handler(event)`.
+   * The path, from the project root, of the function's JavaScript file: at most 10 KB, on the
+   * `cloudfront-js-2.0` runtime, defining `function handler(event)`.
    */
-  @Validate({ options: { maxLength: 10240, minLength: 1 } })
-  code = Schema<string>();
+  @Validate({ options: { minLength: 1 } })
+  filePath = Schema<string>();
 
   /**
    * The function's name, unique in the account: letters, digits, `-` and `_`, at most 64 characters.
@@ -189,8 +189,7 @@ export class AwsCloudFrontServiceModuleRouteSchema {
   compress? = Schema<boolean>(true);
 
   /**
-   * Edge functions to run for this route: a CloudFront Function from `functions` by `functionName`,
-   * or an existing one by `arn`.
+   * Edge functions to run for this route: CloudFront Functions from `functions`, by `functionName`.
    */
   @Validate({
     destruct: (

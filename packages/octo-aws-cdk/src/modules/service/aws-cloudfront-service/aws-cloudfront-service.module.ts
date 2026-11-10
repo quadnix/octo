@@ -20,9 +20,10 @@ import { AwsCloudFrontS3OriginOverlay } from './overlays/aws-cloudfront-s3-origi
  * `AwsLambdaExecutionModule`, a permission on the function to be called through its URL, by the
  * CloudFront distributions of its account. An ALB from `AwsEcsAlbServiceModule` is reached over HTTP
  * through its DNS name, and is granted nothing: it still answers anyone who calls it directly. It sits
- * under the account. It creates the CloudFront Functions in `functions`, which a route runs by name.
- * To drop the edges' copies of a source's files when they change, add
+ * under the account. To drop the edges' copies of a source's files when they change, add
  * `AwsCloudFrontInvalidationServiceModule`.
+ *
+ * It creates a CloudFront Function from each file in `functions`, which a route runs by name.
  *
  * A route whose origin is a Lambda function or an ALB defaults to every method, no caching, and every
  * viewer header but `Host`. Behind a Lambda function, a client sending a body - a `POST` or a `PUT` -
@@ -132,9 +133,7 @@ export class AwsCloudFrontServiceModule extends AModule<AwsCloudFrontServiceModu
       throw new ModuleError(`Function "${duplicateFunctionName}" is declared more than once!`, this.constructor.name);
     }
     for (const route of inputs.routes) {
-      const unknownFunction = (route.functionAssociations || []).find(
-        (f) => !!f.functionName && !functionNames.includes(f.functionName),
-      );
+      const unknownFunction = (route.functionAssociations || []).find((f) => !functionNames.includes(f.functionName));
       if (unknownFunction) {
         throw new ModuleError(`Route names unknown function "${unknownFunction.functionName}"!`, this.constructor.name);
       }

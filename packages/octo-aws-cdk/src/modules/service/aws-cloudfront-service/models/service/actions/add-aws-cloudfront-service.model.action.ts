@@ -1,3 +1,4 @@
+import { readFile } from 'fs/promises';
 import {
   Action,
   type ActionOutputs,
@@ -7,6 +8,7 @@ import {
   Factory,
   type IModelAction,
   MatchingResource,
+  ProjectUtility,
   hasNodeName,
 } from '@quadnix/octo';
 import { AwsEcsAlbAnchorSchema } from '../../../../../../anchors/aws-ecs/aws-ecs-alb.anchor.schema.js';
@@ -99,11 +101,10 @@ export class AddAwsCloudFrontServiceModelAction implements IModelAction<AwsCloud
           route.cachePolicy ||
           ({ kind: 'managed', name: isAppOrigin ? 'Managed-CachingDisabled' : 'Managed-CachingOptimized' } as const),
         compress: route.compress ?? true,
-        functionAssociations: (route.functionAssociations || []).map(({ arn, eventType, functionName, kind }) => ({
+        functionAssociations: (route.functionAssociations || []).map(({ eventType, functionName, kind }) => ({
           eventType,
+          functionName,
           kind,
-          ...(arn ? { arn } : {}),
-          ...(functionName ? { functionName } : {}),
         })),
         originRequestPolicy:
           route.originRequestPolicy ||
@@ -146,8 +147,9 @@ export class AddAwsCloudFrontServiceModelAction implements IModelAction<AwsCloud
 
     actionOutputs[cloudFrontDistribution.resourceId] = cloudFrontDistribution;
 
-    // Create each CloudFront Function, for the routes naming it.
-    for (const { code, name } of inputs.functions || []) {
+    // Create each CloudFront Function from its file, for the routes naming it.
+    for (const { filePath, name } of inputs.functions || []) {
+      const code = await readFile(ProjectUtility.resolveFromProjectRoot(filePath), 'utf8');
       const cloudFrontFunction = new CloudFrontFunction(`cloudfront-function-${name}`, {
         awsAccountId,
         code,

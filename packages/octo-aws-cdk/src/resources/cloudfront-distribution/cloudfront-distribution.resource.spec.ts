@@ -1,5 +1,6 @@
 import { MatchingResource } from '@quadnix/octo';
 import { Alb } from '../alb/index.js';
+import { CloudFrontFunction } from '../cloudfront-function/index.js';
 import { EcrImage } from '../ecr/ecr-image.resource.js';
 import { EcrImageTag } from '../ecr-image-tag/ecr-image-tag.resource.js';
 import { IamRole } from '../iam-role/iam-role.resource.js';
@@ -253,7 +254,7 @@ describe('CloudFrontDistribution UT', () => {
           behaviors: [
             {
               ...properties().behaviors[0],
-              functionAssociations: [{ arn: 'arn', eventType: 'viewer-request', kind: 'lambda' as any }],
+              functionAssociations: [{ eventType: 'viewer-request', functionName: 'rewrite', kind: 'lambda' as any }],
             },
           ],
         },
@@ -264,7 +265,9 @@ describe('CloudFrontDistribution UT', () => {
           behaviors: [
             {
               ...properties().behaviors[0],
-              functionAssociations: [{ arn: 'arn', eventType: 'viewer' as any, kind: 'lambda-edge' }],
+              functionAssociations: [
+                { eventType: 'viewer' as any, functionName: 'rewrite', kind: 'cloudfront-function' },
+              ],
             },
           ],
         },
@@ -443,37 +446,12 @@ describe('CloudFrontDistribution UT', () => {
             {
               ...properties().behaviors[0],
               functionAssociations: [
-                {
-                  arn: 'arn:aws:cloudfront::123456789012:function/rewrite',
-                  eventType: 'origin-request',
-                  kind: 'cloudfront-function',
-                },
+                { eventType: 'origin-request', functionName: 'rewrite', kind: 'cloudfront-function' },
               ],
             },
           ],
         }),
-      ).toThrowErrorMatchingInlineSnapshot(
-        `"A CloudFront Function cannot run on "origin-request"! Use Lambda@Edge instead."`,
-      );
-    });
-
-    it('should accept Lambda@Edge bound to an origin event', () => {
-      expect(() =>
-        createDistribution({
-          behaviors: [
-            {
-              ...properties().behaviors[0],
-              functionAssociations: [
-                {
-                  arn: 'arn:aws:lambda:us-east-1:123456789012:function:rewrite:1',
-                  eventType: 'origin-request',
-                  kind: 'lambda-edge',
-                },
-              ],
-            },
-          ],
-        }),
-      ).not.toThrow();
+      ).toThrowErrorMatchingInlineSnapshot(`"A CloudFront Function cannot run on "origin-request"!"`);
     });
   });
 
@@ -796,16 +774,7 @@ describe('CloudFrontDistribution UT', () => {
             cachePolicy: { kind: 'managed', name: 'Managed-CachingDisabled' },
             compress: true,
             functionAssociations: [
-              {
-                arn: 'arn:aws:cloudfront::123456789012:function/rewrite',
-                eventType: 'viewer-request',
-                kind: 'cloudfront-function',
-              },
-              {
-                arn: 'arn:aws:lambda:us-east-1:123456789012:function:auth:1',
-                eventType: 'origin-request',
-                kind: 'lambda-edge',
-              },
+              { eventType: 'viewer-request', functionName: 'rewrite', kind: 'cloudfront-function' },
             ],
             originRequestPolicy: { kind: 'custom', name: 'api-forwarding' },
             pathPattern: '/api/*',
@@ -889,6 +858,15 @@ describe('CloudFrontDistribution UT', () => {
           minimumProtocolVersion: 'TLSv1.2_2021',
         },
       });
+      distribution.addCloudFrontFunction(
+        new MatchingResource(
+          new CloudFrontFunction('cloudfront-function-rewrite', {
+            awsAccountId: '123456789012',
+            code: 'function handler(event) { return event.request; }',
+            name: 'rewrite',
+          }),
+        ),
+      );
 
       const { emitted, terraform } = createRecordingScope();
       await distribution.toHCL(terraform);

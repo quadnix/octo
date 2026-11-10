@@ -413,29 +413,17 @@ export class CloudFrontDistribution extends ATerraformResource<CloudFrontDistrib
     policyIdByReference: Map<string, unknown>,
   ): Record<string, unknown> {
     const functionAssociations = behavior.functionAssociations ?? RENDER_DEFAULTS.behavior.functionAssociations;
-    const cloudFrontFunctions = functionAssociations.filter((f) => f.kind === 'cloudfront-function');
-    const lambdaEdgeFunctions = functionAssociations.filter((f) => f.kind === 'lambda-edge');
 
     return {
       allowed_methods: behavior.allowedMethods ?? RENDER_DEFAULTS.behavior.allowedMethods,
       cache_policy_id: policyIdByReference.get(CloudFrontDistribution.policyKey('cache', behavior.cachePolicy)),
       cached_methods: behavior.cachedMethods ?? RENDER_DEFAULTS.behavior.cachedMethods,
       compress: behavior.compress ?? RENDER_DEFAULTS.behavior.compress,
-      ...(cloudFrontFunctions.length > 0
+      ...(functionAssociations.length > 0
         ? {
-            function_association: cloudFrontFunctions.map((f) => ({
+            function_association: functionAssociations.map((f) => ({
               event_type: f.eventType,
-              function_arn: f.functionName
-                ? terraform.getRef(this.getCloudFrontFunctionParent(f.functionName), 'Arn')
-                : f.arn,
-            })),
-          }
-        : {}),
-      ...(lambdaEdgeFunctions.length > 0
-        ? {
-            lambda_function_association: lambdaEdgeFunctions.map((f) => ({
-              event_type: f.eventType,
-              lambda_arn: f.arn,
+              function_arn: terraform.getRef(this.getCloudFrontFunctionParent(f.functionName), 'Arn'),
             })),
           }
         : {}),
@@ -727,19 +715,8 @@ export class CloudFrontDistribution extends ATerraformResource<CloudFrontDistrib
       }
 
       for (const functionAssociation of behavior.functionAssociations ?? []) {
-        if (!functionAssociation.arn === !functionAssociation.functionName) {
-          throw new Error('A CloudFront function association needs exactly one of "arn" and "functionName"!');
-        }
-        if (functionAssociation.kind === 'lambda-edge' && functionAssociation.functionName) {
-          throw new Error('A Lambda@Edge function is named by its "arn"!');
-        }
-        if (
-          functionAssociation.kind === 'cloudfront-function' &&
-          !functionAssociation.eventType.startsWith('viewer-')
-        ) {
-          throw new Error(
-            `A CloudFront Function cannot run on "${functionAssociation.eventType}"! Use Lambda@Edge instead.`,
-          );
+        if (!functionAssociation.eventType.startsWith('viewer-')) {
+          throw new Error(`A CloudFront Function cannot run on "${functionAssociation.eventType}"!`);
         }
       }
     }
