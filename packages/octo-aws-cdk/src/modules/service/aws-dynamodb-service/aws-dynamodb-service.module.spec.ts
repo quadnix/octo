@@ -1,4 +1,4 @@
-import { TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import { type Region, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import type { AwsServerlessRegionAnchorSchema } from '../../../anchors/aws-region/aws-serverless-region.anchor.schema.js';
 import { AwsDynamoDBServiceModule } from './index.js';
@@ -1066,6 +1066,37 @@ describe('AwsDynamoDBServiceModule UT', () => {
          "* @octo/dynamodb=dynamodb-test-table-51fb32",
        ]
       `);
+    });
+
+    it('should refuse a DeletionProtectionEnabled change beside any other change', async () => {
+      const table = {
+        AttributeDefinitions: [{ AttributeName: 'AccountId', AttributeType: 'S' as const }],
+        billingMode: { settings: {}, type: 'PAY_PER_REQUEST' as const },
+        KeySchema: [{ AttributeName: 'AccountId', KeyType: 'HASH' as const }],
+        region: stub<Region>('${{testModule.model.region}}'),
+        TableName: 'test-table',
+      };
+      await setup(testModuleContainer);
+      await testModuleContainer
+        .runModules<AwsDynamoDBServiceModule>(
+          { inputs: table, moduleId: 'service', type: AwsDynamoDBServiceModule },
+          { terraformTarget: 'skip' },
+        )
+        .next();
+
+      await setup(testModuleContainer);
+      await expect(
+        testModuleContainer
+          .runModules<AwsDynamoDBServiceModule>(
+            {
+              inputs: { ...table, DeletionProtectionEnabled: true, timeToLiveAttribute: 'expiresAt' },
+              moduleId: 'service',
+              type: AwsDynamoDBServiceModule,
+            },
+            { terraformTarget: 'skip' },
+          )
+          .next(),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`"Change DeletionProtectionEnabled in a run of its own!"`);
     });
   });
 

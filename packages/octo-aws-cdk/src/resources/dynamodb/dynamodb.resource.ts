@@ -255,6 +255,14 @@ export class DynamoDB extends ATerraformResource<DynamoDBSchema, DynamoDB> {
       ];
     }
 
+    // AWS changes deletion protection only in a request of its own.
+    if (
+      previous.properties.DeletionProtectionEnabled !== this.properties.DeletionProtectionEnabled &&
+      !DiffUtility.isObjectDeepEquals(previous.properties, this.properties, ['DeletionProtectionEnabled'])
+    ) {
+      throw new ResourceError('Change DeletionProtectionEnabled in a run of its own!', this);
+    }
+
     // Existing GSIs cannot be updated.
     const currentGSIs = this.properties.GlobalSecondaryIndexes;
     const previousGSIs = previous.properties.GlobalSecondaryIndexes;
