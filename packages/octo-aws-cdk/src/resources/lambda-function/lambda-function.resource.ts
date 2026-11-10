@@ -10,6 +10,7 @@ import {
   type TerraformModuleScope,
   hasNodeName,
 } from '@quadnix/octo';
+import type { CloudWatchLogGroupSchema } from '../cloudwatch-log-group/index.schema.js';
 import type { EcrImageTagSchema } from '../ecr-image-tag/index.schema.js';
 import type { IamRoleSchema } from '../iam-role/index.schema.js';
 import { LambdaFunctionSchema } from './index.schema.js';
@@ -21,7 +22,11 @@ import { LambdaFunctionSchema } from './index.schema.js';
   uniqueProperties: [{ path: 'functionName', within: ['awsAccountId', 'awsRegionId'] }],
 })
 export class LambdaFunction extends ATerraformResource<LambdaFunctionSchema, LambdaFunction> {
-  declare parents: [MatchingResource<IamRoleSchema>, MatchingResource<EcrImageTagSchema>];
+  declare parents: [
+    MatchingResource<IamRoleSchema>,
+    MatchingResource<EcrImageTagSchema>,
+    MatchingResource<CloudWatchLogGroupSchema>,
+  ];
   declare properties: LambdaFunctionSchema['properties'];
   declare response: LambdaFunctionSchema['response'];
 
@@ -31,7 +36,11 @@ export class LambdaFunction extends ATerraformResource<LambdaFunctionSchema, Lam
   constructor(
     resourceId: string,
     properties: LambdaFunctionSchema['properties'],
-    parents: [MatchingResource<IamRoleSchema>, MatchingResource<EcrImageTagSchema>],
+    parents: [
+      MatchingResource<IamRoleSchema>,
+      MatchingResource<EcrImageTagSchema>,
+      MatchingResource<CloudWatchLogGroupSchema>,
+    ],
   ) {
     super(resourceId, properties, parents);
 
@@ -58,6 +67,12 @@ export class LambdaFunction extends ATerraformResource<LambdaFunctionSchema, Lam
     for (let i = diffs.length - 1; i >= 0; i--) {
       if (diffs[i].field === 'parent' && hasNodeName(diffs[i].value as AResource<any, any>, 'iam-role')) {
         // Skip updating the function when its iam-role is updated.
+        diffs.splice(i, 1);
+      } else if (
+        diffs[i].field === 'parent' &&
+        hasNodeName(diffs[i].value as AResource<any, any>, 'cloudwatch-log-group')
+      ) {
+        // Skip updating the function when its cloudwatch-log-group is updated.
         diffs.splice(i, 1);
       } else if (
         diffs[i].field === 'parent' &&
@@ -117,7 +132,7 @@ export class LambdaFunction extends ATerraformResource<LambdaFunctionSchema, Lam
    * @internal
    */
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {
-    const [iamRoleParent, imageTagParent] = this.parents;
+    const [iamRoleParent, imageTagParent, logGroupParent] = this.parents;
     const environmentVariables = this.properties.environmentVariables;
 
     const lambdaFunctionOctoResource = terraform.addOctoTerraformResource(this as LambdaFunction, {
@@ -135,6 +150,9 @@ export class LambdaFunction extends ATerraformResource<LambdaFunctionSchema, Lam
         function_name: this.properties.functionName,
         ...(this.properties.imageCommand.length > 0 ? { image_config: { command: this.properties.imageCommand } } : {}),
         image_uri: terraform.getRef(imageTagParent, 'imageUri'),
+        // The log group is a parent only to be waited for: its role cannot create one, so a call before
+        // it exists would leave no log.
+        logging_config: { log_format: 'Text', log_group: terraform.getRef(logGroupParent, 'LogGroupName') },
         memory_size: this.properties.memoryInMegabytes,
         package_type: 'Image',
         ...(this.properties.reservedConcurrency === null

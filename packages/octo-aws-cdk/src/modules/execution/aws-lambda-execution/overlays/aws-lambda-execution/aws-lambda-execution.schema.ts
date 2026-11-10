@@ -1,4 +1,5 @@
 import { BaseOverlaySchema, Schema, Validate } from '@quadnix/octo';
+import type { CloudWatchLogGroupSchema } from '../../../../../resources/cloudwatch-log-group/index.schema.js';
 import type { LambdaFunctionSchema } from '../../../../../resources/lambda-function/index.schema.js';
 
 /**
@@ -42,6 +43,7 @@ export class AwsLambdaExecutionOverlaySchema extends BaseOverlaySchema {
     };
     iamRoleName: string;
     invokeMode: LambdaFunctionSchema['properties']['invokeMode'];
+    logRetentionInDays: CloudWatchLogGroupSchema['properties']['retentionInDays'];
     reservedConcurrency: LambdaFunctionSchema['properties']['reservedConcurrency'];
     serverKey: string;
   }>();

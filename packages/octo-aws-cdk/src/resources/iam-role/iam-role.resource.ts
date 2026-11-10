@@ -9,11 +9,13 @@ import {
   type TerraformModuleScope,
 } from '@quadnix/octo';
 import { PolicyUtility } from '../../utilities/policy/policy.utility.js';
+import type { CloudWatchLogGroupSchema } from '../cloudwatch-log-group/index.schema.js';
 import type { DynamoDBSchema } from '../dynamodb/index.schema.js';
 import type { LambdaFunctionSchema } from '../lambda-function/index.schema.js';
 import type { S3StorageSchema } from '../s3-storage/index.schema.js';
 import {
   type IIamRoleAssumeRolePolicy,
+  type IIamRoleCloudWatchLogGroupWritePolicy,
   type IIamRoleDynamoDBTablePolicy,
   type IIamRoleLambdaFunctionInvokePolicy,
   type IIamRolePolicyTypes,
@@ -84,6 +86,33 @@ export class IamRole extends ATerraformResource<IamRoleSchema, IamRole> {
         policyId,
         policyType: 'aws-policy',
       });
+    }
+  }
+
+  /**
+   * Allows this role to write log events to a log group in its own account, and nothing else: without
+   * `logs:CreateLogGroup`, whatever runs as the role cannot create a log group of its own.
+   *
+   * The log group is not a parent: IAM accepts a policy naming a log group that does not exist yet.
+   *
+   * @internal
+   */
+  addCloudWatchLogGroupWritePolicy(policyId: string, logGroup: MatchingResource<CloudWatchLogGroupSchema>): void {
+    const { awsAccountId, awsRegionId, logGroupName } = logGroup.getSchemaInstance().properties;
+    if (awsAccountId !== this.properties.awsAccountId) {
+      throw new ResourceError(
+        `Log group "${logGroupName}" is in account "${awsAccountId}", not in the role's account "${this.properties.awsAccountId}"!`,
+        this,
+      );
+    }
+
+    const policy: IIamRoleCloudWatchLogGroupWritePolicy = { awsRegionId, logGroupName };
+
+    const index = this.properties.policies.findIndex((p) => p.policyId === policyId);
+    if (index === -1) {
+      this.properties.policies.push({ policy, policyId, policyType: 'cloudwatch-log-group-write-policy' });
+    } else {
+      this.properties.policies[index].policy = policy;
     }
   }
 
@@ -350,6 +379,47 @@ export class IamRole extends ATerraformResource<IamRoleSchema, IamRole> {
         `${this.resourceId}_${policy.policyId}`,
         {
           policy_arn: policy.policy as string,
+          role: terraform.raw(`${iamRoleTFResource.address}.name`),
+        },
+      );
+    }
+
+    const logGroupPolicies = this.properties.policies.filter(
+      (p) => p.policyType === 'cloudwatch-log-group-write-policy',
+    );
+    for (const policy of logGroupPolicies) {
+      const logGroupPolicy = policy.policy as IIamRoleCloudWatchLogGroupWritePolicy;
+      const logGroupArn = [
+        'arn:aws:logs',
+        logGroupPolicy.awsRegionId,
+        this.properties.awsAccountId,
+        'log-group',
+        logGroupPolicy.logGroupName,
+      ].join(':');
+
+      const iamPolicyTFResource = iamRoleOctoResource.addTerraformResource(
+        'aws_iam_policy',
+        `${this.resourceId}_${policy.policyId}`,
+        {
+          name: policy.policyId,
+          policy: terraform.jsonencode({
+            Statement: [
+              {
+                Action: ['logs:CreateLogStream', 'logs:PutLogEvents'],
+                Effect: 'Allow',
+                Resource: [`${logGroupArn}:*`],
+              },
+            ],
+            Version: '2012-10-17',
+          }),
+        },
+      );
+
+      iamRoleOctoResource.addTerraformResource(
+        'aws_iam_role_policy_attachment',
+        `${this.resourceId}_${policy.policyId}_attach`,
+        {
+          policy_arn: terraform.raw(`${iamPolicyTFResource.address}.arn`),
           role: terraform.raw(`${iamRoleTFResource.address}.name`),
         },
       );

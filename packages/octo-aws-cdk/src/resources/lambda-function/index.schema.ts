@@ -10,18 +10,19 @@ import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
  * pair of [`aws_lambda_permission`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lambda_permission),
  * because a function URL needs both `lambda:InvokeFunctionUrl` and `lambda:InvokeFunction`.
  *
- * The function writes no logs: its role is given no permission to, so Lambda creates no log group
- * outside of octo.
+ * The function writes its logs to the log group it is given, which its role may write to and not create.
  *
  * @group Resources/LambdaFunction
  *
  * @hideconstructor
  *
- * @overrideProperty parents - The IAM role the function runs as, and the published image it runs.
+ * @overrideProperty parents - The IAM role the function runs as, the published image it runs, and the log
+ * group it writes to.
  * ```mermaid
  * graph TD;
  *   iam_role((IAM<br>Role)) --> lambda_function((Lambda<br>Function))
  *   ecr_image_tag((ECR<br>Image Tag)) --> lambda_function
+ *   cloudwatch_log_group((CloudWatch<br>Log Group)) --> lambda_function
  * ```
  * @overrideProperty resourceId - The resource id is of format `lambda-function-<function-name>`.
  */

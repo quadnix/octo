@@ -338,6 +338,12 @@ describe('AwsLambdaExecutionModule UT', () => {
        allowed_account_ids = ["123"]
      }
 
+     resource "aws_cloudwatch_log_group" "cloudwatch-log-group-backend-v1-qa-83d832" {
+       provider = aws._123-us-east-1
+       name = "/aws/lambda/backend-v1-qa"
+       retention_in_days = 30
+     }
+
      resource "aws_iam_role" "iam-role-ExecutionRole-backend-v1-qa-83d832" {
        provider = aws._123-us-east-1
        assume_role_policy = jsonencode({
@@ -353,6 +359,29 @@ describe('AwsLambdaExecutionModule UT', () => {
        name = "ExecutionRole-backend-v1-qa"
      }
 
+     resource "aws_iam_policy" "iam-role-ExecutionRole-backend-v1-qa-83d832_ExecutionRole-backend-v1-qa-logs" {
+       provider = aws._123-us-east-1
+       name = "ExecutionRole-backend-v1-qa-logs"
+       policy = jsonencode({
+         Statement = [{
+             Action = ["logs:CreateLogStream", "logs:PutLogEvents"]
+             Effect = "Allow"
+             Resource = ["arn:aws:logs:us-east-1:123:log-group:/aws/lambda/backend-v1-qa:*"]
+           }]
+         Version = "2012-10-17"
+       })
+
+       depends_on = [aws_iam_role.iam-role-ExecutionRole-backend-v1-qa-83d832]
+     }
+
+     resource "aws_iam_role_policy_attachment" "iam-role-ExecutionRole-backend-v1-qa-83d832_ExecutionRole-backend-v1-qa-logs_attach" {
+       provider = aws._123-us-east-1
+       policy_arn = aws_iam_policy.iam-role-ExecutionRole-backend-v1-qa-83d832_ExecutionRole-backend-v1-qa-logs.arn
+       role = aws_iam_role.iam-role-ExecutionRole-backend-v1-qa-83d832.name
+
+       depends_on = [aws_iam_policy.iam-role-ExecutionRole-backend-v1-qa-83d832_ExecutionRole-backend-v1-qa-logs]
+     }
+
      resource "aws_lambda_function" "lambda-function-backend-v1-qa-83d832" {
        provider = aws._123-us-east-1
        architectures = ["arm64"]
@@ -365,6 +394,10 @@ describe('AwsLambdaExecutionModule UT', () => {
        }
        function_name = "backend-v1-qa"
        image_uri = var.ecr_image_tag_us_east_1_family_image_0_0_1.imageUri
+       logging_config {
+         log_format = "Text"
+         log_group = aws_cloudwatch_log_group.cloudwatch-log-group-backend-v1-qa-83d832.name
+       }
        memory_size = 512
        package_type = "Image"
        role = aws_iam_role.iam-role-ExecutionRole-backend-v1-qa-83d832.arn
@@ -380,6 +413,14 @@ describe('AwsLambdaExecutionModule UT', () => {
      }
 
      # execution/outputs.tf
+     output "cloudwatch-log-group-backend-v1-qa-83d832-Arn" {
+       value = aws_cloudwatch_log_group.cloudwatch-log-group-backend-v1-qa-83d832.arn
+     }
+
+     output "cloudwatch-log-group-backend-v1-qa-83d832-LogGroupName" {
+       value = aws_cloudwatch_log_group.cloudwatch-log-group-backend-v1-qa-83d832.name
+     }
+
      output "iam-role-ExecutionRole-backend-v1-qa-83d832-Arn" {
        value = aws_iam_role.iam-role-ExecutionRole-backend-v1-qa-83d832.arn
      }
@@ -502,7 +543,9 @@ describe('AwsLambdaExecutionModule UT', () => {
     `);
     expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
+       "+ @octo/cloudwatch-log-group=cloudwatch-log-group-backend-v1-qa-83d832",
        "+ @octo/iam-role=iam-role-ExecutionRole-backend-v1-qa-83d832",
+       "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-qa-83d832",
        "+ @octo/lambda-function=lambda-function-backend-v1-qa-83d832",
      ]
     `);
@@ -775,6 +818,50 @@ describe('AwsLambdaExecutionModule UT', () => {
     expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/lambda-function=lambda-function-backend-v1-qa-83d832",
+     ]
+    `);
+  });
+
+  it('should keep logs for 30 days by default', async () => {
+    await setup(testModuleContainer);
+    const { hclRender } = (
+      await testModuleContainer
+        .runModules<AwsLambdaExecutionModule>(
+          { inputs: executionInputs(), moduleId: 'execution', type: AwsLambdaExecutionModule },
+          { filterByModuleIds: ['execution'], terraformTarget: 'skip' },
+        )
+        .next()
+    ).value!;
+
+    expect(hclRender).toMatch(/retention_in_days\s*=\s*30/);
+  });
+
+  it('should update only the log group when the log retention moves', async () => {
+    await setup(testModuleContainer);
+    await testModuleContainer
+      .runModules<AwsLambdaExecutionModule>(
+        { inputs: executionInputs(), moduleId: 'execution', type: AwsLambdaExecutionModule },
+        { terraformTarget: 'skip' },
+      )
+      .next();
+
+    await setup(testModuleContainer);
+    const { resourceDiffs } = (
+      await testModuleContainer
+        .runModules<AwsLambdaExecutionModule>(
+          {
+            inputs: executionInputs({ logRetentionInDays: 90 }),
+            moduleId: 'execution',
+            type: AwsLambdaExecutionModule,
+          },
+          { terraformTarget: 'skip' },
+        )
+        .next()
+    ).value!;
+
+    expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
+     [
+       "* @octo/cloudwatch-log-group=cloudwatch-log-group-backend-v1-qa-83d832",
      ]
     `);
   });

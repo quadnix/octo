@@ -1,4 +1,5 @@
 import { MatchingResource } from '@quadnix/octo';
+import { CloudWatchLogGroup } from '../cloudwatch-log-group/cloudwatch-log-group.resource.js';
 import { EcrImage } from '../ecr/ecr-image.resource.js';
 import { EcrImageTag } from '../ecr-image-tag/ecr-image-tag.resource.js';
 import { IamRole } from '../iam-role/iam-role.resource.js';
@@ -41,6 +42,12 @@ function createLambdaFunctionPermission(roleName = 'ExecutionRole-backend'): Lam
     },
     [new MatchingResource(ecrImage)],
   );
+  const logGroup = new CloudWatchLogGroup('cloudwatch-log-group-commons-billing', {
+    awsAccountId: '999999999999',
+    awsRegionId: 'us-east-1',
+    logGroupName: '/aws/lambda/commons-billing',
+    retentionInDays: 30,
+  });
   const lambdaFunction = new LambdaFunction(
     'lambda-function-commons-billing',
     {
@@ -56,7 +63,7 @@ function createLambdaFunctionPermission(roleName = 'ExecutionRole-backend'): Lam
       reservedConcurrency: null,
       timeoutInSeconds: 30,
     },
-    [new MatchingResource(functionRole), new MatchingResource(ecrImageTag)],
+    [new MatchingResource(functionRole), new MatchingResource(ecrImageTag), new MatchingResource(logGroup)],
   );
 
   return new LambdaFunctionPermission(

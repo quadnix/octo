@@ -11,6 +11,7 @@ import {
 import { AwsDeploymentAnchorSchema } from '../../../anchors/aws-deployment/aws-deployment.anchor.schema.js';
 import { AwsServerlessEnvironmentAnchorSchema } from '../../../anchors/aws-environment/aws-serverless-environment.anchor.schema.js';
 import { AwsServerlessSubnetAnchorSchema } from '../../../anchors/aws-subnet/aws-serverless-subnet.anchor.schema.js';
+import type { CloudWatchLogGroupSchema } from '../../../resources/cloudwatch-log-group/index.schema.js';
 
 /**
  * `AwsLambdaExecutionModuleSchema` is the input schema for the `AwsLambdaExecutionModule` module.
@@ -92,6 +93,18 @@ export class AwsLambdaExecutionModuleSchema {
    */
   @Validate({ options: { regex: /^(BUFFERED|RESPONSE_STREAM)$/ } })
   invokeMode? = Schema<'BUFFERED' | 'RESPONSE_STREAM'>('BUFFERED');
+
+  /**
+   * How many days the function's logs are kept before CloudWatch deletes them: one of 1, 3, 5, 7, 14, 30,
+   * 60, 90, 120, 150, 180, 365, 400, 545, 731, 1096, 1827, 2192, 2557, 2922, 3288 or 3653.
+   */
+  @Validate({
+    destruct: (value: AwsLambdaExecutionModuleSchema['logRetentionInDays']): string[] => [String(value)],
+    options: {
+      regex: /^(1|3|5|7|14|30|60|90|120|150|180|365|400|545|731|1096|1827|2192|2557|2922|3288|3653)$/,
+    },
+  })
+  logRetentionInDays? = Schema<CloudWatchLogGroupSchema['properties']['retentionInDays']>(30);
 
   /**
    * How many instances of the function may run at once. They are reserved out of the account's

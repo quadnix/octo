@@ -1,4 +1,6 @@
 import { MatchingResource } from '@quadnix/octo';
+import { CloudWatchLogGroup } from '../cloudwatch-log-group/cloudwatch-log-group.resource.js';
+import type { CloudWatchLogGroupSchema } from '../cloudwatch-log-group/index.schema.js';
 import { DynamoDB } from '../dynamodb/dynamodb.resource.js';
 import type { DynamoDBSchema } from '../dynamodb/index.schema.js';
 import type { LambdaFunctionSchema } from '../lambda-function/index.schema.js';
@@ -35,6 +37,16 @@ function createTable(awsAccountId = '123456789012'): MatchingResource<DynamoDBSc
     TableName: 'accounts',
   });
   return new MatchingResource(table);
+}
+
+function createLogGroup(awsAccountId = '123456789012'): MatchingResource<CloudWatchLogGroupSchema> {
+  const logGroup = new CloudWatchLogGroup('cloudwatch-log-group-checkout', {
+    awsAccountId,
+    awsRegionId: 'us-east-1',
+    logGroupName: '/aws/lambda/checkout',
+    retentionInDays: 30,
+  });
+  return new MatchingResource(logGroup);
 }
 
 function createBucket(awsAccountId = '123456789012'): MatchingResource<S3StorageSchema> {
@@ -266,6 +278,38 @@ describe('IamRole UT', () => {
            "Effect": "Allow",
            "Resource": [
              "arn:aws:ses:us-east-1:123456789012:identity/example.com",
+           ],
+         },
+       ]
+      `);
+    });
+  });
+
+  describe('addCloudWatchLogGroupWritePolicy()', () => {
+    it('should refuse a log group in another account', () => {
+      expect(() =>
+        createIamRole().addCloudWatchLogGroupWritePolicy('test-role-logs', createLogGroup('999999999999')),
+      ).toThrow(
+        'Log group "/aws/lambda/checkout" is in account "999999999999", not in the role\'s account "123456789012"!',
+      );
+    });
+
+    it('should allow writing log events to the log group only', async () => {
+      const { emitted, terraform } = createRecordingScope();
+      const iamRole = createIamRole();
+      iamRole.addCloudWatchLogGroupWritePolicy('test-role-logs', createLogGroup());
+      await iamRole.toHCL(terraform);
+
+      expect(emitted.find((e) => e.type === 'aws_iam_policy')!.spec.policy.Statement).toMatchInlineSnapshot(`
+       [
+         {
+           "Action": [
+             "logs:CreateLogStream",
+             "logs:PutLogEvents",
+           ],
+           "Effect": "Allow",
+           "Resource": [
+             "arn:aws:logs:us-east-1:123456789012:log-group:/aws/lambda/checkout:*",
            ],
          },
        ]

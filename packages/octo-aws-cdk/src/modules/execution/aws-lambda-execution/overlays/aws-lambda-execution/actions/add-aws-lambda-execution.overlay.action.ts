@@ -14,6 +14,7 @@ import {
 import { AwsDynamoDBAnchorSchema } from '../../../../../../anchors/aws-dynamodb/aws-dynamodb.anchor.schema.js';
 import { AwsLambdaFunctionAnchorSchema } from '../../../../../../anchors/aws-lambda/aws-lambda-function.anchor.schema.js';
 import { AwsS3StorageServiceAccessPrefixAnchorSchema } from '../../../../../../anchors/aws-s3-storage-service/aws-s3-storage-service-access-prefix.anchor.schema.js';
+import { CloudWatchLogGroup } from '../../../../../../resources/cloudwatch-log-group/index.js';
 import { DynamoDBSchema } from '../../../../../../resources/dynamodb/index.schema.js';
 import { EcrImageTagSchema } from '../../../../../../resources/ecr-image-tag/index.schema.js';
 import { IamRole } from '../../../../../../resources/iam-role/index.js';
@@ -91,7 +92,15 @@ export class AddAwsLambdaExecutionOverlayAction implements IModelAction<AwsLambd
       );
     }
 
-    // Create IAM Role. It gets no permission to write logs, so Lambda creates no log group.
+    // Create the log group the function writes to, under the name Lambda gives a function's log group.
+    const logGroup = new CloudWatchLogGroup(`cloudwatch-log-group-${lambdaExecutionAnchorProperties.functionName}`, {
+      awsAccountId,
+      awsRegionId,
+      logGroupName: `/aws/lambda/${lambdaExecutionAnchorProperties.functionName}`,
+      retentionInDays: properties.logRetentionInDays,
+    });
+
+    // Create IAM Role. It may write to the log group, and create none of its own.
     const iamRole = new IamRole(`iam-role-${properties.iamRoleName}`, {
       awsAccountId,
       policies: [
@@ -103,6 +112,7 @@ export class AddAwsLambdaExecutionOverlayAction implements IModelAction<AwsLambd
       ],
       rolename: properties.iamRoleName,
     });
+    iamRole.addCloudWatchLogGroupWritePolicy(`${properties.iamRoleName}-logs`, new MatchingResource(logGroup));
 
     // Grant the role each bucket prefix, and admit the role to each bucket. A bucket is found through
     // the access prefix anchor this overlay joins.
@@ -240,9 +250,10 @@ export class AddAwsLambdaExecutionOverlayAction implements IModelAction<AwsLambd
         reservedConcurrency: properties.reservedConcurrency,
         timeoutInSeconds: properties.deploymentContainerProperties.timeoutInSeconds,
       },
-      [new MatchingResource(iamRole), matchingEcrImageTagResource],
+      [new MatchingResource(iamRole), matchingEcrImageTagResource, new MatchingResource(logGroup)],
     );
 
+    actionOutputs[logGroup.resourceId] = logGroup;
     actionOutputs[iamRole.resourceId] = iamRole;
     actionOutputs[lambdaFunction.resourceId] = lambdaFunction;
 

@@ -16,6 +16,7 @@ import type { AwsEcsAlbAnchorSchema } from '../../../anchors/aws-ecs/aws-ecs-alb
 import type { AwsLambdaFunctionAnchorSchema } from '../../../anchors/aws-lambda/aws-lambda-function.anchor.schema.js';
 import type { AwsS3StorageServiceAnchorSchema } from '../../../anchors/aws-s3-storage-service/aws-s3-storage-service.anchor.schema.js';
 import { Alb } from '../../../resources/alb/index.js';
+import { CloudWatchLogGroup } from '../../../resources/cloudwatch-log-group/index.js';
 import { EcrImage } from '../../../resources/ecr/index.js';
 import { EcrImageTag } from '../../../resources/ecr-image-tag/index.js';
 import { IamRole } from '../../../resources/iam-role/index.js';
@@ -113,7 +114,7 @@ async function setupLambdaFunction(
     ),
   );
 
-  const [iamRole, ecrImage, ecrImageTag, lambdaFunction] = AResource.constructInScope(scope, () => {
+  const [iamRole, ecrImage, ecrImageTag, logGroup, lambdaFunction] = AResource.constructInScope(scope, () => {
     const iamRole = new IamRole(`iam-role-ExecutionRole-backend-${awsRegionId}`, {
       awsAccountId: '123',
       policies: [
@@ -141,6 +142,12 @@ async function setupLambdaFunction(
       },
       [new MatchingResource(ecrImage)],
     );
+    const logGroup = new CloudWatchLogGroup('cloudwatch-log-group-backend', {
+      awsAccountId: '123',
+      awsRegionId,
+      logGroupName: '/aws/lambda/backend',
+      retentionInDays: 30,
+    });
     const lambdaFunction = new LambdaFunction(
       'lambda-function-backend',
       {
@@ -156,12 +163,12 @@ async function setupLambdaFunction(
         reservedConcurrency: null,
         timeoutInSeconds,
       },
-      [new MatchingResource(iamRole), new MatchingResource(ecrImageTag)],
+      [new MatchingResource(iamRole), new MatchingResource(ecrImageTag), new MatchingResource(logGroup)],
     );
 
-    return [iamRole, ecrImage, ecrImageTag, lambdaFunction] as const;
+    return [iamRole, ecrImage, ecrImageTag, logGroup, lambdaFunction] as const;
   });
-  await testModuleContainer.createResources(moduleId, [iamRole, ecrImage, ecrImageTag, lambdaFunction], {
+  await testModuleContainer.createResources(moduleId, [iamRole, ecrImage, ecrImageTag, logGroup, lambdaFunction], {
     save: true,
   });
 

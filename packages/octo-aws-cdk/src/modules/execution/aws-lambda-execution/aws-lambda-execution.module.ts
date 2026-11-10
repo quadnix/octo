@@ -205,6 +205,7 @@ export class AwsLambdaExecutionModule extends AModule<AwsLambdaExecutionModuleSc
         grants,
         iamRoleName,
         invokeMode: inputs.invokeMode!,
+        logRetentionInDays: inputs.logRetentionInDays!,
         reservedConcurrency: inputs.reservedConcurrency!,
         serverKey: server.serverKey,
       },

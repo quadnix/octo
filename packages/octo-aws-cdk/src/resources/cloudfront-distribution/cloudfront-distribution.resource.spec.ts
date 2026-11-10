@@ -1,6 +1,7 @@
 import { MatchingResource } from '@quadnix/octo';
 import { Alb } from '../alb/index.js';
 import { CloudFrontFunction } from '../cloudfront-function/index.js';
+import { CloudWatchLogGroup } from '../cloudwatch-log-group/cloudwatch-log-group.resource.js';
 import { EcrImage } from '../ecr/ecr-image.resource.js';
 import { EcrImageTag } from '../ecr-image-tag/ecr-image-tag.resource.js';
 import { IamRole } from '../iam-role/iam-role.resource.js';
@@ -100,6 +101,12 @@ function createLambdaFunction({ timeoutInSeconds = 30 }: { timeoutInSeconds?: nu
     },
     [new MatchingResource(ecrImage)],
   );
+  const logGroup = new CloudWatchLogGroup('cloudwatch-log-group-backend', {
+    awsAccountId: '123',
+    awsRegionId: 'us-east-1',
+    logGroupName: '/aws/lambda/backend',
+    retentionInDays: 30,
+  });
   return new LambdaFunction(
     'lambda-function-backend',
     {
@@ -115,7 +122,7 @@ function createLambdaFunction({ timeoutInSeconds = 30 }: { timeoutInSeconds?: nu
       reservedConcurrency: null,
       timeoutInSeconds,
     },
-    [new MatchingResource(iamRole), new MatchingResource(ecrImageTag)],
+    [new MatchingResource(iamRole), new MatchingResource(ecrImageTag), new MatchingResource(logGroup)],
   );
 }
 

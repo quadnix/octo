@@ -29,6 +29,11 @@ export type IIamRolePolicyTypes = {
   'aws-policy': string;
 
   /**
+   * You can provide a log group in the role's own account the role may write log events to.
+   */
+  'cloudwatch-log-group-write-policy': IIamRoleCloudWatchLogGroupWritePolicy;
+
+  /**
    * You can provide options to create a policy for accessing a DynamoDB table.
    */
   'dynamodb-table-access-policy': IIamRoleDynamoDBTablePolicy;
@@ -48,6 +53,23 @@ export type IIamRolePolicyTypes = {
    */
   's3-storage-access-policy': IIamRoleS3BucketPolicy;
 };
+
+/**
+ * Defines one log group an IAM role may write log events to.
+ *
+ * @group Resources/IamRole
+ */
+export interface IIamRoleCloudWatchLogGroupWritePolicy {
+  /**
+   * The AWS region the log group is in. The log group is in the role's own account.
+   */
+  awsRegionId: string;
+
+  /**
+   * The name of the log group.
+   */
+  logGroupName: string;
+}
 
 /**
  * Defines one Lambda function an IAM role may invoke. The function may be in any account.

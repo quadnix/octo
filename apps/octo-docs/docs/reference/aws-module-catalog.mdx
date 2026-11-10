@@ -73,14 +73,14 @@ not anything is running behind it.
 
 ## Servers, deployments, and executions
 
-| Module                           | Inputs                                                                                                                                     | Creates                                                |
-|----------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------|
-| `AwsServerModule`                | `account`, `serverKey`, `s3?`, `dynamodb?`, `lambda?`, `iamStatements?`, `securityGroupRules?`                                             |                                                        |
-| `AwsDeploymentModule`            | `server`, `deploymentTag`, `image?` and `imageTag?` or `imageUri?`, `command?`, `ports?`, `cpu?`, `memory?`, `timeoutInSeconds?`           |                                                        |
-| `AwsEcsEnvironmentModule`        | `region`, `environmentName`, `environmentVariables?`                                                                                       | ECS cluster                                            |
-| `AwsServerlessEnvironmentModule` | `region`, `environmentName`, `environmentVariables?`                                                                                       |                                                        |
-| `AwsEcsExecutionModule`          | `deployments`, `environment`, `subnet`, `executionId`, `desiredCount`, `environmentVariables?`, `filesystems?`, `securityGroupRules?`      | IAM role, ECS service, task definition, security group |
-| `AwsLambdaExecutionModule`       | `deployment`, `environment`, `subnet`, `executionId`, `environmentVariables?`, `invokeMode?`, `reservedConcurrency?`                      | IAM role, Lambda function, function URL                |
+| Module                           | Inputs                                                                                                                                      | Creates                                                |
+|----------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------|
+| `AwsServerModule`                | `account`, `serverKey`, `s3?`, `dynamodb?`, `lambda?`, `iamStatements?`, `securityGroupRules?`                                              |                                                        |
+| `AwsDeploymentModule`            | `server`, `deploymentTag`, `image?` and `imageTag?` or `imageUri?`, `command?`, `ports?`, `cpu?`, `memory?`, `timeoutInSeconds?`            |                                                        |
+| `AwsEcsEnvironmentModule`        | `region`, `environmentName`, `environmentVariables?`                                                                                        | ECS cluster                                            |
+| `AwsServerlessEnvironmentModule` | `region`, `environmentName`, `environmentVariables?`                                                                                        |                                                        |
+| `AwsEcsExecutionModule`          | `deployments`, `environment`, `subnet`, `executionId`, `desiredCount`, `environmentVariables?`, `filesystems?`, `securityGroupRules?`       | IAM role, ECS service, task definition, security group |
+| `AwsLambdaExecutionModule`       | `deployment`, `environment`, `subnet`, `executionId`, `environmentVariables?`, `invokeMode?`, `logRetentionInDays?`, `reservedConcurrency?` | IAM role, log group, Lambda function, function URL     |
 
 These are one story told in parts. A server is the logical microservice: what its code may reach,
 and its network rules. A deployment is one version of its code: the container image, and what the
@@ -230,10 +230,13 @@ the account's concurrency so no other function can take them. Left out, nothing 
 nothing is capped. AWS keeps 10 of an account's concurrency unreserved, so an account whose limit is
 still 10, as a new account's often is, cannot reserve any: raise the limit first.
 
-The function's role is given no permission to write logs, so it writes none and Lambda creates no
-log group. `executionId` is at most fifty characters, because it names the role too. A function runs
-outside any VPC, so it ignores the server's `securityGroupRules`, which only an ECS execution
-applies. One server can run on both.
+The function writes its logs to a log group of its own, `/aws/lambda/<executionId>`, which keeps
+them for `logRetentionInDays`, 30 days unless set. Its role may write to that log group and create
+none, so Lambda never makes one outside Octo.
+
+`executionId` is at most fifty characters, because it names the role too. A function runs outside
+any VPC, so it ignores the server's `securityGroupRules`, which only an ECS execution applies. One
+server can run on both.
 
 A Lambda execution needs the `hashicorp/aws` provider 6.28.0 or later, so set `minVersion` under
 `terraform.requiredProviders` to at least that. An older provider fails the plan with

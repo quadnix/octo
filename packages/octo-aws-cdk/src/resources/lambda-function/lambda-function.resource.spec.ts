@@ -1,4 +1,6 @@
 import { DependencyRelationship, DiffAction, MatchingResource } from '@quadnix/octo';
+import { CloudWatchLogGroup } from '../cloudwatch-log-group/cloudwatch-log-group.resource.js';
+import type { CloudWatchLogGroupSchema } from '../cloudwatch-log-group/index.schema.js';
 import { EcrImage } from '../ecr/ecr-image.resource.js';
 import { EcrImageTag } from '../ecr-image-tag/ecr-image-tag.resource.js';
 import type { EcrImageTagSchema } from '../ecr-image-tag/index.schema.js';
@@ -26,7 +28,9 @@ function properties(overrides: Partial<Properties> = {}): Properties {
   };
 }
 
-function createParents(imageTag = '0.0.1'): [MatchingResource<IamRoleSchema>, MatchingResource<EcrImageTagSchema>] {
+function createParents(
+  imageTag = '0.0.1',
+): [MatchingResource<IamRoleSchema>, MatchingResource<EcrImageTagSchema>, MatchingResource<CloudWatchLogGroupSchema>] {
   const iamRole = new IamRole('iam-role-ExecutionRole-backend', {
     awsAccountId: '123456789012',
     policies: [
@@ -55,7 +59,14 @@ function createParents(imageTag = '0.0.1'): [MatchingResource<IamRoleSchema>, Ma
     [new MatchingResource(ecrImage)],
   );
 
-  return [new MatchingResource(iamRole), new MatchingResource(ecrImageTag)];
+  const logGroup = new CloudWatchLogGroup('cloudwatch-log-group-backend', {
+    awsAccountId: '123456789012',
+    awsRegionId: 'us-east-1',
+    logGroupName: '/aws/lambda/backend',
+    retentionInDays: 30,
+  });
+
+  return [new MatchingResource(iamRole), new MatchingResource(ecrImageTag), new MatchingResource(logGroup)];
 }
 
 function createLambdaFunction(overrides: Partial<Properties> = {}, imageTag?: string): LambdaFunction {
@@ -201,6 +212,10 @@ describe('LambdaFunction UT', () => {
              ],
              "function_name": "backend",
              "image_uri": "ref(ecr-image-tag-us-east-1-family/image-0-0-1.imageUri)",
+             "logging_config": {
+               "log_format": "Text",
+               "log_group": "ref(cloudwatch-log-group-backend.LogGroupName)",
+             },
              "memory_size": 512,
              "package_type": "Image",
              "role": "ref(iam-role-ExecutionRole-backend.Arn)",
