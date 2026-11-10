@@ -288,7 +288,9 @@ export class ResourceDataRepository {
       }
     }
 
-    // Keep every parent named: a committed one as it was, else hold its child back the same way.
+    // Keep every parent named: a committed one as it was, else hold its child back the same way. A
+    // parent neither graph holds is another app's, which this state only copies.
+    const desired = new Set(this.newResources.map((r) => r.getContext()));
     const heldBackResourceContexts: string[] = [];
     let isClosed = false;
     while (!isClosed) {
@@ -296,7 +298,10 @@ export class ResourceDataRepository {
       for (const [context, resource] of actual) {
         const missingParentContext = resource.parents
           .map((p) => (p instanceof MatchingResource ? p.getActual() : p).getContext())
-          .find((parentContext) => !actual.has(parentContext));
+          .find(
+            (parentContext) =>
+              !actual.has(parentContext) && (desired.has(parentContext) || committed.has(parentContext)),
+          );
         if (missingParentContext === undefined) {
           continue;
         }

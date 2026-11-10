@@ -140,5 +140,27 @@ describe('ResourceDataRepository UT', () => {
       ).toEqual(['@octo/test-resource=resource-1', '@octo/test-resource=resource-2']);
       expect(resourceDataRepository.getNewResourceByContext('@octo/test-resource=resource-2')).toBeDefined();
     });
+
+    it("should keep a resource standing on another app's resource, which neither graph holds", async () => {
+      const resourceDataRepository = await container.get(ResourceDataRepository);
+
+      await createTestResources([
+        { resourceContext: '@octo/test-resource=resource-1' },
+        { parents: ['@octo/test-resource=resource-1'], resourceContext: '@octo/test-resource=resource-2' },
+      ]);
+      await commitResources();
+      // The next run declares resource-2 again; resource-1 is another app's, which this state only copies.
+      resourceDataRepository.addNewResource(
+        resourceDataRepository.getActualResourceByContext('@octo/test-resource=resource-2')!,
+      );
+      resourceDataRepository['actualResources'] = resourceDataRepository['actualResources'].filter(
+        (r) => r.getContext() !== '@octo/test-resource=resource-1',
+      );
+
+      expect(resourceDataRepository.syncActualToNew()).toEqual([]);
+      expect(resourceDataRepository.getActualResourcesByProperties().map((r) => r.getContext())).toEqual([
+        '@octo/test-resource=resource-2',
+      ]);
+    });
   });
 });
