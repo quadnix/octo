@@ -1,6 +1,6 @@
 import { CloudFrontClient } from '@aws-sdk/client-cloudfront';
 import { ECRClient } from '@aws-sdk/client-ecr';
-import { Container, ContainerResolutionError, Factory } from '@quadnix/octo';
+import { type Account, Container, ContainerResolutionError, Factory } from '@quadnix/octo';
 import type { AwsCredentialIdentity, AwsCredentialIdentityProvider } from '@smithy/types';
 
 /**
@@ -22,7 +22,8 @@ export type AwsClientCredentials = AwsCredentialIdentity | AwsCredentialIdentity
  * the account that owns the resource rather than as whoever the ambient credential chain happens to
  * name. An app spanning two accounts depends on that being per-account.
  *
- * The credentials, and any endpoint overrides, are registered by the account module against the
+ * The credentials are the account model's own, whether this app declared the account or read it
+ * from another app's state. Any endpoint overrides are registered by the account module against the
  * account id. A subclass supplies the service name and builds the client.
  *
  * @internal
@@ -101,7 +102,8 @@ class AwsClientFactory {
     const container = Container.getInstance();
     const metadata = { awsAccountId, package: '@octo' };
 
-    const credentials = await container.get<AwsClientCredentials>('AwsCredentialIdentityProvider', { metadata });
+    const account = await container.get<Account>('Account', { metadata: { accountId: awsAccountId } });
+    const credentials = account.getCredentials() as AwsClientCredentials;
 
     // An account pointed at a local stand-in registers one endpoint per service it serves.
     let endpoint: string | undefined;

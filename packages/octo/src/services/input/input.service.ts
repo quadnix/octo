@@ -3,6 +3,7 @@ import { Factory } from '../../decorators/factory.decorator.js';
 import { InputRegistrationError, InputResolutionError } from '../../errors/index.js';
 import { Container } from '../../functions/container/container.js';
 import type { ANode } from '../../functions/node/node.abstract.js';
+import type { Account } from '../../models/account/account.model.js';
 import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
 import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
 import { ObjectUtility } from '../../utilities/object/object.utility.js';
@@ -224,6 +225,13 @@ export class InputService {
     }
 
     this.models[modelKey] = model;
+
+    // Whatever builds a client for an account reads its credentials off the model, whether the app
+    // declared the account or read it from another app's state.
+    if ((model.constructor as typeof ANode).NODE_NAME === 'account') {
+      const { accountId } = model as Account;
+      Container.getInstance().replaceValue('Account', model, { metadata: { accountId } });
+    }
   }
 
   /**

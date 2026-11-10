@@ -108,6 +108,15 @@ describe('InputService UT', () => {
 
       expect(inputService.resolve('module2.model.app')).toBe(app);
     });
+
+    it('should serve an account through the container by its id', async () => {
+      const {
+        account: [account],
+      } = create({ account: ['aws,123456789012'], app: ['test-app'] });
+      inputService.registerModel('module1', account);
+
+      await expect(container.get('Account', { metadata: { accountId: '123456789012' } })).resolves.toBe(account);
+    });
   });
 
   describe('registerResource()', () => {

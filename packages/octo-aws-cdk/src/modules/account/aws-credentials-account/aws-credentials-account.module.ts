@@ -49,9 +49,8 @@ export class AwsCredentialsAccountModule extends AModule<AwsCredentialsAccountMo
     // Add anchors.
     account.addAnchor(new AwsAccountAnchor('AwsAccountAnchor', { awsAccountId: inputs.accountId }, account));
 
-    // Register AWS credentials, and any endpoint overrides, against the account they belong to.
+    // Register any endpoint overrides against the account they belong to.
     const metadata = { awsAccountId: inputs.accountId, package: '@octo' };
-    container.replaceValue('AwsCredentialIdentityProvider', account.getCredentials(), { metadata });
     if (Object.keys(inputs.endpoints!).length > 0) {
       container.replaceValue('AwsServiceEndpoints', inputs.endpoints!, { metadata });
     }

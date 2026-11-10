@@ -4,6 +4,13 @@ import { ECRClientFactory } from './aws-client.factory.js';
 
 const CREDENTIALS = { accessKeyId: 'key-of-account', secretAccessKey: 'secret-of-account' };
 
+/**
+ * Declares an account holding {@link CREDENTIALS}, as registering its model does.
+ */
+function registerAccount(container: Container, accountId: string): void {
+  container.registerValue('Account', { getCredentials: () => CREDENTIALS }, { metadata: { accountId } });
+}
+
 describe('AwsClientFactory UT', () => {
   let container: Container;
 
@@ -30,9 +37,7 @@ describe('AwsClientFactory UT', () => {
     });
 
     it('should build the client with the account own credentials, not the ambient ones', async () => {
-      container.registerValue('AwsCredentialIdentityProvider', CREDENTIALS, {
-        metadata: { awsAccountId: '123456789012', package: '@octo' },
-      });
+      registerAccount(container, '123456789012');
 
       const client = await ECRClientFactory.create('123456789012', 'us-east-1');
 
@@ -44,9 +49,7 @@ describe('AwsClientFactory UT', () => {
 
     it('should keep one client per account and region', async () => {
       for (const awsAccountId of ['123456789012', '999999999999']) {
-        container.registerValue('AwsCredentialIdentityProvider', CREDENTIALS, {
-          metadata: { awsAccountId, package: '@octo' },
-        });
+        registerAccount(container, awsAccountId);
       }
 
       const [first, again, otherRegion, otherAccount] = await Promise.all([
@@ -63,7 +66,7 @@ describe('AwsClientFactory UT', () => {
 
     it('should leave a service with no override to the SDK', async () => {
       const metadata = { awsAccountId: '123456789012', package: '@octo' };
-      container.registerValue('AwsCredentialIdentityProvider', CREDENTIALS, { metadata });
+      registerAccount(container, '123456789012');
       container.registerValue('AwsServiceEndpoints', { s3: 'http://localhost:4566' }, { metadata });
 
       const ecrClient = await ECRClientFactory.create('123456789012', 'us-east-1');
@@ -73,7 +76,7 @@ describe('AwsClientFactory UT', () => {
 
     it('should apply the endpoint override of its own service', async () => {
       const metadata = { awsAccountId: '123456789012', package: '@octo' };
-      container.registerValue('AwsCredentialIdentityProvider', CREDENTIALS, { metadata });
+      registerAccount(container, '123456789012');
       container.registerValue('AwsServiceEndpoints', { ecr: 'http://localhost:4566' }, { metadata });
 
       const ecrClient = await ECRClientFactory.create('123456789012', 'us-east-1');
@@ -95,9 +98,7 @@ describe('ECRClient factory registration UT', () => {
   it('should serve an ECRClient through the container', async () => {
     ECRClientFactory.reset();
     const container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
-    container.registerValue('AwsCredentialIdentityProvider', CREDENTIALS, {
-      metadata: { awsAccountId: '123456789012', package: '@octo' },
-    });
+    registerAccount(container, '123456789012');
 
     const client = await container.get<ECRClient, typeof ECRClientFactory>(ECRClient, {
       args: ['123456789012', 'us-east-1'],
