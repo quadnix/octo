@@ -1,4 +1,5 @@
 import { BaseOverlaySchema, Schema, type SubnetType, Validate } from '@quadnix/octo';
+import type { CloudWatchLogGroupSchema } from '../../../../../resources/cloudwatch-log-group/index.schema.js';
 import {
   EcsTaskDefinitionImageSchema,
   EcsTaskDefinitionSchema,
@@ -48,6 +49,7 @@ export class AwsEcsExecutionOverlaySchema extends BaseOverlaySchema {
       s3: { accessPrefix: string; allowRead: boolean; allowWrite: boolean; bucketName: string }[];
     };
     iamRoleName: string;
+    logRetentionInDays: CloudWatchLogGroupSchema['properties']['retentionInDays'];
     regionId: string;
     serverKey: string;
     subnetId: string;

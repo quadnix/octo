@@ -20,6 +20,7 @@ import { AwsEfsAnchorSchema } from '../../../../../../anchors/aws-efs/aws-efs.an
 import { AwsLambdaFunctionAnchorSchema } from '../../../../../../anchors/aws-lambda/aws-lambda-function.anchor.schema.js';
 import { AwsS3StorageServiceAccessPrefixAnchorSchema } from '../../../../../../anchors/aws-s3-storage-service/aws-s3-storage-service-access-prefix.anchor.schema.js';
 import { AwsSubnetLocalFilesystemMountAnchorSchema } from '../../../../../../anchors/aws-subnet/aws-subnet-local-filesystem-mount.anchor.schema.js';
+import { CloudWatchLogGroup } from '../../../../../../resources/cloudwatch-log-group/index.js';
 import { DynamoDBSchema } from '../../../../../../resources/dynamodb/index.schema.js';
 import { EcrImageTagSchema } from '../../../../../../resources/ecr-image-tag/index.schema.js';
 import { EcsClusterSchema } from '../../../../../../resources/ecs-cluster/index.schema.js';
@@ -88,6 +89,15 @@ export class AddAwsEcsExecutionOverlayAction implements IModelAction<AwsEcsExecu
         environmentVariables.push({ name: key, value });
       }
     }
+
+    // Create the log group the containers write to. The role's AmazonECSTaskExecutionRolePolicy lets ECS
+    // write to it, and create none of its own.
+    const logGroup = new CloudWatchLogGroup(`cloudwatch-log-group-${properties.executionId}`, {
+      awsAccountId,
+      awsRegionId,
+      logGroupName: `/ecs/${properties.executionId}`,
+      retentionInDays: properties.logRetentionInDays,
+    });
 
     // Create IAM Role.
     const iamRole = new IamRole(`iam-role-${properties.iamRoleName}`, {
@@ -319,7 +329,7 @@ export class AddAwsEcsExecutionOverlayAction implements IModelAction<AwsEcsExecu
         images: properties.deploymentContainerProperties.images,
         memory: properties.deploymentContainerProperties.memory,
       },
-      [new MatchingResource(iamRole), ...ecrImageTagList, ...efsList],
+      [new MatchingResource(iamRole), new MatchingResource(logGroup), ...ecrImageTagList, ...efsList],
     );
 
     // Get matching ECS Cluster resource, from the environment the cluster anchor belongs to.
@@ -379,6 +389,8 @@ export class AddAwsEcsExecutionOverlayAction implements IModelAction<AwsEcsExecu
         matchingExecutionSGResource,
       ],
     );
+
+    actionOutputs[logGroup.resourceId] = logGroup;
 
     actionOutputs[iamRole.resourceId] = iamRole;
 

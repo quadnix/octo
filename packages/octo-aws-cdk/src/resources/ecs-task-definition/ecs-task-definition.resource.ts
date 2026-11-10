@@ -13,6 +13,7 @@ import {
 } from '@quadnix/octo';
 import { EcrImageUriUtility } from '../../utilities/ecr-image-uri/ecr-image-uri.utility.js';
 import { TaskDefinitionUtility } from '../../utilities/task-definition/task-definition.utility.js';
+import type { CloudWatchLogGroupSchema } from '../cloudwatch-log-group/index.schema.js';
 import type { EcrImageTagSchema } from '../ecr-image-tag/index.schema.js';
 import type { EfsSchema } from '../efs/index.schema.js';
 import type { IamRoleSchema } from '../iam-role/index.schema.js';
@@ -27,6 +28,7 @@ import { EcsTaskDefinitionSchema } from './index.schema.js';
 export class EcsTaskDefinition extends ATerraformResource<EcsTaskDefinitionSchema, EcsTaskDefinition> {
   declare parents: [
     MatchingResource<IamRoleSchema>,
+    MatchingResource<CloudWatchLogGroupSchema>,
     ...(MatchingResource<EcrImageTagSchema> | MatchingResource<EfsSchema>)[],
   ];
   declare properties: EcsTaskDefinitionSchema['properties'];
@@ -40,6 +42,7 @@ export class EcsTaskDefinition extends ATerraformResource<EcsTaskDefinitionSchem
     properties: EcsTaskDefinitionSchema['properties'],
     parents: [
       MatchingResource<IamRoleSchema>,
+      MatchingResource<CloudWatchLogGroupSchema>,
       ...(MatchingResource<EcrImageTagSchema> | MatchingResource<EfsSchema>)[],
     ],
   ) {
@@ -63,6 +66,12 @@ export class EcsTaskDefinition extends ATerraformResource<EcsTaskDefinitionSchem
     for (let i = diffs.length - 1; i >= 0; i--) {
       if (diffs[i].field === 'parent' && hasNodeName(diffs[i].value as AResource<any, any>, 'iam-role')) {
         // Skip updating TaskDefinition when iam-role is updated.
+        diffs.splice(i, 1);
+      } else if (
+        diffs[i].field === 'parent' &&
+        hasNodeName(diffs[i].value as AResource<any, any>, 'cloudwatch-log-group')
+      ) {
+        // Skip updating TaskDefinition when its cloudwatch-log-group is updated.
         diffs.splice(i, 1);
       } else if (diffs[i].field === 'parent' && hasNodeName(diffs[i].value as AResource<any, any>, 'ecr-image-tag')) {
         // Skip updating TaskDefinition when an ecr-image-tag is added or removed: the image a
@@ -119,6 +128,7 @@ export class EcsTaskDefinition extends ATerraformResource<EcsTaskDefinitionSchem
    */
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {
     const iamRoleParent = this.parents[0] as MatchingResource<IamRoleSchema>;
+    const logGroupParent = this.parents[1] as MatchingResource<CloudWatchLogGroupSchema>;
     const efsParents = this.getEfsParents();
     const imageTagParents = this.getEcrImageTagParents();
 
@@ -127,6 +137,15 @@ export class EcsTaskDefinition extends ATerraformResource<EcsTaskDefinitionSchem
       environment: this.properties.environmentVariables,
       essential: image.essential,
       image: this.resolveImageReference(terraform, image.uri, imageTagParents),
+      // The log group is a parent only to be waited for: a task started before it exists fails to log.
+      logConfiguration: {
+        logDriver: 'awslogs',
+        options: {
+          'awslogs-group': terraform.getRef(logGroupParent, 'LogGroupName'),
+          'awslogs-region': this.properties.awsRegionId,
+          'awslogs-stream-prefix': image.name,
+        },
+      },
       mountPoints: efsParents.map((efs) => ({
         containerPath: `/mnt/${efs.getSchemaInstance().properties.filesystemName}`,
         readOnly: false,

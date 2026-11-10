@@ -665,6 +665,12 @@ describe('AwsEcsExecutionModule UT', () => {
        depends_on = [aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-94a6a9]
      }
 
+     resource "aws_cloudwatch_log_group" "cloudwatch-log-group-backend-v1-region-qa-private-subnet-94a6a9" {
+       provider = aws._123-us-east-1
+       name = "/ecs/backend-v1-region-qa-private-subnet"
+       retention_in_days = 30
+     }
+
      resource "aws_iam_role" "iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9" {
        provider = aws._123-us-east-1
        assume_role_policy = jsonencode({
@@ -699,6 +705,14 @@ describe('AwsEcsExecutionModule UT', () => {
              }]
            essential = true
            image = "docker.io"
+           logConfiguration = {
+             logDriver = "awslogs"
+             options = {
+               awslogs-group = aws_cloudwatch_log_group.cloudwatch-log-group-backend-v1-region-qa-private-subnet-94a6a9.name
+               awslogs-region = "us-east-1"
+               awslogs-stream-prefix = "backend-v1"
+             }
+           }
            mountPoints = []
            name = "backend-v1"
            portMappings = [{
@@ -742,6 +756,14 @@ describe('AwsEcsExecutionModule UT', () => {
 
      output "sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-94a6a9-GroupId" {
        value = aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-94a6a9.id
+     }
+
+     output "cloudwatch-log-group-backend-v1-region-qa-private-subnet-94a6a9-Arn" {
+       value = aws_cloudwatch_log_group.cloudwatch-log-group-backend-v1-region-qa-private-subnet-94a6a9.arn
+     }
+
+     output "cloudwatch-log-group-backend-v1-region-qa-private-subnet-94a6a9-LogGroupName" {
+       value = aws_cloudwatch_log_group.cloudwatch-log-group-backend-v1-region-qa-private-subnet-94a6a9.name
      }
 
      output "iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9-Arn" {
@@ -966,6 +988,7 @@ describe('AwsEcsExecutionModule UT', () => {
     expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
        "+ @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-94a6a9",
+       "+ @octo/cloudwatch-log-group=cloudwatch-log-group-backend-v1-region-qa-private-subnet-94a6a9",
        "+ @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
        "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
        "+ @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet-94a6a9",
@@ -1008,6 +1031,7 @@ describe('AwsEcsExecutionModule UT', () => {
     expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`
      [
        "+ @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-94a6a9",
+       "+ @octo/cloudwatch-log-group=cloudwatch-log-group-backend-v1-region-qa-private-subnet-94a6a9",
        "+ @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
        "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
        "+ @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet-94a6a9",
@@ -1260,6 +1284,7 @@ describe('AwsEcsExecutionModule UT', () => {
     expect(deleteResult.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(deleteResult.resourceDiffs)).toMatchInlineSnapshot(`
      [
+       "- @octo/cloudwatch-log-group=cloudwatch-log-group-backend-v1-region-qa-private-subnet-94a6a9",
        "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
        "- @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
        "- @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet-94a6a9",
@@ -1307,6 +1332,7 @@ describe('AwsEcsExecutionModule UT', () => {
     expect(testModuleContainer.digestDiffs(resourceDiffsCreate)).toMatchInlineSnapshot(`
      [
        "+ @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-94a6a9",
+       "+ @octo/cloudwatch-log-group=cloudwatch-log-group-backend-v1-region-qa-private-subnet-94a6a9",
        "+ @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
        "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
        "+ @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet-94a6a9",
@@ -1348,6 +1374,7 @@ describe('AwsEcsExecutionModule UT', () => {
     expect(updateTags.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(updateTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
+       "* @octo/cloudwatch-log-group=cloudwatch-log-group-backend-v1-region-qa-private-subnet-94a6a9",
        "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
        "* @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet-94a6a9",
        "* @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-94a6a9",
@@ -1388,6 +1415,7 @@ describe('AwsEcsExecutionModule UT', () => {
     expect(deleteTags.hclDiff).toMatchSnapshot();
     expect(testModuleContainer.digestDiffs(deleteTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
+       "* @octo/cloudwatch-log-group=cloudwatch-log-group-backend-v1-region-qa-private-subnet-94a6a9",
        "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
        "* @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet-94a6a9",
        "* @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-94a6a9",
@@ -1597,12 +1625,14 @@ describe('AwsEcsExecutionModule UT', () => {
       expect(hclDiff).toMatchSnapshot();
       expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
        [
+         "- @octo/cloudwatch-log-group=cloudwatch-log-group-backend-v1-region-qa-private-subnet-94a6a9",
          "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
          "- @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
          "- @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet-94a6a9",
          "- @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-94a6a9",
          "- @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet-94a6a9",
          "+ @octo/security-group=sec-grp-SecurityGroup-changed-execution-id-94a6a9",
+         "+ @octo/cloudwatch-log-group=cloudwatch-log-group-changed-execution-id-94a6a9",
          "+ @octo/iam-role=iam-role-ExecutionRole-changed-execution-id-94a6a9",
          "* @octo/iam-role=iam-role-ExecutionRole-changed-execution-id-94a6a9",
          "+ @octo/ecs-task-definition=ecs-task-definition-changed-execution-id-94a6a9",
@@ -1768,6 +1798,53 @@ describe('AwsEcsExecutionModule UT', () => {
     expect(hclRender).toMatch(
       /moved \{\n\s+from = aws_ecs_service\.ecs-service-backend-v1-region-qa-private-subnet-\w+\n/,
     );
+    expect(hclRender).toMatch(
+      /moved \{\n\s+from = aws_cloudwatch_log_group\.cloudwatch-log-group-backend-v1-region-qa-private-subnet-\w+\n/,
+    );
+  });
+
+  it('should keep logs for 30 days by default', async () => {
+    await setup(testModuleContainer);
+    const { hclRender } = (
+      await testModuleContainer
+        .runModules<AwsEcsExecutionModule>(
+          { inputs: executionInputs(), moduleId: 'execution', type: AwsEcsExecutionModule },
+          { terraformTarget: 'skip' },
+        )
+        .next()
+    ).value!;
+
+    expect(hclRender).toMatch(/retention_in_days\s*=\s*30/);
+  });
+
+  it('should update only the log group when the log retention moves', async () => {
+    await setup(testModuleContainer);
+    await testModuleContainer
+      .runModules<AwsEcsExecutionModule>(
+        { inputs: executionInputs(), moduleId: 'execution', type: AwsEcsExecutionModule },
+        { terraformTarget: 'skip' },
+      )
+      .next();
+
+    await setup(testModuleContainer);
+    const { resourceDiffs } = (
+      await testModuleContainer
+        .runModules<AwsEcsExecutionModule>(
+          {
+            inputs: { ...executionInputs(), logRetentionInDays: 90 },
+            moduleId: 'execution',
+            type: AwsEcsExecutionModule,
+          },
+          { terraformTarget: 'skip' },
+        )
+        .next()
+    ).value!;
+
+    expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
+     [
+       "* @octo/cloudwatch-log-group=cloudwatch-log-group-backend-v1-region-qa-private-subnet-94a6a9",
+     ]
+    `);
   });
 
   // The binding shows in two places, and both are needed. In the resource graph it holds a published
@@ -1788,6 +1865,7 @@ describe('AwsEcsExecutionModule UT', () => {
 
     expect(taskDefinitionParents(resourceDiffs)).toEqual([
       '@octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9',
+      '@octo/cloudwatch-log-group=cloudwatch-log-group-backend-v1-region-qa-private-subnet-94a6a9',
       '@octo/ecr-image-tag=ecr-image-tag-us-east-1-family/image-0-0-1',
     ]);
 
@@ -1832,6 +1910,7 @@ describe('AwsEcsExecutionModule UT', () => {
 
     expect(taskDefinitionParents(resourceDiffs)).toEqual([
       '@octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9',
+      '@octo/cloudwatch-log-group=cloudwatch-log-group-backend-v1-region-qa-private-subnet-94a6a9',
     ]);
 
     // There is no resource behind the image, so the container names it by URI and nothing orders it.
@@ -1854,6 +1933,7 @@ describe('AwsEcsExecutionModule UT', () => {
      [
        "* @octo/s3-storage=bucket-test-bucket",
        "+ @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-94a6a9",
+       "+ @octo/cloudwatch-log-group=cloudwatch-log-group-backend-v1-region-qa-private-subnet-94a6a9",
        "+ @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
        "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
        "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-94a6a9",
@@ -1914,6 +1994,7 @@ describe('AwsEcsExecutionModule UT', () => {
     expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
        "+ @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-20d169",
+       "+ @octo/cloudwatch-log-group=cloudwatch-log-group-backend-v1-region-qa-private-subnet-20d169",
        "+ @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-20d169",
        "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-20d169",
        "+ @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet-20d169",
@@ -1945,6 +2026,7 @@ describe('AwsEcsExecutionModule UT', () => {
     expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
      [
        "+ @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-f33ddc",
+       "+ @octo/cloudwatch-log-group=cloudwatch-log-group-backend-v1-region-qa-private-subnet-f33ddc",
        "+ @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-f33ddc",
        "* @octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-f33ddc",
        "+ @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet-f33ddc",
@@ -1975,6 +2057,7 @@ describe('AwsEcsExecutionModule UT', () => {
     expect(taskDefinitionParents(resourceDiffs)).toMatchInlineSnapshot(`
      [
        "@octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-20d169",
+       "@octo/cloudwatch-log-group=cloudwatch-log-group-backend-v1-region-qa-private-subnet-20d169",
        "@octo/ecr-image-tag=ecr-image-tag-us-east-1-family/image-0-0-1",
        "@octo/ecr-image-tag=ecr-image-tag-us-east-1-family/image-0-0-2",
      ]
@@ -1996,6 +2079,7 @@ describe('AwsEcsExecutionModule UT', () => {
     expect(taskDefinitionParents(resourceDiffs)).toMatchInlineSnapshot(`
      [
        "@octo/iam-role=iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-20d169",
+       "@octo/cloudwatch-log-group=cloudwatch-log-group-backend-v1-region-qa-private-subnet-20d169",
        "@octo/ecr-image-tag=ecr-image-tag-us-east-1-family/image-0-0-1",
      ]
     `);

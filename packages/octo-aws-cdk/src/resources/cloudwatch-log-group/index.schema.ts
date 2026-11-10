@@ -10,7 +10,7 @@ import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
  *
  * @hideconstructor
  *
- * @overrideProperty resourceId - The resource id is of format `cloudwatch-log-group-<function-name>`.
+ * @overrideProperty resourceId - The resource id is of format `cloudwatch-log-group-<execution-id>`.
  */
 export class CloudWatchLogGroupSchema extends BaseResourceSchema {
   /**

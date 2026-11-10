@@ -1,4 +1,5 @@
 import { DependencyRelationship, DiffAction, MatchingResource } from '@quadnix/octo';
+import { CloudWatchLogGroup } from '../cloudwatch-log-group/index.js';
 import { EcrImage } from '../ecr/index.js';
 import type { EcrImageSchema } from '../ecr/index.schema.js';
 import { EcrImageTag } from '../ecr-image-tag/index.js';
@@ -41,9 +42,17 @@ function createIamRole(): IamRole {
   });
 }
 
-function createEcsTaskDefinition(
-  parents: [MatchingResource<IamRoleSchema>, ...MatchingResource<EcrImageTagSchema>[]],
-): EcsTaskDefinition {
+function createEcsTaskDefinition([iamRole, ...imageTags]: [
+  MatchingResource<IamRoleSchema>,
+  ...MatchingResource<EcrImageTagSchema>[],
+]): EcsTaskDefinition {
+  const logGroup = new CloudWatchLogGroup('cloudwatch-log-group-backend', {
+    awsAccountId: '123456789012',
+    awsRegionId: 'us-east-1',
+    logGroupName: '/ecs/backend',
+    retentionInDays: 30,
+  });
+
   return new EcsTaskDefinition(
     'ecs-task-definition-backend',
     {
@@ -57,7 +66,7 @@ function createEcsTaskDefinition(
       images: [{ command: [], essential: true, name: 'backend', ports: [], uri: IMAGE_URI }],
       memory: 512,
     },
-    parents,
+    [iamRole, new MatchingResource(logGroup), ...imageTags],
   );
 }
 

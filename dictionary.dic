@@ -12,6 +12,7 @@ arn
 arns
 ascii
 aws
+awslogs
 awsvpc
 balancer
 balancers

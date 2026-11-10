@@ -73,14 +73,14 @@ not anything is running behind it.
 
 ## Servers, deployments, and executions
 
-| Module                           | Inputs                                                                                                                                      | Creates                                                |
-|----------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------|
-| `AwsServerModule`                | `account`, `serverKey`, `s3?`, `dynamodb?`, `lambda?`, `iamStatements?`, `securityGroupRules?`                                              |                                                        |
-| `AwsDeploymentModule`            | `server`, `deploymentTag`, `image?` and `imageTag?` or `imageUri?`, `command?`, `ports?`, `cpu?`, `memory?`, `timeoutInSeconds?`            |                                                        |
-| `AwsEcsEnvironmentModule`        | `region`, `environmentName`, `environmentVariables?`                                                                                        | ECS cluster                                            |
-| `AwsServerlessEnvironmentModule` | `region`, `environmentName`, `environmentVariables?`                                                                                        |                                                        |
-| `AwsEcsExecutionModule`          | `deployments`, `environment`, `subnet`, `executionId`, `desiredCount`, `environmentVariables?`, `filesystems?`, `securityGroupRules?`       | IAM role, ECS service, task definition, security group |
-| `AwsLambdaExecutionModule`       | `deployment`, `environment`, `subnet`, `executionId`, `environmentVariables?`, `invokeMode?`, `logRetentionInDays?`, `reservedConcurrency?` | IAM role, log group, Lambda function, function URL     |
+| Module                           | Inputs                                                                                                                                                       | Creates                                                           |
+|----------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
+| `AwsServerModule`                | `account`, `serverKey`, `s3?`, `dynamodb?`, `lambda?`, `iamStatements?`, `securityGroupRules?`                                                               |                                                                   |
+| `AwsDeploymentModule`            | `server`, `deploymentTag`, `image?` and `imageTag?` or `imageUri?`, `command?`, `ports?`, `cpu?`, `memory?`, `timeoutInSeconds?`                             |                                                                   |
+| `AwsEcsEnvironmentModule`        | `region`, `environmentName`, `environmentVariables?`                                                                                                         | ECS cluster                                                       |
+| `AwsServerlessEnvironmentModule` | `region`, `environmentName`, `environmentVariables?`                                                                                                         |                                                                   |
+| `AwsEcsExecutionModule`          | `deployments`, `environment`, `subnet`, `executionId`, `desiredCount`, `environmentVariables?`, `filesystems?`, `logRetentionInDays?`, `securityGroupRules?` | IAM role, log group, ECS service, task definition, security group |
+| `AwsLambdaExecutionModule`       | `deployment`, `environment`, `subnet`, `executionId`, `environmentVariables?`, `invokeMode?`, `logRetentionInDays?`, `reservedConcurrency?`                  | IAM role, log group, Lambda function, function URL                |
 
 These are one story told in parts. A server is the logical microservice: what its code may reach,
 and its network rules. A deployment is one version of its code: the container image, and what the
@@ -183,6 +183,9 @@ grants nothing:
           deployment: "${{checkout-deployment-v1-module.model.deployment}}"
         sidecars: [ ]
 ```
+
+Every container writes its logs to the execution's log group, `/ecs/<executionId>`, under a stream
+prefix of its container name. The log group keeps them for `logRetentionInDays`, 30 days unless set.
 
 Each execution's tasks run in one security group of its own, holding its `securityGroupRules`
 together with those of the server of every deployment it runs, main and sidecars.

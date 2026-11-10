@@ -14,6 +14,7 @@ import { AwsDeploymentAnchorSchema } from '../../../anchors/aws-deployment/aws-d
 import { AwsEcsClusterAnchorSchema } from '../../../anchors/aws-ecs/aws-ecs-cluster.anchor.schema.js';
 import { AwsEfsAnchorSchema } from '../../../anchors/aws-efs/aws-efs.anchor.schema.js';
 import { AwsSecurityGroupAnchorRuleSchema } from '../../../anchors/aws-security-group/aws-security-group.anchor.schema.js';
+import type { CloudWatchLogGroupSchema } from '../../../resources/cloudwatch-log-group/index.schema.js';
 
 /**
  * Defines the container image properties for execution deployments.
@@ -230,6 +231,18 @@ export class AwsEcsExecutionModuleSchema {
     },
   ])
   filesystems? = Schema<Filesystem[]>([]);
+
+  /**
+   * How many days the containers' logs are kept before CloudWatch deletes them: one of 1, 3, 5, 7, 14,
+   * 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1096, 1827, 2192, 2557, 2922, 3288 or 3653.
+   */
+  @Validate({
+    destruct: (value: AwsEcsExecutionModuleSchema['logRetentionInDays']): string[] => [String(value)],
+    options: {
+      regex: /^(1|3|5|7|14|30|60|90|120|150|180|365|400|545|731|1096|1827|2192|2557|2922|3288|3653)$/,
+    },
+  })
+  logRetentionInDays? = Schema<CloudWatchLogGroupSchema['properties']['retentionInDays']>(30);
 
   /**
    * Security group rules to apply to the execution.
