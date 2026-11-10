@@ -1,0 +1,25 @@
+version: 1
+
+env:
+  - key: OCTO_TEST_NAME
+    kind: string
+    value: 'website'
+
+terraform:
+  requiredVersion: '1.6.0'
+  requiredProviders: {}
+  providers: []
+
+imports:
+  - className: 'Octo'
+    importPath: '@quadnix/octo'
+
+modules:
+  - moduleClass: 'Octo'
+    moduleId: 'app'
+    moduleInputs:
+      filter: "${import ./import-reference/upload.js#doesNotExist}"
+
+settings:
+  stateProvider:
+    type: 'TestStateProvider'

@@ -216,6 +216,46 @@ describe('YamlDefinitionUtility UT', () => {
     });
   });
 
+  describe('resolveModules()', () => {
+    const projectRoot = join(__dirname, '..', '..', '..', '..');
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('should refuse an import reference inside a longer string', async () => {
+      jest.spyOn(process, 'cwd').mockReturnValue(projectRoot);
+      const definition = new YamlDefinitionUtility(fixture('import-reference-in-string-definition.yml'));
+
+      await expect(definition.resolveModules(await definition.resolveImports())).rejects.toThrow(
+        'Reference "./${import ./import-reference/upload.js#skipSourceMaps}" must be the whole value!',
+      );
+    });
+
+    it('should refuse an import reference naming a missing export', async () => {
+      jest.spyOn(process, 'cwd').mockReturnValue(projectRoot);
+      const definition = new YamlDefinitionUtility(fixture('import-reference-missing-export-definition.yml'));
+
+      await expect(definition.resolveModules(await definition.resolveImports())).rejects.toThrow(
+        'Unable to find export "doesNotExist"',
+      );
+    });
+
+    it('should resolve an import reference to the export it names, at any depth', async () => {
+      jest.spyOn(process, 'cwd').mockReturnValue(projectRoot);
+      const definition = new YamlDefinitionUtility(fixture('import-reference-definition.yml'));
+
+      const [{ moduleInputs }] = await definition.resolveModules(await definition.resolveImports());
+      const filter = moduleInputs.filter as (filePath: string) => boolean;
+      const [nested] = moduleInputs.nested as { name: string; transform: (filePath: string) => boolean }[];
+
+      expect(filter('index.html')).toBe(true);
+      expect(filter('index.js.map')).toBe(false);
+      expect(nested.name).toBe('website');
+      expect(nested.transform).toBe(filter);
+    });
+  });
+
   describe('resolveStateCheckInIntervalInMs()', () => {
     it.each([
       [4, 'must be >= 5'],

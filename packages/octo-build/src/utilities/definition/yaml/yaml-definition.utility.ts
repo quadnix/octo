@@ -160,23 +160,13 @@ export class YamlDefinitionUtility {
     for (const hookDef of this.definition.hooks) {
       const { importPath, method } = hookDef;
 
-      try {
-        const resolvedImport = this.resolveImportPath(importPath);
-        const imported = await import(resolvedImport);
-        if (!imported[method]) {
-          throw new Error(`Unable to find export "${method}" in path "${resolvedImport}"!`);
-        } else {
-          const importedHooks = imported[method]();
-          hooks.postCommitHooks!.push(...(importedHooks.postCommitHooks || []));
-          hooks.postModelActionHooks!.push(...(importedHooks.postModelActionHooks || []));
-          hooks.postResourceActionHooks!.push(...(importedHooks.postResourceActionHooks || []));
-          hooks.preCommitHooks!.push(...(importedHooks.preCommitHooks || []));
-          hooks.preModelActionHooks!.push(...(importedHooks.preModelActionHooks || []));
-          hooks.preResourceActionHooks!.push(...(importedHooks.preResourceActionHooks || []));
-        }
-      } catch (error) {
-        throw new Error(`Failed to import path "${importPath}": ${error?.message || String(error)}`);
-      }
+      const importedHooks = ((await this.importExport(importPath, method)) as () => any)();
+      hooks.postCommitHooks!.push(...(importedHooks.postCommitHooks || []));
+      hooks.postModelActionHooks!.push(...(importedHooks.postModelActionHooks || []));
+      hooks.postResourceActionHooks!.push(...(importedHooks.postResourceActionHooks || []));
+      hooks.preCommitHooks!.push(...(importedHooks.preCommitHooks || []));
+      hooks.preModelActionHooks!.push(...(importedHooks.preModelActionHooks || []));
+      hooks.preResourceActionHooks!.push(...(importedHooks.preResourceActionHooks || []));
     }
 
     return hooks;
@@ -195,17 +185,7 @@ export class YamlDefinitionUtility {
     for (const importDef of this.definition.imports) {
       const { className, importPath } = importDef;
 
-      try {
-        const resolvedImport = this.resolveImportPath(importPath);
-        const imported = await import(resolvedImport);
-        if (!imported[className]) {
-          throw new Error(`Unable to find export "${className}" in path "${resolvedImport}"!`);
-        } else {
-          imports.push({ className: imported[className] });
-        }
-      } catch (error) {
-        throw new Error(`Failed to import path "${importPath}": ${error?.message || String(error)}`);
-      }
+      imports.push({ className: (await this.importExport(importPath, className)) as Constructable<any> });
     }
 
     return imports;
@@ -252,12 +232,13 @@ export class YamlDefinitionUtility {
   }
 
   /**
-   * Pairs each `modules` entry with its imported class, and resolves its inputs.
+   * Pairs each `modules` entry with its imported class, and resolves its inputs: `${env.KEY}`
+   * references first, then `${import <path>#<export>}` references.
    */
-  resolveModules(
+  async resolveModules(
     imports: Awaited<ReturnType<YamlDefinitionUtility['resolveImports']>>,
-  ): { moduleClass: Constructable<any>; moduleId: string; moduleInputs: Record<string, unknown> }[] {
-    const modules: ReturnType<YamlDefinitionUtility['resolveModules']> = [];
+  ): Promise<{ moduleClass: Constructable<any>; moduleId: string; moduleInputs: Record<string, unknown> }[]> {
+    const modules: Awaited<ReturnType<YamlDefinitionUtility['resolveModules']>> = [];
 
     if (!this.definition.modules?.length) {
       return modules;
@@ -274,7 +255,7 @@ export class YamlDefinitionUtility {
       const module = { moduleClass: importedModule.className, moduleId, moduleInputs };
 
       for (const [key, value] of Object.entries(module.moduleInputs || {})) {
-        module.moduleInputs[key] = this.resolveEnvironmentValue(value);
+        module.moduleInputs[key] = await this.resolveImportReferences(this.resolveEnvironmentValue(value));
       }
 
       modules.push(module);
@@ -457,6 +438,22 @@ export class YamlDefinitionUtility {
   }
 
   /**
+   * Imports one export of a definition-file import specifier.
+   */
+  private async importExport(importPath: string, exportName: string): Promise<unknown> {
+    try {
+      const resolvedImport = this.resolveImportPath(importPath);
+      const imported = await import(resolvedImport);
+      if (!imported[exportName]) {
+        throw new Error(`Unable to find export "${exportName}" in path "${resolvedImport}"!`);
+      }
+      return imported[exportName];
+    } catch (error) {
+      throw new Error(`Failed to import path "${importPath}": ${error?.message || String(error)}`);
+    }
+  }
+
+  /**
    * The value the definition's `env` block declares for a key, read in the kind the block gives it.
    * Only `OCTO_ENV_KEY` in the environment overrides the declared value; a bare `KEY` never does.
    */
@@ -534,6 +531,35 @@ export class YamlDefinitionUtility {
 
     const requireFromProject = createRequire(join(this.definitionDir, 'package.json'));
     return pathToFileURL(requireFromProject.resolve(importPath)).href;
+  }
+
+  /**
+   * Walks a value, substituting every `${import <path>#<export>}` reference it holds at any depth
+   * with that export. A reference is the whole value; one inside a longer string is refused.
+   */
+  private async resolveImportReferences(value: unknown): Promise<unknown> {
+    if (typeof value === 'string') {
+      const wholeReference = value.match(/^\$\{import ([^#}]+)#([^}]+)}$/);
+      if (wholeReference) {
+        return this.importExport(wholeReference[1].trim(), wholeReference[2].trim());
+      }
+      if (value.includes('${import ')) {
+        throw new Error(`Reference "${value}" must be the whole value!`);
+      }
+      return value;
+    }
+
+    if (Array.isArray(value)) {
+      return Promise.all(value.map((v) => this.resolveImportReferences(v)));
+    }
+
+    if (value !== null && typeof value === 'object') {
+      return Object.fromEntries(
+        await Promise.all(Object.entries(value).map(async ([k, v]) => [k, await this.resolveImportReferences(v)])),
+      );
+    }
+
+    return value;
   }
 
   /**

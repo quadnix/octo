@@ -438,6 +438,36 @@ only trust.
 References resolve when the module that needs them runs, so the module being referenced has to be
 listed earlier. A reference that cannot be resolved is an error naming the reference.
 
+## Functions from your own code
+
+A module input that is a function, such as a bucket's `filter` or `transform`, takes an export of a
+JavaScript file of yours:
+
+```javascript title="octo/upload.js"
+export function skipSourceMaps(filePath) {
+  return !filePath.endsWith('.map');
+}
+
+export function underApp(filePath) {
+  return `app/${filePath}`;
+}
+```
+
+```yaml
+    moduleInputs:
+      directoryPath: dist
+      filter: "${import ./octo/upload.js#skipSourceMaps}"
+      transform: "${import ./octo/upload.js#underApp}"
+```
+
+`${import <path>#<export>}` is replaced by that export before the module runs. A relative path is
+read from the definition file's directory, and a package name from your project's dependencies, the
+same as `imports`. The reference is the whole value; one inside a longer string is an error.
+
+Octo loads the file with Node, so it is JavaScript, or TypeScript you compile first. The function
+runs on every command, and Octo compares what it returns between runs, so it reads nothing but its
+arguments: one that reads the clock or the network changes the plan every time.
+
 ## Several definition files
 
 There is no environment flag. A deployment that must not share state with another is a separate file

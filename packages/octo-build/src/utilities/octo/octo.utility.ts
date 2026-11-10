@@ -37,7 +37,7 @@ export class OctoUtility {
     const hooks = await definition.resolveHooks();
     const imports = await definition.resolveImports();
     const listeners = await definition.resolveListeners();
-    const modules = definition.resolveModules(imports);
+    const modules = await definition.resolveModules(imports);
     const stateProvider = definition.resolveStateProvider();
     const stores = definition.resolveStores();
     const tags = definition.resolveTags();
