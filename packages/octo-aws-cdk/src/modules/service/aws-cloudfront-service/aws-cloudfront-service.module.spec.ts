@@ -151,7 +151,6 @@ async function setupLambdaFunction(
     const lambdaFunction = new LambdaFunction(
       'lambda-function-backend',
       {
-        allowCloudFrontOriginAccess: false,
         architecture: 'arm64',
         awsAccountId: '123',
         awsRegionId,
@@ -600,7 +599,10 @@ describe('AwsCloudFrontServiceModule UT', () => {
     expect(hclRender).toContain('domain_name = var.lambda_function_backend_FunctionUrlDomainName');
     expect(hclRender).toContain('origin_access_control_origin_type = "lambda"');
     expect(hclRender).toContain('principal = "cloudfront.amazonaws.com"');
-    expect(hclRender).toContain('source_account = "123"');
+    expect(hclRender).toContain(
+      'source_arn = aws_cloudfront_distribution.cloudfront-test-distribution-b1f33b_distribution.arn',
+    );
+    expect(hclRender).not.toContain('source_account');
     expect(hclRender).toMatch(/allowed_methods = \["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"\]/);
   });
 

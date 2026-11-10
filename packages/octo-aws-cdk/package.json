@@ -110,6 +110,7 @@
     "./resources/iam-role/schema": "./dist/resources/iam-role/index.schema.js",
     "./resources/iam-user/schema": "./dist/resources/iam-user/index.schema.js",
     "./resources/internet-gateway/schema": "./dist/resources/internet-gateway/index.schema.js",
+    "./resources/lambda-function-cloudfront-permission/schema": "./dist/resources/lambda-function-cloudfront-permission/index.schema.js",
     "./resources/lambda-function-permission/schema": "./dist/resources/lambda-function-permission/index.schema.js",
     "./resources/lambda-function/schema": "./dist/resources/lambda-function/index.schema.js",
     "./resources/nat-gateway/schema": "./dist/resources/nat-gateway/index.schema.js",

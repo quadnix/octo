@@ -49,15 +49,6 @@ export class LambdaFunction extends ATerraformResource<LambdaFunctionSchema, Lam
   }
 
   /**
-   * Admits CloudFront distributions of the function's own account to its URL.
-   *
-   * @internal
-   */
-  allowCloudFrontOriginAccess(): void {
-    this.properties.allowCloudFrontOriginAccess = true;
-  }
-
-  /**
    * @internal
    */
   override async diff(previous: LambdaFunction): Promise<Diff[]> {
@@ -163,7 +154,7 @@ export class LambdaFunction extends ATerraformResource<LambdaFunctionSchema, Lam
       },
     );
 
-    // Answer on a URL only signed requests may call, and admit each caller to it.
+    // Answer on a URL only signed requests may call.
     const functionUrlTFResource = lambdaFunctionOctoResource.addTerraformResource(
       'aws_lambda_function_url',
       `${this.resourceId}_url`,
@@ -177,48 +168,6 @@ export class LambdaFunction extends ATerraformResource<LambdaFunctionSchema, Lam
     const functionUrlDomainName = terraform.raw(
       `trimsuffix(trimprefix(${functionUrlTFResource.address}.function_url, "https://"), "/")`,
     );
-
-    // A CloudFront distribution is admitted by account rather than by its ARN, because the distribution
-    // already references this function's URL, and referencing its ARN back would close a cycle.
-    const allowedCallers: { label: string; principal: string; sourceAccount?: string }[] = [
-      ...(this.properties.allowCloudFrontOriginAccess
-        ? [
-            {
-              label: 'cloudfront',
-              principal: 'cloudfront.amazonaws.com',
-              sourceAccount: this.properties.awsAccountId,
-            },
-          ]
-        : []),
-    ];
-    for (const invoker of allowedCallers) {
-      const sourceAccount = invoker.sourceAccount ? { source_account: invoker.sourceAccount } : {};
-      lambdaFunctionOctoResource.addTerraformResource(
-        'aws_lambda_permission',
-        `${this.resourceId}_url_invoker_${invoker.label}`,
-        {
-          action: 'lambda:InvokeFunctionUrl',
-          function_name: terraform.raw(`${lambdaFunctionTFResource.address}.function_name`),
-          function_url_auth_type: 'AWS_IAM',
-          principal: invoker.principal,
-          ...sourceAccount,
-          statement_id: `AllowFunctionUrlInvokeFrom-${invoker.label}`,
-        },
-      );
-      // A URL caller also needs lambda:InvokeFunction; `invoked_via_function_url` is in hashicorp/aws >= 6.28.0.
-      lambdaFunctionOctoResource.addTerraformResource(
-        'aws_lambda_permission',
-        `${this.resourceId}_url_invoker_${invoker.label}_invoke`,
-        {
-          action: 'lambda:InvokeFunction',
-          function_name: terraform.raw(`${lambdaFunctionTFResource.address}.function_name`),
-          invoked_via_function_url: true,
-          principal: invoker.principal,
-          ...sourceAccount,
-          statement_id: `AllowInvokeViaFunctionUrlFrom-${invoker.label}`,
-        },
-      );
-    }
 
     lambdaFunctionOctoResource.output({
       Arn: terraform.raw(`${lambdaFunctionTFResource.address}.arn`),

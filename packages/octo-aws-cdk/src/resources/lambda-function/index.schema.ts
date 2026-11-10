@@ -6,9 +6,8 @@ import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
  * [`aws_lambda_function`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lambda_function),
  * with an
  * [`aws_lambda_function_url`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lambda_function_url)
- * that only signed requests may call. Each caller of the URL - an account, or CloudFront - is admitted by a
- * pair of [`aws_lambda_permission`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lambda_permission),
- * because a function URL needs both `lambda:InvokeFunctionUrl` and `lambda:InvokeFunction`.
+ * that only signed requests may call. Each caller of the URL is admitted by a resource of its own: a role by
+ * `LambdaFunctionPermission`, a CloudFront distribution by `LambdaFunctionCloudFrontPermission`.
  *
  * The function writes its logs to the log group it is given, which its role may write to and not create.
  *
@@ -29,8 +28,6 @@ import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 export class LambdaFunctionSchema extends BaseResourceSchema {
   /**
    * Input properties.
-   * * `properties.allowCloudFrontOriginAccess` - Whether CloudFront distributions of the function's own
-   * account may call its URL, signing each request with an origin access control.
    * * `properties.architecture` - The processor the function runs on. The image must be built for it.
    * * `properties.awsAccountId` - The AWS account id.
    * * `properties.awsRegionId` - The AWS region id.
@@ -88,7 +85,6 @@ export class LambdaFunctionSchema extends BaseResourceSchema {
     },
   ])
   override properties = Schema<{
-    allowCloudFrontOriginAccess: boolean;
     architecture: 'arm64' | 'x86_64';
     awsAccountId: string;
     awsRegionId: string;

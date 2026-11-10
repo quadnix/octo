@@ -146,12 +146,16 @@ export class AddAwsCloudFrontLambdaOriginOverlayAction implements IModelAction<A
       );
     }
 
-    const lambdaFunction = matchingLambdaFunction.getActual() as LambdaFunction;
-    lambdaFunction.properties.allowCloudFrontOriginAccess = true;
     cloudFrontDistribution.addLambdaOrigin(originId, matchingLambdaFunction);
-
-    actionOutputs[lambdaFunction.resourceId] = lambdaFunction;
     actionOutputs[cloudFrontDistribution.resourceId] = cloudFrontDistribution;
+
+    const { awsAccountId, awsRegionId } = matchingLambdaFunction.getSchemaInstance().properties;
+    const permission = new LambdaFunctionCloudFrontPermission(
+      `lambda-function-cloudfront-permission-${distributionName}-${originId}`,
+      { awsAccountId, awsRegionId, distributionName, functionName },
+      [new MatchingResource(cloudFrontDistribution), matchingLambdaFunction],
+    );
+    actionOutputs[permission.resourceId] = permission;
     return actionOutputs;
   }
 }
@@ -165,30 +169,31 @@ second path is how one module changes another module's resource without importin
 Searching the whole boundary by name instead would find the wrong function as soon as another
 region runs one of the same name.
 
-Both resources go into `actionOutputs`. That is what puts the permission in the function's folder
-and the origin in the distribution's folder, from one relationship.
+Both resources go into `actionOutputs`, and both land in the distribution's folder: the changed
+distribution, and a permission it creates in the function's account, naming that one distribution.
+The function's own folder does not change.
 
 ## Which side you may write on
 
-This overlay writes both halves because one library owns both: `LambdaFunction` carries
-`allowCloudFrontOriginAccess` because the same author wrote the distribution that needs it. A
-resource decides which grants it is willing to carry, and that decision belongs to whoever wrote it.
-So an overlay joining your model to somebody else's can only ask the other side for what its
-resource already offers.
+This overlay changes nothing of the function. The function may belong to another app, one that
+yours [extends](/docs/using-octo/the-definition-file#extends), and an app never changes a resource another
+app holds. So the grant is a resource of its own, owned by the module that needs it, and it names
+the function rather than living on it. Delete the distribution and only its own permission goes;
+every other caller of the function keeps its own.
 
 The shop's queue is the case. Nothing on an IAM role says "may publish to a queue", so a queue
 access overlay cannot write the role half. It writes the grant on the queue instead, as a queue
 policy naming the role's ARN, which needs nothing from the role beyond an ARN it already publishes.
-That is the same shape as the function half above, a grant on the resource being reached that names
-who may reach it, and for the queue it is the half your own module owns.
+That is the same shape as the permission above: a grant on the resource being reached that names
+who may reach it, owned by your own module.
 
 Reaching for a grant the other resource does not offer is a sign you are writing the wrong module.
 Either the resource's author adds it, or the thing you need is a resource of your own.
 
 ## Modifying rather than creating
 
-An overlay action often does what this one does: reach existing resources and change them, rather
-than declare new ones. That is normal, and it is why an overlay's action is usually the shortest
+An overlay action often reaches existing resources and changes them, as this one changes the
+distribution, as well as declaring new ones. That is normal, and it is why an overlay's action is usually the shortest
 file in a module and the one that carries the most meaning.
 
 Note also the failure: `OverlayActionExceptionTransactionError` when the function cannot be found.

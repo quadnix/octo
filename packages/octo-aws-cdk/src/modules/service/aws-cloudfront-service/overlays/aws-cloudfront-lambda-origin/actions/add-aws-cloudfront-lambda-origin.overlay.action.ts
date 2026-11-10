@@ -6,12 +6,13 @@ import {
   type EnhancedModuleSchema,
   Factory,
   type IModelAction,
+  MatchingResource,
   OverlayActionExceptionTransactionError,
   hasNodeName,
 } from '@quadnix/octo';
 import type { CloudFrontDistribution } from '../../../../../../resources/cloudfront-distribution/index.js';
-import type { LambdaFunction } from '../../../../../../resources/lambda-function/index.js';
 import { LambdaFunctionSchema } from '../../../../../../resources/lambda-function/index.schema.js';
+import { LambdaFunctionCloudFrontPermission } from '../../../../../../resources/lambda-function-cloudfront-permission/index.js';
 import type { AwsCloudFrontServiceModule } from '../../../aws-cloudfront-service.module.js';
 import { AwsCloudFrontLambdaOriginOverlay } from '../aws-cloudfront-lambda-origin.overlay.js';
 
@@ -62,12 +63,18 @@ export class AddAwsCloudFrontLambdaOriginOverlayAction implements IModelAction<A
       );
     }
 
-    // Admit the distribution to the function, and read the function's URL into the distribution.
-    const lambdaFunction = matchingLambdaFunction.getActual() as LambdaFunction;
-    lambdaFunction.allowCloudFrontOriginAccess();
+    // Read the function's URL into the distribution.
     cloudFrontDistribution.addLambdaOrigin(originId, matchingLambdaFunction);
-    actionOutputs[lambdaFunction.resourceId] = lambdaFunction;
     actionOutputs[cloudFrontDistribution.resourceId] = cloudFrontDistribution;
+
+    // Admit the distribution to the function, in the function's account.
+    const { awsAccountId, awsRegionId } = matchingLambdaFunction.getSchemaInstance().properties;
+    const permission = new LambdaFunctionCloudFrontPermission(
+      `lambda-function-cloudfront-permission-${distributionName}-${originId}`,
+      { awsAccountId, awsRegionId, distributionName, functionName },
+      [new MatchingResource(cloudFrontDistribution), matchingLambdaFunction],
+    );
+    actionOutputs[permission.resourceId] = permission;
 
     return actionOutputs;
   }

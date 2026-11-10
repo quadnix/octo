@@ -110,7 +110,6 @@ function createLambdaFunction({ timeoutInSeconds = 30 }: { timeoutInSeconds?: nu
   return new LambdaFunction(
     'lambda-function-backend',
     {
-      allowCloudFrontOriginAccess: true,
       architecture: 'arm64',
       awsAccountId: '123',
       awsRegionId: 'us-east-1',

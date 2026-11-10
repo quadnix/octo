@@ -13,7 +13,6 @@ type Properties = LambdaFunctionSchema['properties'];
 
 function properties(overrides: Partial<Properties> = {}): Properties {
   return {
-    allowCloudFrontOriginAccess: false,
     architecture: 'arm64',
     awsAccountId: '123456789012',
     awsRegionId: 'us-east-1',
@@ -267,32 +266,11 @@ describe('LambdaFunction UT', () => {
       expect(outputs.FunctionUrl).toBe('aws_lambda_function_url.lambda-function-backend_url.function_url');
     });
 
-    it('should admit CloudFront distributions of its own account, not one distribution by ARN', async () => {
+    it('should admit no caller itself, and name the host of its URL', async () => {
       const { emitted, outputs, terraform } = createRecordingScope();
-      const lambdaFunction = createLambdaFunction();
-      lambdaFunction.properties.allowCloudFrontOriginAccess = true;
-      await lambdaFunction.toHCL(terraform);
+      await createLambdaFunction().toHCL(terraform);
 
-      expect(emitted.filter((e) => e.type === 'aws_lambda_permission').map((e) => e.spec)).toMatchInlineSnapshot(`
-       [
-         {
-           "action": "lambda:InvokeFunctionUrl",
-           "function_name": "aws_lambda_function.lambda-function-backend.function_name",
-           "function_url_auth_type": "AWS_IAM",
-           "principal": "cloudfront.amazonaws.com",
-           "source_account": "123456789012",
-           "statement_id": "AllowFunctionUrlInvokeFrom-cloudfront",
-         },
-         {
-           "action": "lambda:InvokeFunction",
-           "function_name": "aws_lambda_function.lambda-function-backend.function_name",
-           "invoked_via_function_url": true,
-           "principal": "cloudfront.amazonaws.com",
-           "source_account": "123456789012",
-           "statement_id": "AllowInvokeViaFunctionUrlFrom-cloudfront",
-         },
-       ]
-      `);
+      expect(emitted.filter((e) => e.type === 'aws_lambda_permission')).toEqual([]);
       expect(outputs.FunctionUrlDomainName).toBe(
         'trimsuffix(trimprefix(aws_lambda_function_url.lambda-function-backend_url.function_url, "https://"), "/")',
       );

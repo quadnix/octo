@@ -281,8 +281,8 @@ The route with no `pathPattern` is the default, and the others are matched in th
 given. For every bucket it serves, the module adds a statement to that bucket's policy naming the
 distribution, so the bucket stays closed to everyone else.
 
-CloudFront signs every request it forwards to a function, and the function admits the distributions
-of its own account. A route to a function defaults to every HTTP method, no caching, and every header
+CloudFront signs every request it forwards to a function, and the module adds a permission to that
+function naming the distribution, so every other distribution stays out. A route to a function defaults to every HTTP method, no caching, and every header
 the viewer sent except `Host`. A client sending a body, a `POST` or a `PUT`, must send the body's
 SHA-256 in hex as the `x-amz-content-sha256` header, because the signature covers the body; without
 it the function answers `403`. CloudFront waits 60 seconds for a function to answer, so a function

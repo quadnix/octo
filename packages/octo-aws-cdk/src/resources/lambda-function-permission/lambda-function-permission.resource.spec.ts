@@ -51,7 +51,6 @@ function createLambdaFunctionPermission(roleName = 'ExecutionRole-backend'): Lam
   const lambdaFunction = new LambdaFunction(
     'lambda-function-commons-billing',
     {
-      allowCloudFrontOriginAccess: false,
       architecture: 'arm64',
       awsAccountId: '999999999999',
       awsRegionId: 'us-east-1',

@@ -17,8 +17,8 @@ import { AwsCloudFrontS3OriginOverlay } from './overlays/aws-cloudfront-s3-origi
  * way CloudFront itself is configured. For each source it creates an overlay, and grants the
  * distribution access to it through an origin access control: for a bucket from
  * `AwsS3StorageServiceModule`, a statement in the bucket's policy; for a Lambda function from
- * `AwsLambdaExecutionModule`, a permission on the function to be called through its URL, by the
- * CloudFront distributions of its account. An ALB from `AwsEcsAlbServiceModule` is reached over HTTP
+ * `AwsLambdaExecutionModule`, a permission of its own admitting this distribution to call the function
+ * through its URL, even a function of an app this one extends. An ALB from `AwsEcsAlbServiceModule` is reached over HTTP
  * through its DNS name, and is granted nothing: it still answers anyone who calls it directly. It sits
  * under the account. To drop the edges' copies of a source's files when they change, add
  * `AwsCloudFrontInvalidationServiceModule`.

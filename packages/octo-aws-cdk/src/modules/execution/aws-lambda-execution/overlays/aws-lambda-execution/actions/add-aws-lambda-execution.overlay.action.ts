@@ -238,7 +238,6 @@ export class AddAwsLambdaExecutionOverlayAction implements IModelAction<AwsLambd
     const lambdaFunction = new LambdaFunction(
       `lambda-function-${lambdaExecutionAnchorProperties.functionName}`,
       {
-        allowCloudFrontOriginAccess: false,
         architecture: matchingEcrImageTagResource.getSchemaInstance().properties.architecture,
         awsAccountId,
         awsRegionId,
