@@ -9,6 +9,8 @@ import { ModuleContainer } from './module.container.js';
 
 class TestModuleSchema {
   name = Schema<string>();
+
+  transform? = Schema<((filePath: string) => string) | null>(null);
 }
 
 class TestAppModule extends AModule<TestModuleSchema, App> {
@@ -23,10 +25,11 @@ class TestAppModule extends AModule<TestModuleSchema, App> {
 class OtherTestAppModule extends TestAppModule {}
 
 describe('ModuleContainer UT', () => {
+  let inputService: InputService;
   let moduleContainer: ModuleContainer;
 
   beforeEach(() => {
-    const inputService = { registerInput: jest.fn() } as unknown as InputService;
+    inputService = { registerInput: jest.fn() } as unknown as InputService;
     moduleContainer = new ModuleContainer({} as EventService, inputService, {} as OverlayDataRepository);
     moduleContainer.register(TestAppModule, { packageName: '@octo' });
     moduleContainer.register(OtherTestAppModule, { packageName: '@octo' });
@@ -60,6 +63,13 @@ describe('ModuleContainer UT', () => {
       expect(() =>
         moduleContainer.load(TestAppModule, 'app-module', { invokerAccountIds: [], name: 'app' } as never),
       ).toThrowErrorMatchingInlineSnapshot(`"Module "app-module" has no input "invokerAccountIds"!"`);
+    });
+
+    it('should register a function input as the function, not drop it', () => {
+      const transform = (filePath: string): string => `app/${filePath}`;
+      moduleContainer.load(TestAppModule, 'app-module', { name: 'app', transform } as never);
+
+      expect(inputService.registerInput).toHaveBeenCalledWith('app-module', 'transform', transform);
     });
 
     it('should throw when a module id contains a dot', () => {

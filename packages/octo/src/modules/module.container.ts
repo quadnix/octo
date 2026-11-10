@@ -19,6 +19,7 @@ import { AOverlay } from '../overlays/overlay.abstract.js';
 import { EventService } from '../services/event/event.service.js';
 import { InputService } from '../services/input/input.service.js';
 import { DiffUtility } from '../utilities/diff/diff.utility.js';
+import { ObjectUtility } from '../utilities/object/object.utility.js';
 import type { AModule } from './module.abstract.js';
 
 type ModuleOptions = {
@@ -219,7 +220,7 @@ export class ModuleContainer {
 
     // Loading a module again under its id, with the same inputs, changes nothing. Any other module
     // under that id would be lost.
-    const copiedInputs = JSON.parse(JSON.stringify(inputs));
+    const copiedInputs = ObjectUtility.deepCopy(inputs);
     const existing = this.modules.find((metadata) => metadata.instances.some((i) => i.moduleId === moduleId));
     if (existing) {
       const instance = existing.instances.find((i) => i.moduleId === moduleId)!;
@@ -241,7 +242,7 @@ export class ModuleContainer {
     // A copy of its own: resolving an input overwrites it in place, which would change the copy kept
     // above to compare a later load against.
     for (const [key, value] of Object.entries(copiedInputs)) {
-      this.inputService.registerInput(moduleId, key, JSON.parse(JSON.stringify(value)));
+      this.inputService.registerInput(moduleId, key, ObjectUtility.deepCopy(value));
     }
   }
 

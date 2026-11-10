@@ -4,6 +4,26 @@ import { ANode } from '../../functions/node/node.abstract.js';
  * @internal
  */
 export class ObjectUtility {
+  /**
+   * Copies plain objects and arrays at every depth, and keeps everything else, a function included,
+   * by reference. A key holding `undefined` is left out, as a JSON copy leaves it out.
+   *
+   * @internal
+   */
+  static deepCopy<T>(value: T): T {
+    if (Array.isArray(value)) {
+      return value.map((entry) => ObjectUtility.deepCopy(entry)) as T;
+    }
+    if (typeof value === 'object' && value !== null && Object.getPrototypeOf(value) === Object.prototype) {
+      return Object.fromEntries(
+        Object.entries(value)
+          .filter(([, entry]) => entry !== undefined)
+          .map(([key, entry]) => [key, ObjectUtility.deepCopy(entry)]),
+      ) as T;
+    }
+    return value;
+  }
+
   // Source: https://stackoverflow.com/a/58496119/1834562
   /**
    * @internal
