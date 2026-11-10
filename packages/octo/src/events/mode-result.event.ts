@@ -29,12 +29,14 @@ export class CommitModeCompletedEvent extends ModeResultEvent<{
   emptiedModuleIds: string[];
 
   /**
-   * Each octo resource this commit applied, with the terraform addresses it renders.
-   * Carries no terraform actions - `commit` runs after the apply, so it has no plan to read.
+   * Each octo resource this commit applied, with the terraform addresses it renders now and the
+   * ones the last commit recorded for it. Carries no terraform actions - `commit` runs after the
+   * apply, so it has no plan to read.
    */
   resources: {
     action: AggregatedResourceAction['action'];
     moduleId?: string;
+    previousTerraformAddresses: string[];
     reason?: string;
     resourceContext: string;
     resourceId: string;

@@ -71,17 +71,22 @@ function readIntentChanges(observation: RunObservation): IntentChange[] {
 }
 
 /**
+ * One octo resource, with the terraform addresses it renders and, in commit mode, the ones the last
+ * commit recorded for it.
+ */
+type ResourceEntry = { addresses: string[]; moduleId: string; previousAddresses: string[]; resource: ReportResource };
+
+/**
  * The octo resources that changed, with the terraform addresses they render.
  */
-function readResources(
-  observation: RunObservation,
-): Map<string, { addresses: string[]; moduleId: string; resource: ReportResource }> {
+function readResources(observation: RunObservation): Map<string, ResourceEntry> {
   // Both modes describe resources identically; only validate has terraform's plan, which is where
   // the addresses come from. Commit has no plan, so it carries the addresses it applied.
   const changed = observation.validate
     ? observation.validate.intentChanges.map((change) => ({
         action: change.octoAction,
         moduleId: change.moduleId,
+        previousTerraformAddresses: [],
         reason: change.reason,
         resourceContext: change.resourceContext,
         resourceId: change.resourceId,
@@ -89,12 +94,13 @@ function readResources(
       }))
     : (observation.commit?.resources ?? []);
 
-  const resources = new Map<string, { addresses: string[]; moduleId: string; resource: ReportResource }>();
+  const resources = new Map<string, ResourceEntry>();
 
   for (const entry of changed) {
     resources.set(entry.resourceContext, {
       addresses: entry.terraformAddresses,
       moduleId: entry.moduleId ?? '(unknown module)',
+      previousAddresses: entry.previousTerraformAddresses,
       resource: {
         kind: classifyOctoAction(entry.action),
         reason: entry.reason,
@@ -114,7 +120,7 @@ function readResources(
  */
 function attachTerraformChanges(
   observation: RunObservation,
-  resources: Map<string, { addresses: string[]; moduleId: string; resource: ReportResource }>,
+  resources: Map<string, ResourceEntry>,
 ): { drift: ReportUnexplained[]; totals: Record<ChangeKind, number>; uncertain: ReportUnexplained[] } {
   const drift: ReportUnexplained[] = [];
   const uncertain: ReportUnexplained[] = [];
@@ -183,9 +189,21 @@ function attachTerraformChanges(
     return { drift, totals, uncertain };
   }
 
+  // An updated resource created the addresses the last commit did not record, and destroyed the ones
+  // it no longer renders.
   for (const entry of resources.values()) {
+    const previous = new Set(entry.previousAddresses);
+    const current = new Set(entry.addresses);
+    const isComparable = entry.resource.kind === 'update' && previous.size > 0;
+
     for (const address of entry.addresses) {
-      attach(entry.resource.resourceContext, { address, changedFields: [], kind: entry.resource.kind });
+      const kind = isComparable && !previous.has(address) ? 'create' : entry.resource.kind;
+      attach(entry.resource.resourceContext, { address, changedFields: [], kind });
+    }
+    if (isComparable) {
+      for (const address of entry.previousAddresses.filter((address) => !current.has(address))) {
+        attach(entry.resource.resourceContext, { address, changedFields: [], kind: 'delete' });
+      }
     }
   }
 
@@ -198,10 +216,7 @@ function attachTerraformChanges(
  * A resource touched by several model actions is shown once, under its most consequential one
  * (add/delete/replace beats update); earliest wins on a tie.
  */
-function buildStories(
-  intentChanges: IntentChange[],
-  resources: Map<string, { addresses: string[]; moduleId: string; resource: ReportResource }>,
-): ReportStory[] {
+function buildStories(intentChanges: IntentChange[], resources: Map<string, ResourceEntry>): ReportStory[] {
   const ownerByResourceContext = new Map<string, string>();
   const intentById = new Map(intentChanges.map((intentChange) => [intentChange.id, intentChange]));
   const isStrong = (action: string): boolean => action !== 'update';

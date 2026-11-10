@@ -301,6 +301,7 @@ export async function commit({
             ? DiffAction.UPDATE
             : action.action,
         moduleId: mapping?.moduleId,
+        previousTerraformAddresses: previousByContext.get(resourceContext)?.terraformAddresses ?? [],
         reason: action.reason,
         resourceContext,
         resourceId: action.resourceId,

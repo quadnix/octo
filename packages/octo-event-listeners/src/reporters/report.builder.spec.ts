@@ -444,6 +444,7 @@ describe('buildReport()', () => {
               {
                 action: DiffAction.ADD,
                 moduleId: 'website-module',
+                previousTerraformAddresses: [],
                 resourceContext: '@octo/s3-website=bucket-site',
                 resourceId: 'bucket-site',
                 terraformAddresses: ['aws_s3_bucket.site'],
@@ -475,6 +476,44 @@ describe('buildReport()', () => {
       ]);
       expect(report.headline).toContain('That created 1 new thing.');
       expect(report.commit?.responses).toHaveLength(1);
+    });
+
+    it('marks what an updated resource gained or lost since the last commit', () => {
+      const report = buildReport(
+        observation({
+          commit: {
+            emptiedModuleIds: [],
+            resources: [
+              {
+                action: DiffAction.UPDATE,
+                moduleId: 'server-module',
+                previousTerraformAddresses: ['aws_iam_role.role', 'aws_iam_policy.old'],
+                resourceContext: '@octo/iam-role=role',
+                resourceId: 'role',
+                terraformAddresses: ['aws_iam_role.role', 'aws_iam_policy.logs'],
+              },
+            ],
+            responses: [],
+            warnings: [],
+          },
+          mode: 'commit',
+          modelTransaction: [
+            [
+              modelDiff({
+                action: DiffAction.ADD,
+                nodeContext: 'server=api,app=test-app',
+                outputs: ['@octo/iam-role=role'],
+              }),
+            ],
+          ],
+        }),
+      );
+
+      expect(report.stories[0].resources[0].terraform).toEqual([
+        { address: 'aws_iam_role.role', changedFields: [], kind: 'update' },
+        { address: 'aws_iam_policy.logs', changedFields: [], kind: 'create' },
+        { address: 'aws_iam_policy.old', changedFields: [], kind: 'delete' },
+      ]);
     });
   });
 

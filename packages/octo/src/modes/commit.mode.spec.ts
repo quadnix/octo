@@ -46,6 +46,34 @@ describe('commit()', () => {
     expect(actualVpc.response['VpcId']).toBe('vpc-0real');
   });
 
+  it('should report the terraform addresses the last commit recorded for each resource', async () => {
+    const { app } = await testModes.createResourceGraph();
+
+    testModes.writeTfState('region-module', { 'igw-1': { igwId: 'igw-0real' }, 'vpc-1-VpcId': 'vpc-0real' });
+    testModes.writeTfState('sg-module', { 'sg-1-SgId': 'sg-0real' });
+
+    const transaction = await applyModelTransaction(app);
+    const vpc = testModes.resourceDataRepository.getNewResourcesByProperties().find((r) => r.resourceId === 'vpc-1')!;
+    const { resources } = await commit({
+      outputs: testModes.outputs,
+      previousMappings: [
+        {
+          moduleId: 'region-module',
+          resourceContext: vpc.getContext(),
+          resourceId: 'vpc-1',
+          terraformAddresses: ['aws_vpc.vpc-1', 'aws_vpc_ipv6_cidr_block_association.vpc-1'],
+        },
+      ],
+      transaction,
+    });
+
+    expect(resources.find((r) => r.resourceId === 'vpc-1')!.previousTerraformAddresses).toEqual([
+      'aws_vpc.vpc-1',
+      'aws_vpc_ipv6_cidr_block_association.vpc-1',
+    ]);
+    expect(resources.find((r) => r.resourceId === 'sg-1')!.previousTerraformAddresses).toEqual([]);
+  });
+
   it('should coerce non-string output values to strings', async () => {
     const { app } = await testModes.createResourceGraph();
 
