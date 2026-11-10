@@ -256,16 +256,39 @@ function hasMark(mark: unknown): boolean {
 }
 
 /**
- * True when terraform's sensitive/unknown map marks `key`.
+ * The part of terraform's sensitive/unknown map that describes `key`.
  */
-function isMarked(marks: Record<string, unknown> | boolean | null | undefined, key: string): boolean {
+function markOf(marks: unknown, key: number | string): unknown {
   if (marks === true) {
     return true;
   }
-  if (!marks || typeof marks !== 'object') {
-    return false;
+  if (typeof marks !== 'object' || marks === null) {
+    return undefined;
   }
-  return hasMark((marks as Record<string, unknown>)[key]);
+  return (marks as Record<string, unknown>)[key];
+}
+
+/**
+ * True when a value is a terraform block (an object), not a scalar or a list.
+ */
+function isBlock(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * The blocks to descend into when both sides are lists of the same length holding unnamed blocks,
+ * such as `point_in_time_recovery`; otherwise undefined, and the value is reported whole.
+ */
+function unnamedBlockPairs(before: unknown, after: unknown): [unknown, unknown][] | undefined {
+  if (!Array.isArray(before) || !Array.isArray(after) || before.length !== after.length || before.length === 0) {
+    return undefined;
+  }
+  const isUnnamedBlock = (element: unknown): boolean =>
+    isBlock(element) && element.name === undefined && element.index_name === undefined;
+  if (!before.every(isUnnamedBlock) || !after.every(isUnnamedBlock)) {
+    return undefined;
+  }
+  return before.map((element, index) => [element, after[index]]);
 }
 
 /**
@@ -273,7 +296,8 @@ function isMarked(marks: Record<string, unknown> | boolean | null | undefined, k
  *
  * Terraform already hands us both sides — `readPlan` parses the whole `show -json` payload — so this
  * costs nothing but the comparison. Without it an added index and a removed index render as the
- * same sentence: "1 update".
+ * same sentence: "1 update". An unnamed nested block is entered, so a change inside it is reported
+ * by its path (`point_in_time_recovery.enabled`), indexed only when the list holds several.
  */
 function describeFieldChanges(change: NonNullable<NonNullable<TerraformPlan['resource_changes']>[number]['change']>): {
   fields: ValidateFieldChange[];
@@ -287,34 +311,69 @@ function describeFieldChanges(change: NonNullable<NonNullable<TerraformPlan['res
     return { fields: [], omittedFieldCount: 0 };
   }
 
-  const before = (change.before ?? {}) as Record<string, unknown>;
-  const after = (change.after ?? {}) as Record<string, unknown>;
   const fields: ValidateFieldChange[] = [];
   let omittedFieldCount = 0;
 
-  for (const key of [...new Set([...Object.keys(before), ...Object.keys(after)])].sort()) {
-    const unknownAfter = isMarked(change.after_unknown, key);
-    if (!unknownAfter && JSON.stringify(before[key]) === JSON.stringify(after[key])) {
-      continue;
-    }
+  const collect = (
+    path: string,
+    before: Record<string, unknown>,
+    after: Record<string, unknown>,
+    marks: { afterSensitive: unknown; afterUnknown: unknown; beforeSensitive: unknown },
+  ): void => {
+    for (const key of [...new Set([...Object.keys(before), ...Object.keys(after)])].sort()) {
+      const field = path ? `${path}.${key}` : key;
+      const keyMarks = {
+        afterSensitive: markOf(marks.afterSensitive, key),
+        afterUnknown: markOf(marks.afterUnknown, key),
+        beforeSensitive: markOf(marks.beforeSensitive, key),
+      };
+      const unknownAfter = hasMark(keyMarks.afterUnknown);
+      if (!unknownAfter && JSON.stringify(before[key]) === JSON.stringify(after[key])) {
+        continue;
+      }
 
-    // Past the cap the field is still counted, so the report can say how many it left out rather
-    // than ending on a list the reader cannot tell is complete.
-    if (fields.length === MAX_REPORTED_FIELDS) {
-      omittedFieldCount++;
-      continue;
-    }
+      // Descend into unnamed blocks unless a mark hides what is inside them.
+      const pairs =
+        hasMark(keyMarks.afterSensitive) || hasMark(keyMarks.beforeSensitive) || unknownAfter
+          ? undefined
+          : unnamedBlockPairs(before[key], after[key]);
+      if (pairs) {
+        pairs.forEach(([beforeBlock, afterBlock], index) => {
+          const blockMarks = {
+            afterSensitive: markOf(keyMarks.afterSensitive, index),
+            afterUnknown: markOf(keyMarks.afterUnknown, index),
+            beforeSensitive: markOf(keyMarks.beforeSensitive, index),
+          };
+          const blockPath = pairs.length === 1 ? field : `${field}[${index}]`;
+          collect(blockPath, beforeBlock as Record<string, unknown>, afterBlock as Record<string, unknown>, blockMarks);
+        });
+        continue;
+      }
 
-    fields.push({
-      field: key,
-      from: isMarked(change.before_sensitive, key) ? '(sensitive)' : renderPlanValue(before[key]),
-      to: unknownAfter
-        ? '(known after apply)'
-        : isMarked(change.after_sensitive, key)
-          ? '(sensitive)'
-          : renderPlanValue(after[key]),
-    });
-  }
+      // Past the cap the field is still counted, so the report can say how many it left out rather
+      // than ending on a list the reader cannot tell is complete.
+      if (fields.length === MAX_REPORTED_FIELDS) {
+        omittedFieldCount++;
+        continue;
+      }
+
+      fields.push({
+        field,
+        from: hasMark(keyMarks.beforeSensitive) ? '(sensitive)' : renderPlanValue(before[key]),
+        to: unknownAfter
+          ? '(known after apply)'
+          : hasMark(keyMarks.afterSensitive)
+            ? '(sensitive)'
+            : renderPlanValue(after[key]),
+      });
+    }
+  };
+
+  collect('', (change.before ?? {}) as Record<string, unknown>, (change.after ?? {}) as Record<string, unknown>, {
+    afterSensitive: change.after_sensitive,
+    afterUnknown: change.after_unknown,
+    beforeSensitive: change.before_sensitive,
+  });
 
   return { fields, omittedFieldCount };
 }

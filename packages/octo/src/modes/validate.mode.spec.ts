@@ -579,6 +579,36 @@ describe('validate()', () => {
       ]);
     });
 
+    it('names the path inside an unnamed block, indexing it only when the list holds several', async () => {
+      const { app } = await testModes.createResourceGraph({ save: true });
+      await commitResources({ skipAddActualResource: true });
+      await recreateGraph({ changeVpc: true });
+
+      testModes.writePlan('region-module', [
+        {
+          actions: ['update'],
+          address: 'aws_vpc.vpc-1',
+          after: {
+            ingress: [{ from_port: 80 }, { from_port: 8443 }],
+            point_in_time_recovery: [{ enabled: true, recovery_period_in_days: 35 }],
+          },
+          before: {
+            ingress: [{ from_port: 80 }, { from_port: 443 }],
+            point_in_time_recovery: [{ enabled: false, recovery_period_in_days: 35 }],
+          },
+        },
+        { actions: ['no-op'], address: 'null_resource.igw-1' },
+      ]);
+      testModes.writePlan('sg-module', [{ actions: ['no-op'], address: 'aws_security_group.sg-1' }]);
+
+      const report = await runValidate(app, { persistedMappings: persistedGraph(), plans: testModes.plans });
+
+      expect(report.intentChanges.find((c) => c.resourceId === 'vpc-1')!.terraformChanges[0].changedFields).toEqual([
+        { field: 'ingress[1].from_port', from: '443', to: '8443' },
+        { field: 'point_in_time_recovery.enabled', from: 'false', to: 'true' },
+      ]);
+    });
+
     it('redacts a value terraform actually marked sensitive', async () => {
       const { app } = await testModes.createResourceGraph({ save: true });
       await commitResources({ skipAddActualResource: true });
