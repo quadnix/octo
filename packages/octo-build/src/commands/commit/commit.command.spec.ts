@@ -46,7 +46,6 @@ describe('commitCommand UT', () => {
   let octoCommitMock: jest.Mock<(...args: unknown[]) => Promise<CommitResult>>;
   let terraformUtilityMock: {
     deleteDestroyedFolders: jest.Mock<(dir: string, moduleIds: string[]) => Promise<string[]>>;
-    listModuleFolders: jest.Mock<() => Promise<string[]>>;
     output: jest.Mock<() => Promise<Map<string, unknown>>>;
     plan: jest.Mock<() => Promise<{ errors: Map<string, string>; plans: Map<string, unknown> }>>;
   };
@@ -65,7 +64,6 @@ describe('commitCommand UT', () => {
       deleteDestroyedFolders: jest
         .fn<(dir: string, moduleIds: string[]) => Promise<string[]>>()
         .mockImplementation(async (_dir, moduleIds) => moduleIds),
-      listModuleFolders: jest.fn<() => Promise<string[]>>().mockResolvedValue([]),
       output: jest.fn<() => Promise<Map<string, unknown>>>().mockResolvedValue(new Map()),
       plan: jest
         .fn<() => Promise<{ errors: Map<string, string>; plans: Map<string, unknown> }>>()
@@ -119,7 +117,6 @@ describe('commitCommand UT', () => {
 
   it('should read outputs via TerraformUtility and pass them to octo.commit()', async () => {
     const outputs = new Map([['module-a', { bucket: { value: 'my-bucket' } }]]);
-    terraformUtilityMock.listModuleFolders.mockResolvedValue(['module-a']);
     terraformUtilityMock.output.mockResolvedValue(outputs);
 
     await commitCommand.handler(argv);
@@ -133,7 +130,6 @@ describe('commitCommand UT', () => {
   });
 
   it('should commit no folder whose plan still holds changes on a partial commit', async () => {
-    terraformUtilityMock.listModuleFolders.mockResolvedValue(['applied', 'failed', 'unplanned']);
     terraformUtilityMock.output.mockResolvedValue(
       new Map([
         ['applied', { a: { value: 'a' } }],
@@ -164,19 +160,6 @@ describe('commitCommand UT', () => {
     await commitCommand.handler(argv);
 
     expect(terraformUtilityMock.plan).not.toHaveBeenCalled();
-  });
-
-  it('should warn for a module folder missing from the returned outputs, but still commit', async () => {
-    terraformUtilityMock.listModuleFolders.mockResolvedValue(['module-a', 'module-b']);
-    terraformUtilityMock.output.mockResolvedValue(new Map([['module-a', { bucket: { value: 'my-bucket' } }]]));
-
-    await commitCommand.handler(argv);
-
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      expect.stringContaining('WARN [module-b] Could not read terraform outputs'),
-    );
-    expect(octoCommitMock).toHaveBeenCalled();
-    expect(processExitSpy).not.toHaveBeenCalled();
   });
 
   it('should print warnings from the commit result', async () => {

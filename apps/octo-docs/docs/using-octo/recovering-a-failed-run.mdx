@@ -106,11 +106,8 @@ A commit that fails has written nothing, and keeps the lock so you can run it ag
 Cannot commit: missing terraform outputs (partial apply?): receipts-module/bucket-test-Arn! Octo state is unchanged. Re-run with a partial commit to record what did apply.
 ```
 
-That one has two causes, and the lines above it say which. If they include
-`WARN [receipts-module] Could not read terraform outputs`, the commit could not reach a folder's
-outputs, usually for want of credentials: fix that and run the same commit again. Otherwise the
-apply before it did not finish: run the same commit again with `--partial`, and carry on from step 2
-of [The apply failed](#the-apply-failed).
+That one means the apply before it did not finish: run the same commit again with `--partial`, and
+carry on from step 2 of [The apply failed](#the-apply-failed).
 
 Any other error names what stopped it: a null output from a resource that did not come up, or the
 delete action of an [external resource](/docs/building-modules/create-an-external-resource) that

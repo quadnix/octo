@@ -368,13 +368,12 @@ Run](/docs/using-octo/recovering-a-failed-run#the-commit-failed) walks through e
 Some folders never produced their outputs. Usually the apply did not finish: `octo commit --partial`
 records every resource whose outputs all resolved and leaves the rest out, reporting what it
 skipped. The next run plans to create those again, which Terraform reconciles against its own state
-as a no-op if they exist. If the lines above the error say `Could not read terraform outputs`, the
-apply was fine and the commit could not reach a folder, usually for want of credentials.
+as a no-op if they exist.
 
 **`Terraform outputs are not in a format octo reads!`**
 
-`terraform output -json` returned something other than one object per output holding its `value`.
-As with a plan in an unknown format, run a Terraform release Octo supports.
+A folder's Terraform state holds an output that is not an object holding its `value`. As with a plan
+in an unknown format, run a Terraform release Octo supports.
 
 **`Cannot commit: null terraform outputs (broken apply?)`**
 

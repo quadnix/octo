@@ -9,7 +9,7 @@ into Terraform, and your own Terragrunt applies it. Users start at
 **This README is a set of procedures for working on the repository.** `docs/ARCHITECTURE.md`
 explains what exists, and `docs/CODING-STANDARDS.md` how to add to it.
 
-Requires Node 20 or newer, Terraform or OpenTofu 1.6 or newer, and Terragrunt 0.78 or newer. The
+Requires Node 20 or newer, Terraform or OpenTofu 1.6 or newer, and Terragrunt 1.0 or newer. The
 integration suites also need Docker, and the e2e suites AWS credentials.
 
 ---

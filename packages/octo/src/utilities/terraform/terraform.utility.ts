@@ -263,20 +263,15 @@ export class TerraformUtility {
       return this.runAll(terragruntDir, 'output', this.consumeArgs());
     }
 
-    const composedArgs = this.consumeArgs();
+    this.consumeArgs();
     const realTerragruntDir = await this.resolveRealPath(terragruntDir);
-    return this.withTerraformState(realTerragruntDir, async (moduleIds) =>
-      this.emitAround('output', terragruntDir, async () => {
-        const outputs = new Map<string, TerraformOutputs>();
-        for (const moduleId of moduleIds) {
-          const moduleOutputs = await this.readOutputs(join(realTerragruntDir, moduleId), composedArgs);
-          if (moduleOutputs !== undefined) {
-            outputs.set(moduleId, moduleOutputs);
-          }
-        }
-        return outputs;
-      }),
-    );
+    return this.withTerraformState(realTerragruntDir, async (moduleIds) => {
+      const outputs = new Map<string, TerraformOutputs>();
+      for (const moduleId of moduleIds) {
+        outputs.set(moduleId, await this.readOutputs(join(realTerragruntDir, moduleId)));
+      }
+      return outputs;
+    });
   }
 
   /**
@@ -305,22 +300,8 @@ export class TerraformUtility {
 
     const composedArgs = this.consumeArgs();
     const realTerragruntDir = await this.resolveRealPath(terragruntDir);
-    return this.withTerraformState(realTerragruntDir, async (moduleIds) =>
-      this.emitAround('plan', terragruntDir, async () => {
-        const errors = new Map<string, string>();
-        const plans = new Map<string, TerraformPlan>();
-
-        for (const moduleId of moduleIds) {
-          const result = await this.readPlan(join(realTerragruntDir, moduleId), composedArgs);
-          if ('plan' in result) {
-            plans.set(moduleId, result.plan);
-          } else {
-            errors.set(moduleId, result.error);
-          }
-        }
-
-        return { errors, plans };
-      }),
+    return this.withTerraformState(realTerragruntDir, (moduleIds) =>
+      this.readPlans(realTerragruntDir, moduleIds, composedArgs),
     );
   }
 
@@ -426,49 +407,15 @@ export class TerraformUtility {
   }
 
   /**
-   * Publishes the same started/finished pair {@link runAll} does, around a body that drives
-   * terragrunt folder by folder instead.
-   *
-   * The JSON-mode `plan` and `output` take that per-folder path, and it is the slowest step of a
-   * `validate` - a full plan runs for tens of seconds - so the log must not fall silent through it.
-   */
-  private async emitAround<T>(command: string, terragruntDir: string, body: () => Promise<T>): Promise<T> {
-    const eventService = EventService.getInstance();
-    const startedAt = Date.now();
-    eventService.emit(new TerraformCommandStartedEvent(command, { command, dir: terragruntDir }));
-
-    try {
-      const result = await body();
-      eventService.emit(
-        new TerraformCommandFinishedEvent(command, {
-          command,
-          dir: terragruntDir,
-          durationInMs: Date.now() - startedAt,
-          exitCode: 0,
-        }),
-      );
-      return result;
-    } catch (error) {
-      eventService.emit(
-        new TerraformCommandFinishedEvent(command, {
-          command,
-          dir: terragruntDir,
-          durationInMs: Date.now() - startedAt,
-          exitCode: (error as { exitCode?: number })?.exitCode ?? -1,
-        }),
-      );
-      throw error;
-    }
-  }
-
-  /**
-   * The `terragrunt run --all` invocation itself, wrapped in its started/finished pair.
+   * The `terragrunt run --all` invocation itself, wrapped in its started/finished pair. `runFlags` are
+   * terragrunt's own flags for the run, placed before the command.
    */
   private async invokeRunAll(
     terragruntDir: string,
     moduleIds: string[],
     command: string,
     commandArgs: string[],
+    runFlags: string[] = [],
   ): Promise<TerraformRawResult> {
     const args = [
       '--non-interactive',
@@ -477,6 +424,7 @@ export class TerraformUtility {
       terragruntDir,
       'run',
       '--all',
+      ...runFlags,
       '--',
       command,
       ...commandArgs,
@@ -608,22 +556,25 @@ export class TerraformUtility {
   }
 
   /**
-   * Runs `terragrunt output -json` in one module folder.
+   * Reads the outputs of one module folder from the terraform state checked out into it, in the shape
+   * `terraform output -json` prints. A folder with no state has no outputs.
    *
-   * A folder whose output fails is reported as `undefined`, not thrown — one bad module folder must not
-   * abort every other folder's result.
-   *
-   * @throws {@link TerraformFormatError} When an output is not an object holding its `value`.
+   * @throws {@link TerraformFormatError} When the state or an output in it is not in a format octo reads.
    */
-  private async readOutputs(moduleDir: string, composedArgs: string[]): Promise<TerraformOutputs | undefined> {
-    let outputs: unknown;
-    try {
-      const { stdout } = await this.run(moduleDir, ['output', '-json', ...composedArgs]);
-      outputs = JSON.parse(stdout);
-    } catch {
-      return undefined;
+  private async readOutputs(moduleDir: string): Promise<TerraformOutputs> {
+    const stateFilePath = join(moduleDir, TERRAFORM_STATE_FILE_NAME);
+    if (!existsSync(stateFilePath)) {
+      return {};
     }
 
+    let state: { outputs?: unknown };
+    try {
+      state = JSON.parse(await readFile(stateFilePath, 'utf-8'));
+    } catch {
+      throw new TerraformFormatError('Terraform state is not in a format octo reads!', moduleDir);
+    }
+
+    const outputs = state.outputs ?? {};
     const isOutput = (output: unknown): boolean => typeof output === 'object' && output !== null && 'value' in output;
     if (typeof outputs !== 'object' || outputs === null || !Object.values(outputs).every(isOutput)) {
       throw new TerraformFormatError('Terraform outputs are not in a format octo reads!', moduleDir);
@@ -632,38 +583,80 @@ export class TerraformUtility {
   }
 
   /**
-   * Runs `terragrunt plan -out=<planFile>` followed by `terragrunt show -json <planFile>` in one module folder.
-   *
-   * The plan file is written to an absolute temp path, never inside a terragrunt
-   * cache — terragrunt picks a different cache sub-directory per invocation, so a relative plan file
-   * written by one command cannot be found by the next.
-   *
-   * A folder whose plan/show/parse fails is reported as an `error`, not thrown — one bad module folder must not
-   * abort every other folder's result. The failure is carried so `validate` can report it verbatim.
+   * Plans every folder in `moduleIds` with one `terragrunt run --all -- plan`, which runs them in
+   * parallel in dependency order and writes each plan as JSON. A folder failing does not stop the
+   * others; its error is the cause terragrunt's run report gives for it.
    */
-  private async readPlan(
-    moduleDir: string,
+  private async readPlans(
+    terragruntDir: string,
+    moduleIds: string[],
     composedArgs: string[],
-  ): Promise<{ error: string } | { plan: TerraformPlan }> {
+  ): Promise<TerraformPlanResult> {
+    const errors = new Map<string, string>();
+    const plans = new Map<string, TerraformPlan>();
     const tempDir = await mkdtemp(join(tmpdir(), 'octo-tfplan-'));
-    const planFile = join(tempDir, 'octo.tfplan');
+    const planDir = join(tempDir, 'plans');
+    const reportFilePath = join(tempDir, 'report.json');
 
     try {
-      await this.run(moduleDir, ['plan', `-out=${planFile}`, '-input=false', ...composedArgs]);
-      const { stdout } = await this.run(moduleDir, ['show', '-json', planFile]);
-      const plan = JSON.parse(stdout) as TerraformPlan;
-
-      // Refuse a plan in a format octo was not written against.
-      if (!/^1\./.test(String(plan.format_version))) {
-        return { error: `Terraform plan format version "${plan.format_version}" is not one octo reads (1.x)!` };
+      // Plan every folder, keeping a failure of the run as the error of any folder the report misses.
+      let runFailure: string | undefined;
+      try {
+        await this.invokeRunAll(
+          terragruntDir,
+          moduleIds,
+          'plan',
+          ['-input=false', ...composedArgs],
+          ['--queue-ignore-errors', '--json-out-dir', planDir, '--report-file', reportFilePath],
+        );
+      } catch (error) {
+        runFailure = this.describePlanFailure(error);
       }
 
-      return { plan };
-    } catch (error) {
-      return { error: this.describePlanFailure(error) };
+      // Read each folder's result.
+      const report = await this.readRunReport(reportFilePath);
+      for (const moduleId of moduleIds) {
+        const unit = report.get(moduleId);
+        if (unit && unit.Result !== 'succeeded') {
+          errors.set(moduleId, (unit.Cause || unit.Reason || runFailure || `Plan ${unit.Result}!`).trim());
+          continue;
+        }
+
+        let plan: TerraformPlan;
+        try {
+          plan = JSON.parse(await readFile(join(planDir, moduleId, 'tfplan.json'), 'utf-8')) as TerraformPlan;
+        } catch {
+          errors.set(moduleId, runFailure ?? 'Terraform wrote no plan!');
+          continue;
+        }
+
+        // Refuse a plan in a format octo was not written against.
+        if (!/^1\./.test(String(plan.format_version))) {
+          errors.set(moduleId, `Terraform plan format version "${plan.format_version}" is not one octo reads (1.x)!`);
+          continue;
+        }
+        plans.set(moduleId, plan);
+      }
+
+      return { errors, plans };
     } finally {
       await rm(tempDir, { force: true, recursive: true });
     }
+  }
+
+  /**
+   * Each unit of a terragrunt run report, keyed by its folder name. A report never written is empty.
+   */
+  private async readRunReport(
+    reportFilePath: string,
+  ): Promise<Map<string, { Cause?: string; Name: string; Reason?: string; Result: string }>> {
+    let units: { Cause?: string; Name: string; Reason?: string; Result: string }[];
+    try {
+      units = JSON.parse(await readFile(reportFilePath, 'utf-8'));
+    } catch {
+      return new Map();
+    }
+    return new Map(units.map((unit) => [unit.Name, unit]));
   }
 
   /**
@@ -694,13 +687,6 @@ export class TerraformUtility {
         await writeFile(stateFilePath, data);
       }
     }
-  }
-
-  /**
-   * Runs one terragrunt command in a single module folder (`cwd` = that folder).
-   */
-  private async run(moduleDir: string, args: string[]): Promise<{ stdout: string }> {
-    return this.runIn(moduleDir, this.options.terragruntBinary, args);
   }
 
   /**

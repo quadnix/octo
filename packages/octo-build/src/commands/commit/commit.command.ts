@@ -68,18 +68,8 @@ export const commitCommand = {
         args: [{ terraformBinary, terragruntBinary, timeoutInMs }, true],
       });
 
-      // Read outputs from every folder terragrunt discovers. A folder whose outputs cannot be read
-      // is warned and omitted rather than aborting the commit: octo rejects the commit itself if
-      // that folder held a module it tracks, and merely warns if it is a folder octo does not know.
-      const [outputs, moduleIds] = await Promise.all([
-        terraformUtility.output(resolvedDir, { json: true }),
-        terraformUtility.listModuleFolders(resolvedDir),
-      ]);
-      for (const moduleId of moduleIds) {
-        if (!outputs.has(moduleId)) {
-          console.error(chalk.yellow(`WARN [${moduleId}] Could not read terraform outputs`));
-        }
-      }
+      // Read the outputs of every folder from its terraform state.
+      const outputs = await terraformUtility.output(resolvedDir, { json: true });
 
       // A partial commit confirms only the folders whose plan is now empty. A folder whose apply failed
       // still reads the outputs of its last apply, which would record what never reached the cloud.

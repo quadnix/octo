@@ -87,6 +87,32 @@ describe('TerraformUtility UT', () => {
     await writeFile(join(moduleDir, 'terragrunt.hcl'), '');
   }
 
+  /**
+   * Has the next `run --all -- plan` write a JSON plan for each folder given one, and a run report
+   * holding each folder's result, as terragrunt does.
+   */
+  function mockRunAllPlan(results: Record<string, { cause: string } | { plan: unknown }>): void {
+    terraform.spawnAsyncMock.mockImplementation(async (_file, args) => {
+      const planDir = args[args.indexOf('--json-out-dir') + 1];
+      const reportFilePath = args[args.indexOf('--report-file') + 1];
+      const units: { Cause?: string; Name: string; Result: string }[] = [];
+      for (const [moduleId, result] of Object.entries(results)) {
+        if ('plan' in result) {
+          await mkdir(join(planDir, moduleId), { recursive: true });
+          await writeFile(join(planDir, moduleId, 'tfplan.json'), JSON.stringify(result.plan));
+          units.push({ Name: moduleId, Result: 'succeeded' });
+        } else {
+          units.push({ Cause: result.cause, Name: moduleId, Result: 'failed' });
+        }
+      }
+      await writeFile(reportFilePath, JSON.stringify(units));
+      if (units.some((unit) => unit.Result !== 'succeeded')) {
+        throw Object.assign(new Error('exit 1'), { code: 1, stderr: 'run failed', stdout: '' });
+      }
+      return { stderr: '', stdout: '' };
+    });
+  }
+
   describe('apply() output', () => {
     beforeEach(async () => {
       await createModuleFolder('module-a');
@@ -157,33 +183,15 @@ describe('TerraformUtility UT', () => {
       expect(argvOf(1)).not.toEqual(expect.arrayContaining(['-lock=false']));
     });
 
-    it('does not apply setArgsOnce() to the internal "show -json" step of a JSON plan', async () => {
-      await createModuleFolder('module-a');
-      terraform.setArgsOnce(['-lock=false']);
-
-      await terraform.plan(terragruntDir, { json: true });
-
-      const showCall = terraform.spawnAsyncMock.mock.calls.find((call) => call[1][0] === 'show');
-      expect(showCall![1]).not.toEqual(expect.arrayContaining(['-lock=false']));
-    });
-
-    it('shares setArgsOnce() across every per-folder invocation within one call, then clears it', async () => {
-      await createModuleFolder('module-a');
+    it('passes setArgsOnce() to the plan of a JSON plan once, then clears it', async () => {
       await createModuleFolder('module-b');
       terraform.setArgsOnce(['-lock=false']);
 
       await terraform.plan(terragruntDir, { json: true });
-      const planCallsWithOnceArg = terraform.spawnAsyncMock.mock.calls.filter(
-        (call) => call[1][0] === 'plan' && call[1].includes('-lock=false'),
-      );
-      expect(planCallsWithOnceArg).toHaveLength(2);
-
-      terraform.spawnAsyncMock.mockClear();
       await terraform.plan(terragruntDir, { json: true });
-      const planCallsAfter = terraform.spawnAsyncMock.mock.calls.filter((call) => call[1][0] === 'plan');
-      for (const call of planCallsAfter) {
-        expect(call[1]).not.toEqual(expect.arrayContaining(['-lock=false']));
-      }
+
+      expect(argvOf(0).slice(argvOf(0).indexOf('--'))).toEqual(['--', 'plan', '-input=false', '-lock=false']);
+      expect(argvOf(1)).not.toEqual(expect.arrayContaining(['-lock=false']));
     });
   });
 
@@ -301,7 +309,7 @@ describe('TerraformUtility UT', () => {
 
       await terraform.plan(terragruntDir, { json: true });
 
-      const dir = join(await realpath(terragruntDir), 'module-a');
+      const dir = await realpath(terragruntDir);
       const [{ processId }] = events.map((event) => event.payload);
       expect(events.map((event) => [event.constructor.name, event.name, event.payload])).toEqual([
         [
@@ -316,13 +324,8 @@ describe('TerraformUtility UT', () => {
     });
 
     it('should give each process an id of its own', async () => {
-      await createModuleFolder('module-a');
-      terraform.spawnAsyncMock.mockImplementation(async (_file, args) => ({
-        stderr: '',
-        stdout: args[0] === 'show' ? JSON.stringify({ format_version: '1.2', resource_changes: [] }) : '',
-      }));
-
-      await terraform.plan(terragruntDir, { json: true });
+      await terraform.apply(terragruntDir);
+      await terraform.apply(terragruntDir);
 
       const processIds = events
         .filter((event) => event instanceof TerraformProcessStartedEvent)
@@ -365,10 +368,7 @@ describe('TerraformUtility UT', () => {
   describe('plan(dir, { json: true })', () => {
     it('should report a folder whose plan is in a format version octo does not read', async () => {
       await createModuleFolder('module-a');
-      terraform.spawnAsyncMock.mockImplementation(async (_file, args) => ({
-        stderr: '',
-        stdout: args[0] === 'show' ? JSON.stringify({ format_version: '2.0', resource_changes: [] }) : '',
-      }));
+      mockRunAllPlan({ 'module-a': { plan: { format_version: '2.0', resource_changes: [] } } });
 
       const { errors, plans } = await terraform.plan(terragruntDir, { json: true });
 
@@ -376,151 +376,94 @@ describe('TerraformUtility UT', () => {
       expect(errors.get('module-a')).toBe('Terraform plan format version "2.0" is not one octo reads (1.x)!');
     });
 
-    it('enumerates only folders containing terragrunt.hcl and returns a Map keyed by folder name', async () => {
-      await createModuleFolder('module-a');
-      await createModuleFolder('module-b');
-      await mkdir(join(terragruntDir, 'not-a-module'));
-
-      terraform.spawnAsyncMock.mockImplementation(async (_file, args) => {
-        if (args[0] === 'show') {
-          return { stderr: '', stdout: JSON.stringify({ format_version: '1.2', resource_changes: [] }) };
-        }
-        return { stderr: '', stdout: '' };
+    it('should carry the cause the run report gives for a folder that failed to plan', async () => {
+      await createModuleFolder('module-bad');
+      await createModuleFolder('module-good');
+      mockRunAllPlan({
+        'module-bad': { cause: 'Error: "10.0.1.0/16" is not a valid CIDR block: has host bits set\n' },
+        'module-good': { plan: { format_version: '1.2', resource_changes: [] } },
       });
 
       const { errors, plans } = await terraform.plan(terragruntDir, { json: true });
 
-      expect([...plans.keys()].sort()).toEqual(['module-a', 'module-b']);
-      expect(plans.get('module-a')).toEqual({ format_version: '1.2', resource_changes: [] });
-      expect(errors.size).toBe(0);
+      expect([...plans.keys()]).toEqual(['module-good']);
+      expect(errors.get('module-bad')).toBe('Error: "10.0.1.0/16" is not a valid CIDR block: has host bits set');
     });
 
-    it('runs the two-step plan-then-show-json per folder', async () => {
+    it('should give the run failure to a folder the run wrote nothing for', async () => {
       await createModuleFolder('module-a');
-      terraform.spawnAsyncMock.mockImplementation(async (_file, args) => {
-        if (args[0] === 'show') {
-          return { stderr: '', stdout: JSON.stringify({ format_version: '1.2', resource_changes: [] }) };
-        }
-        return { stderr: '', stdout: '' };
-      });
+      terraform.spawnAsyncMock.mockRejectedValue(
+        Object.assign(new Error('exit 1'), { code: 1, stderr: 'Error: Unreadable terragrunt.hcl\n', stdout: '' }),
+      );
 
-      await terraform.plan(terragruntDir, { json: true });
+      const { errors, plans } = await terraform.plan(terragruntDir, { json: true });
 
-      expect(terraform.spawnAsyncMock.mock.calls.map((call) => call[1][0])).toEqual(['plan', 'show']);
-      const planArgs = argvOf(0);
-      expect(planArgs[0]).toBe('plan');
-      expect(planArgs.some((a) => a.startsWith('-out='))).toBe(true);
+      expect(plans.size).toBe(0);
+      expect(errors.get('module-a')).toBe('Error: Unreadable terragrunt.hcl');
     });
 
-    it('resolves an empty Map without spawning a process when there are no module folders', async () => {
+    it('should report a folder the run says succeeded but wrote no plan for', async () => {
+      await createModuleFolder('module-a');
+      mockRunAllPlan({});
+
+      const { errors } = await terraform.plan(terragruntDir, { json: true });
+
+      expect(errors.get('module-a')).toBe('Terraform wrote no plan!');
+    });
+
+    it('should resolve an empty Map without spawning a process when there are no module folders', async () => {
       const { plans } = await terraform.plan(terragruntDir, { json: true });
 
       expect(plans.size).toBe(0);
       expect(terraform.spawnAsyncMock).not.toHaveBeenCalled();
     });
 
-    it('omits a folder whose show -json output is not valid JSON, but keeps the rest', async () => {
-      await createModuleFolder('module-bad');
-      await createModuleFolder('module-good');
-
-      terraform.spawnAsyncMock.mockImplementation(async (_file, args, options) => {
-        if (args[0] === 'show') {
-          if ((options.cwd as string)?.endsWith('module-bad')) {
-            return { stderr: '', stdout: 'not json' };
-          }
-          return { stderr: '', stdout: JSON.stringify({ format_version: '1.2', resource_changes: [] }) };
-        }
-        return { stderr: '', stdout: '' };
+    it('should plan every folder holding terragrunt.hcl in one run, keyed by folder name', async () => {
+      await createModuleFolder('module-a');
+      await createModuleFolder('module-b');
+      await mkdir(join(terragruntDir, 'not-a-module'));
+      mockRunAllPlan({
+        'module-a': { plan: { format_version: '1.2', resource_changes: [] } },
+        'module-b': { plan: { format_version: '1.2', resource_changes: [] } },
       });
 
       const { errors, plans } = await terraform.plan(terragruntDir, { json: true });
 
-      expect([...plans.keys()]).toEqual(['module-good']);
-      expect([...errors.keys()]).toEqual(['module-bad']);
-    });
-
-    it('cleans up its per-folder temp directory even when show -json throws', async () => {
-      await createModuleFolder('module-a');
-      terraform.spawnAsyncMock.mockImplementation(async (_file, args) => {
-        if (args[0] === 'show') {
-          throw Object.assign(new Error('boom'), { stderr: 'boom', stdout: '' });
-        }
-        return { stderr: '', stdout: '' };
-      });
-
-      const { plans } = await terraform.plan(terragruntDir, { json: true });
-
-      expect(plans.size).toBe(0);
-    });
-
-    it("carries terraform's own error for a folder that failed to plan", async () => {
-      await createModuleFolder('region-module');
-      terraform.spawnAsyncMock.mockImplementation(async (_file, args) => {
-        if (args[0] === 'plan') {
-          throw Object.assign(new Error('exit 1'), {
-            stderr: 'Error: "10.0.1.0/16" is not a valid CIDR block: has host bits set\n',
-            stdout: '',
-          });
-        }
-        return { stderr: '', stdout: '' };
-      });
-
-      const { errors, plans } = await terraform.plan(terragruntDir, { json: true });
-
-      expect(plans.size).toBe(0);
-      expect(errors.get('region-module')).toBe('Error: "10.0.1.0/16" is not a valid CIDR block: has host bits set');
-    });
-
-    it('falls back to the wrapped error message when the failure carried no stderr', async () => {
-      await createModuleFolder('module-a');
-      terraform.spawnAsyncMock.mockImplementation(async (_file, args) => {
-        if (args[0] === 'show') {
-          return { stderr: '', stdout: 'not json' };
-        }
-        return { stderr: '', stdout: '' };
-      });
-
-      const { errors } = await terraform.plan(terragruntDir, { json: true });
-
-      expect(errors.get('module-a')).toContain('JSON');
+      expect(terraform.spawnAsyncMock).toHaveBeenCalledTimes(1);
+      expect(argvOf(0)).toEqual(
+        expect.arrayContaining(['run', '--all', '--queue-ignore-errors', '--json-out-dir', '--report-file']),
+      );
+      expect([...plans.keys()].sort()).toEqual(['module-a', 'module-b']);
+      expect(plans.get('module-a')).toEqual({ format_version: '1.2', resource_changes: [] });
+      expect(errors.size).toBe(0);
     });
   });
 
   describe('output(dir, { json: true })', () => {
     it('should throw error when an output does not hold its value', async () => {
       await createModuleFolder('module-a');
-      terraform.spawnAsyncMock.mockResolvedValue({ stderr: '', stdout: JSON.stringify({ bucket: 'my-bucket' }) });
+      await stateProvider.saveStates([
+        { data: Buffer.from(JSON.stringify({ outputs: { bucket: 'my-bucket' } })), stateFileName: 'module-a.tfstate' },
+      ]);
 
       await expect(terraform.output(terragruntDir, { json: true })).rejects.toBeInstanceOf(TerraformFormatError);
     });
 
-    it('reads per-folder "output -json" into a Map keyed by folder name', async () => {
+    it("should read each folder's outputs from its terraform state without running terraform", async () => {
       await createModuleFolder('module-a');
-      terraform.spawnAsyncMock.mockResolvedValue({
-        stderr: '',
-        stdout: JSON.stringify({ bucket: { value: 'my-bucket' } }),
-      });
+      await createModuleFolder('module-b');
+      await stateProvider.saveStates([
+        {
+          data: Buffer.from(JSON.stringify({ outputs: { bucket: { type: 'string', value: 'my-bucket' } } })),
+          stateFileName: 'module-a.tfstate',
+        },
+      ]);
 
       const outputs = await terraform.output(terragruntDir, { json: true });
 
-      expect(outputs.get('module-a')).toEqual({ bucket: { value: 'my-bucket' } });
-      expect(argvOf(0).slice(0, 2)).toEqual(['output', '-json']);
-    });
-
-    it('omits a folder whose output read fails, but keeps the rest', async () => {
-      await createModuleFolder('module-bad');
-      await createModuleFolder('module-good');
-
-      terraform.spawnAsyncMock.mockImplementation(async (_file, _args, options) => {
-        if ((options.cwd as string)?.endsWith('module-bad')) {
-          throw Object.assign(new Error('boom'), { stderr: 'boom', stdout: '' });
-        }
-        return { stderr: '', stdout: JSON.stringify({}) };
-      });
-
-      const outputs = await terraform.output(terragruntDir, { json: true });
-
-      expect([...outputs.keys()]).toEqual(['module-good']);
+      expect(outputs.get('module-a')).toEqual({ bucket: { type: 'string', value: 'my-bucket' } });
+      expect(outputs.get('module-b')).toEqual({});
+      expect(terraform.spawnAsyncMock).not.toHaveBeenCalled();
     });
   });
 

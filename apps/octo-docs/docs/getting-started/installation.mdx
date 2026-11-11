@@ -15,7 +15,7 @@ team already has, plus Node.js to run Octo itself.
 |-----------------------|---------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Node.js               | 20 or newer   | Octo is a TypeScript toolchain, and the generated project declares `"engines": { "node": ">=20.0.0" }`.                                                                           |
 | Terraform or OpenTofu | 1.6 or newer  | Creates the infrastructure. The floor comes from `terraform.requiredVersion` in your definition file, which the scaffolder sets to `1.6.0`.                                       |
-| Terragrunt            | 0.78 or newer | Octo writes one Terragrunt module folder per module and drives them with `terragrunt run --all`, which arrived in 0.78.                                                           |
+| Terragrunt            | 1.0 or newer  | Octo writes one Terragrunt module folder per module and plans them together with `terragrunt run --all`, reading each folder's result from its run report, stable since 1.0.      |
 | AWS credentials       |               | Only if you deploy to AWS. A named profile in `~/.aws/credentials` is enough. The <Link display="AWS local setup guide" id="blog" path="/aws-local-setup" /> starts from nothing. |
 
 ```bash
