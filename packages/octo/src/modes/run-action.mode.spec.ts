@@ -104,7 +104,7 @@ describe('runAction()', () => {
       resourceId: 'igw-1',
     });
 
-    expect(result.action).toBe('noop');
+    expect(result).toMatchObject({ action: 'noop', reason: 'unchanged' });
     expect(testModes.igwActionHandledDiffs).toHaveLength(0);
   });
 
@@ -188,7 +188,7 @@ describe('runAction()', () => {
 
       expect(first.action).toBe('update');
       expect(handledOnFirstCall).toBeGreaterThan(0);
-      expect(second.action).toBe('noop');
+      expect(second).toMatchObject({ action: 'noop', reason: 'already-done' });
       expect(testModes.igwActionHandledDiffs).toHaveLength(handledOnFirstCall);
     });
 
@@ -246,7 +246,13 @@ describe('runAction()', () => {
 
       const result = await runAction(app, { inputs: { 'vpc-1.VpcId': 'vpc-0real' }, resourceId: 'igw-2' });
 
-      expect(result).toEqual({ action: 'noop', resourceId: 'igw-2', response: { igwId: 'igw-0committed' } });
+      expect(result).toEqual({
+        action: 'noop',
+        predecessorResourceId: 'igw-1',
+        reason: 'taken-from-predecessor',
+        resourceId: 'igw-2',
+        response: { igwId: 'igw-0committed' },
+      });
       expect(testModes.igwActionHandledDiffs).toHaveLength(0);
       await expect(testModes.stateManagementService.getResourceResponse('igw-2')).resolves.toEqual({
         igwId: 'igw-0committed',

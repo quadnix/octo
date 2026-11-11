@@ -16,6 +16,7 @@ import {
   ModeFinishedEvent,
   ModeStartedEvent,
   type OctoMode,
+  RunActionModeCompletedEvent,
   TerraformFoldersWrittenEvent,
   ValidateModeCompletedEvent,
 } from './events/index.js';
@@ -550,9 +551,17 @@ export class Octo {
     app: App,
     options: { inputs?: Record<string, unknown>; resourceId: string },
   ): ReturnType<typeof runRunAction> {
-    return this.runMode('run-action', app.name, () => runRunAction(app, options), {
-      resourceId: options.resourceId,
-    });
+    return this.runMode(
+      'run-action',
+      app.name,
+      async () => {
+        const result = await runRunAction(app, options);
+        const { response: _response, ...completed } = result;
+        this.eventService.emit(new RunActionModeCompletedEvent(undefined, completed));
+        return result;
+      },
+      { resourceId: options.resourceId },
+    );
   }
 
   /**

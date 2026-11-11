@@ -7,6 +7,7 @@ import {
   ModeFinishedEvent,
   ModeStartedEvent,
   ModelTransactionTransactionEvent,
+  RunActionModeCompletedEvent,
   TerraformCommandFinishedEvent,
   TerraformProcessExitedEvent,
   TerraformProcessOutputEvent,
@@ -130,6 +131,40 @@ describe('LoggingEventListener UT', () => {
 
     expect(printed()).toContain('MODULES THAT NO LONGER RENDER ANYTHING');
     expect(printed()).toContain('old-website-module');
+  });
+
+  describe('run-action', () => {
+    let lines: string[];
+
+    beforeEach(() => {
+      lines = [];
+      jest
+        .spyOn(Logger.shared().log, 'withMetadata')
+        .mockImplementation(() => ({ info: (message: string) => lines.push(message) }) as never);
+    });
+
+    it('should say why a run-action that ran nothing ran nothing', async () => {
+      await eventService.emitAndWait(
+        new RunActionModeCompletedEvent(undefined, {
+          action: 'noop',
+          predecessorResourceId: 'image-old',
+          reason: 'taken-from-predecessor',
+          resourceId: 'image-new',
+        }),
+      );
+
+      expect(lines).toEqual([
+        'Run-action "image-new": nothing to do, took the response of "image-old", which it renames.',
+      ]);
+    });
+
+    it('should say what a run-action that ran did', async () => {
+      await eventService.emitAndWait(
+        new RunActionModeCompletedEvent(undefined, { action: 'add', resourceId: 'image-new' }),
+      );
+
+      expect(lines).toEqual(['Run-action "image-new": added.']);
+    });
   });
 
   describe('terraform output', () => {

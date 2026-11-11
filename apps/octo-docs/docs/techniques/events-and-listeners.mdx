@@ -43,23 +43,23 @@ needs a `@Factory` alongside it.
 
 ## The stream
 
-Sixty event classes, in eleven families. You rarely want a specific one; you want a family.
+Sixty-one event classes, in eleven families. You rarely want a specific one; you want a family.
 `ModuleEvent` and `ActionEvent` are emitted as they are; every other family is abstract, so you
 listen for it and Octo emits its members.
 
-| Family               | Emitted when                                                                                                                       |
-|----------------------|------------------------------------------------------------------------------------------------------------------------------------|
-| `CommandEvent`       | An `octo` command starts, finishes, or fails. One command can run a lifecycle step, or none, as `lock` does.                       |
-| `ModeEvent`          | A lifecycle step starts, finishes, or fails. `ModeStartedEvent`, `ModeFinishedEvent`, `ModeFailedEvent`.                           |
-| `ModeResultEvent`    | A mode has a verdict. `ValidateModeCompletedEvent` carries the whole report; `CommitModeCompletedEvent` carries what was recorded. |
-| `TransactionEvent`   | The graph is being diffed and actions are running. Model diffs, resource diffs, each action.                                       |
-| `RegistrationEvent`  | A model, resource, anchor, overlay, or action registered itself at boot.                                                           |
-| `SerializationEvent` | The model or resource graph was turned into state, or read back from it.                                                           |
-| `StateEvent`         | State files are about to be written or were written, state was refreshed, and the lock was taken, refused, or released.            |
-| `TerraformEvent`     | A Terraform command started or finished, each process started, printed something, or exited, and the folders were written.         |
-| `HookEvent`          | A hook callback ran.                                                                                                               |
-| `ModuleEvent`        | A module's `onInit()` ran, carrying the module's ID and the inputs it ran with.                                                    |
-| `ActionEvent`        | An action called `this.log()`, carrying its message, its metadata, and the node and diff the action ran for.                       |
+| Family               | Emitted when                                                                                                                                                                                                                     |
+|----------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `CommandEvent`       | An `octo` command starts, finishes, or fails. One command can run a lifecycle step, or none, as `lock` does.                                                                                                                     |
+| `ModeEvent`          | A lifecycle step starts, finishes, or fails. `ModeStartedEvent`, `ModeFinishedEvent`, `ModeFailedEvent`.                                                                                                                         |
+| `ModeResultEvent`    | A mode has a verdict. `ValidateModeCompletedEvent` carries the whole report; `CommitModeCompletedEvent` carries what was recorded; `RunActionModeCompletedEvent` what one external resource's action did, or why it did nothing. |
+| `TransactionEvent`   | The graph is being diffed and actions are running. Model diffs, resource diffs, each action.                                                                                                                                     |
+| `RegistrationEvent`  | A model, resource, anchor, overlay, or action registered itself at boot.                                                                                                                                                         |
+| `SerializationEvent` | The model or resource graph was turned into state, or read back from it.                                                                                                                                                         |
+| `StateEvent`         | State files are about to be written or were written, state was refreshed, and the lock was taken, refused, or released.                                                                                                          |
+| `TerraformEvent`     | A Terraform command started or finished, each process started, printed something, or exited, and the folders were written.                                                                                                       |
+| `HookEvent`          | A hook callback ran.                                                                                                                                                                                                             |
+| `ModuleEvent`        | A module's `onInit()` ran, carrying the module's ID and the inputs it ran with.                                                                                                                                                  |
+| `ActionEvent`        | An action called `this.log()`, carrying its message, its metadata, and the node and diff the action ran for.                                                                                                                     |
 
 Two are worth knowing by name. `ValidateModeCompletedEvent` carries the full validate report, which
 is what you want for posting a summary onto a pull request. `ModeFinishedEvent` carries the mode and

@@ -1,5 +1,6 @@
 import type { UnknownResource } from '../app.type.js';
 import { TransactionError } from '../errors/index.js';
+import type { RunActionModeCompletedEvent } from '../events/index.js';
 import { Container } from '../functions/container/container.js';
 import type { DiffMetadata } from '../functions/diff/diff-metadata.js';
 import { DiffAction } from '../functions/diff/diff.js';
@@ -11,11 +12,7 @@ import { StateManagementService } from '../services/state-management/state-manag
 import { TransactionService } from '../services/transaction/transaction.service.js';
 import { StringUtility } from '../utilities/string/string.utility.js';
 
-interface RunActionResult {
-  action: 'add' | 'delete' | 'noop' | 'update';
-  resourceId: string;
-  response: Record<string, string>;
-}
+type RunActionResult = RunActionModeCompletedEvent['payload'] & { response: Record<string, string> };
 
 /**
  * Flattens a resource response to the strings terraform's `data "external"` protocol accepts - it
@@ -106,7 +103,12 @@ export async function runAction(
 
   if (allDiffs.length === 0) {
     // Noop: still report the current response so terraform captures consistent outputs.
-    return { action: 'noop', resourceId, response: toFlatStringResponse(resourceId, targetResource?.response ?? {}) };
+    return {
+      action: 'noop',
+      reason: 'unchanged',
+      resourceId,
+      response: toFlatStringResponse(resourceId, targetResource?.response ?? {}),
+    };
   }
 
   // The work is already done: the record says an action ran for these inputs and left the resource
@@ -119,7 +121,7 @@ export async function runAction(
     StringUtility.deterministicHash(recordedState.properties) ===
       StringUtility.deterministicHash(targetResource.properties)
   ) {
-    return { action: 'noop', resourceId, response: recordedState.response };
+    return { action: 'noop', reason: 'already-done', resourceId, response: recordedState.response };
   }
 
   // A successor with its predecessor's properties is the same thing under another id: it takes the
@@ -139,7 +141,13 @@ export async function runAction(
         properties: JSON.parse(JSON.stringify(targetResource.properties)),
         response,
       });
-      return { action: 'noop', resourceId, response };
+      return {
+        action: 'noop',
+        predecessorResourceId: predecessor.resourceId,
+        reason: 'taken-from-predecessor',
+        resourceId,
+        response,
+      };
     }
   }
 

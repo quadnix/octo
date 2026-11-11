@@ -37,6 +37,7 @@ import {
   ResourceDiffsTransactionEvent,
   ResourceRegistrationEvent,
   ResourceTransactionTransactionEvent,
+  RunActionModeCompletedEvent,
   SerializationEvent,
   TerraformCommandFinishedEvent,
   TerraformCommandStartedEvent,
@@ -227,6 +228,20 @@ export class LoggingEventListener {
       for (const warning of warnings) {
         this.logger.log.withMetadata({ moduleId: warning.moduleId }).warn(warning.message);
       }
+    } else if (event instanceof RunActionModeCompletedEvent) {
+      const { action, predecessorResourceId, reason, resourceId } = event.payload;
+      const verdicts: Record<NonNullable<typeof reason> | Exclude<typeof action, 'noop'>, string> = {
+        add: 'added',
+        'already-done': 'nothing to do, its action already ran for these inputs',
+        delete: 'deleted',
+        'taken-from-predecessor': `nothing to do, took the response of "${predecessorResourceId}", which it renames`,
+        unchanged: 'nothing to do, nothing changed since the last commit',
+        update: 'updated',
+      };
+
+      this.logger.log
+        .withMetadata({ action, predecessorResourceId, reason, resourceId })
+        .info(`Run-action "${resourceId}": ${verdicts[action === 'noop' ? reason! : action]}.`);
     }
   }
 
