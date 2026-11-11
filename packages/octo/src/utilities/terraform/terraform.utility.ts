@@ -194,15 +194,22 @@ export class TerraformUtility {
    * Lets a caller refuse to apply until the destroys have been shown, which {@link apply} cannot do on
    * its own because it runs with `-auto-approve`.
    */
-  findPlannedDestroys(plans: Map<string, TerraformPlan>): { address: string; moduleId: string; tfActions: string[] }[] {
-    const destroys: { address: string; moduleId: string; tfActions: string[] }[] = [];
+  findPlannedDestroys(
+    plans: Map<string, TerraformPlan>,
+  ): { actionReason?: string; address: string; moduleId: string; tfActions: string[] }[] {
+    const destroys: { actionReason?: string; address: string; moduleId: string; tfActions: string[] }[] = [];
 
     for (const [moduleId, plan] of plans.entries()) {
       for (const resourceChange of plan.resource_changes ?? []) {
         const tfActions = resourceChange.change?.actions ?? [];
         const isDestroy = tfActions.some((action) => !NON_DESTROYING_PLAN_ACTIONS.has(action));
         if (resourceChange.mode !== 'data' && isDestroy) {
-          destroys.push({ address: resourceChange.address, moduleId, tfActions });
+          destroys.push({
+            ...(resourceChange.action_reason ? { actionReason: resourceChange.action_reason } : {}),
+            address: resourceChange.address,
+            moduleId,
+            tfActions,
+          });
         }
       }
     }

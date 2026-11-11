@@ -56,8 +56,12 @@ async function findDestroyRefusal(
   const dataLossAddresses = addressesOf(mappings.filter((mapping) => mapping.destroyLosesData));
   const externalAddresses = addressesOf(mappings.filter((mapping) => mapping.external && !mapping.destroyLosesData));
 
+  // An external resource's placeholder holds nothing, so replacing one an action failed to create loses
+  // nothing; what it stands for is deleted only at commit.
   const refusedDestroys = destroys.filter(
-    (destroy) => !externalAddresses.has(`${destroy.moduleId} ${destroy.address}`),
+    (destroy) =>
+      !externalAddresses.has(`${destroy.moduleId} ${destroy.address}`) &&
+      !(destroy.address.startsWith('null_resource.') && destroy.actionReason === 'replace_because_tainted'),
   );
   if (refusedDestroys.length === 0) {
     return undefined;

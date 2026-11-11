@@ -141,6 +141,7 @@ export interface ValidateReport {
 export interface TerraformPlan {
   format_version?: string;
   resource_changes?: {
+    action_reason?: string;
     address: string;
     change?: {
       actions?: string[];

@@ -253,6 +253,55 @@ describe('applyCommand UT', () => {
       expect(processExitSpy).not.toHaveBeenCalled();
     });
 
+    it('applies a plan replacing the tainted placeholder of an external resource no commit recorded', async () => {
+      terraformUtilityMock.plan.mockResolvedValue({
+        errors: new Map(),
+        plans: new Map([
+          [
+            'image-module',
+            {
+              resource_changes: [
+                {
+                  action_reason: 'replace_because_tainted',
+                  address: 'null_resource.tag-2',
+                  change: { actions: ['delete', 'create'] },
+                },
+              ],
+            },
+          ],
+        ]),
+      });
+
+      await applyCommand.handler(argv);
+
+      expect(terraformUtilityMock.apply).toHaveBeenCalledWith(resolvedDir);
+      expect(processExitSpy).not.toHaveBeenCalled();
+    });
+
+    it('refuses to replace a tainted resource that is not a placeholder', async () => {
+      terraformUtilityMock.plan.mockResolvedValue({
+        errors: new Map(),
+        plans: new Map([
+          [
+            'table-module',
+            {
+              resource_changes: [
+                {
+                  action_reason: 'replace_because_tainted',
+                  address: 'aws_dynamodb_table.table-1',
+                  change: { actions: ['delete', 'create'] },
+                },
+              ],
+            },
+          ],
+        ]),
+      });
+
+      await applyCommand.handler(argv);
+
+      expect(terraformUtilityMock.apply).not.toHaveBeenCalled();
+    });
+
     it('refuses to destroy the null_resource of an external resource whose destroy loses data', async () => {
       terraformUtilityMock.plan.mockResolvedValue({
         errors: new Map(),
