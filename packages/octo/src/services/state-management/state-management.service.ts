@@ -270,6 +270,17 @@ export class StateManagementService {
   }
 
   /**
+   * The other apps' sealed states this app's newest sealed state was built on, or `undefined` when it
+   * read none.
+   *
+   * @internal
+   */
+  async getSealedImportState(): Promise<ImportStateFile | undefined> {
+    const [importState] = await this.stateProvider.getSealedStates([this.importStateFileName]);
+    return importState && importState.length > 0 ? JSON.parse(importState.toString()) : undefined;
+  }
+
+  /**
    * The model graph and the resource graph of the newest sealed state, both from the one seal. A graph
    * the sealed state does not hold, or all of them when nothing is sealed yet, is empty.
    */

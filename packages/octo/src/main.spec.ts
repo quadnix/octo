@@ -4,7 +4,7 @@ import { join } from 'path';
 import { jest } from '@jest/globals';
 import { type UnknownResource, stub } from './app.type.js';
 import { Resource } from './decorators/resource.decorator.js';
-import { CommitModeCompletedEvent } from './events/index.js';
+import { CommitModeCompletedEvent, ImportedStateChangedEvent } from './events/index.js';
 import { Container } from './functions/container/container.js';
 import { Schema } from './functions/schema/schema.js';
 import { Account } from './models/account/account.model.js';
@@ -1168,6 +1168,63 @@ describe('Main UT', () => {
         'resourceId',
         '@octo/tf-sg=sg-child',
       ]);
+    });
+
+    /**
+     * Commits a child of the parent, so the child's sealed state records the parent it was built on.
+     */
+    async function commitChild(
+      childStateProvider: TestStateProvider,
+      parentStateProvider: IStateProvider,
+    ): Promise<void> {
+      await bootChild(childStateProvider);
+      await testModes['octo'].extendState(parentStateProvider);
+      const igw = testModes.resourceDataRepository.getNewResourceByContext('@octo/external-igw=igw-1')!;
+      await testModes.addResource('child-module', new TfSgResource('sg-child', {}, [igw]));
+      const app = testModes['octo'].getRootModel();
+      await testModes.generate(app, { outputDir: testModes.outputDir });
+      testModes.writeTfState('child-module', { 'sg-child-SgId': 'sg-0child' });
+      await testModes.commit(app, { outputs: testModes.outputs });
+      await bootChild(childStateProvider);
+    }
+
+    it("should say the extended state changed since this app's last commit", async () => {
+      const childStateProvider = new TestStateProvider();
+      const parentStateProvider = await commitParentState();
+      await commitChild(childStateProvider, parentStateProvider);
+      const parentState = JSON.parse((await parentStateProvider.getState('resources-actual.json')).toString());
+      parentState.data.resources['@octo/tf-sg=sg-1'].resource.properties.changedByParent = true;
+      await parentStateProvider.saveStates([
+        { data: Buffer.from(JSON.stringify(parentState)), stateFileName: 'resources-actual.json' },
+      ]);
+      const emit = jest.spyOn(EventService.getInstance(), 'emit');
+
+      await testModes['octo'].extendState(parentStateProvider);
+
+      expect(
+        emit.mock.calls.map(([event]) => event).filter((event) => event instanceof ImportedStateChangedEvent),
+      ).toEqual([expect.objectContaining({ payload: { importKey: 'extends:0' } })]);
+    });
+
+    it("should name the import a resource of this app's last commit came from", async () => {
+      const childStateProvider = new TestStateProvider();
+      const parentStateProvider = await commitParentState();
+      await commitChild(childStateProvider, parentStateProvider);
+      const importReaderService = testModes['octo']['importReaderService'];
+
+      await expect(importReaderService.getCommittedImportKey('@octo/external-igw=igw-1')).resolves.toBe('extends:0');
+      await expect(importReaderService.getCommittedImportKey('@octo/tf-sg=sg-child')).resolves.toBeUndefined();
+    });
+
+    it('should say nothing when the extended state is the one this app last committed on', async () => {
+      const childStateProvider = new TestStateProvider();
+      const parentStateProvider = await commitParentState();
+      await commitChild(childStateProvider, parentStateProvider);
+      const emit = jest.spyOn(EventService.getInstance(), 'emit');
+
+      await testModes['octo'].extendState(parentStateProvider);
+
+      expect(emit.mock.calls.some(([event]) => event instanceof ImportedStateChangedEvent)).toBe(false);
     });
 
     it('should build on the imported graph, rendering only what this app declares', async () => {

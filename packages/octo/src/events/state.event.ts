@@ -23,6 +23,14 @@ export class AppLockRefusedEvent extends StateEvent<{
 }> {}
 
 /**
+ * This event is emitted when a state this app extends, or a store it reads, holds other graphs than
+ * the ones this app's last commit was built on. `importKey` is `extends:<index>` or `stores:<name>`.
+ *
+ * @group Events/State
+ */
+export class ImportedStateChangedEvent extends StateEvent<{ importKey: string }> {}
+
+/**
  * This event is emitted when the app lock is taken, or resumed with its id. A provider sharing state
  * names where a resume took the state directory from: the directory the lock was taken in
  * (`directory`), what the run uploaded so far (`run`), or the newest sealed state, because the run

@@ -6,6 +6,7 @@ import {
   type DiffMetadata,
   Factory,
   HookEvent,
+  ImportedStateChangedEvent,
   ModeEvent,
   ModeFailedEvent,
   ModeFinishedEvent,
@@ -132,6 +133,20 @@ export class LoggingEventListener {
     } else if (event instanceof PreResourceActionHookCallbackDoneEvent) {
       this.logger.log.withMetadata({ name: event.name }).debug('PreResourceAction hook callback executed.');
     }
+  }
+
+  /**
+   * Another app this one stands on moved on since this app's last commit.
+   */
+  @OnEvent(ImportedStateChangedEvent)
+  onImportedStateChanged(event: ImportedStateChangedEvent): void {
+    const { importKey } = event.payload;
+    const subject = importKey.startsWith('stores:')
+      ? `Store "${importKey.slice('stores:'.length)}"`
+      : 'The state this app extends';
+    this.logger.log
+      .withMetadata({ importKey })
+      .warn(`${subject} changed since this app's last commit; this run builds on its newest.`);
   }
 
   /**

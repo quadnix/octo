@@ -7,11 +7,14 @@ import {
 } from '../../app.type.js';
 import { Factory } from '../../decorators/factory.decorator.js';
 import { ModuleError } from '../../errors/index.js';
+import { ImportedStateChangedEvent } from '../../events/index.js';
 import { Container } from '../../functions/container/container.js';
 import type { ANode } from '../../functions/node/node.abstract.js';
 import { ModuleContainer } from '../../modules/module.container.js';
 import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
 import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
+import { StringUtility } from '../../utilities/string/string.utility.js';
+import { EventService } from '../event/event.service.js';
 import { InputService } from '../input/input.service.js';
 import { ModelSerializationService } from '../serialization/model/model-serialization.service.js';
 import { ResourceSerializationService } from '../serialization/resource/resource-serialization.service.js';
@@ -25,6 +28,8 @@ import { ImportService } from './import.service.js';
  * @internal
  */
 export class ImportReaderService {
+  private committedImports?: Promise<ImportStateFile>;
+
   private readonly extendedResourceData: Required<ResourceSerializedOutput> = {
     copiedResources: {},
     dependencies: [],
@@ -77,6 +82,19 @@ export class ImportReaderService {
     }
 
     await this.declareImportedStates([{ modelData, resourceData }]);
+  }
+
+  /**
+   * Which import a resource of this app's newest sealed state came from, or `undefined` when it is
+   * this app's own.
+   */
+  async getCommittedImportKey(resourceContext: string): Promise<string | undefined> {
+    const committedImports = await this.readCommittedImports();
+    return Object.entries(committedImports).find(
+      ([, { resourceState }]) =>
+        resourceContext in resourceState.data.resources ||
+        resourceContext in (resourceState.data.copiedResources ?? {}),
+    )?.[0];
   }
 
   /**
@@ -395,6 +413,14 @@ export class ImportReaderService {
   }
 
   /**
+   * The other apps' states this app's newest sealed state was built on, read once.
+   */
+  private readCommittedImports(): Promise<ImportStateFile> {
+    this.committedImports ??= this.stateManagementService.getSealedImportState().then((state) => state ?? {});
+    return this.committedImports;
+  }
+
+  /**
    * Reads one imported state: as this run's `generate` read it once {@link readImportsAsGenerated}
    * was called, otherwise its newest sealed state. Keeps a copy for `generate` to record.
    */
@@ -418,6 +444,14 @@ export class ImportReaderService {
           importKey,
         );
       }
+    }
+
+    // Say when the other app moved on since this app's last commit, which was built on what it held then.
+    const committedState = (await this.readCommittedImports())[importKey];
+    const graphsOf = (state: ImportStateFile[string]): string =>
+      StringUtility.deterministicHash([state.modelState.data, state.resourceState.data]);
+    if (committedState && graphsOf(committedState) !== graphsOf(importedState)) {
+      EventService.getInstance().emit(new ImportedStateChangedEvent(undefined, { importKey }));
     }
 
     this.importedStates[importKey] = JSON.parse(JSON.stringify(importedState));

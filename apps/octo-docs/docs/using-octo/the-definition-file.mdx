@@ -332,7 +332,10 @@ the one its last released lock left: with local state, the newest folder in its 
 with remote state, the newest record the backend sealed. A change the other app has under way is
 never seen, and an app that has sealed nothing yet cannot be extended. `generate` reads it, and the
 rest of that run reads what `generate` read, so a commit the other app makes meanwhile reaches this
-app at its next `generate`. With remote state, `statePath`
+app at its next `generate`. Nothing tells this app when the other one commits: when its `generate`
+or `validate` finds the other app changed since this app's last commit, it warns
+`The state this app extends changed since this app's last commit; this run builds on its newest.`,
+and this app has to be applied again for the change to reach it. With remote state, `statePath`
 is where Octo keeps its copy of that state, so give the entry a folder of its own. What the other app owns is never yours to
 change: none of its code runs here, Octo writes no Terraform for it, a reference to what it built
 reads what that app committed, and a module whose `moduleId` that app already uses is refused.
@@ -392,7 +395,8 @@ modules:
 A name holds letters, digits, `_` and `-`. The colon names a store, so no `moduleId` of this app may
 hold one. `stateProvider` takes the same fields as an
 [`extends`](#extends) entry, and the store is read the same way: its newest sealed state, never a
-change under way, and once per run. Classes and package versions work as for an `extends` entry.
+change under way, and once per run, with the same warning, naming the store, when it changed since
+this app's last commit. Classes and package versions work as for an `extends` entry.
 
 A store is read-only. None of its code runs here, Octo writes no Terraform for it, and a reference
 to what it built reads what that app committed. Standing a model on one of the store's, such as an

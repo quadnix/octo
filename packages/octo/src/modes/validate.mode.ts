@@ -7,6 +7,7 @@ import {
 import { DiffAction } from '../functions/diff/diff.js';
 import { ResourceDataRepository } from '../resources/resource-data.repository.js';
 import type { AResource } from '../resources/resource.abstract.js';
+import { ImportReaderService } from '../services/import/import-reader.service.js';
 import { TerraformService } from '../services/terraform/terraform.service.js';
 import { TransactionService } from '../services/transaction/transaction.service.js';
 import { StringUtility } from '../utilities/string/string.utility.js';
@@ -422,7 +423,8 @@ export async function validate({
   transaction: ModelTransactionResult;
 }): Promise<ValidateReport> {
   const container = Container.getInstance();
-  const [resourceDataRepository, terraformService, transactionService] = await Promise.all([
+  const [importReaderService, resourceDataRepository, terraformService, transactionService] = await Promise.all([
+    container.get(ImportReaderService),
     container.get(ResourceDataRepository),
     container.get(TerraformService),
     container.get(TransactionService),
@@ -858,10 +860,14 @@ export async function validate({
     // Never committed through the terraform flow, so its addresses were never recorded.
     const persisted = persistedMappings.get(context);
     if (!persisted) {
+      const importKey = await importReaderService.getCommittedImportKey(context);
       report.notes.push({
-        message:
-          `Deleted resource "${octoAction.resourceId}" is not in the persisted terraform mapping ` +
-          '(deleted before it was ever committed?); its terraform addresses are unknown.',
+        message: importKey
+          ? `Deleted resource "${octoAction.resourceId}" was removed by the ` +
+            `${importKey.startsWith('stores:') ? `store "${importKey.slice('stores:'.length)}"` : 'state this app extends'}, ` +
+            'which holds its terraform addresses.'
+          : `Deleted resource "${octoAction.resourceId}" is not in the persisted terraform mapping ` +
+            '(deleted before it was ever committed?); its terraform addresses are unknown.',
       });
       report.intentChanges.push({
         octoAction: DiffAction.DELETE,
