@@ -262,7 +262,7 @@ assumed". Finish the failed run the way Octo prints, and run again before lookin
 | `AwsDynamoDBServiceModule`               | `region`, `TableName`, `KeySchema`, `AttributeDefinitions`, `billingMode`, `GlobalSecondaryIndexes?`, `LocalSecondaryIndexes?`, `StreamSpecification?`, `timeToLiveAttribute?`, `DeletionProtectionEnabled?`, `PointInTimeRecoveryEnabled?` | DynamoDB table                                                                                                                                                                                                                                             |
 | `AwsDynamoDBGlobalServiceModule`         | `dynamoDBService`, `replicas`                                                                                                                                                                                                               | DynamoDB global table replicas                                                                                                                                                                                                                             |
 | `AwsEcsAlbServiceModule`                 | `region`, `albName`, `listeners`, `subnets`, `targets?`                                                                                                                                                                                     | application load balancer, listener, target group, security group                                                                                                                                                                                          |
-| `AwsCloudFrontServiceModule`             | `account`, `distributionName`, `origins`, `routes`, `aliases?`, `certificateArn?`, `defaultRootObject?`, `errorResponses?`, `functions?`, `priceClass?`, `cachePolicies?`, `originRequestPolicies?`, `responseHeadersPolicies?`             | CloudFront distribution, an origin access control per bucket or function it serves, a statement in each of those buckets' policies, a permission on each of those functions, a CloudFront Function per `functions` entry, and the custom policies declared |
+| `AwsCloudFrontServiceModule`             | `account`, `distributionName`, `origins`, `routes`, `aliases?`, `certificateArn?`, `defaultRootObject?`, `errorResponses?`, `functions?`, `priceClass?`, `cachePolicies?`, `originRequestPolicies?`, `responseHeadersPolicies?`             | CloudFront distribution, an origin access control per bucket or function it serves, a statement in each of those buckets' policies, a permission on each of those functions, a CloudFront Function per `functions` entry and per origin's `indexDocument`, and the custom policies declared |
 | `AwsCloudFrontInvalidationServiceModule` | `cloudFront`, `source`                                                                                                                                                                                                                      | an invalidation of the distribution every time the bucket's files change                                                                                                                                                                                   |
 
 `filter` and `transform` are functions, which `octo.yaml` takes as
@@ -369,6 +369,12 @@ function handler(event) {
 
 A function's name is unique in its account, and its file is at most 10 KB. It runs only on
 `viewer-request` or `viewer-response`. A route runs only the functions its distribution creates.
+
+A site whose every page is a directory's `index.html`, as a docs site writes them, needs no function
+of its own: give the bucket's origin `indexDocument: index.html`, and `/guide` and `/guide/` both
+serve `/guide/index.html`. The module creates a function, `<distributionName>-<originId>-index`,
+that every route to that origin runs on viewer requests, so none of those routes may run a
+`viewer-request` function of its own. A Lambda or ALB origin takes no `indexDocument`.
 
 `AwsCloudFrontInvalidationServiceModule` takes a distribution and one bucket it serves, and drops
 what the edge locations hold for that bucket every time its files change. Without it CloudFront

@@ -48,7 +48,7 @@ export class AddAwsCloudFrontServiceModelAction implements IModelAction<AwsCloud
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
     const { distributionName } = diff.node;
-    const { awsAccountId } = actionInputs.metadata;
+    const { awsAccountId, indexFunctions } = actionInputs.metadata;
     const { inputs } = actionInputs;
 
     // Resolve each origin from its source.
@@ -101,11 +101,20 @@ export class AddAwsCloudFrontServiceModelAction implements IModelAction<AwsCloud
           route.cachePolicy ||
           ({ kind: 'managed', name: isAppOrigin ? 'Managed-CachingDisabled' : 'Managed-CachingOptimized' } as const),
         compress: route.compress ?? true,
-        functionAssociations: (route.functionAssociations || []).map(({ eventType, functionName, kind }) => ({
-          eventType,
-          functionName,
-          kind,
-        })),
+        functionAssociations: [
+          ...(route.functionAssociations || []).map(({ eventType, functionName, kind }) => ({
+            eventType,
+            functionName,
+            kind,
+          })),
+          ...indexFunctions
+            .filter(({ originId }) => originId === route.originId)
+            .map(({ name }) => ({
+              eventType: 'viewer-request' as const,
+              functionName: name,
+              kind: 'cloudfront-function' as const,
+            })),
+        ],
         originRequestPolicy:
           route.originRequestPolicy ||
           (isAppOrigin ? { kind: 'managed', name: 'Managed-AllViewerExceptHostHeader' } : null),
@@ -147,9 +156,18 @@ export class AddAwsCloudFrontServiceModelAction implements IModelAction<AwsCloud
 
     actionOutputs[cloudFrontDistribution.resourceId] = cloudFrontDistribution;
 
-    // Create each CloudFront Function from its file, for the routes naming it.
-    for (const { filePath, name } of inputs.functions || []) {
-      const code = await readFile(ProjectUtility.resolveFromProjectRoot(filePath), 'utf8');
+    // Create each CloudFront Function from its file, and each an origin's indexDocument writes, for
+    // the routes naming it.
+    const functions = [
+      ...(await Promise.all(
+        (inputs.functions || []).map(async ({ filePath, name }) => ({
+          code: await readFile(ProjectUtility.resolveFromProjectRoot(filePath), 'utf8'),
+          name,
+        })),
+      )),
+      ...indexFunctions,
+    ];
+    for (const { code, name } of functions) {
       const cloudFrontFunction = new CloudFrontFunction(`cloudfront-function-${name}`, {
         awsAccountId,
         code,

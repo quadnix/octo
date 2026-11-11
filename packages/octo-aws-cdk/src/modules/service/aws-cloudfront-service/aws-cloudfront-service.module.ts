@@ -126,8 +126,26 @@ export class AwsCloudFrontServiceModule extends AModule<AwsCloudFrontServiceModu
       );
     }
 
-    // Validate CloudFront Functions.
-    const functionNames = (inputs.functions || []).map((f) => f.name);
+    // Validate CloudFront Functions, those an origin's indexDocument creates among them.
+    const { indexFunctions } = await this.registerMetadata(inputs);
+    for (const { name, originId } of indexFunctions) {
+      if (name.length > 64) {
+        throw new ModuleError(
+          `Function "${name}" of origin "${originId}" is over 64 characters!`,
+          this.constructor.name,
+        );
+      }
+      const ownViewerRequestRoute = inputs.routes.find(
+        (r) => r.originId === originId && (r.functionAssociations || []).some((f) => f.eventType === 'viewer-request'),
+      );
+      if (ownViewerRequestRoute) {
+        throw new ModuleError(
+          `Route "${ownViewerRequestRoute.pathPattern || 'default'}" runs a viewer-request function, which origin "${originId}" needs for its indexDocument!`,
+          this.constructor.name,
+        );
+      }
+    }
+    const functionNames = [...(inputs.functions || []).map((f) => f.name), ...indexFunctions.map((f) => f.name)];
     const duplicateFunctionName = functionNames.find((name, index) => functionNames.indexOf(name) !== index);
     if (duplicateFunctionName) {
       throw new ModuleError(`Function "${duplicateFunctionName}" is declared more than once!`, this.constructor.name);
@@ -175,6 +193,13 @@ export class AwsCloudFrontServiceModule extends AModule<AwsCloudFrontServiceModu
       | AwsCloudFrontS3OriginOverlay
     )[] = [];
     for (const origin of inputs.origins) {
+      if (origin.indexDocument && !hasNodeName(origin.source, 'service')) {
+        throw new ModuleError(
+          `Origin "${origin.originId}" serves no bucket, so it takes no indexDocument!`,
+          this.constructor.name,
+        );
+      }
+
       if (hasNodeName(origin.source, 'execution')) {
         const [matchingLambdaFunctionAnchor] = await origin.source.getAnchorsMatchingSchema(
           AwsLambdaFunctionAnchorSchema,
@@ -222,6 +247,12 @@ export class AwsCloudFrontServiceModule extends AModule<AwsCloudFrontServiceModu
       });
       if (matchingAlbAnchor) {
         const { albName } = matchingAlbAnchor.getSchemaInstance().properties;
+        if (origin.indexDocument) {
+          throw new ModuleError(
+            `Origin "${origin.originId}" serves no bucket, so it takes no indexDocument!`,
+            this.constructor.name,
+          );
+        }
 
         // Validate an ALB is one origin of this distribution.
         if (
@@ -274,7 +305,29 @@ export class AwsCloudFrontServiceModule extends AModule<AwsCloudFrontServiceModu
   /**
    * Resolves the account this distribution is created in.
    */
-  override async registerMetadata(inputs: AwsCloudFrontServiceModuleSchema): Promise<{ awsAccountId: string }> {
-    return { awsAccountId: inputs.account.accountId };
+  override async registerMetadata(inputs: AwsCloudFrontServiceModuleSchema): Promise<{
+    awsAccountId: string;
+    indexFunctions: { code: string; name: string; originId: string }[];
+  }> {
+    // Serve a bucket's index document for a path naming a directory.
+    const indexFunctions = inputs.origins
+      .filter((origin) => origin.indexDocument)
+      .map((origin) => ({
+        code: [
+          'function handler(event) {',
+          '  var request = event.request;',
+          "  if (request.uri.endsWith('/')) {",
+          `    request.uri += ${JSON.stringify(origin.indexDocument)};`,
+          "  } else if (!request.uri.split('/').pop().includes('.')) {",
+          `    request.uri += ${JSON.stringify(`/${origin.indexDocument}`)};`,
+          '  }',
+          '  return request;',
+          '}',
+        ].join('\n'),
+        name: `${inputs.distributionName}-${origin.originId}-index`,
+        originId: origin.originId,
+      }));
+
+    return { awsAccountId: inputs.account.accountId, indexFunctions };
   }
 }

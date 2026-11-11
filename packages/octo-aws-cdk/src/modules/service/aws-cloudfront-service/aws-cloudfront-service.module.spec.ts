@@ -710,6 +710,36 @@ describe('AwsCloudFrontServiceModule UT', () => {
     );
   });
 
+  it("should serve a bucket's index document for a directory, on every route to its origin", async () => {
+    await setup(testModuleContainer);
+    const { hclRender, resourceDiffs } = (
+      await testModuleContainer
+        .runModules<AwsCloudFrontServiceModule>(
+          {
+            inputs: inputs({
+              origins: [
+                { indexDocument: 'index.html', originId: 'site', source: stub('${{testModule.model.service}}') },
+              ],
+              routes: [{ originId: 'site' }, { originId: 'site', pathPattern: '/assets/*' }],
+            }),
+            moduleId: 'distribution',
+            type: AwsCloudFrontServiceModule,
+          },
+          { terraformTarget: 'skip' },
+        )
+        .next()
+    ).value!;
+
+    expect(hclRender).toContain('    request.uri += "index.html";');
+    expect(hclRender).toContain('    request.uri += "/index.html";');
+    expect(
+      hclRender.split('function_arn = aws_cloudfront_function.cloudfront-function-test-distribution-site-index').length,
+    ).toBe(3);
+    expect(testModuleContainer.digestDiffs(resourceDiffs)).toContain(
+      '+ @octo/cloudfront-function=cloudfront-function-test-distribution-site-index-b1f33b',
+    );
+  });
+
   it('should serve an ALB over HTTP through its DNS name', async () => {
     await setupAlb(testModuleContainer, await setup(testModuleContainer));
     const { hclRender } = (
@@ -996,6 +1026,22 @@ describe('AwsCloudFrontServiceModule UT', () => {
         'a route caching a method it does not allow',
         { routes: [{ cachedMethods: ['GET', 'HEAD', 'OPTIONS'], originId: 'site' }] as any },
         'Route "default" caches a method it does not allow!',
+      ],
+      [
+        'an index document on a route that runs its own viewer-request function',
+        {
+          functions: [{ filePath: deepLinksFunctionPath, name: 'deep-links' }],
+          origins: [{ indexDocument: 'index.html', originId: 'site', source: stub('${{testModule.model.service}}') }],
+          routes: [
+            {
+              functionAssociations: [
+                { eventType: 'viewer-request', functionName: 'deep-links', kind: 'cloudfront-function' },
+              ],
+              originId: 'site',
+            },
+          ],
+        } as any,
+        'Route "default" runs a viewer-request function, which origin "site" needs for its indexDocument!',
       ],
       [
         'an unknown viewer protocol policy',

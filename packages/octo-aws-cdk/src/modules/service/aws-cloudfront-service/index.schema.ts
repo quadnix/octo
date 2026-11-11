@@ -81,6 +81,15 @@ export class AwsCloudFrontServiceModuleOriginSchema {
   customHeaders? = Schema<{ [name: string]: string }>({});
 
   /**
+   * For a bucket, the file served for a path naming a directory, e.g. `index.html`: `/docs/` and
+   * `/docs` both serve `/docs/index.html`, as a bucket website would. Octo creates a CloudFront
+   * Function, `<distributionName>-<originId>-index`, that every route to this origin runs on viewer
+   * requests. Empty for none.
+   */
+  @Validate({ options: { regex: /^[^/]*$/ } })
+  indexDocument? = Schema<string>('');
+
+  /**
    * A name you choose for this origin, e.g. `site`. Routes refer to it. Unique across origins.
    */
   @Validate({ options: { minLength: 1 } })
