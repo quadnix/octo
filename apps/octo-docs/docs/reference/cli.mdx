@@ -76,10 +76,10 @@ puts the binary on `PATH` for that, the same way `apply` does for `run-action`.
 
 ### apply
 
-The only command that changes live infrastructure, and the only one that does not boot Octo: it
-loads none of your modules and reads no model or resource state. It does read the definition file,
-because the state provider named there is where Terraform's own state is checked out of and back
-into around the apply.
+The only command that changes live infrastructure. It loads your modules only to check every
+account's credentials, which must last 15 more minutes, and reads no model or resource state. The
+state provider named in the definition file is where Terraform's own state is checked out of and
+back into around the apply.
 
 | Flag                 |               |                                                       |
 |----------------------|---------------|-------------------------------------------------------|
