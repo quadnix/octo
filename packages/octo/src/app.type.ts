@@ -416,6 +416,11 @@ export type ResourceSerializedOutput = {
  */
 export type TerraformFolderOutput = {
   hasExternalResources: boolean;
+  /**
+   * Set when a resource of the folder emits a `time_*` block, so an emptied folder still declares the
+   * time provider its state needs to destroy it.
+   */
+  hasTimeResources?: true;
   moduleId: string;
   /**
    * The resources whose terraform state moves into this folder from another before terraform runs,

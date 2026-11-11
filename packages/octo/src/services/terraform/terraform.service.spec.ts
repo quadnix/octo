@@ -1068,6 +1068,18 @@ describe('TerraformService UT', () => {
       expect(service.renderAllModules().size).toBe(0);
     });
 
+    it('should declare the time provider for a folder with a time block, emptied or not', () => {
+      const scope = service.scope('m1');
+      const role = new TestTerraformResource('role-1', {});
+      scope.addOctoTerraformResource(role).addTerraformResource('time_sleep', 'role-1_propagation', {});
+
+      const [record] = service.getFolderRecords();
+
+      expect(service.renderAllModules().get('m1')!.mainTf).toContain('hashicorp/time');
+      expect(record.hasTimeResources).toBe(true);
+      expect(service.renderEmptyModule(record).mainTf).toContain('hashicorp/time');
+    });
+
     describe('provider isolation', () => {
       it('should keep a recorded provider the folder no longer uses, so terraform can destroy what it created', () => {
         service.addTerraformConfig({ providers: { aws: { source: 'hashicorp/aws' } } });

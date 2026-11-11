@@ -395,7 +395,9 @@ class OctoTerraformResource<TResponse extends BaseResourceSchema['response'] = B
     if (chain) {
       this.lastChainedAddress = terraformResource.address;
     }
-    if (this.providerRef && !('provider' in spec)) {
+    // The provider is pinned only on a block of its own type: a `time_sleep` beside an AWS resource
+    // takes no AWS provider.
+    if (this.providerRef && !('provider' in spec) && type.startsWith(`${this.providerRef.split('.')[0]}_`)) {
       terraformResource.attribute('provider', new ExpressionHclNode(this.providerRef));
     }
     addTerraformResourceSpec(terraformResource, spec);
@@ -438,6 +440,13 @@ class TerraformModule {
   readonly providerKeys: Set<string> = new Set(); // Specific providers this folder's resources require.
   readonly resources: OctoTerraformResource[] = [];
   readonly variables: TerraformVariable[] = [];
+
+  /**
+   * True when a resource of this folder emits a `time_*` block, which needs the time provider.
+   */
+  get hasTimeResources(): boolean {
+    return this.resources.some((r) => r.terraformResources.some((t) => t.address.startsWith('time_')));
+  }
 
   /**
    * @internal
@@ -617,6 +626,7 @@ export class TerraformService {
       .filter((module) => module.resources.length > 0)
       .map((module) => ({
         hasExternalResources: module.hasExternalResources,
+        ...(module.hasTimeResources ? { hasTimeResources: true as const } : {}),
         moduleId: module.moduleId,
         ...this.getFolderMoves(module),
         providers: [...module.providerKeys].sort().map((key) => {
@@ -767,6 +777,9 @@ export class TerraformService {
         requiredProviders['null'] = this.requiredProviders['null'] ?? { source: 'hashicorp/null' };
         requiredProviders['external'] = this.requiredProviders['external'] ?? { source: 'hashicorp/external' };
       }
+      if (module.hasTimeResources) {
+        requiredProviders['time'] = this.requiredProviders['time'] ?? { source: 'hashicorp/time' };
+      }
 
       const mainTf = [
         this.renderConfigBlock(requiredProviders, context),
@@ -832,7 +845,8 @@ export class TerraformService {
   /**
    * Prints the four files of an **empty** folder from a recorded folder: a `main.tf` with the
    * config block rebuilt from the recorded `required_providers` entries (plus null/external when
-   * the folder had external resources) and the recorded provider blocks verbatim; empty
+   * the folder had external resources, and time when it had a `time_*` block) and the recorded
+   * provider blocks verbatim; empty
    * variables/outputs; a remote_state-only `terragrunt.hcl`.
    *
    * Reads no module state;
@@ -853,6 +867,9 @@ export class TerraformService {
     if (record.hasExternalResources) {
       requiredProviders['null'] = this.requiredProviders['null'] ?? { source: 'hashicorp/null' };
       requiredProviders['external'] = this.requiredProviders['external'] ?? { source: 'hashicorp/external' };
+    }
+    if (record.hasTimeResources) {
+      requiredProviders['time'] = this.requiredProviders['time'] ?? { source: 'hashicorp/time' };
     }
 
     const mainTf = [this.renderConfigBlock(requiredProviders, context), ...record.providers.map((p) => p.blockHcl)]
