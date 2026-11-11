@@ -72,7 +72,7 @@ function resourceLines(resource: ReportResource, indent: string): string[] {
 /**
  * @internal
  */
-function storyLines(story: ReportStory): string[] {
+function storyLines(story: ReportStory, mode: OctoReport['mode']): string[] {
   const miniTotals = CHANGE_ORDER.filter((kind) => story.totals[kind] > 0)
     .map((kind) => `${CHANGE_SYMBOLS[kind]}${story.totals[kind]}`)
     .join(' ');
@@ -91,7 +91,11 @@ function storyLines(story: ReportStory): string[] {
     lines.push(`      why: ${story.reason}`);
   }
   if (story.terraformPlannedNothing) {
-    lines.push(`      octo wants this changed, but terraform's plan touches none of its addresses`);
+    lines.push(
+      mode === 'commit'
+        ? `      octo wanted this changed, but terraform changed none of its addresses`
+        : `      octo wants this changed, but terraform's plan touches none of its addresses`,
+    );
   }
 
   for (const resource of story.resources) {
@@ -168,7 +172,7 @@ export function renderReportText(report: OctoReport): string {
   section(
     lines,
     report.mode === 'commit' ? 'WHAT CHANGED' : 'WHAT WILL CHANGE',
-    report.stories.length > 0 ? report.stories.flatMap(storyLines) : ['  nothing'],
+    report.stories.length > 0 ? report.stories.flatMap((story) => storyLines(story, report.mode)) : ['  nothing'],
   );
 
   section(

@@ -107,6 +107,14 @@ describe('renderReportText()', () => {
     expect(text).toContain("terraform's plan touches none of its addresses");
   });
 
+  it('says terraform changed none of its addresses after a commit, which has no plan', () => {
+    const text = renderReportText(
+      report({ mode: 'commit', stories: [story({ kind: 'update', terraformPlannedNothing: true })] }),
+    );
+
+    expect(text).toContain('terraform changed none of its addresses');
+  });
+
   it('marks a story no intent change explained', () => {
     expect(renderReportText(report({ stories: [story({ isDerived: true })] }))).toContain('grouped by module');
   });
