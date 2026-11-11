@@ -4,6 +4,7 @@ import {
   AnchorRegistrationEvent,
   CommitModeCompletedEvent,
   type DiffMetadata,
+  type Event,
   Factory,
   HookEvent,
   ImportedStateChangedEvent,
@@ -50,9 +51,12 @@ import {
   TransactionEvent,
   ValidateModeCompletedEvent,
 } from '@quadnix/octo';
+import type { EventPayloads, JournalEntry } from './journal.event.listener.js';
 import { Logger, type LoggerOptions } from './logger/logger.factory.js';
 import { RunObserver } from './reporters/run.observer.js';
 import { renderReportText } from './reporters/text/text.reporter.js';
+import { JournalUtility } from './utilities/journal/journal.utility.js';
+import { EventWordingUtility, type WordingContext } from './utilities/wording/event-wording.utility.js';
 
 /**
  * Logs octo's event stream to the terminal. This is what turns a silent run into a readable one.
@@ -110,9 +114,7 @@ export class LoggingEventListener {
    */
   @OnEvent(ActionEvent)
   onAction(event: ActionEvent): void {
-    this.logger.log
-      .withMetadata({ name: event.name, payload: event.payload?.metadata || {} })
-      .info(event.payload?.message || 'Action event.');
+    this.logWorded(event);
   }
 
   /**
@@ -120,19 +122,7 @@ export class LoggingEventListener {
    */
   @OnEvent(HookEvent)
   onHook(event: HookEvent): void {
-    if (event instanceof PostCommitHookCallbackDoneEvent) {
-      this.logger.log.debug('PostCommit hook callback executed.');
-    } else if (event instanceof PreCommitHookCallbackDoneEvent) {
-      this.logger.log.debug('PreCommit hook callback executed.');
-    } else if (event instanceof PostModelActionHookCallbackDoneEvent) {
-      this.logger.log.withMetadata({ name: event.name }).debug('PostModelAction hook callback executed.');
-    } else if (event instanceof PreModelActionHookCallbackDoneEvent) {
-      this.logger.log.withMetadata({ name: event.name }).debug('PreModelAction hook callback executed.');
-    } else if (event instanceof PostResourceActionHookCallbackDoneEvent) {
-      this.logger.log.withMetadata({ name: event.name }).debug('PostResourceAction hook callback executed.');
-    } else if (event instanceof PreResourceActionHookCallbackDoneEvent) {
-      this.logger.log.withMetadata({ name: event.name }).debug('PreResourceAction hook callback executed.');
-    }
+    this.logWorded(event);
   }
 
   /**
@@ -140,13 +130,7 @@ export class LoggingEventListener {
    */
   @OnEvent(ImportedStateChangedEvent)
   onImportedStateChanged(event: ImportedStateChangedEvent): void {
-    const { importKey } = event.payload;
-    const subject = importKey.startsWith('stores:')
-      ? `Store "${importKey.slice('stores:'.length)}"`
-      : 'The state this app extends';
-    this.logger.log
-      .withMetadata({ importKey })
-      .warn(`${subject} changed since this app's last commit; this run builds on its newest.`);
+    this.logWorded(event);
   }
 
   /**
@@ -154,33 +138,21 @@ export class LoggingEventListener {
    */
   @OnEvent(ModeEvent)
   onMode(event: ModeEvent): void {
-    const { appName, mode, resourceId } = event.payload;
-
     if (event instanceof ModeStartedEvent) {
       this.observer.modeStarted(event.payload);
-      this.logger.log
-        .withMetadata({ appName, mode, resourceId })
-        .info(`Started "${mode}" on "${appName}"${resourceId ? ` for resource "${resourceId}"` : ''}.`);
+      this.logWorded(event);
     } else if (event instanceof ModeFinishedEvent) {
       // Terraform is named separately because it runs *outside* the mode: the plan is taken first
       // and handed to `octo.validate()`, so the mode measures only the correlating. Reporting the
       // bare number logged `Finished "validate" in 2ms.` after four minutes of planning.
-      const { durationInMs } = event.payload;
       const terraformInMs = this.terraformInMs;
       this.terraformInMs = 0;
 
       this.reportRun(event.payload.durationInMs);
-      this.logger.log
-        .withMetadata({ appName, durationInMs, mode, terraformInMs })
-        .info(
-          `Finished "${mode}" in ${durationInMs}ms` +
-            (terraformInMs > 0 ? `, after ${terraformInMs}ms in terraform.` : '.'),
-        );
+      this.logWorded(event, { terraformInMs });
     } else if (event instanceof ModeFailedEvent) {
       this.reportRun(event.payload.durationInMs, event.payload.error.message);
-      this.logger.log
-        .withMetadata({ appName, durationInMs: event.payload.durationInMs, mode })
-        .error(`Failed "${mode}" after ${event.payload.durationInMs}ms: ${event.payload.error.message}`);
+      this.logWorded(event);
     }
   }
 
@@ -190,74 +162,11 @@ export class LoggingEventListener {
   @OnEvent(ModeResultEvent)
   onModeResult(event: ModeResultEvent<unknown>): void {
     if (event instanceof ValidateModeCompletedEvent) {
-      const { report } = event.payload;
-      this.observer.validateCompleted(report);
-      const terraformChangeCount = report.intentChanges.reduce(
-        (total, change) => total + change.terraformChanges.length,
-        report.attributedChanges.length,
-      );
-
-      this.logger.log
-        .withMetadata({
-          confidence: report.confidence,
-          driftCount: report.drift.length,
-          failureCount: report.failures.length,
-          resourceChangeCount: report.intentChanges.length,
-          terraformChangeCount,
-          uncertainCount: report.uncertain.length,
-        })
-        .info(
-          `Validate: ${report.intentChanges.length} resource change(s), ` +
-            `${terraformChangeCount} terraform change(s), ${report.drift.length} drift ` +
-            `(${report.confidence}).`,
-        );
-
-      if (report.drift.length > 0) {
-        this.logger.log
-          .withMetadata({ addresses: report.drift.map((entry) => entry.address) })
-          .warn(`${report.drift.length} terraform change(s) are drift — nothing in intent explains them.`);
-      }
-      for (const failure of report.failures) {
-        this.logger.log.withMetadata({ moduleId: failure.moduleId }).error(failure.message);
-      }
-      for (const entry of report.dataLoss) {
-        this.logger.log.withMetadata({ address: entry.address, moduleId: entry.moduleId }).warn(entry.message);
-      }
-      for (const move of report.moves) {
-        this.logger.log
-          .withMetadata({ fromModuleId: move.fromModuleId, moduleId: move.moduleId, resourceId: move.resourceId })
-          .info(`Resource "${move.resourceId}" moves from module "${move.fromModuleId}" to "${move.moduleId}".`);
-      }
-      for (const note of report.notes) {
-        this.logger.log.withMetadata({ moduleId: note.moduleId }).debug(note.message);
-      }
+      this.observer.validateCompleted(event.payload.report);
     } else if (event instanceof CommitModeCompletedEvent) {
-      const { emptiedModuleIds, responses, warnings } = event.payload;
       this.observer.commitCompleted(event.payload);
-      const moved = responses.filter((response) => response.previousValue !== response.value);
-
-      this.logger.log
-        .withMetadata({ emptiedModuleIds, movedCount: moved.length, responseCount: responses.length })
-        .info(`Commit: recorded ${responses.length} response value(s), ${moved.length} changed.`);
-
-      for (const warning of warnings) {
-        this.logger.log.withMetadata({ moduleId: warning.moduleId }).warn(warning.message);
-      }
-    } else if (event instanceof RunActionModeCompletedEvent) {
-      const { action, predecessorResourceId, reason, resourceId } = event.payload;
-      const verdicts: Record<NonNullable<typeof reason> | Exclude<typeof action, 'noop'>, string> = {
-        add: 'added',
-        'already-done': 'nothing to do, its action already ran for these inputs',
-        delete: 'deleted',
-        'taken-from-predecessor': `nothing to do, took the response of "${predecessorResourceId}", which it renames`,
-        unchanged: 'nothing to do, nothing changed since the last commit',
-        update: 'updated',
-      };
-
-      this.logger.log
-        .withMetadata({ action, predecessorResourceId, reason, resourceId })
-        .info(`Run-action "${resourceId}": ${verdicts[action === 'noop' ? reason! : action]}.`);
     }
+    this.logWorded(event);
   }
 
   /**
@@ -265,7 +174,7 @@ export class LoggingEventListener {
    */
   @OnEvent(ModuleEvent)
   onModule(event: ModuleEvent): void {
-    this.logger.log.withMetadata({ moduleId: event.payload.moduleId, name: event.name }).debug('Module loaded.');
+    this.logWorded(event);
   }
 
   /**
@@ -311,36 +220,20 @@ export class LoggingEventListener {
    */
   @OnEvent(TerraformEvent)
   onTerraform(event: TerraformEvent<unknown>): void {
-    if (event instanceof TerraformFoldersWrittenEvent) {
-      const { emptied, outputDir, written } = event.payload;
-      this.logger.log
-        .withMetadata({ emptied, outputDir, written })
-        .info(
-          `Wrote ${written.length} terragrunt folder(s) to "${outputDir}"` +
-            (emptied.length > 0 ? `, emptied ${emptied.length} (deleted from intent).` : '.'),
-        );
-    } else if (event instanceof TerraformCommandStartedEvent) {
-      this.logger.log
-        .withMetadata({ command: event.payload.command, dir: event.payload.dir })
-        .info(`Running terraform "${event.payload.command}".`);
+    if (event instanceof TerraformFoldersWrittenEvent || event instanceof TerraformCommandStartedEvent) {
+      this.logWorded(event);
     } else if (event instanceof TerraformCommandFinishedEvent) {
-      const { command, durationInMs, exitCode } = event.payload;
-      this.terraformInMs += durationInMs;
-      this.observer.terraformCommandFinished(durationInMs);
-      const metadata = { command, dir: event.payload.dir, durationInMs, exitCode };
-      if (exitCode === 0) {
-        this.logger.log.withMetadata(metadata).info(`Terraform "${command}" finished in ${durationInMs}ms.`);
-      } else {
-        this.logger.log.withMetadata(metadata).warn(`Terraform "${command}" exited ${exitCode}.`);
-      }
+      this.terraformInMs += event.payload.durationInMs;
+      this.observer.terraformCommandFinished(event.payload.durationInMs);
+      this.logWorded(event);
     } else if (event instanceof TerraformProcessStartedEvent) {
-      const { args, binary, dir, processId } = event.payload;
+      const { args, binary, processId } = event.payload;
       this.terraformProcesses.set(processId, {
         command: event.name ?? binary,
         isJson: args.includes('-json'),
         partialLines: { stderr: '', stdout: '' },
       });
-      this.logger.log.withMetadata({ args, binary, dir, processId }).debug(`Started ${binary} "${event.name}".`);
+      this.logWorded(event);
     } else if (event instanceof TerraformProcessOutputEvent) {
       const { processId, stream, text } = event.payload;
       const terraformProcess = this.terraformProcesses.get(processId);
@@ -355,7 +248,7 @@ export class LoggingEventListener {
         this.logTerraformLine(processId, stream, line);
       }
     } else if (event instanceof TerraformProcessExitedEvent) {
-      const { exitCode, processId } = event.payload;
+      const { processId } = event.payload;
       const terraformProcess = this.terraformProcesses.get(processId);
       if (!terraformProcess) {
         return;
@@ -368,7 +261,7 @@ export class LoggingEventListener {
         }
       }
       this.terraformProcesses.delete(processId);
-      this.logger.log.withMetadata({ exitCode, processId }).debug(`Exited "${terraformProcess.command}" ${exitCode}.`);
+      this.logWorded(event, {}, terraformProcess.command);
     }
   }
 
@@ -377,45 +270,21 @@ export class LoggingEventListener {
    */
   @OnEvent(TransactionEvent)
   onTransaction(event: TransactionEvent<any>): void {
-    if (event instanceof ModelActionTransactionEvent) {
-      this.logger.log.withMetadata({ name: event.name }).debug('Model action executed.');
-    } else if (event instanceof ModelDiffsTransactionEvent) {
-      this.logger.log.debug('Model diffs executed.');
-    } else if (event instanceof ModelTransactionTransactionEvent) {
+    if (event instanceof ModelTransactionTransactionEvent) {
       this.observer.modelTransaction(event.payload);
-      this.logger.log.debug('Model transactions executed.');
+      this.logWorded(event);
     } else if (event instanceof ResourceActionInitiatedTransactionEvent) {
       // `info`, not `debug`: this is real infrastructure work running in this process.
-      const diff = event.payload as DiffMetadata;
-      this.resourceActionStartedAt.set(this.resourceActionKey(event.name, diff), Date.now());
-      this.logger.log
-        .withMetadata({ action: event.name, resource: diff.node.getContext() })
-        .info(`Resource action "${event.name}" started on "${diff.node.getContext()}".`);
+      this.resourceActionStartedAt.set(this.resourceActionKey(event.name, event.payload as DiffMetadata), Date.now());
+      this.logWorded(event);
     } else if (event instanceof ResourceActionCompletedTransactionEvent) {
-      const diff = event.payload as DiffMetadata;
-      const key = this.resourceActionKey(event.name, diff);
+      const key = this.resourceActionKey(event.name, event.payload as DiffMetadata);
       const startedAt = this.resourceActionStartedAt.get(key);
       this.resourceActionStartedAt.delete(key);
 
-      const durationInMs = startedAt === undefined ? undefined : Date.now() - startedAt;
-      this.logger.log
-        .withMetadata({ action: event.name, durationInMs, resource: diff.node.getContext() })
-        .info(
-          `Resource action "${event.name}" completed on "${diff.node.getContext()}"` +
-            (durationInMs === undefined ? '.' : ` in ${durationInMs}ms.`),
-        );
-    } else if (event instanceof ResourceActionSummaryTransactionEvent) {
-      this.logger.log
-        .withMetadata({
-          action: event.name,
-          resource: (event.payload.diff as DiffMetadata).node.getContext(),
-          values: event.payload.values,
-        })
-        .debug('Resource action summary.');
-    } else if (event instanceof ResourceDiffsTransactionEvent) {
-      this.logger.log.debug('Resource diffs executed.');
-    } else if (event instanceof ResourceTransactionTransactionEvent) {
-      this.logger.log.debug('Resource transactions executed.');
+      this.logWorded(event, { durationInMs: startedAt === undefined ? undefined : Date.now() - startedAt });
+    } else {
+      this.logWorded(event);
     }
   }
 
@@ -425,6 +294,28 @@ export class LoggingEventListener {
   private logTerraformLine(processId: number, stream: 'stderr' | 'stdout', line: string): void {
     const { command } = this.terraformProcesses.get(processId)!;
     this.logger.log.withMetadata({ command, processId, stream }).info(line);
+  }
+
+  /**
+   * Logs an event as {@link EventWordingUtility} words it, from the payload its journal entry holds.
+   * An event no journal records logs nothing.
+   *
+   * @param name The event's subject, where the event itself does not carry it.
+   */
+  private logWorded(event: Event<unknown>, context: WordingContext = {}, name: string = event.name ?? ''): void {
+    const eventClass: unknown = event.constructor;
+    const type = event.constructor.name as keyof EventPayloads;
+    if (JournalUtility.EVENT_CLASSES[type] !== eventClass) {
+      return;
+    }
+
+    const entry = { name, payload: JournalUtility.toPlain(event.payload), type } as Pick<
+      JournalEntry,
+      'name' | 'payload' | 'type'
+    >;
+    for (const { level, metadata, text } of EventWordingUtility.word(entry, context) ?? []) {
+      this.logger.log.withMetadata(metadata)[level](text);
+    }
   }
 
   /**

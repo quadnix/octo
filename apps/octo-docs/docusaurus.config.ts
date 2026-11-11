@@ -46,6 +46,7 @@ const config: Config = {
             entry: {
               index: 'src/index.ts',
               types: { label: 'Types', path: 'src/index.type.ts' },
+              wording: { label: 'Wording', path: 'src/utilities/wording/event-wording.utility.ts' },
             },
             includeProjectDocuments: true,
             path: 'packages/octo-event-listeners',

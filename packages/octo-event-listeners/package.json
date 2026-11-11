@@ -14,7 +14,8 @@
   "exports": {
     "./journal": "./dist/journal.event.listener.js",
     "./logging": "./dist/logging.event.listener.js",
-    "./types": "./dist/index.type.js"
+    "./types": "./dist/index.type.js",
+    "./wording": "./dist/utilities/wording/event-wording.utility.js"
   },
   "files": [
     "dist",
