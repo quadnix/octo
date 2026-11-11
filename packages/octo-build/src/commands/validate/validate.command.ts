@@ -17,7 +17,7 @@ export const validateCommand = {
   builder: (yargs: Argv): Argv => {
     return yargs
       .option('terragruntDir', {
-        demandOption: true,
+        default: OctoUtility.DEFAULT_TERRAGRUNT_DIR,
         description: 'The generated Terragrunt directory to plan and validate.',
         type: 'string',
       })

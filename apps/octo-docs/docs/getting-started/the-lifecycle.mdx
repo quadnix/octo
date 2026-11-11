@@ -44,7 +44,7 @@ a checkout server that can read and write it.
 ## Generate
 
 ```bash
-octo generate -o .octo-tf
+octo generate
 ```
 
 Generate turns your definition file into Terraform: one Terragrunt folder per module, holding
@@ -70,7 +70,7 @@ hold together never becomes a folder.
 ## Validate
 
 ```bash
-octo validate --terragruntDir .octo-tf
+octo validate
 ```
 
 Validate runs `terraform plan` on every folder itself, so there is no separate plan step, and then
@@ -90,7 +90,7 @@ a Validate Report](/docs/using-octo/reading-a-validate-report) covers it before 
 ## Apply
 
 ```bash
-octo apply --terragruntDir .octo-tf --lockId $LOCK_ID
+octo apply --lockId $LOCK_ID
 ```
 
 The only step that changes live infrastructure. It verifies the lock before it plans anything, so a
@@ -125,7 +125,7 @@ the same lock ID, or release it with `octo unlock --lockId $LOCK_ID` if you are 
 ## Commit
 
 ```bash
-octo commit --terragruntDir .octo-tf --lockId $LOCK_ID
+octo commit --lockId $LOCK_ID
 ```
 
 Commit reads what the apply produced, the ARNs and IDs and endpoints the provider handed back, and

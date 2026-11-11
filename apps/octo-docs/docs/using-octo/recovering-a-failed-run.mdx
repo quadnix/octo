@@ -55,7 +55,7 @@ while the bucket is refused:
 [receipts-module] terraform: Error: creating S3 Bucket (test): operation error S3: CreateBucket, https response error StatusCode: 409, RequestID: KG8ZEP2JMEPH61CZ, HostID: gshq34f7zJtvC9KI1vXQqweBcwUiUWOsnpBGb9DN4j3pGkpMOrDxbd6qMgmJVpfxlH6uJmAExc0=, BucketAlreadyExists: The requested bucket name is not available. The bucket namespace is shared by all users of the system. Please select a different name and try again.
 [region-module] terraform: Apply complete! Resources: 2 added, 0 changed, 0 destroyed.
 
-This apply may have built part of what you asked for. Run "octo commit --partial --terragruntDir .octo-tf --lockId d42f403d-7807-41c0-a6c7-b9ca2835ee06" to record that and release the lock, then fix what failed and run again.
+This apply may have built part of what you asked for. Run "octo commit --partial --lockId d42f403d-7807-41c0-a6c7-b9ca2835ee06" to record that and release the lock, then fix what failed and run again.
 ```
 
 Terraform's own record of the region's VPC and internet gateway is already saved, because Octo

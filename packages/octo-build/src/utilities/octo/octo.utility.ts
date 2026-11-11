@@ -21,6 +21,11 @@ const DEFAULT_DEFINITION_FILE_PATH = 'octo.yaml';
  */
 export class OctoUtility {
   /**
+   * The folder `generate` writes and every later command reads, unless a flag names another.
+   */
+  static readonly DEFAULT_TERRAGRUNT_DIR = '.octo-tf';
+
+  /**
    * Boots octo with every listener, hook, module and terraform provider the definition lists, on top
    * of every state it extends, next to every store it reads, and composes the app. Prints nothing, so stdout carries only the command's own output.
    *

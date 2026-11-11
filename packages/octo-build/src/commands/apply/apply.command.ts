@@ -98,7 +98,7 @@ export const applyCommand = {
   builder: (yargs: Argv): Argv => {
     return yargs
       .option('terragruntDir', {
-        demandOption: true,
+        default: OctoUtility.DEFAULT_TERRAGRUNT_DIR,
         description: 'The generated Terragrunt directory to apply.',
         type: 'string',
       })
@@ -175,9 +175,9 @@ export const applyCommand = {
       // records that.
       () =>
         isApplying
-          ? 'This apply may have built part of what you asked for. Run "octo commit --partial ' +
-            `--terragruntDir ${terragruntDir} --lockId ${lockId}" to record that and release the lock, then fix ` +
-            'what failed and run again.'
+          ? 'This apply may have built part of what you asked for. Run "octo commit --partial' +
+            (terragruntDir === OctoUtility.DEFAULT_TERRAGRUNT_DIR ? '' : ` --terragruntDir ${terragruntDir}`) +
+            ` --lockId ${lockId}" to record that and release the lock, then fix what failed and run again.`
           : undefined,
     );
   },

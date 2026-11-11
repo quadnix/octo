@@ -24,7 +24,7 @@ export const commitCommand = {
   builder: (yargs: Argv): Argv => {
     return yargs
       .option('terragruntDir', {
-        demandOption: true,
+        default: OctoUtility.DEFAULT_TERRAGRUNT_DIR,
         description: 'The generated Terragrunt directory, post apply (`terragrunt run --all -- apply`).',
         type: 'string',
       })

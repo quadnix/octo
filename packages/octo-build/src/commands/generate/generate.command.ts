@@ -16,7 +16,7 @@ export const generateCommand = {
   builder: (yargs: Argv): Argv => {
     return yargs.option('outputDir', {
       alias: 'o',
-      demandOption: true,
+      default: OctoUtility.DEFAULT_TERRAGRUNT_DIR,
       description:
         'Directory to write the generated Terragrunt module folders into. Folders are overwritten in place, never ' +
         'wiped; a deleted module leaves an emptied folder so a later apply destroys its resources.',
