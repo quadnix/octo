@@ -35,15 +35,15 @@ npm run octo:validate
 LOCK_ID=$(npm run --silent octo:lock)
 
 # 4. Apply, then record the applied outputs into Octo. A commit that succeeds releases the lock.
-npm run octo:apply -- --lockId $LOCK_ID
-npm run octo:commit -- --lockId $LOCK_ID
+npm run octo:apply
+npm run octo:commit
 ```
 
 Generate and validate need no lock, because neither writes shared state. Apply and commit do, and
 refuse to run without one.
 
 If the apply fails partway, it prints the command that records what did apply and releases the
-lock: `npm run octo:commit -- --lockId $LOCK_ID --partial`. Then fix what failed and run the four
+lock: `npm run octo:commit -- --partial`. Then fix what failed and run the four
 steps again. If a commit fails, it keeps the lock: fix what it reported and run the same commit
 again. A run that died holding the lock is finished through it, not released:
 [Recovering a Failed Run](https://octo.quadnix.com/docs/using-octo/recovering-a-failed-run) has the
@@ -51,8 +51,8 @@ steps for every case.
 
 `octo apply` plans first and refuses to proceed if the apply would destroy anything, printing what
 would be destroyed. Run `npm run octo:validate` to see why each one is being destroyed, then re-run
-the apply with `--auto-approve` and the same lock ID to go ahead:
-`npm run octo:apply -- --lockId $LOCK_ID --auto-approve`. That flag is required for every destroy,
+the apply with `--auto-approve` to go ahead:
+`npm run octo:apply -- --auto-approve`. That flag is required for every destroy,
 including the teardown flow below. If you decide not to go ahead, release the lock with
 `npm run octo:unlock -- --lockId $LOCK_ID`.
 
@@ -127,8 +127,8 @@ destroy anything without it.
 ```bash
 npm run octo:generate
 LOCK_ID=$(npm run --silent octo:lock)
-npm run octo:apply -- --lockId $LOCK_ID --auto-approve
-npm run octo:commit -- --lockId $LOCK_ID
+npm run octo:apply -- --auto-approve
+npm run octo:commit
 ```
 
 The commit is not optional here. A resource whose lifecycle runs outside Terraform is deleted by its

@@ -24,16 +24,16 @@ Four commands, in this order. [The Lifecycle](/docs/getting-started/the-lifecycl
 one is for.
 
 The last two write shared state, so they require the **app lock**. Take it with
-[`octo lock`](#lock) and pass the ID it prints. `generate` and `validate` write nothing shared and
-need no lock.
+[`octo lock`](#lock); both use the lock this app holds, or the one `--lockId` names. `generate`
+and `validate` write nothing shared and need no lock.
 
 ```bash
 npm run octo:generate
 npm run octo:validate
 
-LOCK_ID=$(npm run --silent octo:lock)
-npm run octo:apply -- --lockId $LOCK_ID
-npm run octo:commit -- --lockId $LOCK_ID     # releases the lock
+npm run octo:lock
+npm run octo:apply
+npm run octo:commit    # releases the lock
 ```
 
 ### generate
@@ -81,14 +81,14 @@ loads none of your modules and reads no model or resource state. It does read th
 because the state provider named there is where Terraform's own state is checked out of and back
 into around the apply.
 
-| Flag                 |            |                                                       |
-|----------------------|------------|-------------------------------------------------------|
-| `--terragruntDir`    | `.octo-tf` | The generated directory to apply.                     |
-| `--lockId`           | required   | The app lock ID from `octo lock`.                     |
-| `--auto-approve`     |            | Skip the destroy check. Required to destroy anything. |
-| `--terraformBinary`  |            | Override the binary Terragrunt invokes.               |
-| `--terragruntBinary` |            | Override the Terragrunt binary.                       |
-| `--timeoutInMs`      |            | Give the apply a time limit. None by default.         |
+| Flag                 |               |                                                       |
+|----------------------|---------------|-------------------------------------------------------|
+| `--terragruntDir`    | `.octo-tf`    | The generated directory to apply.                     |
+| `--lockId`           | the lock held | The app lock ID from `octo lock`.                     |
+| `--auto-approve`     |               | Skip the destroy check. Required to destroy anything. |
+| `--terraformBinary`  |               | Override the binary Terragrunt invokes.               |
+| `--terragruntBinary` |               | Override the Terragrunt binary.                       |
+| `--timeoutInMs`      |               | Give the apply a time limit. None by default.         |
 
 Verifies the lock before planning, so a run without it fails having done nothing. It does not
 release the lock, because the apply is the middle of a run and `commit` is the end of it.
@@ -111,7 +111,7 @@ belong here are your CI job's own, and the terminal you can interrupt. `validate
 read, so both keep the sixty-minute default that ends a hang.
 
 ```bash
-npm run octo:apply -- --lockId $LOCK_ID --auto-approve
+npm run octo:apply -- --auto-approve
 ```
 
 `octo apply --help` prints the flag as `--autoApprove`, which is the same flag. Yargs accepts either
@@ -122,17 +122,17 @@ spelling, and these pages use the hyphenated one because it matches Terraform's.
 Reads every folder's Terraform outputs and records them into Octo's state. All or nothing: a missing
 or null output throws before any state is written.
 
-| Flag                 |            |                                                                      |
-|----------------------|------------|----------------------------------------------------------------------|
-| `--terragruntDir`    | `.octo-tf` | The generated directory, after an apply.                             |
-| `--lockId`           | required   | The app lock ID from `octo lock`. Released when the commit succeeds. |
-| `--partial`          |            | Record what did apply, after an apply that failed.                   |
-| `--terraformBinary`  |            | Override the binary Terragrunt invokes.                              |
-| `--terragruntBinary` |            | Override the Terragrunt binary.                                      |
-| `--timeoutInMs`      |            | Per-command timeout. Default 60 minutes.                             |
+| Flag                 |               |                                                                      |
+|----------------------|---------------|----------------------------------------------------------------------|
+| `--terragruntDir`    | `.octo-tf`    | The generated directory, after an apply.                             |
+| `--lockId`           | the lock held | The app lock ID from `octo lock`. Released when the commit succeeds. |
+| `--partial`          |               | Record what did apply, after an apply that failed.                   |
+| `--terraformBinary`  |               | Override the binary Terragrunt invokes.                              |
+| `--terragruntBinary` |               | Override the Terragrunt binary.                                      |
+| `--timeoutInMs`      |               | Per-command timeout. Default 60 minutes.                             |
 
 This is the command that ends a run, so a commit that succeeds **releases the lock**. A commit that
-throws keeps it: fix what it reported and run `commit` again with the same `--lockId`. A normal run
+throws keeps it: fix what it reported and run `commit` again. A normal run
 never leaves a lock behind.
 
 `--partial` is for after an apply that failed. It plans every folder first, and records only the
@@ -154,7 +154,7 @@ both require it; `generate` and `validate` do not, because neither writes shared
 Takes the lock and prints its ID, and nothing else on stdout, so a shell can capture it.
 
 ```bash
-LOCK_ID=$(npm run --silent octo:lock)
+npm run octo:lock
 ```
 
 Fails if a lock is already held, naming the ID that holds it. Nothing else runs, so a second runner
@@ -176,10 +176,10 @@ commit as usual. [Recovering a Failed Run](/docs/using-octo/recovering-a-failed-
 covers what to check before the apply.
 
 ```bash
-LOCK_ID=$(npm run --silent octo:lock -- --lockId "$HELD_LOCK_ID")
+npm run octo:lock -- --lockId "$HELD_LOCK_ID"
 npm run octo:generate
-npm run octo:apply -- --lockId $LOCK_ID
-npm run octo:commit -- --lockId $LOCK_ID
+npm run octo:apply
+npm run octo:commit
 ```
 
 With a remote state provider, the run can be resumed from any machine, by the account that took the

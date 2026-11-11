@@ -14,8 +14,8 @@ npm run octo:generate                       # 1. intent   -> terragrunt module f
 npm run octo:validate                       # 2. folders  -> a report against intent  (optional)
 
 LOCK_ID=$(npm run --silent octo:lock)       # steps 3 and 4 write shared state
-npm run octo:apply -- --lockId $LOCK_ID     # 3. folders  -> real infrastructure
-npm run octo:commit -- --lockId $LOCK_ID    # 4. outputs  -> octo state, and the lock is released
+npm run octo:apply                          # 3. folders  -> real infrastructure
+npm run octo:commit                         # 4. outputs  -> octo state, and the lock is released
 ```
 
 Nothing reaches the cloud before step 3, the first two need no permission to change anything, and a
@@ -90,7 +90,7 @@ a Validate Report](/docs/using-octo/reading-a-validate-report) covers it before 
 ## Apply
 
 ```bash
-octo apply --lockId $LOCK_ID
+octo apply
 ```
 
 The only step that changes live infrastructure. It verifies the lock before it plans anything, so a
@@ -117,15 +117,15 @@ Error: Refusing to apply. Run "octo validate" to see why each of these is being 
 Only removing an [external resource](/docs/building-modules/create-an-external-resource#deletes-run-at-commit),
 such as an old image tag, goes through without it, since Octo deletes that at commit. If
 a folder cannot be planned at all, apply also refuses, because it cannot say whether that folder
-would destroy something and will not guess. Either way the lock stays held: re-run the apply with
-the same lock ID, or release it with `octo unlock --lockId $LOCK_ID` if you are not going ahead.
+would destroy something and will not guess. Either way the lock stays held: re-run the apply, or
+release it with `octo unlock --lockId $LOCK_ID` if you are not going ahead.
 
 [CLI](/docs/reference/cli#apply) lists every flag it takes.
 
 ## Commit
 
 ```bash
-octo commit --lockId $LOCK_ID
+octo commit
 ```
 
 Commit reads what the apply produced, the ARNs and IDs and endpoints the provider handed back, and
@@ -168,11 +168,9 @@ publishes the report. An apply job, after somebody has read it, applies.
 
 # Once a human has approved the report above.
 - run: npm run octo:generate
-- run: |
-    LOCK_ID=$(npm run --silent octo:lock)
-    echo "LOCK_ID=$LOCK_ID" >> $GITHUB_ENV
-- run: npm run octo:apply -- --lockId $LOCK_ID
-- run: npm run octo:commit -- --lockId $LOCK_ID
+- run: npm run octo:lock
+- run: npm run octo:apply
+- run: npm run octo:commit
 ```
 
 Regenerate on the apply job rather than carrying the folders over from the pull-request job.

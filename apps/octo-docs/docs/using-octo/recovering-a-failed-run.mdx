@@ -65,7 +65,7 @@ Octo's record.
 1. Record what was built, and release the lock:
 
    ```bash
-   npm run octo:commit -- --lockId $LOCK_ID --partial
+   npm run octo:commit -- --partial
    ```
 
    ```text
@@ -84,8 +84,8 @@ still held. Read [Destroying Infrastructure](/docs/using-octo/destroying-infrast
 surprised you, then either go ahead with the same lock:
 
 ```bash
-npm run octo:apply -- --lockId $LOCK_ID --auto-approve
-npm run octo:commit -- --lockId $LOCK_ID
+npm run octo:apply -- --auto-approve
+npm run octo:commit
 ```
 
 or release it and walk away:
@@ -114,7 +114,7 @@ delete action of an [external resource](/docs/building-modules/create-an-externa
 the cloud refused. Fix that, then run the same commit again with the same lock ID:
 
 ```bash
-npm run octo:commit -- --lockId $LOCK_ID
+npm run octo:commit
 ```
 
 If it cannot be made to succeed, `npm run octo:unlock -- --lockId $LOCK_ID` releases the lock and
@@ -156,8 +156,8 @@ together.
 4. Apply and commit with the same lock:
 
    ```bash
-   npm run octo:apply -- --lockId $LOCK_ID
-   npm run octo:commit -- --lockId $LOCK_ID
+   npm run octo:apply
+   npm run octo:commit
    ```
 
 On the machine the run died on, that is usually all. Terraform writes its record into the module

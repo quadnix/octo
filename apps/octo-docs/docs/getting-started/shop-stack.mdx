@@ -244,8 +244,8 @@ a Validate Report](/docs/using-octo/reading-a-validate-report) is the page for t
 ## Apply and commit
 
 ```bash
-LOCK_ID=$(npm run --silent octo:lock)
-npm run octo:apply -- --lockId $LOCK_ID
+npm run octo:lock
+npm run octo:apply
 ```
 
 `octo lock` takes the app lock and prints its ID. Apply and commit are the two steps that write
@@ -266,7 +266,7 @@ INFO: Terraform "apply" finished in 6214ms. {"command":"apply","dir":"/home/you/
 Then record what happened:
 
 ```bash
-npm run octo:commit -- --lockId $LOCK_ID
+npm run octo:commit
 ```
 
 ```text
@@ -434,9 +434,9 @@ against whatever its dependencies last produced.
 Apply and record it:
 
 ```bash
-LOCK_ID=$(npm run --silent octo:lock)
-npm run octo:apply -- --lockId $LOCK_ID
-npm run octo:commit -- --lockId $LOCK_ID
+npm run octo:lock
+npm run octo:apply
+npm run octo:commit
 ```
 
 ## Tear it down
@@ -448,9 +448,9 @@ commands again:
 ```bash
 npm run octo:generate
 
-LOCK_ID=$(npm run --silent octo:lock)
-npm run octo:apply -- --lockId $LOCK_ID --auto-approve
-npm run octo:commit -- --lockId $LOCK_ID
+npm run octo:lock
+npm run octo:apply -- --auto-approve
+npm run octo:commit
 ```
 
 Without `--auto-approve`, the apply refuses and shows you what it would have removed:

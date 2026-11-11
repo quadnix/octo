@@ -82,7 +82,7 @@ but whether anything you did not remove is quietly in there too.
 
 ```bash
 LOCK_ID=$(npm run --silent octo:lock)
-npm run octo:apply -- --lockId $LOCK_ID
+npm run octo:apply
 ```
 
 ```text
@@ -100,7 +100,7 @@ check is what stands in for one: `octo apply` plans first, and refuses if anythi
 destroyed. A destroy that takes data with it, like the bucket's objects, says so on its line.
 
 ```bash
-npm run octo:apply -- --lockId $LOCK_ID --auto-approve
+npm run octo:apply -- --auto-approve
 ```
 
 That flag is required for every destroy, including one you fully intended, except removing an
@@ -112,7 +112,7 @@ the list tells you not to go ahead, release it with `npm run octo:unlock -- --lo
 ## Committing the removal
 
 ```bash
-npm run octo:commit -- --lockId $LOCK_ID
+npm run octo:commit
 ```
 
 ```text
@@ -172,8 +172,8 @@ out goes with it, or generate stops with `Module not found!` and the ID that ent
 npm run octo:generate
 
 LOCK_ID=$(npm run --silent octo:lock)
-npm run octo:apply -- --lockId $LOCK_ID --auto-approve
-npm run octo:commit -- --lockId $LOCK_ID
+npm run octo:apply -- --auto-approve
+npm run octo:commit
 ```
 
 Afterwards, `.octo/` still exists and describes an app with nothing in it, and the commit has

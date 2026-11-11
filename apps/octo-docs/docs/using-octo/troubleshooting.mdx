@@ -262,8 +262,8 @@ to date before it applies.
 
 **`App is not locked!`**
 
-`apply` and `commit` both require the lock. Take it with `octo lock` and pass the ID it prints to
-both. Apply adds `Run "octo lock" first.` to the same message.
+`apply` and `commit` both require the lock. Take it with `octo lock`; both use the lock this app
+holds, or the one `--lockId` names. Apply adds `Run "octo lock" first.` to the same message.
 
 **`Invalid lock ID!`**
 

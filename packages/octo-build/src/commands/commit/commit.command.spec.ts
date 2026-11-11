@@ -39,7 +39,7 @@ describe('commitCommand UT', () => {
   const resolvedDir = resolve(process.cwd(), terragruntDir);
   const lockId = 'lock-1';
   const argv = { _: [], $0: 'octo', lockId, terragruntDir } as unknown as ArgumentsCamelCase<{
-    lockId: string;
+    lockId?: string;
     terragruntDir: string;
   }>;
 
@@ -49,7 +49,10 @@ describe('commitCommand UT', () => {
     output: jest.Mock<() => Promise<Map<string, unknown>>>;
     plan: jest.Mock<() => Promise<{ errors: Map<string, string>; plans: Map<string, unknown> }>>;
   };
-  let stateManagementServiceMock: { unlockApp: jest.Mock<(lockId: string) => Promise<void>> };
+  let stateManagementServiceMock: {
+    getAppLock: jest.Mock<() => Promise<string | undefined>>;
+    unlockApp: jest.Mock<(lockId: string) => Promise<void>>;
+  };
   let processExitSpy: jest.SpiedFunction<typeof process.exit>;
   let consoleErrorSpy: jest.SpiedFunction<typeof console.error>;
   let consoleLogSpy: jest.SpiedFunction<typeof console.log>;
@@ -69,7 +72,10 @@ describe('commitCommand UT', () => {
         .fn<() => Promise<{ errors: Map<string, string>; plans: Map<string, unknown> }>>()
         .mockResolvedValue({ errors: new Map(), plans: new Map() }),
     };
-    stateManagementServiceMock = { unlockApp: jest.fn<(lockId: string) => Promise<void>>().mockResolvedValue() };
+    stateManagementServiceMock = {
+      getAppLock: jest.fn<() => Promise<string | undefined>>().mockResolvedValue(lockId),
+      unlockApp: jest.fn<(lockId: string) => Promise<void>>().mockResolvedValue(),
+    };
     await TestContainer.create({
       mocks: [
         { type: StateManagementService, value: stateManagementServiceMock as unknown as StateManagementService },
@@ -88,6 +94,22 @@ describe('commitCommand UT', () => {
 
   afterAll(async () => {
     await TestContainer.reset();
+  });
+
+  it('should refuse to commit without a lock id when the app holds no lock', async () => {
+    stateManagementServiceMock.getAppLock.mockResolvedValue(undefined);
+
+    await commitCommand.handler({ ...argv, lockId: undefined });
+
+    expect(octoCommitMock).not.toHaveBeenCalled();
+    expect(processExitSpy).toHaveBeenCalledWith(1);
+  });
+
+  it('should commit under the lock the app holds and release it when no lock id is given', async () => {
+    await commitCommand.handler({ ...argv, lockId: undefined });
+
+    expect(octoCommitMock).toHaveBeenCalledWith({}, expect.objectContaining({ lockId }));
+    expect(stateManagementServiceMock.unlockApp).toHaveBeenCalledWith(lockId);
   });
 
   it('should release the app lock after a successful commit', async () => {

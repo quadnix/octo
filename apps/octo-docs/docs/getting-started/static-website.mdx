@@ -164,9 +164,9 @@ The four commands, in order, with one more in front of the last two:
 npm run octo:generate
 npm run octo:validate
 
-LOCK_ID=$(npm run --silent octo:lock)
-npm run octo:apply -- --lockId $LOCK_ID
-npm run octo:commit -- --lockId $LOCK_ID
+npm run octo:lock
+npm run octo:apply
+npm run octo:commit
 ```
 
 `octo lock` takes the app lock and prints its ID. Apply and commit are the two steps that write
@@ -360,9 +360,9 @@ The heading says `changed` because the resource under it is updated, not created
 Validate Report](/docs/using-octo/reading-a-validate-report) covers the markers in full.
 
 ```bash
-LOCK_ID=$(npm run --silent octo:lock)
-npm run octo:apply -- --lockId $LOCK_ID
-npm run octo:commit -- --lockId $LOCK_ID
+npm run octo:lock
+npm run octo:apply
+npm run octo:commit
 ```
 
 Reload the page and the new line is there.
@@ -392,9 +392,9 @@ Removing infrastructure takes the same commands. Comment out the region and webs
 npm run octo:generate
 npm run octo:validate
 
-LOCK_ID=$(npm run --silent octo:lock)
-npm run octo:apply -- --lockId $LOCK_ID --auto-approve
-npm run octo:commit -- --lockId $LOCK_ID
+npm run octo:lock
+npm run octo:apply -- --auto-approve
+npm run octo:commit
 ```
 
 `validate` is worth running here, because it says why each resource is going away. And `apply` needs

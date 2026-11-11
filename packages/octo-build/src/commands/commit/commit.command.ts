@@ -5,7 +5,7 @@ import type { ArgumentsCamelCase, Argv } from 'yargs';
 import { OctoUtility } from '../../utilities/octo/octo.utility.js';
 
 type CommitCommandArguments = {
-  lockId: string;
+  lockId?: string;
   partial?: boolean;
   terraformBinary?: string;
   terragruntBinary?: string;
@@ -29,8 +29,10 @@ export const commitCommand = {
         type: 'string',
       })
       .option('lockId', {
-        demandOption: true,
-        description: 'The app lock ID from `octo lock`. Released when the commit succeeds.',
+        demandOption: false,
+        description:
+          'The app lock ID from `octo lock`. Defaults to the lock this app holds when it was taken in this ' +
+          'state directory. Released when the commit succeeds.',
         type: 'string',
       })
       .option('partial', {
@@ -90,7 +92,14 @@ export const commitCommand = {
         }
       }
 
-      const { emptiedModuleIds, warnings } = await octo.commit(app, { lockId, outputs, partial });
+      // Without a lock id, the lock this app holds is the run's.
+      const stateManagementService = await Container.getInstance().get(StateManagementService);
+      const runLockId = lockId ?? (await stateManagementService.getAppLock());
+      if (runLockId === undefined) {
+        throw new Error('App is not locked! Run "octo lock" first.');
+      }
+
+      const { emptiedModuleIds, warnings } = await octo.commit(app, { lockId: runLockId, outputs, partial });
       for (const warning of warnings) {
         console.error(chalk.yellow(`WARN ${warning.moduleId ? `[${warning.moduleId}] ` : ''}${warning.message}`));
       }
@@ -101,8 +110,7 @@ export const commitCommand = {
       }
 
       // Release the lock once the run is recorded. A failed commit keeps it for the re-run.
-      const stateManagementService = await Container.getInstance().get(StateManagementService);
-      await stateManagementService.unlockApp(lockId);
+      await stateManagementService.unlockApp(runLockId);
 
       // No verdict printed here - the listeners render the commit report on stderr, beside the
       // warnings above.

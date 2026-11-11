@@ -29,12 +29,12 @@ be run as often as you like. They read the state directory and write intent and 
 of what exists; neither is a promise that anything will be built.
 
 `lock` is where a change starts for real. From the lock until the `commit` or `unlock` that releases
-it, nobody else can apply or commit, and every command passes the lock ID it printed:
+it, nobody else can apply or commit, and both use the lock this app holds:
 
 ```bash
-LOCK_ID=$(npm run --silent octo:lock)
-npm run octo:apply -- --lockId $LOCK_ID
-npm run octo:commit -- --lockId $LOCK_ID
+npm run octo:lock
+npm run octo:apply
+npm run octo:commit
 ```
 
 ## During the apply

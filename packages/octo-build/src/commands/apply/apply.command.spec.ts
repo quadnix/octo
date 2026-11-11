@@ -25,6 +25,7 @@ const mockedReportError = jest.fn<(error: unknown) => void>();
 jest.unstable_mockModule('../../utilities/octo/octo.utility.js', () => ({
   OctoUtility: {
     bootStateProvider: mockedBootStateProvider,
+    DEFAULT_TERRAGRUNT_DIR: '.octo-tf',
     prepareCallbackEnvironment: mockedPrepareCallbackEnvironment,
     reportError: mockedReportError,
     runCommand: async (
@@ -50,7 +51,7 @@ describe('applyCommand UT', () => {
   const resolvedDir = resolve(process.cwd(), terragruntDir);
   const lockId = 'lock-1';
   const argv = { _: [], $0: 'octo', lockId, terragruntDir } as unknown as ArgumentsCamelCase<{
-    lockId: string;
+    lockId?: string;
     terragruntDir: string;
   }>;
 
@@ -61,6 +62,7 @@ describe('applyCommand UT', () => {
   };
   let stateManagementServiceMock: {
     actualResourceStateFileName: string;
+    getAppLock: jest.Mock<() => Promise<string | undefined>>;
     getResourceState: jest.Mock<() => Promise<{ userData: { terraformResources?: TerraformResourceOutput[] } }>>;
     isAppLocked: jest.Mock<(lockId: string) => Promise<boolean>>;
   };
@@ -82,6 +84,7 @@ describe('applyCommand UT', () => {
     };
     stateManagementServiceMock = {
       actualResourceStateFileName: 'resources-actual.json',
+      getAppLock: jest.fn<() => Promise<string | undefined>>().mockResolvedValue(lockId),
       getResourceState: jest
         .fn<() => Promise<{ userData: { terraformResources?: TerraformResourceOutput[] } }>>()
         .mockResolvedValue({ userData: {} }),
@@ -114,6 +117,22 @@ describe('applyCommand UT', () => {
 
     expect(terraformUtilityMock.apply).not.toHaveBeenCalled();
     expect(processExitSpy).toHaveBeenCalledWith(1);
+  });
+
+  it('refuses to apply without a lock id when the app holds no lock', async () => {
+    stateManagementServiceMock.getAppLock.mockResolvedValue(undefined);
+
+    await applyCommand.handler({ ...argv, lockId: undefined });
+
+    expect(terraformUtilityMock.apply).not.toHaveBeenCalled();
+    expect(processExitSpy).toHaveBeenCalledWith(1);
+  });
+
+  it('applies under the lock the app holds when no lock id is given', async () => {
+    await applyCommand.handler({ ...argv, lockId: undefined });
+
+    expect(stateManagementServiceMock.isAppLocked).toHaveBeenCalledWith(lockId);
+    expect(terraformUtilityMock.apply).toHaveBeenCalledWith(resolvedDir);
   });
 
   it('applies the terragrunt directory via TerraformUtility, printing nothing itself', async () => {
@@ -312,6 +331,14 @@ describe('applyCommand UT', () => {
     expect(consoleErrorSpy.mock.calls.flat().join('\n')).toContain(
       `octo commit --partial --terragruntDir ${terragruntDir} --lockId ${lockId}`,
     );
+  });
+
+  it('names that commit without the folder and the lock id when neither was given', async () => {
+    terraformUtilityMock.apply.mockRejectedValue(new Error('boom'));
+
+    await applyCommand.handler({ ...argv, lockId: undefined, terragruntDir: '.octo-tf' });
+
+    expect(consoleErrorSpy.mock.calls.flat().join('\n')).toContain('Run "octo commit --partial" to record that');
   });
 
   // Nothing was applied, so there is nothing to record and no advice to give about recording it.

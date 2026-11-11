@@ -6,7 +6,7 @@ import { OctoUtility } from '../../utilities/octo/octo.utility.js';
 
 type ApplyCommandArguments = {
   autoApprove?: boolean;
-  lockId: string;
+  lockId?: string;
   terraformBinary?: string;
   terragruntBinary?: string;
   terragruntDir: string;
@@ -103,8 +103,10 @@ export const applyCommand = {
         type: 'string',
       })
       .option('lockId', {
-        demandOption: true,
-        description: 'The app lock ID from `octo lock`. Applying without the lock is refused.',
+        demandOption: false,
+        description:
+          'The app lock ID from `octo lock`. Defaults to the lock this app holds when it was taken in this ' +
+          'state directory. Applying without the lock is refused.',
         type: 'string',
       })
       .option('autoApprove', {
@@ -139,6 +141,7 @@ export const applyCommand = {
 
     // Set once terragrunt starts applying, after which some of what was asked for may be built.
     let isApplying = false;
+    let runLockId = lockId;
 
     await OctoUtility.runCommand(
       'apply',
@@ -147,8 +150,10 @@ export const applyCommand = {
 
         // The lock is verified before anything is planned, so a run without it fails having done
         // nothing. It is released by `octo commit`, not here - the apply is the middle of a run.
+        // Without a lock id, the lock this app holds is the run's.
         const stateManagementService = await Container.getInstance().get(StateManagementService);
-        if (!(await stateManagementService.isAppLocked(lockId))) {
+        runLockId ??= await stateManagementService.getAppLock();
+        if (runLockId === undefined || !(await stateManagementService.isAppLocked(runLockId))) {
           throw new Error('App is not locked! Run "octo lock" first.');
         }
 
@@ -177,7 +182,8 @@ export const applyCommand = {
         isApplying
           ? 'This apply may have built part of what you asked for. Run "octo commit --partial' +
             (terragruntDir === OctoUtility.DEFAULT_TERRAGRUNT_DIR ? '' : ` --terragruntDir ${terragruntDir}`) +
-            ` --lockId ${lockId}" to record that and release the lock, then fix what failed and run again.`
+            (lockId === undefined ? '' : ` --lockId ${runLockId}`) +
+            '" to record that and release the lock, then fix what failed and run again.'
           : undefined,
     );
   },
