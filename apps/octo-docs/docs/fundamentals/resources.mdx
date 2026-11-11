@@ -105,5 +105,5 @@ stay, and only the folder their Terraform lives in changes. Octo moves their Ter
 the new folder before Terraform plans, so Terraform sees the same infrastructure where it left it.
 
 Octo tells you before anything is destroyed: `octo apply` lists what would be destroyed and refuses to
-go on until you pass `--auto-approve`, and marks each destroy that loses data, a table's rows or a
+go on until you approve each one, and marks each destroy that loses data, a table's rows or a
 bucket's objects.

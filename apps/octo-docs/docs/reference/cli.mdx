@@ -85,7 +85,8 @@ back into around the apply.
 |----------------------|---------------|-------------------------------------------------------|
 | `--terragruntDir`    | `.octo-tf`    | The generated directory to apply.                     |
 | `--lockId`           | the lock held | The app lock ID from `octo lock`.                     |
-| `--auto-approve`     |               | Skip the destroy check. Required to destroy anything. |
+| `--allowDestroy`     |               | One destroy to let through. Repeat it for each.       |
+| `--auto-approve`     |               | Skip the destroy check and let every destroy through. |
 | `--terraformBinary`  |               | Override the binary Terragrunt invokes.               |
 | `--terragruntBinary` |               | Override the Terragrunt binary.                       |
 | `--timeoutInMs`      |               | Give the apply a time limit. None by default.         |
@@ -95,6 +96,8 @@ release the lock, because the apply is the middle of a run and `commit` is the e
 
 Plans first and refuses if anything would be destroyed, or if a folder could not be planned. Each
 destroy of a resource holding data, a table or a bucket, is marked `- the data it holds is lost with it`.
+The refusal ends with one `--allowDestroy '<folder>/<address>'` per destroy; pass the ones you mean
+and the apply lets exactly those through, refusing any other.
 
 A resource `generate` moved into another module folder, because its `moduleId` was renamed, has its
 Terraform state moved into the new folder before the plan, so it is not listed. Only the apply checks

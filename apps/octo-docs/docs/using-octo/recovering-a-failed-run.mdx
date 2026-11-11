@@ -81,10 +81,10 @@ Octo's record.
 
 Nothing changed: `octo apply` planned, found something it would destroy, and stopped. The lock is
 still held. Read [Destroying Infrastructure](/docs/using-octo/destroying-infrastructure) if the list
-surprised you, then either go ahead with the same lock:
+surprised you, then either go ahead with the same lock, approving each destroy it listed:
 
 ```bash
-npm run octo:apply -- --auto-approve
+npm run octo:apply -- --allowDestroy 'receipts-module/aws_s3_bucket.bucket-shop-receipts'
 npm run octo:commit
 ```
 

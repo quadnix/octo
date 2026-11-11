@@ -183,7 +183,7 @@ Which means: if you skip the commit after removing an external resource, the clo
 represents is still there. That is the strongest reason commit is not an optional step.
 
 It also means removing one destroys nothing during the apply, so `octo apply` lets it through
-without `--auto-approve`. A resource declaring `destroyLosesData` is the exception: apply refuses its
+without an approval. A resource declaring `destroyLosesData` is the exception: apply refuses its
 removal like any other destroy that loses data.
 
 Because these deletes run after Terraform has finished, and outside the order Terraform destroys its

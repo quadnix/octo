@@ -5,6 +5,7 @@ import type { ArgumentsCamelCase, Argv } from 'yargs';
 import { OctoUtility } from '../../utilities/octo/octo.utility.js';
 
 type ApplyCommandArguments = {
+  allowDestroy?: string[];
   autoApprove?: boolean;
   lockId?: string;
   terraformBinary?: string;
@@ -17,6 +18,7 @@ type ApplyCommandArguments = {
  * Plans the directory and prints anything the apply would destroy, marking each destroy of a resource
  * the last commit recorded as losing data. The `null_resource` of an external resource is let through
  * unless that resource loses data, since octo, not its destroy, decides what happens to the resource.
+ * A destroy named in `allowedDestroys`, as `<folder>/<address>`, is let through too.
  *
  * Returns why the apply must not proceed: something would be destroyed, or a folder would not plan and
  * so nothing can be said about what it would destroy. Returns `undefined` when it may.
@@ -25,6 +27,7 @@ async function findDestroyRefusal(
   terraformUtility: TerraformUtility,
   stateManagementService: StateManagementService,
   resolvedDir: string,
+  allowedDestroys: string[],
 ): Promise<string | undefined> {
   const { errors, plans } = await terraformUtility.plan(resolvedDir, { json: true });
 
@@ -61,7 +64,8 @@ async function findDestroyRefusal(
   const refusedDestroys = destroys.filter(
     (destroy) =>
       !externalAddresses.has(`${destroy.moduleId} ${destroy.address}`) &&
-      !(destroy.address.startsWith('null_resource.') && destroy.actionReason === 'replace_because_tainted'),
+      !(destroy.address.startsWith('null_resource.') && destroy.actionReason === 'replace_because_tainted') &&
+      !allowedDestroys.includes(`${destroy.moduleId}/${destroy.address}`),
   );
   if (refusedDestroys.length === 0) {
     return undefined;
@@ -83,9 +87,15 @@ async function findDestroyRefusal(
     );
   }
 
+  // Each destroy's approval, ready to paste.
+  console.error(chalk.red('\nTo approve exactly these, re-run with:'));
+  for (const destroy of refusedDestroys) {
+    console.error(chalk.red(`  --allowDestroy '${destroy.moduleId}/${destroy.address}'`));
+  }
+
   return (
     'Refusing to apply. Run "octo validate" to see why each of these is being destroyed, ' +
-    'then re-run with --auto-approve to proceed!'
+    'then re-run with --allowDestroy for each one you mean, or --auto-approve for all of them!'
   );
 }
 
@@ -96,7 +106,8 @@ async function findDestroyRefusal(
  * model graph only to check every account's credentials before terraform starts. It needs the state
  * provider, both because terraform's own state is checked out of it before every terraform command
  * and back in after, and because this is one of the two commands that require the app lock. It
- * refuses to run when the plan would destroy anything, unless `--auto-approve` is passed.
+ * refuses to run when the plan would destroy anything `--allowDestroy` does not name, unless
+ * `--auto-approve` is passed.
  */
 export const applyCommand = {
   builder: (yargs: Argv): Argv => {
@@ -112,6 +123,13 @@ export const applyCommand = {
           'The app lock ID from `octo lock`. Defaults to the lock this app holds when it was taken in this ' +
           'state directory. Applying without the lock is refused.',
         type: 'string',
+      })
+      .option('allowDestroy', {
+        demandOption: false,
+        description:
+          'A destroy to let through, as <folder>/<address>, the way a refused apply prints it. Repeat it for each.',
+        string: true,
+        type: 'array',
       })
       .option('autoApprove', {
         default: false,
@@ -138,7 +156,15 @@ export const applyCommand = {
   command: 'apply',
   describe: 'Step 3: apply the generated Terraform in the Terragrunt directory.',
   handler: async (argv: ArgumentsCamelCase<ApplyCommandArguments>): Promise<void> => {
-    const { autoApprove, lockId, terraformBinary, terragruntBinary, terragruntDir, timeoutInMs } = argv;
+    const {
+      allowDestroy = [],
+      autoApprove,
+      lockId,
+      terraformBinary,
+      terragruntBinary,
+      terragruntDir,
+      timeoutInMs,
+    } = argv;
     const resolvedDir = resolve(process.cwd(), terragruntDir);
 
     OctoUtility.prepareCallbackEnvironment();
@@ -174,7 +200,7 @@ export const applyCommand = {
         // either way.
         const refusal = autoApprove
           ? undefined
-          : await findDestroyRefusal(terraformUtility, stateManagementService, resolvedDir);
+          : await findDestroyRefusal(terraformUtility, stateManagementService, resolvedDir, allowDestroy);
         if (refusal !== undefined) {
           throw new Error(refusal);
         }

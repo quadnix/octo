@@ -194,10 +194,13 @@ describe('applyCommand UT', () => {
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         expect.stringContaining('[region-module] aws_efs_file_system.efs-1'),
       );
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining("--allowDestroy 'region-module/aws_efs_file_system.efs-1'"),
+      );
       expect(mockedReportError).toHaveBeenCalledWith(
         new Error(
           'Refusing to apply. Run "octo validate" to see why each of these is being destroyed, ' +
-            'then re-run with --auto-approve to proceed!',
+            'then re-run with --allowDestroy for each one you mean, or --auto-approve for all of them!',
         ),
       );
       expect(processExitSpy).toHaveBeenCalledWith(1);
@@ -353,6 +356,41 @@ describe('applyCommand UT', () => {
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         expect.stringContaining('[image-module] null_resource.tag-1 (delete) - the data it holds is lost with it'),
       );
+    });
+
+    it('refuses a destroy the approvals do not name', async () => {
+      const plan = planWithDestroy();
+      plan.plans.get('region-module')!.resource_changes!.push({
+        address: 'aws_s3_object.this["a/b"]',
+        change: { actions: ['delete'] },
+      });
+      terraformUtilityMock.plan.mockResolvedValue(plan);
+
+      await applyCommand.handler({
+        ...argv,
+        allowDestroy: ['region-module/aws_efs_file_system.efs-1'],
+      } as typeof argv);
+
+      expect(terraformUtilityMock.apply).not.toHaveBeenCalled();
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('--allowDestroy \'region-module/aws_s3_object.this["a/b"]\''),
+      );
+      expect(consoleErrorSpy).not.toHaveBeenCalledWith(
+        expect.stringContaining("--allowDestroy 'region-module/aws_efs_file_system.efs-1'"),
+      );
+      expect(processExitSpy).toHaveBeenCalledWith(1);
+    });
+
+    it('applies a plan whose every destroy is approved', async () => {
+      terraformUtilityMock.plan.mockResolvedValue(planWithDestroy());
+
+      await applyCommand.handler({
+        ...argv,
+        allowDestroy: ['region-module/aws_efs_file_system.efs-1'],
+      } as typeof argv);
+
+      expect(terraformUtilityMock.apply).toHaveBeenCalledWith(resolvedDir);
+      expect(processExitSpy).not.toHaveBeenCalled();
     });
 
     it('applies a destructive plan when the user opts in', async () => {

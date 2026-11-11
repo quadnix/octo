@@ -248,7 +248,7 @@ export class ShopQueue extends ATerraformResource<ShopQueueSchema, ShopQueue> {
 Every destroy Terraform plans of a queue is then marked as losing data, in the validate report and in
 the list `octo apply` prints before it refuses, whether a module was removed or a property forced a
 replacement. It adds a message and nothing else: `octo apply` already refuses every destroy of a Terraform
-resource until `--auto-approve` is passed.
+resource until it is approved.
 
 Set it where the resource holds what Octo cannot rebuild from its inputs: rows, files, objects,
 messages, images. A bucket Octo fills from a folder on every apply loses nothing it cannot restore,

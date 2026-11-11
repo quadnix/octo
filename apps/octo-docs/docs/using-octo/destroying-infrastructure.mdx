@@ -92,7 +92,13 @@ This apply would DESTROY:
   [region-module] aws_vpc.vpc-eu-west-1 (delete)
   ...
 
-Error: Refusing to apply. Run "octo validate" to see why each of these is being destroyed, then re-run with --auto-approve to proceed!
+To approve exactly these, re-run with:
+  --allowDestroy 'checkout-server-module/aws_iam_role.iam-role-ServerRole-checkout'
+  --allowDestroy 'receipts-module/aws_s3_bucket.bucket-shop-receipts'
+  --allowDestroy 'region-module/aws_vpc.vpc-eu-west-1'
+  ...
+
+Error: Refusing to apply. Run "octo validate" to see why each of these is being destroyed, then re-run with --allowDestroy for each one you mean, or --auto-approve for all of them!
 ```
 
 Terragrunt is always given `-auto-approve`, so there is no prompt to answer during an apply. This
@@ -100,13 +106,15 @@ check is what stands in for one: `octo apply` plans first, and refuses if anythi
 destroyed. A destroy that takes data with it, like the bucket's objects, says so on its line.
 
 ```bash
-npm run octo:apply -- --auto-approve
+npm run octo:apply -- --allowDestroy 'receipts-module/aws_s3_bucket.bucket-shop-receipts'
 ```
 
-That flag is required for every destroy, including one you fully intended, except removing an
+Every destroy needs one, including one you fully intended, except removing an
 [external resource](/docs/building-modules/create-an-external-resource#deletes-run-at-commit) that
 loses no data, which Octo deletes at commit. It is not a `--force`; it is an acknowledgement that
-you have read the list above. The refusal leaves the lock held, so if
+you have read that line. A destroy you did not name is still refused, so one that appears after you
+read the list cannot ride along. `--auto-approve` lets every destroy through at once, for a plan
+whose every line you have read, such as taking everything down. The refusal leaves the lock held, so if
 the list tells you not to go ahead, release it with `npm run octo:unlock -- --lockId $LOCK_ID`.
 
 ## Committing the removal
@@ -155,12 +163,12 @@ WHAT WILL CHANGE
 
 A rename is a destroy and a create, because a resource's identity is derived from what you wrote.
 For a bucket that means the objects inside it. The report tells you before it happens, and the apply
-refuses without `--auto-approve`, but nothing will stop you if you insist.
+refuses until you approve that destroy, but nothing will stop you if you insist.
 
 A `moduleId` is different. Rename `receipts-module` and the bucket keeps its resource ID, because the
 ID comes from the models, not from the module; only its folder changes. Octo moves the bucket's
 Terraform state from `receipts-module/` into the new folder before Terraform plans, so the apply
-destroys nothing and needs no `--auto-approve`, and the commit deletes the old, empty folder.
+destroys nothing and needs no approval, and the commit deletes the old, empty folder.
 
 ## Taking everything down
 
