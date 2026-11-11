@@ -1,4 +1,5 @@
 import {
+  AccountCredentialsError,
   ActionEvent,
   AppLockError,
   AppLockRefusedEvent,
@@ -141,6 +142,7 @@ export class JournalUtility {
    * @internal
    */
   static readonly ERROR_CLASSES = {
+    AccountCredentialsError,
     AppLockError,
     ContainerError,
     ContainerRegistrationError,
