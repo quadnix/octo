@@ -643,6 +643,17 @@ export class TerraformService {
   }
 
   /**
+   * The value `mock_outputs` gives `responseKey` of a producer: its schema's declared default, an
+   * author-written placeholder that is never a live value, else `fallback`.
+   *
+   * @internal
+   */
+  getMockOutputValue(producerResourceId: string, responseKey: string, fallback: string): string {
+    const value = this.resourceRegistry.get(producerResourceId)?.responseDefaults[responseKey];
+    return typeof value === 'string' && value.length > 0 ? value : fallback;
+  }
+
+  /**
    * The IDs of the module folders this run rendered.
    */
   getModuleIds(): string[] {
@@ -1521,13 +1532,8 @@ export class TerraformService {
         }
       }
 
-      // Prefer the producer schema's declared default value (an author-written, non-secret
-      // placeholder, e.g. a syntactically valid ARN) over a synthetic placeholder, falling back to
-      // `mock-*` when the schema declares no default for that response key.
-      const mockValue = (producerResourceId: string, responseKey: string, fallback: string): string => {
-        const value = this.resourceRegistry.get(producerResourceId)?.responseDefaults[responseKey];
-        return typeof value === 'string' && value.length > 0 ? value : fallback;
-      };
+      const mockValue = (producerResourceId: string, responseKey: string, fallback: string): string =>
+        this.getMockOutputValue(producerResourceId, responseKey, fallback);
 
       const lines = [`dependency "${dependencyName}" {`, `${step}config_path = "../${producerModuleId}"`];
       if (mockOutputs.size > 0) {

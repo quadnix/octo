@@ -193,6 +193,11 @@ mock_outputs = {
 The bucket policy in that plan names a role that does not exist yet. The plan is still worth
 reading, but it is not the last word.
 
+One placeholder never shows. An [external resource](/docs/building-modules/create-an-external-resource)
+renamed with its properties unchanged, such as an image tag module given a new id, takes the
+response of the one it replaces at apply instead of running its action, so validate shows the
+values it keeps, not its placeholder.
+
 The practical habit that follows: apply, commit, then run validate again. The second one is exact,
 and it is the one that tells you whether anything is out of place.
 

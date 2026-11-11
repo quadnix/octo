@@ -590,6 +590,91 @@ describe('validate()', () => {
     });
   });
 
+  describe('an external resource succeeded by one with its properties', () => {
+    async function stageSuccessor(): Promise<App> {
+      const { app, igw } = await testModes.createResourceGraph();
+      igw.properties['Name'] = 'main';
+      igw.response['igwId'] = 'igw-0real';
+      await commitResources();
+
+      const vpc2 = new TfVpcResource('vpc-1', { CidrBlock: '10.0.0.0/16' });
+      testModes.resourceDataRepository.addNewResource(vpc2);
+      const igw2 = new ExternalIgwResource('igw-2', { Name: 'main', Type: 'internet-gateway' }, [vpc2]);
+      await testModes.addResource('region-module', igw2);
+      testModes.resourceDataRepository.addNewResource(new TfSgResource('sg-1', {}, [igw2]));
+
+      testModes.writePlan('region-module', [
+        { actions: ['no-op'], address: 'aws_vpc.vpc-1' },
+        { actions: ['delete'], address: 'null_resource.igw-1' },
+        { actions: ['create'], address: 'null_resource.igw-2' },
+      ]);
+      return app;
+    }
+
+    const sgChange = (report: Awaited<ReturnType<typeof validate>>): unknown =>
+      report.intentChanges.find((change) => change.resourceId === 'sg-1')?.terraformChanges;
+
+    it("should report a value planned as the successor's mock where its predecessor's stood as no change", async () => {
+      const app = await stageSuccessor();
+      testModes.writePlan('sg-module', [
+        {
+          actions: ['update'],
+          address: 'aws_security_group.sg-1',
+          after: { name: 'sg-1', vpc_id: 'mock-igw-2-igwId' },
+          before: { name: 'sg-1', vpc_id: 'igw-0real' },
+        },
+      ]);
+
+      const report = await runValidate(app, { persistedMappings: persistedGraph(), plans: testModes.plans });
+
+      expect(sgChange(report)).toEqual([]);
+    });
+
+    it('should still report any other change on the same resource', async () => {
+      const app = await stageSuccessor();
+      testModes.writePlan('sg-module', [
+        {
+          actions: ['update'],
+          address: 'aws_security_group.sg-1',
+          after: { name: 'sg-renamed', vpc_id: 'mock-igw-2-igwId' },
+          before: { name: 'sg-1', vpc_id: 'igw-0real' },
+        },
+      ]);
+
+      const report = await runValidate(app, { persistedMappings: persistedGraph(), plans: testModes.plans });
+
+      expect(sgChange(report)).toEqual([
+        {
+          address: 'aws_security_group.sg-1',
+          changedFields: [{ field: 'name', from: 'sg-1', to: 'sg-renamed' }],
+          tfActions: ['update'],
+        },
+      ]);
+    });
+
+    it('should report a mock standing where another value stood', async () => {
+      const app = await stageSuccessor();
+      testModes.writePlan('sg-module', [
+        {
+          actions: ['update'],
+          address: 'aws_security_group.sg-1',
+          after: { name: 'sg-1', vpc_id: 'mock-igw-2-igwId' },
+          before: { name: 'sg-1', vpc_id: 'igw-0other' },
+        },
+      ]);
+
+      const report = await runValidate(app, { persistedMappings: persistedGraph(), plans: testModes.plans });
+
+      expect(sgChange(report)).toEqual([
+        {
+          address: 'aws_security_group.sg-1',
+          changedFields: [{ field: 'vpc_id', from: 'igw-0other', to: 'mock-igw-2-igwId' }],
+          tfActions: ['update'],
+        },
+      ]);
+    });
+  });
+
   describe('which arguments moved', () => {
     it('names the members of a list block, so an added index differs from a removed one', async () => {
       const { app } = await testModes.createResourceGraph({ save: true });

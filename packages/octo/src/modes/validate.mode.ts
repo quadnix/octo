@@ -9,6 +9,7 @@ import { ResourceDataRepository } from '../resources/resource-data.repository.js
 import type { AResource } from '../resources/resource.abstract.js';
 import { TerraformService } from '../services/terraform/terraform.service.js';
 import { TransactionService } from '../services/transaction/transaction.service.js';
+import { StringUtility } from '../utilities/string/string.utility.js';
 import type { ModelTransactionResult } from './apply-transaction.js';
 
 /**
@@ -296,7 +297,7 @@ function unnamedBlockPairs(before: unknown, after: unknown): [unknown, unknown][
 /**
  * The arguments that differ between `before` and `after`.
  *
- * Terraform already hands us both sides — `readPlan` parses the whole `show -json` payload — so this
+ * Terraform already hands us both sides in the JSON plan, so this
  * costs nothing but the comparison. Without it an added index and a removed index render as the
  * same sentence: "1 update". An unnamed nested block is entered, so a change inside it is reported
  * by its path (`point_in_time_recovery.enabled`), indexed only when the list holds several.
@@ -472,6 +473,44 @@ export async function validate({
   // Aggregate octo diffs to one action per resource.
   const octoActions = aggregateResourceActions(allDiffs);
 
+  // An external resource succeeding one with the same trigger properties takes its predecessor's
+  // response instead of running its action, so a value planned as the successor's mock where the
+  // predecessor's value stood does not change. Each pair is a mock and the value it stands for.
+  const settledValuePairs = new Set<string>();
+  for (const [predecessor, successor] of transactionService.getExternalResourceSuccessors()) {
+    const outputName = mappings.find((mapping) => mapping.resourceId === successor.resourceId)?.entireResponseOutput;
+    if (
+      outputName === undefined ||
+      StringUtility.deterministicHash(predecessor.getExternalTriggerProperties()) !==
+        StringUtility.deterministicHash(successor.getExternalTriggerProperties())
+    ) {
+      continue;
+    }
+
+    for (const [key, value] of Object.entries(predecessor.response)) {
+      if (typeof value === 'string') {
+        const mockValue = terraformService.getMockOutputValue(successor.resourceId, key, `mock-${outputName}-${key}`);
+        settledValuePairs.add(`${mockValue}\0${value}`);
+      }
+    }
+  }
+
+  /**
+   * `after` with each settled mock put back to the value it stands for, where `before` holds it.
+   */
+  const settle = (before: unknown, after: unknown): unknown => {
+    if (typeof after === 'string' && typeof before === 'string') {
+      return settledValuePairs.has(`${after}\0${before}`) ? before : after;
+    }
+    if (Array.isArray(after) && Array.isArray(before)) {
+      return after.map((element, index) => settle(before[index], element));
+    }
+    if (isBlock(after) && isBlock(before)) {
+      return Object.fromEntries(Object.entries(after).map(([key, value]) => [key, settle(before[key], value)]));
+    }
+    return after;
+  };
+
   const parsePlanChanges = (plan: TerraformPlan): Map<string, PlanChange> => {
     const changes = new Map<string, PlanChange>();
 
@@ -479,13 +518,20 @@ export async function validate({
       if (resourceChange.mode === 'data') {
         continue;
       }
-      const described = resourceChange.change
-        ? describeFieldChanges(resourceChange.change)
-        : { fields: [], omittedFieldCount: 0 };
+
+      // An update left with nothing but settled mocks changes nothing.
+      let change = resourceChange.change;
+      if (change && settledValuePairs.size > 0 && change.actions?.join() === 'update') {
+        const after = settle(change.before, change.after) as typeof change.after;
+        const isSettled = StringUtility.deterministicHash(after) === StringUtility.deterministicHash(change.before);
+        change = { ...change, actions: isSettled ? ['no-op'] : change.actions, after };
+      }
+
+      const described = change ? describeFieldChanges(change) : { fields: [], omittedFieldCount: 0 };
       changes.set(resourceChange.address, {
         changedFields: described.fields,
         omittedFieldCount: described.omittedFieldCount,
-        tfActions: resourceChange.change?.actions ?? [],
+        tfActions: change?.actions ?? [],
       });
     }
 
