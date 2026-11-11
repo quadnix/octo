@@ -132,6 +132,35 @@ export class TerraformUtility {
   }
 
   /**
+   * Every external resource whose presence check failed while its placeholder plans no change: what
+   * it published is gone, though nothing about it changed. Each comes with its check's message.
+   */
+  static findMissingExternalResources(
+    plans: Map<string, TerraformPlan>,
+  ): { address: string; message: string; moduleId: string }[] {
+    const missing: { address: string; message: string; moduleId: string }[] = [];
+
+    for (const [moduleId, plan] of plans.entries()) {
+      for (const check of plan.checks ?? []) {
+        if (check.address?.kind !== 'check' || check.status !== 'fail') {
+          continue;
+        }
+
+        const address = `null_resource.${check.address.name}`;
+        const placeholder = (plan.resource_changes ?? []).find((change) => change.address === address);
+        if (placeholder && (placeholder.change?.actions ?? []).every((action) => action === 'no-op')) {
+          const message =
+            check.instances?.flatMap((instance) => instance.problems ?? []).find((problem) => problem.message)
+              ?.message ?? `What "${address}" published is gone!`;
+          missing.push({ address, message, moduleId });
+        }
+      }
+    }
+
+    return missing;
+  }
+
+  /**
    * Runs `terragrunt run --all -- apply` over every generated module folder.
    *
    * **This changes real infrastructure**, and runs with `-auto-approve`. Use

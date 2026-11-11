@@ -430,6 +430,35 @@ describe('TerraformService UT', () => {
     });
   });
 
+  describe('addExternalPresenceCheck()', () => {
+    it('should render a check named as the placeholder, reading its data source on every plan', () => {
+      const scope = service.scope('igw-module');
+      const internetGateway = new TestExternalResource('igw-1', {}, []);
+      scope.addOctoTerraformExternalResource(internetGateway);
+
+      scope.addExternalPresenceCheck(internetGateway, {
+        condition: (dataSourceAddress) => `length(${dataSourceAddress}.ids) > 0`,
+        dataSourceSpec: { filter: 'igw-1' },
+        dataSourceType: 'aws_internet_gateways',
+        errorMessage: 'Internet gateway igw-1 is gone!',
+      });
+
+      expect(service.renderAllModules().get('igw-module')!.mainTf).toContain(
+        [
+          'check "igw-1" {',
+          '  data "aws_internet_gateways" "igw-1" {',
+          '    filter = "igw-1"',
+          '  }',
+          '  assert {',
+          '    condition = length(data.aws_internet_gateways.igw-1.ids) > 0',
+          '    error_message = "Internet gateway igw-1 is gone!"',
+          '  }',
+          '}',
+        ].join('\n'),
+      );
+    });
+  });
+
   describe('addOctoTerraformExternalResource()', () => {
     it('should generate the null_resource and data external wrapper with cross-module inputs', () => {
       const vpcScope = service.scope('vpc-module');

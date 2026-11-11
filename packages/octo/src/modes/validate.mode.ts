@@ -11,6 +11,7 @@ import { ImportReaderService } from '../services/import/import-reader.service.js
 import { TerraformService } from '../services/terraform/terraform.service.js';
 import { TransactionService } from '../services/transaction/transaction.service.js';
 import { StringUtility } from '../utilities/string/string.utility.js';
+import { TerraformUtility } from '../utilities/terraform/terraform.utility.js';
 import type { ModelTransactionResult } from './apply-transaction.js';
 
 /**
@@ -135,10 +136,15 @@ export interface ValidateReport {
 
 /**
  * One module's parsed terraform plan, i.e. the JSON produced by `terraform show -json <plan-file>`
- * (run via terragrunt by the caller, so it is backend-agnostic). Only `format_version` and
+ * (run via terragrunt by the caller, so it is backend-agnostic). Only `checks`, `format_version` and
  * `resource_changes` are read.
  */
 export interface TerraformPlan {
+  checks?: {
+    address?: { kind?: string; name?: string };
+    instances?: { problems?: { message?: string }[] }[];
+    status?: string;
+  }[];
   format_version?: string;
   resource_changes?: {
     action_reason?: string;
@@ -959,6 +965,11 @@ export async function validate({
         report.drift.push({ address, moduleId, tfActions });
       }
     }
+  }
+
+  // What an external resource published that is gone, in the words of its presence check.
+  for (const { message, moduleId } of TerraformUtility.findMissingExternalResources(plans)) {
+    report.notes.push({ message, moduleId });
   }
 
   // Find the addresses of every resource whose destroy loses data, deleted ones by their committed class.

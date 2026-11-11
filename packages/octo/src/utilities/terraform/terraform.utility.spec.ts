@@ -718,6 +718,54 @@ describe('TerraformUtility UT', () => {
     });
   });
 
+  describe('findMissingExternalResources()', () => {
+    const placeholder = (actions: string[]): { address: string; change: { actions: string[] } } => ({
+      address: 'null_resource.tag-1',
+      change: { actions },
+    });
+
+    it('should name an external resource whose check failed while its placeholder is unchanged', () => {
+      const missing = TerraformUtility.findMissingExternalResources(
+        new Map([
+          [
+            'tag-module',
+            {
+              checks: [
+                {
+                  address: { kind: 'check', name: 'tag-1' },
+                  instances: [{ problems: [{ message: 'Image is gone!' }] }],
+                  status: 'fail',
+                },
+              ],
+              resource_changes: [placeholder(['no-op'])],
+            },
+          ],
+        ]),
+      );
+
+      expect(missing).toEqual([{ address: 'null_resource.tag-1', message: 'Image is gone!', moduleId: 'tag-module' }]);
+    });
+
+    it('should name nothing for a check that passed, or a placeholder about to be created', () => {
+      const failedCheck = { address: { kind: 'check', name: 'tag-1' }, status: 'fail' };
+      const missing = TerraformUtility.findMissingExternalResources(
+        new Map([
+          [
+            'passed-module',
+            {
+              checks: [{ ...failedCheck, status: 'pass' }],
+              resource_changes: [placeholder(['no-op'])],
+            },
+          ],
+          ['created-module', { checks: [failedCheck], resource_changes: [placeholder(['create'])] }],
+          ['no-placeholder-module', { checks: [failedCheck], resource_changes: [] }],
+        ]),
+      );
+
+      expect(missing).toEqual([]);
+    });
+  });
+
   describe('TerraformUtilityFactory', () => {
     it('wires configuration through to the constructed instance', async () => {
       const { TerraformUtilityFactory } = await import('./terraform.utility.js');

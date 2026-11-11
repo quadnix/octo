@@ -139,6 +139,24 @@ interface TerraformModuleFiles {
  */
 export interface TerraformModuleScope {
   /**
+   * Declares how Terraform finds what an external resource published: a data source read on every
+   * plan, and a condition on it. `validate` reports a failed check with its `errorMessage`, which
+   * says how to put it back.
+   *
+   * @param octoResource The external resource, added with {@link addOctoTerraformExternalResource}.
+   * @param check.condition Given the data source's address, the expression that holds while it is there.
+   */
+  addExternalPresenceCheck(
+    octoResource: UnknownResource,
+    check: {
+      condition: (dataSourceAddress: string) => string;
+      dataSourceSpec: Record<string, unknown>;
+      dataSourceType: string;
+      errorMessage: string;
+    },
+  ): void;
+
+  /**
    * Wraps an octo resource whose lifecycle runs outside Terraform (e.g. a script or SDK call).
    * Generates a `null_resource` + `data "external"` pair that calls `octo run-action`
    * at apply time and exposes the result as outputs.
@@ -433,6 +451,7 @@ class OctoTerraformResource<TResponse extends BaseResourceSchema['response'] = B
  * Everything that renders into one terragrunt module folder.
  */
 class TerraformModule {
+  readonly checks: TerraformBlock[] = []; // One presence check per external resource that declares one.
   readonly dataSources: TerraformData[] = [];
   hasExternalResources: boolean = false; // True when folder has external resources requiring null/external configs.
   readonly moves: { fromModuleId: string; fromResourceId: string; toResourceId: string }[] = []; // Resources taking over a state.
@@ -800,6 +819,7 @@ export class TerraformService {
         ...module.resources.map((r) =>
           r.terraformResources.map((t) => t.render(context, moduleWiring.parentDependsOn.get(r) ?? [])).join('\n\n'),
         ),
+        ...module.checks.map((c) => c.render('', context)),
         ...this.getMovedAddresses(module).map(
           ({ from, to }) => `moved {\n${this.step}from = ${from}\n${this.step}to = ${to}\n}`,
         ),
@@ -930,6 +950,7 @@ export class TerraformService {
    */
   scope(moduleId: string): TerraformModuleScope {
     return {
+      addExternalPresenceCheck: (octoResource, check) => this.addExternalPresenceCheck(moduleId, octoResource, check),
       addOctoTerraformExternalResource: (octoResource) => this.addOctoTerraformExternalResource(moduleId, octoResource),
       addOctoTerraformResource: (octoResource, options = {}) =>
         this.addOctoTerraformResource(moduleId, octoResource, options),
@@ -947,6 +968,26 @@ export class TerraformService {
       variable: (name, typeExpression, options) => this.variable(moduleId, name, typeExpression, options),
     };
   }
+  /**
+   * Renders `check "<name>"`, named as the external resource's `null_resource`, so a failed check
+   * names the placeholder to replace.
+   */
+  private addExternalPresenceCheck(
+    moduleId: string,
+    octoResource: UnknownResource,
+    check: Parameters<TerraformModuleScope['addExternalPresenceCheck']>[1],
+  ): void {
+    const name = StringUtility.sanitizeForIdentifier(octoResource.resourceId);
+
+    const checkBlock = new TerraformBlock(`check "${name}"`);
+    addTerraformResourceSpec(checkBlock.block(`data "${check.dataSourceType}" "${name}"`), check.dataSourceSpec);
+    const assert = checkBlock.block('assert');
+    assert.attribute('condition', new ExpressionHclNode(check.condition(`data.${check.dataSourceType}.${name}`)));
+    assert.attribute('error_message', check.errorMessage);
+
+    this.module(moduleId).checks.push(checkBlock);
+  }
+
   /**
    * Generates the `null_resource` + `data "external"` wrapper for an external resource.
    *
@@ -1129,6 +1170,7 @@ export class TerraformService {
       const refs: RefHclNode[] = [];
       module.resources.forEach((r) => r.collectRefs(refs));
       module.dataSources.forEach((d) => d.collectRefs(refs));
+      module.checks.forEach((c) => c.collectRefs(refs));
       module.variables.forEach((v) => v.collectRefs(refs));
 
       for (const ref of refs) {

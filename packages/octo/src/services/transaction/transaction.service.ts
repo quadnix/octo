@@ -848,6 +848,7 @@ export class TransactionService {
         await resource.toHCL(scope);
       } else {
         scope.addOctoTerraformExternalResource(resource);
+        await resource.toExternalPresenceHCL(scope);
       }
     }
 

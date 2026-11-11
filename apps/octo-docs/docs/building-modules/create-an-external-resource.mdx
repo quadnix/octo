@@ -160,6 +160,32 @@ output "catalog-entry-shop-orders" {
 Octo also adds `hashicorp/null` and `hashicorp/external` to the folder's required providers, without
 you declaring them.
 
+Nothing above notices when what your action published is deleted outside Octo: the triggers are
+the same, so Terraform plans nothing. A resource that can be looked up says how, by overriding
+`toExternalPresenceHCL()` with a data source and a condition on it. The published image in our AWS
+library looks its tag up in the repository:
+
+```typescript
+override async toExternalPresenceHCL(terraform: TerraformModuleScope): Promise<void> {
+  const { awsAccountId, awsRegionId, imageId, imageTag } = this.properties;
+
+  terraform.addExternalPresenceCheck(this, {
+    condition: (dataSourceAddress) => `contains(${dataSourceAddress}.image_ids[*].image_tag, "${imageTag}")`,
+    dataSourceSpec: {
+      provider: terraform.getProviderAliasRef(awsAccountId, awsRegionId),
+      repository_name: imageId,
+    },
+    dataSourceType: 'aws_ecr_images',
+    errorMessage: `Image ${imageId}:${imageTag} is no longer in its repository! Publish a new tag to replace it.`,
+  });
+}
+```
+
+Octo renders that as a Terraform `check` block, which Terraform evaluates on every plan without
+failing it. While the condition does not hold and the `null_resource` plans no change, `octo
+validate` prints `errorMessage` under its notes, so say there how to put it back. A data source
+reaching a provider names it through `getProviderAliasRef()`, which binds it to the folder.
+
 ## Two limits
 
 **Tags do not trigger it.** They do reach it: Octo resolves a resource's tags before the actions

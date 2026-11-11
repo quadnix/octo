@@ -4,9 +4,28 @@ exports[`AwsEcrImageTagModule UT publishing a version should publish nothing whe
 
 exports[`AwsEcrImageTagModule UT should CUD 2`] = `
 "- image-tag/main.tf
+check "ecr-image-tag-us-east-1-family_image-0-0-1-b1f33b" {
+  data "aws_ecr_images" "ecr-image-tag-us-east-1-family_image-0-0-1-b1f33b" {
+    provider = aws._123-us-east-1
+    repository_name = "family/image"
+  }
+  assert {
+    condition = contains(data.aws_ecr_images.ecr-image-tag-us-east-1-family_image-0-0-1-b1f33b.image_ids[*].image_tag, "0.0.1")
+    error_message = "Image family/image:0.0.1 is no longer in its repository! Publish a new tag to replace it."
+  }
+}
+
+- image-tag/main.tf
 data "external" "ecr-image-tag-us-east-1-family_image-0-0-1-b1f33b" {
   program = ["octo", "get-response", "--resourceId=ecr-image-tag-us-east-1-family/image-0-0-1-b1f33b"]
   depends_on = [null_resource.ecr-image-tag-us-east-1-family_image-0-0-1-b1f33b]
+}
+
+- image-tag/main.tf
+provider "aws" {
+  alias = "_123-us-east-1"
+  region = "us-east-1"
+  allowed_account_ids = ["123"]
 }
 
 - image-tag/main.tf
@@ -31,6 +50,10 @@ resource "null_resource" "ecr-image-tag-us-east-1-family_image-0-0-1-b1f33b" {
 terraform {
   required_version = ">= 1.6.0"
   required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = ">= 5.49"
+    }
     external = {
       source = "hashicorp/external"
     }
@@ -97,6 +120,10 @@ exports[`AwsEcrImageTagModule UT should call correct actions 1`] = `
 terraform {
   required_version = ">= 1.6.0"
   required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = ">= 5.49"
+    }
     external = {
       source = "hashicorp/external"
     }
@@ -104,6 +131,12 @@ terraform {
       source = "hashicorp/null"
     }
   }
+}
+
+provider "aws" {
+  alias = "_123-us-east-1"
+  region = "us-east-1"
+  allowed_account_ids = ["123"]
 }
 
 data "external" "ecr-image-tag-us-east-1-family_image-0-0-1-b1f33b" {
@@ -125,6 +158,17 @@ resource "null_resource" "ecr-image-tag-us-east-1-family_image-0-0-1-b1f33b" {
   provisioner "local-exec" {
     when = destroy
     command = "octo run-action --resourceId=ecr-image-tag-us-east-1-family/image-0-0-1-b1f33b --input ecr-us-east-1-family/image.registryId=\${self.triggers.input_ecr_us_east_1_family_image_registryId} --input ecr-us-east-1-family/image.repositoryArn=\${self.triggers.input_ecr_us_east_1_family_image_repositoryArn} --input ecr-us-east-1-family/image.repositoryName=\${self.triggers.input_ecr_us_east_1_family_image_repositoryName} --input ecr-us-east-1-family/image.repositoryUri=\${self.triggers.input_ecr_us_east_1_family_image_repositoryUri}"
+  }
+}
+
+check "ecr-image-tag-us-east-1-family_image-0-0-1-b1f33b" {
+  data "aws_ecr_images" "ecr-image-tag-us-east-1-family_image-0-0-1-b1f33b" {
+    provider = aws._123-us-east-1
+    repository_name = "family/image"
+  }
+  assert {
+    condition = contains(data.aws_ecr_images.ecr-image-tag-us-east-1-family_image-0-0-1-b1f33b.image_ids[*].image_tag, "0.0.1")
+    error_message = "Image family/image:0.0.1 is no longer in its repository! Publish a new tag to replace it."
   }
 }
 

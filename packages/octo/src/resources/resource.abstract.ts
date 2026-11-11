@@ -3,6 +3,7 @@ import { DiffInverseResourceError, RemoveResourceError, ResourceError } from '..
 import { type Dependency, DependencyRelationship } from '../functions/dependency/dependency.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';
 import { ANode } from '../functions/node/node.abstract.js';
+import type { TerraformModuleScope } from '../services/terraform/terraform.service.js';
 import { DiffUtility } from '../utilities/diff/diff.utility.js';
 import { StringUtility } from '../utilities/string/string.utility.js';
 import type { IResource, IResourceReference } from './resource.interface.js';
@@ -708,4 +709,10 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
     };
     return resourceSynth as S;
   }
+
+  /**
+   * Declares, for an external resource, how Terraform finds what it published, through
+   * `terraform.addExternalPresenceCheck()`. Declares nothing by default.
+   */
+  async toExternalPresenceHCL(_terraform: TerraformModuleScope): Promise<void> {}
 }

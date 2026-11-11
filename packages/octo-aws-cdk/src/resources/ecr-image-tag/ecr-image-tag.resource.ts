@@ -1,4 +1,4 @@
-import { AResource, type Diff, type MatchingResource, Resource } from '@quadnix/octo';
+import { AResource, type Diff, type MatchingResource, Resource, type TerraformModuleScope } from '@quadnix/octo';
 import type { EcrImageSchema } from '../ecr/index.schema.js';
 import { EcrImageTagSchema } from './index.schema.js';
 
@@ -72,5 +72,25 @@ export class EcrImageTag extends AResource<EcrImageTagSchema, EcrImageTag> {
    */
   override getExternalTriggerProperties(): Partial<EcrImageTagSchema['properties']> {
     return {};
+  }
+
+  /**
+   * Looks the tag up in its repository on every plan, so a tag deleted outside octo, or expired by
+   * the repository's lifecycle policy while still declared, is reported rather than read as there.
+   *
+   * @internal
+   */
+  override async toExternalPresenceHCL(terraform: TerraformModuleScope): Promise<void> {
+    const { awsAccountId, awsRegionId, imageId, imageTag } = this.properties;
+
+    terraform.addExternalPresenceCheck(this, {
+      condition: (dataSourceAddress) => `contains(${dataSourceAddress}.image_ids[*].image_tag, "${imageTag}")`,
+      dataSourceSpec: {
+        provider: terraform.getProviderAliasRef(awsAccountId, awsRegionId),
+        repository_name: imageId,
+      },
+      dataSourceType: 'aws_ecr_images',
+      errorMessage: `Image ${imageId}:${imageTag} is no longer in its repository! Publish a new tag to replace it.`,
+    });
   }
 }
