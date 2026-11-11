@@ -494,6 +494,7 @@ describe('buildReport()', () => {
                 resourceContext: '@octo/s3-website=bucket-site',
                 resourceId: 'bucket-site',
                 terraformAddresses: ['aws_s3_bucket.site'],
+                unchangedTerraformAddresses: [],
               },
             ],
             responses: [
@@ -537,6 +538,7 @@ describe('buildReport()', () => {
                 resourceContext: '@octo/iam-role=role',
                 resourceId: 'role',
                 terraformAddresses: ['aws_iam_role.role', 'aws_iam_policy.logs'],
+                unchangedTerraformAddresses: [],
               },
             ],
             responses: [],
@@ -560,6 +562,44 @@ describe('buildReport()', () => {
         { address: 'aws_iam_policy.logs', changedFields: [], kind: 'create' },
         { address: 'aws_iam_policy.old', changedFields: [], kind: 'delete' },
       ]);
+    });
+
+    it('leaves out an address the apply did not change', () => {
+      const report = buildReport(
+        observation({
+          commit: {
+            emptiedModuleIds: [],
+            resources: [
+              {
+                action: DiffAction.UPDATE,
+                moduleId: 'site-module',
+                previousTerraformAddresses: ['aws_cloudfront_distribution.site', 'aws_s3_object.index'],
+                resourceContext: '@octo/cloudfront=site',
+                resourceId: 'site',
+                terraformAddresses: ['aws_cloudfront_distribution.site', 'aws_s3_object.index'],
+                unchangedTerraformAddresses: ['aws_s3_object.index'],
+              },
+            ],
+            responses: [],
+            warnings: [],
+          },
+          mode: 'commit',
+          modelTransaction: [
+            [
+              modelDiff({
+                action: DiffAction.UPDATE,
+                nodeContext: 'service=site,app=test-app',
+                outputs: ['@octo/cloudfront=site'],
+              }),
+            ],
+          ],
+        }),
+      );
+
+      expect(report.stories[0].resources[0].terraform).toEqual([
+        { address: 'aws_cloudfront_distribution.site', changedFields: [], kind: 'update' },
+      ]);
+      expect(report.totals.update).toBe(1);
     });
   });
 

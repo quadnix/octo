@@ -164,6 +164,39 @@ describe('TerraformStateService UT', () => {
     });
   });
 
+  describe('getAddressDigests()', () => {
+    const stateOf = (attributes: Record<string, unknown>): Buffer =>
+      Buffer.from(
+        JSON.stringify({
+          resources: [
+            { instances: [{ attributes }], mode: 'managed', name: 'bucket-1', type: 'aws_s3_bucket' },
+            { instances: [{ attributes: { id: 'policy' } }], mode: 'data', name: 'policy', type: 'aws_iam_policy' },
+          ],
+        }),
+      );
+
+    it('should return nothing for a module the provider holds no state for', async () => {
+      expect(await terraformStateService.getAddressDigests('module-a')).toEqual(new Map());
+    });
+
+    it('should digest each managed address by what its instances hold', async () => {
+      await stateProvider.saveStates([{ data: stateOf({ id: 'bucket-1' }), stateFileName: 'module-a.tfstate' }]);
+      const before = await terraformStateService.getAddressDigests('module-a');
+
+      await stateProvider.saveStates([{ data: stateOf({ id: 'bucket-1' }), stateFileName: 'module-a.tfstate' }]);
+      const same = await terraformStateService.getAddressDigests('module-a');
+
+      await stateProvider.saveStates([
+        { data: stateOf({ id: 'bucket-1', tags: { a: 'b' } }), stateFileName: 'module-a.tfstate' },
+      ]);
+      const changed = await terraformStateService.getAddressDigests('module-a');
+
+      expect([...before.keys()]).toEqual(['aws_s3_bucket.bucket-1']);
+      expect(same.get('aws_s3_bucket.bucket-1')).toBe(before.get('aws_s3_bucket.bucket-1'));
+      expect(changed.get('aws_s3_bucket.bucket-1')).not.toBe(before.get('aws_s3_bucket.bucket-1'));
+    });
+  });
+
   describe('startPeriodicCheckIn()', () => {
     it('should not check state in before the interval', async () => {
       await createModuleFolder('module-a', stateWithResources);

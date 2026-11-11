@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -85,6 +86,44 @@ export class TerraformStateService {
 
       await writeFile(stateFilePath, data);
     }
+  }
+
+  /**
+   * Each managed terraform address in a module's state, with a digest of what its instances hold, so
+   * two commits can tell which addresses an apply between them changed. Empty when the state provider
+   * holds no state for the module.
+   */
+  async getAddressDigests(moduleId: string): Promise<Map<string, string>> {
+    let data: Buffer;
+    try {
+      data = await this.stateManagementService.getState(this.stateFileName(moduleId));
+    } catch (error) {
+      if (error.message === 'No state found!') {
+        return new Map();
+      }
+      throw error;
+    }
+
+    const resources = (this.parseState(data)?.resources ?? []) as {
+      instances?: { attributes?: unknown; index_key?: unknown }[];
+      mode?: string;
+      name: string;
+      type: string;
+    }[];
+    return new Map(
+      resources
+        .filter((resource) => resource.mode === 'managed')
+        .map((resource) => [
+          `${resource.type}.${resource.name}`,
+          createHash('sha256')
+            .update(
+              JSON.stringify(
+                (resource.instances ?? []).map(({ attributes, index_key }) => ({ attributes, index_key })),
+              ),
+            )
+            .digest('hex'),
+        ]),
+    );
   }
 
   /**

@@ -38,22 +38,28 @@ export type TerraformOutputs = Record<string, { value: unknown }>;
  *
  * `previousMappings` is the octo→terraform mapping persisted by the last commit. It supplies the
  * module and addresses of resources being deleted, which this run's sweep no longer renders.
+ * `addressDigests` is what each module's terraform state now holds, by address: an address whose
+ * digest matches the one the last commit recorded is reported unchanged, and each resource's
+ * digests are returned for the next commit, its last committed ones where it stays uncommitted.
  *
  * @internal
  */
 export async function commit({
+  addressDigests = new Map(),
   outputs,
   partial = false,
   previousFolders = [],
   previousMappings = [],
   transaction,
 }: {
+  addressDigests?: Map<string, Map<string, string>>;
   outputs: Map<string, TerraformOutputs>;
   partial?: boolean;
   previousFolders?: TerraformFolderOutput[];
   previousMappings?: TerraformResourceOutput[];
   transaction: ModelTransactionResult;
 }): Promise<{
+  addressDigestsByContext: Map<string, Record<string, string>>;
   emptiedModuleIds: string[];
   externalResourceIds: string[];
   modelTransaction: DiffMetadata[][];
@@ -286,6 +292,13 @@ export async function commit({
     ...[...successors.values()].map((r) => r.resourceId),
   ]);
 
+  // An address is unchanged where terraform's state holds what it held at the last commit, which
+  // needs the digest that commit recorded.
+  const isUnchanged = (resourceContext: string, moduleId: string | undefined, address: string): boolean => {
+    const previousDigest = previousByContext.get(resourceContext)?.terraformAddressDigests?.[address];
+    return previousDigest !== undefined && addressDigests.get(moduleId ?? '')?.get(address) === previousDigest;
+  };
+
   const resources = [...aggregateResourceActions(transaction.resourceDiffs.flat()).entries()]
     .filter(
       ([resourceContext, action]) =>
@@ -306,8 +319,30 @@ export async function commit({
         resourceContext,
         resourceId: action.resourceId,
         terraformAddresses: mapping?.terraformAddresses ?? [],
+        unchangedTerraformAddresses: (mapping?.terraformAddresses ?? []).filter((address) =>
+          isUnchanged(resourceContext, mapping?.moduleId, address),
+        ),
       };
     });
+
+  // Record what terraform's state holds for each committed resource's addresses, and keep the last
+  // commit's record for one left uncommitted.
+  const addressDigestsByContext = new Map<string, Record<string, string>>();
+  for (const mapping of mappings) {
+    const isCommitted =
+      !unresolvedResourceContexts.has(mapping.resourceContext) &&
+      !deferredResourceContexts.has(mapping.resourceContext);
+    const digests: Record<string, string> = {};
+    for (const address of mapping.terraformAddresses) {
+      const digest = isCommitted
+        ? addressDigests.get(mapping.moduleId)?.get(address)
+        : previousByContext.get(mapping.resourceContext)?.terraformAddressDigests?.[address];
+      if (digest !== undefined) {
+        digests[address] = digest;
+      }
+    }
+    addressDigestsByContext.set(mapping.resourceContext, digests);
+  }
 
   const writtenModuleIds = terraformService.getModuleIds();
   const emptiedModuleIds = previousFolders
@@ -330,5 +365,13 @@ export async function commit({
     ),
   ];
 
-  return { emptiedModuleIds, externalResourceIds, modelTransaction, resources, responses, warnings };
+  return {
+    addressDigestsByContext,
+    emptiedModuleIds,
+    externalResourceIds,
+    modelTransaction,
+    resources,
+    responses,
+    warnings,
+  };
 }

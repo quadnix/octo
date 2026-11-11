@@ -72,9 +72,15 @@ function readIntentChanges(observation: RunObservation): IntentChange[] {
 
 /**
  * One octo resource, with the terraform addresses it renders and, in commit mode, the ones the last
- * commit recorded for it.
+ * commit recorded for it and the ones the apply left unchanged.
  */
-type ResourceEntry = { addresses: string[]; moduleId: string; previousAddresses: string[]; resource: ReportResource };
+type ResourceEntry = {
+  addresses: string[];
+  moduleId: string;
+  previousAddresses: string[];
+  resource: ReportResource;
+  unchangedAddresses: string[];
+};
 
 /**
  * The octo resources that changed, with the terraform addresses they render.
@@ -91,6 +97,7 @@ function readResources(observation: RunObservation): Map<string, ResourceEntry> 
         resourceContext: change.resourceContext,
         resourceId: change.resourceId,
         terraformAddresses: change.terraformChanges.map((terraform) => terraform.address),
+        unchangedTerraformAddresses: [],
       }))
     : (observation.commit?.resources ?? []);
 
@@ -108,6 +115,7 @@ function readResources(observation: RunObservation): Map<string, ResourceEntry> 
         resourceId: entry.resourceId,
         terraform: [],
       },
+      unchangedAddresses: entry.unchangedTerraformAddresses,
     });
   }
 
@@ -192,13 +200,15 @@ function attachTerraformChanges(
   }
 
   // An updated resource created the addresses the last commit did not record, and destroyed the ones
-  // it no longer renders.
+  // it no longer renders. An address terraform's state holds unchanged since the last commit is not
+  // shown.
   for (const entry of resources.values()) {
     const previous = new Set(entry.previousAddresses);
     const current = new Set(entry.addresses);
+    const unchanged = new Set(entry.unchangedAddresses);
     const isComparable = entry.resource.kind === 'update' && previous.size > 0;
 
-    for (const address of entry.addresses) {
+    for (const address of entry.addresses.filter((address) => !unchanged.has(address))) {
       const kind = isComparable && !previous.has(address) ? 'create' : entry.resource.kind;
       attach(entry.resource.resourceContext, { address, changedFields: [], kind });
     }

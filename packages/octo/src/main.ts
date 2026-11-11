@@ -131,8 +131,17 @@ export class Octo {
 
       // Build the transaction unless a single-process driver already built it and passed it in.
       const resolvedTransaction = transaction ?? (await applyModelTransaction(app));
-      const { externalResourceIds, modelTransaction, ...completed } = await runCommit({
+
+      // What each module's terraform state holds now, so the commit can tell what the apply changed.
+      const terraformStateService = await Container.getInstance().get(TerraformStateService);
+      const addressDigests = new Map<string, Map<string, string>>();
+      for (const moduleId of this.terraformService.getModuleIds()) {
+        addressDigests.set(moduleId, await terraformStateService.getAddressDigests(moduleId));
+      }
+
+      const { addressDigestsByContext, externalResourceIds, modelTransaction, ...completed } = await runCommit({
         ...options,
+        addressDigests,
         previousFolders: userData.terraformFolders ?? [],
         previousMappings: userData.terraformResources ?? [],
         transaction: resolvedTransaction,
@@ -141,7 +150,6 @@ export class Octo {
       // Record each folder with every provider the last commit recorded that its terraform state still
       // binds a resource to, and an emptied folder while its state holds anything, so the next generate
       // writes both again and an apply can destroy what they hold.
-      const terraformStateService = await Container.getInstance().get(TerraformStateService);
       const previousFolders = userData.terraformFolders ?? [];
       const terraformFolders: TerraformFolderOutput[] = [];
       for (const folder of [
@@ -170,7 +178,7 @@ export class Octo {
         terraformFolders.push({ ...folder, providers: [...folder.providers, ...retainedProviders] });
       }
 
-      await this.commitTransaction(app, modelTransaction, [], terraformFolders);
+      await this.commitTransaction(app, modelTransaction, [], terraformFolders, addressDigestsByContext);
 
       // The committed graph now carries everything an external resource's actions made of it, so the
       // records they wrote mid-apply are cleared. Done after the state is persisted, so a failure
@@ -615,6 +623,7 @@ export class Octo {
     modelTransaction: DiffMetadata[][],
     resourceTransaction: DiffMetadata[][] = [],
     terraformFolders: TerraformFolderOutput[] = this.terraformService.getFolderRecords(),
+    addressDigestsByContext: Map<string, Record<string, string>> = new Map(),
   ): Promise<void> {
     // `modelTransaction` and `resourceTransaction` is used by hooks of type CommitHook.
     assert(!!modelTransaction);
@@ -622,7 +631,7 @@ export class Octo {
 
     // Save the state of the new app and its resources.
     await this.saveModelState(app);
-    await this.saveResourceState(terraformFolders);
+    await this.saveResourceState(terraformFolders, addressDigestsByContext);
 
     // Reset the runtime environment with the latest state.
     await this.importReaderService.retrieveResourceState();
@@ -691,7 +700,10 @@ export class Octo {
    *
    * @internal
    */
-  private async saveResourceState(terraformFolders: TerraformFolderOutput[]): Promise<void> {
+  private async saveResourceState(
+    terraformFolders: TerraformFolderOutput[],
+    addressDigestsByContext: Map<string, Record<string, string>>,
+  ): Promise<void> {
     const actualSerializedOutput = await this.resourceSerializationService.serializeActualResources();
     await this.stateManagementService.saveResourceState(
       this.stateManagementService.actualResourceStateFileName,
@@ -705,6 +717,9 @@ export class Octo {
             moduleId: m.moduleId,
             resourceContext: m.resourceContext,
             resourceId: m.resourceId,
+            ...(Object.keys(addressDigestsByContext.get(m.resourceContext) ?? {}).length > 0
+              ? { terraformAddressDigests: addressDigestsByContext.get(m.resourceContext) }
+              : {}),
             terraformAddresses: m.terraformAddresses,
           }),
         ),

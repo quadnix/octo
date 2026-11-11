@@ -455,6 +455,11 @@ export type TerraformResourceOutput = {
   moduleId: string;
   resourceContext: string;
   resourceId: string;
+  /**
+   * A digest of what terraform's state held for each of `terraformAddresses` at this commit, so the
+   * next commit reports only the addresses its apply changed.
+   */
+  terraformAddressDigests?: Record<string, string>;
   terraformAddresses: string[];
 };
 
