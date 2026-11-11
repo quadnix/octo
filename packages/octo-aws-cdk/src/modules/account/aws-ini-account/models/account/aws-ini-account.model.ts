@@ -7,7 +7,7 @@ import { AwsIniAccountSchema } from './aws-ini-account.schema.js';
 /**
  * @internal
  */
-@Model<AwsIniAccount>('@octo', 'account', AwsIniAccountSchema)
+@Model<AwsIniAccount>('@octo', 'account', AwsIniAccountSchema, { createsNothing: true })
 export class AwsIniAccount extends Account {
   readonly iniProfile: string;
 

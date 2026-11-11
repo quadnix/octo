@@ -144,7 +144,8 @@ deleted resource, or remove the old ones in one apply and add the new ones in th
 A node changed and nothing is registered to handle it. The error carries the diff itself, including
 the node and the field, which is normally enough. Two causes: a construct file is not imported into
 `src/index.ts`, so its `@Action` decorator never ran, or an action's `filter()` is narrower than the
-diffs its node can produce.
+diffs its node can produce. A node that creates nothing declares `createsNothing` instead of an
+action.
 
 **A module you loaded generated no folder**
 

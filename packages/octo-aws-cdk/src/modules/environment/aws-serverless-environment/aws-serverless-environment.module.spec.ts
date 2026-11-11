@@ -72,7 +72,7 @@ describe('AwsServerlessEnvironmentModule UT', () => {
     expect(testModuleContainer.mapTransactionActions(modelTransaction)).toMatchInlineSnapshot(`
      [
        [
-         "AddAwsServerlessEnvironmentModelAction",
+         "CreatesNothingModelAction",
        ],
      ]
     `);

@@ -40,6 +40,11 @@ import type { IModel } from './model.interface.js';
  */
 export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> implements IModel<S, T> {
   /**
+   * Whether the node creates no resources, so its diffs need no action of its own.
+   */
+  static readonly CREATES_NOTHING: boolean;
+
+  /**
    * The anchors attached to this model, whether declared on it or borrowed from another model.
    */
   readonly anchors: (MatchingAnchor<BaseAnchorSchema> | UnknownAnchor)[] = [];

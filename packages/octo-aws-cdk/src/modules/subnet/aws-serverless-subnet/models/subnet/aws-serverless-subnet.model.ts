@@ -4,7 +4,7 @@ import { AwsServerlessSubnetSchema } from './aws-serverless-subnet.schema.js';
 /**
  * @internal
  */
-@Model<AwsServerlessSubnet>('@octo', 'subnet', AwsServerlessSubnetSchema)
+@Model<AwsServerlessSubnet>('@octo', 'subnet', AwsServerlessSubnetSchema, { createsNothing: true })
 export class AwsServerlessSubnet extends Subnet {
   /**
    * @internal

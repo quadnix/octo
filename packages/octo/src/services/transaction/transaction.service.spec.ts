@@ -1208,6 +1208,34 @@ describe('TransactionService UT', () => {
   });
 
   describe('beginTransaction()', () => {
+    describe('createsNothing', () => {
+      it('should throw error for a diff no action matches, of a node that creates something', async () => {
+        const app = new App('app');
+        const account = new Account(AccountType.AWS, '123456789012');
+        app.addAccount(account);
+
+        const service = await container.get(TransactionService);
+        const generator = service.beginTransaction([new Diff(account, DiffAction.ADD, 'accountId', '123456789012')], {
+          yieldModelDiffs: true,
+        });
+
+        await expect(generator.next()).rejects.toThrowErrorMatchingInlineSnapshot(
+          `"No matching action given for diff!"`,
+        );
+      });
+
+      it('should apply every diff of a node that creates nothing by an action that does nothing', async () => {
+        const service = await container.get(TransactionService);
+        const generator = service.beginTransaction([new Diff(new App('app'), DiffAction.ADD, 'name', 'app')], {
+          yieldModelDiffs: true,
+        });
+        const [[modelDiff]] = (await generator.next()).value as DiffMetadata[][];
+
+        expect(modelDiff.actions.map((action) => action.constructor.name)).toEqual(['CreatesNothingModelAction']);
+        await expect(modelDiff.actions[0].handle(modelDiff.diff, {} as any, {})).resolves.toEqual({});
+      });
+    });
+
     describe('enableResourceValidation', () => {
       const universalResourceAction = new TestResourceAction(jest.fn() as jest.Mocked<any>);
 

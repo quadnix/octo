@@ -135,11 +135,11 @@ describe('AwsServerModule UT', () => {
     expect(testModuleContainer.mapTransactionActions(modelTransaction)).toMatchInlineSnapshot(`
      [
        [
-         "AddAwsServerModelAction",
+         "CreatesNothingModelAction",
        ],
        [
-         "AddAwsServerS3AccessOverlayAction",
-         "AddAwsServerDynamoDBAccessOverlayAction",
+         "CreatesNothingModelAction",
+         "CreatesNothingModelAction",
        ],
      ]
     `);

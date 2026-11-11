@@ -62,7 +62,8 @@ commit.
 ## When nothing matches
 
 A change that no action accepts is an error rather than a silent no-op, and the message carries the
-change it could not place. Generating a folder that quietly leaves out a piece of your intent would
+change it could not place. The one exception is a model or overlay that declares it creates nothing,
+whose changes need no action. Generating a folder that quietly leaves out a piece of your intent would
 carry that gap all the way to the apply. [Troubleshooting](/docs/using-octo/troubleshooting) covers
 what the message means when you meet it.
 

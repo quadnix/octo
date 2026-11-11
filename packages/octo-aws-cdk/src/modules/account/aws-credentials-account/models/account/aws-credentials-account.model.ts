@@ -5,7 +5,7 @@ import { AwsCredentialsAccountSchema } from './aws-credentials-account.schema.js
 /**
  * @internal
  */
-@Model<AwsCredentialsAccount>('@octo', 'account', AwsCredentialsAccountSchema)
+@Model<AwsCredentialsAccount>('@octo', 'account', AwsCredentialsAccountSchema, { createsNothing: true })
 export class AwsCredentialsAccount extends Account {
   readonly credentials: AwsCredentialsAccountSchema['credentials'];
 

@@ -76,6 +76,11 @@ The decorator takes three things: your package name, the node name, and the sche
 matches on, so an `AwsS3StorageService` and a `ShopQueueService` are both `service` to a module that
 wants one. Any string but a base model's name does not compile.
 
+A model that creates nothing itself, as an account or a region that only says where other things go,
+passes a fourth argument, `{ createsNothing: true }`, and needs no action: every change to it is
+applied by one that does nothing, which still orders the changes that depend on it. `@Overlay` takes
+the same option.
+
 `synth()` and `unSynth()` are the two halves of serialization, and the rule is that
 `unSynth(synth(x))` has to give you back something equivalent to `x`. `super.synth()` writes what
 every service carries: its ID, its type and label, and the context of each parent. `unSynth()` gets

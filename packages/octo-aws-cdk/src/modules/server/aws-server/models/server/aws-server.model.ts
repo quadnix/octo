@@ -4,7 +4,7 @@ import { AwsServerSchema } from './aws-server.schema.js';
 /**
  * @internal
  */
-@Model<AwsServer>('@octo', 'server', AwsServerSchema)
+@Model<AwsServer>('@octo', 'server', AwsServerSchema, { createsNothing: true })
 export class AwsServer extends Server {
   /**
    * @internal

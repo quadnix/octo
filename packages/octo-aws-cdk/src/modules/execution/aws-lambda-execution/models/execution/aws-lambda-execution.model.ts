@@ -4,7 +4,7 @@ import { AwsLambdaExecutionSchema } from './aws-lambda-execution.schema.js';
 /**
  * @internal
  */
-@Model<AwsLambdaExecution>('@octo', 'execution', AwsLambdaExecutionSchema)
+@Model<AwsLambdaExecution>('@octo', 'execution', AwsLambdaExecutionSchema, { createsNothing: true })
 export class AwsLambdaExecution extends Execution {
   readonly customExecutionId: string;
 

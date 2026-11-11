@@ -42,7 +42,7 @@ describe('AwsIniAccountModule UT', () => {
     expect(testModuleContainer.mapTransactionActions(modelTransaction)).toMatchInlineSnapshot(`
      [
        [
-         "AddAwsIniAccountModelAction",
+         "CreatesNothingModelAction",
        ],
      ]
     `);

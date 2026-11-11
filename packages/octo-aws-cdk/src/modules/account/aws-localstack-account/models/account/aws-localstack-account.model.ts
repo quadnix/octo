@@ -5,7 +5,7 @@ import { AwsLocalstackAccountSchema } from './aws-localstack-account.schema.js';
 /**
  * @internal
  */
-@Model<AwsLocalstackAccount>('@octo', 'account', AwsLocalstackAccountSchema)
+@Model<AwsLocalstackAccount>('@octo', 'account', AwsLocalstackAccountSchema, { createsNothing: true })
 export class AwsLocalstackAccount extends Account {
   /**
    * @internal

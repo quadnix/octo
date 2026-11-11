@@ -9,7 +9,7 @@ import { AwsServerLambdaAccessOverlaySchema } from './aws-server-lambda-access.s
  *
  * @internal
  */
-@Overlay('@octo', 'aws-server-lambda-access-overlay', AwsServerLambdaAccessOverlaySchema)
+@Overlay('@octo', 'aws-server-lambda-access-overlay', AwsServerLambdaAccessOverlaySchema, { createsNothing: true })
 export class AwsServerLambdaAccessOverlay extends AOverlay<
   AwsServerLambdaAccessOverlaySchema,
   AwsServerLambdaAccessOverlay

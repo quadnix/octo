@@ -14,7 +14,7 @@ export enum AwsServerlessRegionId {
 /**
  * @internal
  */
-@Model<AwsServerlessRegion>('@octo', 'region', AwsServerlessRegionSchema)
+@Model<AwsServerlessRegion>('@octo', 'region', AwsServerlessRegionSchema, { createsNothing: true })
 export class AwsServerlessRegion extends Region {
   readonly awsRegionId: string;
 

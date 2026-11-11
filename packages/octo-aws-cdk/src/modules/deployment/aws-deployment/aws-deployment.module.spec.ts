@@ -91,7 +91,7 @@ describe('AwsDeploymentModule UT', () => {
     expect(testModuleContainer.mapTransactionActions(modelTransaction)).toMatchInlineSnapshot(`
      [
        [
-         "AddAwsDeploymentModelAction",
+         "CreatesNothingModelAction",
        ],
      ]
     `);
@@ -144,10 +144,10 @@ describe('AwsDeploymentModule UT', () => {
     expect(testModuleContainer.mapTransactionActions(modelTransaction)).toMatchInlineSnapshot(`
      [
        [
-         "AddAwsDeploymentModelAction",
+         "CreatesNothingModelAction",
        ],
        [
-         "AddAwsDeploymentImageOverlayAction",
+         "CreatesNothingModelAction",
        ],
      ]
     `);

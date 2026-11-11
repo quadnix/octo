@@ -23,6 +23,9 @@ import { ValidationUtility } from '../utilities/validation/validation.utility.js
  * You will reuse the same package name throughout your library for different Octo components you create.
  * @param modelName - The name of the base model you are extending, e.g. `region` for {@link Region}.
  * @param schema - The schema of the model.
+ * @param options - Optional settings of the model.
+ *   - options.createsNothing - The model creates no resources, as one only other nodes read from does, so
+ *   it declares no action: every diff of it is applied by one that does nothing.
  *
  * @returns The decorated class.
  *
@@ -33,6 +36,7 @@ export function Model<T extends UnknownModel>(
   packageName: string,
   modelName: ModelName,
   schema: Constructable<ModelSchema<T>>,
+  { createsNothing = false }: { createsNothing?: boolean } = {},
 ): (constructor: any) => void {
   const container = Container.getInstance();
 
@@ -48,6 +52,7 @@ export function Model<T extends UnknownModel>(
     constructor.NODE_PACKAGE = packageName;
     constructor.NODE_SCHEMA = schema;
     constructor.NODE_TYPE = NodeType.MODEL;
+    constructor.CREATES_NOTHING = createsNothing;
 
     const promise = container.get(ModelSerializationService).then((modelSerializationService) => {
       modelSerializationService.registerClass(`${packageName}/${constructor.name}`, constructor);

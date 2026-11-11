@@ -32,11 +32,11 @@ describe('SimpleAppModule UT', () => {
     const { hclRender, modelTransaction, resourceDiffs } = (await runModulesGenerator.next()).value!;
     expect(hclRender).toMatchInlineSnapshot(`""`);
     expect(testModuleContainer.mapTransactionActions(modelTransaction)).toMatchInlineSnapshot(`
-      [
-        [
-          "AddSimpleAppModelAction",
-        ],
-      ]
+     [
+       [
+         "CreatesNothingModelAction",
+       ],
+     ]
     `);
     expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`[]`);
   });

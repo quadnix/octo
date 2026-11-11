@@ -534,7 +534,7 @@ describe('AwsLambdaExecutionModule UT', () => {
     expect(testModuleContainer.mapTransactionActions(modelTransaction)).toMatchInlineSnapshot(`
      [
        [
-         "AddAwsLambdaExecutionModelAction",
+         "CreatesNothingModelAction",
        ],
        [
          "AddAwsLambdaExecutionOverlayAction",

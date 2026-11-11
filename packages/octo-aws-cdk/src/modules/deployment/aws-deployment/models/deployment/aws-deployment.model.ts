@@ -4,7 +4,7 @@ import { AwsDeploymentSchema } from './aws-deployment.schema.js';
 /**
  * @internal
  */
-@Model<AwsDeployment>('@octo', 'deployment', AwsDeploymentSchema)
+@Model<AwsDeployment>('@octo', 'deployment', AwsDeploymentSchema, { createsNothing: true })
 export class AwsDeployment extends Deployment {
   /**
    * @internal

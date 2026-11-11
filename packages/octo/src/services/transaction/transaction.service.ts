@@ -36,6 +36,7 @@ import { DiffMetadata } from '../../functions/diff/diff-metadata.js';
 import { type Diff, DiffAction } from '../../functions/diff/diff.js';
 import { ANodeAction } from '../../functions/node/node-action.abstract.js';
 import type { ANode } from '../../functions/node/node.abstract.js';
+import { CreatesNothingModelAction } from '../../models/creates-nothing.model.action.js';
 import type { AModel } from '../../models/model.abstract.js';
 import { ModuleContainer } from '../../modules/module.container.js';
 import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
@@ -81,6 +82,11 @@ class TerraformNoopResourceAction extends ANodeAction implements IUnknownResourc
  * @internal
  */
 export class TransactionService {
+  /**
+   * The action of every diff of a node that creates nothing.
+   */
+  private static readonly CREATES_NOTHING_ACTION = new CreatesNothingModelAction();
+
   private modelActions: { actions: IUnknownModelAction[]; modelClass: Constructable<UnknownModel> }[] = [];
   private overlayActions: { actions: IUnknownModelAction[]; overlayClass: Constructable<UnknownOverlay> }[] = [];
   private resourceActions: { actions: IUnknownResourceAction[]; resourceClass: Constructable<UnknownResource> }[] = [];
@@ -163,27 +169,20 @@ export class TransactionService {
     // A node another app declared is that app's to apply, never this app's.
     const ownDiffs = diffs.filter((d) => !this.isImportedNode(d.node as UnknownModel | UnknownOverlay));
 
-    // Generate diff on models.
+    // Generate diff on models. A diff of a node that creates nothing, with no action of its own, is
+    // applied by one that does nothing, so it still orders the diffs depending on it.
     const modelDiffs = ownDiffs.map((d) => {
-      if ((d.node.constructor as typeof ANode).NODE_TYPE === NodeType.OVERLAY) {
-        return new DiffMetadata(
-          d,
-          (
-            this.overlayActions.find(
-              (a) => (a.overlayClass as unknown as typeof AOverlay) === (d.node.constructor as typeof AOverlay),
-            )?.actions || []
-          ).filter((a) => a.filter(d)),
-        );
-      } else {
-        return new DiffMetadata(
-          d,
-          (
-            this.modelActions.find(
-              (a) => (a.modelClass as unknown as typeof AModel) === (d.node.constructor as typeof AModel),
-            )?.actions || []
-          ).filter((a) => a.filter(d)),
-        );
-      }
+      const nodeClass = d.node.constructor as typeof AModel;
+      const actions = (
+        (nodeClass.NODE_TYPE === NodeType.OVERLAY
+          ? this.overlayActions.find((a) => (a.overlayClass as unknown) === nodeClass)?.actions
+          : this.modelActions.find((a) => (a.modelClass as unknown as typeof AModel) === nodeClass)?.actions) || []
+      ).filter((a) => a.filter(d));
+
+      return new DiffMetadata(
+        d,
+        actions.length === 0 && nodeClass.CREATES_NOTHING ? [TransactionService.CREATES_NOTHING_ACTION] : actions,
+      );
     });
     // Set apply order on model diffs.
     for (const diff of modelDiffs) {

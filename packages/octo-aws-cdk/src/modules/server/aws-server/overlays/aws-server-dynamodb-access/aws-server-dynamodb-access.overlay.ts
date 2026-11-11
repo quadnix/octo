@@ -9,7 +9,7 @@ import { AwsServerDynamoDBAccessOverlaySchema } from './aws-server-dynamodb-acce
  *
  * @internal
  */
-@Overlay('@octo', 'aws-server-dynamodb-access-overlay', AwsServerDynamoDBAccessOverlaySchema)
+@Overlay('@octo', 'aws-server-dynamodb-access-overlay', AwsServerDynamoDBAccessOverlaySchema, { createsNothing: true })
 export class AwsServerDynamoDBAccessOverlay extends AOverlay<
   AwsServerDynamoDBAccessOverlaySchema,
   AwsServerDynamoDBAccessOverlay

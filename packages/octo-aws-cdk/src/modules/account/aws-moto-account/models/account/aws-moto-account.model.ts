@@ -5,7 +5,7 @@ import { AwsMotoAccountSchema } from './aws-moto-account.schema.js';
 /**
  * @internal
  */
-@Model<AwsMotoAccount>('@octo', 'account', AwsMotoAccountSchema)
+@Model<AwsMotoAccount>('@octo', 'account', AwsMotoAccountSchema, { createsNothing: true })
 export class AwsMotoAccount extends Account {
   /**
    * @internal

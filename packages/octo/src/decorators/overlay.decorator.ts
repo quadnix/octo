@@ -21,6 +21,9 @@ import { ValidationUtility } from '../utilities/validation/validation.utility.js
  * You will reuse the same package name throughout your library for different Octo components you create.
  * @param overlayName - a string that uniquely represents the name of the overlay.
  * @param schema - The schema of the overlay.
+ * @param options - Optional settings of the overlay.
+ *   - options.createsNothing - The overlay creates no resources, as one only other nodes read from does, so
+ *   it declares no action: every diff of it is applied by one that does nothing.
  *
  * @returns The decorated class.
  *
@@ -30,6 +33,7 @@ export function Overlay<T extends UnknownOverlay>(
   packageName: string,
   overlayName: string,
   schema: Constructable<OverlaySchema<T>>,
+  { createsNothing = false }: { createsNothing?: boolean } = {},
 ): (constructor: any) => void {
   const container = Container.getInstance();
 
@@ -48,6 +52,7 @@ export function Overlay<T extends UnknownOverlay>(
     constructor.NODE_PACKAGE = packageName;
     constructor.NODE_SCHEMA = schema;
     constructor.NODE_TYPE = NodeType.OVERLAY;
+    constructor.CREATES_NOTHING = createsNothing;
 
     const promise = container.get(ModelSerializationService).then((modelSerializationService) => {
       modelSerializationService.registerClass(`${packageName}/${constructor.name}`, constructor);

@@ -4,7 +4,7 @@ import { AwsServerlessEnvironmentSchema } from './aws-serverless-environment.sch
 /**
  * @internal
  */
-@Model<AwsServerlessEnvironment>('@octo', 'environment', AwsServerlessEnvironmentSchema)
+@Model<AwsServerlessEnvironment>('@octo', 'environment', AwsServerlessEnvironmentSchema, { createsNothing: true })
 export class AwsServerlessEnvironment extends Environment {
   /**
    * @internal

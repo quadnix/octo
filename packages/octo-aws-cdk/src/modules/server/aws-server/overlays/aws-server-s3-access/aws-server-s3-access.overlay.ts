@@ -9,7 +9,7 @@ import { AwsServerS3AccessOverlaySchema } from './aws-server-s3-access.schema.js
  *
  * @internal
  */
-@Overlay('@octo', 'aws-server-s3-access-overlay', AwsServerS3AccessOverlaySchema)
+@Overlay('@octo', 'aws-server-s3-access-overlay', AwsServerS3AccessOverlaySchema, { createsNothing: true })
 export class AwsServerS3AccessOverlay extends AOverlay<AwsServerS3AccessOverlaySchema, AwsServerS3AccessOverlay> {
   declare anchors: [AwsServerAnchor, MatchingAnchor<AwsS3StorageServiceAccessPrefixAnchorSchema>];
   declare properties: AwsServerS3AccessOverlaySchema['properties'];

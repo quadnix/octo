@@ -4,7 +4,7 @@ import { AwsEcsExecutionSchema } from './aws-ecs-execution.schema.js';
 /**
  * @internal
  */
-@Model<AwsEcsExecution>('@octo', 'execution', AwsEcsExecutionSchema)
+@Model<AwsEcsExecution>('@octo', 'execution', AwsEcsExecutionSchema, { createsNothing: true })
 export class AwsEcsExecution extends Execution {
   readonly customExecutionId: string;
   readonly deployments: { main: Deployment; sidecars: Deployment[] };

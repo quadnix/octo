@@ -9,7 +9,7 @@ import { AwsDeploymentImageOverlaySchema } from './aws-deployment-image.schema.j
  *
  * @internal
  */
-@Overlay('@octo', 'aws-deployment-image-overlay', AwsDeploymentImageOverlaySchema)
+@Overlay('@octo', 'aws-deployment-image-overlay', AwsDeploymentImageOverlaySchema, { createsNothing: true })
 export class AwsDeploymentImageOverlay extends AOverlay<AwsDeploymentImageOverlaySchema, AwsDeploymentImageOverlay> {
   declare anchors: [AwsDeploymentAnchor, MatchingAnchor<AwsEcrImageAnchorSchema>];
   declare properties: AwsDeploymentImageOverlaySchema['properties'];

@@ -21,7 +21,7 @@ import { AppSchema } from './app.schema.js';
  *
  * @see Definition of [Default Models](/docs/fundamentals/models#default-models).
  */
-@Model<App>('@octo', 'app', AppSchema)
+@Model<App>('@octo', 'app', AppSchema, { createsNothing: true })
 export class App extends AModel<AppSchema, App> {
   readonly name: string;
 

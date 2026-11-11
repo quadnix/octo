@@ -975,7 +975,7 @@ describe('AwsEcsExecutionModule UT', () => {
     expect(testModuleContainer.mapTransactionActions(modelTransaction)).toMatchInlineSnapshot(`
      [
        [
-         "AddAwsEcsExecutionModelAction",
+         "CreatesNothingModelAction",
        ],
        [
          "AddAwsEcsExecutionServerSecurityGroupOverlayAction",
