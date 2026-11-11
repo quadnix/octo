@@ -112,7 +112,9 @@ every bucket and table a server is granted must be in that account too.
 another account, such as one an [`extends`](/docs/using-octo/the-definition-file#extends) state or a
 [store](/docs/using-octo/the-definition-file#stores) holds. The execution running the server writes
 one policy on its role for all of them, and admits the role to each function in the function's
-account, so the definition needs a Terraform provider for that account too.
+account, so the definition needs a Terraform provider for that account too. Lambda refuses a role
+it has not seen yet, so Octo waits ten seconds after creating the role before admitting it, through
+the `hashicorp/time` provider, which it adds to the folder without you declaring it.
 
 `iamStatements` grants what Octo does not manage, such as an SES identity made by hand. Each statement is a list of `actions` and a list of `resources`, by ARN, and is
 allowed as written: Octo checks neither, and the resources may be in any account. The execution writes

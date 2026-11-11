@@ -88,7 +88,7 @@ describe('LambdaFunctionPermission UT', () => {
   });
 
   describe('toHCL()', () => {
-    it('should admit the role to the function through its URL, in the function account', async () => {
+    it('should admit the role to the function through its URL, in the function account, once IAM has spread it', async () => {
       const emitted: { name: string; spec: any; type: string }[] = [];
       const providers: unknown[] = [];
       const terraform = {
@@ -101,6 +101,7 @@ describe('LambdaFunctionPermission UT', () => {
           };
         },
         getRef: (resource: MatchingResource<any>, key: string): string => `${resource.getActual().resourceId}.${key}`,
+        mapAttr: (value: Record<string, unknown>): Record<string, unknown> => value,
       };
 
       await createLambdaFunctionPermission().toHCL(terraform as any);
@@ -108,6 +109,16 @@ describe('LambdaFunctionPermission UT', () => {
       expect(providers).toEqual([{ provider: { accountId: '999999999999', regionId: 'us-east-1' } }]);
       expect(emitted).toMatchInlineSnapshot(`
        [
+         {
+           "name": "lambda-function-permission-backend-commons-billing_role_propagation",
+           "spec": {
+             "create_duration": "10s",
+             "triggers": {
+               "role_arn": "iam-role-ExecutionRole-backend.Arn",
+             },
+           },
+           "type": "time_sleep",
+         },
          {
            "name": "lambda-function-permission-backend-commons-billing",
            "spec": {

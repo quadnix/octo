@@ -65,6 +65,13 @@ export class LambdaFunctionPermission extends ATerraformResource<
       provider: { accountId: this.properties.awsAccountId, regionId: this.properties.awsRegionId },
     });
 
+    // Lambda refuses a role as a principal until IAM has spread it, so a role created in the same
+    // apply is waited for first; each permission below depends on the wait.
+    permissionOctoResource.addTerraformResource('time_sleep', `${this.resourceId}_role_propagation`, {
+      create_duration: '10s',
+      triggers: terraform.mapAttr({ role_arn: terraform.getRef(iamRoleParent, 'Arn') }),
+    });
+
     // A URL caller needs both actions; `invoked_via_function_url` is in hashicorp/aws >= 6.28.0.
     permissionOctoResource.addTerraformResource('aws_lambda_permission', this.resourceId, {
       action: 'lambda:InvokeFunctionUrl',
