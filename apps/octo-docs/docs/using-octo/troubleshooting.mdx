@@ -152,6 +152,25 @@ Not an error. A module that produces no cloud resources produces no folder, and 
 account modules are both like this. Check the `written:` list in the generate output before
 concluding something is wrong.
 
+## Before Terraform runs
+
+**`Account "123456789012" credentials end in 6 minutes, before this command could finish!`**
+
+`validate`, `apply` and `commit` check the credentials of every account the app reaches before
+Terraform starts, including the accounts of apps it extends or stores. For an SSO profile, the end
+is the sign-in's, which comes long before the role credentials it hands out. An apply needs 15
+minutes left; validate and commit need 5. An apply that outlasts the sign-in fails the folders
+still running, so nothing has started when this fires. Sign in again and rerun the command:
+
+```bash
+aws sso login --profile <profile>
+```
+
+**`Account "123456789012" has no working credentials!`**
+
+The account's profile resolves to nothing: a profile name your AWS config does not have, or a
+sign-in that has already ended. The rest of the message is the AWS SDK's, and names which.
+
 ## While Terraform plans
 
 **`FAILURES — octo could not read these, so everything else is incomplete`**

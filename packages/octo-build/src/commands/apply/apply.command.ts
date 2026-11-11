@@ -92,11 +92,11 @@ async function findDestroyRefusal(
 /**
  * Step 3 of the octo lifecycle, and the only one that changes live infrastructure.
  *
- * Unlike generate and validate, this is a terraform action rather than an octo mode - it composes no
- * model graph and reads no model or resource state. What it does need is the state provider, both
- * because terraform's own state is checked out of it before every terraform command and back in
- * after, and because this is one of the two commands that require the app lock. It refuses to run
- * when the plan would destroy anything, unless `--auto-approve` is passed.
+ * Unlike generate and validate, this is a terraform action rather than an octo mode. It composes the
+ * model graph only to check every account's credentials before terraform starts. It needs the state
+ * provider, both because terraform's own state is checked out of it before every terraform command
+ * and back in after, and because this is one of the two commands that require the app lock. It
+ * refuses to run when the plan would destroy anything, unless `--auto-approve` is passed.
  */
 export const applyCommand = {
   builder: (yargs: Argv): Argv => {
@@ -150,7 +150,7 @@ export const applyCommand = {
     await OctoUtility.runCommand(
       'apply',
       async () => {
-        const { stateCheckInIntervalInMs } = await OctoUtility.bootStateProvider();
+        const { octo, stateCheckInIntervalInMs } = await OctoUtility.bootOcto();
 
         // The lock is verified before anything is planned, so a run without it fails having done
         // nothing. It is released by `octo commit`, not here - the apply is the middle of a run.
@@ -160,6 +160,9 @@ export const applyCommand = {
         if (runLockId === undefined || !(await stateManagementService.isAppLocked(runLockId))) {
           throw new Error('App is not locked! Run "octo lock" first.');
         }
+
+        // An apply outlasting a sign-in fails the folders still running, so it needs credentials that last.
+        await octo.assertCredentials(15 * 60_000);
 
         const terraformUtility = await Container.getInstance().get<TerraformUtility, any>(TerraformUtility, {
           args: [{ stateCheckInIntervalInMs, terraformBinary, terragruntBinary, timeoutInMs }, true],

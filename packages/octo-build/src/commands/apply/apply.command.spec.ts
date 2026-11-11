@@ -13,9 +13,14 @@ type TerraformPlanResult = {
   plans: Parameters<TerraformUtility['findPlannedDestroys']>[0];
 };
 
-const mockedBootStateProvider = jest
-  .fn<() => Promise<{ stateCheckInIntervalInMs: number | undefined }>>()
-  .mockResolvedValue({ stateCheckInIntervalInMs: undefined });
+const mockedAssertCredentials = jest.fn<(minimumRemainingInMs: number) => Promise<void>>();
+const mockedBootOcto = jest.fn<
+  () => Promise<{
+    app: unknown;
+    octo: { assertCredentials: typeof mockedAssertCredentials };
+    stateCheckInIntervalInMs: number | undefined;
+  }>
+>();
 const mockedPrepareCallbackEnvironment = jest.fn<() => void>();
 const mockedReportError = jest.fn<(error: unknown) => void>();
 
@@ -24,7 +29,7 @@ const mockedReportError = jest.fn<(error: unknown) => void>();
 // `import()` of the module under test (below) is the mechanism that actually works here.
 jest.unstable_mockModule('../../utilities/octo/octo.utility.js', () => ({
   OctoUtility: {
-    bootStateProvider: mockedBootStateProvider,
+    bootOcto: mockedBootOcto,
     DEFAULT_TERRAGRUNT_DIR: '.octo-tf',
     prepareCallbackEnvironment: mockedPrepareCallbackEnvironment,
     reportError: mockedReportError,
@@ -71,6 +76,13 @@ describe('applyCommand UT', () => {
   let consoleLogSpy: jest.SpiedFunction<typeof console.log>;
 
   beforeEach(async () => {
+    mockedAssertCredentials.mockResolvedValue(undefined);
+    mockedBootOcto.mockResolvedValue({
+      app: {},
+      octo: { assertCredentials: mockedAssertCredentials },
+      stateCheckInIntervalInMs: undefined,
+    });
+
     terraformUtilityMock = {
       apply: jest.fn<(dir: string) => Promise<TerraformRawResult>>().mockResolvedValue({ args: [], exitCode: 0 }),
       // Real, not stubbed: what the gate prints is derived from the plan fixtures below, so stubbing
@@ -124,6 +136,17 @@ describe('applyCommand UT', () => {
 
     await applyCommand.handler({ ...argv, lockId: undefined });
 
+    expect(terraformUtilityMock.apply).not.toHaveBeenCalled();
+    expect(processExitSpy).toHaveBeenCalledWith(1);
+  });
+
+  it("refuses to apply when an account's credentials end within fifteen minutes", async () => {
+    mockedAssertCredentials.mockRejectedValue(new Error('Account "123456789012" credentials end in 5 minutes!'));
+
+    await applyCommand.handler(argv);
+
+    expect(mockedAssertCredentials).toHaveBeenCalledWith(15 * 60_000);
+    expect(terraformUtilityMock.plan).not.toHaveBeenCalled();
     expect(terraformUtilityMock.apply).not.toHaveBeenCalled();
     expect(processExitSpy).toHaveBeenCalledWith(1);
   });
@@ -453,7 +476,11 @@ describe('applyCommand UT', () => {
   });
 
   it("forwards the definition's state check-in interval to the container", async () => {
-    mockedBootStateProvider.mockResolvedValueOnce({ stateCheckInIntervalInMs: 30 * 1000 });
+    mockedBootOcto.mockResolvedValueOnce({
+      app: {},
+      octo: { assertCredentials: mockedAssertCredentials },
+      stateCheckInIntervalInMs: 30 * 1000,
+    });
     const getSpy = jest
       .spyOn(Container.getInstance(), 'get')
       .mockImplementation(async (type) =>

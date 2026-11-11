@@ -8,10 +8,15 @@ type CommitResult = {
   warnings: { message: string; moduleId?: string }[];
 };
 
-const mockedBootOcto =
-  jest.fn<
-    () => Promise<{ app: unknown; octo: { commit: jest.Mock<(...args: unknown[]) => Promise<CommitResult>> } }>
-  >();
+const mockedBootOcto = jest.fn<
+  () => Promise<{
+    app: unknown;
+    octo: {
+      assertCredentials: jest.Mock<(minimumRemainingInMs: number) => Promise<void>>;
+      commit: jest.Mock<(...args: unknown[]) => Promise<CommitResult>>;
+    };
+  }>
+>();
 const mockedReportError = jest.fn<(error: unknown) => void>();
 
 // Real ESM (`--experimental-vm-modules`) doesn't support `jest.mock()`'s hoisted auto-mocking of
@@ -43,6 +48,7 @@ describe('commitCommand UT', () => {
     terragruntDir: string;
   }>;
 
+  let assertCredentialsMock: jest.Mock<(minimumRemainingInMs: number) => Promise<void>>;
   let octoCommitMock: jest.Mock<(...args: unknown[]) => Promise<CommitResult>>;
   let terraformUtilityMock: {
     deleteDestroyedFolders: jest.Mock<(dir: string, moduleIds: string[]) => Promise<string[]>>;
@@ -61,7 +67,11 @@ describe('commitCommand UT', () => {
     octoCommitMock = jest
       .fn<(...args: unknown[]) => Promise<CommitResult>>()
       .mockResolvedValue({ emptiedModuleIds: [], warnings: [] });
-    mockedBootOcto.mockResolvedValue({ app: {}, octo: { commit: octoCommitMock } });
+    assertCredentialsMock = jest.fn<(minimumRemainingInMs: number) => Promise<void>>().mockResolvedValue(undefined);
+    mockedBootOcto.mockResolvedValue({
+      app: {},
+      octo: { assertCredentials: assertCredentialsMock, commit: octoCommitMock },
+    });
 
     terraformUtilityMock = {
       deleteDestroyedFolders: jest
@@ -94,6 +104,17 @@ describe('commitCommand UT', () => {
 
   afterAll(async () => {
     await TestContainer.reset();
+  });
+
+  it("should refuse to commit when an account's credentials end within five minutes", async () => {
+    assertCredentialsMock.mockRejectedValue(new Error('Account "123456789012" credentials have ended!'));
+
+    await commitCommand.handler(argv);
+
+    expect(assertCredentialsMock).toHaveBeenCalledWith(5 * 60_000);
+    expect(octoCommitMock).not.toHaveBeenCalled();
+    expect(stateManagementServiceMock.unlockApp).not.toHaveBeenCalled();
+    expect(processExitSpy).toHaveBeenCalledWith(1);
   });
 
   it('should refuse to commit without a lock id when the app holds no lock', async () => {

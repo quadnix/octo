@@ -152,6 +152,56 @@ describe('Main UT', () => {
     return { p, s };
   }
 
+  describe('assertCredentials()', () => {
+    async function registerAccount(getCredentialsExpiresAt: () => Promise<number | undefined>): Promise<void> {
+      const app = new App('test-app');
+      const account = new Account(AccountType.AWS, '123456789012');
+      app.addAccount(account);
+      jest.spyOn(account, 'getCredentialsExpiresAt').mockImplementation(getCredentialsExpiresAt);
+
+      const inputService = await Container.getInstance().get(InputService);
+      inputService.registerModel('account-module', account);
+    }
+
+    it('should throw error if the credentials cannot be resolved', async () => {
+      await registerAccount(async () => {
+        throw new Error('The SSO session has expired.');
+      });
+
+      await expect(testModes['octo'].assertCredentials(60_000)).rejects.toThrowErrorMatchingInlineSnapshot(
+        `"Account "123456789012" has no working credentials! The SSO session has expired."`,
+      );
+    });
+
+    it('should throw error if the credentials have ended', async () => {
+      await registerAccount(async () => Date.now() - 1000);
+
+      await expect(testModes['octo'].assertCredentials(60_000)).rejects.toThrowErrorMatchingInlineSnapshot(
+        `"Account "123456789012" credentials have ended! Sign in again."`,
+      );
+    });
+
+    it('should throw error if the credentials end within the minimum', async () => {
+      await registerAccount(async () => Date.now() + 4 * 60_000 + 30_000);
+
+      await expect(testModes['octo'].assertCredentials(15 * 60_000)).rejects.toThrowErrorMatchingInlineSnapshot(
+        `"Account "123456789012" credentials end in 5 minutes, before this command could finish! Sign in again."`,
+      );
+    });
+
+    it('should pass if the credentials outlast the minimum', async () => {
+      await registerAccount(async () => Date.now() + 60 * 60_000);
+
+      await expect(testModes['octo'].assertCredentials(15 * 60_000)).resolves.toBeUndefined();
+    });
+
+    it('should pass if nothing says the credentials end', async () => {
+      await registerAccount(async () => undefined);
+
+      await expect(testModes['octo'].assertCredentials(15 * 60_000)).resolves.toBeUndefined();
+    });
+  });
+
   describe('commit()', () => {
     it('should throw error if the app is not locked', async () => {
       const graph = await testModes.createResourceGraph();

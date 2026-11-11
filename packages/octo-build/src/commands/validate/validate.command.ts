@@ -48,6 +48,8 @@ export const validateCommand = {
       OctoUtility.prepareCallbackEnvironment();
 
       const { app, octo } = await OctoUtility.bootOcto();
+      await octo.assertCredentials(5 * 60_000);
+
       const terraformUtility = await Container.getInstance().get<TerraformUtility, any>(TerraformUtility, {
         args: [{ terraformBinary, terragruntBinary, timeoutInMs }, true],
       });

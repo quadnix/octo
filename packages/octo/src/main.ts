@@ -8,7 +8,7 @@ import type {
   UnknownResource,
 } from './app.type.js';
 import { EnableHook } from './decorators/enable-hook.decorator.js';
-import { ModuleError, TransactionError } from './errors/index.js';
+import { AccountCredentialsError, ModuleError, TransactionError } from './errors/index.js';
 import {
   CommitModeCompletedEvent,
   type ModeEventPayload,
@@ -22,6 +22,7 @@ import {
 } from './events/index.js';
 import { Container } from './functions/container/container.js';
 import { DiffMetadata } from './functions/diff/diff-metadata.js';
+import { Account } from './models/account/account.model.js';
 import { App } from './models/app/app.model.js';
 import { type ModelTransactionResult, applyModelTransaction } from './modes/apply-transaction.js';
 import { type TerraformOutputs, commit as runCommit } from './modes/commit.mode.js';
@@ -88,6 +89,44 @@ export class Octo {
   private schemaTranslationService: SchemaTranslationService;
   private stateManagementService: StateManagementService;
   private terraformService: TerraformService;
+
+  /**
+   * Refuses when an account the run reaches - this app's, or one read from an app it extends or
+   * stores - has credentials that cannot be resolved, or that end within `minimumRemainingInMs`.
+   * Call after {@link Octo.compose}.
+   *
+   * @throws {@link AccountCredentialsError} Naming the first such account.
+   */
+  async assertCredentials(minimumRemainingInMs: number): Promise<void> {
+    const accounts = this.inputService.getModels().filter((model): model is Account => model instanceof Account);
+
+    for (const account of accounts) {
+      let expiresAt: number | undefined;
+      try {
+        expiresAt = await account.getCredentialsExpiresAt();
+      } catch (error) {
+        throw new AccountCredentialsError(
+          `Account "${account.accountId}" has no working credentials! ${(error as Error).message}`,
+          account,
+        );
+      }
+
+      const remainingInMs = expiresAt === undefined ? Infinity : expiresAt - Date.now();
+      if (remainingInMs <= 0) {
+        throw new AccountCredentialsError(
+          `Account "${account.accountId}" credentials have ended! Sign in again.`,
+          account,
+        );
+      }
+      if (remainingInMs < minimumRemainingInMs) {
+        throw new AccountCredentialsError(
+          `Account "${account.accountId}" credentials end in ${Math.ceil(remainingInMs / 60_000)} minutes, ` +
+            `before this command could finish! Sign in again.`,
+          account,
+        );
+      }
+    }
+  }
 
   /**
    * The last step of the lifecycle - records the result of a `terraform apply` back into Octo's state.

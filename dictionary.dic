@@ -145,6 +145,7 @@ serverless
 sigv4
 sni
 ssl
+sso
 stderr
 stdin
 stdout

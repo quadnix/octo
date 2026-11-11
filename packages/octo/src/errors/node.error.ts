@@ -2,6 +2,7 @@ import type { UnknownModel, UnknownNode, UnknownOverlay, UnknownResource } from 
 import type { Dependency, IDependency } from '../functions/dependency/dependency.js';
 import type { Diff } from '../functions/diff/diff.js';
 import type { ANode } from '../functions/node/node.abstract.js';
+import type { Account } from '../models/account/account.model.js';
 import type { AResource } from '../resources/resource.abstract.js';
 
 /**
@@ -98,6 +99,27 @@ export class ModelError extends NodeError {
     super(message, model);
 
     Object.setPrototypeOf(this, ModelError.prototype);
+  }
+}
+
+/**
+ * Thrown when an account's credentials cannot be resolved, or end before a command could finish.
+ *
+ * @group Errors/Node
+ */
+export class AccountCredentialsError extends ModelError {
+  readonly accountId: string;
+
+  /**
+   * @param message The error message.
+   * @param account The account whose credentials were checked.
+   */
+  constructor(message: string, account: Account) {
+    super(message, account);
+
+    this.accountId = account.accountId;
+
+    Object.setPrototypeOf(this, AccountCredentialsError.prototype);
   }
 }
 

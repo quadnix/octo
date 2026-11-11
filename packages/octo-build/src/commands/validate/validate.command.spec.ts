@@ -26,10 +26,15 @@ const emptyReport = (): ValidateReport => ({
   uncertain: [],
 });
 
-const mockedBootOcto =
-  jest.fn<
-    () => Promise<{ app: unknown; octo: { validate: jest.Mock<(...args: unknown[]) => Promise<ValidateReport>> } }>
-  >();
+const mockedBootOcto = jest.fn<
+  () => Promise<{
+    app: unknown;
+    octo: {
+      assertCredentials: jest.Mock<(minimumRemainingInMs: number) => Promise<void>>;
+      validate: jest.Mock<(...args: unknown[]) => Promise<ValidateReport>>;
+    };
+  }>
+>();
 const mockedPrepareCallbackEnvironment = jest.fn<() => void>();
 const mockedReportError = jest.fn<(error: unknown) => void>();
 
@@ -59,6 +64,7 @@ describe('validateCommand UT', () => {
   const resolvedDir = resolve(process.cwd(), terragruntDir);
   const argv = { _: [], $0: 'octo', terragruntDir } as unknown as ArgumentsCamelCase<{ terragruntDir: string }>;
 
+  let assertCredentialsMock: jest.Mock<(minimumRemainingInMs: number) => Promise<void>>;
   let octoValidateMock: jest.Mock<(...args: unknown[]) => Promise<ValidateReport>>;
   let terraformUtilityMock: { plan: jest.Mock<() => Promise<TerraformPlanResult>> };
   let processExitSpy: jest.SpiedFunction<typeof process.exit>;
@@ -67,7 +73,11 @@ describe('validateCommand UT', () => {
 
   beforeEach(async () => {
     octoValidateMock = jest.fn<(...args: unknown[]) => Promise<ValidateReport>>().mockResolvedValue(emptyReport());
-    mockedBootOcto.mockResolvedValue({ app: {}, octo: { validate: octoValidateMock } });
+    assertCredentialsMock = jest.fn<(minimumRemainingInMs: number) => Promise<void>>().mockResolvedValue(undefined);
+    mockedBootOcto.mockResolvedValue({
+      app: {},
+      octo: { assertCredentials: assertCredentialsMock, validate: octoValidateMock },
+    });
 
     terraformUtilityMock = {
       plan: jest.fn<() => Promise<TerraformPlanResult>>().mockResolvedValue({ errors: new Map(), plans: new Map() }),
@@ -87,6 +97,16 @@ describe('validateCommand UT', () => {
 
   afterAll(async () => {
     await TestContainer.reset();
+  });
+
+  it("refuses to validate when an account's credentials end within five minutes", async () => {
+    assertCredentialsMock.mockRejectedValue(new Error('Account "123456789012" credentials have ended!'));
+
+    await validateCommand.handler(argv);
+
+    expect(assertCredentialsMock).toHaveBeenCalledWith(5 * 60_000);
+    expect(terraformUtilityMock.plan).not.toHaveBeenCalled();
+    expect(processExitSpy).toHaveBeenCalledWith(1);
   });
 
   it('hands the whole plan result to octo.validate() and prints its verdict', async () => {

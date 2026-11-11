@@ -28,6 +28,7 @@ export class OctoUtility {
   /**
    * Boots octo with every listener, hook, module and terraform provider the definition lists, on top
    * of every state it extends, next to every store it reads, and composes the app. Prints nothing, so stdout carries only the command's own output.
+   * Also returns how often terraform state is checked into the state provider during a terraform command.
    *
    * @param readImportsAsGenerated Whether the other apps are read as this run's `generate` read them,
    * as every command of a run but `generate` does.
@@ -35,6 +36,7 @@ export class OctoUtility {
   static async bootOcto({ readImportsAsGenerated = true }: { readImportsAsGenerated?: boolean } = {}): Promise<{
     app: App;
     octo: Octo;
+    stateCheckInIntervalInMs: number | undefined;
   }> {
     const definition = new YamlDefinitionUtility(OctoUtility.resolveDefinitionFilePath());
 
@@ -99,7 +101,7 @@ export class OctoUtility {
     // Register tags. A module-scoped tag names a module that only exists once compose has run it.
     octo.registerTags(tags);
 
-    return { app, octo };
+    return { app, octo, stateCheckInIntervalInMs: definition.resolveStateCheckInIntervalInMs() };
   }
 
   /**

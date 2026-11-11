@@ -98,6 +98,17 @@ export class Account extends AModel<AccountSchema, Account> {
   }
 
   /**
+   * When this account's credentials stop working, in Unix milliseconds, or `undefined` when nothing
+   * says they will. A command checks it before it starts, so a sign-in that ends mid-run fails the
+   * command first.
+   *
+   * @throws When the credentials cannot be resolved at all.
+   */
+  async getCredentialsExpiresAt(): Promise<number | undefined> {
+    return undefined;
+  }
+
+  /**
    * @internal
    */
   override setContext(): string | undefined {
