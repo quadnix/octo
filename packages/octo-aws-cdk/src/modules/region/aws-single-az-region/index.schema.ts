@@ -41,10 +41,10 @@ export class AwsSingleAzRegionModuleSchema {
   name = Schema<string>();
 
   /**
-   * The availability zone for the AWS region.
+   * The availability zone for the AWS region, one of {@link AwsSingleAzRegionId}.
    * The region will be created in this availability zone.
    */
-  @Validate({ options: { minLength: 1 } })
+  @Validate({ options: { regex: new RegExp(`^(${Object.values(AwsSingleAzRegionId).join('|')})$`) } })
   regionId = Schema<AwsSingleAzRegionId>();
 
   /**

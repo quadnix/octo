@@ -40,7 +40,7 @@ export class AwsMultiAzRegionModuleSchema {
   name = Schema<string>();
 
   /**
-   * The availability zones for the AWS region.
+   * The availability zones for the AWS region, each one of {@link AwsMultiAzRegionId}.
    * The region will be created in these availability zones.
    */
   @Validate([
@@ -49,7 +49,7 @@ export class AwsMultiAzRegionModuleSchema {
     },
     {
       destruct: (value: AwsMultiAzRegionModuleSchema['regionIds']): AwsMultiAzRegionId[] => value,
-      options: { minLength: 1 },
+      options: { regex: new RegExp(`^(${Object.values(AwsMultiAzRegionId).join('|')})$`) },
     },
   ])
   regionIds = Schema<AwsMultiAzRegionId[]>();

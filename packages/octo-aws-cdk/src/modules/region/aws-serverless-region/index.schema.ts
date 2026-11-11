@@ -40,8 +40,8 @@ export class AwsServerlessRegionModuleSchema {
   name = Schema<string>();
 
   /**
-   * The AWS region.
+   * The AWS region, one of {@link AwsServerlessRegionId}.
    */
-  @Validate({ options: { minLength: 1 } })
+  @Validate({ options: { regex: new RegExp(`^(${Object.values(AwsServerlessRegionId).join('|')})$`) } })
   regionId = Schema<AwsServerlessRegionId>();
 }

@@ -118,5 +118,26 @@ describe('AwsServerlessRegionModule UT', () => {
           .next(),
       ).rejects.toThrow('Region already exists!');
     });
+
+    it('should validate an AWS region it does not know', async () => {
+      await setup(testModuleContainer);
+
+      await expect(
+        testModuleContainer
+          .runModules<AwsServerlessRegionModule>(
+            {
+              inputs: {
+                account: stub('${{testModule.model.account}}'),
+                name: 'test-region',
+                regionId: 'aws-moon-1' as AwsServerlessRegionId,
+              },
+              moduleId: 'region',
+              type: AwsServerlessRegionModule,
+            },
+            { terraformTarget: 'skip' },
+          )
+          .next(),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "regionId" in schema could not be validated!"`);
+    });
   });
 });

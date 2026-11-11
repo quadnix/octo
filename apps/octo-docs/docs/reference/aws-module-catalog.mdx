@@ -53,7 +53,9 @@ Every import path follows that shape: the package, then `modules/<model-type>/<m
 Both region modules define a region as one VPC with an internet gateway. They differ in what the
 region publishes: a single-AZ region advertises one availability zone, a multi-AZ region advertises
 several, and that is what a subnet module reads when deciding where it can place itself. Their
-region IDs are Octo's own, `aws-eu-west-1a`, distinct from the AWS region.
+region IDs are Octo's own, `aws-eu-west-1a`, distinct from the AWS region. Each region module
+accepts only the regions it lists, so a misspelled one fails when the modules are composed rather
+than when the provider refuses it.
 
 `AwsServerlessRegionModule` is a region with no network: it creates nothing, and says only which AWS
 region its services are created in, as `aws-us-east-1`. It publishes a different shape from the
