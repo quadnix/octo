@@ -146,7 +146,7 @@ export class JsonEncodeHclNode extends HclExpression {
       }
 
       if (typeof value === 'string') {
-        return `"${value}"`;
+        return LiteralHclNode.quote(value);
       }
       if (typeof value !== 'object' || value === null) {
         return String(value);
@@ -163,8 +163,7 @@ export class JsonEncodeHclNode extends HclExpression {
       }
 
       const entries = Object.entries(value).map(([k, v]) => {
-        const key = /^[a-zA-Z_][a-zA-Z0-9_-]*$/.test(k) ? k : `"${k}"`;
-        return `${nextIndent}${key} = ${formatValue(v, nextIndent)}`;
+        return `${nextIndent}${LiteralHclNode.key(k)} = ${formatValue(v, nextIndent)}`;
       });
 
       return `{\n${entries.join('\n')}\n${indent}}`;
@@ -181,7 +180,7 @@ export class JsonEncodeHclNode extends HclExpression {
     }
 
     const body = Object.entries(this.subject)
-      .map(([k, v]) => `${innerIndent}${k} = ${formatValue(v, innerIndent)}`)
+      .map(([k, v]) => `${innerIndent}${LiteralHclNode.key(k)} = ${formatValue(v, innerIndent)}`)
       .join('\n');
 
     return `jsonencode({\n${body}\n${currentIndent}})`;
@@ -227,10 +226,34 @@ export class LiteralHclNode extends HclExpression {
   }
 
   /**
-   * Renders string with quotes, other values verbatim.
+   * Renders an identifier as is, any other key as a quoted string.
+   */
+  static key(name: string): string {
+    return /^[a-zA-Z_][a-zA-Z0-9_-]*$/.test(name) ? name : LiteralHclNode.quote(name);
+  }
+
+  /**
+   * Renders a quoted string terraform reads back unchanged: no escape, `${` or `%{` in it is syntax.
+   */
+  static quote(value: string): string {
+    const escaped = value
+      .replace(/\\/g, '\\\\')
+      .replace(/"/g, '\\"')
+      .replace(/\n/g, '\\n')
+      .replace(/\r/g, '\\r')
+      .replace(/\t/g, '\\t')
+      // eslint-disable-next-line no-control-regex
+      .replace(/[\u0000-\u001f]/g, (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`)
+      .replace(/\$\{/g, () => '$${')
+      .replace(/%\{/g, () => '%%{');
+    return `"${escaped}"`;
+  }
+
+  /**
+   * Renders a string quoted, other values verbatim.
    */
   override render(): string {
-    return typeof this.value === 'string' ? `"${this.value}"` : `${this.value}`;
+    return typeof this.value === 'string' ? LiteralHclNode.quote(this.value) : `${this.value}`;
   }
 }
 
@@ -259,7 +282,9 @@ export class MapHclNode extends HclExpression {
    */
   override render(indent: string, context: RenderContext): string {
     const nextIndent = indent + context.step;
-    const entries = this.entries.map(([k, v]) => `${nextIndent}${k} = ${v.render(nextIndent, context)}`);
+    const entries = this.entries.map(
+      ([k, v]) => `${nextIndent}${LiteralHclNode.key(k)} = ${v.render(nextIndent, context)}`,
+    );
     return `{\n${entries.join('\n')}\n${indent}}`;
   }
 }

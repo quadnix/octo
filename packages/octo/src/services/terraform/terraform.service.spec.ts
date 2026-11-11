@@ -343,6 +343,18 @@ describe('TerraformService UT', () => {
       expect(mappings[0].terraformAddresses).toEqual(['aws_vpc.vpc-1']);
     });
 
+    it('should escape a string terraform would read as syntax', () => {
+      const scope = service.scope('m1');
+      const bucket = new TestTerraformResource('bucket-1', {});
+      scope.addOctoTerraformResource(bucket).addTerraformResource('aws_s3_bucket', 'bucket-1', {
+        description: 'say "hi" \\ ${var.x} %{if}\n',
+      });
+
+      expect(service.renderAllModules().get('m1')!.mainTf).toContain(
+        'description = "say \\"hi\\" \\\\ $${var.x} %%{if}\\n"',
+      );
+    });
+
     it('should pin the resource to a provider context via options.provider', () => {
       service.addTerraformConfig({ providers: { aws: { source: 'hashicorp/aws' } } });
       service.addTerraformProvider('aws', '111111111', 'us-east-1');
@@ -796,6 +808,16 @@ describe('TerraformService UT', () => {
       expect(service.renderAllModules().get('m1')!.mainTf).toContain('vpc_id = aws_vpc.vpc-1.id');
     });
 
+    it('should escape a string and quote a key terraform would read as syntax', () => {
+      const scope = service.scope('m1');
+      const iamPolicy = new TestTerraformResource('policy-1', {});
+      scope.addOctoTerraformResource(iamPolicy).addTerraformResource('aws_iam_policy', 'policy-1', {
+        policy: scope.jsonencode({ Condition: { 'aws:SourceArn': 'a "b" ${c}' } }),
+      });
+
+      expect(service.renderAllModules().get('m1')!.mainTf).toContain('"aws:SourceArn" = "a \\"b\\" $${c}"');
+    });
+
     it('should separate the items of a list with commas', () => {
       const scope = service.scope('m1');
       const taskDefinition = new TestTerraformResource('task-definition-1', {});
@@ -870,6 +892,16 @@ describe('TerraformService UT', () => {
       expect(mainTf).not.toMatch(/tags \{[^=]/);
       expect(mainTf).toContain('Name = "my-instance"');
       expect(mainTf).toContain('Env = "prod"');
+    });
+
+    it('should quote a key that is not an identifier', () => {
+      const scope = service.scope('m1');
+      const instance = new TestTerraformResource('instance-1', {});
+      scope.addOctoTerraformResource(instance).addTerraformResource('aws_instance', 'instance-1', {
+        tags: scope.mapAttr({ 'team name': 'platform' }),
+      });
+
+      expect(service.renderAllModules().get('m1')!.mainTf).toContain('"team name" = "platform"');
     });
   });
 
