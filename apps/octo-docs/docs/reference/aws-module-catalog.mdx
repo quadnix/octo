@@ -445,7 +445,7 @@ A load balancer bills by the hour from the moment it exists, whether or not anyt
 | Module                   | Inputs                                                                                                            | Creates                            |
 |--------------------------|-------------------------------------------------------------------------------------------------------------------|------------------------------------|
 | `AwsEfsFilesystemModule` | `region`, `filesystemName`                                                                                        | EFS filesystem                     |
-| `AwsEcrImageModule`      | `imageFamily`, `imageName`, `regions`                                                                             | ECR repository, one per AWS region |
+| `AwsEcrImageModule`      | `imageFamily`, `imageName`, `regions`, `imageTagsToKeep?`                                                         | ECR repository, one per AWS region |
 | `AwsEcrImageTagModule`   | `image`, `imageTag`, `architecture`, `dockerfileDirectory`, `dockerfileName?`, `buildArguments?`, `buildSecrets?` | one published image per repository |
 
 An EFS filesystem belongs to a region; mounting it into a subnet is the subnet module's
@@ -465,7 +465,11 @@ tag modules as you have versions, and adding or removing one leaves the others a
 
 `imageTag` is the only input that decides what is published. A repository's tags are immutable, so
 editing `architecture`, `dockerfileDirectory`, `dockerfileName`, `buildArguments`, or `buildSecrets` publishes nothing: new content is a new tag, which
-is a new module. Changing the tag publishes the new one and deletes the old.
+is a new module. Changing the tag publishes the new one, and the old one stays in the repository to
+roll back to. Each repository keeps its `imageTagsToKeep` newest images, 5 by default, and ECR
+expires the older ones itself; count every tag still running from it. Changing the tag back to one
+the repository still holds publishes nothing and runs that image again. Once ECR has expired it,
+it is built and pushed from the source as it is now.
 
 `buildArguments` are passed to the build as `--build-arg`, for the Dockerfile's `ARG` instructions.
 They are kept in Octo's state, so a secret goes in `buildSecrets` instead, which maps each secret's

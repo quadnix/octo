@@ -31,6 +31,7 @@ function createEcrImageTag(imageTag: string = '0.0.1'): EcrImageTag {
     awsAccountId: '123456789012',
     awsRegionId: 'us-east-1',
     imageId: 'family/image',
+    imageTagsToKeep: 5,
   });
   Object.assign(ecrImage.response, {
     registryId: '123456789012',
@@ -62,7 +63,14 @@ describe('EcrImageTag UT', () => {
   let ecrClientSend: jest.Mock;
 
   beforeEach(async () => {
-    dockerService = { build: jest.fn(), push: jest.fn() };
+    // The repository holds the tag only once it was pushed.
+    let isPushed = false;
+    dockerService = {
+      build: jest.fn(),
+      push: jest.fn(async () => {
+        isPushed = true;
+      }),
+    };
     ecrClientSend = jest.fn(async (command: unknown) => {
       if (command instanceof GetAuthorizationTokenCommand) {
         return {
@@ -75,6 +83,11 @@ describe('EcrImageTag UT', () => {
         };
       }
       if (command instanceof DescribeImagesCommand) {
+        if (!isPushed) {
+          const error = new Error('The image does not exist');
+          error.name = 'ImageNotFoundException';
+          throw error;
+        }
         return { imageDetails: [{ imageDigest: IMAGE_DIGEST }] };
       }
       return {};
@@ -217,6 +230,29 @@ describe('EcrImageTag UT', () => {
       });
     });
 
+    it('should take a tag the repository already holds as it is, building nothing', async () => {
+      ecrClientSend.mockImplementation(async (command: unknown) =>
+        command instanceof DescribeImagesCommand ? { imageDetails: [{ imageDigest: IMAGE_DIGEST }] } : {},
+      );
+
+      const action = await container.get(AddEcrImageTagResourceAction);
+      const ecrImageTag = createEcrImageTag();
+
+      const response = await action.handle(
+        new Diff(ecrImageTag, DiffAction.ADD, 'resourceId', ecrImageTag.getContext()),
+      );
+
+      expect(dockerService.build).not.toHaveBeenCalled();
+      expect(dockerService.push).not.toHaveBeenCalled();
+      expect(response).toEqual({
+        imageDigest: IMAGE_DIGEST,
+        imageTag: '0.0.1',
+        imageUri: `${REPOSITORY_URI}:0.0.1`,
+        registryId: '123456789012',
+        repositoryName: 'family/image',
+      });
+    });
+
     it('should never remove anything from the registry', async () => {
       const action = await container.get(AddEcrImageTagResourceAction);
       const ecrImageTag = createEcrImageTag();
@@ -262,45 +298,13 @@ describe('EcrImageTag UT', () => {
       expect(action.filter(new Diff(ecrImageTag, DiffAction.ADD, 'resourceId', ecrImageTag.getContext()))).toBe(false);
     });
 
-    it('should throw error if ECR rejects the delete for any other reason', async () => {
-      ecrClientSend.mockImplementation(async () => {
-        const error = new Error('Rate exceeded');
-        error.name = 'ThrottlingException';
-        throw error;
-      });
-
-      const action = await container.get(DeleteEcrImageTagResourceAction);
-      const ecrImageTag = createEcrImageTag();
-
-      await expect(
-        action.handle(new Diff(ecrImageTag, DiffAction.DELETE, 'resourceId', ecrImageTag.getContext())),
-      ).rejects.toThrowErrorMatchingInlineSnapshot(`"Rate exceeded"`);
-    });
-
-    it('should treat a repository AWS no longer knows about as already deleted', async () => {
-      ecrClientSend.mockImplementation(async () => {
-        const error = new Error('The repository does not exist');
-        error.name = 'RepositoryNotFoundException';
-        throw error;
-      });
-
-      const action = await container.get(DeleteEcrImageTagResourceAction);
-      const ecrImageTag = createEcrImageTag();
-
-      await expect(
-        action.handle(new Diff(ecrImageTag, DiffAction.DELETE, 'resourceId', ecrImageTag.getContext())),
-      ).resolves.toBeUndefined();
-    });
-
-    it('should delete the published tag', async () => {
+    it('should keep the published tag, sending ECR nothing', async () => {
       const action = await container.get(DeleteEcrImageTagResourceAction);
       const ecrImageTag = createEcrImageTag();
 
       await action.handle(new Diff(ecrImageTag, DiffAction.DELETE, 'resourceId', ecrImageTag.getContext()));
 
-      const command = ecrClientSend.mock.calls[0][0] as BatchDeleteImageCommand;
-      expect(command).toBeInstanceOf(BatchDeleteImageCommand);
-      expect(command.input).toEqual({ imageIds: [{ imageTag: '0.0.1' }], repositoryName: 'family/image' });
+      expect(ecrClientSend).not.toHaveBeenCalled();
     });
   });
 });

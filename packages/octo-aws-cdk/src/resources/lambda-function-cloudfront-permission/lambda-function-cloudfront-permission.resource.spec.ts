@@ -63,6 +63,7 @@ function createPermission(distributionName = 'production-octo-web'): LambdaFunct
     awsAccountId: '999999999999',
     awsRegionId: 'us-east-1',
     imageId: 'commons/billing',
+    imageTagsToKeep: 5,
   });
   const ecrImageTag = new EcrImageTag(
     'ecr-image-tag-us-east-1-commons/billing-0-0-1',

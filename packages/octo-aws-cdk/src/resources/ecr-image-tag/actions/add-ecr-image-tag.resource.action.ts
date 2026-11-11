@@ -21,8 +21,9 @@ import type { EcrImageTagSchema } from '../index.schema.js';
  * Terraform runs this mid-apply, through the `local-exec` provisioner octo generates for an external
  * resource, once the `aws_ecr_repository` it depends on exists.
  *
- * It only ever publishes. A tag is immutable and is part of the resource id, so the tag it writes
- * holds nothing yet, and retiring an older one is the delete action's work on its own resource.
+ * It only ever publishes. A tag is immutable and is part of the resource id, so a tag the repository
+ * still holds, such as one retired and then rolled back to, is that image: it is taken as it is,
+ * and nothing is built.
  *
  * @internal
  */
@@ -81,6 +82,19 @@ export class AddEcrImageTagResourceAction extends ANodeAction implements IResour
       }),
     ]);
 
+    // Take a tag the repository still holds as it is.
+    const publishedImage = await this.describeImage(ecrClient, ecrImageResponse.repositoryName!, properties.imageTag);
+    if (publishedImage) {
+      this.log(diff, `"${properties.imageId}:${properties.imageTag}" is already published`);
+      return {
+        imageDigest: publishedImage,
+        imageTag: properties.imageTag,
+        imageUri,
+        registryId: ecrImageResponse.registryId,
+        repositoryName: ecrImageResponse.repositoryName,
+      };
+    }
+
     // Get the registry's credentials, which each docker command is handed on its own.
     const { authorizationData } = await ecrClient.send(new GetAuthorizationTokenCommand({}));
     const authorizationToken = authorizationData?.[0]?.authorizationToken;
@@ -113,13 +127,7 @@ export class AddEcrImageTagResourceAction extends ANodeAction implements IResour
     await dockerService.push(imageUri, credentials, log);
 
     // Read back the digest AWS assigned, which is the image's real identity.
-    const { imageDetails } = await ecrClient.send(
-      new DescribeImagesCommand({
-        imageIds: [{ imageTag: properties.imageTag }],
-        repositoryName: ecrImageResponse.repositoryName,
-      }),
-    );
-    const imageDigest = imageDetails?.[0]?.imageDigest;
+    const imageDigest = await this.describeImage(ecrClient, ecrImageResponse.repositoryName!, properties.imageTag);
     if (!imageDigest) {
       throw new Error(
         `ECR reports no image under tag "${properties.imageTag}" of repository "${ecrImageResponse.repositoryName}"!`,
@@ -133,6 +141,27 @@ export class AddEcrImageTagResourceAction extends ANodeAction implements IResour
       registryId: ecrImageResponse.registryId,
       repositoryName: ecrImageResponse.repositoryName,
     };
+  }
+
+  /**
+   * The digest of the image the repository holds under `imageTag`, or `undefined` when it holds none.
+   */
+  private async describeImage(
+    ecrClient: ECRClient,
+    repositoryName: string,
+    imageTag: string,
+  ): Promise<string | undefined> {
+    try {
+      const { imageDetails } = await ecrClient.send(
+        new DescribeImagesCommand({ imageIds: [{ imageTag }], repositoryName }),
+      );
+      return imageDetails?.[0]?.imageDigest;
+    } catch (error) {
+      if (error.name === 'ImageNotFoundException') {
+        return undefined;
+      }
+      throw error;
+    }
   }
 }
 

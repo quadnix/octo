@@ -27,6 +27,14 @@ export class AwsEcrImageModuleSchema {
   imageName = Schema<string>();
 
   /**
+   * How many images each repository keeps, the newest by push time. ECR expires older ones itself,
+   * so a retired tag stays to roll back to until this many newer ones were published. Count every
+   * tag still deployed from the repository.
+   */
+  @Validate({ options: { minLength: 1 } })
+  imageTagsToKeep? = Schema<number>(5);
+
+  /**
    * The AWS regions where the ECR repositories will be created.
    * The image will be available in all specified regions for multi-region deployments.
    * Each region is one with a network or a serverless one.

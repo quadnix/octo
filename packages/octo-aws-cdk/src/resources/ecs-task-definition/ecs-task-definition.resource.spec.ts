@@ -15,6 +15,7 @@ function createEcrImageTag(): EcrImageTag {
     awsAccountId: '123456789012',
     awsRegionId: 'us-east-1',
     imageId: 'family/image',
+    imageTagsToKeep: 5,
   });
 
   return new EcrImageTag(

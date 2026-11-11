@@ -23,6 +23,7 @@ export class EcrImageSchema extends BaseResourceSchema {
    * * `properties.awsRegionId` - The AWS region ID.
    * * `properties.imageId` - This is the name of the ECR repository.
    * The id usually follows the naming convention of `family/name`, e.g. `quadnix/nginx`.
+   * * `properties.imageTagsToKeep` - How many images the repository keeps, the newest by push time.
    */
   @Validate({
     destruct: (value: EcrImageSchema['properties']): string[] => [value.awsAccountId, value.awsRegionId, value.imageId],
@@ -32,6 +33,7 @@ export class EcrImageSchema extends BaseResourceSchema {
     awsAccountId: string;
     awsRegionId: string;
     imageId: string;
+    imageTagsToKeep: number;
   }>();
 
   /**

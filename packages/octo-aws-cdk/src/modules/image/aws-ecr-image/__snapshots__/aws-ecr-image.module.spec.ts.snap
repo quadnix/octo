@@ -2,6 +2,50 @@
 
 exports[`AwsEcrImageModule UT input changes should handle imageFamily change 1`] = `
 "+ image/main.tf
+resource "aws_ecr_lifecycle_policy" "ecr-us-east-1-changed-family_image-b1f33b-lifecycle-policy" {
+  provider = aws._123-us-east-1
+  policy = jsonencode({
+    rules = [{
+        action = {
+          type = "expire"
+        }
+        description = "Keep the 5 newest images."
+        rulePriority = 1
+        selection = {
+          countNumber = 5
+          countType = "imageCountMoreThan"
+          tagStatus = "any"
+        }
+      }]
+  })
+  repository = aws_ecr_repository.ecr-us-east-1-changed-family_image-b1f33b.name
+
+  depends_on = [aws_ecr_repository.ecr-us-east-1-changed-family_image-b1f33b]
+}
+
+- image/main.tf
+resource "aws_ecr_lifecycle_policy" "ecr-us-east-1-family_image-b1f33b-lifecycle-policy" {
+  provider = aws._123-us-east-1
+  policy = jsonencode({
+    rules = [{
+        action = {
+          type = "expire"
+        }
+        description = "Keep the 5 newest images."
+        rulePriority = 1
+        selection = {
+          countNumber = 5
+          countType = "imageCountMoreThan"
+          tagStatus = "any"
+        }
+      }]
+  })
+  repository = aws_ecr_repository.ecr-us-east-1-family_image-b1f33b.name
+
+  depends_on = [aws_ecr_repository.ecr-us-east-1-family_image-b1f33b]
+}
+
++ image/main.tf
 resource "aws_ecr_repository" "ecr-us-east-1-changed-family_image-b1f33b" {
   provider = aws._123-us-east-1
   force_delete = true
@@ -66,6 +110,50 @@ output "ecr-us-east-1-family_image-b1f33b-repositoryUri" {
 
 exports[`AwsEcrImageModule UT input changes should handle imageName change 1`] = `
 "+ image/main.tf
+resource "aws_ecr_lifecycle_policy" "ecr-us-east-1-family_changed-image-b1f33b-lifecycle-policy" {
+  provider = aws._123-us-east-1
+  policy = jsonencode({
+    rules = [{
+        action = {
+          type = "expire"
+        }
+        description = "Keep the 5 newest images."
+        rulePriority = 1
+        selection = {
+          countNumber = 5
+          countType = "imageCountMoreThan"
+          tagStatus = "any"
+        }
+      }]
+  })
+  repository = aws_ecr_repository.ecr-us-east-1-family_changed-image-b1f33b.name
+
+  depends_on = [aws_ecr_repository.ecr-us-east-1-family_changed-image-b1f33b]
+}
+
+- image/main.tf
+resource "aws_ecr_lifecycle_policy" "ecr-us-east-1-family_image-b1f33b-lifecycle-policy" {
+  provider = aws._123-us-east-1
+  policy = jsonencode({
+    rules = [{
+        action = {
+          type = "expire"
+        }
+        description = "Keep the 5 newest images."
+        rulePriority = 1
+        selection = {
+          countNumber = 5
+          countType = "imageCountMoreThan"
+          tagStatus = "any"
+        }
+      }]
+  })
+  repository = aws_ecr_repository.ecr-us-east-1-family_image-b1f33b.name
+
+  depends_on = [aws_ecr_repository.ecr-us-east-1-family_image-b1f33b]
+}
+
++ image/main.tf
 resource "aws_ecr_repository" "ecr-us-east-1-family_changed-image-b1f33b" {
   provider = aws._123-us-east-1
   force_delete = true
@@ -134,6 +222,28 @@ provider "aws" {
   alias = "_123-us-east-1"
   region = "us-east-1"
   allowed_account_ids = ["123"]
+}
+
+- image/main.tf
+resource "aws_ecr_lifecycle_policy" "ecr-us-east-1-family_image-b1f33b-lifecycle-policy" {
+  provider = aws._123-us-east-1
+  policy = jsonencode({
+    rules = [{
+        action = {
+          type = "expire"
+        }
+        description = "Keep the 5 newest images."
+        rulePriority = 1
+        selection = {
+          countNumber = 5
+          countType = "imageCountMoreThan"
+          tagStatus = "any"
+        }
+      }]
+  })
+  repository = aws_ecr_repository.ecr-us-east-1-family_image-b1f33b.name
+
+  depends_on = [aws_ecr_repository.ecr-us-east-1-family_image-b1f33b]
 }
 
 - image/main.tf
@@ -224,6 +334,28 @@ provider "aws" {
 }
 
 - image-1/main.tf
+resource "aws_ecr_lifecycle_policy" "ecr-us-east-1-family_image-b1f33b-lifecycle-policy" {
+  provider = aws._123-us-east-1
+  policy = jsonencode({
+    rules = [{
+        action = {
+          type = "expire"
+        }
+        description = "Keep the 5 newest images."
+        rulePriority = 1
+        selection = {
+          countNumber = 5
+          countType = "imageCountMoreThan"
+          tagStatus = "any"
+        }
+      }]
+  })
+  repository = aws_ecr_repository.ecr-us-east-1-family_image-b1f33b.name
+
+  depends_on = [aws_ecr_repository.ecr-us-east-1-family_image-b1f33b]
+}
+
+- image-1/main.tf
 resource "aws_ecr_repository" "ecr-us-east-1-family_image-b1f33b" {
   provider = aws._123-us-east-1
   force_delete = true
@@ -285,6 +417,28 @@ provider "aws" {
   alias = "_123-us-east-1"
   region = "us-east-1"
   allowed_account_ids = ["123"]
+}
+
++ image-2/main.tf
+resource "aws_ecr_lifecycle_policy" "ecr-us-east-1-family_image-b1f33b-lifecycle-policy" {
+  provider = aws._123-us-east-1
+  policy = jsonencode({
+    rules = [{
+        action = {
+          type = "expire"
+        }
+        description = "Keep the 5 newest images."
+        rulePriority = 1
+        selection = {
+          countNumber = 5
+          countType = "imageCountMoreThan"
+          tagStatus = "any"
+        }
+      }]
+  })
+  repository = aws_ecr_repository.ecr-us-east-1-family_image-b1f33b.name
+
+  depends_on = [aws_ecr_repository.ecr-us-east-1-family_image-b1f33b]
 }
 
 + image-2/main.tf

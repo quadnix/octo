@@ -1,15 +1,9 @@
-import { BatchDeleteImageCommand, ECRClient } from '@aws-sdk/client-ecr';
 import { ANodeAction, Action, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
-import type { ECRClientFactory } from '../../../factories/aws-client.factory.js';
 import { EcrImageTag } from '../ecr-image-tag.resource.js';
 
 /**
- * Removes the published image from its repository.
- *
- * `octo commit` runs this, from the project directory, after terraform has destroyed the
- * `null_resource` that stood in for the image. A repository being destroyed in the same run is gone
- * by then, taking its images with it, so a repository or image AWS no longer knows about is treated
- * as already deleted rather than as a failure.
+ * Retires a published image, which stays in its repository to roll back to. The repository's
+ * lifecycle policy expires it once `imageTagsToKeep` newer images were published.
  *
  * @internal
  */
@@ -38,30 +32,8 @@ export class DeleteEcrImageTagResourceAction extends ANodeAction implements IRes
    * @internal
    */
   async handle(diff: Diff<EcrImageTag>): Promise<void> {
-    // Get properties.
-    const ecrImageTag = diff.node;
-    const properties = ecrImageTag.properties;
-
-    // Get instances.
-    const ecrClient = await this.container.get<ECRClient, typeof ECRClientFactory>(ECRClient, {
-      args: [properties.awsAccountId, properties.awsRegionId],
-      metadata: { package: '@octo' },
-    });
-
-    // Delete the image.
-    this.log(diff, `Deleting "${properties.imageId}:${properties.imageTag}"`);
-    try {
-      await ecrClient.send(
-        new BatchDeleteImageCommand({
-          imageIds: [{ imageTag: properties.imageTag }],
-          repositoryName: properties.imageId,
-        }),
-      );
-    } catch (error) {
-      if (error.name !== 'RepositoryNotFoundException' && error.name !== 'ImageNotFoundException') {
-        throw error;
-      }
-    }
+    const properties = diff.node.properties;
+    this.log(diff, `Keeping "${properties.imageId}:${properties.imageTag}" until the repository expires it`);
   }
 }
 

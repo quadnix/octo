@@ -48,6 +48,7 @@ export class AddAwsEcrImageModelAction implements IModelAction<AwsEcrImageModule
         awsAccountId,
         awsRegionId,
         imageId: image.imageId,
+        imageTagsToKeep: actionInputs.inputs.imageTagsToKeep!,
       });
 
       actionOutputs[ecrImage.resourceId] = ecrImage;

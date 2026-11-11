@@ -23,7 +23,7 @@ export class EcrImage extends ATerraformResource<EcrImageSchema, EcrImage> {
    * @internal
    */
   override async diffProperties(previous: EcrImage): Promise<Diff[]> {
-    if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties)) {
+    if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties, ['imageTagsToKeep'])) {
       return [
         new Diff(
           this,
@@ -35,7 +35,7 @@ export class EcrImage extends ATerraformResource<EcrImageSchema, EcrImage> {
       ];
     }
 
-    return [];
+    return super.diffProperties(previous);
   }
 
   /**
@@ -51,6 +51,25 @@ export class EcrImage extends ATerraformResource<EcrImageSchema, EcrImage> {
       image_scanning_configuration: { scan_on_push: false },
       image_tag_mutability: 'IMMUTABLE',
       name: this.properties.imageId,
+    });
+
+    // ECR expires every image past the newest `imageTagsToKeep`.
+    ecrImageOctoResource.addTerraformResource('aws_ecr_lifecycle_policy', `${this.resourceId}-lifecycle-policy`, {
+      policy: terraform.jsonencode({
+        rules: [
+          {
+            action: { type: 'expire' },
+            description: `Keep the ${this.properties.imageTagsToKeep} newest images.`,
+            rulePriority: 1,
+            selection: {
+              countNumber: this.properties.imageTagsToKeep,
+              countType: 'imageCountMoreThan',
+              tagStatus: 'any',
+            },
+          },
+        ],
+      }),
+      repository: terraform.raw(`${ecrImageTFResource.address}.name`),
     });
 
     ecrImageOctoResource.output({

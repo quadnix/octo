@@ -41,6 +41,7 @@ function createParents(
     awsAccountId: '123456789012',
     awsRegionId: 'us-east-1',
     imageId: 'family/image',
+    imageTagsToKeep: 5,
   });
   const ecrImageTag = new EcrImageTag(
     `ecr-image-tag-us-east-1-family/image-${imageTag.replace(/[^\w-]/g, '-')}`,

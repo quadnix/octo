@@ -15,7 +15,14 @@ const AUTHORIZATION_TOKEN = Buffer.from('AWS:password').toString('base64');
 let dockerService: { build: jest.Mock; push: jest.Mock };
 
 function createPublishingMocks(): { mocks: Parameters<typeof TestContainer.create>[0]['mocks'] } {
-  dockerService = { build: jest.fn(), push: jest.fn() };
+  // The repository holds the tag only once it was pushed.
+  let isPushed = false;
+  dockerService = {
+    build: jest.fn(),
+    push: jest.fn(async () => {
+      isPushed = true;
+    }),
+  };
 
   return {
     mocks: [
@@ -31,7 +38,7 @@ function createPublishingMocks(): { mocks: Parameters<typeof TestContainer.creat
               };
             }
             if (command instanceof DescribeImagesCommand) {
-              return { imageDetails: [{ imageDigest: 'sha256:0123456789abcdef' }] };
+              return { imageDetails: isPushed ? [{ imageDigest: 'sha256:0123456789abcdef' }] : [] };
             }
             return {};
           }),
@@ -80,6 +87,7 @@ async function setup(
           awsAccountId: '123',
           awsRegionId,
           imageId: image.imageId,
+          imageTagsToKeep: 5,
         }),
     ),
     { save: true },

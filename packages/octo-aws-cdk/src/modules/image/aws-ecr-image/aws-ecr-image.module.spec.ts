@@ -91,6 +91,27 @@ describe('AwsEcrImageModule UT', () => {
        name = "family/image"
      }
 
+     resource "aws_ecr_lifecycle_policy" "ecr-us-east-1-family_image-b1f33b-lifecycle-policy" {
+       provider = aws._123-us-east-1
+       policy = jsonencode({
+         rules = [{
+             action = {
+               type = "expire"
+             }
+             description = "Keep the 5 newest images."
+             rulePriority = 1
+             selection = {
+               countNumber = 5
+               countType = "imageCountMoreThan"
+               tagStatus = "any"
+             }
+           }]
+       })
+       repository = aws_ecr_repository.ecr-us-east-1-family_image-b1f33b.name
+
+       depends_on = [aws_ecr_repository.ecr-us-east-1-family_image-b1f33b]
+     }
+
      # image/outputs.tf
      output "ecr-us-east-1-family_image-b1f33b-registryId" {
        value = aws_ecr_repository.ecr-us-east-1-family_image-b1f33b.registry_id
@@ -391,6 +412,48 @@ describe('AwsEcrImageModule UT', () => {
        [
          "- @octo/ecr-image=ecr-us-east-1-family/image-b1f33b",
          "+ @octo/ecr-image=ecr-us-east-1-family/changed-image-b1f33b",
+       ]
+      `);
+    });
+
+    it('should handle imageTagsToKeep change in place', async () => {
+      await setup(testModuleContainer);
+      await testModuleContainer
+        .runModules<AwsEcrImageModule>(
+          {
+            inputs: {
+              imageFamily: 'family',
+              imageName: 'image',
+              regions: [stub('${{testModule.model.region}}')],
+            },
+            moduleId: 'image',
+            type: AwsEcrImageModule,
+          },
+          { terraformTarget: 'skip' },
+        )
+        .next();
+
+      await setup(testModuleContainer);
+      const { resourceDiffs } = (
+        await testModuleContainer
+          .runModules<AwsEcrImageModule>(
+            {
+              inputs: {
+                imageFamily: 'family',
+                imageName: 'image',
+                imageTagsToKeep: 20,
+                regions: [stub('${{testModule.model.region}}')],
+              },
+              moduleId: 'image',
+              type: AwsEcrImageModule,
+            },
+            { terraformTarget: 'skip' },
+          )
+          .next()
+      ).value!;
+      expect(testModuleContainer.digestDiffs(resourceDiffs)).toMatchInlineSnapshot(`
+       [
+         "* @octo/ecr-image=ecr-us-east-1-family/image-b1f33b",
        ]
       `);
     });

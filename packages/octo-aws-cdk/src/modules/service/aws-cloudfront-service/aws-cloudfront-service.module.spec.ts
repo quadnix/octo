@@ -126,6 +126,7 @@ async function setupLambdaFunction(
       awsAccountId: '123',
       awsRegionId,
       imageId: 'family/image',
+      imageTagsToKeep: 5,
     });
     const ecrImageTag = new EcrImageTag(
       `ecr-image-tag-${awsRegionId}-family/image-0-0-1`,

@@ -201,6 +201,27 @@ resource "aws_ecr_repository" "ecr-us-east-1-family_image" {
   name = "family/image"
 }
 
+resource "aws_ecr_lifecycle_policy" "ecr-us-east-1-family_image-lifecycle-policy" {
+  provider = aws._123-us-east-1
+  policy = jsonencode({
+    rules = [{
+        action = {
+          type = "expire"
+        }
+        description = "Keep the 5 newest images."
+        rulePriority = 1
+        selection = {
+          countNumber = 5
+          countType = "imageCountMoreThan"
+          tagStatus = "any"
+        }
+      }]
+  })
+  repository = aws_ecr_repository.ecr-us-east-1-family_image.name
+
+  depends_on = [aws_ecr_repository.ecr-us-east-1-family_image]
+}
+
 # testModule/outputs.tf
 output "ecr-us-east-1-family_image-registryId" {
   value = aws_ecr_repository.ecr-us-east-1-family_image.registry_id
