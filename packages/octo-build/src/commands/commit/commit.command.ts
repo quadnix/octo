@@ -75,23 +75,29 @@ export const commitCommand = {
       // Read the outputs of every folder from its terraform state.
       const outputs = await terraformUtility.output(resolvedDir, { json: true });
 
-      // A partial commit confirms only the folders whose plan is now empty. A folder whose apply failed
-      // still reads the outputs of its last apply, which would record what never reached the cloud.
+      // A folder whose apply failed still reads the outputs of its last apply, which would record what
+      // never reached the cloud, so only a folder whose plan is now empty is applied. A partial commit
+      // leaves the others out; a full one refuses while any remain.
+      const { errors, plans } = await terraformUtility.plan(resolvedDir, { json: true });
+      const pendingModuleIds = [...new Set([...plans.keys(), ...errors.keys()])].filter(
+        (moduleId) =>
+          errors.has(moduleId) ||
+          !(plans.get(moduleId)?.resource_changes ?? []).every(
+            (resourceChange) =>
+              resourceChange.mode === 'data' ||
+              (resourceChange.change?.actions ?? []).every((action) => action === 'no-op' || action === 'read'),
+          ),
+      );
       if (partial) {
-        const { errors, plans } = await terraformUtility.plan(resolvedDir, { json: true });
-        for (const moduleId of [...outputs.keys()]) {
-          const isApplied =
-            !errors.has(moduleId) &&
-            (plans.get(moduleId)?.resource_changes ?? []).every(
-              (resourceChange) =>
-                resourceChange.mode === 'data' ||
-                (resourceChange.change?.actions ?? []).every((action) => action === 'no-op' || action === 'read'),
-            );
-          if (!isApplied) {
-            outputs.delete(moduleId);
-            console.error(chalk.yellow(`WARN [${moduleId}] Its plan still holds changes, so none of it is committed`));
-          }
+        for (const moduleId of pendingModuleIds.filter((moduleId) => outputs.has(moduleId))) {
+          outputs.delete(moduleId);
+          console.error(chalk.yellow(`WARN [${moduleId}] Its plan still holds changes, so none of it is committed`));
         }
+      } else if (pendingModuleIds.length > 0) {
+        throw new Error(
+          `Folders ${pendingModuleIds.map((moduleId) => `"${moduleId}"`).join(', ')} still hold changes, ` +
+            'so their apply did not finish! Run "octo apply" again, or "octo commit --partial" to record what applied.',
+        );
       }
 
       // Without a lock id, the lock this app holds is the run's.

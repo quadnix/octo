@@ -382,6 +382,12 @@ Every commit that fails keeps the lock and leaves Octo state unchanged, so the f
 the same commit with the same `--lockId`. [Recovering a Failed
 Run](/docs/using-octo/recovering-a-failed-run#the-commit-failed) walks through each case.
 
+**`Folders "..." still hold changes, so their apply did not finish!`**
+
+Commit plans every folder before it records anything, and these still plan changes: the apply
+before it failed, was interrupted, or never ran. Run `octo apply` again and commit, or run
+`octo commit --partial` to record the folders that did apply and leave these out.
+
 **`Cannot commit: missing terraform outputs (partial apply?)`**
 
 Some folders never produced their outputs. Usually the apply did not finish: `octo commit --partial`

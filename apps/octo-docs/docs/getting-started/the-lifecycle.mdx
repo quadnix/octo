@@ -133,8 +133,9 @@ Commit reads what the apply produced, the ARNs and IDs and endpoints the provide
 records them as [state](/docs/fundamentals/state). It is also the step that ends a run, so a commit
 that succeeds releases the app lock.
 
-It is all or nothing. If an expected output is missing, which is what a partial apply looks like,
-commit throws before touching state rather than writing half a record, and keeps the lock, so
+It is all or nothing. It plans every folder first, and if a plan still holds changes or an expected
+output is missing, which is what a partial apply looks like, commit throws before touching state
+rather than writing half a record, and keeps the lock, so
 running it again once you have fixed the apply is safe. After an apply that failed and is not going
 to succeed as it stands, `--partial` records the half that was built and reports what it skipped.
 [Recovering a Failed Run](/docs/using-octo/recovering-a-failed-run) covers every way a run can stop

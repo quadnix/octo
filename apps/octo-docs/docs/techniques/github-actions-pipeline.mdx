@@ -411,7 +411,7 @@ concurrency:
 ```
 
 Every deployment ends in a commit, whatever the apply did, because `commit` is what writes down what
-was built and what releases the lock. `--partial` is for the apply that failed: it drops the check
-that every declared output came back, which is safe only once the apply is already known to be
-incomplete. A successful apply commits without it, so an output that never arrived is still an
-error rather than a warning.
+was built and what releases the lock. `--partial` is for the apply that failed: it leaves out the
+folders whose plan still holds changes instead of refusing, and drops the check that every declared
+output came back, which is safe only once the apply is already known to be incomplete. A successful
+apply commits without it, so a folder that did not apply is still an error rather than a warning.

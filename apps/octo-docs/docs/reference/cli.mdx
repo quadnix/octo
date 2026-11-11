@@ -119,8 +119,9 @@ spelling, and these pages use the hyphenated one because it matches Terraform's.
 
 ### commit
 
-Reads every folder's Terraform outputs and records them into Octo's state. All or nothing: a missing
-or null output throws before any state is written.
+Plans every folder, then reads every folder's Terraform outputs and records them into Octo's state.
+All or nothing: a folder whose plan still holds changes, or a missing or null output, throws before
+any state is written.
 
 | Flag                 |               |                                                                      |
 |----------------------|---------------|----------------------------------------------------------------------|
@@ -135,9 +136,12 @@ This is the command that ends a run, so a commit that succeeds **releases the lo
 throws keeps it: fix what it reported and run `commit` again. A normal run
 never leaves a lock behind.
 
-`--partial` is for after an apply that failed. It plans every folder first, and records only the
-folders whose plan is now empty: a folder whose apply failed still holds the outputs of its last
-apply, which would otherwise record a change that never reached the cloud. Within those folders it
+A folder whose apply failed still holds the outputs of its last apply, which would record a change
+that never reached the cloud, so a commit refuses while any folder's plan holds changes. That takes
+one plan of every folder, the same plan `validate` runs.
+
+`--partial` is for after an apply that failed. It records only the folders whose plan is now empty,
+and names each folder it leaves out. Within those folders it
 records every resource whose outputs did all resolve. Every other resource, and every resource
 standing on one, keeps what the last commit recorded of it, or stays out of Octo's state if it was
 never committed. Those come back as warnings

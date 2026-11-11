@@ -199,10 +199,51 @@ describe('commitCommand UT', () => {
     );
   });
 
-  it('should plan nothing on a full commit', async () => {
+  it("should refuse a full commit while a folder's plan still holds changes", async () => {
+    terraformUtilityMock.plan.mockResolvedValue({
+      errors: new Map([['unplanned', 'Error: no plan']]),
+      plans: new Map([
+        ['applied', { resource_changes: [{ address: 'aws_s3_bucket.a', change: { actions: ['no-op'] } }] }],
+        ['failed', { resource_changes: [{ address: 'aws_s3_object.b', change: { actions: ['create'] } }] }],
+      ]),
+    });
+
     await commitCommand.handler(argv);
 
-    expect(terraformUtilityMock.plan).not.toHaveBeenCalled();
+    expect(octoCommitMock).not.toHaveBeenCalled();
+    expect(stateManagementServiceMock.unlockApp).not.toHaveBeenCalled();
+    expect(mockedReportError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message:
+          'Folders "failed", "unplanned" still hold changes, so their apply did not finish! Run "octo apply" ' +
+          'again, or "octo commit --partial" to record what applied.',
+      }),
+    );
+    expect(processExitSpy).toHaveBeenCalledWith(1);
+  });
+
+  it('should commit every folder when each plan is empty', async () => {
+    const outputs = new Map([['applied', { a: { value: 'a' } }]]);
+    terraformUtilityMock.output.mockResolvedValue(outputs);
+    terraformUtilityMock.plan.mockResolvedValue({
+      errors: new Map(),
+      plans: new Map([
+        [
+          'applied',
+          {
+            resource_changes: [
+              { address: 'aws_s3_bucket.a', change: { actions: ['no-op'] } },
+              { address: 'data.external.b', change: { actions: ['read'] }, mode: 'data' },
+            ],
+          },
+        ],
+      ]),
+    });
+
+    await commitCommand.handler(argv);
+
+    expect(octoCommitMock).toHaveBeenCalledWith({}, { lockId, outputs, partial: undefined });
+    expect(stateManagementServiceMock.unlockApp).toHaveBeenCalledWith(lockId);
   });
 
   it('should print warnings from the commit result', async () => {

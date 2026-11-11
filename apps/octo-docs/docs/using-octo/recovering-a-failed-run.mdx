@@ -107,7 +107,12 @@ Cannot commit: missing terraform outputs (partial apply?): receipts-module/bucke
 ```
 
 That one means the apply before it did not finish: run the same commit again with `--partial`, and
-carry on from step 2 of [The apply failed](#the-apply-failed).
+carry on from step 2 of [The apply failed](#the-apply-failed). So does this one, which a commit
+reports when a folder's plan still holds what the apply was meant to change:
+
+```text
+Folders "receipts-module" still hold changes, so their apply did not finish! Run "octo apply" again, or "octo commit --partial" to record what applied.
+```
 
 Any other error names what stopped it: a null output from a resource that did not come up, or the
 delete action of an [external resource](/docs/building-modules/create-an-external-resource) that
