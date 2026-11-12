@@ -197,29 +197,57 @@ describe('Main E2E', () => {
     expect(Object.keys(await readCommittedResponses()).sort()).toEqual(['0.0.1', '0.0.2']);
   });
 
-  it('should delete only the version it stops declaring', async () => {
+  // A retired version stays in the repository, to roll back to, until its lifecycle policy expires it.
+  it('should keep a version it stops declaring, and stop recording it', async () => {
     const definitionFilePath = await OctoCliUtility.writeDefinition(__dirname, 'one-version-dropped', (definition) => {
       definition.modules = definition.modules.filter((m) => m.moduleId !== 'image-tag-module');
       definition.modules.push(imageTagModule('image-tag-module-2', { imageTag: '0.0.2' }));
     });
     await OctoCliUtility.lifecycle(__dirname, definitionFilePath, environment);
 
-    expect(await imageRepository.getImageDigest(REPOSITORY_NAME, '0.0.1')).toBeNull();
+    expect(await imageRepository.getImageDigest(REPOSITORY_NAME, '0.0.1')).toMatch(/^sha256:/);
     expect(await imageRepository.getImageDigest(REPOSITORY_NAME, '0.0.2')).toMatch(/^sha256:/);
-    // The repository itself is untouched by a version leaving it.
-    expect(await imageRepository.hasRepository(REPOSITORY_NAME)).toBe(true);
+    expect(Object.keys(await readCommittedResponses())).toEqual(['0.0.2']);
   });
 
-  it('should delete the old version and publish the new one when the tag is edited in place', async () => {
+  it('should publish the new version and keep the old one when the tag is edited in place', async () => {
     const definitionFilePath = await OctoCliUtility.writeDefinition(__dirname, 'tag-edited', (definition) => {
       definition.modules = definition.modules.filter((m) => m.moduleId !== 'image-tag-module');
       definition.modules.push(imageTagModule('image-tag-module-2', { imageTag: '0.0.3' }));
     });
     await OctoCliUtility.lifecycle(__dirname, definitionFilePath, environment);
 
-    expect(await imageRepository.getImageDigest(REPOSITORY_NAME, '0.0.2')).toBeNull();
+    expect(await imageRepository.getImageDigest(REPOSITORY_NAME, '0.0.2')).toMatch(/^sha256:/);
     expect(await imageRepository.getImageDigest(REPOSITORY_NAME, '0.0.3')).toMatch(/^sha256:/);
     expect(Object.keys(await readCommittedResponses())).toEqual(['0.0.3']);
+  });
+
+  it('should roll back to a version the repository still holds without building it', async () => {
+    const retainedDigest = await imageRepository.getImageDigest(REPOSITORY_NAME, '0.0.2');
+
+    // The build would fail, so the tag can only have been taken as it is.
+    const definitionFilePath = await OctoCliUtility.writeDefinition(__dirname, 'rolled-back', (definition) => {
+      definition.modules = definition.modules.filter((m) => m.moduleId !== 'image-tag-module');
+      definition.modules.push(
+        imageTagModule('image-tag-module-2', { dockerfileName: 'Dockerfile.missing', imageTag: '0.0.2' }),
+      );
+    });
+    await OctoCliUtility.lifecycle(__dirname, definitionFilePath, environment);
+
+    expect(await imageRepository.getImageDigest(REPOSITORY_NAME, '0.0.2')).toEqual(retainedDigest);
+    expect((await readCommittedResponses())['0.0.2'].imageDigest).toEqual(retainedDigest);
+  });
+
+  it('should take the version back again as it is when the tag returns to it', async () => {
+    const retainedDigest = await imageRepository.getImageDigest(REPOSITORY_NAME, '0.0.3');
+
+    const definitionFilePath = await OctoCliUtility.writeDefinition(__dirname, 'rolled-forward', (definition) => {
+      definition.modules = definition.modules.filter((m) => m.moduleId !== 'image-tag-module');
+      definition.modules.push(imageTagModule('image-tag-module-2', { imageTag: '0.0.3' }));
+    });
+    await OctoCliUtility.lifecycle(__dirname, definitionFilePath, environment);
+
+    expect((await readCommittedResponses())['0.0.3'].imageDigest).toEqual(retainedDigest);
   });
 
   it('should leave the published image alone when what it is built from changes', async () => {
@@ -253,7 +281,8 @@ describe('Main E2E', () => {
     });
     await OctoCliUtility.lifecycle(__dirname, definitionFilePath, environment);
 
-    expect(await imageRepository.getImageDigest(REPOSITORY_NAME, '0.0.3')).toBeNull();
+    // The first repository keeps its copy until its lifecycle policy expires it.
+    expect(await imageRepository.getImageDigest(REPOSITORY_NAME, '0.0.3')).toMatch(/^sha256:/);
     expect(await imageRepository.getImageDigest(OTHER_REPOSITORY_NAME, '0.0.3')).toMatch(/^sha256:/);
     expect((await readCommittedResponses())['0.0.3'].repositoryName).toEqual(OTHER_REPOSITORY_NAME);
   });

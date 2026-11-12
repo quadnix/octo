@@ -221,8 +221,9 @@ Tests catch breakage between releases; they do not chase coverage.
 - **A framework guarantee is tested once, in `octo`**, through its public entry point. A library
   does not re-test it per resource.
 - **An `octo-aws-cdk` e2e asserts inline, never with a snapshot.** It has no redaction serializer.
-- **A template with an external resource is driven through the CLI** (`OctoCliUtility`) with a
-  `LocalStateProvider`: `run-action` is a second process and cannot see in-memory state.
+- **A template is driven through its `octo.yaml` and the CLI** (`OctoCliUtility`), the way a user
+  runs it, and asserts inline on what `validate` printed (`ValidateReportUtility.parse()`). A case
+  changes one input through `OctoCliUtility.writeDefinition()`.
 
 ---
 
@@ -230,9 +231,8 @@ Tests catch breakage between releases; they do not chase coverage.
 
 The repository is public and e2e suites run against a live account.
 
-- **A snapshot of a live run holds what octo decides, not what the provider returned.** Summarize a
-  validate report through `ValidateReportUtility.summarize()`. A provider-assigned id churns every
-  run.
+- **An assertion on a live run holds what octo decides, not what the provider returned.** A
+  provider-assigned id churns every run; the hash ending a resource id does not.
 - What must never be committed is a rule under `octo-templates/src/utilities/redaction/rules`;
   `repository-secrets.spec.ts` enforces it. A new cloud is a new rule file.
 - Fixtures use account `123456789012` and invented hexadecimal ids. Real values come from a
