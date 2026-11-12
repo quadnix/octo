@@ -137,7 +137,7 @@ importers:
         specifier: ~3.743.0
         version: 3.743.0
       '@quadnix/octo':
-        specifier: ~0.2.1
+        specifier: ~0.2.2
         version: link:../octo
       '@smithy/types':
         specifier: ~4.1.0
@@ -156,10 +156,10 @@ importers:
   packages/octo-build:
     dependencies:
       '@quadnix/octo':
-        specifier: ~0.2.1
+        specifier: ~0.2.2
         version: link:../octo
       '@quadnix/octo-event-listeners':
-        specifier: ~0.2.1
+        specifier: ~0.2.2
         version: link:../octo-event-listeners
       ajv:
         specifier: ~8.17.1
@@ -193,7 +193,7 @@ importers:
         specifier: ~2.2.0
         version: 2.2.17(pino@9.6.0)
       '@quadnix/octo':
-        specifier: ~0.2.1
+        specifier: ~0.2.2
         version: link:../octo
       loglayer:
         specifier: ~6.4.0
@@ -235,13 +235,13 @@ importers:
         specifier: ~3.743.0
         version: 3.743.0(@aws-sdk/client-dynamodb@3.743.0)
       '@quadnix/octo':
-        specifier: ~0.2.1
+        specifier: ~0.2.2
         version: link:../octo
       '@quadnix/octo-aws-cdk':
-        specifier: ~0.2.2
+        specifier: ~0.2.3
         version: link:../octo-aws-cdk
       '@quadnix/octo-event-listeners':
-        specifier: ~0.2.1
+        specifier: ~0.2.2
         version: link:../octo-event-listeners
       env-smart:
         specifier: ~2.3.2
@@ -251,7 +251,7 @@ importers:
         version: 4.1.1
     devDependencies:
       '@quadnix/octo-build':
-        specifier: ~0.2.1
+        specifier: ~0.2.2
         version: link:../octo-build
 
 packages:
@@ -1678,12 +1678,16 @@ packages:
   '@smithy/core@3.29.3':
     resolution: {integrity: sha512-L+Ys6ecjk5vwPMAKHBpPKlJ3DkqwNcnfEISXBZIsVvWG/XKXfsAP8mwIYlTeLcd2ElHdesPI8OuOmJSFAPhm6A==}
     engines: {node: '>=18.0.0'}
-    deprecated: Deprecated due to a bug in custom logger data redaction. See https://github.com/aws/aws-sdk-js-v3/issues/8393.
+    deprecated: |-
+      Deprecated due to a bug in custom logger data redaction. Upgrade to the latest version. If you used a custom logger with this
+        version, review your logs and rotate any credentials or other secrets. See https://github.com/aws/aws-sdk-js-v3/issues/8393.
 
   '@smithy/core@3.31.1':
     resolution: {integrity: sha512-CyogUINxvi7C7LDsh8Syo6hVJOT9ckz4rG8dRZfTJ8r91HkMY59PnNooaj7WcHyxEkxPfBAmbgztZU+xTo76lg==}
     engines: {node: '>=18.0.0'}
-    deprecated: Deprecated due to a bug in custom logger data redaction. See https://github.com/aws/aws-sdk-js-v3/issues/8393.
+    deprecated: |-
+      Deprecated due to a bug in custom logger data redaction. Upgrade to the latest version. If you used a custom logger with this
+        version, review your logs and rotate any credentials or other secrets. See https://github.com/aws/aws-sdk-js-v3/issues/8393.
 
   '@smithy/core@3.40.0':
     resolution: {integrity: sha512-DssGno52pzZ5m6RlDtyKuBIpZNPg9pqgs0CnNDKz9IatxCsmvNmJNn5Zn6rf77MthZo9wf89OvZFhTY/RwxhxQ==}
