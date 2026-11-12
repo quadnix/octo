@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "@aws-sdk/client-cloudfront": "~3.743.0",
+    "@aws-sdk/client-cloudwatch-logs": "~3.743.0",
     "@aws-sdk/client-dynamodb": "~3.743.0",
     "@aws-sdk/client-ec2": "~3.743.0",
     "@aws-sdk/client-ecr": "~3.743.0",

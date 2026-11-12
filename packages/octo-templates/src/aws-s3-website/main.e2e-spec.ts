@@ -1,123 +1,92 @@
-import { dirname, join } from 'path';
-import { fileURLToPath } from 'url';
+import { cp, rm, writeFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { jest } from '@jest/globals';
-import { TestContainer, TestModuleContainer, TestStateProvider } from '@quadnix/octo';
-import { type AwsS3StaticWebsiteServiceModule } from '@quadnix/octo-aws-cdk/modules/service/aws-s3-static-website-service';
-import { LoggingEventListener } from '@quadnix/octo-event-listeners/logging';
 import axios from 'axios';
 import { AwsTagsUtility } from '../utilities/aws/tags/aws-tags.utility.js';
+import { OctoCliUtility } from '../utilities/octo/octo-cli.utility.js';
 import { config } from './app.config.js';
-import { ModuleDefinitions } from './module-definitions.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const AWS_REGION_ID = 'us-east-1';
 
-const outputDir = join(__dirname, '.octo', 'generated');
-
 const E2E_TAGS = { 'e2e-test': 'true', 'e2e-test-family': 'aws-s3-website' };
 
-jest.setTimeout(600_000);
+const BUCKET_NAME = config.AWS_S3_WEBSITE_BUCKET_NAME;
+
+const WEBSITE_URL = `http://${BUCKET_NAME}.s3-website-${AWS_REGION_ID}.amazonaws.com`;
+
+/**
+ * A copy of `website`, published in its place, so a case can edit a file the way a user does and
+ * leave nothing tracked behind. Relative to the template, the directory every `octo` command runs in.
+ */
+const WEBSITE_DIRECTORY = join('.octo', 'website');
+
+jest.setTimeout(900_000);
 
 describe('Main E2E', () => {
-  let bucketName: string;
-  let bucketNameNormalized: string;
-  let moduleDefinitions: ModuleDefinitions;
-  let stateProvider: TestStateProvider;
-  let testModuleContainer: TestModuleContainer;
+  const environment = { AWS_ACCOUNT_ID: config.AWS_ACCOUNT_ID, AWS_S3_WEBSITE_BUCKET_NAME: BUCKET_NAME };
 
-  beforeAll(() => {
-    stateProvider = new TestStateProvider();
-  });
+  let definitionFilePath: string;
 
-  beforeEach(async () => {
-    const container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
-    testModuleContainer = new TestModuleContainer(container);
-    await testModuleContainer.initialize(stateProvider, [
-      { options: { args: [{ level: 'info' }] }, type: LoggingEventListener },
-    ]);
-
-    testModuleContainer.registerTerraformConfig({
-      minTerraformVersion: '1.6.0',
-      providers: { aws: { minVersion: '5.0.0', source: 'hashicorp/aws' } },
+  beforeAll(async () => {
+    await rm(join(__dirname, WEBSITE_DIRECTORY), { force: true, recursive: true });
+    await cp(join(__dirname, 'website'), join(__dirname, WEBSITE_DIRECTORY), { recursive: true });
+    definitionFilePath = await OctoCliUtility.writeDefinition(__dirname, 'published', (definition) => {
+      definition.modules.find((module) => module.moduleId === 's3-website-service-module')!.moduleInputs.directoryPath =
+        WEBSITE_DIRECTORY;
     });
-    testModuleContainer.registerTerraformProvider('aws', config.AWS_ACCOUNT_ID, AWS_REGION_ID);
-
-    // Register tags on all resources.
-    testModuleContainer.registerTags([{ scope: {}, tags: E2E_TAGS }]);
-
-    moduleDefinitions = new ModuleDefinitions();
-
-    const { moduleInputs } = moduleDefinitions.get<AwsS3StaticWebsiteServiceModule>('s3-website-service-module')!;
-    bucketName = moduleInputs.bucketName;
-    bucketNameNormalized = bucketName.replace(/[^\w-]/g, '-');
   });
 
-  afterEach(async () => {
-    await testModuleContainer.reset();
-    await TestContainer.reset();
-  });
+  it('should serve the website from the bucket', async () => {
+    const report = await OctoCliUtility.lifecycle(__dirname, definitionFilePath, environment);
+    expect(report.failures).toEqual([]);
 
-  it('should create the website', async () => {
-    const { responses } = (
-      await testModuleContainer
-        .runModules(
-          moduleDefinitions.getAll().map((md) => ({ inputs: md.moduleInputs, moduleId: md.moduleId, type: md.module })),
-          { outputDir, terraformTarget: 'apply' },
-        )
-        .next()
-    ).value!;
-
-    // A resource id ends in a hash of its scope, so the bucket is found by the id's readable part.
-    const bucketResponse = Object.entries(responses).find(([context]) =>
-      context.startsWith(`@octo/s3-website=bucket-${bucketNameNormalized}-`),
-    )?.[1];
-    expect(bucketResponse).toEqual({
-      Arn: `arn:aws:s3:::${bucketName}`,
+    const [bucket] = await OctoCliUtility.readCommittedResponsesOf(__dirname, '@octo/s3-website');
+    expect(bucket).toEqual({
+      Arn: `arn:aws:s3:::${BUCKET_NAME}`,
       awsRegionId: AWS_REGION_ID,
-      RegionalDomainName: `${bucketName}.s3.${AWS_REGION_ID}.amazonaws.com`,
+      RegionalDomainName: `${BUCKET_NAME}.s3.${AWS_REGION_ID}.amazonaws.com`,
     });
-
-    const indexContent = await axios.get(`http://${bucketName}.s3-website-${AWS_REGION_ID}.amazonaws.com/index.html`);
-    expect(indexContent.data).toContain('This is my first website!');
-    const errorContent = await axios.get(`http://${bucketName}.s3-website-${AWS_REGION_ID}.amazonaws.com/error.html`);
-    expect(errorContent.data).toContain('This is an error!');
+    expect((await axios.get(`${WEBSITE_URL}/index.html`)).data).toContain('This is my first website!');
+    expect((await axios.get(`${WEBSITE_URL}/error.html`)).data).toContain('This is an error!');
   });
 
-  it('should re-apply the identical intent with no octo changes', async () => {
-    const { resourceDiffs } = (
-      await testModuleContainer
-        .runModules(
-          moduleDefinitions.getAll().map((md) => ({ inputs: md.moduleInputs, moduleId: md.moduleId, type: md.module })),
-          { outputDir, terraformTarget: 'plan' },
-        )
-        .next()
-    ).value!;
+  it('should plan nothing when the applied intent is planned again', async () => {
+    const report = await OctoCliUtility.validate(__dirname, definitionFilePath, environment);
 
-    expect(testModuleContainer.digestDiffs(resourceDiffs)).toEqual([]);
+    expect(report.confidence).toBe('exact');
+    expect(report.changes).toEqual([]);
+    expect(report.drift).toEqual([]);
+  });
+
+  it('should publish a changed file, and only that file', async () => {
+    await writeFile(join(__dirname, WEBSITE_DIRECTORY, 'index.html'), 'This website was published again!');
+
+    const report = await OctoCliUtility.lifecycle(__dirname, definitionFilePath, environment);
+
+    expect(report.failures).toEqual([]);
+    expect(report.changes).toEqual([
+      {
+        action: 'update',
+        address: expect.stringMatching(/^aws_s3_object\.\S+_file_indexhtml$/),
+        fields: expect.any(Array),
+      },
+    ]);
+    expect(report.changes[0].fields).toContain('etag');
+    expect((await axios.get(`${WEBSITE_URL}/index.html`)).data).toContain('This website was published again!');
   });
 
   it('should have no resources left after teardown', async () => {
-    for (const moduleId of moduleDefinitions
-      .getAll()
-      .map((md) => md.moduleId)
-      .filter((moduleId) => moduleId !== 'app-module' && moduleId !== 'account-module')) {
-      moduleDefinitions.remove(moduleId);
-    }
+    const teardownFilePath = await OctoCliUtility.writeDefinition(__dirname, 'teardown', (definition) => {
+      definition.modules = definition.modules.filter((module) =>
+        ['account-module', 'app-module'].includes(module.moduleId),
+      );
+    });
+    await OctoCliUtility.lifecycle(__dirname, teardownFilePath, environment);
 
-    await testModuleContainer
-      .runModules(
-        moduleDefinitions.getAll().map((md) => ({ inputs: md.moduleInputs, moduleId: md.moduleId, type: md.module })),
-        { outputDir, terraformTarget: 'apply' },
-      )
-      .next();
-
-    const awsResourcesUtility = new AwsTagsUtility(AWS_REGION_ID);
-    const leftoverArns = await awsResourcesUtility.getResourceArnsByTags(E2E_TAGS);
-    expect(leftoverArns).toEqual([]);
-
-    await expect(
-      axios.get(`http://${bucketName}.s3-website-${AWS_REGION_ID}.amazonaws.com/index.html`),
-    ).rejects.toThrow();
+    expect(await new AwsTagsUtility(AWS_REGION_ID).getResourceArnsByTags(E2E_TAGS)).toEqual([]);
+    await expect(axios.get(`${WEBSITE_URL}/index.html`)).rejects.toThrow();
   });
 });

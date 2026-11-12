@@ -1,0 +1,114 @@
+# yaml-language-server: $schema=../../../octo-build/src/resources/octo-v1.schema.json
+
+# A DynamoDB table of accounts in a serverless region, keyed by account id and type, with a global
+# secondary index by user and a local one by creation time. Items expire through `ExpiresAt`, and
+# every change is streamed with its old and new image.
+
+version: 1
+
+env:
+  - key: AWS_ACCOUNT_ID
+    kind: string
+    value: '123456789123'
+
+settings:
+  listeners:
+    - type: JournalEventListener
+    - type: LoggingEventListener
+      level: info
+
+  stateProvider:
+    type: LocalStateProvider
+    statePath: .octo/state
+
+imports:
+  - className: SimpleAppModule
+    importPath: '@quadnix/octo-aws-cdk/modules/app/simple-app'
+  - className: AwsIniAccountModule
+    importPath: '@quadnix/octo-aws-cdk/modules/account/aws-ini-account'
+  - className: AwsServerlessRegionModule
+    importPath: '@quadnix/octo-aws-cdk/modules/region/aws-serverless-region'
+  - className: AwsDynamoDBServiceModule
+    importPath: '@quadnix/octo-aws-cdk/modules/service/aws-dynamodb-service'
+
+modules:
+  - moduleId: app-module
+    moduleClass: SimpleAppModule
+    moduleInputs:
+      name: aws-dynamodb-service
+
+  - moduleId: account-module
+    moduleClass: AwsIniAccountModule
+    moduleInputs:
+      accountId: '${env.AWS_ACCOUNT_ID}'
+      app: '${{app-module.model.app}}'
+      iniProfile: default
+
+  - moduleId: region-module
+    moduleClass: AwsServerlessRegionModule
+    moduleInputs:
+      account: '${{account-module.model.account}}'
+      name: app-region-east
+      regionId: aws-us-east-1
+
+  - moduleId: dynamodb-service-module
+    moduleClass: AwsDynamoDBServiceModule
+    moduleInputs:
+      AttributeDefinitions:
+        - AttributeName: AccountId
+          AttributeType: S
+        - AttributeName: AccountType
+          AttributeType: S
+        - AttributeName: CreatedAt
+          AttributeType: N
+        - AttributeName: UserId
+          AttributeType: S
+      billingMode:
+        settings:
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+        type: PROVISIONED
+      GlobalSecondaryIndexes:
+        - IndexName: AccountUserIndex
+          KeySchema:
+            - AttributeName: UserId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      KeySchema:
+        - AttributeName: AccountId
+          KeyType: HASH
+        - AttributeName: AccountType
+          KeyType: RANGE
+      LocalSecondaryIndexes:
+        - IndexName: AccountCreatedAtIndex
+          KeySchema:
+            - AttributeName: AccountId
+              KeyType: HASH
+            - AttributeName: CreatedAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      region: '${{region-module.model.region}}'
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      TableName: accounts
+      timeToLiveAttribute: ExpiresAt
+
+tags:
+  - scope: {}
+    tags:
+      e2e-test: 'true'
+      e2e-test-family: aws-dynamodb-service
+
+terraform:
+  requiredVersion: '1.6.0'
+  requiredProviders:
+    aws:
+      source: hashicorp/aws
+      minVersion: '5.0.0'
+  providers:
+    - providerType: aws
+      accountId: '${env.AWS_ACCOUNT_ID}'
+      regionId: us-east-1

@@ -100,16 +100,21 @@ it.
 suites, and three more that have no scaffold. They are not something you install; they are where the
 templates are actually verified, and they run the real lifecycle against a real AWS account.
 
-They are worth reading for the things a definition file cannot show. `aws-ecs-server` has a drift
-suite that changes infrastructure out from under Octo and checks that validate reports it. It has an
-incremental suite that applies a stack, changes one input, and applies again, which is the case a
-template on its own never exercises. The three above build their modules through a
-`ModuleDefinitions` class that a test can mutate, so "remove this module and run again" is a line of
-code.
+Every suite runs the `octo` binary against an `octo.yaml` of its own, the way you would. A case that
+changes an input writes a copy of that file with the one edit, runs the lifecycle on it, and reads the
+report `validate` printed, so what a suite checks is what you would read before an apply.
 
-The three without a scaffold all run the `octo` binary rather than driving Octo in process, because
-each holds an [external resource](/docs/building-modules/create-an-external-resource): Terraform
-shells back out to a second `octo` process mid-apply, which an in-process test never sees.
+They are worth reading for the things a definition file cannot show. `aws-ecs-server` applies its
+stack once, then breaks it from outside Octo and checks that validate reports the drift and the next
+apply repairs it. It then plans one input change at a time against the live stack, and checks that
+each touches only what it has to: in place where AWS allows it, replaced where it does not. Its stack
+runs the container in a public subnet with no NAT gateway, which keeps the suite to minutes; the
+scaffold above has one. `aws-dynamodb-service` adds and removes an index on a live table and checks
+the items written before are still there, then shows apply refusing to destroy the table until it is
+named.
+
+The three below each hold an [external resource](/docs/building-modules/create-an-external-resource):
+Terraform shells back out to a second `octo` process mid-apply.
 
 `aws-ecr-image` publishes container images into ECR and needs Docker as well as an AWS account. It
 carries a second definition file alongside its own, `octo-ecs.yaml`, where a version and an ECS

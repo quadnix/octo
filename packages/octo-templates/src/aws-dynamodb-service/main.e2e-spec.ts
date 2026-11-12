@@ -1,21 +1,20 @@
-import { dirname, join } from 'path';
-import { fileURLToPath } from 'url';
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { jest } from '@jest/globals';
-import { TestContainer, TestModuleContainer, TestStateProvider } from '@quadnix/octo';
-import { type AwsDynamoDBServiceModule } from '@quadnix/octo-aws-cdk/modules/service/aws-dynamodb-service';
-import { LoggingEventListener } from '@quadnix/octo-event-listeners/logging';
 import { AwsTagsUtility } from '../utilities/aws/tags/aws-tags.utility.js';
+import { OctoCliUtility } from '../utilities/octo/octo-cli.utility.js';
+import type { ValidateReport } from '../utilities/octo/validate-report.utility.js';
 import { AccountRepository } from './account.repository.js';
 import { config } from './app.config.js';
-import { ModuleDefinitions } from './module-definitions.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const AWS_REGION_ID = 'us-east-1';
 
-const outputDir = join(__dirname, '.octo', 'generated');
-
 const E2E_TAGS = { 'e2e-test': 'true', 'e2e-test-family': 'aws-dynamodb-service' };
+
+// A resource id ends in a hash of its scope.
+const TABLE_ADDRESS = /^aws_dynamodb_table\.dynamodb-accounts-[0-9a-f]+$/;
 
 /**
  * How long an item is given to reach a global secondary index. A GSI is read only eventually
@@ -38,69 +37,58 @@ async function queryIndexUntilFound<T>(query: () => Promise<T[]>): Promise<T[]> 
   return items;
 }
 
-jest.setTimeout(1_200_000);
+jest.setTimeout(1_800_000);
 
 describe('Main E2E', () => {
-  let accountRepositoryUsEast1: AccountRepository;
-  let moduleDefinitions: ModuleDefinitions;
-  let stateProvider: TestStateProvider;
-  let tableName: string;
-  let testModuleContainer: TestModuleContainer;
+  const accountRepository = new AccountRepository(AWS_REGION_ID);
+  const environment = { AWS_ACCOUNT_ID: config.AWS_ACCOUNT_ID };
 
-  beforeAll(() => {
-    stateProvider = new TestStateProvider();
-    accountRepositoryUsEast1 = new AccountRepository(AWS_REGION_ID);
-  });
+  /**
+   * Writes `octo.yaml` with the email index added, the only change this suite makes to the table.
+   */
+  const writeDefinitionWithEmailIndex = (): Promise<string> =>
+    OctoCliUtility.writeDefinition(__dirname, 'email-index', (definition) => {
+      const inputs = definition.modules.find((module) => module.moduleId === 'dynamodb-service-module')!
+        .moduleInputs as { AttributeDefinitions: unknown[]; GlobalSecondaryIndexes: unknown[] };
+      inputs.AttributeDefinitions.push({ AttributeName: 'Email', AttributeType: 'S' });
+      inputs.GlobalSecondaryIndexes.push({
+        IndexName: 'AccountEmailIndex',
+        KeySchema: [{ AttributeName: 'Email', KeyType: 'HASH' }],
+        Projection: { ProjectionType: 'ALL' },
+      });
+    });
 
-  beforeEach(async () => {
-    const container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
-    testModuleContainer = new TestModuleContainer(container);
-    await testModuleContainer.initialize(stateProvider, [
-      { options: { args: [{ level: 'info' }] }, type: LoggingEventListener },
+  /**
+   * Asserts the report updates the table in place, which keeps its items, and touches nothing else.
+   */
+  const expectTableUpdatedInPlace = (report: ValidateReport): void => {
+    expect(report.failures).toEqual([]);
+    expect(report.drift).toEqual([]);
+    expect(report.dataLoss).toEqual([]);
+    expect(report.changes).toEqual([
+      { action: 'update', address: expect.stringMatching(TABLE_ADDRESS), fields: expect.any(Array) },
     ]);
+    expect(report.changes[0].fields).toContain('global_secondary_index');
+  };
 
-    testModuleContainer.registerTerraformConfig({
-      minTerraformVersion: '1.6.0',
-      providers: { aws: { minVersion: '5.0.0', source: 'hashicorp/aws' } },
-    });
-    testModuleContainer.registerTerraformProvider('aws', config.AWS_ACCOUNT_ID, AWS_REGION_ID);
+  it('should create the table', async () => {
+    const report = await OctoCliUtility.lifecycle(__dirname, 'octo.yaml', environment);
 
-    // Register tags on all resources.
-    testModuleContainer.registerTags([{ scope: {}, tags: E2E_TAGS }]);
-
-    moduleDefinitions = new ModuleDefinitions();
-
-    const { moduleInputs } = moduleDefinitions.get<AwsDynamoDBServiceModule>('dynamodb-service-module')!;
-    tableName = moduleInputs.TableName;
+    expect(report.failures).toEqual([]);
+    expect(report.changes).toEqual([{ action: 'create', address: expect.stringMatching(TABLE_ADDRESS), fields: [] }]);
   });
 
-  afterEach(async () => {
-    await testModuleContainer.reset();
-    await TestContainer.reset();
+  it('should plan nothing when the applied intent is planned again', async () => {
+    const report = await OctoCliUtility.validate(__dirname, 'octo.yaml', environment);
+
+    expect(report.confidence).toBe('exact');
+    expect(report.changes).toEqual([]);
+    expect(report.drift).toEqual([]);
   });
 
-  it('should create base resources', async () => {
-    const { responses } = (
-      await testModuleContainer
-        .runModules(
-          moduleDefinitions.getAll().map((md) => ({ inputs: md.moduleInputs, moduleId: md.moduleId, type: md.module })),
-          { outputDir, terraformTarget: 'apply' },
-        )
-        .next()
-    ).value!;
-
-    // A resource id ends in a hash of its scope, so the table is found by the id's readable part.
-    const tableResponse = Object.entries(responses).find(([context]) =>
-      context.startsWith(`@octo/dynamodb=dynamodb-${tableName}-`),
-    )?.[1];
-    expect(tableResponse).toMatchObject({
-      TableArn: expect.stringContaining(`table/${tableName}`),
-    });
-  });
-
-  it('should CRUD DynamoDB table', async () => {
+  it('should read and write items by key and by every index', async () => {
     const createdAt = Math.floor(Date.now() / 1000);
-    await accountRepositoryUsEast1.put({
+    await accountRepository.put({
       AccountId: 'TestCRUD',
       AccountType: 'test',
       CreatedAt: createdAt,
@@ -109,105 +97,71 @@ describe('Main E2E', () => {
       UserId: 'test-user-1',
     });
 
-    // Can fetch by HASH key.
-    const accountsByHash = await accountRepositoryUsEast1.getByAccountId('TestCRUD');
-    expect(accountsByHash.length).toBe(1);
-
-    // Can fetch by HASH and RANGE key.
-    const accountsByHashAndRange = await accountRepositoryUsEast1.getByAccountIdAndType('TestCRUD', 'test');
-    expect(accountsByHashAndRange).toBeDefined();
-
-    // Cannot fetch by GSI index - Email, since the Email index has not been created.
-    await expect(async () => {
-      await accountRepositoryUsEast1.getByEmail('test-user-1@test.com');
-    }).rejects.toThrow();
-
-    // Can fetch by GSI index - UserId.
-    const accountsByUserIdGSI = await queryIndexUntilFound(() => accountRepositoryUsEast1.getByUserId('test-user-1'));
-    expect(accountsByUserIdGSI.length).toBe(1);
-
-    // Can fetch by LSI index.
-    const accountsByLSI = await accountRepositoryUsEast1.getByAccountIdAndCreatedAt(
-      'TestCRUD',
-      createdAt - 10,
-      createdAt + 10,
+    expect(await accountRepository.getByAccountId('TestCRUD')).toHaveLength(1);
+    expect(await accountRepository.getByAccountIdAndType('TestCRUD', 'test')).toBeDefined();
+    expect(await queryIndexUntilFound(() => accountRepository.getByUserId('test-user-1'))).toHaveLength(1);
+    expect(await accountRepository.getByAccountIdAndCreatedAt('TestCRUD', createdAt - 10, createdAt + 10)).toHaveLength(
+      1,
     );
-    expect(accountsByLSI.length).toBe(1);
 
-    await accountRepositoryUsEast1.update('TestCRUD', 'test', { Email: 'test-user-1-updated@test.com' });
-    const accountsAfterEmailUpdate = await accountRepositoryUsEast1.getByAccountId('TestCRUD');
-    expect(accountsAfterEmailUpdate[0].Email).toBe('test-user-1-updated@test.com');
+    // The email index is not declared yet.
+    await expect(accountRepository.getByEmail('test-user-1@test.com')).rejects.toThrow();
 
-    await accountRepositoryUsEast1.delete('TestCRUD', 'test');
-    const accountsAfterDelete = await accountRepositoryUsEast1.getByAccountId('TestCRUD');
-    expect(accountsAfterDelete.length).toBe(0);
+    await accountRepository.update('TestCRUD', 'test', { Email: 'test-user-1-updated@test.com' });
+    expect((await accountRepository.getByAccountId('TestCRUD'))[0].Email).toBe('test-user-1-updated@test.com');
+
+    await accountRepository.delete('TestCRUD', 'test');
+    expect(await accountRepository.getByAccountId('TestCRUD')).toHaveLength(0);
   });
 
-  it('should add GSI in DynamoDB table and query', async () => {
-    // Add GSI - Email.
-    const { moduleInputs } = moduleDefinitions.get<AwsDynamoDBServiceModule>('dynamodb-service-module')!;
-    moduleInputs.AttributeDefinitions.push({ AttributeName: 'Email', AttributeType: 'S' });
-    moduleInputs.GlobalSecondaryIndexes!.push({
-      IndexName: 'AccountEmailIndex',
-      KeySchema: [{ AttributeName: 'Email', KeyType: 'HASH' }],
-      Projection: { ProjectionType: 'ALL' },
-    });
-
-    await testModuleContainer
-      .runModules(
-        moduleDefinitions.getAll().map((md) => ({ inputs: md.moduleInputs, moduleId: md.moduleId, type: md.module })),
-        { outputDir, terraformTarget: 'apply' },
-      )
-      .next();
-
-    // Query GSI - Email.
+  it('should add an index in place, keeping the items already written', async () => {
     const createdAt = Math.floor(Date.now() / 1000);
-    await accountRepositoryUsEast1.put({
+    await accountRepository.put({
       AccountId: 'TestAddGSI',
       AccountType: 'test',
       CreatedAt: createdAt,
       Email: 'test-user-1@test.com',
-      ExpiresAt: createdAt + 5,
+      ExpiresAt: createdAt + 600,
       UserId: 'test-user-1',
     });
-    const accountsByEmail = await queryIndexUntilFound(() =>
-      accountRepositoryUsEast1.getByEmail('test-user-1@test.com'),
+
+    const report = await OctoCliUtility.lifecycle(__dirname, await writeDefinitionWithEmailIndex(), environment);
+
+    expectTableUpdatedInPlace(report);
+    expect(await queryIndexUntilFound(() => accountRepository.getByEmail('test-user-1@test.com'))).toHaveLength(1);
+  });
+
+  it('should remove an index in place, keeping the items already written', async () => {
+    const report = await OctoCliUtility.lifecycle(__dirname, 'octo.yaml', environment);
+
+    expectTableUpdatedInPlace(report);
+    await expect(accountRepository.getByEmail('test-user-1@test.com')).rejects.toThrow();
+    expect(await accountRepository.getByAccountId('TestAddGSI')).toHaveLength(1);
+
+    await accountRepository.delete('TestAddGSI', 'test');
+  });
+
+  it('should refuse to destroy the table until its destroy is named', async () => {
+    const definitionFilePath = await OctoCliUtility.writeDefinition(__dirname, 'teardown', (definition) => {
+      definition.modules = definition.modules.filter((module) =>
+        ['account-module', 'app-module'].includes(module.moduleId),
+      );
+    });
+
+    // The refused apply changes nothing, and names the destroy to approve.
+    const refusal = OctoCliUtility.lifecycle(__dirname, definitionFilePath, environment, { allowDestroy: [] });
+    await expect(refusal).rejects.toThrow(
+      /--allowDestroy 'dynamodb-service-module\/aws_dynamodb_table\.dynamodb-accounts-[0-9a-f]+'/,
     );
-    expect(accountsByEmail.length).toBe(1);
-  });
+    const tableAddress = /--allowDestroy 'dynamodb-service-module\/(\S+)'/.exec(
+      String(await refusal.catch((error: Error) => error.message)),
+    )![1];
 
-  it('should remove GSI in DynamoDB table and query', async () => {
-    // Remove GSI - Email. Not adding Email GSI is equivalent to have removed it from module inputs.
-    await testModuleContainer
-      .runModules(
-        moduleDefinitions.getAll().map((md) => ({ inputs: md.moduleInputs, moduleId: md.moduleId, type: md.module })),
-        { outputDir, terraformTarget: 'apply' },
-      )
-      .next();
+    const report = await OctoCliUtility.lifecycle(__dirname, definitionFilePath, environment, {
+      allowDestroy: [`dynamodb-service-module/${tableAddress}`],
+    });
 
-    // Cannot fetch by GSI index - Email, since the Email index has been removed.
-    await expect(async () => {
-      await accountRepositoryUsEast1.getByEmail('test-user-1@test.com');
-    }).rejects.toThrow();
-  });
-
-  it('should have no resources left after teardown', async () => {
-    for (const moduleId of moduleDefinitions
-      .getAll()
-      .map((md) => md.moduleId)
-      .filter((moduleId) => moduleId !== 'app-module' && moduleId !== 'account-module')) {
-      moduleDefinitions.remove(moduleId);
-    }
-
-    await testModuleContainer
-      .runModules(
-        moduleDefinitions.getAll().map((md) => ({ inputs: md.moduleInputs, moduleId: md.moduleId, type: md.module })),
-        { outputDir, terraformTarget: 'apply' },
-      )
-      .next();
-
-    const awsResourcesUtility = new AwsTagsUtility(AWS_REGION_ID);
-    const leftoverArns = await awsResourcesUtility.getResourceArnsByTags(E2E_TAGS);
-    expect(leftoverArns).toEqual([]);
+    expect(report.dataLoss).toEqual([expect.stringContaining(tableAddress)]);
+    expect(await new AwsTagsUtility(AWS_REGION_ID).getResourceArnsByTags(E2E_TAGS)).toEqual([]);
   });
 });
