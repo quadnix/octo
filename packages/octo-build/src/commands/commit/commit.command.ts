@@ -65,6 +65,9 @@ export const commitCommand = {
     const resolvedDir = resolve(process.cwd(), terragruntDir);
 
     await OctoUtility.runCommand('commit', async () => {
+      // The plan below reads every `data "external"`, and each one shells back out to `octo get-response`.
+      OctoUtility.prepareCallbackEnvironment();
+
       const { app, octo } = await OctoUtility.bootOcto();
       await octo.assertCredentials(5 * 60_000);
 

@@ -17,6 +17,7 @@ const mockedBootOcto = jest.fn<
     };
   }>
 >();
+const mockedPrepareCallbackEnvironment = jest.fn<() => void>();
 const mockedReportError = jest.fn<(error: unknown) => void>();
 
 // Real ESM (`--experimental-vm-modules`) doesn't support `jest.mock()`'s hoisted auto-mocking of
@@ -25,6 +26,7 @@ const mockedReportError = jest.fn<(error: unknown) => void>();
 jest.unstable_mockModule('../../utilities/octo/octo.utility.js', () => ({
   OctoUtility: {
     bootOcto: mockedBootOcto,
+    prepareCallbackEnvironment: mockedPrepareCallbackEnvironment,
     reportError: mockedReportError,
     runCommand: async (_command: string, body: () => Promise<void>): Promise<void> => {
       try {
@@ -156,6 +158,17 @@ describe('commitCommand UT', () => {
 
     expect(stateManagementServiceMock.unlockApp).not.toHaveBeenCalled();
     expect(processExitSpy).toHaveBeenCalledWith(1);
+  });
+
+  it('should prepare the callbacks\' environment before planning, for every `data "external"`', async () => {
+    mockedPrepareCallbackEnvironment.mockClear();
+
+    await commitCommand.handler(argv);
+
+    expect(mockedPrepareCallbackEnvironment).toHaveBeenCalledTimes(1);
+    expect(mockedPrepareCallbackEnvironment.mock.invocationCallOrder[0]).toBeLessThan(
+      terraformUtilityMock.plan.mock.invocationCallOrder[0],
+    );
   });
 
   it('should read outputs via TerraformUtility and pass them to octo.commit()', async () => {
