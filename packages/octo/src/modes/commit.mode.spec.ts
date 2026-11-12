@@ -209,6 +209,65 @@ describe('commit()', () => {
     expect(warnings).toEqual([]);
   });
 
+  it('should keep what an emptied folder held when a partial commit has no outputs for it', async () => {
+    const { app } = await testModes.createResourceGraph({ save: true });
+    await commitResources({ skipAddActualResource: true });
+    // The committed graph without sg-module's resource, which empties its folder.
+    testModes.resourceDataRepository.addNewResource(new TfVpcResource('vpc-1', { CidrBlock: '10.0.0.0/16' }));
+    testModes.resourceDataRepository.addNewResource(new ExternalIgwResource('igw-1', {}));
+    const sg = testModes.resourceDataRepository.getActualResourcesByProperties().find((r) => r.resourceId === 'sg-1')!;
+    const sgMapping = {
+      moduleId: 'sg-module',
+      resourceContext: sg.getContext(),
+      resourceId: 'sg-1',
+      terraformAddresses: ['aws_security_group.sg-1'],
+    };
+
+    // Its destroy did not finish, so the caller supplies no outputs for it.
+    testModes.writeTfState('region-module', { 'igw-1': { igwId: 'igw-0real' }, 'vpc-1-VpcId': 'vpc-0real' });
+
+    const transaction = await applyModelTransaction(app);
+    const { retainedMappings, warnings } = await commit({
+      outputs: testModes.outputs,
+      partial: true,
+      previousFolders: [{ hasExternalResources: false, moduleId: 'sg-module', providers: [] }],
+      previousMappings: [sgMapping],
+      transaction,
+    });
+
+    expect(warnings).toContainEqual({
+      message: 'No terraform outputs for emptied module "sg-module"; what it held is left uncommitted.',
+      moduleId: 'sg-module',
+    });
+    expect(
+      testModes.resourceDataRepository.getActualResourcesByProperties().find((r) => r.resourceId === 'sg-1'),
+    ).toBeDefined();
+    expect(retainedMappings).toEqual([sgMapping]);
+  });
+
+  it('should drop what an emptied folder held once its destroy applied', async () => {
+    const { app } = await testModes.createResourceGraph({ save: true });
+    await commitResources({ skipAddActualResource: true });
+    testModes.resourceDataRepository.addNewResource(new TfVpcResource('vpc-1', { CidrBlock: '10.0.0.0/16' }));
+    testModes.resourceDataRepository.addNewResource(new ExternalIgwResource('igw-1', {}));
+
+    testModes.writeTfState('region-module', { 'igw-1': { igwId: 'igw-0real' }, 'vpc-1-VpcId': 'vpc-0real' });
+    testModes.writeTfState('sg-module', {});
+
+    const transaction = await applyModelTransaction(app);
+    const { retainedMappings } = await commit({
+      outputs: testModes.outputs,
+      partial: true,
+      previousFolders: [{ hasExternalResources: false, moduleId: 'sg-module', providers: [] }],
+      transaction,
+    });
+
+    expect(
+      testModes.resourceDataRepository.getActualResourcesByProperties().find((r) => r.resourceId === 'sg-1'),
+    ).toBeUndefined();
+    expect(retainedMappings).toEqual([]);
+  });
+
   // Terraform cannot delete an external resource: octo deletes by removing the resource block from
   // the configuration, and terraform will not run a `when = destroy` provisioner for a resource
   // that is no longer in the configuration. Commit is what tells the resource to go, so that the

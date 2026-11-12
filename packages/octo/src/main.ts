@@ -179,13 +179,14 @@ export class Octo {
         addressDigests.set(moduleId, await terraformStateService.getAddressDigests(moduleId));
       }
 
-      const { addressDigestsByContext, externalResourceIds, modelTransaction, ...completed } = await runCommit({
-        ...options,
-        addressDigests,
-        previousFolders: userData.terraformFolders ?? [],
-        previousMappings: userData.terraformResources ?? [],
-        transaction: resolvedTransaction,
-      });
+      const { addressDigestsByContext, externalResourceIds, modelTransaction, retainedMappings, ...completed } =
+        await runCommit({
+          ...options,
+          addressDigests,
+          previousFolders: userData.terraformFolders ?? [],
+          previousMappings: userData.terraformResources ?? [],
+          transaction: resolvedTransaction,
+        });
 
       // Record each folder with every provider the last commit recorded that its terraform state still
       // binds a resource to, and an emptied folder while its state holds anything, so the next generate
@@ -218,7 +219,14 @@ export class Octo {
         terraformFolders.push({ ...folder, providers: [...folder.providers, ...retainedProviders] });
       }
 
-      await this.commitTransaction(app, modelTransaction, [], terraformFolders, addressDigestsByContext);
+      await this.commitTransaction(
+        app,
+        modelTransaction,
+        [],
+        terraformFolders,
+        addressDigestsByContext,
+        retainedMappings,
+      );
 
       // The committed graph now carries everything an external resource's actions made of it, so the
       // records they wrote mid-apply are cleared. Done after the state is persisted, so a failure
@@ -672,6 +680,7 @@ export class Octo {
     resourceTransaction: DiffMetadata[][] = [],
     terraformFolders: TerraformFolderOutput[] = this.terraformService.getFolderRecords(),
     addressDigestsByContext: Map<string, Record<string, string>> = new Map(),
+    retainedMappings: TerraformResourceOutput[] = [],
   ): Promise<void> {
     // `modelTransaction` and `resourceTransaction` is used by hooks of type CommitHook.
     assert(!!modelTransaction);
@@ -679,7 +688,7 @@ export class Octo {
 
     // Save the state of the new app and its resources.
     await this.saveModelState(app);
-    await this.saveResourceState(terraformFolders, addressDigestsByContext);
+    await this.saveResourceState(terraformFolders, addressDigestsByContext, retainedMappings);
 
     // Reset the runtime environment with the latest state.
     await this.importReaderService.retrieveResourceState();
@@ -751,6 +760,7 @@ export class Octo {
   private async saveResourceState(
     terraformFolders: TerraformFolderOutput[],
     addressDigestsByContext: Map<string, Record<string, string>>,
+    retainedMappings: TerraformResourceOutput[],
   ): Promise<void> {
     const actualSerializedOutput = await this.resourceSerializationService.serializeActualResources();
     await this.stateManagementService.saveResourceState(
@@ -758,19 +768,22 @@ export class Octo {
       actualSerializedOutput,
       {
         terraformFolders,
-        terraformResources: this.terraformService.getOctoTerraformResourceMappings().map(
-          (m): TerraformResourceOutput => ({
-            ...(m.destroyLosesData ? { destroyLosesData: true } : {}),
-            ...(m.entireResponseOutput !== undefined ? { external: true } : {}),
-            moduleId: m.moduleId,
-            resourceContext: m.resourceContext,
-            resourceId: m.resourceId,
-            ...(Object.keys(addressDigestsByContext.get(m.resourceContext) ?? {}).length > 0
-              ? { terraformAddressDigests: addressDigestsByContext.get(m.resourceContext) }
-              : {}),
-            terraformAddresses: m.terraformAddresses,
-          }),
-        ),
+        terraformResources: [
+          ...this.terraformService.getOctoTerraformResourceMappings().map(
+            (m): TerraformResourceOutput => ({
+              ...(m.destroyLosesData ? { destroyLosesData: true } : {}),
+              ...(m.entireResponseOutput !== undefined ? { external: true } : {}),
+              moduleId: m.moduleId,
+              resourceContext: m.resourceContext,
+              resourceId: m.resourceId,
+              ...(Object.keys(addressDigestsByContext.get(m.resourceContext) ?? {}).length > 0
+                ? { terraformAddressDigests: addressDigestsByContext.get(m.resourceContext) }
+                : {}),
+              terraformAddresses: m.terraformAddresses,
+            }),
+          ),
+          ...retainedMappings,
+        ],
         version: this.stateManagementService.stateVersion,
       },
     );

@@ -28,7 +28,8 @@ export type TerraformOutputs = Record<string, { value: unknown }>;
  * warnings and keeps every resource whose outputs did not all resolve, or whose folder never applied,
  * at its last committed state, which is what lets a failed apply still record the half that worked.
  * Outputs are demanded only for the modules the sweep filled — never for an emptied (deleted) folder,
- * whose destroy simply drops its resources from the committed state. Warns: outputs supplied for a
+ * whose destroy simply drops its resources from the committed state. A partial commit holding no
+ * outputs for an emptied folder keeps what it held instead, as its destroy is not confirmed. Warns: outputs supplied for a
  * folder that is neither in intent nor in the committed folder record (`previousFolders`) are ignored
  * — octo never fails on, or touches, a folder it does not recognize; re-declaring the module in intent
  * re-adopts it.
@@ -65,6 +66,7 @@ export async function commit({
   modelTransaction: DiffMetadata[][];
   resources: CommitModeCompletedEvent['payload']['resources'];
   responses: { key: string; previousValue?: string; resourceContext: string; value: string }[];
+  retainedMappings: TerraformResourceOutput[];
   warnings: { message: string; moduleId?: string }[];
 }> {
   const container = Container.getInstance();
@@ -102,6 +104,21 @@ export async function commit({
       continue;
     }
     outputsByModule.set(moduleId, moduleOutputs);
+  }
+
+  // An emptied folder a partial commit has no outputs for did not finish its destroy, so what it held
+  // keeps its last committed state, and the next run destroys it again.
+  const unconfirmedEmptiedModuleIds = partial
+    ? previousFolders
+        .map((folder) => folder.moduleId)
+        .filter((moduleId) => !terraformService.getModuleIds().includes(moduleId) && !outputs.has(moduleId))
+    : [];
+  for (const moduleId of unconfirmedEmptiedModuleIds) {
+    warnings.push({
+      message: `No terraform outputs for emptied module "${moduleId}"; what it held is left uncommitted.`,
+      moduleId,
+    });
+    moduleIdsWithoutOutputs.push(moduleId);
   }
 
   // Outputs for a folder octo does not track (not in intent, not in the committed folder record)
@@ -255,6 +272,11 @@ export async function commit({
   } else {
     await transactionService.applyExternalResourceDeletes(transaction.resourceDiffs);
   }
+  for (const mapping of previousMappings) {
+    if (unconfirmedEmptiedModuleIds.includes(mapping.moduleId)) {
+      deferredResourceContexts.add(mapping.resourceContext);
+    }
+  }
 
   // Terraform has applied the desired state: actual ← new, less anything a partial commit could not
   // confirm, plus anything whose deletion was deferred.
@@ -365,6 +387,13 @@ export async function commit({
     ),
   ];
 
+  // A resource kept at its last committed state that this run no longer renders keeps its last mapping.
+  const retainedMappings = previousMappings.filter(
+    (mapping) =>
+      !mappingByContext.has(mapping.resourceContext) &&
+      resourceDataRepository.getActualResourceByContext(mapping.resourceContext) !== undefined,
+  );
+
   return {
     addressDigestsByContext,
     emptiedModuleIds,
@@ -372,6 +401,7 @@ export async function commit({
     modelTransaction,
     resources,
     responses,
+    retainedMappings,
     warnings,
   };
 }
