@@ -10,7 +10,7 @@ check "ecr-image-tag-us-east-1-family_image-0-0-1-b1f33b" {
     repository_name = "family/image"
   }
   assert {
-    condition = contains(data.aws_ecr_images.ecr-image-tag-us-east-1-family_image-0-0-1-b1f33b.image_ids[*].image_tag, "0.0.1")
+    condition = contains([for image in coalesce(data.aws_ecr_images.ecr-image-tag-us-east-1-family_image-0-0-1-b1f33b.image_ids, []) : image.image_tag], "0.0.1")
     error_message = "Image family/image:0.0.1 is no longer in its repository! Publish a new tag to replace it."
   }
 }
@@ -167,7 +167,7 @@ check "ecr-image-tag-us-east-1-family_image-0-0-1-b1f33b" {
     repository_name = "family/image"
   }
   assert {
-    condition = contains(data.aws_ecr_images.ecr-image-tag-us-east-1-family_image-0-0-1-b1f33b.image_ids[*].image_tag, "0.0.1")
+    condition = contains([for image in coalesce(data.aws_ecr_images.ecr-image-tag-us-east-1-family_image-0-0-1-b1f33b.image_ids, []) : image.image_tag], "0.0.1")
     error_message = "Image family/image:0.0.1 is no longer in its repository! Publish a new tag to replace it."
   }
 }

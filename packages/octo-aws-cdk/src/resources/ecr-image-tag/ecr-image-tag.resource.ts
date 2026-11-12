@@ -84,7 +84,9 @@ export class EcrImageTag extends AResource<EcrImageTagSchema, EcrImageTag> {
     const { awsAccountId, awsRegionId, imageId, imageTag } = this.properties;
 
     terraform.addExternalPresenceCheck(this, {
-      condition: (dataSourceAddress) => `contains(${dataSourceAddress}.image_ids[*].image_tag, "${imageTag}")`,
+      // A repository holding no image yet lists none as null rather than as an empty list.
+      condition: (dataSourceAddress) =>
+        `contains([for image in coalesce(${dataSourceAddress}.image_ids, []) : image.image_tag], "${imageTag}")`,
       dataSourceSpec: {
         provider: terraform.getProviderAliasRef(awsAccountId, awsRegionId),
         repository_name: imageId,
