@@ -652,6 +652,9 @@ describe('AwsEcsExecutionModule UT', () => {
 
      resource "aws_security_group" "sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-94a6a9" {
        provider = aws._123-us-east-1
+       lifecycle {
+         create_before_destroy = true
+       }
        vpc_id = var.vpc_region.VpcId
      }
 

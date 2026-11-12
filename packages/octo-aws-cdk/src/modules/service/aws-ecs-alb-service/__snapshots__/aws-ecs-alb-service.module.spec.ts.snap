@@ -112,12 +112,18 @@ resource "aws_lb" "alb-test-alb-074c0f" {
 + alb-module/main.tf
 resource "aws_security_group" "sec-grp-changed-alb-074c0f" {
   provider = aws._123-us-east-1
+  lifecycle {
+    create_before_destroy = true
+  }
   vpc_id = var.vpc_region_VpcId
 }
 
 - alb-module/main.tf
 resource "aws_security_group" "sec-grp-test-alb-074c0f" {
   provider = aws._123-us-east-1
+  lifecycle {
+    create_before_destroy = true
+  }
   vpc_id = var.vpc_region_VpcId
 }
 
@@ -659,6 +665,9 @@ resource "aws_lb" "alb-test-alb-074c0f" {
 - alb-module/main.tf
 resource "aws_security_group" "sec-grp-test-alb-074c0f" {
   provider = aws._123-us-east-1
+  lifecycle {
+    create_before_destroy = true
+  }
   vpc_id = var.vpc_region_VpcId
 }
 
@@ -847,7 +856,7 @@ exports[`AwsEcsAlbServiceModule UT should CUD tags 2`] = `
     }
 
 ~ alb-module/main.tf resource "aws_security_group" "sec-grp-test-alb-074c0f" {
-@@ -4,3 +4,4 @@
+@@ -7,3 +7,4 @@
     tags = {
 -     tag1 = "value1"
 +     tag1 = "value1_1"
@@ -884,7 +893,7 @@ exports[`AwsEcsAlbServiceModule UT should CUD tags 4`] = `
   }
 
 ~ alb-module/main.tf resource "aws_security_group" "sec-grp-test-alb-074c0f" {
-@@ -3,6 +3,2 @@
+@@ -6,6 +6,2 @@
     vpc_id = var.vpc_region_VpcId
 -   tags = {
 -     tag1 = "value1_1"
@@ -955,6 +964,9 @@ resource "aws_lb" "alb-test-alb-074c0f" {
 - alb-module-1/main.tf
 resource "aws_security_group" "sec-grp-test-alb-074c0f" {
   provider = aws._123-us-east-1
+  lifecycle {
+    create_before_destroy = true
+  }
   vpc_id = var.vpc_region_VpcId
 }
 
@@ -1147,6 +1159,9 @@ resource "aws_lb" "alb-test-alb-074c0f" {
 + alb-module-2/main.tf
 resource "aws_security_group" "sec-grp-test-alb-074c0f" {
   provider = aws._123-us-east-1
+  lifecycle {
+    create_before_destroy = true
+  }
   vpc_id = var.vpc_region_VpcId
 }
 

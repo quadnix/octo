@@ -69,7 +69,10 @@ export class SecurityGroup extends ATerraformResource<SecurityGroupSchema, Secur
       provider: { accountId: this.properties.awsAccountId, regionId: this.properties.awsRegionId },
     });
 
+    // A replaced group is deleted only once what it guards has moved to its successor, which AWS
+    // requires. AWS names each group, so the two never collide.
     const sgTFResource = sgOctoResource.addTerraformResource('aws_security_group', this.resourceId, {
+      lifecycle: { create_before_destroy: true },
       vpc_id: terraform.getRef(this.parents[0], 'VpcId'),
     });
     sgOctoResource.output({

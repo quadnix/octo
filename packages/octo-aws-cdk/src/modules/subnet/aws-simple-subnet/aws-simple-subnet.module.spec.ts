@@ -169,6 +169,9 @@ describe('AwsSimpleSubnetModule UT', () => {
 
      resource "aws_security_group" "sec-grp-efs-mount-region-private-subnet-test-filesystem-51fb32" {
        provider = aws._123-us-east-1
+       lifecycle {
+         create_before_destroy = true
+       }
        vpc_id = var.vpc_region_VpcId
      }
 

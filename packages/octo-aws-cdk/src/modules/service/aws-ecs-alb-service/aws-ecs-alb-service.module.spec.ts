@@ -349,6 +349,9 @@ describe('AwsEcsAlbServiceModule UT', () => {
 
      resource "aws_security_group" "sec-grp-test-alb-074c0f" {
        provider = aws._123-us-east-1
+       lifecycle {
+         create_before_destroy = true
+       }
        vpc_id = var.vpc_region_VpcId
      }
 
