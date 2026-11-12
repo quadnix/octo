@@ -75,6 +75,7 @@ describe('Multiple distributions E2E', () => {
     expect(countByType(Object.keys(resource))).toMatchInlineSnapshot(`
      {
        "aws_cloudfront_distribution": 2,
+       "aws_cloudwatch_log_group": 1,
        "aws_ecs_cluster": 1,
        "aws_ecs_service": 1,
        "aws_ecs_task_definition": 1,
@@ -148,11 +149,15 @@ describe('Multiple distributions E2E', () => {
      {
        "aws_cloudfront_distribution": 2,
        "aws_cloudfront_origin_access_control": 5,
+       "aws_cloudwatch_log_group": 2,
+       "aws_ecr_lifecycle_policy": 2,
        "aws_ecr_repository": 2,
+       "aws_iam_policy": 2,
        "aws_iam_role": 2,
+       "aws_iam_role_policy_attachment": 2,
        "aws_lambda_function": 2,
        "aws_lambda_function_url": 2,
-       "aws_lambda_permission": 4,
+       "aws_lambda_permission": 6,
        "aws_s3_bucket": 1,
        "aws_s3_bucket_policy": 1,
        "aws_s3_bucket_public_access_block": 1,

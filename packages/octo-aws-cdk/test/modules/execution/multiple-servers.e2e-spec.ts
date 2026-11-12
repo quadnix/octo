@@ -70,6 +70,7 @@ describe('Multiple servers E2E', () => {
 
     expect(countByType(Object.keys(resource))).toMatchInlineSnapshot(`
      {
+       "aws_cloudwatch_log_group": 2,
        "aws_ecs_cluster": 1,
        "aws_ecs_service": 2,
        "aws_ecs_task_definition": 2,
@@ -116,8 +117,12 @@ describe('Multiple servers E2E', () => {
 
     expect(countByType(Object.keys(resource))).toMatchInlineSnapshot(`
      {
+       "aws_cloudwatch_log_group": 2,
+       "aws_ecr_lifecycle_policy": 2,
        "aws_ecr_repository": 2,
+       "aws_iam_policy": 2,
        "aws_iam_role": 2,
+       "aws_iam_role_policy_attachment": 2,
        "aws_lambda_function": 2,
        "aws_lambda_function_url": 2,
        "null_resource": 2,

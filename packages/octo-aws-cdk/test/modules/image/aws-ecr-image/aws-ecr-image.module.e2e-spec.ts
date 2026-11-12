@@ -75,6 +75,7 @@ describe('AwsEcrImageModule E2E', () => {
     // A repository's address holds the account id, so only the resource types are matched.
     expect(Object.keys(HclUtility.parse(hclRender).resource).map((address) => address.split('.')[0])).toEqual([
       'aws_ecr_repository',
+      'aws_ecr_lifecycle_policy',
     ]);
   }, 300_000);
 });

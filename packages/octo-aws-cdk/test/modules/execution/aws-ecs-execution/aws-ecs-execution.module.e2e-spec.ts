@@ -255,6 +255,7 @@ describe('AwsEcsExecutionModule E2E', () => {
      [
        "aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-788084",
        "aws_vpc_security_group_egress_rule.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-788084_egress_0",
+       "aws_cloudwatch_log_group.cloudwatch-log-group-backend-v1-region-qa-private-subnet-788084",
        "aws_iam_role.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-788084",
        "aws_iam_role_policy_attachment.iam-role-ExecutionRole-backend-v1-region-qa-private-subnet-788084_AmazonECSTaskExecutionRolePolicy",
        "aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet-788084",

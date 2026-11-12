@@ -45,6 +45,7 @@ describe('Multiple images E2E', () => {
 
     expect(countByType(Object.keys(resource))).toMatchInlineSnapshot(`
      {
+       "aws_ecr_lifecycle_policy": 2,
        "aws_ecr_repository": 2,
        "null_resource": 3,
      }

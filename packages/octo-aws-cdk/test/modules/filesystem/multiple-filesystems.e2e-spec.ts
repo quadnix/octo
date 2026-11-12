@@ -69,6 +69,7 @@ describe('Multiple filesystems E2E', () => {
 
     expect(countByType(Object.keys(resource))).toMatchInlineSnapshot(`
      {
+       "aws_cloudwatch_log_group": 2,
        "aws_ecs_cluster": 1,
        "aws_ecs_service": 2,
        "aws_ecs_task_definition": 2,

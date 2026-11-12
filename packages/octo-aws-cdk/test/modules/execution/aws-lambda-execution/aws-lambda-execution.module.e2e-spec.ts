@@ -232,7 +232,10 @@ describe('AwsLambdaExecutionModule E2E', () => {
 
     expect(Object.keys(HclUtility.parse(hclRender).resource)).toMatchInlineSnapshot(`
      [
+       "aws_cloudwatch_log_group.cloudwatch-log-group-backend-v1-qa-c96758",
        "aws_iam_role.iam-role-ExecutionRole-backend-v1-qa-c96758",
+       "aws_iam_policy.iam-role-ExecutionRole-backend-v1-qa-c96758_ExecutionRole-backend-v1-qa-logs",
+       "aws_iam_role_policy_attachment.iam-role-ExecutionRole-backend-v1-qa-c96758_ExecutionRole-backend-v1-qa-logs_attach",
        "aws_iam_policy.iam-role-ExecutionRole-backend-v1-qa-c96758_ExecutionRole-backend-v1-qa-34c1aa0ceda0",
        "aws_iam_role_policy_attachment.iam-role-ExecutionRole-backend-v1-qa-c96758_ExecutionRole-backend-v1-qa-34c1aa0ceda0_attach",
        "aws_lambda_function.lambda-function-backend-v1-qa-c96758",

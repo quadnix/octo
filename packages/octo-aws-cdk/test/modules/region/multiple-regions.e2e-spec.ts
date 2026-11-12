@@ -187,6 +187,7 @@ describe('Multiple regions E2E', () => {
       const resource = await planStack(testModuleContainer, ecsStackModules([EAST, WEST]), OUTPUT_DIR);
       expect(countByType(Object.keys(resource))).toMatchInlineSnapshot(`
        {
+         "aws_cloudwatch_log_group": 2,
          "aws_dynamodb_table": 2,
          "aws_ecs_cluster": 2,
          "aws_ecs_service": 2,
@@ -242,11 +243,13 @@ describe('Multiple regions E2E', () => {
       );
       expect(countByType(Object.keys(resource))).toMatchInlineSnapshot(`
        {
+         "aws_cloudwatch_log_group": 2,
          "aws_dynamodb_table": 2,
+         "aws_ecr_lifecycle_policy": 2,
          "aws_ecr_repository": 2,
-         "aws_iam_policy": 4,
+         "aws_iam_policy": 6,
          "aws_iam_role": 2,
-         "aws_iam_role_policy_attachment": 4,
+         "aws_iam_role_policy_attachment": 6,
          "aws_lambda_function": 2,
          "aws_lambda_function_url": 2,
          "null_resource": 2,
@@ -284,6 +287,7 @@ describe('Multiple regions E2E', () => {
       const resource = await planStack(testModuleContainer, ecsStackModules([EAST, EAST_SECOND]), OUTPUT_DIR);
       expect(countByType(Object.keys(resource))).toMatchInlineSnapshot(`
        {
+         "aws_cloudwatch_log_group": 2,
          "aws_dynamodb_table": 2,
          "aws_ecs_cluster": 2,
          "aws_ecs_service": 2,

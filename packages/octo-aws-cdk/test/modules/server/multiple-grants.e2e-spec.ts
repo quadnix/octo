@@ -98,6 +98,7 @@ describe('Multiple grants E2E', () => {
 
     expect(countByType(Object.keys(resource))).toMatchInlineSnapshot(`
      {
+       "aws_cloudwatch_log_group": 1,
        "aws_dynamodb_table": 2,
        "aws_ecs_cluster": 1,
        "aws_ecs_service": 1,
@@ -147,11 +148,13 @@ describe('Multiple grants E2E', () => {
 
     expect(countByType(Object.keys(resource))).toMatchInlineSnapshot(`
      {
+       "aws_cloudwatch_log_group": 1,
        "aws_dynamodb_table": 2,
+       "aws_ecr_lifecycle_policy": 1,
        "aws_ecr_repository": 1,
-       "aws_iam_policy": 5,
+       "aws_iam_policy": 6,
        "aws_iam_role": 1,
-       "aws_iam_role_policy_attachment": 5,
+       "aws_iam_role_policy_attachment": 6,
        "aws_lambda_function": 1,
        "aws_lambda_function_url": 1,
        "aws_s3_bucket": 2,
