@@ -115,7 +115,10 @@ describe('Main E2E', () => {
   it('should change nothing when the identical intent is re-applied', async () => {
     const responsesBefore = await OctoCliUtility.readCommittedResponses(__dirname);
 
-    await OctoCliUtility.lifecycle(__dirname, 'octo.yaml', environment);
+    const report = await OctoCliUtility.lifecycle(__dirname, 'octo.yaml', environment);
+
+    expect(report.changes).toEqual([]);
+    expect(report.drift).toEqual([]);
 
     // Every response octo committed is the one it committed before, which is the whole of what a
     // run that changed nothing leaves behind.
@@ -158,7 +161,11 @@ describe('Main E2E', () => {
       const cloudFrontModule = definition.modules.find((m) => m.moduleId === 'website-cloudfront-module')!;
       cloudFrontModule.moduleInputs.priceClass = 'PriceClass_200';
     });
-    await OctoCliUtility.lifecycle(__dirname, definitionFilePath, environment);
+    const report = await OctoCliUtility.lifecycle(__dirname, definitionFilePath, environment);
+
+    expect(report.changes).toEqual([
+      { action: 'update', address: expect.stringMatching(/^aws_cloudfront_distribution\./), fields: ['price_class'] },
+    ]);
 
     // Nothing on a distribution is force-new, so this is an update rather than a replacement. A
     // replacement would hand back a distribution id that had moved, and would have taken the site

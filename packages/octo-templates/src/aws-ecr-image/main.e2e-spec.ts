@@ -165,7 +165,10 @@ describe('Main E2E', () => {
   });
 
   it('should record no change when nothing moved', async () => {
-    await OctoCliUtility.lifecycle(__dirname, 'octo.yaml', { ...environment, AWS_IMAGE_TAG: '0.0.1' });
+    const report = await OctoCliUtility.lifecycle(__dirname, 'octo.yaml', { ...environment, AWS_IMAGE_TAG: '0.0.1' });
+
+    expect(report.changes).toEqual([]);
+    expect(report.drift).toEqual([]);
 
     expect(Object.keys(await readCommittedResponses())).toEqual(['0.0.1']);
   });

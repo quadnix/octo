@@ -195,9 +195,14 @@ describe('Main E2E', () => {
   });
 
   it('should answer with the new value once the environment changes', async () => {
-    await OctoCliUtility.lifecycle(__dirname, 'octo.yaml', { ...environment, GREETING: 'hello again' });
+    const report = await OctoCliUtility.lifecycle(__dirname, 'octo.yaml', { ...environment, GREETING: 'hello again' });
 
-    // The function is updated in place: same name, same URL.
+    // The environment is every function's, and each one is updated in place: same name, same URL.
+    expect(report.changes.map((change) => `${change.action} ${change.address}`).sort()).toEqual([
+      expect.stringMatching(/^update aws_lambda_function\.lambda-function-octo-lambda-api-greeter-[0-9a-f]+$/),
+      expect.stringMatching(/^update aws_lambda_function\.lambda-function-octo-lambda-api-private-[0-9a-f]+$/),
+      expect.stringMatching(/^update aws_lambda_function\.lambda-function-octo-lambda-api-streamer-[0-9a-f]+$/),
+    ]);
     const functionResponses = await OctoCliUtility.readCommittedResponsesOf(__dirname, '@octo/lambda-function');
     expect(functionResponses.find((r) => r.FunctionName === 'octo-lambda-api-greeter')!.FunctionUrl).toBe(greeterUrl);
 
